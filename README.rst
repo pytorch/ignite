@@ -3,9 +3,11 @@ Ignite
 
 Ignite is a lightweight library to help with training neural networks in PyTorch.
 
+
 Documentation
 =============
 API documentation, examples and tutorials coming soon.
+
 
 Installation
 ============
