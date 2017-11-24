@@ -1,7 +1,10 @@
 Ignite
 ======
 
-Ignite is a lightweight library to help with training neural networks in PyTorch.
+.. image:: https://travis-ci.org/pytorch/ignite.svg?branch=master
+    :target: https://travis-ci.org/pytorch/ignite
+
+Ignite is a high-level library to help with training neural networks in PyTorch.
 
 
 Documentation
