@@ -4,7 +4,6 @@ import logging
 import time
 from collections import Iterable
 
-import numpy as np
 from enum import Enum
 
 
@@ -67,7 +66,6 @@ class Trainer(object):
 
         self._training_data = training_data
         self._validation_data = validation_data
-        self._best_model_parameter_loss = np.inf
         self._training_update_function = training_update_function
         self._validation_inference_function = validation_inference_function
         self._event_listeners = {}
