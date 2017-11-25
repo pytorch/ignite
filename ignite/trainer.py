@@ -67,7 +67,7 @@ class Trainer(object):
         self._validation_data = validation_data
         self._training_update_function = training_update_function
         self._validation_inference_function = validation_inference_function
-        self._event_listeners = {}
+        self._event_handlers = {}
 
         self.training_history = []
         self.validation_history = []
@@ -81,7 +81,7 @@ class Trainer(object):
         logger.addHandler(logging.NullHandler())
         return logger
 
-    def add_event_handler(self, event_name, func, *args, **kwargs):
+    def add_event_handler(self, event_name, handler, *args, **kwargs):
         """
         Add an event handler to be executed when the specified event is fired
 
@@ -89,33 +89,33 @@ class Trainer(object):
         ----------
         event_name: enum
             event from ignite.trainer.TrainingEvents to attach the
-            listener to
-        func: Callable
-            the callable event listener that should be invoked
+            handler to
+        handler: Callable
+            the callable event handler that should be invoked
         args:
-            optional args to be passed to func
+            optional args to be passed to `handler`
         kwargs:
-            optional keyword args to be passed to func
+            optional keyword args to be passed to `handler`
 
         Returns
         -------
         None
         """
         if event_name not in TrainingEvents.__members__.values():
-            self._logger.error("attempt to add event listener to non-existent event %s ",
+            self._logger.error("attempt to add event handler to non-existent event %s ",
                                event_name)
             raise ValueError("Event {} not a valid training event".format(event_name))
 
-        if event_name not in self._event_listeners.keys():
-            self._event_listeners[event_name] = []
+        if event_name not in self._event_handlers.keys():
+            self._event_handlers[event_name] = []
 
-        self._event_listeners[event_name].append((func, args, kwargs))
+        self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event % ", event_name)
 
     def _fire_event(self, event_name):
-        if event_name in self._event_listeners.keys():
+        if event_name in self._event_handlers.keys():
             self._logger.debug("firing handlers for event %s ", event_name)
-            for func, args, kwargs in self._event_listeners[event_name]:
+            for func, args, kwargs in self._event_handlers[event_name]:
                 func(self, *args, **kwargs)
 
     def _train_one_epoch(self):
