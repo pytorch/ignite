@@ -82,9 +82,9 @@ class Trainer(object):
         logger.addHandler(logging.NullHandler())
         return logger
 
-    def add_event_listener(self, event_name, func, *args, **kwargs):
+    def add_event_handler(self, event_name, func, *args, **kwargs):
         """
-        Add an event listener to be executed when the specified event is fired
+        Add an event handler to be executed when the specified event is fired
 
         Parameters
         ----------
