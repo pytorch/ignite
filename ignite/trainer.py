@@ -88,7 +88,7 @@ class Trainer(object):
         Parameters
         ----------
         event_name: enum
-            event from twitter.magicpony.common.training.trainer.TrainingEvents to attach the
+            event from ignite.trainer.TrainingEvents to attach the
             listener to
         func: Callable
             the callable event listener that should be invoked
