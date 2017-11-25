@@ -20,7 +20,6 @@ class TrainingEvents(Enum):
     TRAINING_ITERATION_COMPLETED = "training_iteration_completed"
     VALIDATION_ITERATION_STARTED = "validation_iteration_started"
     VALIDATION_ITERATION_COMPLETED = "validation_iteration_completed"
-    BEST_LOSS_UPDATED = "best_loss_updated"
     EXCEPTION_RAISED = "exception_raised"
 
 
