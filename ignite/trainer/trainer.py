@@ -5,6 +5,9 @@ import time
 from collections import Iterable
 
 from enum import Enum
+from ignite.trainer.history import History
+
+__all__ = ["TrainingEvents", "Trainer"]
 
 
 class TrainingEvents(Enum):
@@ -69,8 +72,8 @@ class Trainer(object):
         self._validation_inference_function = validation_inference_function
         self._event_handlers = {}
 
-        self.training_history = []
-        self.validation_history = []
+        self.training_history = History()
+        self.validation_history = History()
         self.current_iteration = 0
         self.current_validation_iteration = 0
         self.current_epoch = 0
