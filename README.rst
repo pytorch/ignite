@@ -116,6 +116,18 @@ Ignite uses python's standard library logging module, which means you can integr
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
 
+How does this compare to Torchnet?
+==================================
+Ignite, in spirit is very similar to `torchnet <https://github.com/pytorch/tnt>`_ (and was inspired by torchnet). 
+
+The main differences with torchnet is the level of abstraction for the user. Ignite's higher level of abstraction assumes less about the type of network (or networks) that you are training, and we require the user to define the closure to be run in the training and validation loop. In contrast to this, torchnet creates this closure internally based on the network and optimizer you pass to it. This higher level of abstraction allows for a great deal more of flexibility, such as co-training multiple models (i.e. GANs) and computing/tracking multiple losses and metrics in your training loop.
+
+Ignite also allows for multiple handlere to be attached to events, and a finer granularity of events in the loop.
+
+That being said, there are some things from torchnet we really like and would like to port over, such as the integration with Visdom (and possibly add integration with TensorBoard).
+
+As always, PRs are welcome :)
+
 Contributing
 ============
 We appreciate all contributions. If you are planning to contribute back bug-fixes, please do so without any further discussion. If you plan to contribute new features, utility functions or extensions, please first open an issue and discuss the feature with us.
