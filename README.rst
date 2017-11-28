@@ -67,7 +67,7 @@ You can then construct your :code:`Trainer` and train for `num_epochs` as follow
 .. code-block:: python
 
     trainer = Trainer(train_dataloader, training_update_function)
-    trainer.run(num_epochs=5)
+    trainer.run(max_epochs=5)
 
 Training & Validation History
 +++++++++++++++++++++++++++++
