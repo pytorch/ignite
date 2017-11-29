@@ -229,9 +229,8 @@ def test_terminate_at_start_of_epoch_stops_training_after_completing_iteration()
     # epoch is not completed so counter is not incremented
     assert trainer.current_epoch == epoch_to_terminate_on
     assert trainer.should_terminate
-    assert trainer.current_iteration == (
-                                            epoch_to_terminate_on * len(
-                                                batches_per_epoch)) + 1  # completes first iteration
+    # completes first iteration
+    assert trainer.current_iteration == (epoch_to_terminate_on * len(batches_per_epoch)) + 1
 
 
 def test_terminate_stops_training_mid_epoch():
@@ -264,8 +263,8 @@ def test_terminate_stops_trainer_when_called_during_validation():
                       validation_inference_function=MagicMock(return_value=1))
 
     def end_of_iteration_handler(trainer):
-        if (trainer.current_epoch == epoch_to_stop and
-                    trainer.current_validation_iteration == iteration_to_stop):
+        if (trainer.current_epoch == epoch_to_stop and trainer.current_validation_iteration == iteration_to_stop):
+
             trainer.terminate()
 
     trainer.add_event_handler(TrainingEvents.VALIDATION_ITERATION_STARTED, end_of_iteration_handler)
