@@ -54,12 +54,8 @@ class Trainer(object):
         Function receiving data and performing a feed forward without update
     """
 
-    def __init__(
-        self,
-        training_data,
-        training_update_function,
-        validation_data=None,
-        validation_inference_function=None):
+    def __init__(self, training_data, training_update_function, validation_data=None,
+                 validation_inference_function=None):
 
         self._logger = self._get_logger()
 
