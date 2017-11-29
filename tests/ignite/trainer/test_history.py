@@ -2,15 +2,6 @@ import numpy as np
 
 from ignite.trainer.history import History
 
-
-def test_history_append():
-    history = History()
-    for i in range(5):
-        history.append(i)
-        assert history[-1] == i
-    assert len(history) == 5
-
-
 def test_history_clear():
     history = History()
     for i in range(5):

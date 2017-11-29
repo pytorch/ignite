@@ -1,28 +1,12 @@
 import numpy as np
 
 
-class History(object):
+class History(list):
     def __init__(self):
         super(History, self).__init__()
-        self._history = []
-
-    def __iter__(self):
-        return iter(self._history)
-
-    def __setitem__(self, idx, value):
-        self._history[idx] = value
-
-    def __getitem__(self, idx):
-        return self._history[idx]
-
-    def __len__(self):
-        return len(self._history)
 
     def clear(self):
-        self._history = []
-
-    def append(self, item):
-        self._history.append(item)
+      del self[:]
 
     def simple_moving_average(self, window_size, transform=lambda x: x):
         """
@@ -36,7 +20,7 @@ class History(object):
         transform : Callable
             an optional transform to convert historical data into a nummber (default is identity)
         """
-        return np.ma.average(list(map(transform, self._history[-window_size:])))
+        return np.ma.average(list(map(transform, self[-window_size:])))
 
     def weighted_moving_average(self, window_size, weights, transform=lambda x: x):
         """
@@ -51,7 +35,7 @@ class History(object):
         transform : Callable
             an optional transform to convert historical data into a nummber (default is identity)
         """
-        return np.ma.average(list(map(transform, self._history[-window_size:])), weights=weights)
+        return np.ma.average(list(map(transform, self[-window_size:])), weights=weights)
 
     def exponential_moving_average(self, window_size, alpha, transform=lambda x: x):
         """
