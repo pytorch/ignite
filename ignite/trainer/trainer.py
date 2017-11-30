@@ -176,7 +176,7 @@ class Trainer(object):
                           "Training will stop after current iteration is finished")
         self.should_terminate = True
 
-    def run(self, max_epochs=1, validate_every_epoch=True):
+    def run(self, max_epochs=1, validate_every_epoch=1):
         """
         Train the model, evaluate the validation set and update best parameters if the validation loss
         improves.
@@ -187,8 +187,8 @@ class Trainer(object):
         ----------
         max_epochs: int, optional
             max epochs to train for [default=1]
-        validate_every_epoch: bool, optional
-            evaluate the validation set at the end of every epoch [default=True]
+        validate_every_epoch: integer, optional
+            evaluate the validation set at the end of every `validate_every_epoch` epoch [default=1]
 
         Returns
         -------
