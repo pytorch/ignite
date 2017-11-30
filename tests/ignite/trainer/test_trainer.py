@@ -1,11 +1,6 @@
-"""
-Unit tests for trainers
-"""
-
 from __future__ import division
 
 import uuid
-
 import numpy as np
 from mock import call, MagicMock, Mock
 from pytest import raises
@@ -398,3 +393,5 @@ def test_validation_iteration_events_are_fired_when_validate_is_called_explicitl
 
     assert iteration_started.call_count == num_batches
     assert iteration_complete.call_count == num_batches
+
+    # TODO add test to assure history is written to from trainer
