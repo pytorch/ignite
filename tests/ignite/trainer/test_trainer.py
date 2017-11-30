@@ -8,7 +8,6 @@ from pytest import raises
 from ignite.trainer import Trainer, TrainingEvents
 
 
-
 class _PicklableMagicMock(object):
     def __init__(self):
         self.uuid = str(uuid.uuid4())
@@ -395,4 +394,4 @@ def test_validation_iteration_events_are_fired_when_validate_is_called_explicitl
     assert iteration_started.call_count == num_batches
     assert iteration_complete.call_count == num_batches
 
-    #TODO add test to assure history is written to from trainer
+    # TODO add test to assure history is written to from trainer

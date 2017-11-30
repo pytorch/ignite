@@ -6,7 +6,7 @@ class History(list):
         super(History, self).__init__()
 
     def clear(self):
-      del self[:]
+        del self[:]
 
     def simple_moving_average(self, window_size, transform=lambda x: x):
         """
