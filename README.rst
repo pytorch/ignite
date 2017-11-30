@@ -55,9 +55,9 @@ Given a :code:`model`, :code:`criterion` and :code:`optimizer` your :code:`train
     def training_update_function(batch):
         model.train()
         optimizer.zero_grad()
-        input, target = Variable(batch[0]), Variable(batch[1])
-        output = model(input)
-        loss = criterion(output, target)
+        x, y = Variable(batch[0]), Variable(batch[1])
+        prediction = model(x)
+        loss = criterion(prediction, y)
         loss.backward()
         optimizer.step()
         return loss.data[0]
