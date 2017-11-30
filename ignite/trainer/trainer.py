@@ -137,7 +137,7 @@ class Trainer(object):
 
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
-        self._logger.info("Epoch[%s] Complete. Time taken: %d:%d:%d", self.current_epoch, hours,
+        self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch, hours,
                           mins, secs)
 
         self._fire_event(TrainingEvents.TRAINING_EPOCH_COMPLETED)
@@ -164,7 +164,7 @@ class Trainer(object):
 
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
-        self._logger.info("Validation Complete. Time taken: %d:%d:%d", hours, mins, secs)
+        self._logger.info("Validation Complete. Time taken: %02d:%02d:%02d", hours, mins, secs)
 
         self._fire_event(TrainingEvents.VALIDATION_COMPLETED)
 
@@ -218,7 +218,7 @@ class Trainer(object):
             time_taken = time.time() - start_time
             mins, secs = divmod(time_taken, 60)
             hours, mins = divmod(mins, 60)
-            self._logger.info("Training complete. Time taken %d:%d:%d " % (hours, mins, secs))
+            self._logger.info("Training complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
         except BaseException as e:
             self._logger.error("Training is terminating due to exception: %s", str(e))
             self._fire_event(TrainingEvents.EXCEPTION_RAISED)
