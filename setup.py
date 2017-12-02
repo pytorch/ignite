@@ -36,7 +36,7 @@ setup(
     license='BSD',
 
     # Package info
-    packages=find_packages(exclude=('test',)),
+    packages=find_packages(exclude=('tests',)),
 
     zip_safe=True,
     install_requires=requirements,
