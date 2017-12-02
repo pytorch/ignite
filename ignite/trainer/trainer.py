@@ -61,18 +61,18 @@ class Trainer(object):
                  validation_inference_function=None):
 
         self._logger = self._get_logger()
-
-        self._training_data = training_data
-        self._validation_data = validation_data
         self._training_update_function = training_update_function
         self._validation_inference_function = validation_inference_function
         self._event_handlers = {}
 
+        self.training_data = training_data
+        self.validation_data = validation_data
         self.training_history = History()
         self.validation_history = History()
         self.current_iteration = 0
         self.current_validation_iteration = 0
         self.current_epoch = 0
+        self.max_epochs = 0
         self.should_terminate = False
 
     def _get_logger(self):
@@ -122,7 +122,7 @@ class Trainer(object):
         start_time = time.time()
 
         self.epoch_losses = []
-        for _, batch in enumerate(self._training_data, 1):
+        for _, batch in enumerate(self.training_data, 1):
             self._fire_event(TrainingEvents.TRAINING_ITERATION_STARTED)
 
             training_step_result = self._training_update_function(batch)
@@ -144,14 +144,14 @@ class Trainer(object):
 
     def validate(self):
         """ Evaluates the validation set"""
-        if self._validation_data is None:
+        if self.validation_data is None:
             return
 
         self.current_validation_iteration = 0
         self._fire_event(TrainingEvents.VALIDATION_STARTING)
         start_time = time.time()
 
-        for _, batch in enumerate(self._validation_data, 1):
+        for _, batch in enumerate(self.validation_data, 1):
             self._fire_event(TrainingEvents.VALIDATION_ITERATION_STARTED)
             validation_step_result = self._validation_inference_function(batch)
             if validation_step_result is not None:
@@ -197,6 +197,8 @@ class Trainer(object):
         try:
             self._logger.info("Training starting with params max_epochs={} "
                               "validate_every_epoch={}".format(max_epochs, validate_every_epoch))
+
+            self.max_epochs = max_epochs
 
             start_time = time.time()
 

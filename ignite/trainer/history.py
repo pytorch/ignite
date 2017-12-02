@@ -20,7 +20,8 @@ class History(list):
         transform : Callable
             an optional transform to convert historical data into a nummber (default is identity)
         """
-        return np.ma.average(list(map(transform, self[-window_size:])))
+        res = np.ma.average(list(map(transform, self[-window_size:])))
+        return res
 
     def weighted_moving_average(self, window_size, weights, transform=lambda x: x):
         """
@@ -50,6 +51,6 @@ class History(list):
         transform : Callable
             an optional transform to convert historical data into a nummber (default is identity)
         """
-
+        window_size = min(window_size, len(self))
         weights = [(1 - alpha)**i for i in list(range(window_size))[::-1]]
         return self.weighted_moving_average(window_size, weights, transform)
