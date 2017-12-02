@@ -65,7 +65,7 @@ def test_adding_multiple_event_handlers():
     for handler in handlers:
         trainer.add_event_handler(TrainingEvents.TRAINING_STARTED, handler)
 
-    trainer.run(validate_every_epoch=False)
+    trainer.run(validate_every_epoch=0)
     for handler in handlers:
         handler.assert_called_once_with(trainer)
 
@@ -80,7 +80,7 @@ def test_args_and_kwargs_are_passed_to_event():
         trainer.add_event_handler(event, handler, *args, **kwargs)
         handlers.append(handler)
 
-    trainer.run(max_epochs=1, validate_every_epoch=False)
+    trainer.run(max_epochs=1, validate_every_epoch=0)
     called_handlers = [handle for handle in handlers if handle.called]
     assert len(called_handlers) > 0
 
@@ -105,7 +105,7 @@ def test_current_epoch_counter_increases_every_epoch():
 
     trainer.add_event_handler(TrainingEvents.EPOCH_STARTED, EpochCounter())
 
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=False)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=0)
 
     assert trainer.current_epoch == max_epochs
 
@@ -125,7 +125,7 @@ def test_current_iteration_counter_increases_every_iteration():
 
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_STARTED, IterationCounter())
 
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=False)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=0)
 
     assert trainer.current_iteration == max_epochs * len(training_batches)
 
@@ -156,7 +156,7 @@ def test_current_validation_iteration_counter_increases_every_iteration():
     trainer.add_event_handler(TrainingEvents.VALIDATION_STARTING, clear_counter, iteration_counter)
     trainer.add_event_handler(TrainingEvents.VALIDATION_ITERATION_STARTED, iteration_counter)
 
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=True)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=1)
 
     assert iteration_counter.total_count == max_epochs * len(validation_batches)
 
@@ -170,19 +170,28 @@ def test_validate_is_called_every_epoch_by_default():
     assert trainer.validate.call_count == max_epochs
 
 
+def test_validate_is_called_every_two_epochs():
+    trainer = Trainer([1], MagicMock(return_value=1), [1], MagicMock())
+    trainer.validate = MagicMock()
+
+    max_epochs = 5
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=2)
+    assert trainer.validate.call_count == max_epochs // 2
+
+
 def test_validate_not_called_if_validate_every_epoch_is_false():
     trainer = Trainer([1], MagicMock(return_value=1), MagicMock(), MagicMock())
     trainer.validate = MagicMock()
 
     max_epochs = 5
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=False)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=0)
     assert trainer.validate.call_count == 0
 
 
 def test_stopping_criterion_is_max_epochs():
     trainer = Trainer([1], MagicMock(return_value=1), MagicMock(), MagicMock())
     max_epochs = 5
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=False)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=0)
     assert trainer.current_epoch == max_epochs
 
 
@@ -199,7 +208,7 @@ def test_terminate_at_end_of_epoch_stops_training():
 
     assert not trainer.should_terminate
 
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=False)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=0)
 
     assert trainer.current_epoch == last_epoch_to_run + 1  # counter is incremented at end of loop
     assert trainer.should_terminate
@@ -219,7 +228,7 @@ def test_terminate_at_start_of_epoch_stops_training_after_completing_iteration()
 
     assert not trainer.should_terminate
 
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=False)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=0)
 
     # epoch is not completed so counter is not incremented
     assert trainer.current_epoch == epoch_to_terminate_on
@@ -241,7 +250,7 @@ def test_terminate_stops_training_mid_epoch():
             trainer.terminate()
 
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_STARTED, end_of_iteration_handler)
-    trainer.run(max_epochs=3, validate_every_epoch=False)
+    trainer.run(max_epochs=3, validate_every_epoch=0)
     assert (trainer.current_iteration == iteration_to_stop +
             1)  # completes the iteration when terminate called
     assert trainer.current_epoch == np.ceil(
@@ -263,7 +272,7 @@ def test_terminate_stops_trainer_when_called_during_validation():
             trainer.terminate()
 
     trainer.add_event_handler(TrainingEvents.VALIDATION_ITERATION_STARTED, end_of_iteration_handler)
-    trainer.run(max_epochs=4, validate_every_epoch=True)
+    trainer.run(max_epochs=4, validate_every_epoch=1)
 
     assert trainer.current_epoch == epoch_to_stop
     # should complete the iteration when terminate called
@@ -286,7 +295,7 @@ def test_terminate_after_training_iteration_skips_validation_run():
     trainer.validate = MagicMock()
 
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_STARTED, end_of_iteration_handler)
-    trainer.run(max_epochs=3, validate_every_epoch=True)
+    trainer.run(max_epochs=3, validate_every_epoch=1)
     assert trainer.validate.call_count == 0
 
 
@@ -320,7 +329,7 @@ def test_training_iteration_events_are_fired():
     mock_manager.attach_mock(iteration_started, 'iteration_started')
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
 
-    trainer.run(max_epochs=max_epochs, validate_every_epoch=False)
+    trainer.run(max_epochs=max_epochs, validate_every_epoch=0)
 
     assert iteration_started.call_count == num_batches * max_epochs
     assert iteration_complete.call_count == num_batches * max_epochs

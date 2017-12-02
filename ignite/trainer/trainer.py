@@ -189,6 +189,7 @@ class Trainer(object):
             max epochs to train for [default=1]
         validate_every_epoch: integer, optional
             evaluate the validation set at the end of every `validate_every_epoch` epoch [default=1]
+            to disable validation, set `validate_every_epoch=0`
 
         Returns
         -------
@@ -206,7 +207,7 @@ class Trainer(object):
                 self._train_one_epoch()
                 if self.should_terminate:
                     break
-                if validate_every_epoch:
+                if validate_every_epoch > 0 and (self.current_epoch + 1) % validate_every_epoch == 0:
                     self.validate()
                     if self.should_terminate:
                         break
