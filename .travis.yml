@@ -26,5 +26,5 @@ matrix:
   include:
     - env: LINT_CHECK
       python: "2.7"
-      install: conda install flake8
+      install: pip install flake8
       script: flake8
