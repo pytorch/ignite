@@ -18,7 +18,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-readme = open('README.rst').read()
+readme = read('README.rst')
 
 VERSION = find_version('ignite', '__init__.py')
 
