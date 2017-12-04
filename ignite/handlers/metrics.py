@@ -1,3 +1,6 @@
+from __future__ import print_function
+
+
 def log_training_simple_moving_average(trainer, window_size, history_transform=lambda x: x,
                                        should_log=lambda trainer: True, metric_name="", logger=print):
     if should_log(trainer):
