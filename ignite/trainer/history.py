@@ -5,7 +5,7 @@ def _weighted_mean(data, weights=None):
     if len(data) != len(weights):
         raise ValueError("Not enough weights supplied ({}) - expected {}".format(len(weights),
                                                                                  len(data)))
-    return sum(x * y for x, y in zip(data, weights))/float(sum(weights))
+    return sum(x * y for x, y in zip(data, weights)) / float(sum(weights))
 
 
 class History(list):
