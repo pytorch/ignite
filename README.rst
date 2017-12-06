@@ -13,8 +13,8 @@ Ignite is a high-level library to help with training neural networks in PyTorch.
     - `The Trainer`_
     - `Training & Validation History`_
     - `Events & Event Handlers`_
+    - `Logging`_
 - `Examples`_
-- `Logging`_
 - `How does this compare to Torchnet?`_
 - `Contributing`_
 
@@ -94,9 +94,12 @@ The :code:`Trainer` emits events during the training loop, which the user can at
 - VALIDATION_ITERATION_COMPLETED
 - EXCEPTION_RAISED
 
-Users can attach multiple handlers to each of these events, which allows them to control aspects of training such as early stopping, or reducing the learning rate as well as things such as logging or updating external dashboards like `Visdom <https://github.com/facebookresearch/visdom>`_ or `TensorBoard <https://www.tensorflow.org/get_started/summaries_and_tensorboard>`_.
+Users can attach multiple handlers to each of these events, which allows them to control aspects of training such as 
+early stopping, or reducing the learning rate as well as things such as logging or updating external dashboards like
+`Visdom <https://github.com/facebookresearch/visdom>`_ or `TensorBoard <https://www.tensorflow
+.org/get_started/summaries_and_tensorboard>`_ (See `Examples`_ for more details on using Visdom).
 
-Event handlers are any callable where the first argument is an instance of the :code:`Trainer`. Users can also pass any orther arguments or keywword arguments to their event handlers. For example, if we want to terminate training after 100 iterations if the learning rate hasn't decreased in the last 10 iterations, we could define the following event handler and attach it to the :code:`TRAINING_ITERATION_COMPLETED` event.
+Event handlers are any callable where the first argument is an instance of the :code:`Trainer`. Users can also pass any other arguments or keyword arguments to their event handlers. For example, if we want to terminate training after 100 iterations if the learning rate hasn't decreased in the last 10 iterations, we could define the following event handler and attach it to the :code:`TRAINING_ITERATION_COMPLETED` event.
 
 .. code-block:: python
 
@@ -114,10 +117,6 @@ Event handlers are any callable where the first argument is an instance of the :
                               min_iterations,
                               lookback=5)
 
-Examples
-++++++++
-Coming soon
-
 Logging
 +++++++
 Ignite uses `python's standard library logging module <https://docs.python.org/2/library/logging.html>`_, which means you can integrate the Ignite logs directly into your application logs. To do this, simply attach a log handler to the `ignite` logger:
@@ -128,6 +127,14 @@ Ignite uses `python's standard library logging module <https://docs.python.org/2
     logger = logging.getLogger('ignite')
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
+
+Examples
+++++++++
+At present, there is an exmaple of how to use ignite to train a digit classifier on MNIST in `examples/
+<https://github.com/pytorch/ignite/tree/master/examples>`_, this example covers the following things:
+- Attaching custom handlers to training events
+- Attaching ignite's handlers to training events
+- Using handlers to plot to a visdom server to visualize training loss and validation accuracy
 
 How does this compare to Torchnet?
 ==================================
