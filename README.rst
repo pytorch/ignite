@@ -94,7 +94,7 @@ The :code:`Trainer` emits events during the training loop, which the user can at
 - VALIDATION_ITERATION_COMPLETED
 - EXCEPTION_RAISED
 
-Users can attach multiple handlers to each of these events, which allows them to control aspects of training such as
+Users can attach multiple handlers to each of these events, which allows them to control aspects of training such as 
 early stopping, or reducing the learning rate as well as things such as logging or updating external dashboards like
 `Visdom <https://github.com/facebookresearch/visdom>`_ or `TensorBoard <https://www.tensorflow
 .org/get_started/summaries_and_tensorboard>`_ (See `Examples`_ for more details on using Visdom).
