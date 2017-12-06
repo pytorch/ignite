@@ -22,9 +22,16 @@ def test_history_simple_moving_average():
     history = History()
     history.append({'loss': 1, 'other': 2})
     history.append({'loss': 3, 'other': 6})
-    history.append({'loss': 4, 'other': 5})
     sma = history.simple_moving_average(window_size=3, transform=lambda x: x['loss'])
-    np.testing.assert_almost_equal(sma, 8 / 3.0)
+    np.testing.assert_almost_equal(sma, 4 / 2.0)
+
+    history = History()
+    history.append({'loss': 1, 'other': 2})
+    history.append({'loss': 3, 'other': 6})
+    history.append({'loss': 4, 'other': 5})
+    history.append({'loss': 5, 'other': 6})
+    sma = history.simple_moving_average(window_size=3, transform=lambda x: x['loss'])
+    np.testing.assert_almost_equal(sma, 12 / 3.0)
 
 
 def test_weighted_moving_average():
@@ -38,9 +45,16 @@ def test_weighted_moving_average():
     history = History()
     history.append({'loss': 1, 'other': 2})
     history.append({'loss': 3, 'other': 6})
-    history.append({'loss': 4, 'other': 5})
     wma = history.weighted_moving_average(window_size=3, weights=[0.6, 0.8, 1.0], transform=lambda x: x['loss'])
-    np.testing.assert_almost_equal(wma, (0.6 + (0.8 * 3) + 4) / 2.4)
+    np.testing.assert_almost_equal(wma, (0.8 + 3) / 1.8)
+
+    history = History()
+    history.append({'loss': 1, 'other': 2})
+    history.append({'loss': 3, 'other': 6})
+    history.append({'loss': 4, 'other': 6})
+    history.append({'loss': 5, 'other': 8})
+    wma = history.weighted_moving_average(window_size=3, weights=[0.6, 0.8, 1.0], transform=lambda x: x['loss'])
+    np.testing.assert_almost_equal(wma, ((0.6 * 3) + (0.8 * 4) + 5) / 2.4)
 
 
 def test_exponential_moving_average():
@@ -56,7 +70,14 @@ def test_exponential_moving_average():
     history = History()
     history.append({'loss': 1, 'other': 2})
     history.append({'loss': 3, 'other': 6})
-    history.append({'loss': 4, 'other': 5})
     epa = history.exponential_moving_average(window_size=3, alpha=alpha, transform=lambda x: x['loss'])
-    expected_epa = (4 + (1 - alpha) * 3 + (1 - alpha)**2 * 1) / (1 + (1 - alpha) + (1 - alpha)**2)
+    expected_epa = (3 + (1 - alpha) * 1) / (1 + (1 - alpha))
+    np.testing.assert_almost_equal(epa, expected_epa)
+
+    history.append({'loss': 1, 'other': 2})
+    history.append({'loss': 3, 'other': 6})
+    history.append({'loss': 4, 'other': 5})
+    history.append({'loss': 5, 'other': 5})
+    epa = history.exponential_moving_average(window_size=3, alpha=alpha, transform=lambda x: x['loss'])
+    expected_epa = (5 + (1 - alpha) * 4 + (1 - alpha)**2 * 3) / (1 + (1 - alpha) + (1 - alpha)**2)
     np.testing.assert_almost_equal(epa, expected_epa)
