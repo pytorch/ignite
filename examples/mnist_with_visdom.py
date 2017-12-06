@@ -40,8 +40,8 @@ def get_plot_training_loss_handler(vis, plot_every):
                                       opts=dict(
                                           xlabel='# Iterations',
                                           ylabel='Loss',
-                                          title='Training Loss',
-                                      ))
+                                          title='Training Loss')
+                                      )
 
     def plot_training_loss_to_visdom(trainer):
         if trainer.current_iteration % plot_every == 0:
@@ -57,8 +57,8 @@ def get_plot_validation_accuracy_handler(vis):
                                         opts=dict(
                                             xlabel='# Epochs',
                                             ylabel='Accuracy',
-                                            title='Validation Accuracy'
-                                        ))
+                                            title='Validation Accuracy')
+                                        )
 
     def plot_val_accuracy_to_visdom(trainer):
         accuracy = sum([accuracy for (loss, accuracy) in trainer.validation_history])
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.log_file is not None:
-        logging.basicConfig(filename=args.log_file,level=logging.INFO)
+        logging.basicConfig(filename=args.log_file, level=logging.INFO)
         logger = logging.getLogger()
         logger.addHandler(logging.StreamHandler())
         logger = logger.info
