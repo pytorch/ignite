@@ -130,7 +130,7 @@ Ignite uses `python's standard library logging module <https://docs.python.org/2
 
 Examples
 ++++++++
-At present, there is an exmaple of how to use ignite to train a digit classifier on MNIST in `examples/
+At present, there is an example of how to use ignite to train a digit classifier on MNIST in `examples/
 <https://github.com/pytorch/ignite/tree/master/examples>`_, this example covers the following things:
 
 - Attaching custom handlers to training events
