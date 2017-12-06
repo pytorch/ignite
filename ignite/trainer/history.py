@@ -1,4 +1,11 @@
-import numpy as np
+def _weighted_mean(data, weights=None):
+    if weights is None:
+        weights = [1] * len(data)
+
+    if len(data) != len(weights):
+        raise ValueError("Not enough weights supplied ({}) - expected {}".format(len(weights),
+                                                                                 len(data)))
+    return sum(x * y for x, y in zip(data, weights)) / float(sum(weights))
 
 
 class History(list):
@@ -20,7 +27,7 @@ class History(list):
         transform : Callable
             an optional transform to convert historical data into a nummber (default is identity)
         """
-        res = np.ma.average(list(map(transform, self[-window_size:])))
+        res = _weighted_mean(list(map(transform, self[-window_size:])))
         return res
 
     def weighted_moving_average(self, window_size, weights, transform=lambda x: x):
@@ -34,9 +41,11 @@ class History(list):
         weights: Iterable
             The importance that each element has in the computation of the average.
         transform : Callable
-            an optional transform to convert historical data into a nummber (default is identity)
+            an optional transform to convert historical data into a number (default is identity)
         """
-        return np.ma.average(list(map(transform, self[-window_size:])), weights=weights)
+        data = list(map(transform, self[-window_size:]))
+        weights = weights[-len(data):]
+        return _weighted_mean(data, weights=weights)
 
     def exponential_moving_average(self, window_size, alpha, transform=lambda x: x):
         """
