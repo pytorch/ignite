@@ -108,7 +108,7 @@ Event handlers are any callable where the first argument is an instance of the :
     def early_stopping_handler(trainer, min_iterations, lookback=1):
         if trainer.current_iterations >= min_iterations:
             last_loss = trainer.training_history[-1]
-            if not any(x < last_loss for x in trainer.training_history[-lookback:-1]):
+            if not any(x < last_loss for x in trainer.training_history[-lookback:]):
                 trainer.terminate()
 
     min_iterations = 100
