@@ -206,7 +206,7 @@ class Trainer(object):
     def _update_best_model_loss(self):
         """
         If the loss has improved, stores the current best loss.
-  
+
         Uses the validation loss if validation data is available, otherwise uses the training loss.
         """
 
