@@ -57,11 +57,11 @@ class Trainer(object):
     """
 
     def __init__(
-        self,
-        training_data,
-        training_update_function,
-        validation_data=None,
-        validation_inference_function=None):
+            self,
+            training_data,
+            training_update_function,
+            validation_data=None,
+            validation_inference_function=None):
 
         self._logger = self._get_logger()
 
@@ -145,13 +145,13 @@ class Trainer(object):
                 return
 
         if len(self.epoch_results) == 0:
-          raise ValueError("There are no iteration losses. \
+            raise ValueError("There are no iteration losses. \
                   Likely this was caused by an empty training data iterable.")
         else:
-          avg_loss = np.mean(self.epoch_results, 0)
+            avg_loss = np.mean(self.epoch_results, 0)
 
         if not isinstance(avg_loss, Iterable):
-          avg_loss = [avg_loss]
+            avg_loss = [avg_loss]
 
         self.avg_training_loss_per_epoch.append(avg_loss)
 
@@ -183,17 +183,17 @@ class Trainer(object):
                 break
 
         if len(self.validation_history) == 0:
-          raise ValueError("There are no iteration losses. \
+            raise ValueError("There are no iteration losses. \
                 Likely this was caused by an empty validation data iterable.")
         else:
-          avg_loss = np.mean(self.validation_history, 0)
+            avg_loss = np.mean(self.validation_history, 0)
 
         if not isinstance(avg_loss, Iterable):
-          avg_loss = [avg_loss]
+            avg_loss = [avg_loss]
 
         self.avg_validation_loss.append(avg_loss)
         if avg_loss[0] < self.best_validation_loss[0]:
-          self.best_validation_loss = avg_loss
+            self.best_validation_loss = avg_loss
 
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
@@ -204,27 +204,27 @@ class Trainer(object):
         self._fire_event(TrainingEvents.VALIDATION_COMPLETED)
 
     def _update_best_model_loss(self):
-      """
-      If the loss has improved, stores the current best loss.
+        """
+        If the loss has improved, stores the current best loss.
+  
+        Uses the validation loss if validation data is available, otherwise uses the training loss.
+        """
 
-      Uses the validation loss if validation data is available, otherwise uses the training loss.
-      """
+        # obtain best guess of loss corresponding to current set of parameters
+        current_loss = np.inf
+        if self._validation_data:
+            if self.avg_validation_loss:
+                current_loss = self.avg_validation_loss[-1]
+        elif self.avg_training_loss_per_epoch:
+            current_loss = self.avg_training_loss_per_epoch[-1]
+        # use first loss when multiple losses present
+        if isinstance(current_loss, Iterable):
+            current_loss = current_loss[0]
 
-      # obtain best guess of loss corresponding to current set of parameters
-      current_loss = np.inf
-      if self._validation_data:
-        if self.avg_validation_loss:
-          current_loss = self.avg_validation_loss[-1]
-      elif self.avg_training_loss_per_epoch:
-        current_loss = self.avg_training_loss_per_epoch[-1]
-      # use first loss when multiple losses present
-      if isinstance(current_loss, Iterable):
-        current_loss = current_loss[0]
-
-      if current_loss < self._best_model_parameter_loss:
-        self._logger.info("Updating best model loss")
-        self._fire_event(TrainingEvents.BEST_LOSS_UPDATED)
-        self._best_model_parameter_loss = current_loss
+        if current_loss < self._best_model_parameter_loss:
+            self._logger.info("Updating best model loss")
+            self._fire_event(TrainingEvents.BEST_LOSS_UPDATED)
+            self._best_model_parameter_loss = current_loss
 
     def terminate(self):
         """
