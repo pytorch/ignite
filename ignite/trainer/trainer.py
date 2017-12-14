@@ -5,9 +5,7 @@ import time
 from collections import Iterable
 
 from enum import Enum
-from ignite.trainer.history import History
-
-__all__ = ["TrainingEvents", "Trainer"]
+import numpy as np
 
 
 class TrainingEvents(Enum):
@@ -23,6 +21,7 @@ class TrainingEvents(Enum):
     TRAINING_ITERATION_COMPLETED = "training_iteration_completed"
     VALIDATION_ITERATION_STARTED = "validation_iteration_started"
     VALIDATION_ITERATION_COMPLETED = "validation_iteration_completed"
+    BEST_LOSS_UPDATED = "best_loss_updated"
     EXCEPTION_RAISED = "exception_raised"
 
 
@@ -57,22 +56,31 @@ class Trainer(object):
         Function receiving data and performing a feed forward without update
     """
 
-    def __init__(self, training_data, training_update_function, validation_data=None,
-                 validation_inference_function=None):
+    def __init__(
+        self,
+        training_data,
+        training_update_function,
+        validation_data=None,
+        validation_inference_function=None):
 
         self._logger = self._get_logger()
+
+        self._training_data = training_data
+        self._validation_data = validation_data
+        self._best_model_parameter_loss = np.inf
         self._training_update_function = training_update_function
         self._validation_inference_function = validation_inference_function
         self._event_handlers = {}
 
-        self.training_data = training_data
-        self.validation_data = validation_data
-        self.training_history = History()
-        self.validation_history = History()
+        self.training_history = []
+        self.avg_training_loss_per_epoch = []
+        self.best_training_loss = [np.inf]
+        self.validation_history = []
+        self.avg_validation_loss = []
+        self.best_validation_loss = [np.inf]
         self.current_iteration = 0
         self.current_validation_iteration = 0
         self.current_epoch = 0
-        self.max_epochs = 0
         self.should_terminate = False
 
     def _get_logger(self):
@@ -121,37 +129,49 @@ class Trainer(object):
         self._fire_event(TrainingEvents.TRAINING_EPOCH_STARTED)
         start_time = time.time()
 
-        self.epoch_losses = []
-        for _, batch in enumerate(self.training_data, 1):
+        self.epoch_results = []
+        for _, batch in enumerate(self._training_data, 1):
             self._fire_event(TrainingEvents.TRAINING_ITERATION_STARTED)
 
             training_step_result = self._training_update_function(batch)
             if training_step_result is not None:
                 self.training_history.append(training_step_result)
 
+            self.epoch_results.append(training_step_result)
             self.current_iteration += 1
 
             self._fire_event(TrainingEvents.TRAINING_ITERATION_COMPLETED)
             if self.should_terminate:
                 return
 
+        if len(self.epoch_results) == 0:
+          raise ValueError("There are no iteration losses. \
+                  Likely this was caused by an empty training data iterable.")
+        else:
+          avg_loss = np.mean(self.epoch_results, 0)
+
+        if not isinstance(avg_loss, Iterable):
+          avg_loss = [avg_loss]
+
+        self.avg_training_loss_per_epoch.append(avg_loss)
+
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
-        self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch, hours,
-                          mins, secs)
+        self._logger.info("Epoch[%s] Complete. Avg. Loss: %s \t Best Loss: %s \t  "
+                          "Time taken: %d:%d:%d", self.current_epoch, avg_loss,
+                          self.best_training_loss, hours, mins, secs)
 
         self._fire_event(TrainingEvents.TRAINING_EPOCH_COMPLETED)
 
     def validate(self):
         """ Evaluates the validation set"""
-        if self.validation_data is None:
+        if self._validation_data is None:
             return
 
         self.current_validation_iteration = 0
         self._fire_event(TrainingEvents.VALIDATION_STARTING)
         start_time = time.time()
-
-        for _, batch in enumerate(self.validation_data, 1):
+        for _, batch in enumerate(self._validation_data, 1):
             self._fire_event(TrainingEvents.VALIDATION_ITERATION_STARTED)
             validation_step_result = self._validation_inference_function(batch)
             if validation_step_result is not None:
@@ -162,11 +182,49 @@ class Trainer(object):
             if self.should_terminate:
                 break
 
+        if len(self.validation_history) == 0:
+          raise ValueError("There are no iteration losses. \
+                Likely this was caused by an empty validation data iterable.")
+        else:
+          avg_loss = np.mean(self.validation_history, 0)
+
+        if not isinstance(avg_loss, Iterable):
+          avg_loss = [avg_loss]
+
+        self.avg_validation_loss.append(avg_loss)
+        if avg_loss[0] < self.best_validation_loss[0]:
+          self.best_validation_loss = avg_loss
+
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
-        self._logger.info("Validation Complete. Time taken: %02d:%02d:%02d", hours, mins, secs)
+        self._logger.info("Validation Complete. "
+                          "Avg. Loss: %s \t Best Loss: %s \t Time taken: %d:%d:%d",
+                          avg_loss, self.best_validation_loss, hours, mins, secs)
 
         self._fire_event(TrainingEvents.VALIDATION_COMPLETED)
+
+    def _update_best_model_loss(self):
+      """
+      If the loss has improved, stores the current best loss.
+
+      Uses the validation loss if validation data is available, otherwise uses the training loss.
+      """
+
+      # obtain best guess of loss corresponding to current set of parameters
+      current_loss = np.inf
+      if self._validation_data:
+        if self.avg_validation_loss:
+          current_loss = self.avg_validation_loss[-1]
+      elif self.avg_training_loss_per_epoch:
+        current_loss = self.avg_training_loss_per_epoch[-1]
+      # use first loss when multiple losses present
+      if isinstance(current_loss, Iterable):
+        current_loss = current_loss[0]
+
+      if current_loss < self._best_model_parameter_loss:
+        self._logger.info("Updating best model loss")
+        self._fire_event(TrainingEvents.BEST_LOSS_UPDATED)
+        self._best_model_parameter_loss = current_loss
 
     def terminate(self):
         """
@@ -198,8 +256,6 @@ class Trainer(object):
             self._logger.info("Training starting with params max_epochs={} "
                               "validate_every_epoch={}".format(max_epochs, validate_every_epoch))
 
-            self.max_epochs = max_epochs
-
             start_time = time.time()
 
             self._fire_event(TrainingEvents.TRAINING_STARTED)
@@ -220,7 +276,7 @@ class Trainer(object):
             time_taken = time.time() - start_time
             mins, secs = divmod(time_taken, 60)
             hours, mins = divmod(mins, 60)
-            self._logger.info("Training complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self._logger.info("Training complete. Time taken %d:%d:%d " % (hours, mins, secs))
         except BaseException as e:
             self._logger.error("Training is terminating due to exception: %s", str(e))
             self._fire_event(TrainingEvents.EXCEPTION_RAISED)
