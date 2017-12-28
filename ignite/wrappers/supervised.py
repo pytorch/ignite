@@ -1,5 +1,6 @@
 from torch.autograd import Variable
 
+
 class Supervised(object):
     """
     Provides training and validation update functions for standard supervised models.
