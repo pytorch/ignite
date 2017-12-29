@@ -50,7 +50,7 @@ class Supervised(object):
         self._model.eval()
         x, y = self._prepare_batch(batch)
         y_pred = self._model(x)
-        return y_pred, y
+        return y_pred.data.cpu(), y.data.cpu()
 
     def _prepare_batch(self, batch):
         x, y = batch

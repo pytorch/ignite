@@ -45,7 +45,7 @@ def test_predict():
     batch = _build_batch()
     y_pred, y = wrapper.predict(batch)
 
-    _assert_almost_equal(y_pred.data[0, 0], 0.0)
-    _assert_almost_equal(y_pred.data[1, 0], 0.0)
-    _assert_almost_equal(y.data[0, 0], 3.0)
-    _assert_almost_equal(y.data[1, 0], 5.0)
+    _assert_almost_equal(y_pred[0, 0], 0.0)
+    _assert_almost_equal(y_pred[1, 0], 0.0)
+    _assert_almost_equal(y[0, 0], 3.0)
+    _assert_almost_equal(y[1, 0], 5.0)
