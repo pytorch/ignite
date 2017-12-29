@@ -44,29 +44,20 @@ class Trainer(object):
 
     Parameters
     ----------
-    training_data : Iterable
-        Collection of training batches allowing repeated iteration (e.g., list or DataLoader)
-
     training_update_function : callable
         Update function receiving the current training batch in each iteration
-
-    validation_data : Iterable
-        Collection of validation batches allowing repeated iteration
 
     validation_inference_function : callable
         Function receiving data and performing a feed forward without update
     """
 
-    def __init__(self, training_data, training_update_function, validation_data=None,
-                 validation_inference_function=None):
+    def __init__(self, training_update_function, validation_inference_function=None):
 
         self._logger = self._get_logger()
         self._training_update_function = training_update_function
         self._validation_inference_function = validation_inference_function
         self._event_handlers = {}
 
-        self.training_data = training_data
-        self.validation_data = validation_data
         self.training_history = History()
         self.validation_history = History()
         self.current_iteration = 0
@@ -117,12 +108,12 @@ class Trainer(object):
             for func, args, kwargs in self._event_handlers[event_name]:
                 func(self, *args, **kwargs)
 
-    def _train_one_epoch(self):
+    def _train_one_epoch(self, training_data):
         self._fire_event(TrainingEvents.TRAINING_EPOCH_STARTED)
         start_time = time.time()
 
         self.epoch_losses = []
-        for _, batch in enumerate(self.training_data, 1):
+        for _, batch in enumerate(training_data, 1):
             self._fire_event(TrainingEvents.TRAINING_ITERATION_STARTED)
 
             training_step_result = self._training_update_function(batch)
@@ -142,16 +133,16 @@ class Trainer(object):
 
         self._fire_event(TrainingEvents.TRAINING_EPOCH_COMPLETED)
 
-    def validate(self):
+    def validate(self, validation_data):
         """ Evaluates the validation set"""
-        if self.validation_data is None:
-            return
+        if self._validation_inference_function is None:
+            raise ValueError("Trainer must have a validation_inference_function in order to validate")
 
         self.current_validation_iteration = 0
         self._fire_event(TrainingEvents.VALIDATION_STARTING)
         start_time = time.time()
 
-        for _, batch in enumerate(self.validation_data, 1):
+        for _, batch in enumerate(validation_data, 1):
             self._fire_event(TrainingEvents.VALIDATION_ITERATION_STARTED)
             validation_step_result = self._validation_inference_function(batch)
             if validation_step_result is not None:
@@ -176,7 +167,7 @@ class Trainer(object):
                           "Training will stop after current iteration is finished")
         self.should_terminate = True
 
-    def run(self, max_epochs=1, validate_every_epoch=True):
+    def run(self, training_data, max_epochs=1):
         """
         Train the model, evaluate the validation set and update best parameters if the validation loss
         improves.
@@ -185,18 +176,18 @@ class Trainer(object):
 
         Parameters
         ----------
+        training_data : Iterable
+            Collection of training batches allowing repeated iteration (e.g., list or DataLoader)
         max_epochs: int, optional
             max epochs to train for [default=1]
-        validate_every_epoch: bool, optional
-            evaluate the validation set at the end of every epoch [default=True]
 
         Returns
         -------
         None
         """
+
         try:
-            self._logger.info("Training starting with params max_epochs={} "
-                              "validate_every_epoch={}".format(max_epochs, validate_every_epoch))
+            self._logger.info("Training starting with max_epochs={}".format(max_epochs))
 
             self.max_epochs = max_epochs
 
@@ -205,13 +196,9 @@ class Trainer(object):
             self._fire_event(TrainingEvents.TRAINING_STARTED)
             while self.current_epoch < max_epochs and not self.should_terminate:
                 self._fire_event(TrainingEvents.EPOCH_STARTED)
-                self._train_one_epoch()
+                self._train_one_epoch(training_data)
                 if self.should_terminate:
                     break
-                if validate_every_epoch:
-                    self.validate()
-                    if self.should_terminate:
-                        break
 
                 self._fire_event(TrainingEvents.EPOCH_COMPLETED)
                 self.current_epoch += 1
