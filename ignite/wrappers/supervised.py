@@ -35,7 +35,7 @@ class Supervised(object):
         loss = self._loss_fn(y_pred, y)
         loss.backward()
         self._optimizer.step()
-        return loss.data[0]
+        return loss.data.cpu()[0]
 
     def predict(self, batch):
         """
