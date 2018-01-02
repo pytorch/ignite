@@ -39,7 +39,7 @@ class Supervised(object):
 
     def predict(self, batch):
         """
-        Validation update function.
+        Validation inference function.
 
         Args:
             batch (tuple): the model input and target
