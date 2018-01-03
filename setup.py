@@ -22,7 +22,7 @@ readme = read('README.rst')
 
 VERSION = find_version('ignite', '__init__.py')
 
-requirements = ['enum34']
+requirements = ['enum34', 'torch']
 
 setup(
     # Metadata
