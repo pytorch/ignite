@@ -2,7 +2,13 @@ import torch
 from pytest import approx
 
 from ignite.trainer.history import History
-from ignite.metrics import binary_accuracy, categorical_accuracy, top_k_categorical_accuracy, mean_squared_error, mean_absolute_error
+from ignite.metrics import (
+    binary_accuracy,
+    categorical_accuracy,
+    top_k_categorical_accuracy,
+    mean_squared_error,
+    mean_absolute_error
+)
 
 
 def test_binary_accuracy():
@@ -18,7 +24,6 @@ def test_binary_accuracy():
     result = binary_accuracy(history, transform=lambda x: (x['y_pred'], x['y']))
 
     assert result == approx(0.5)
-
 
 
 def test_categorical_accuracy():
@@ -64,6 +69,7 @@ def test_top_k_categorical_accuracy():
     assert top_1_result == approx(0.5)
     assert top_1_result == approx(categorical_accuracy(history,
                                                        transform=lambda x: (x['y_pred'], x['y'])))
+
 
 def test_mean_squared_error():
     history = History()
