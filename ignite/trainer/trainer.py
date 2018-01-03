@@ -103,6 +103,29 @@ class Trainer(object):
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event % ", event_name)
 
+    def on(self, event_name, *args, **kwargs):
+        """
+        Decorator shortcut for add_event_handler
+
+        Parameters
+        ----------
+        event_name: enum
+            event from ignite.trainer.TrainingEvents to attach the
+            handler to
+        args:
+            optional args to be passed to `handler`
+        kwargs:
+            optional keyword args to be passed to `handler`
+
+        Returns
+        -------
+        None
+        """
+        def decorator(f):
+            self.add_event_handler(event_name, f, *args, **kwargs)
+            return f
+        return decorator
+
     def _fire_event(self, event_name):
         if event_name in self._event_handlers.keys():
             self._logger.debug("firing handlers for event %s ", event_name)
