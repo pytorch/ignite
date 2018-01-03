@@ -129,8 +129,10 @@ def test_current_iteration_counter_increases_every_iteration():
 
     assert trainer.current_iteration == max_epochs * len(training_batches)
 
+
 def _validate(trainer, validation_data):
     trainer.validate(validation_data)
+
 
 def test_current_validation_iteration_counter_increases_every_iteration():
     validation_batches = [1, 2, 3]
