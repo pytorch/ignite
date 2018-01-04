@@ -5,9 +5,10 @@ import time
 from collections import Iterable
 
 from enum import Enum
+from torch.autograd import Variable
 from ignite.trainer.history import History
 
-__all__ = ["TrainingEvents", "Trainer"]
+__all__ = ["TrainingEvents", "Trainer", "create_supervised"]
 
 
 class TrainingEvents(Enum):
@@ -212,3 +213,41 @@ class Trainer(object):
             self._logger.error("Training is terminating due to exception: %s", str(e))
             self._fire_event(TrainingEvents.EXCEPTION_RAISED)
             raise e
+
+
+def create_supervised(model, optimizer, loss_fn, cuda=False):
+    """
+    Factory function for creating a trainer for supervised models
+
+    Args:
+        model (torch.nn.Module): the model to train
+        optimizer (torch.optim.Optimizer): the optimizer to use
+        loss_fn (torch.nn loss function): the loss function to use
+        cuda (bool, optional): whether or not to transfer batch to GPU (default: False)
+
+    Returns:
+        Trainer: a trainer instance with supervised update and inference functions
+    """
+    def _prepare_batch(batch):
+        x, y = batch
+        if cuda:
+            x, y = x.cuda(), y.cuda()
+        return Variable(x), Variable(y)
+
+    def _update(batch):
+        model.train()
+        optimizer.zero_grad()
+        x, y = _prepare_batch(batch)
+        y_pred = model(x)
+        loss = loss_fn(y_pred, y)
+        loss.backward()
+        optimizer.step()
+        return loss.data.cpu()[0]
+
+    def _inference(batch):
+        model.eval()
+        x, y = _prepare_batch(batch)
+        y_pred = model(x)
+        return y_pred.data.cpu(), y.data.cpu()
+
+    return Trainer(_update, _inference)
