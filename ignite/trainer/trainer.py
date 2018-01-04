@@ -228,11 +228,11 @@ def create_supervised(model, optimizer, loss_fn, cuda=False):
     Returns:
         Trainer: a trainer instance with supervised update and inference functions
     """
-    def _prepare_batch(batch):
+    def _prepare_batch(batch, volatile=False):
         x, y = batch
         if cuda:
             x, y = x.cuda(), y.cuda()
-        return Variable(x), Variable(y)
+        return Variable(x, volatile=volatile), Variable(y, volatile=volatile)
 
     def _update(batch):
         model.train()
@@ -246,7 +246,7 @@ def create_supervised(model, optimizer, loss_fn, cuda=False):
 
     def _inference(batch):
         model.eval()
-        x, y = _prepare_batch(batch)
+        x, y = _prepare_batch(batch, volatile=True)
         y_pred = model(x)
         return y_pred.data.cpu(), y.data.cpu()
 
