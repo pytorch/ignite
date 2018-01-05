@@ -1,11 +1,16 @@
 from __future__ import division
 
 import uuid
+import torch
+from torch.nn import Linear
+from torch.optim import SGD
+from torch.autograd import Variable
+from torch.nn.functional import mse_loss
 import numpy as np
 from mock import call, MagicMock, Mock
-from pytest import raises
+from pytest import raises, approx
 
-from ignite.trainer import Trainer, TrainingEvents
+from ignite.trainer import Trainer, TrainingEvents, create_supervised
 
 
 class _PicklableMagicMock(object):
@@ -375,3 +380,33 @@ def test_validation_iteration_events_are_fired_when_validate_is_called_explicitl
     assert iteration_complete.call_count == num_batches
 
     # TODO add test to assure history is written to from trainer
+
+
+def test_create_supervised():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+    trainer = create_supervised(model, optimizer, mse_loss)
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    trainer.validate(data)
+    y_pred, y = trainer.validation_history[0]
+
+    assert y_pred[0, 0] == approx(0.0)
+    assert y_pred[1, 0] == approx(0.0)
+    assert y[0, 0] == approx(3.0)
+    assert y[1, 0] == approx(5.0)
+
+    assert model.weight.data[0, 0] == approx(0.0)
+    assert model.bias.data[0] == approx(0.0)
+
+    trainer.run(data)
+    loss = trainer.training_history[0]
+
+    assert loss == approx(17.0)
+    assert model.weight.data[0, 0] == approx(1.3)
+    assert model.bias.data[0] == approx(0.8)
