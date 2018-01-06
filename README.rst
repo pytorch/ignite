@@ -14,6 +14,7 @@ Ignite is a high-level library to help with training neural networks in PyTorch.
     - `Training & Validation History`_
     - `Events & Event Handlers`_
     - `Logging`_
+    - `Metrics`_
 - `Examples`_
 - `How does this compare to Torchnet?`_
 - `Contributing`_
@@ -127,6 +128,16 @@ Ignite uses `python's standard library logging module <https://docs.python.org/2
     logger = logging.getLogger('ignite')
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
+
+Metrics
++++++++
+Ignite supports certain metrics which can be used to classify the performance of a given model. The metrics currently available in :code:`ignite` are:
+
+- :code:`binary_accuracy` : This takes a :code:`History` object (either :code:`training_history` or :code:`validation_history`) and an optional callable transform and computes the binary accuracy which is 1 if the values are equal or 0 otherwise. This is generally used for binary classification tasks
+- :code:`categorical_accuracy` : This is the :code:`binary_accuracy` equivalent for multi-class classification where number of classes are greater than 2.
+- :code:`top_k_categorical_accuracy` : This computes the Top K classification accuracy, which is a popular mode of evaluating models on larger datasets with higher number of classes. The semantics are similar to :code:`categorical_accuracy` except there is an additional argument for the value of :code:`k`
+- :code:`mean_squared_error` : Generally used in regression tasks, this computes the sum of squared deviations between the predicted value and the actual value for a given input datapoint. This function takes a :code:`History` object and an optional callable transform and computes the mean squared error. The square root of this gives the root mean squared error (RMSE).
+- :code:`mean_absolute_error` : This is similar to the :code:`mean_squared_error` function, but instead computes the sum of absolute deviations between the predicted value and the actual value for a given input datapoint.
 
 Examples
 ++++++++
