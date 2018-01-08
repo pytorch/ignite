@@ -410,3 +410,32 @@ def test_create_supervised():
     assert loss == approx(17.0)
     assert model.weight.data[0, 0] == approx(1.3)
     assert model.bias.data[0] == approx(0.8)
+
+
+def test_on_decorator():
+    max_epochs = 5
+    num_batches = 3
+    training_data = _create_mock_data_loader(max_epochs, num_batches)
+
+    trainer = Trainer(MagicMock(return_value=1), MagicMock())
+
+    class Counter(object):
+        def __init__(self, count=0):
+            self.count = count
+
+    started_counter = Counter()
+
+    @trainer.on(TrainingEvents.TRAINING_ITERATION_STARTED, started_counter)
+    def handle_training_iteration_started(trainer, started_counter):
+        started_counter.count += 1
+
+    completed_counter = Counter()
+
+    @trainer.on(TrainingEvents.TRAINING_ITERATION_COMPLETED, completed_counter)
+    def handle_training_iteration_completed(trainer, completed_counter):
+        completed_counter.count += 1
+
+    trainer.run(training_data, max_epochs=max_epochs)
+
+    assert started_counter.count == 15
+    assert completed_counter.count == 15
