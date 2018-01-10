@@ -96,6 +96,34 @@ def test_args_and_kwargs_are_passed_to_event():
         assert handler_kwargs == kwargs
 
 
+def test_current_batch_is_set_every_iteration():
+    training_batches = [1, 2, 3]
+    trainer = Trainer(MagicMock(), MagicMock())
+
+    def batch_accumulator(trainer, acc):
+        acc.append(trainer.current_batch)
+
+    accumulated = []
+    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_STARTED, batch_accumulator, accumulated)
+    trainer.run(training_batches)
+
+    assert accumulated == training_batches
+
+
+def test_current_validation_batch_is_set_every_iteration():
+    validation_batches = [1, 2, 3]
+    trainer = Trainer(MagicMock(), MagicMock())
+
+    def batch_accumulator(trainer, acc):
+        acc.append(trainer.current_validation_batch)
+
+    accumulated = []
+    trainer.add_event_handler(TrainingEvents.VALIDATION_ITERATION_STARTED, batch_accumulator, accumulated)
+    trainer.validate(validation_batches)
+
+    assert accumulated == validation_batches
+
+
 def test_current_epoch_counter_increases_every_epoch():
     trainer = Trainer(MagicMock(return_value=1), MagicMock())
     max_epochs = 5

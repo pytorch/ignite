@@ -61,6 +61,8 @@ class Trainer(object):
 
         self.training_history = History()
         self.validation_history = History()
+        self.current_batch = None
+        self.current_validation_batch = None
         self.current_iteration = 0
         self.current_validation_iteration = 0
         self.current_epoch = 0
@@ -138,6 +140,7 @@ class Trainer(object):
 
         self.epoch_losses = []
         for _, batch in enumerate(training_data, 1):
+            self.current_batch = batch
             self._fire_event(TrainingEvents.TRAINING_ITERATION_STARTED)
 
             training_step_result = self._training_update_function(batch)
@@ -167,6 +170,7 @@ class Trainer(object):
         start_time = time.time()
 
         for _, batch in enumerate(validation_data, 1):
+            self.current_validation_batch = batch
             self._fire_event(TrainingEvents.VALIDATION_ITERATION_STARTED)
             validation_step_result = self._validation_inference_function(batch)
             if validation_step_result is not None:
