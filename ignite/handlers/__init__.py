@@ -1,1 +1,1 @@
-from .validate import Validate
+from .inference import Inference
