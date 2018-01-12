@@ -82,4 +82,3 @@ def create_supervised(model, cuda=False):
         return y_pred.data.cpu(), y.data.cpu()
 
     return Evaluator(_inference)
-
