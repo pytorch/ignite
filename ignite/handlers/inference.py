@@ -1,17 +1,17 @@
-class Validate(object):
+class Inference(object):
     """
-    Triggers validation and optionally clears history.
+    Triggers an inference pass and optionally clears history.
 
     Args:
-        validation_data (iterable): the data to validate on
-        iteration_interval (int, optional): number of iterations between validations
-        epoch_interval (int, optional): number of epochs between validations
+        inference_data (iterable): the data to run inference on
+        iteration_interval (int, optional): number of iterations between passes
+        epoch_interval (int, optional): number of epochs between passes
         clear_history (bool, optional): whether or not to clear history before each
-            validation (default: True)
+            pass (default: True)
     """
-    def __init__(self, validation_data, iteration_interval=None, epoch_interval=None,
+    def __init__(self, inference_data, iteration_interval=None, epoch_interval=None,
                  clear_history=True):
-        self._validation_data = validation_data
+        self._inference_data = inference_data
         self._iteration_interval = iteration_interval
         self._epoch_interval = epoch_interval
         self._clear_history = clear_history
@@ -22,12 +22,12 @@ class Validate(object):
             raise ValueError('you must pass one of (iteration_interval, epoch_interval)')
 
     def __call__(self, trainer):
-        if self._should_validate(trainer):
+        if self._should_run(trainer):
             if self._clear_history:
-                trainer.validation_history.clear()
-            trainer.validate(self._validation_data)
+                trainer.inference_history.clear()
+            trainer.inference(self._inference_data)
 
-    def _should_validate(self, trainer):
+    def _should_run(self, trainer):
         if self._iteration_interval:
             return (trainer.current_iteration % self._iteration_interval) == 0
         if self._epoch_interval:
