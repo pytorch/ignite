@@ -4,6 +4,7 @@ from torch.autograd import Variable
 
 from ignite.history import History
 from ignite.engine import Engine
+from ignite._utils import _to_hours_mins_secs
 
 from enum import Enum
 
@@ -14,12 +15,6 @@ class EvaluationEvents(Enum):
     EVALUATION_ITERATION_STARTED = "evaluation_iteration_started"
     EVALUATION_ITERATION_COMPLETED = "evaluation_iteration_completed"
     EXCEPTION_RAISED = "exception_raised"
-
-
-def _to_hours_mins_secs(time_taken):
-    mins, secs = divmod(time_taken, 60)
-    hours, mins = divmod(mins, 60)
-    return hours, mins, secs
 
 
 class Evaluator(Engine):

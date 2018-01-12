@@ -8,6 +8,7 @@ from torch.autograd import Variable
 
 from ignite.history import History
 from ignite.engine import Engine
+from ignite._utils import _to_hours_mins_secs
 
 __all__ = ["TrainingEvents", "Trainer", "create_supervised"]
 
@@ -20,12 +21,6 @@ class TrainingEvents(Enum):
     TRAINING_ITERATION_STARTED = "training_iteration_started"
     TRAINING_ITERATION_COMPLETED = "training_iteration_completed"
     EXCEPTION_RAISED = "exception_raised"
-
-
-def _to_hours_mins_secs(time_taken):
-    mins, secs = divmod(time_taken, 60)
-    hours, mins = divmod(mins, 60)
-    return hours, mins, secs
 
 
 class Trainer(Engine):

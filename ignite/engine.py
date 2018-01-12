@@ -54,9 +54,9 @@ class Engine(object):
         if event_name not in self._valid_events.__members__.values():
             self._logger.error("attempt to add event handler to non-existent event %s ",
                                event_name)
-            raise ValueError("Event {} not a valid training event".format(event_name))
+            raise ValueError("Event {} is not a valid event name".format(event_name))
 
-        if event_name not in self._event_handlers.keys():
+        if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
 
         self._event_handlers[event_name].append((handler, args, kwargs))
