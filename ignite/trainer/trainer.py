@@ -101,7 +101,7 @@ class Trainer(object):
             self._event_handlers[event_name] = []
 
         self._event_handlers[event_name].append((handler, args, kwargs))
-        self._logger.debug("added handler for event % ", event_name)
+        self._logger.debug("added handler for event %s", event_name)
 
     def on(self, event_name, *args, **kwargs):
         """
