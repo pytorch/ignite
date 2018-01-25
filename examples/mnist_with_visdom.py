@@ -52,7 +52,25 @@ def get_plot_training_loss_handler(vis, plot_every):
     return plot_training_loss_to_visdom
 
 
-def get_plot_validation_accuracy_handler(vis):
+def get_plot_validation_loss_handler(vis):
+    val_loss_plot_window = vis.line(X=np.array([1]), Y=np.array([np.nan]),
+                                      opts=dict(
+                                          xlabel='# Iterations',
+                                          ylabel='Loss',
+                                          title='Validation Loss')
+                                      )
+
+    def plot_validation_loss_to_visdom(trainer):
+        avg_loss = np.mean([loss for (loss, accuracy) in trainer.validation_history])
+        vis.line(X=np.array([trainer.current_iteration]),
+                 Y=np.array([avg_loss]),
+                 win=val_loss_plot_window,
+                 update='append')
+    return plot_validation_loss_to_visdom
+
+
+
+def get_plot_validation_accuracy_handler(vis, validation_data):
     val_accuracy_plot_window = vis.line(X=np.array([1]), Y=np.array([np.nan]),
                                         opts=dict(
                                             xlabel='# Epochs',
@@ -62,7 +80,7 @@ def get_plot_validation_accuracy_handler(vis):
 
     def plot_val_accuracy_to_visdom(trainer):
         accuracy = sum([accuracy for (loss, accuracy) in trainer.validation_history])
-        accuracy = (accuracy * 100.) / len(trainer.validation_data.dataset)
+        accuracy = (accuracy * 100.) / len(validation_data.dataset)
         vis.line(X=np.array([trainer.current_epoch]),
                  Y=np.array([accuracy]),
                  win=val_accuracy_plot_window,
@@ -70,19 +88,19 @@ def get_plot_validation_accuracy_handler(vis):
     return plot_val_accuracy_to_visdom
 
 
-def get_log_validation_loss_and_accuracy_handler(logger):
+def get_log_validation_loss_and_accuracy_handler(logger, validation_data):
     def log_validation_loss_and_accuracy(trainer):
         avg_loss = np.mean([loss for (loss, accuracy) in trainer.validation_history])
         accuracy = sum([accuracy for (loss, accuracy) in trainer.validation_history])
         logger('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            avg_loss, accuracy, len(trainer.validation_data.dataset),
-            (accuracy * 100.) / len(trainer.validation_data.dataset)
+            avg_loss, accuracy, len(validation_data.dataset),
+            (accuracy * 100.) / len(validation_data.dataset)
         ))
     return log_validation_loss_and_accuracy
 
 
-def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
-    vis = visdom.Visdom()
+def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, visdom_port):
+    vis = visdom.Visdom(port=visdom_port)
     if not vis.check_connection():
         raise RuntimeError("Visdom server not running. Please run python -m visdom.server")
 
@@ -116,7 +134,13 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
         correct = pred.eq(target.data.view_as(pred)).sum()
         return loss, correct
 
-    trainer = Trainer(train_loader, training_update_function, val_loader, validation_inference_function)
+    def get_validation_inference_handler(validatation_data):
+        def validation_inference(trainer):
+            trainer.validate(validatation_data)
+        return validation_inference
+
+
+    trainer = Trainer(training_update_function, validation_inference_function)
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               log_training_simple_moving_average,
                               window_size=100,
@@ -126,11 +150,14 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
 
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               get_plot_training_loss_handler(vis, plot_every=log_interval))
-
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_log_validation_loss_and_accuracy_handler(logger))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_accuracy_handler(vis))
+                              
+    trainer.add_event_handler(TrainingEvents.EPOCH_COMPLETED, get_validation_inference_handler(val_loader))
+    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, 
+                              get_log_validation_loss_and_accuracy_handler(logger, val_loader))
+    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_loss_handler(vis))
+    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_accuracy_handler(vis, val_loader))
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, lambda trainer: trainer.validation_history.clear())
-    trainer.run(max_epochs=epochs, validate_every_epoch=True)
+    trainer.run(train_loader, max_epochs=epochs)
 
 
 if __name__ == "__main__":
@@ -148,6 +175,7 @@ if __name__ == "__main__":
     parser.add_argument('--log_interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
     parser.add_argument("--log_file", type=str, default=None, help="log file to log output to")
+    parser.add_argument("--visdom_port", type=int, default=8097, help="specify a custom visdom port")
 
     args = parser.parse_args()
 
@@ -160,4 +188,4 @@ if __name__ == "__main__":
         logger = print
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum,
-        args.log_interval, logger)
+        args.log_interval, logger, args.visdom_port)

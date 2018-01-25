@@ -62,7 +62,9 @@ class Trainer(object):
         self.training_history = History()
         self.validation_history = History()
         self.current_iteration = 0
+        self.iterations_per_epoch = 0
         self.current_validation_iteration = 0
+        self.total_validation_iterations = 0
         self.current_epoch = 0
         self.max_epochs = 0
         self.should_terminate = False
@@ -133,9 +135,9 @@ class Trainer(object):
                 func(self, *args, **kwargs)
 
     def _train_one_epoch(self, training_data):
+        self.iterations_per_epoch = len(training_data)
         self._fire_event(TrainingEvents.TRAINING_EPOCH_STARTED)
         start_time = time.time()
-
         self.epoch_losses = []
         for _, batch in enumerate(training_data, 1):
             self._fire_event(TrainingEvents.TRAINING_ITERATION_STARTED)
@@ -163,6 +165,7 @@ class Trainer(object):
             raise ValueError("Trainer must have a validation_inference_function in order to validate")
 
         self.current_validation_iteration = 0
+        self.total_validation_iterations = len(validation_data)
         self._fire_event(TrainingEvents.VALIDATION_STARTING)
         start_time = time.time()
 
