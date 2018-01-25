@@ -54,11 +54,11 @@ def get_plot_training_loss_handler(vis, plot_every):
 
 def get_plot_validation_loss_handler(vis):
     val_loss_plot_window = vis.line(X=np.array([1]), Y=np.array([np.nan]),
-                                      opts=dict(
-                                          xlabel='# Iterations',
-                                          ylabel='Loss',
-                                          title='Validation Loss')
-                                      )
+                                    opts=dict(
+                                        xlabel='# Iterations',
+                                        ylabel='Loss',
+                                        title='Validation Loss')
+                                    )
 
     def plot_validation_loss_to_visdom(trainer):
         avg_loss = np.mean([loss for (loss, accuracy) in trainer.validation_history])
@@ -67,7 +67,6 @@ def get_plot_validation_loss_handler(vis):
                  win=val_loss_plot_window,
                  update='append')
     return plot_validation_loss_to_visdom
-
 
 
 def get_plot_validation_accuracy_handler(vis, validation_data):
@@ -139,7 +138,6 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
             trainer.validate(validatation_data)
         return validation_inference
 
-
     trainer = Trainer(training_update_function, validation_inference_function)
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               log_training_simple_moving_average,
@@ -150,12 +148,13 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
 
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               get_plot_training_loss_handler(vis, plot_every=log_interval))
-                              
+
     trainer.add_event_handler(TrainingEvents.EPOCH_COMPLETED, get_validation_inference_handler(val_loader))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, 
+    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED,
                               get_log_validation_loss_and_accuracy_handler(logger, val_loader))
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_loss_handler(vis))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_accuracy_handler(vis, val_loader))
+    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED,
+                              get_plot_validation_accuracy_handler(vis, val_loader))
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, lambda trainer: trainer.validation_history.clear())
     trainer.run(train_loader, max_epochs=epochs)
 

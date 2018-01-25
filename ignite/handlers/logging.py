@@ -3,7 +3,7 @@ from __future__ import print_function
 
 def log_training_simple_moving_average(trainer, window_size, history_transform=lambda x: x,
                                        should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):        
+    if should_log(trainer):
         current_iteration = trainer.current_iteration % (trainer.iterations_per_epoch + 1)
         log_str = "Training Epoch[{}/{}] Iteration[{}/{} ({:.2f}%)]\t{}Simple Moving Average: {:.4f}" \
             .format(trainer.current_epoch + 1, trainer.max_epochs, current_iteration,
@@ -28,7 +28,7 @@ def log_validation_simple_moving_average(trainer, window_size, history_transform
 
 def log_training_weighted_moving_average(trainer, window_size, weights, history_transform=lambda x: x,
                                          should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):        
+    if should_log(trainer):
         current_iteration = trainer.current_iteration % (trainer.iterations_per_epoch + 1)
         log_str = "Training Epoch[{}/{}] Iteration[{}/{} ({:.2f}%}]\t{}Weighted Moving Average: {:.4f}" \
             .format(trainer.current_epoch + 1, trainer.max_epochs, current_iteration,
@@ -53,7 +53,7 @@ def log_validation_weighted_moving_average(trainer, window_size, weights, histor
 
 def log_training_exponential_moving_average(trainer, window_size, alpha, history_transform=lambda x: x,
                                             should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):        
+    if should_log(trainer):
         current_iteration = trainer.current_iteration % (trainer.iterations_per_epoch + 1)
         log_str = "Training Epoch[{}/{}] Iteration[{}/{} ({:.2f}%)]\t{}Exponential Moving Average: {:.4f}" \
             .format(trainer.current_epoch + 1, trainer.max_epochs, current_iteration,
