@@ -2,6 +2,8 @@ from __future__ import print_function
 from argparse import ArgumentParser
 import logging
 
+import numpy as np
+
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch import nn
@@ -12,8 +14,8 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 import visdom
 
 from ignite.trainer import Trainer, TrainingEvents
+from ignite.handlers import Validate
 from ignite.handlers.logging import log_training_simple_moving_average
-import numpy as np
 
 
 class Net(nn.Module):
@@ -133,11 +135,6 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
         correct = pred.eq(target.data.view_as(pred)).sum()
         return loss, correct
 
-    def get_validation_inference_handler(validatation_data):
-        def validation_inference(trainer):
-            trainer.validate(validatation_data)
-        return validation_inference
-
     trainer = Trainer(training_update_function, validation_inference_function)
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               log_training_simple_moving_average,
@@ -149,7 +146,8 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               get_plot_training_loss_handler(vis, plot_every=log_interval))
 
-    trainer.add_event_handler(TrainingEvents.EPOCH_COMPLETED, get_validation_inference_handler(val_loader))
+    trainer.add_event_handler(TrainingEvents.EPOCH_COMPLETED, Validate(val_loader, epoch_interval=1))
+
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED,
                               get_log_validation_loss_and_accuracy_handler(logger, val_loader))
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_loss_handler(vis))
