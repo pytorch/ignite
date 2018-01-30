@@ -11,7 +11,13 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-import visdom
+try:
+    import visdom
+except ImportError:
+    raise RuntimeError(
+        "No visdom package is found. Please install it with command:" +
+        "\n pip install visdom"
+    )
 
 from ignite.trainer import Trainer, TrainingEvents
 from ignite.handlers import Validate
