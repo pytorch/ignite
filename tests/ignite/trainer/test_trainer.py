@@ -393,8 +393,8 @@ def test_create_supervised():
     y = torch.FloatTensor([[3.0], [5.0]])
     data = [(x, y)]
 
-    trainer.validate(data)
-    y_pred, y = trainer.validation_history[0]
+    validation_history = trainer.validate(data)
+    y_pred, y = validation_history[0]
 
     assert y_pred[0, 0] == approx(0.0)
     assert y_pred[1, 0] == approx(0.0)
@@ -404,10 +404,9 @@ def test_create_supervised():
     assert model.weight.data[0, 0] == approx(0.0)
     assert model.bias.data[0] == approx(0.0)
 
-    trainer.run(data)
-    loss = trainer.training_history[0]
+    training_history = trainer.run(data)
 
-    assert loss == approx(17.0)
+    assert training_history[0] == approx(17.0)
     assert model.weight.data[0, 0] == approx(1.3)
     assert model.bias.data[0] == approx(0.8)
 

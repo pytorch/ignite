@@ -183,6 +183,8 @@ class Trainer(object):
 
         self._fire_event(TrainingEvents.VALIDATION_COMPLETED)
 
+        return self.validation_history
+
     def terminate(self):
         """
         Sends terminate signal to trainer, so that training terminates after the current iteration
@@ -207,7 +209,7 @@ class Trainer(object):
 
         Returns
         -------
-        None
+        History: the training history
         """
 
         try:
@@ -232,6 +234,7 @@ class Trainer(object):
             mins, secs = divmod(time_taken, 60)
             hours, mins = divmod(mins, 60)
             self._logger.info("Training complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            return self.training_history
         except BaseException as e:
             self._logger.error("Training is terminating due to exception: %s", str(e))
             self._fire_event(TrainingEvents.EXCEPTION_RAISED)
