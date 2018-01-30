@@ -2,6 +2,7 @@ from __future__ import print_function
 from argparse import ArgumentParser
 import logging
 
+import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch import nn
@@ -9,10 +10,18 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-from tensorboardX import SummaryWriter
+try:
+    from tensorboardX import SummaryWriter
+except ImportError:
+    raise RuntimeError(
+        "No tensorboardX package is found. Please install with the command:" +
+        "\npip install tensorboardX"
+    )
+
 
 from ignite.trainer import Trainer, TrainingEvents
 from ignite.handlers.logging import log_training_simple_moving_average
+from ignite.handlers import Validate
 import numpy as np
 
 
@@ -89,7 +98,9 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
 
     try:
-        writer.add_graph_onnx(model)
+        dummy_input = Variable(torch.rand(10, 1, 28, 28))
+        torch.onnx.export(model, dummy_input, "model.proto", verbose=True)
+        writer.add_graph_onnx("model.proto")
     except ImportError:
         pass
 
@@ -112,11 +123,6 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
         correct = pred.eq(target.data.view_as(pred)).sum()
         return loss, correct
 
-    def get_validation_inference_handler(validatation_data):
-        def validation_inference(trainer):
-            trainer.validate(validatation_data)
-        return validation_inference
-
     trainer = Trainer(training_update_function, validation_inference_function)
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               log_training_simple_moving_average,
@@ -128,7 +134,7 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
     trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
                               get_plot_training_loss_handler(writer, plot_every=log_interval))
 
-    trainer.add_event_handler(TrainingEvents.EPOCH_COMPLETED, get_validation_inference_handler(val_loader))
+    trainer.add_event_handler(TrainingEvents.EPOCH_COMPLETED, Validate(val_loader, epoch_interval=1))
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED,
                               get_log_validation_loss_and_accuracy_handler(logger, val_loader))
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_loss_handler(writer))
@@ -155,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument('--log_interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
     parser.add_argument("--log_file", type=str, default=None, help="log file to log output to")
-    parser.add_argument("--log_dir", type=str, default=None,
+    parser.add_argument("--log_dir", type=str, default="tensorboard_logs",
                         help="log directory for Tensorboard log output")
 
     args = parser.parse_args()
