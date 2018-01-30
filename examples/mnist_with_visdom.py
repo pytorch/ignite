@@ -159,7 +159,7 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_loss_handler(vis))
     trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED,
                               get_plot_validation_accuracy_handler(vis, val_loader))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, lambda trainer: trainer.validation_history.clear())
+    
     trainer.run(train_loader, max_epochs=epochs)
 
 
