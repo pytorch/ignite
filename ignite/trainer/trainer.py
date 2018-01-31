@@ -154,7 +154,7 @@ class Trainer(object):
 
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
-        self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch, hours,
+        self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch + 1, hours,
                           mins, secs)
 
         self._fire_event(TrainingEvents.TRAINING_EPOCH_COMPLETED)
@@ -227,8 +227,8 @@ class Trainer(object):
                 if self.should_terminate:
                     break
 
-                self._fire_event(TrainingEvents.EPOCH_COMPLETED)
                 self.current_epoch += 1
+                self._fire_event(TrainingEvents.EPOCH_COMPLETED)
 
             self._fire_event(TrainingEvents.TRAINING_COMPLETED)
             time_taken = time.time() - start_time
