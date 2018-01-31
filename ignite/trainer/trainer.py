@@ -62,7 +62,9 @@ class Trainer(object):
         self.training_history = History()
         self.validation_history = History()
         self.current_iteration = 0
+        self.iterations_per_epoch = 0
         self.current_validation_iteration = 0
+        self.total_validation_iterations = 0
         self.current_epoch = 0
         self.max_epochs = 0
         self.should_terminate = False
@@ -133,9 +135,9 @@ class Trainer(object):
                 func(self, *args, **kwargs)
 
     def _train_one_epoch(self, training_data):
+        self.iterations_per_epoch = len(training_data)
         self._fire_event(TrainingEvents.TRAINING_EPOCH_STARTED)
         start_time = time.time()
-
         self.epoch_losses = []
         for _, batch in enumerate(training_data, 1):
             self._fire_event(TrainingEvents.TRAINING_ITERATION_STARTED)
@@ -152,7 +154,7 @@ class Trainer(object):
 
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
-        self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch, hours,
+        self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch + 1, hours,
                           mins, secs)
 
         self._fire_event(TrainingEvents.TRAINING_EPOCH_COMPLETED)
@@ -163,6 +165,7 @@ class Trainer(object):
             raise ValueError("Trainer must have a validation_inference_function in order to validate")
 
         self.current_validation_iteration = 0
+        self.total_validation_iterations = len(validation_data)
         self._fire_event(TrainingEvents.VALIDATION_STARTING)
         start_time = time.time()
 
@@ -224,8 +227,8 @@ class Trainer(object):
                 if self.should_terminate:
                     break
 
-                self._fire_event(TrainingEvents.EPOCH_COMPLETED)
                 self.current_epoch += 1
+                self._fire_event(TrainingEvents.EPOCH_COMPLETED)
 
             self._fire_event(TrainingEvents.TRAINING_COMPLETED)
             time_taken = time.time() - start_time

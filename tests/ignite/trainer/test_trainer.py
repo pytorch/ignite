@@ -201,7 +201,7 @@ def test_terminate_at_end_of_epoch_stops_training():
 
     trainer.run([1], max_epochs=max_epochs)
 
-    assert trainer.current_epoch == last_epoch_to_run + 1  # counter is incremented at end of loop
+    assert trainer.current_epoch == last_epoch_to_run
     assert trainer.should_terminate
 
 
