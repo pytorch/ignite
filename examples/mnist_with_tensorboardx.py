@@ -1,7 +1,7 @@
 """
  MNIST example with training and validation monitoring using TensorboardX (https://github.com/lanpa/tensorboard-pytorch)
  and Tensorboard.
- Usage: 
+ Usage:
      ```bash
        python mnist_with_tensorboard.py --log_dir=tensorboard_logs
      ```
