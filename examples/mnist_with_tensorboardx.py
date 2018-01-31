@@ -1,3 +1,15 @@
+"""
+ MNIST example with training and validation monitoring using TensorboardX (https://github.com/lanpa/tensorboard-pytorch)
+ and Tensorboard.
+ Usage: 
+     ```bash
+       python mnist_with_tensorboard.py --log_dir=tensorboard_logs
+     ```
+     and
+     ```bash
+       python -m tensorboard.main --logdir=tensorboard_logs/
+     ```
+"""
 from __future__ import print_function
 from argparse import ArgumentParser
 import logging
