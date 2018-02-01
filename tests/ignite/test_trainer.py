@@ -9,7 +9,8 @@ import numpy as np
 from mock import call, MagicMock, Mock
 from pytest import raises, approx
 
-from ignite.trainer import Trainer, TrainingEvents, create_supervised
+from ignite.engine import Events
+from ignite.trainer import Trainer, create_supervised
 
 
 class _PicklableMagicMock(object):
@@ -44,7 +45,7 @@ def test_exception_handler_called_on_error():
 
     trainer = Trainer(training_update_function)
     exception_handler = MagicMock()
-    trainer.add_event_handler(TrainingEvents.EXCEPTION_RAISED, exception_handler)
+    trainer.add_event_handler(Events.EXCEPTION_RAISED, exception_handler)
 
     with raises(ValueError):
         trainer.run([1])
@@ -64,7 +65,7 @@ def test_current_epoch_counter_increases_every_epoch():
             assert trainer.current_epoch == self.current_epoch_count
             self.current_epoch_count += 1
 
-    trainer.add_event_handler(TrainingEvents.TRAINING_EPOCH_STARTED, EpochCounter())
+    trainer.add_event_handler(Events.EPOCH_STARTED, EpochCounter())
 
     trainer.run([1], max_epochs=max_epochs)
 
@@ -84,7 +85,7 @@ def test_current_iteration_counter_increases_every_iteration():
             assert trainer.current_iteration == self.current_iteration_count
             self.current_iteration_count += 1
 
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_STARTED, IterationCounter())
+    trainer.add_event_handler(Events.ITERATION_STARTED, IterationCounter())
 
     trainer.run(training_batches, max_epochs=max_epochs)
 
@@ -107,7 +108,7 @@ def test_terminate_at_end_of_epoch_stops_training():
             trainer.terminate()
 
     trainer = Trainer(MagicMock(return_value=1))
-    trainer.add_event_handler(TrainingEvents.TRAINING_EPOCH_COMPLETED, end_of_epoch_handler)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, end_of_epoch_handler)
 
     assert not trainer.should_terminate
 
@@ -127,7 +128,7 @@ def test_terminate_at_start_of_epoch_stops_training_after_completing_iteration()
             trainer.terminate()
 
     trainer = Trainer(MagicMock(return_value=1))
-    trainer.add_event_handler(TrainingEvents.TRAINING_EPOCH_STARTED, start_of_epoch_handler)
+    trainer.add_event_handler(Events.EPOCH_STARTED, start_of_epoch_handler)
 
     assert not trainer.should_terminate
 
@@ -149,7 +150,7 @@ def test_terminate_stops_training_mid_epoch():
         if trainer.current_iteration == iteration_to_stop:
             trainer.terminate()
 
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_STARTED, end_of_iteration_handler)
+    trainer.add_event_handler(Events.ITERATION_STARTED, end_of_iteration_handler)
     trainer.run(training_data=[None] * num_iterations_per_epoch, max_epochs=3)
     assert (trainer.current_iteration == iteration_to_stop +
             1)  # completes the iteration when terminate called
@@ -176,10 +177,10 @@ def test_training_iteration_events_are_fired():
 
     mock_manager = Mock()
     iteration_started = Mock()
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_STARTED, iteration_started)
+    trainer.add_event_handler(Events.ITERATION_STARTED, iteration_started)
 
     iteration_complete = Mock()
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED, iteration_complete)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, iteration_complete)
 
     mock_manager.attach_mock(iteration_started, 'iteration_started')
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
@@ -212,7 +213,7 @@ def test_create_supervised():
     assert model.bias.data[0] == approx(0.0)
 
     trainer.run(data)
-    loss = trainer.training_history[0]
+    loss = trainer.history[0]
 
     assert loss == approx(17.0)
     assert model.weight.data[0, 0] == approx(1.3)

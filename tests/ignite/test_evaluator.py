@@ -3,7 +3,8 @@ from mock import MagicMock, Mock, call
 from pytest import approx
 from torch.nn import Linear
 
-from ignite.evaluator import Evaluator, EvaluationEvents, create_supervised
+from ignite.engine import Events
+from ignite.evaluator import Evaluator, create_supervised
 
 
 def test_current_validation_iteration_counter_increases_every_iteration():
@@ -17,7 +18,7 @@ def test_current_validation_iteration_counter_increases_every_iteration():
             self.total_count = 0
 
         def __call__(self, evaluator):
-            assert evaluator.current_evaluation_iteration == self.current_iteration_count
+            assert evaluator.current_iteration == self.current_iteration_count
             self.current_iteration_count += 1
             self.total_count += 1
 
@@ -29,8 +30,8 @@ def test_current_validation_iteration_counter_increases_every_iteration():
     def clear_counter(evaluator, counter):
         counter.clear()
 
-    evaluator.add_event_handler(EvaluationEvents.EVALUATION_STARTING, clear_counter, iteration_counter)
-    evaluator.add_event_handler(EvaluationEvents.EVALUATION_ITERATION_STARTED, iteration_counter)
+    evaluator.add_event_handler(Events.STARTED, clear_counter, iteration_counter)
+    evaluator.add_event_handler(Events.ITERATION_STARTED, iteration_counter)
 
     for _ in range(num_runs):
         evaluator.run(validation_batches)
@@ -44,10 +45,10 @@ def test_evaluation_iteration_events_are_fired():
 
     mock_manager = Mock()
     iteration_started = Mock()
-    evaluator.add_event_handler(EvaluationEvents.EVALUATION_ITERATION_STARTED, iteration_started)
+    evaluator.add_event_handler(Events.ITERATION_STARTED, iteration_started)
 
     iteration_complete = Mock()
-    evaluator.add_event_handler(EvaluationEvents.EVALUATION_ITERATION_COMPLETED, iteration_complete)
+    evaluator.add_event_handler(Events.ITERATION_COMPLETED, iteration_complete)
 
     mock_manager.attach_mock(iteration_started, 'iteration_started')
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
@@ -71,14 +72,14 @@ def test_terminate_stops_evaluator_when_called_during_iteration():
     evaluator = Evaluator(MagicMock(return_value=1))
 
     def end_of_iteration_handler(evaluator):
-        if evaluator.current_evaluation_iteration == iteration_to_stop:
+        if evaluator.current_iteration == iteration_to_stop:
             evaluator.terminate()
 
-    evaluator.add_event_handler(EvaluationEvents.EVALUATION_ITERATION_STARTED, end_of_iteration_handler)
+    evaluator.add_event_handler(Events.ITERATION_STARTED, end_of_iteration_handler)
     evaluator.run([None] * num_iterations)
 
     # should complete the iteration when terminate called
-    assert evaluator.current_evaluation_iteration == iteration_to_stop + 1
+    assert evaluator.current_iteration == iteration_to_stop + 1
 
 
 def test_create_supervised():

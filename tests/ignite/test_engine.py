@@ -3,23 +3,22 @@ from enum import Enum
 import pytest
 from mock import MagicMock
 
-from ignite.engine import Engine
+from ignite.engine import Engine, Events
 
 
-class Events(Enum):
-    START = "start"
-    END = "end"
+def process_func(batch):
+    return 1
 
 
 class DummyEngine(Engine):
     def __init__(self):
-        super(DummyEngine, self).__init__(Events)
+        super(DummyEngine, self).__init__(process_func)
 
     def run(self, num_times):
         self._logger.error("hello world")
         for _ in range(num_times):
-            self._fire_event(Events.START)
-            self._fire_event(Events.END)
+            self._fire_event(Events.STARTED)
+            self._fire_event(Events.COMPLETED)
 
 
 def test_terminate():
@@ -47,13 +46,13 @@ def test_add_event_handler():
 
     def handle_training_iteration_started(engine, counter):
         counter.count += 1
-    engine.add_event_handler(Events.START, handle_training_iteration_started, started_counter)
+    engine.add_event_handler(Events.STARTED, handle_training_iteration_started, started_counter)
 
     completed_counter = Counter()
 
     def handle_training_iteration_completed(engine, counter):
         counter.count += 1
-    engine.add_event_handler(Events.END, handle_training_iteration_completed, completed_counter)
+    engine.add_event_handler(Events.COMPLETED, handle_training_iteration_completed, completed_counter)
 
     engine.run(15)
 
@@ -65,7 +64,7 @@ def test_adding_multiple_event_handlers():
     engine = DummyEngine()
     handlers = [MagicMock(), MagicMock()]
     for handler in handlers:
-        engine.add_event_handler(Events.START, handler)
+        engine.add_event_handler(Events.STARTED, handler)
 
     engine.run(1)
     for handler in handlers:
@@ -77,7 +76,7 @@ def test_args_and_kwargs_are_passed_to_event():
     kwargs = {'a': 'a', 'b': 'b'}
     args = (1, 2, 3)
     handlers = []
-    for event in Events:
+    for event in [Events.STARTED, Events.COMPLETED]:
         handler = MagicMock()
         engine.add_event_handler(event, handler, *args, **kwargs)
         handlers.append(handler)
@@ -110,13 +109,13 @@ def test_on_decorator():
 
     started_counter = Counter()
 
-    @engine.on(Events.START, started_counter)
+    @engine.on(Events.STARTED, started_counter)
     def handle_training_iteration_started(engine, started_counter):
         started_counter.count += 1
 
     completed_counter = Counter()
 
-    @engine.on(Events.END, completed_counter)
+    @engine.on(Events.COMPLETED, completed_counter)
     def handle_training_iteration_completed(engine, completed_counter):
         completed_counter.count += 1
 

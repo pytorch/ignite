@@ -1,5 +1,17 @@
 import logging
 from abc import ABCMeta, abstractmethod
+from enum import Enum
+from ignite.history import History
+
+
+class Events(Enum):
+    EPOCH_STARTED = "epoch_started"
+    EPOCH_COMPLETED = "training_epoch_completed"
+    STARTED = "started"
+    COMPLETED = "completed"
+    ITERATION_STARTED = "training_iteration_started"
+    ITERATION_COMPLETED = "training_iteration_completed"
+    EXCEPTION_RAISED = "exception_raised"
 
 
 class Engine(object):
@@ -10,26 +22,21 @@ class Engine(object):
 
     Parameters
     ----------
-    training_update_function : callable
-        Update function receiving the current training batch in each iteration
+    process_function : callable
+        A function receiving the current training batch in each iteration, outputing data to be stored in the history
 
-    validation_inference_function : callable
-        Function receiving data and performing a feed forward without update
     """
-    def __init__(self, valid_events):
-        """
-        Add an event handler to be executed when the specified event is fired
-
-        Parameters
-        ----------
-        valid_events: enum
-            Events that this engine allows handlers to be registered against
-        """
-        self._valid_events = valid_events
+    def __init__(self, process_function):
         self._event_handlers = {}
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
+        self._process_function = process_function
+        self.current_iteration = 0
+        self.history = History()
         self.should_terminate = False
+
+        if self._process_function is None:
+            raise ValueError("Evaluator must have an inference function in order to evaluate")
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """
@@ -51,10 +58,9 @@ class Engine(object):
         -------
         None
         """
-        if event_name not in self._valid_events.__members__.values():
-            self._logger.error("attempt to add event handler to non-existent event %s ",
-                               event_name)
-            raise ValueError("Event {} is not a valid event name".format(event_name))
+        if event_name not in Events.__members__.values():
+            self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
+            raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
@@ -96,6 +102,19 @@ class Engine(object):
         """
         self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
         self.should_terminate = True
+
+    def _run_once_on_dataset(self, dataset):
+        self.dataset = dataset
+        for batch in dataset:
+            self._fire_event(Events.ITERATION_STARTED)
+            step_result = self._process_function(batch)
+            if step_result is not None:
+                self.history.append(step_result)
+
+            self.current_iteration += 1
+            self._fire_event(Events.ITERATION_COMPLETED)
+            if self.should_terminate:
+                break
 
     @abstractmethod
     def run(self, data, **kwargs):

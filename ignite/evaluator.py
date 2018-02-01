@@ -1,56 +1,40 @@
 import time
 
 from torch.autograd import Variable
-
-from ignite.history import History
-from ignite.engine import Engine
+from ignite.engine import Engine, Events
 from ignite._utils import _to_hours_mins_secs
 
-from enum import Enum
 
-
-class EvaluationEvents(Enum):
-    EVALUATION_STARTING = "evaluation_starting"
-    EVALUATION_COMPLETED = "evaluation_completed"
-    EVALUATION_ITERATION_STARTED = "evaluation_iteration_started"
-    EVALUATION_ITERATION_COMPLETED = "evaluation_iteration_completed"
-    EXCEPTION_RAISED = "exception_raised"
+__all__ = ["Evaluator", "create_supervised"]
 
 
 class Evaluator(Engine):
     def __init__(self, inference_function):
-        super(Evaluator, self).__init__(EvaluationEvents)
+        super(Evaluator, self).__init__(inference_function)
 
-        self._inference_function = inference_function
-        self.history = History()
-        self.current_evaluation_iteration = 0
-        self.should_terminate = False
+    def add_event_handler(self, event_name, handler, *args, **kwargs):
+        if event_name == Events.EPOCH_STARTED or event_name == Events.EPOCH_COMPLETED:
+            raise ValueError("Evaluator does not fire event {} ".format(event_name))
+
+        super(Evaluator, self).add_event_handler(event_name, handler, *args, **kwargs)
 
     def run(self, dataset):
-        """ Evaluates the dataset"""
-        if self._inference_function is None:
-            raise ValueError("Evaluator must have an inference function in order to evaluate")
+        self.dataset = dataset
+        self.current_iteration = 0
 
-        self.current_evaluation_iteration = 0
-        self._fire_event(EvaluationEvents.EVALUATION_STARTING)
+        self._fire_event(Events.STARTED)
         start_time = time.time()
-
-        for _, batch in enumerate(dataset, 1):
-            self._fire_event(EvaluationEvents.EVALUATION_ITERATION_STARTED)
-            step_result = self._inference_function(batch)
-            if step_result is not None:
-                self.history.append(step_result)
-
-            self.current_evaluation_iteration += 1
-            self._fire_event(EvaluationEvents.EVALUATION_ITERATION_COMPLETED)
-            if self.should_terminate:
-                break
-
+        try:
+            self._run_once_on_dataset(dataset)
+        except BaseException as e:
+            self._logger.error("Evaluation is terminating due to exception: %s", str(e))
+            self._fire_event(Events.EXCEPTION_RAISED)
+            raise e
         time_taken = time.time() - start_time
         hours, mins, secs = _to_hours_mins_secs(time_taken)
         self._logger.info("Evaluation Complete. Time taken: %02d:%02d:%02d", hours, mins, secs)
 
-        self._fire_event(EvaluationEvents.EVALUATION_COMPLETED)
+        self._fire_event(Events.COMPLETED)
 
 
 def create_supervised(model, cuda=False):
