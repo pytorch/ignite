@@ -10,7 +10,7 @@ from mock import call, MagicMock, Mock
 from pytest import raises, approx
 
 from ignite.engine import Events
-from ignite.trainer import Trainer, create_supervised
+from ignite.trainer import Trainer, create_supervised_trainer
 
 
 class _PicklableMagicMock(object):
@@ -203,7 +203,7 @@ def test_create_supervised():
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
-    trainer = create_supervised(model, optimizer, mse_loss)
+    trainer = create_supervised_trainer(model, optimizer, mse_loss)
 
     x = torch.FloatTensor([[1.0], [2.0]])
     y = torch.FloatTensor([[3.0], [5.0]])

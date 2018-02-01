@@ -5,7 +5,7 @@ from ignite.engine import Engine, Events
 from ignite._utils import _to_hours_mins_secs
 
 
-__all__ = ["Evaluator", "create_supervised"]
+__all__ = ["Evaluator", "create_supervised_evaluator"]
 
 
 class Evaluator(Engine):
@@ -37,7 +37,7 @@ class Evaluator(Engine):
         self._fire_event(Events.COMPLETED)
 
 
-def create_supervised(model, cuda=False):
+def create_supervised_evaluator(model, cuda=False):
     """
     Factory function for creating an evaluator for supervised models
 

@@ -4,7 +4,7 @@ from pytest import approx
 from torch.nn import Linear
 
 from ignite.engine import Events
-from ignite.evaluator import Evaluator, create_supervised
+from ignite.evaluator import Evaluator, create_supervised_evaluator
 
 
 def test_current_validation_iteration_counter_increases_every_iteration():
@@ -87,7 +87,7 @@ def test_create_supervised():
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    evaluator = create_supervised(model)
+    evaluator = create_supervised_evaluator(model)
 
     x = torch.FloatTensor([[1.0], [2.0]])
     y = torch.FloatTensor([[3.0], [5.0]])

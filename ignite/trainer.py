@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from ignite.engine import Engine, Events
 from ignite._utils import _to_hours_mins_secs
 
-__all__ = ["Trainer", "create_supervised"]
+__all__ = ["Trainer", "create_supervised_trainer"]
 
 
 class Trainer(Engine):
@@ -88,7 +88,7 @@ class Trainer(Engine):
             raise e
 
 
-def create_supervised(model, optimizer, loss_fn, cuda=False):
+def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
     """
     Factory function for creating a trainer for supervised models
 
