@@ -3,6 +3,7 @@ from torch._six import string_classes
 from torch.autograd import Variable
 import collections
 
+
 def _to_hours_mins_secs(time_taken):
     mins, secs = divmod(time_taken, 60)
     hours, mins = divmod(mins, 60)
@@ -12,7 +13,7 @@ def _to_hours_mins_secs(time_taken):
 def to_variable(batch, cuda=False, volatile=False):
     if torch.is_tensor(batch):
         if cuda:
-          batch = batch.cuda()
+            batch = batch.cuda()
         return Variable(batch, volatile=volatile)
     elif isinstance(batch, string_classes):
         return batch

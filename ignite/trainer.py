@@ -103,10 +103,10 @@ def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
     """
 
     def _prepare_batch(batch):
-      x, y = batch
-      x = to_variable(x, cuda=cuda)
-      y = to_variable(y, cuda=cuda)
-      return x, y
+        x, y = batch
+        x = to_variable(x, cuda=cuda)
+        y = to_variable(y, cuda=cuda)
+        return x, y
 
     def _update(batch):
         model.train()
