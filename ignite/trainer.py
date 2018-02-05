@@ -5,7 +5,7 @@ from collections import Iterable
 from torch.autograd import Variable
 
 from ignite.engine import Engine, Events
-from ignite._utils import _to_hours_mins_secs
+from ignite._utils import _to_hours_mins_secs, to_variable
 
 __all__ = ["Trainer", "create_supervised_trainer"]
 
@@ -101,11 +101,12 @@ def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
     Returns:
         Trainer: a trainer instance with supervised update function
     """
+
     def _prepare_batch(batch):
-        x, y = batch
-        if cuda:
-            x, y = x.cuda(), y.cuda()
-        return Variable(x), Variable(y)
+      x, y = batch
+      x = to_variable(x, cuda=cuda)
+      y = to_variable(y, cuda=cuda)
+      return x, y
 
     def _update(batch):
         model.train()

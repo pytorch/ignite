@@ -2,7 +2,7 @@ import time
 
 from torch.autograd import Variable
 from ignite.engine import Engine, Events
-from ignite._utils import _to_hours_mins_secs
+from ignite._utils import _to_hours_mins_secs, to_variable
 
 
 __all__ = ["Evaluator", "create_supervised_evaluator"]
@@ -50,9 +50,9 @@ def create_supervised_evaluator(model, cuda=False):
     """
     def _prepare_batch(batch):
         x, y = batch
-        if cuda:
-            x, y = x.cuda(), y.cuda()
-        return Variable(x, volatile=True), Variable(y, volatile=True)
+        x = to_variable(x, cuda=cuda, volatile=True)
+        y = to_variable(y, cuda=cuda, volatile=True)
+        return x, y
 
     def _inference(batch):
         model.eval()
