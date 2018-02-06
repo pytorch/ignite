@@ -6,11 +6,11 @@ from ignite.history import History
 
 class Events(Enum):
     EPOCH_STARTED = "epoch_started"
-    EPOCH_COMPLETED = "training_epoch_completed"
+    EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"
     COMPLETED = "completed"
-    ITERATION_STARTED = "training_iteration_started"
-    ITERATION_COMPLETED = "training_iteration_completed"
+    ITERATION_STARTED = "iteration_started"
+    ITERATION_COMPLETED = "iteration_completed"
     EXCEPTION_RAISED = "exception_raised"
 
 
@@ -36,7 +36,7 @@ class Engine(object):
         self.should_terminate = False
 
         if self._process_function is None:
-            raise ValueError("Evaluator must have an inference function in order to evaluate")
+            raise ValueError("Engine must be given a processing function in order to run")
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """
