@@ -32,10 +32,7 @@ class Trainer(Engine):
         self.max_epochs = 0
 
     def _train_one_epoch(self, training_data):
-        start_time = time.time()
-        self._run_once_on_dataset(training_data)
-        time_taken = time.time() - start_time
-        hours, mins, secs = _to_hours_mins_secs(time_taken)
+        hours, mins, secs = self._run_once_on_dataset(training_data)
         self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch, hours,
                           mins, secs)
 

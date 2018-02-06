@@ -1,8 +1,10 @@
 import logging
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from ignite.history import History
+import time
 
+from ignite.history import History
+from ignite._utils import _to_hours_mins_secs
 
 class Events(Enum):
     EPOCH_STARTED = "epoch_started"
@@ -105,16 +107,25 @@ class Engine(object):
 
     def _run_once_on_dataset(self, dataset):
         self.dataset = dataset
-        for batch in dataset:
-            self._fire_event(Events.ITERATION_STARTED)
-            step_result = self._process_function(batch)
-            if step_result is not None:
-                self.history.append(step_result)
+        try:
+            start_time = time.time()
+            for batch in dataset:
+                self._fire_event(Events.ITERATION_STARTED)
+                step_result = self._process_function(batch)
+                if step_result is not None:
+                    self.history.append(step_result)
 
-            self.current_iteration += 1
-            self._fire_event(Events.ITERATION_COMPLETED)
-            if self.should_terminate:
-                break
+                self.current_iteration += 1
+                self._fire_event(Events.ITERATION_COMPLETED)
+                if self.should_terminate:
+                    break
+            time_taken = time.time() - start_time
+            hours, mins, secs = _to_hours_mins_secs(time_taken)
+            return hours, mins, secs
+        except BaseException as e:
+            self._logger.error("Current run is terminating due to exception: %s", str(e))
+            self._fire_event(Events.EXCEPTION_RAISED)
+            raise e
 
     @abstractmethod
     def run(self, data, **kwargs):

@@ -2,7 +2,7 @@ import time
 
 from torch.autograd import Variable
 from ignite.engine import Engine, Events
-from ignite._utils import _to_hours_mins_secs, to_variable
+from ignite._utils import to_variable
 
 
 __all__ = ["Evaluator", "create_supervised_evaluator"]
@@ -21,19 +21,9 @@ class Evaluator(Engine):
     def run(self, dataset):
         self.dataset = dataset
         self.current_iteration = 0
-
         self._fire_event(Events.STARTED)
-        start_time = time.time()
-        try:
-            self._run_once_on_dataset(dataset)
-        except BaseException as e:
-            self._logger.error("Evaluation is terminating due to exception: %s", str(e))
-            self._fire_event(Events.EXCEPTION_RAISED)
-            raise e
-        time_taken = time.time() - start_time
-        hours, mins, secs = _to_hours_mins_secs(time_taken)
+        hours, mins, secs = self._run_once_on_dataset(dataset)
         self._logger.info("Evaluation Complete. Time taken: %02d:%02d:%02d", hours, mins, secs)
-
         self._fire_event(Events.COMPLETED)
 
 

@@ -50,7 +50,8 @@ def test_exception_handler_called_on_error():
     with raises(ValueError):
         trainer.run([1])
 
-    exception_handler.assert_called_once_with(trainer)
+    # one call from _run_once_over_data and one from the run function in the trainer
+    exception_handler.assert_has_calls([call(trainer), call(trainer)])
 
 
 def test_current_epoch_counter_increases_every_epoch():
