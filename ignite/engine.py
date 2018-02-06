@@ -6,6 +6,7 @@ import time
 from ignite.history import History
 from ignite._utils import _to_hours_mins_secs
 
+
 class Events(Enum):
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
