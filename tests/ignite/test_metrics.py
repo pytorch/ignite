@@ -1,7 +1,7 @@
 import torch
 from pytest import approx
 
-from ignite.trainer.history import History
+from ignite.history import History
 from ignite.metrics import (
     binary_accuracy,
     categorical_accuracy,

@@ -1,6 +1,6 @@
 import numpy as np
 
-from ignite.trainer.history import History
+from ignite.history import History
 
 
 def test_history_clear():
