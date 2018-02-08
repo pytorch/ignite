@@ -1,14 +1,14 @@
 class Evaluate(object):
     """
-    Triggers validation and optionally clears history.
+    Triggers evaluation and optionally clears history.
 
     Args:
         evaluator (Evaluator): the evaluator to run
         evaluation_data (iterable): the data to validate on
-        iteration_interval (int, optional): number of iterations between validations
-        epoch_interval (int, optional): number of epochs between validations
+        iteration_interval (int, optional): number of iterations between evaluations
+        epoch_interval (int, optional): number of epochs between evaluations
         clear_history (bool, optional): whether or not to clear history before each
-            validation (default: True)
+            evaluation (default: True)
     """
     def __init__(self, evaluator, evaluation_data, iteration_interval=None, epoch_interval=None,
                  clear_history=True):
@@ -27,7 +27,7 @@ class Evaluate(object):
         if self._should_evaluate(trainer):
             if self._clear_history:
                 self._evaluator.history.clear()
-            self._evaluator.run(self._validation_data)
+            self._evaluator.run(self._evaluation_data)
 
     def _should_evaluate(self, trainer):
         if self._iteration_interval:
