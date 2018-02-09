@@ -111,15 +111,16 @@ class Engine(object):
         try:
             start_time = time.time()
             for batch in dataset:
+                self.current_iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
                 step_result = self._process_function(batch)
                 if step_result is not None:
                     self.history.append(step_result)
 
-                self.current_iteration += 1
                 self._fire_event(Events.ITERATION_COMPLETED)
                 if self.should_terminate:
                     break
+
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
             return hours, mins, secs
