@@ -74,7 +74,6 @@ class Trainer(Engine):
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
 
-
             self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
