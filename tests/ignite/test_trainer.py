@@ -60,7 +60,7 @@ def test_current_epoch_counter_increases_every_epoch():
 
     class EpochCounter(object):
         def __init__(self):
-            self.current_epoch_count = 0
+            self.current_epoch_count = 1
 
         def __call__(self, trainer):
             assert trainer.current_epoch == self.current_epoch_count
@@ -80,7 +80,7 @@ def test_current_iteration_counter_increases_every_iteration():
 
     class IterationCounter(object):
         def __init__(self):
-            self.current_iteration_count = 0
+            self.current_iteration_count = 1
 
         def __call__(self, trainer):
             assert trainer.current_iteration == self.current_iteration_count
@@ -115,7 +115,7 @@ def test_terminate_at_end_of_epoch_stops_training():
 
     trainer.run([1], max_epochs=max_epochs)
 
-    assert trainer.current_epoch == last_epoch_to_run + 1  # counter is incremented at end of loop
+    assert trainer.current_epoch == last_epoch_to_run
     assert trainer.should_terminate
 
 
@@ -139,24 +139,23 @@ def test_terminate_at_start_of_epoch_stops_training_after_completing_iteration()
     assert trainer.current_epoch == epoch_to_terminate_on
     assert trainer.should_terminate
     # completes first iteration
-    assert trainer.current_iteration == (epoch_to_terminate_on * len(batches_per_epoch)) + 1
+    assert trainer.current_iteration == ((epoch_to_terminate_on - 1) * len(batches_per_epoch)) + 1
 
 
 def test_terminate_stops_training_mid_epoch():
     num_iterations_per_epoch = 10
-    iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 2nd epoch
+    iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 3rd epoch
     trainer = Trainer(MagicMock(return_value=1))
 
-    def end_of_iteration_handler(trainer):
+    def start_of_iteration_handler(trainer):
         if trainer.current_iteration == iteration_to_stop:
             trainer.terminate()
 
-    trainer.add_event_handler(Events.ITERATION_STARTED, end_of_iteration_handler)
+    trainer.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
     trainer.run(training_data=[None] * num_iterations_per_epoch, max_epochs=3)
-    assert (trainer.current_iteration == iteration_to_stop +
-            1)  # completes the iteration when terminate called
-    assert trainer.current_epoch == np.ceil(
-        iteration_to_stop / num_iterations_per_epoch) - 1  # it starts from 0
+    # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
+    assert (trainer.current_iteration == iteration_to_stop)
+    assert trainer.current_epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -199,7 +198,7 @@ def test_training_iteration_events_are_fired():
     assert mock_manager.mock_calls == expected_calls
 
 
-def test_create_supervised():
+def test_create_supervised_trainer():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()

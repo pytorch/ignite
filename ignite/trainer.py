@@ -67,12 +67,12 @@ class Trainer(Engine):
 
             self._fire_event(Events.STARTED)
             while self.current_epoch < max_epochs and not self.should_terminate:
+                self.current_epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
                 self._train_one_epoch(training_data)
                 if self.should_terminate:
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
-                self.current_epoch += 1
 
             self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time

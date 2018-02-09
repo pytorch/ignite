@@ -14,7 +14,7 @@ def test_current_validation_iteration_counter_increases_every_iteration():
 
     class IterationCounter(object):
         def __init__(self):
-            self.current_iteration_count = 0
+            self.current_iteration_count = 1
             self.total_count = 0
 
         def __call__(self, evaluator):
@@ -23,7 +23,7 @@ def test_current_validation_iteration_counter_increases_every_iteration():
             self.total_count += 1
 
         def clear(self):
-            self.current_iteration_count = 0
+            self.current_iteration_count = 1
 
     iteration_counter = IterationCounter()
 
@@ -71,15 +71,15 @@ def test_terminate_stops_evaluator_when_called_during_iteration():
     iteration_to_stop = 3  # i.e. part way through the 3rd validation run
     evaluator = Evaluator(MagicMock(return_value=1))
 
-    def end_of_iteration_handler(evaluator):
+    def start_of_iteration_handler(evaluator):
         if evaluator.current_iteration == iteration_to_stop:
             evaluator.terminate()
 
-    evaluator.add_event_handler(Events.ITERATION_STARTED, end_of_iteration_handler)
+    evaluator.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
     evaluator.run([None] * num_iterations)
 
-    # should complete the iteration when terminate called
-    assert evaluator.current_iteration == iteration_to_stop + 1
+    # should complete the iteration when terminate called but not increment counter
+    assert evaluator.current_iteration == iteration_to_stop
 
 
 def test_create_supervised():
