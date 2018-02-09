@@ -9,10 +9,17 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-import visdom
 
-from ignite.trainer import Trainer, TrainingEvents
-from ignite.handlers.logging import log_training_simple_moving_average
+try:
+    import visdom
+except ImportError:
+    raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
+
+from ignite.trainer import Trainer
+from ignite.evaluator import Evaluator
+from ignite.engine import Events
+from ignite.handlers.evaluate import Evaluate
+from ignite.handlers.logging import log_simple_moving_average
 import numpy as np
 
 
@@ -46,9 +53,10 @@ def get_plot_training_loss_handler(vis, plot_every):
     def plot_training_loss_to_visdom(trainer):
         if trainer.current_iteration % plot_every == 0:
             vis.line(X=np.array([trainer.current_iteration]),
-                     Y=np.array([trainer.training_history.simple_moving_average(window_size=100)]),
+                     Y=np.array([trainer.history.simple_moving_average(window_size=100)]),
                      win=train_loss_plot_window,
                      update='append')
+
     return plot_training_loss_to_visdom
 
 
@@ -60,24 +68,26 @@ def get_plot_validation_accuracy_handler(vis):
                                             title='Validation Accuracy')
                                         )
 
-    def plot_val_accuracy_to_visdom(trainer):
-        accuracy = sum([accuracy for (loss, accuracy) in trainer.validation_history])
-        accuracy = (accuracy * 100.) / len(trainer.validation_data.dataset)
+    def plot_val_accuracy_to_visdom(evaluator, trainer):
+        accuracy = sum([accuracy for (loss, accuracy) in evaluator.history])
+        accuracy = (accuracy * 100.) / len(evaluator.dataloader.dataset)
         vis.line(X=np.array([trainer.current_epoch]),
                  Y=np.array([accuracy]),
                  win=val_accuracy_plot_window,
                  update='append')
+
     return plot_val_accuracy_to_visdom
 
 
 def get_log_validation_loss_and_accuracy_handler(logger):
-    def log_validation_loss_and_accuracy(trainer):
-        avg_loss = np.mean([loss for (loss, accuracy) in trainer.validation_history])
-        accuracy = sum([accuracy for (loss, accuracy) in trainer.validation_history])
+    def log_validation_loss_and_accuracy(evaluator):
+        avg_loss = np.mean([loss for (loss, accuracy) in evaluator.history])
+        accuracy = sum([accuracy for (loss, accuracy) in evaluator.history])
         logger('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            avg_loss, accuracy, len(trainer.validation_data.dataset),
-            (accuracy * 100.) / len(trainer.validation_data.dataset)
+            avg_loss, accuracy, len(evaluator.dataloader.dataset),
+            (accuracy * 100.) / len(evaluator.dataloader.dataset)
         ))
+
     return log_validation_loss_and_accuracy
 
 
@@ -109,28 +119,35 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
 
     def validation_inference_function(batch):
         model.eval()
-        data, target = Variable(batch[0]), Variable(batch[1])
+        data, target = Variable(batch[0], volatile=True), Variable(batch[1])
         output = model(data)
         loss = F.nll_loss(output, target, size_average=False).data[0]
         pred = output.data.max(1, keepdim=True)[1]
         correct = pred.eq(target.data.view_as(pred)).sum()
         return loss, correct
 
-    trainer = Trainer(train_loader, training_update_function, val_loader, validation_inference_function)
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
-                              log_training_simple_moving_average,
+    trainer = Trainer(training_update_function)
+    evaluator = Evaluator(validation_inference_function)
+    run_evaluation = Evaluate(evaluator, val_loader, epoch_interval=1)
+
+    # trainer event handlers
+    trainer.add_event_handler(Events.ITERATION_COMPLETED,
+                              log_simple_moving_average,
                               window_size=100,
                               metric_name="NLL",
                               should_log=lambda trainer: trainer.current_iteration % log_interval == 0,
                               logger=logger)
-
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
+    trainer.add_event_handler(Events.ITERATION_COMPLETED,
                               get_plot_training_loss_handler(vis, plot_every=log_interval))
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, run_evaluation)
 
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_log_validation_loss_and_accuracy_handler(logger))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_accuracy_handler(vis))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, lambda trainer: trainer.validation_history.clear())
-    trainer.run(max_epochs=epochs, validate_every_epoch=True)
+    # evaluator event handlers
+    evaluator.add_event_handler(Events.STARTED, lambda evaluator: evaluator.history.clear())
+    evaluator.add_event_handler(Events.COMPLETED, get_log_validation_loss_and_accuracy_handler(logger))
+    evaluator.add_event_handler(Events.COMPLETED, get_plot_validation_accuracy_handler(vis), trainer)
+
+    # kick everything off
+    trainer.run(train_loader, max_epochs=epochs)
 
 
 if __name__ == "__main__":

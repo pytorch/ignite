@@ -106,11 +106,11 @@ class Engine(object):
         self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
         self.should_terminate = True
 
-    def _run_once_on_dataset(self, dataset):
-        self.dataset = dataset
+    def _run_once_on_dataset(self, dataloader):
+        self.dataloader = dataloader
         try:
             start_time = time.time()
-            for batch in dataset:
+            for batch in dataloader:
                 self.current_iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
                 step_result = self._process_function(batch)

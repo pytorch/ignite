@@ -18,11 +18,11 @@ class Evaluator(Engine):
 
         super(Evaluator, self).add_event_handler(event_name, handler, *args, **kwargs)
 
-    def run(self, dataset):
-        self.dataset = dataset
+    def run(self, data):
+        self.dataloader = data
         self.current_iteration = 0
         self._fire_event(Events.STARTED)
-        hours, mins, secs = self._run_once_on_dataset(dataset)
+        hours, mins, secs = self._run_once_on_dataset(data)
         self._logger.info("Evaluation Complete. Time taken: %02d:%02d:%02d", hours, mins, secs)
         self._fire_event(Events.COMPLETED)
 
