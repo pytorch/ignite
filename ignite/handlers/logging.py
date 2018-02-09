@@ -1,79 +1,52 @@
 from __future__ import print_function
 
+from functools import partial
 
-def log_training_simple_moving_average(trainer, window_size, history_transform=lambda x: x,
-                                       should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):
-        iterations_per_epoch = len(trainer.training_data)
-        current_iteration = trainer.current_iteration % iterations_per_epoch
-        log_str = "Training Epoch[{}/{}] Iteration[{}/{} ({:.2f}%)]\t{}Simple Moving Average: {:.4f}" \
-            .format(trainer.current_epoch, trainer.max_epochs, current_iteration,
-                    iterations_per_epoch, (100. * current_iteration) / iterations_per_epoch,
-                    metric_name + " ",
-                    trainer.training_history.simple_moving_average(window_size, history_transform))
-        logger(log_str)
+from ignite.evaluator import Evaluator
+from ignite.trainer import Trainer
+from ignite.history import History
 
 
-def log_validation_simple_moving_average(trainer, window_size, history_transform=lambda x: x,
-                                         should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):
-        total_iterations = len(trainer.validation_data)
-        current_iteration = trainer.current_iteration % total_iterations
-        log_str = "Validation Iteration[{}/{} ({:.2f}%)]\t{}Simple Moving Average: {:.4f}" \
-            .format(current_iteration, total_iterations,
-                    (100. * current_iteration) / total_iterations,
-                    metric_name + " ",
-                    trainer.validation_history.simple_moving_average(window_size, history_transform))
-        logger(log_str)
+def _log_engine_history_average(engine, metric_name, msg_avg_type, history_avg_fn, logger):
+    total_iterations = len(engine.dataloader)
+    current_iteration = (engine.current_iteration - 1) % total_iterations + 1
+    history_average = history_avg_fn(engine.history)
+    msg_prefix = ""
+
+    if isinstance(engine, Trainer):
+        msg_prefix = "Training Epoch[{}/{}] ".format(engine.current_epoch, engine.max_epochs)
+    elif isinstance(engine, Evaluator):
+        msg_prefix = "Evaluation "
+
+    log_str = "{}Iteration[{}/{} ({:.2f}%)]\t{} {}: {:.4f}" \
+        .format(msg_prefix,
+                current_iteration, total_iterations, (100. * current_iteration) / total_iterations,
+                metric_name, msg_avg_type, history_average)
+    logger(log_str)
 
 
-def log_training_weighted_moving_average(trainer, window_size, weights, history_transform=lambda x: x,
-                                         should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):
-        iterations_per_epoch = len(trainer.training_data)
-        current_iteration = trainer.current_iteration % iterations_per_epoch
-        log_str = "Training Epoch[{}/{}] Iteration[{}/{} ({:.2f}%}]\t{}Weighted Moving Average: {:.4f}" \
-            .format(trainer.current_epoch, trainer.max_epochs, current_iteration,
-                    iterations_per_epoch, (100. * current_iteration) / iterations_per_epoch,
-                    metric_name + " ",
-                    trainer.training_history.weighted_moving_average(window_size, weights, history_transform))
-        logger(log_str)
+def log_simple_moving_average(engine, window_size, history_transform=lambda x: x,
+                              should_log=lambda engine: True, metric_name="", logger=print):
+    if should_log(engine):
+        _log_engine_history_average(engine, metric_name, "Simple Moving Average",
+                                    partial(History.simple_moving_average, window_size=window_size,
+                                            transform=history_transform),
+                                    logger)
 
 
-def log_validation_weighted_moving_average(trainer, window_size, weights, history_transform=lambda x: x,
-                                           should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):
-        total_iterations = len(trainer.validation_data)
-        current_iteration = trainer.current_iteration % total_iterations
-        log_str = "Validation Iteration[{}/{} ({:.2f}%)]\t{}Weighted Moving Average: {:.4f}" \
-            .format(current_iteration, total_iterations,
-                    (100. * current_iteration) / total_iterations,
-                    metric_name + " ",
-                    trainer.validation_history.weighted_moving_average(window_size, weights, history_transform))
-        logger(log_str)
+def log_weighted_moving_average(engine, window_size, weights, history_transform=lambda x: x,
+                                should_log=lambda engine: True, metric_name="", logger=print):
+    if should_log(engine):
+        _log_engine_history_average(engine, metric_name, "Weighted Moving Average",
+                                    partial(History.weighted_moving_average, window_size=window_size,
+                                            weights=weights, transform=history_transform),
+                                    logger)
 
 
-def log_training_exponential_moving_average(trainer, window_size, alpha, history_transform=lambda x: x,
-                                            should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):
-        iterations_per_epoch = len(trainer.training_data)
-        current_iteration = trainer.current_iteration % iterations_per_epoch
-        log_str = "Training Epoch[{}/{}] Iteration[{}/{} ({:.2f}%)]\t{}Exponential Moving Average: {:.4f}" \
-            .format(trainer.current_epoch, trainer.max_epochs, current_iteration,
-                    iterations_per_epoch, (100. * current_iteration) / iterations_per_epoch,
-                    metric_name + " ",
-                    trainer.training_history.exponential_moving_average(window_size, alpha, history_transform))
-        logger(log_str)
-
-
-def log_validation_exponential_moving_average(trainer, window_size, alpha, history_transform=lambda x: x,
-                                              should_log=lambda trainer: True, metric_name="", logger=print):
-    if should_log(trainer):
-        total_iterations = len(trainer.validation_data)
-        current_iteration = trainer.current_iteration % total_iterations
-        log_str = "Validation Iteration[{}/{} ({:.2f}%)]\t{}Exponential Moving Average: {:.4f}" \
-            .format(trainer.current_validation_iteration, total_iterations,
-                    (100. * current_iteration) / total_iterations,
-                    metric_name + " ",
-                    trainer.validation_history.exponential_moving_average(window_size, alpha, history_transform))
-        logger(log_str)
+def log_exponential_moving_average(engine, window_size, alpha, history_transform=lambda x: x,
+                                   should_log=lambda trainer: True, metric_name="", logger=print):
+    if should_log(engine):
+        _log_engine_history_average(engine, metric_name, "Exponential Moving Average",
+                                    partial(History.exponential_moving_average, window_size=window_size,
+                                            alpha=alpha, transform=history_transform),
+                                    logger)

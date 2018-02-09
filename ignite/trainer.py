@@ -54,7 +54,7 @@ class Trainer(Engine):
         -------
         None
         """
-        self.dataset = training_data
+        self.dataloader = training_data
         self.current_iteration = 0
         self.current_epoch = 0
 
