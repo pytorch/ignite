@@ -149,7 +149,7 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
                               logger=logger)
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED,
-                              get_plot_training_loss_handler(writer,plot_every=log_interval))
+                              get_plot_training_loss_handler(writer, plot_every=log_interval))
     trainer.add_event_handler(Events.EPOCH_COMPLETED, Evaluate(evaluator, val_loader, epoch_interval=1))
 
     # evaluator event handlers
