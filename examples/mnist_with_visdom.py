@@ -128,7 +128,6 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
 
     trainer = Trainer(training_update_function)
     evaluator = Evaluator(validation_inference_function)
-    run_evaluation = Evaluate(evaluator, val_loader, epoch_interval=1)
 
     # trainer event handlers
     trainer.add_event_handler(Events.ITERATION_COMPLETED,
@@ -139,10 +138,9 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
                               logger=logger)
     trainer.add_event_handler(Events.ITERATION_COMPLETED,
                               get_plot_training_loss_handler(vis, plot_every=log_interval))
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, run_evaluation)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, Evaluate(evaluator, val_loader, epoch_interval=1))
 
     # evaluator event handlers
-    evaluator.add_event_handler(Events.STARTED, lambda evaluator: evaluator.history.clear())
     evaluator.add_event_handler(Events.COMPLETED, get_log_validation_loss_and_accuracy_handler(logger))
     evaluator.add_event_handler(Events.COMPLETED, get_plot_validation_accuracy_handler(vis), trainer)
 

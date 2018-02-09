@@ -1,15 +1,19 @@
 """
- MNIST example with training and validation monitoring using TensorboardX (https://github.com/lanpa/tensorboard-pytorch)
- and Tensorboard.
+ MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
+ Requirements:
+    TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+    Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
  Usage:
-     ```bash
-       python mnist_with_tensorboard.py --log_dir=tensorboard_logs
-     ```
-     and
-     ```bash
-       python -m tensorboard.main --logdir=tensorboard_logs/
-     ```
+    Start tensorboard:
+    ```bash
+    tensorboard --logdir=/tmp/tensorboard_logs/
+    ```
+    Run the example:
+    ```bash
+    python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
+    ```
 """
+
 from __future__ import print_function
 from argparse import ArgumentParser
 import logging
@@ -25,15 +29,13 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 try:
     from tensorboardX import SummaryWriter
 except ImportError:
-    raise RuntimeError(
-        "No tensorboardX package is found. Please install with the command:" +
-        "\npip install tensorboardX"
-    )
+    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
 
-
-from ignite.trainer import Trainer, TrainingEvents
-from ignite.handlers.logging import log_training_simple_moving_average
-from ignite.handlers import Validate
+from ignite.engine import Events
+from ignite.trainer import Trainer
+from ignite.evaluator import Evaluator
+from ignite.handlers.logging import log_simple_moving_average
+from ignite.handlers import Evaluate
 import numpy as np
 
 
@@ -60,37 +62,37 @@ def get_plot_training_loss_handler(writer, plot_every):
     def plot_training_loss_to_tensorboard(trainer):
         if trainer.current_iteration % plot_every == 0:
             writer.add_scalar("training/loss",
-                              trainer.training_history.simple_moving_average(window_size=100),
+                              trainer.history.simple_moving_average(window_size=100),
                               trainer.current_iteration)
     return plot_training_loss_to_tensorboard
 
 
 def get_plot_validation_loss_handler(writer):
-    def plot_validation_loss_to_tensorboard(trainer):
-        avg_loss = np.mean([loss for (loss, accuracy) in trainer.validation_history])
+    def plot_validation_loss_to_tensorboard(evaluator, trainer):
+        avg_loss = np.mean([loss for (loss, accuracy) in evaluator.history])
         writer.add_scalar("validation/loss",
                           avg_loss,
-                          trainer.current_iteration)
+                          trainer.current_epoch)
     return plot_validation_loss_to_tensorboard
 
 
-def get_plot_validation_accuracy_handler(writer, validation_data):
-    def plot_val_accuracy_to_tensorboard(trainer):
-        accuracy = sum([accuracy for (loss, accuracy) in trainer.validation_history])
-        accuracy = (accuracy * 100.) / len(validation_data.dataset)
+def get_plot_validation_accuracy_handler(writer):
+    def plot_val_accuracy_to_tensorboard(evaluator, trainer):
+        accuracy = sum([accuracy for (loss, accuracy) in evaluator.history])
+        accuracy = (accuracy * 100.) / len(evaluator.dataloader.dataset)
         writer.add_scalar("validation/accuracy",
                           accuracy,
-                          trainer.current_iteration)
+                          trainer.current_epoch)
     return plot_val_accuracy_to_tensorboard
 
 
-def get_log_validation_loss_and_accuracy_handler(logger, validation_data):
-    def log_validation_loss_and_accuracy(trainer):
-        avg_loss = np.mean([loss for (loss, accuracy) in trainer.validation_history])
-        accuracy = sum([accuracy for (loss, accuracy) in trainer.validation_history])
+def get_log_validation_loss_and_accuracy_handler(logger):
+    def log_validation_loss_and_accuracy(evaluator):
+        avg_loss = np.mean([loss for (loss, accuracy) in evaluator.history])
+        accuracy = sum([accuracy for (loss, accuracy) in evaluator.history])
         logger('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            avg_loss, accuracy, len(validation_data.dataset),
-            (accuracy * 100.) / len(validation_data.dataset)
+            avg_loss, accuracy, len(evaluator.dataloader.dataset),
+            (accuracy * 100.) / len(evaluator.dataloader.dataset)
         ))
     return log_validation_loss_and_accuracy
 
@@ -135,24 +137,27 @@ def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, 
         correct = pred.eq(target.data.view_as(pred)).sum()
         return loss, correct
 
-    trainer = Trainer(training_update_function, validation_inference_function)
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
-                              log_training_simple_moving_average,
+    trainer = Trainer(training_update_function)
+    evaluator = Evaluator(validation_inference_function)
+
+    # trainer event handlers
+    trainer.add_event_handler(Events.ITERATION_COMPLETED,
+                              log_simple_moving_average,
                               window_size=100,
                               metric_name="NLL",
                               should_log=lambda trainer: trainer.current_iteration % log_interval == 0,
                               logger=logger)
 
-    trainer.add_event_handler(TrainingEvents.TRAINING_ITERATION_COMPLETED,
-                              get_plot_training_loss_handler(writer, plot_every=log_interval))
+    trainer.add_event_handler(Events.ITERATION_COMPLETED,
+                              get_plot_training_loss_handler(writer,plot_every=log_interval))
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, Evaluate(evaluator, val_loader, epoch_interval=1))
 
-    trainer.add_event_handler(TrainingEvents.EPOCH_COMPLETED, Validate(val_loader, epoch_interval=1))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED,
-                              get_log_validation_loss_and_accuracy_handler(logger, val_loader))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, get_plot_validation_loss_handler(writer))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED,
-                              get_plot_validation_accuracy_handler(writer, val_loader))
-    trainer.add_event_handler(TrainingEvents.VALIDATION_COMPLETED, lambda trainer: trainer.validation_history.clear())
+    # evaluator event handlers
+    evaluator.add_event_handler(Events.COMPLETED, get_log_validation_loss_and_accuracy_handler(logger))
+    evaluator.add_event_handler(Events.COMPLETED, get_plot_validation_loss_handler(writer), trainer)
+    evaluator.add_event_handler(Events.COMPLETED, get_plot_validation_accuracy_handler(writer), trainer)
+
+    # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
 
     writer.close()
