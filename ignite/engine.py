@@ -1,10 +1,10 @@
 import logging
+import time
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-import time
 
-from ignite.history import History
 from ignite._utils import _to_hours_mins_secs
+from ignite.history import History
 
 
 class Events(Enum):

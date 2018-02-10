@@ -1,7 +1,8 @@
+import collections
+
 import torch
 from torch._six import string_classes
 from torch.autograd import Variable
-import collections
 
 
 def _to_hours_mins_secs(time_taken):

@@ -1,9 +1,5 @@
-import time
-
-from torch.autograd import Variable
-from ignite.engine import Engine, Events
 from ignite._utils import to_variable
-
+from ignite.engine import Engine, Events
 
 __all__ = ["Evaluator", "create_supervised_evaluator"]
 
