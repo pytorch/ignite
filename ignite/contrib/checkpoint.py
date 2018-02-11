@@ -11,15 +11,29 @@ class ModelCheckpoint:
     Parameters
     ----------
     dirname : str
+        Directory path where objects will be saved
     filename_prefix : str
+        Prefix for the filenames to which objects will be saved.
+        Each object is saved under '{filename_prefix}_{name}_{step_number}.pth'
+        where {step_number} is epoch or iteration number.
     iteration_interval : int, optional
+        if not None, model will be saved to disk every 'iteration_interval' iterations
     epoch_interval : int, optional
+        if not None, model will be saved to disk every 'epoch_interval' epochs
     score_function : Callable, optional
+        if not None, it should be a function taking a single argument, an `ignite.engine.Engine` object,
+        and return a score (float / int). Objects with highest scores will be retained.
     n_saved : int, optional
+        Number of objects that should be kept on disk. Older files will be removed.
     atomic : bool, optional
+        If True, objects are serialized to a temporary file, and then moved to final destination, so that
+        files are guaranteed to not be damaged (for example if exception occures during saving).
     require_empty : bool, optional
+        If True, will raise exception if there are any files starting with `filename_prefix` in the directory 'dirname'
     create_dir : bool, optional
+        If True, will create directory 'dirname' if it doesnt exist.
     exist_ok : bool, optional
+        Passed to 'os.makedirs' call. Ignored if 'create_dir' is False.
     """
 
     def __init__(self, dirname, filename_prefix,
@@ -36,9 +50,9 @@ class ModelCheckpoint:
         self._epoch_interval     = epoch_interval
         self._score_function     = score_function
         self._atomic             = atomic
-        self._item_T             = namedtuple('item_T', ('priority', 'data'))
 
-        self._saved = []
+        self._item_T  = namedtuple('_item_T', ('priority', 'data'))
+        self._saved   = []
 
         if not (iteration_interval or epoch_interval or score_function):
             raise ValueError("One of 'iteration_interval', 'epoch_interval' or "
@@ -68,7 +82,7 @@ class ModelCheckpoint:
             try:
                 torch.save(obj, tmp.file)
 
-            except:
+            except BaseException:
                 tmp.close()
                 os.remove(tmp.name)
                 raise
@@ -78,7 +92,6 @@ class ModelCheckpoint:
                 os.rename(tmp.name, path)
 
     def __call__(self, engine, **kwargs):
-
         if len(kwargs) == 0:
             raise RuntimeError("No objects to checkpoint found.")
 
@@ -99,17 +112,17 @@ class ModelCheckpoint:
             priority = engine.current_epoch
 
         if (len(self._saved) < self._n_saved) or (self._saved[0].priority < priority):
-            saved = []
+            saved_objs = []
 
             for name, obj in kwargs.items():
                 fname = '{}_{}_{}.pth'.format(self._fname_prefix, name, index)
                 path  = os.path.join(self._dirname, fname)
 
                 self._save(obj=obj, path=path)
-                saved.append(fname)
+                saved_objs.append(path)
 
-            saved = self._item_T(priority, saved)
-            self._saved.append(saved)
+            item = self._item_T(priority, saved_objs)
+            self._saved.append(item)
             self._saved.sort(key=lambda item: item.priority)
 
         if len(self._saved) > self._n_saved:
