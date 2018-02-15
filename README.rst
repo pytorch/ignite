@@ -94,7 +94,7 @@ The :code:`Trainer` emits events during the training loop, which the user can at
 - TRAINING_ITERATION_COMPLETED
 - VALIDATION_ITERATION_STARTED
 - VALIDATION_ITERATION_COMPLETED
-- EXCEPTION_RAISED
+- EXCEPTION_RAISED (see `Note on EXCEPTION_RAISED`_ below)
 
 Users can attach multiple handlers to each of these events, which allows them to control aspects of training such as 
 early stopping, or reducing the learning rate as well as things such as logging or updating external dashboards like
@@ -118,6 +118,28 @@ Event handlers are any callable where the first argument is an instance of the :
                               early_stopping_handler,
                               min_iterations,
                               lookback=5)
+
+Note on EXCEPTION_RAISED
+^^^^^^^^^^^^^^^^^^^^^^^^
+By default :code:`Ignite` will re-raise any exception caught during training. If you would like to change this
+behaviour, you have to register an handler for the :code:`EXCEPTION_RAISED` event. This handler will be called with
+the :code:`Engine` object and the caught :code:`Exception` as two first arguments, followed by any :code:`*args` and
+:code:`**kwargs` passed to :code:`add_event_handler` call. If this handler is registered, :code:`Ignite` will not
+re-raise the exception.
+
+The following example shows how to register a handler which will save the model before re-rasing the exception.
+
+.. code-block:: python
+
+    from ignite.engine import Events
+
+    def save_and_raise(engine, exception, model, path):
+        torch.save(model, path)
+        raise exception
+
+    trainer.add_event_handler(Events.EXCEPTION_RAISED,
+                              my_model,
+                              '/tmp/my_model.pth')
 
 Logging
 +++++++

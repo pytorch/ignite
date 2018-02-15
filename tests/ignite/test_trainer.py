@@ -40,18 +40,25 @@ class _PicklableMagicMock(object):
         return self.uuid
 
 
-def test_exception_handler_called_on_error():
+def test_default_exception_handler():
     training_update_function = MagicMock(side_effect=ValueError())
-
     trainer = Trainer(training_update_function)
-    exception_handler = MagicMock()
-    trainer.add_event_handler(Events.EXCEPTION_RAISED, exception_handler)
 
     with raises(ValueError):
         trainer.run([1])
 
-    # one call from _run_once_over_data and one from the run function in the trainer
-    exception_handler.assert_has_calls([call(trainer), call(trainer)])
+
+def test_custom_exception_handler():
+    value_error = ValueError()
+    training_update_function = MagicMock(side_effect=value_error)
+
+    trainer = Trainer(training_update_function)
+    exception_handler = MagicMock()
+    trainer.add_event_handler(Events.EXCEPTION_RAISED, exception_handler)
+    trainer.run([1])
+
+    # only one call from _run_once_over_data, since the exception is swallowed
+    exception_handler.assert_has_calls([call(trainer, value_error)])
 
 
 def test_current_epoch_counter_increases_every_epoch():

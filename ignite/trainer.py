@@ -29,14 +29,13 @@ class Trainer(Engine):
         super(Trainer, self).__init__(training_update_function)
         self.current_epoch = 0
         self.max_epochs = 0
-        self.exception = None
 
     def _train_one_epoch(self, training_data):
         hours, mins, secs = self._run_once_on_dataset(training_data)
         self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.current_epoch, hours,
                           mins, secs)
 
-    def run(self, training_data, max_epochs=1, ignore_exceptions=False):
+    def run(self, training_data, max_epochs=1):
         """
         Train the model, evaluate the validation set and update best parameters if the validation loss
         improves.
@@ -49,9 +48,6 @@ class Trainer(Engine):
             Collection of training batches allowing repeated iteration (e.g., list or DataLoader)
         max_epochs: int, optional
             max epochs to train for [default=1]
-        ignore_exceptions: bool, optional
-            if `True`, then exceptions raised inside the training loop will not be re-raised, and
-            you should handle them in the appropriate handler (for `Events.EXCEPTION_RAISED` event)
 
         Notes
         -----
@@ -88,13 +84,8 @@ class Trainer(Engine):
             self._logger.info("Training complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
-            self.exception = e
-
             self._logger.error("Training is terminating due to exception: %s", str(e))
-            self._fire_event(Events.EXCEPTION_RAISED)
-
-            if ignore_exceptions is False:
-                raise e
+            self._handle_exception(e)
 
 
 def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
