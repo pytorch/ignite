@@ -2,10 +2,9 @@ from __future__ import division
 
 import time
 from collections import Iterable
-from torch.autograd import Variable
 
-from ignite.engine import Engine, Events
 from ignite._utils import _to_hours_mins_secs, to_variable
+from ignite.engine import Engine, Events
 
 __all__ = ["Trainer", "create_supervised_trainer"]
 
@@ -81,8 +80,7 @@ class Trainer(Engine):
 
         except BaseException as e:
             self._logger.error("Training is terminating due to exception: %s", str(e))
-            self._fire_event(Events.EXCEPTION_RAISED)
-            raise e
+            self._handle_exception(e)
 
 
 def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):

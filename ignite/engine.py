@@ -93,11 +93,11 @@ class Engine(object):
             return f
         return decorator
 
-    def _fire_event(self, event_name):
+    def _fire_event(self, event_name, *event_args):
         if event_name in self._event_handlers.keys():
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
-                func(self, *args, **kwargs)
+                func(self, *(event_args + args), **kwargs)
 
     def terminate(self):
         """
@@ -126,7 +126,12 @@ class Engine(object):
             return hours, mins, secs
         except BaseException as e:
             self._logger.error("Current run is terminating due to exception: %s", str(e))
-            self._fire_event(Events.EXCEPTION_RAISED)
+            self._handle_exception(e)
+
+    def _handle_exception(self, e):
+        if Events.EXCEPTION_RAISED in self._event_handlers:
+            self._fire_event(Events.EXCEPTION_RAISED, e)
+        else:
             raise e
 
     @abstractmethod
