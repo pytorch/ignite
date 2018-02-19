@@ -6,27 +6,27 @@ class Timer:
     """ Timer object can be used to measure (average) time between events.
 
     Args:
-        unit (bool, optional): if True, then when ``.value()`` method is called, the returned value
+        average (bool, optional): if True, then when ``.value()`` method is called, the returned value
             will be equal to total time measured, divided by the value of internal counter.
 
     Attributes:
         total (float): total time elapsed when the Timer was running (in seconds)
-        cnt (int): internal counter, usefull to measure average time, e.g. of processing a single batch.
-            Incremented with the ``.inc_unit()`` method.
-        running (bool): flag indicating if time is measuring time.
+        step_count (int): internal counter, usefull to measure average time, e.g. of processing a single batch.
+            Incremented with the ``.step()`` method.
+        running (bool): flag indicating if timer is measuring time.
 
     Notes:
-        When using ``Timer(unit=True)`` do not forget to call ``timer.inc_unit()`` everytime an event occurs. See
+        When using ``Timer(average=True)`` do not forget to call ``timer.step()`` everytime an event occurs. See
         the examples below.
 
     Examples:
-        Measuring total time of the entire 'training' epoch:
 
+        Measuring total time of the entire 'training' epoch:
         >>> from ignite.handlers import Timer
         >>> import time
         >>> work = lambda : time.sleep(0.1)
         >>> idle = lambda : time.sleep(0.1)
-        >>> t = Timer(unit=False)
+        >>> t = Timer(average=False)
         >>> for _ in range(10):
         ...    work()
         ...    idle()
@@ -35,23 +35,23 @@ class Timer:
         2.003073937026784
 
         Measuring average time of the 'training' epoch:
-        >>> t = Timer(unit=True)
+        >>> t = Timer(average=True)
         >>> for _ in range(10):
         ...    work()
         ...    idle()
-        ...    t.inc_unit()
+        ...    t.step()
         ...
         >>> t.value()
         0.2003182829997968
 
         Measuring average time it takes to execute a single ``work()`` call
-        >>> t = Timer(unit=True)
+        >>> t = Timer(average=True)
         >>> for _ in range(10):
         ...    t.resume()
         ...    work()
         ...    t.pause()
         ...    idle()
-        ...    t.inc_unit()
+        ...    t.step()
         ...
         >>> t.value()
         0.10016545779653825
@@ -60,21 +60,21 @@ class Timer:
         >>> from ignite.trainer import Trainer
         >>> from ignite.engine import Events
         >>> from ignite.handlers import Timer
-        >>> trainer = Trainer(trainig_update_function)
-        >>> timer = Timer(unit=True)
+        >>> trainer = Trainer(training_update_function)
+        >>> timer = Timer(average=True)
         >>> timer.attach(trainer,
         ...              start=Events.EPOCH_STARTED,
-        ...              resume=Events.ITERATION_STARTED
+        ...              resume=Events.ITERATION_STARTED,
         ...              pause=Events.ITERATION_COMPLETED,
         ...              step=Events.ITERATION_COMPLETED)
     """
 
-    def __init__(self, unit=False):
-        self._unit = unit
+    def __init__(self, average=False):
+        self._average = average
         self._t0 = time.perf_counter()
 
         self.total = 0.
-        self.cnt = 0.
+        self.step_count = 0.
         self.running = True
 
     def attach(self, engine, start=Events.STARTED, pause=Events.COMPLETED, resume=None, step=None):
@@ -90,7 +90,7 @@ class Timer:
             resume (ignite.engine.Events, optional):
                 Event which should resume the timer
             step (ignite.engine.Events, optional):
-                Event which should call the `inc_unit` method of the counter
+                Event which should call the `step` method of the counter
 
         Returns:
             self (Timer)
@@ -104,12 +104,12 @@ class Timer:
             engine.add_event_handler(resume, self.resume)
 
         if step is not None:
-            engine.add_event_handler(step, self.inc_unit)
+            engine.add_event_handler(step, self.step)
 
         return self
 
     def reset(self):
-        self.__init__(self._unit)
+        self.__init__(self._average)
         return self
 
     def pause(self):
@@ -127,15 +127,15 @@ class Timer:
         if self.running:
             total += self._elapsed()
 
-        if self._unit:
-            denominator = max(self.cnt, 1.)
+        if self._average:
+            denominator = max(self.step_count, 1.)
         else:
             denominator = 1.
 
         return total / denominator
 
-    def inc_unit(self):
-        self.cnt += 1.
+    def step(self):
+        self.step_count += 1.
 
     def _elapsed(self):
         return time.perf_counter() - self._t0
