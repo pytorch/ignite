@@ -138,6 +138,7 @@ The following example shows how to register a handler which will save the model 
         raise exception
 
     trainer.add_event_handler(Events.EXCEPTION_RAISED,
+                              save_and_raise,
                               my_model,
                               '/tmp/my_model.pth')
 

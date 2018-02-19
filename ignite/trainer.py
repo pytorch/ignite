@@ -49,11 +49,6 @@ class Trainer(Engine):
         max_epochs: int, optional
             max epochs to train for [default=1]
 
-        Notes
-        -----
-        Caught exception is stored in the `exception` attribute so that it can be easily
-        accessed from the handler function via `trainer.exception`
-
         Returns
         -------
         None
