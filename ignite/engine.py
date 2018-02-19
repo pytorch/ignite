@@ -1,10 +1,10 @@
 import logging
+import time
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-import time
 
-from ignite.history import History
 from ignite._utils import _to_hours_mins_secs
+from ignite.history import History
 
 
 class Events(Enum):
@@ -47,8 +47,8 @@ class Engine(object):
 
         Parameters
         ----------
-        event_name: enum
-            event from ignite.trainer.TrainingEvents to attach the
+        event_name: Events
+            event from ignite.Engine.Events to attach the
             handler to
         handler: Callable
             the callable event handler that should be invoked
