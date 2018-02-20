@@ -19,6 +19,7 @@ class DummyEngine(Engine):
         for _ in range(num_times):
             self._fire_event(Events.STARTED, state)
             self._fire_event(Events.COMPLETED, state)
+        return state
 
 
 def test_add_event_handler_raises_with_invalid_event():
@@ -59,9 +60,9 @@ def test_adding_multiple_event_handlers():
     for handler in handlers:
         engine.add_event_handler(Events.STARTED, handler)
 
-    engine.run(1)
+    state = engine.run(1)
     for handler in handlers:
-        handler.assert_called_once()
+        handler.assert_called_once_with(state)
 
 
 def test_args_and_kwargs_are_passed_to_event():
