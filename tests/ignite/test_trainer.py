@@ -9,7 +9,7 @@ import numpy as np
 from mock import call, MagicMock, Mock
 from pytest import raises, approx
 
-from ignite.engine import Events
+from ignite.engine import Events, State
 from ignite.trainer import Trainer, create_supervised_trainer
 
 
@@ -38,6 +38,25 @@ class _PicklableMagicMock(object):
 
     def __repr__(self):
         return self.uuid
+
+def test_returns_state():
+    trainer = Trainer(MagicMock(return_value=1))
+    state = trainer.run([])
+
+    assert isinstance(state, State)
+
+def test_state_attributes():
+    dataloader = [1,2,3]
+    trainer = Trainer(MagicMock(return_value=1))
+    state = trainer.run(dataloader, max_epochs=3)
+
+    assert state.iteration == 9
+    assert state.terminate == False
+    assert state.output == 1
+    assert state.batch == 3
+    assert state.dataloader == dataloader
+    assert state.epoch == 3
+    assert state.max_epochs == 3
 
 
 def test_default_exception_handler():

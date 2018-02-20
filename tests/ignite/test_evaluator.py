@@ -3,9 +3,26 @@ from mock import MagicMock, Mock, call
 from pytest import approx
 from torch.nn import Linear
 
-from ignite.engine import Events
+from ignite.engine import Events, State
 from ignite.evaluator import Evaluator, create_supervised_evaluator
 
+
+def test_returns_state():
+    evaluator = Evaluator(MagicMock(return_value=1))
+    state = evaluator.run([])
+
+    assert isinstance(state, State)
+
+def test_state_attributes():
+    dataloader = [1,2,3]
+    evaluator = Evaluator(MagicMock(return_value=1))
+    state = evaluator.run(dataloader)
+
+    assert state.iteration == 3
+    assert state.terminate == False
+    assert state.output == 1
+    assert state.batch == 3
+    assert state.dataloader == dataloader
 
 def test_current_validation_iteration_counter_increases_every_iteration():
     validation_batches = [1, 2, 3]
