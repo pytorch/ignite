@@ -17,8 +17,8 @@ def test_current_validation_iteration_counter_increases_every_iteration():
             self.current_iteration_count = 1
             self.total_count = 0
 
-        def __call__(self, evaluator):
-            assert evaluator.current_iteration == self.current_iteration_count
+        def __call__(self, state):
+            assert state.iteration == self.current_iteration_count
             self.current_iteration_count += 1
             self.total_count += 1
 
@@ -54,14 +54,14 @@ def test_evaluation_iteration_events_are_fired():
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
 
     batches = [(1, 2), (3, 4), (5, 6)]
-    evaluator.run(batches)
+    state = evaluator.run(batches)
     assert iteration_started.call_count == len(batches)
     assert iteration_complete.call_count == len(batches)
 
     expected_calls = []
     for i in range(len(batches)):
-        expected_calls.append(call.iteration_started(evaluator))
-        expected_calls.append(call.iteration_complete(evaluator))
+        expected_calls.append(call.iteration_started(state))
+        expected_calls.append(call.iteration_complete(state))
 
     assert mock_manager.mock_calls == expected_calls
 
@@ -71,15 +71,15 @@ def test_terminate_stops_evaluator_when_called_during_iteration():
     iteration_to_stop = 3  # i.e. part way through the 3rd validation run
     evaluator = Evaluator(MagicMock(return_value=1))
 
-    def start_of_iteration_handler(evaluator):
-        if evaluator.current_iteration == iteration_to_stop:
+    def start_of_iteration_handler(state):
+        if state.iteration == iteration_to_stop:
             evaluator.terminate()
 
     evaluator.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-    evaluator.run([None] * num_iterations)
+    state = evaluator.run([None] * num_iterations)
 
     # should complete the iteration when terminate called but not increment counter
-    assert evaluator.current_iteration == iteration_to_stop
+    assert state.iteration == iteration_to_stop
 
 
 def test_create_supervised():
@@ -93,8 +93,8 @@ def test_create_supervised():
     y = torch.FloatTensor([[3.0], [5.0]])
     data = [(x, y)]
 
-    evaluator.run(data)
-    y_pred, y = evaluator.history[0]
+    state = evaluator.run(data)
+    y_pred, y = state.output
 
     assert y_pred[0, 0] == approx(0.0)
     assert y_pred[1, 0] == approx(0.0)

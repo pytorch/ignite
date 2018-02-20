@@ -3,7 +3,7 @@ from enum import Enum
 import pytest
 from mock import MagicMock
 
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, Events, State
 
 
 def process_func(batch):
@@ -15,10 +15,10 @@ class DummyEngine(Engine):
         super(DummyEngine, self).__init__(process_func)
 
     def run(self, num_times):
-        self._logger.error("hello world")
+        state = State()
         for _ in range(num_times):
-            self._fire_event(Events.STARTED)
-            self._fire_event(Events.COMPLETED)
+            self._fire_event(Events.STARTED, state)
+            self._fire_event(Events.COMPLETED, state)
 
 
 def test_terminate():
@@ -68,7 +68,7 @@ def test_adding_multiple_event_handlers():
 
     engine.run(1)
     for handler in handlers:
-        handler.assert_called_once_with(engine)
+        handler.assert_called_once()
 
 
 def test_args_and_kwargs_are_passed_to_event():
@@ -87,7 +87,7 @@ def test_args_and_kwargs_are_passed_to_event():
 
     for handler in called_handlers:
         handler_args, handler_kwargs = handler.call_args
-        assert handler_args[0] == engine
+        assert isinstance(handler_args[0], State)
         assert handler_args[1::] == args
         assert handler_kwargs == kwargs
 

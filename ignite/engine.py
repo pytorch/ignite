@@ -4,7 +4,6 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 from ignite._utils import _to_hours_mins_secs
-from ignite.history import History
 
 
 class Events(Enum):
@@ -17,6 +16,15 @@ class Events(Enum):
     EXCEPTION_RAISED = "exception_raised"
 
 
+class State(object):
+    def __init__(self, **kwargs):
+        self.iteration = 0
+        self.output = None
+        self.batch = None
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+
 class Engine(object):
     __metaclass__ = ABCMeta
 
@@ -26,7 +34,7 @@ class Engine(object):
     Parameters
     ----------
     process_function : callable
-        A function receiving the current training batch in each iteration, outputing data to be stored in the history
+        A function receiving the current training batch in each iteration, outputing data to be stored in the state
 
     """
     def __init__(self, process_function):
@@ -34,8 +42,6 @@ class Engine(object):
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
         self._process_function = process_function
-        self.current_iteration = 0
-        self.history = History()
         self.should_terminate = False
 
         if self._process_function is None:
@@ -93,11 +99,11 @@ class Engine(object):
             return f
         return decorator
 
-    def _fire_event(self, event_name, *event_args):
+    def _fire_event(self, event_name, state, *event_args):
         if event_name in self._event_handlers.keys():
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
-                func(self, *(event_args + args), **kwargs)
+                func(state, *(event_args + args), **kwargs)
 
     def terminate(self):
         """
@@ -106,18 +112,15 @@ class Engine(object):
         self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
         self.should_terminate = True
 
-    def _run_once_on_dataset(self, dataloader):
-        self.dataloader = dataloader
+    def _run_once_on_dataset(self, state):
         try:
             start_time = time.time()
-            for batch in dataloader:
-                self.current_iteration += 1
-                self._fire_event(Events.ITERATION_STARTED)
-                step_result = self._process_function(batch)
-                if step_result is not None:
-                    self.history.append(step_result)
-
-                self._fire_event(Events.ITERATION_COMPLETED)
+            for batch in state.dataloader:
+                state.batch = batch
+                state.iteration += 1
+                self._fire_event(Events.ITERATION_STARTED, state)
+                state.output = self._process_function(batch)
+                self._fire_event(Events.ITERATION_COMPLETED, state)
                 if self.should_terminate:
                     break
 
@@ -126,11 +129,11 @@ class Engine(object):
             return hours, mins, secs
         except BaseException as e:
             self._logger.error("Current run is terminating due to exception: %s", str(e))
-            self._handle_exception(e)
+            self._handle_exception(state, e)
 
-    def _handle_exception(self, e):
+    def _handle_exception(self, state, e):
         if Events.EXCEPTION_RAISED in self._event_handlers:
-            self._fire_event(Events.EXCEPTION_RAISED, e)
+            self._fire_event(Events.EXCEPTION_RAISED, state, e)
         else:
             raise e
 
