@@ -19,6 +19,7 @@ class Events(Enum):
 class State(object):
     def __init__(self, **kwargs):
         self.iteration = 0
+        self.terminate = False
         self.output = None
         self.batch = None
         for k, v in kwargs.items():
@@ -42,7 +43,6 @@ class Engine(object):
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
         self._process_function = process_function
-        self.should_terminate = False
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
@@ -105,13 +105,6 @@ class Engine(object):
             for func, args, kwargs in self._event_handlers[event_name]:
                 func(state, *(event_args + args), **kwargs)
 
-    def terminate(self):
-        """
-        Sends terminate signal to the engine, so that it terminates after the current iteration
-        """
-        self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
-        self.should_terminate = True
-
     def _run_once_on_dataset(self, state):
         try:
             start_time = time.time()
@@ -121,7 +114,7 @@ class Engine(object):
                 self._fire_event(Events.ITERATION_STARTED, state)
                 state.output = self._process_function(batch)
                 self._fire_event(Events.ITERATION_COMPLETED, state)
-                if self.should_terminate:
+                if state.terminate:
                     break
 
             time_taken = time.time() - start_time

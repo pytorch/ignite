@@ -21,13 +21,6 @@ class DummyEngine(Engine):
             self._fire_event(Events.COMPLETED, state)
 
 
-def test_terminate():
-    engine = DummyEngine()
-    assert not engine.should_terminate
-    engine.terminate()
-    assert engine.should_terminate
-
-
 def test_add_event_handler_raises_with_invalid_event():
     engine = DummyEngine()
 

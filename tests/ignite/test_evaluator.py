@@ -66,19 +66,19 @@ def test_evaluation_iteration_events_are_fired():
     assert mock_manager.mock_calls == expected_calls
 
 
-def test_terminate_stops_evaluator_when_called_during_iteration():
+def test_terminate_stops_evaluator_when_set_during_iteration():
     num_iterations = 10
     iteration_to_stop = 3  # i.e. part way through the 3rd validation run
     evaluator = Evaluator(MagicMock(return_value=1))
 
     def start_of_iteration_handler(state):
         if state.iteration == iteration_to_stop:
-            evaluator.terminate()
+            state.terminate = True
 
     evaluator.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
     state = evaluator.run([None] * num_iterations)
 
-    # should complete the iteration when terminate called but not increment counter
+    # should complete the iteration when terminate set but not increment counter
     assert state.iteration == iteration_to_stop
 
 
