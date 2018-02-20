@@ -39,19 +39,21 @@ class _PicklableMagicMock(object):
     def __repr__(self):
         return self.uuid
 
+
 def test_returns_state():
     trainer = Trainer(MagicMock(return_value=1))
     state = trainer.run([])
 
     assert isinstance(state, State)
 
+
 def test_state_attributes():
-    dataloader = [1,2,3]
+    dataloader = [1, 2, 3]
     trainer = Trainer(MagicMock(return_value=1))
     state = trainer.run(dataloader, max_epochs=3)
 
     assert state.iteration == 9
-    assert state.terminate == False
+    assert not state.terminate
     assert state.output == 1
     assert state.batch == 3
     assert state.dataloader == dataloader

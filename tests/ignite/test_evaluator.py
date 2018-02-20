@@ -13,16 +13,18 @@ def test_returns_state():
 
     assert isinstance(state, State)
 
+
 def test_state_attributes():
-    dataloader = [1,2,3]
+    dataloader = [1, 2, 3]
     evaluator = Evaluator(MagicMock(return_value=1))
     state = evaluator.run(dataloader)
 
     assert state.iteration == 3
-    assert state.terminate == False
+    assert not state.terminate
     assert state.output == 1
     assert state.batch == 3
     assert state.dataloader == dataloader
+
 
 def test_current_validation_iteration_counter_increases_every_iteration():
     validation_batches = [1, 2, 3]
