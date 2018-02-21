@@ -108,16 +108,16 @@ class Timer:
 
         return self
 
-    def reset(self):
+    def reset(self, *args):
         self.__init__(self._average)
         return self
 
-    def pause(self):
+    def pause(self, *args):
         if self.running:
             self.total += self._elapsed()
             self.running = False
 
-    def resume(self):
+    def resume(self, *args):
         if not self.running:
             self.running = True
             self._t0 = time.perf_counter()
@@ -134,7 +134,7 @@ class Timer:
 
         return total / denominator
 
-    def step(self):
+    def step(self, *args):
         self.step_count += 1.
 
     def _elapsed(self):
