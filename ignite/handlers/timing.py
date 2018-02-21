@@ -1,5 +1,9 @@
-import time
 from ignite.engine import Events
+
+try:
+    from time import perf_counter
+except ImportError:
+    from time import clock as perf_counter
 
 
 class Timer:
@@ -71,7 +75,7 @@ class Timer:
 
     def __init__(self, average=False):
         self._average = average
-        self._t0 = time.perf_counter()
+        self._t0 = perf_counter()
 
         self.total = 0.
         self.step_count = 0.
@@ -120,7 +124,7 @@ class Timer:
     def resume(self, *args):
         if not self.running:
             self.running = True
-            self._t0 = time.perf_counter()
+            self._t0 = perf_counter()
 
     def value(self):
         total = self.total
@@ -138,4 +142,4 @@ class Timer:
         self.step_count += 1.
 
     def _elapsed(self):
-        return time.perf_counter() - self._t0
+        return perf_counter() - self._t0
