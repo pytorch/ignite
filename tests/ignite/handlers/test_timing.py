@@ -11,10 +11,10 @@ def test_timer():
     n_iter = 3
 
     def _train_func(batch):
-        time.sleep(0.2)
+        time.sleep(sleep_t)
 
     def _test_func(batch):
-        time.sleep(0.2)
+        time.sleep(sleep_t)
 
     trainer = Trainer(_train_func)
     tester = Evaluator(_test_func)
