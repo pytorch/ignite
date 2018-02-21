@@ -3,7 +3,7 @@ from ignite.engine import Events
 try:
     from time import perf_counter
 except ImportError:
-    from time import clock as perf_counter
+    from time import time as perf_counter
 
 
 class Timer:
