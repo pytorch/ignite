@@ -103,7 +103,7 @@ class Engine(object):
         if event_name in self._event_handlers.keys():
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
-                func(state, *(event_args + args), **kwargs)
+                func(self, state, *(event_args + args), **kwargs)
 
     def terminate(self):
         """

@@ -78,7 +78,7 @@ def test_custom_exception_handler():
     state = trainer.run([1])
 
     # only one call from _run_once_over_data, since the exception is swallowed
-    exception_handler.assert_has_calls([call(state, value_error)])
+    exception_handler.assert_has_calls([call(trainer, state, value_error)])
 
 
 def test_current_epoch_counter_increases_every_epoch():
@@ -89,7 +89,7 @@ def test_current_epoch_counter_increases_every_epoch():
         def __init__(self):
             self.current_epoch_count = 1
 
-        def __call__(self, state):
+        def __call__(self, trainer, state):
             assert state.epoch == self.current_epoch_count
             self.current_epoch_count += 1
 
@@ -109,7 +109,7 @@ def test_current_iteration_counter_increases_every_iteration():
         def __init__(self):
             self.current_iteration_count = 1
 
-        def __call__(self, state):
+        def __call__(self, trainer, state):
             assert state.iteration == self.current_iteration_count
             self.current_iteration_count += 1
 
@@ -133,7 +133,7 @@ def test_terminate_at_end_of_epoch_stops_training():
 
     trainer = Trainer(MagicMock(return_value=1))
 
-    def end_of_epoch_handler(state):
+    def end_of_epoch_handler(trainer, state):
         if state.epoch == last_epoch_to_run:
             trainer.terminate()
 
@@ -154,7 +154,7 @@ def test_terminate_at_start_of_epoch_stops_training_after_completing_iteration()
 
     trainer = Trainer(MagicMock(return_value=1))
 
-    def start_of_epoch_handler(state):
+    def start_of_epoch_handler(trainer, state):
         if state.epoch == epoch_to_terminate_on:
             trainer.terminate()
 
@@ -176,7 +176,7 @@ def test_terminate_stops_training_mid_epoch():
     iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 3rd epoch
     trainer = Trainer(MagicMock(return_value=1))
 
-    def start_of_iteration_handler(state):
+    def start_of_iteration_handler(trainer, state):
         if state.iteration == iteration_to_stop:
             trainer.terminate()
 
@@ -221,8 +221,8 @@ def test_training_iteration_events_are_fired():
 
     expected_calls = []
     for i in range(max_epochs * num_batches):
-        expected_calls.append(call.iteration_started(state))
-        expected_calls.append(call.iteration_complete(state))
+        expected_calls.append(call.iteration_started(trainer, state))
+        expected_calls.append(call.iteration_complete(trainer, state))
 
     assert mock_manager.mock_calls == expected_calls
 

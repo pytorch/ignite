@@ -35,7 +35,7 @@ def test_current_validation_iteration_counter_increases_every_iteration():
             self.current_iteration_count = 1
             self.total_count = 0
 
-        def __call__(self, state):
+        def __call__(self, evaluator, state):
             assert state.iteration == self.current_iteration_count
             self.current_iteration_count += 1
             self.total_count += 1
@@ -45,7 +45,7 @@ def test_current_validation_iteration_counter_increases_every_iteration():
 
     iteration_counter = IterationCounter()
 
-    def clear_counter(evaluator, counter):
+    def clear_counter(evaluator, state, counter):
         counter.clear()
 
     evaluator.add_event_handler(Events.STARTED, clear_counter, iteration_counter)
@@ -78,8 +78,8 @@ def test_evaluation_iteration_events_are_fired():
 
     expected_calls = []
     for i in range(len(batches)):
-        expected_calls.append(call.iteration_started(state))
-        expected_calls.append(call.iteration_complete(state))
+        expected_calls.append(call.iteration_started(evaluator, state))
+        expected_calls.append(call.iteration_complete(evaluator, state))
 
     assert mock_manager.mock_calls == expected_calls
 
@@ -89,7 +89,7 @@ def test_terminate_stops_evaluator_when_called_during_iteration():
     iteration_to_stop = 3  # i.e. part way through the 3rd validation run
     evaluator = Evaluator(MagicMock(return_value=1))
 
-    def start_of_iteration_handler(state):
+    def start_of_iteration_handler(evaluator, state):
         if state.iteration == iteration_to_stop:
             evaluator.terminate()
 
