@@ -136,14 +136,16 @@ def test_terminate_at_end_of_epoch_stops_training():
 
     def end_of_epoch_handler(state):
         if state.epoch == last_epoch_to_run:
-            state.terminate = True
+            trainer.terminate()
 
     trainer.add_event_handler(Events.EPOCH_COMPLETED, end_of_epoch_handler)
+
+    assert not trainer.should_terminate
 
     state = trainer.run([1], max_epochs=max_epochs)
 
     assert state.epoch == last_epoch_to_run
-    assert state.terminate
+    assert trainer.should_terminate
 
 
 def test_terminate_at_start_of_epoch_stops_training_after_completing_iteration():
@@ -155,15 +157,17 @@ def test_terminate_at_start_of_epoch_stops_training_after_completing_iteration()
 
     def start_of_epoch_handler(state):
         if state.epoch == epoch_to_terminate_on:
-            state.terminate = True
+            trainer.terminate()
 
     trainer.add_event_handler(Events.EPOCH_STARTED, start_of_epoch_handler)
+
+    assert not trainer.should_terminate
 
     state = trainer.run(batches_per_epoch, max_epochs=max_epochs)
 
     # epoch is not completed so counter is not incremented
     assert state.epoch == epoch_to_terminate_on
-    assert state.terminate
+    assert trainer.should_terminate
     # completes first iteration
     assert state.iteration == ((epoch_to_terminate_on - 1) * len(batches_per_epoch)) + 1
 
@@ -175,7 +179,7 @@ def test_terminate_stops_training_mid_epoch():
 
     def start_of_iteration_handler(state):
         if state.iteration == iteration_to_stop:
-            state.terminate = True
+            trainer.terminate()
 
     trainer.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
     state = trainer.run(data=[None] * num_iterations_per_epoch, max_epochs=3)

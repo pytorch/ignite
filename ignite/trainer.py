@@ -34,12 +34,12 @@ class Trainer(Engine):
             self._logger.info("Training starting with max_epochs={}".format(max_epochs))
             start_time = time.time()
             self._fire_event(Events.STARTED, state)
-            while state.epoch < max_epochs and not state.terminate:
+            while state.epoch < max_epochs and not self.should_terminate:
                 state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED, state)
                 hours, mins, secs = self._run_once_on_dataset(state)
                 self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", state.epoch, hours, mins, secs)
-                if state.terminate:
+                if self.should_terminate:
                     break
                 self._fire_event(Events.EPOCH_COMPLETED, state)
 
