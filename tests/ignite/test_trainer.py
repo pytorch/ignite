@@ -53,7 +53,6 @@ def test_state_attributes():
     state = trainer.run(dataloader, max_epochs=3)
 
     assert state.iteration == 9
-    assert not state.terminate
     assert state.output == 1
     assert state.batch == 3
     assert state.dataloader == dataloader

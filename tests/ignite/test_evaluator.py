@@ -20,7 +20,6 @@ def test_state_attributes():
     state = evaluator.run(dataloader)
 
     assert state.iteration == 3
-    assert not state.terminate
     assert state.output == 1
     assert state.batch == 3
     assert state.dataloader == dataloader
