@@ -34,7 +34,7 @@ def test_args_validation(dirname):
         h = ModelCheckpoint(existing, _PREFIX,
                             create_dir=False)
 
-    with pytest.raises(FileExistsError):
+    with pytest.raises(OSError):
         h = ModelCheckpoint(existing, _PREFIX, create_dir=True,
                             save_interval=42)
 
@@ -64,7 +64,7 @@ def test_atomic(dirname):
 
         try:
             h(None, {name: obj})
-        except AttributeError:
+        except:
             pass
 
         fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, name, 1))

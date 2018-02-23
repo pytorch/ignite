@@ -85,7 +85,11 @@ class ModelCheckpoint(object):
                              "arguments must be provided.")
 
         if create_dir:
-            os.makedirs(dirname, exist_ok=exist_ok)
+            exists = os.path.exists(dirname)
+            if exists and not exist_ok:
+                raise OSError("Directory {} already exists. Pass exist_ok=True to ignore this error.")
+            elif not exists:
+                os.makedirs(dirname)
 
         if require_empty:
             matched = [fname
