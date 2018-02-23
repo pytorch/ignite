@@ -3,6 +3,7 @@ import tempfile
 
 import pytest
 import torch
+import shutil
 
 from ignite.engine import Events
 from ignite.handlers import ModelCheckpoint
@@ -13,10 +14,9 @@ _PREFIX = 'PREFIX'
 
 @pytest.fixture
 def dirname():
-    directory = tempfile.TemporaryDirectory()
-    dirname = directory.name
-
-    yield dirname
+    path = tempfile.mkdtemp()
+    yield path
+    shutil.rmtree(path)
 
 
 def test_args_validation(dirname):
