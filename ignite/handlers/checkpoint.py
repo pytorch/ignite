@@ -7,13 +7,18 @@ import torch
 class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
+    This handler accepts two arguments:
+        - an `ignite.engine.Engine` object, which will be passed to the
+            `score_function` (if it is provided)
+        - a `dict` mapping names (`str`) to objects that should be saved to disk.
+            See Notes and Examples for further details.
+
     Args:
         dirname (str):
             Directory path where objects will be saved
         filename_prefix (str):
-            Prefix for the filenames to which objects will be saved.
-            Each object is saved under '{filename_prefix}_{name}_{step_number}.pth'
-            `step_number` is incremented by `1` with every call to the handler.
+            Prefix for the filenames to which objects will be saved. See Notes
+            for more details.
         save_interval (int, optional):
             if not None, objects will be saved to disk every `save_interval` calls to the handler.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
@@ -35,13 +40,36 @@ class ModelCheckpoint(object):
             If True, will create directory 'dirname' if it doesnt exist.
         exist_ok (bool, optional):
             Passed to 'os.makedirs' call. Ignored if 'create_dir' is False.
+
+    Notes:
+          This handler expects two arguments: an `Engine` object, and a `dict`
+          mapping names to objects. These names are used to specify filenames
+          for saved objects. Each filename has the following structure:
+          `{filename_prefix}_{name}_{step_number}.pth`.
+          Here, `filename_prefix` is the argument passed to the constructor,
+          `name` is the key in the aforementioned `dict`, and `step_number`
+          is incremented by `1` with every call to the handler.
+
+    Examples:
+        >>> import os
+        >>> from ignite.engine import Events
+        >>> from ignite.handlers import ModelCheckpoint
+        >>> from ignite.trainer import Trainer
+        >>> from torch import nn
+        >>> trainer = Trainer(lambda batch: None)
+        >>> handler = ModelCheckpoint('/tmp/models', 'myprefix', save_interval=2, n_saved=2, create_dir=True)
+        >>> model = nn.Linear(3, 3)
+        >>> trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, {'mymodel': model})
+        >>> trainer.run([0], max_epochs=6)
+        >>> os.listdir('/tmp/models')
+        ['myprefix_mymodel_4.pth', 'myprefix_mymodel_6.pth']
     """
 
     def __init__(self, dirname, filename_prefix,
                  save_interval=None, score_function=None,
                  n_saved=1,
                  atomic=True, require_empty=True,
-                 create_dir=True, exist_ok=True):
+                 create_dir=True, exist_ok=False):
 
         self._dirname = dirname
         self._fname_prefix = filename_prefix
@@ -50,9 +78,9 @@ class ModelCheckpoint(object):
         self._score_function = score_function
         self._atomic = atomic
         self._saved = []  # list of tuples (priority, saved_objects)
-        self._iteration = 1
+        self._iteration = 0
 
-        if (save_interval and score_function) or (not save_interval and not score_function):
+        if not (save_interval is None) ^ (score_function is None):
             raise ValueError("Exactly one of `save_interval`, or `score_function` "
                              "arguments must be provided.")
 
@@ -89,9 +117,11 @@ class ModelCheckpoint(object):
                 tmp.close()
                 os.rename(tmp.name, path)
 
-    def __call__(self, engine, **kwargs):
-        if len(kwargs) == 0:
+    def __call__(self, engine, to_save):
+        if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")
+
+        self._iteration += 1
 
         if self._score_function is not None:
             priority = self._score_function(engine)
@@ -104,7 +134,7 @@ class ModelCheckpoint(object):
         if (len(self._saved) < self._n_saved) or (self._saved[0][0] < priority):
             saved_objs = []
 
-            for name, obj in kwargs.items():
+            for name, obj in to_save.items():
                 fname = '{}_{}_{}.pth'.format(self._fname_prefix, name, self._iteration)
                 path = os.path.join(self._dirname, fname)
 
@@ -118,5 +148,3 @@ class ModelCheckpoint(object):
             _, paths = self._saved.pop(0)
             for p in paths:
                 os.remove(p)
-
-        self._iteration += 1

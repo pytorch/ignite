@@ -70,10 +70,10 @@ def test_atomic(dirname):
         fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, name, 1))
         assert os.path.exists(fname) == expected
 
-    _test_existance(atomic=False, name='nonatomic_OK',   obj=serializable,     expected=True)
+    _test_existance(atomic=False, name='nonatomic_OK', obj=serializable, expected=True)
     _test_existance(atomic=False, name='nonatomic_FAIL', obj=non_serializable, expected=True)
 
-    _test_existance(atomic=True, name='atomic_OK',      obj=serializable,  expected=True)
+    _test_existance(atomic=True, name='atomic_OK', obj=serializable, expected=True)
     _test_existance(atomic=True, name='atomic_FAIL', obj=non_serializable, expected=False)
 
 
