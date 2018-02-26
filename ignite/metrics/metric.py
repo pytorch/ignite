@@ -49,13 +49,13 @@ class Metric(metaclass=ABCMeta):
         """
         pass
 
-    def started(self, state):
+    def started(self, engine, state):
         self.reset()
 
-    def iteration_completed(self, state):
+    def iteration_completed(self, engine, state):
         self.update(state.output)
 
-    def completed(self, state):
+    def completed(self, engine, state):
         state.metrics.append(self.compute())
 
     def attach(self, engine):
