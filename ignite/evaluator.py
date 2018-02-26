@@ -20,16 +20,17 @@ class Evaluator(Engine):
         return state
 
 
-def create_supervised_evaluator(model, cuda=False):
+def create_supervised_evaluator(model, metrics=[], cuda=False):
     """
     Factory function for creating an evaluator for supervised models
 
     Args:
         model (torch.nn.Module): the model to train
+        metrics (list of Metrics): a list of metrics to compute
         cuda (bool, optional): whether or not to transfer batch to GPU (default: False)
 
     Returns:
-        Trainer: a trainer instance with supervised inference function
+        Evaluator: a evaluator instance with supervised inference function
     """
     def _prepare_batch(batch):
         x, y = batch
@@ -43,4 +44,9 @@ def create_supervised_evaluator(model, cuda=False):
         y_pred = model(x)
         return y_pred.data.cpu(), y.data.cpu()
 
-    return Evaluator(_inference)
+    evaluator = Evaluator(_inference)
+
+    for metric in metrics:
+        metric.attach(evaluator)
+
+    return evaluator
