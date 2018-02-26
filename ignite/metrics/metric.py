@@ -3,7 +3,9 @@ from abc import ABCMeta, abstractmethod
 from ignite.engine import Events
 
 
-class Metric(metaclass=ABCMeta):
+class Metric(object):
+    __metaclass__ = ABCMeta
+
     """
     Base class for all Metrics.
 
