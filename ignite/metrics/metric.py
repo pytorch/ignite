@@ -4,6 +4,9 @@ from ignite.engine import Events
 
 
 class Metric(metaclass=ABCMeta):
+    def __init__(self):
+        self.reset()
+
     @abstractmethod
     def reset(self):
         pass
