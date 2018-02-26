@@ -5,6 +5,7 @@ from torch.nn import Linear
 
 from ignite.engine import Events, State
 from ignite.evaluator import Evaluator, create_supervised_evaluator
+from ignite.metrics import MeanSquaredError
 
 
 def test_returns_state():
@@ -121,3 +122,18 @@ def test_create_supervised():
 
     assert model.weight.data[0, 0] == approx(0.0)
     assert model.bias.data[0] == approx(0.0)
+
+
+def test_create_supervised_with_metrics():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    evaluator = create_supervised_evaluator(model, metrics=[MeanSquaredError()])
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [4.0]])
+    data = [(x, y)]
+
+    mse, = evaluator.run(data).metrics
+    assert mse == 12.5
