@@ -45,7 +45,7 @@ def test_args_validation(dirname):
 
 def test_simple_recovery(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, save_interval=1)
-    h(None, {'obj': 42})
+    h(None, None, {'obj': 42})
 
     fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
     assert torch.load(fname) == 42
@@ -63,7 +63,7 @@ def test_atomic(dirname):
                             save_interval=1)
 
         try:
-            h(None, {name: obj})
+            h(None, None, {name: obj})
         except:
             pass
 
@@ -78,14 +78,14 @@ def test_atomic(dirname):
 
 
 def test_last_k(dirname):
-    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2, save_interval=1)
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2, save_interval=2)
     to_save = {'name': 42}
 
-    for _ in range(4):
-        h(None, to_save)
+    for _ in range(8):
+        h(None, None, to_save)
 
     expected = ['{}_{}_{}.pth'.format(_PREFIX, 'name', i)
-                for i in [3, 4]]
+                for i in [6, 8]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -101,7 +101,7 @@ def test_best_k(dirname):
 
     to_save = {'name': 42}
     for _ in range(4):
-        h(None, to_save)
+        h(None, None, to_save)
 
     expected = ['{}_{}_{}.pth'.format(_PREFIX, 'name', i)
                 for i in [1, 3]]
