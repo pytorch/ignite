@@ -43,10 +43,10 @@ class ModelCheckpoint(object):
             Passed to 'os.makedirs' call. Ignored if 'create_dir' is False.
 
     Notes:
-          This handler expects three arguments: an `Engine` object, 
+          This handler expects three arguments: an `Engine` object,
           a `State` object, and a `dict` mapping names to objects that should
-          be saved. 
-          These names are used to specify filenames for saved objects. 
+          be saved.
+          These names are used to specify filenames for saved objects.
           Each filename has the following structure:
           `{filename_prefix}_{name}_{step_number}.pth`.
           Here, `filename_prefix` is the argument passed to the constructor,
