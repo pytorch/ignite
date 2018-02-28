@@ -93,7 +93,7 @@ def test_last_k(dirname):
 def test_best_k(dirname):
     scores = iter([1.0, -2., 3.0, -4.0])
 
-    def score_function(engine):
+    def score_function(state):
         return next(scores)
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False,
