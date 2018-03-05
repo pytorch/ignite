@@ -57,10 +57,10 @@ class Metric(object):
     def iteration_completed(self, engine, state):
         self.update(state.output)
 
-    def completed(self, engine, state):
-        state.metrics.append(self.compute())
+    def completed(self, engine, state, name):
+        state.metrics[name] = self.compute()
 
-    def attach(self, engine):
+    def attach(self, engine, name):
         engine.add_event_handler(Events.STARTED, self.started)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(Events.COMPLETED, self.completed)
+        engine.add_event_handler(Events.COMPLETED, self.completed, name)

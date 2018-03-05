@@ -129,11 +129,11 @@ def test_create_supervised_with_metrics():
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    evaluator = create_supervised_evaluator(model, metrics=[MeanSquaredError()])
+    evaluator = create_supervised_evaluator(model, metrics={'mse': MeanSquaredError()})
 
     x = torch.FloatTensor([[1.0], [2.0]])
     y = torch.FloatTensor([[3.0], [4.0]])
     data = [(x, y)]
 
-    mse, = evaluator.run(data).metrics
-    assert mse == 12.5
+    state = evaluator.run(data)
+    assert state.metrics['mse'] == 12.5

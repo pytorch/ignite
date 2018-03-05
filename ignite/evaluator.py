@@ -12,7 +12,7 @@ class Evaluator(Engine):
         super(Evaluator, self).add_event_handler(event_name, handler, *args, **kwargs)
 
     def run(self, data):
-        state = State(dataloader=data, metrics=[])
+        state = State(dataloader=data, metrics={})
         self._fire_event(Events.STARTED, state)
         hours, mins, secs = self._run_once_on_dataset(state)
         self._logger.info("Evaluation Complete. Time taken: %02d:%02d:%02d", hours, mins, secs)
@@ -20,7 +20,7 @@ class Evaluator(Engine):
         return state
 
 
-def create_supervised_evaluator(model, metrics=[], cuda=False):
+def create_supervised_evaluator(model, metrics={}, cuda=False):
     """
     Factory function for creating an evaluator for supervised models
 
@@ -46,7 +46,7 @@ def create_supervised_evaluator(model, metrics=[], cuda=False):
 
     evaluator = Evaluator(_inference)
 
-    for metric in metrics:
-        metric.attach(evaluator)
+    for name, metric in metrics.items():
+        metric.attach(evaluator, name)
 
     return evaluator
