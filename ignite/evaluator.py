@@ -26,7 +26,7 @@ def create_supervised_evaluator(model, metrics={}, cuda=False):
 
     Args:
         model (torch.nn.Module): the model to train
-        metrics (list of Metrics): a list of metrics to compute
+        metrics (dict of str: Metric): a map of metric names to Metrics
         cuda (bool, optional): whether or not to transfer batch to GPU (default: False)
 
     Returns:
