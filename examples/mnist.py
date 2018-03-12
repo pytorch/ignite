@@ -1,5 +1,6 @@
-import logging
+from __future__ import print_function
 from argparse import ArgumentParser
+import logging
 
 from torch import nn
 from torch.optim import SGD
