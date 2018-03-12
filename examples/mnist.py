@@ -1,35 +1,13 @@
-"""
- MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
- Requirements:
-    TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
-    Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
- Usage:
-    Start tensorboard:
-    ```bash
-    tensorboard --logdir=/tmp/tensorboard_logs/
-    ```
-    Run the example:
-    ```bash
-    python mnist_with_tensorboardx.py --log_dir=/tmp/tensorboard_logs
-    ```
-"""
-
-from __future__ import print_function
-from argparse import ArgumentParser
 import logging
-import torch
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
-from torch import nn
-import torch.nn.functional as F
-from torch.optim import SGD
-from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
+from argparse import ArgumentParser
 
-try:
-    from tensorboardX import SummaryWriter
-except ImportError:
-    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
+from torch import nn
+from torch.optim import SGD
+from torch.utils.data import DataLoader
+import torch
+import torch.nn.functional as F
+from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.datasets import MNIST
 
 from ignite.engine import Events
 from ignite.trainer import create_supervised_trainer
@@ -67,18 +45,7 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def create_summary_writer(model, log_dir):
-    writer = SummaryWriter(log_dir=log_dir)
-    try:
-        dummy_input = Variable(torch.rand(10, 1, 28, 28))
-        torch.onnx.export(model, dummy_input, "model.proto", verbose=True)
-        writer.add_graph_onnx("model.proto")
-    except ImportError:
-        pass
-    return writer
-
-
-def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, log_dir):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
     cuda = torch.cuda.is_available()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
 
@@ -90,14 +57,11 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
                                                      'nll': NegativeLogLikelihood()},
                                             cuda=cuda)
 
-    writer = create_summary_writer(model, log_dir)
-
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(trainer, state):
         iter = (state.iteration - 1) % len(train_loader) + 1
         if iter % log_interval == 0:
             logger("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(state.epoch, iter, len(train_loader), state.output))
-            writer.add_scalar("training/loss", state.output, state.iteration)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer, state):
@@ -106,13 +70,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_nll = metrics['nll']
         logger("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
                .format(state.epoch, avg_accuracy, avg_nll))
-        writer.add_scalar("valdation/loss", avg_nll, state.epoch)
-        writer.add_scalar("valdation/accuracy", avg_accuracy, state.epoch)
 
-    # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
-
-    writer.close()
 
 
 if __name__ == "__main__":
@@ -130,8 +89,6 @@ if __name__ == "__main__":
     parser.add_argument('--log_interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
     parser.add_argument("--log_file", type=str, default=None, help="log file to log output to")
-    parser.add_argument("--log_dir", type=str, default="tensorboard_logs",
-                        help="log directory for Tensorboard log output")
 
     args = parser.parse_args()
 
@@ -144,4 +101,4 @@ if __name__ == "__main__":
         logger = print
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum,
-        args.log_interval, logger, args.log_dir)
+        args.log_interval, logger)

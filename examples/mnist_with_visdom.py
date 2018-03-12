@@ -2,25 +2,23 @@ from __future__ import print_function
 from argparse import ArgumentParser
 import logging
 
-from torch.autograd import Variable
+import torch
 from torch.utils.data import DataLoader
 from torch import nn
 import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-
+import numpy as np
 try:
     import visdom
 except ImportError:
     raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
 
-from ignite.trainer import Trainer
-from ignite.evaluator import Evaluator
+from ignite.trainer import create_supervised_trainer
+from ignite.evaluator import create_supervised_evaluator
 from ignite.engine import Events
-from ignite.handlers.evaluate import Evaluate
-from ignite.handlers.logging import log_simple_moving_average
-import numpy as np
+from ignite.metrics import CategoricalAccuracy, NegativeLogLikelihood
 
 
 class Net(nn.Module):
@@ -42,107 +40,57 @@ class Net(nn.Module):
         return F.log_softmax(x)
 
 
-def get_plot_training_loss_handler(vis, plot_every):
-    train_loss_plot_window = vis.line(X=np.array([1]), Y=np.array([np.nan]),
-                                      opts=dict(
-                                          xlabel='# Iterations',
-                                          ylabel='Loss',
-                                          title='Training Loss')
-                                      )
+def get_data_loaders(train_batch_size, val_batch_size):
+    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
-    def plot_training_loss_to_visdom(trainer):
-        if trainer.current_iteration % plot_every == 0:
-            vis.line(X=np.array([trainer.current_iteration]),
-                     Y=np.array([trainer.history.simple_moving_average(window_size=100)]),
-                     win=train_loss_plot_window,
-                     update='append')
+    train_loader = DataLoader(MNIST(download=True, root=".", transform=data_transform, train=True),
+                              batch_size=train_batch_size, shuffle=True)
 
-    return plot_training_loss_to_visdom
+    val_loader = DataLoader(MNIST(download=False, root=".", transform=data_transform, train=False),
+                            batch_size=val_batch_size, shuffle=False)
+    return train_loader, val_loader
 
 
-def get_plot_validation_accuracy_handler(vis):
-    val_accuracy_plot_window = vis.line(X=np.array([1]), Y=np.array([np.nan]),
-                                        opts=dict(
-                                            xlabel='# Epochs',
-                                            ylabel='Accuracy',
-                                            title='Validation Accuracy')
-                                        )
-
-    def plot_val_accuracy_to_visdom(evaluator, trainer):
-        accuracy = sum([accuracy for (loss, accuracy) in evaluator.history])
-        accuracy = (accuracy * 100.) / len(evaluator.dataloader.dataset)
-        vis.line(X=np.array([trainer.current_epoch]),
-                 Y=np.array([accuracy]),
-                 win=val_accuracy_plot_window,
-                 update='append')
-
-    return plot_val_accuracy_to_visdom
+def create_plot_window(vis, xlabel, ylabel, title):
+    return vis.line(X=np.array([1]), Y=np.array([np.nan]), opts=dict(xlabel=xlabel, ylabel=ylabel, title=title))
 
 
-def get_log_validation_loss_and_accuracy_handler(logger):
-    def log_validation_loss_and_accuracy(evaluator):
-        avg_loss = np.mean([loss for (loss, accuracy) in evaluator.history])
-        accuracy = sum([accuracy for (loss, accuracy) in evaluator.history])
-        logger('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            avg_loss, accuracy, len(evaluator.dataloader.dataset),
-            (accuracy * 100.) / len(evaluator.dataloader.dataset)
-        ))
-
-    return log_validation_loss_and_accuracy
-
-
-def run(batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
     vis = visdom.Visdom()
     if not vis.check_connection():
         raise RuntimeError("Visdom server not running. Please run python -m visdom.server")
 
-    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
-
-    train_loader = DataLoader(MNIST(download=True, root=".", transform=data_transform, train=True),
-                              batch_size=batch_size, shuffle=True)
-
-    val_loader = DataLoader(MNIST(download=False, root=".", transform=data_transform, train=False),
-                            batch_size=val_batch_size, shuffle=False)
+    cuda = torch.cuda.is_available()
+    train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
 
     model = Net()
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
+    trainer = create_supervised_trainer(model, optimizer, nn.NLLLoss(), cuda=cuda)
+    evaluator = create_supervised_evaluator(model,
+                                            metrics={'accuracy': CategoricalAccuracy(),
+                                                     'nll': NegativeLogLikelihood()},
+                                            cuda=cuda)
 
-    def training_update_function(batch):
-        model.train()
-        optimizer.zero_grad()
-        data, target = Variable(batch[0]), Variable(batch[1])
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        return loss.data[0]
+    train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss')
+    val_accuracy_window = create_plot_window(vis, '#Epochs', 'Accuracy', 'Validation Accuracy')
+    val_loss_window = create_plot_window(vis, '#Epochs', 'Loss', 'Validation Loss')
 
-    def validation_inference_function(batch):
-        model.eval()
-        data, target = Variable(batch[0], volatile=True), Variable(batch[1])
-        output = model(data)
-        loss = F.nll_loss(output, target, size_average=False).data[0]
-        pred = output.data.max(1, keepdim=True)[1]
-        correct = pred.eq(target.data.view_as(pred)).sum()
-        return loss, correct
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def log_training_loss(trainer, state):
+        iter = (state.iteration - 1) % len(train_loader) + 1
+        if iter % log_interval == 0:
+            logger("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(state.epoch, iter, len(train_loader), state.output))
+            vis.line(X=np.array([state.iteration]), Y=np.array([state.output]), update='append', win=train_loss_window)
 
-    trainer = Trainer(training_update_function)
-    evaluator = Evaluator(validation_inference_function)
-
-    # trainer event handlers
-    trainer.add_event_handler(Events.ITERATION_COMPLETED,
-                              log_simple_moving_average,
-                              window_size=100,
-                              metric_name="NLL",
-                              should_log=lambda trainer: trainer.current_iteration % log_interval == 0,
-                              logger=logger)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED,
-                              get_plot_training_loss_handler(vis, plot_every=log_interval))
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, Evaluate(evaluator, val_loader, epoch_interval=1))
-
-    # evaluator event handlers
-    evaluator.add_event_handler(Events.COMPLETED, get_log_validation_loss_and_accuracy_handler(logger))
-    evaluator.add_event_handler(Events.COMPLETED, get_plot_validation_accuracy_handler(vis), trainer)
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_validation_results(trainer, state):
+        metrics = evaluator.run(val_loader).metrics
+        avg_accuracy = metrics['accuracy']
+        avg_nll = metrics['nll']
+        logger("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+               .format(state.epoch, avg_accuracy, avg_nll))
+        vis.line(X=np.array([state.epoch]), Y=np.array([avg_accuracy]), win=val_accuracy_window, update='append')
+        vis.line(X=np.array([state.epoch]), Y=np.array([avg_nll]), win=val_loss_window, update='append')
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
