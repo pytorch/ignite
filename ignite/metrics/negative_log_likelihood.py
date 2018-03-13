@@ -20,7 +20,7 @@ class NegativeLogLikelihood(Metric):
         y_pred, y = output
         loss = nll_loss(Variable(y_pred), Variable(y), reduce=False).data
         self._sum += loss.sum()
-        self._num_examples += loss.size(0)
+        self._num_examples += loss.shape[0]
 
     def compute(self):
         if self._num_examples == 0:
