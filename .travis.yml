@@ -18,9 +18,21 @@ install:
   - source activate test-environment
   - python setup.py install
   - pip install --upgrade pytest
+  - pip install visdom torchvision tensorboardX
 
 script:
   - pytest tests/
+  # Smoke tests for the examples
+  # mnist.py
+  - python examples/mnist.py --epochs=1
+  # mnist_with_visdom.py
+  - python -m visdom.server &
+  - sleep 10
+  - python examples/mnist_with_visdom.py --epochs=1
+  - kill %1
+  # mnist_with_tensorboardx.py
+  - python examples/mnist_with_tensorboardx.py --epochs=1
+
 
 matrix:
   include:
