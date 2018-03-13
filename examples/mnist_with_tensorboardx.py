@@ -92,8 +92,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
                                                      'nll': NegativeLogLikelihood()},
                                             cuda=cuda)
 
-
-
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(trainer, state):
         iter = (state.iteration - 1) % len(train_loader) + 1
