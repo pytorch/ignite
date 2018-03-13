@@ -1,6 +1,5 @@
 from __future__ import print_function
 from argparse import ArgumentParser
-import logging
 
 import torch
 from torch.utils.data import DataLoader
@@ -55,7 +54,7 @@ def create_plot_window(vis, xlabel, ylabel, title):
     return vis.line(X=np.array([1]), Y=np.array([np.nan]), opts=dict(xlabel=xlabel, ylabel=ylabel, title=title))
 
 
-def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     vis = visdom.Visdom()
     if not vis.check_connection():
         raise RuntimeError("Visdom server not running. Please run python -m visdom.server")
@@ -81,7 +80,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
     def log_training_loss(trainer, state):
         iter = (state.iteration - 1) % len(train_loader) + 1
         if iter % log_interval == 0:
-            logger("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(state.epoch, iter, len(train_loader), state.output))
+            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(state.epoch, iter, len(train_loader), state.output))
             vis.line(X=np.array([state.iteration]), Y=np.array([state.output]), update='append', win=train_loss_window)
 
     @trainer.on(Events.EPOCH_COMPLETED)
@@ -89,8 +88,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         metrics = evaluator.run(val_loader).metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
-        logger("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-               .format(state.epoch, avg_accuracy, avg_nll))
+        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(state.epoch, avg_accuracy, avg_nll))
         vis.line(X=np.array([state.epoch]), Y=np.array([avg_accuracy]), win=val_accuracy_window, update='append')
         vis.line(X=np.array([state.epoch]), Y=np.array([avg_nll]), win=val_loss_window, update='append')
 
@@ -116,13 +115,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.log_file is not None:
-        logging.basicConfig(filename=args.log_file, level=logging.INFO)
-        logger = logging.getLogger()
-        logger.addHandler(logging.StreamHandler())
-        logger = logger.info
-    else:
-        logger = print
-
-    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum,
-        args.log_interval, logger)
+    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_interval)
