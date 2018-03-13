@@ -16,7 +16,6 @@
 
 from __future__ import print_function
 from argparse import ArgumentParser
-import logging
 import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -78,7 +77,7 @@ def create_summary_writer(model, log_dir):
     return writer
 
 
-def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, logger, log_dir):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, log_dir):
     cuda = torch.cuda.is_available()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
 
@@ -98,7 +97,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
     def log_training_loss(trainer, state):
         iter = (state.iteration - 1) % len(train_loader) + 1
         if iter % log_interval == 0:
-            logger("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(state.epoch, iter, len(train_loader), state.output))
+            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(state.epoch, iter, len(train_loader), state.output))
             writer.add_scalar("training/loss", state.output, state.iteration)
 
     @trainer.on(Events.EPOCH_COMPLETED)
@@ -106,8 +105,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         metrics = evaluator.run(val_loader).metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
-        logger("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-               .format(state.epoch, avg_accuracy, avg_nll))
+        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(state.epoch, avg_accuracy, avg_nll))
         writer.add_scalar("valdation/loss", avg_nll, state.epoch)
         writer.add_scalar("valdation/accuracy", avg_accuracy, state.epoch)
 
@@ -131,19 +130,10 @@ if __name__ == "__main__":
                         help='SGD momentum (default: 0.5)')
     parser.add_argument('--log_interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
-    parser.add_argument("--log_file", type=str, default=None, help="log file to log output to")
     parser.add_argument("--log_dir", type=str, default="tensorboard_logs",
                         help="log directory for Tensorboard log output")
 
     args = parser.parse_args()
 
-    if args.log_file is not None:
-        logging.basicConfig(filename=args.log_file, level=logging.INFO)
-        logger = logging.getLogger()
-        logger.addHandler(logging.StreamHandler())
-        logger = logger.info
-    else:
-        logger = print
-
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum,
-        args.log_interval, logger, args.log_dir)
+        args.log_interval, args.log_dir)
