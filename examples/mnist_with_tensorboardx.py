@@ -106,7 +106,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-               .format(state.epoch, avg_accuracy, avg_nll))
+              .format(state.epoch, avg_accuracy, avg_nll))
         writer.add_scalar("valdation/loss", avg_nll, state.epoch)
         writer.add_scalar("valdation/accuracy", avg_accuracy, state.epoch)
 
