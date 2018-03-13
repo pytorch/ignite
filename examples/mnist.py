@@ -51,6 +51,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
 
     model = Net()
+    if cuda:
+        model = model.cuda()
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, nn.NLLLoss(), cuda=cuda)
     evaluator = create_supervised_evaluator(model,
