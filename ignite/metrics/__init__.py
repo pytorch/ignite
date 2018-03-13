@@ -6,3 +6,4 @@ from .mean_squared_error import MeanSquaredError
 from .metric import Metric
 from .root_mean_squared_error import RootMeanSquaredError
 from .top_k_categorical_accuracy import TopKCategoricalAccuracy
+from .negative_log_likelihood import NegativeLogLikelihood
