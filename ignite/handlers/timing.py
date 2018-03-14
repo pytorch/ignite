@@ -1,4 +1,4 @@
-from ignite.engine import Events
+from ignite.engines import Events
 
 try:
     from time import perf_counter
@@ -61,8 +61,7 @@ class Timer:
         0.10016545779653825
 
         Using the Timer to measure average time it takes to process a single batch of examples
-        >>> from ignite.trainer import Trainer
-        >>> from ignite.engine import Events
+        >>> from ignite.engines import Trainer, Events
         >>> from ignite.handlers import Timer
         >>> trainer = Trainer(training_update_function)
         >>> timer = Timer(average=True)
@@ -85,15 +84,15 @@ class Timer:
         """ Register callbacks to control the timer.
 
         Args:
-            engine (ignite.engine.Engine):
+            engine (ignite.engines.Engine):
                 Engine that this timer will be attached to
-            start (ignite.engine.Events):
+            start (ignite.engines.Events):
                 Event which should start (reset) the timer
-            pause (ignite.engine.Events):
+            pause (ignite.engines.Events):
                 Event which should pause the timer
-            resume (ignite.engine.Events, optional):
+            resume (ignite.engines.Events, optional):
                 Event which should resume the timer
-            step (ignite.engine.Events, optional):
+            step (ignite.engines.Events, optional):
                 Event which should call the `step` method of the counter
 
         Returns:

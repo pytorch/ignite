@@ -54,7 +54,7 @@ class Engine(object):
         Parameters
         ----------
         event_name: Events
-            event from ignite.Engine.Events to attach the
+            event from ignite.engines.Events to attach the
             handler to
         handler: Callable
             the callable event handler that should be invoked
