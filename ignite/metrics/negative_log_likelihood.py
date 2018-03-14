@@ -8,10 +8,6 @@ from ignite.exceptions import NotComputableError
 
 
 class NegativeLogLikelihood(Metric):
-    def __init__(self):
-        self._sum = 0
-        self._num_examples = 0
-
     def reset(self):
         self._sum = 0
         self._num_examples = 0
