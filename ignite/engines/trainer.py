@@ -4,7 +4,7 @@ import time
 from collections import Iterable
 
 from ignite._utils import _to_hours_mins_secs, to_variable
-from ignite.engine import Engine, Events, State
+from ignite.engines import Engine, Events, State
 
 __all__ = ["Trainer", "create_supervised_trainer"]
 

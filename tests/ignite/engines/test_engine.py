@@ -3,7 +3,7 @@ from enum import Enum
 import pytest
 from mock import MagicMock
 
-from ignite.engine import Engine, Events, State
+from ignite.engines import Engine, Events, State
 
 
 def process_func(batch):

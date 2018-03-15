@@ -3,8 +3,7 @@ from mock import MagicMock, Mock, call
 from pytest import approx
 from torch.nn import Linear
 
-from ignite.engine import Events, State
-from ignite.evaluator import Evaluator, create_supervised_evaluator
+from ignite.engines import Evaluator, Events, State, create_supervised_evaluator
 from ignite.metrics import MeanSquaredError
 
 

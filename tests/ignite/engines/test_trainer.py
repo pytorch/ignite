@@ -9,8 +9,7 @@ import numpy as np
 from mock import call, MagicMock, Mock
 from pytest import raises, approx
 
-from ignite.engine import Events, State
-from ignite.trainer import Trainer, create_supervised_trainer
+from ignite.engines import Trainer, Events, State, create_supervised_trainer
 
 
 class _PicklableMagicMock(object):

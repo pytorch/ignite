@@ -1,5 +1,5 @@
 from ignite._utils import to_variable
-from ignite.engine import Engine, Events, State
+from ignite.engines import Engine, Events, State
 
 __all__ = ["Evaluator", "create_supervised_evaluator"]
 

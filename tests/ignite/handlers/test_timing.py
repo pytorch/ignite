@@ -1,9 +1,7 @@
 import time
 
-from ignite.engine import Events
-from ignite.evaluator import Evaluator
+from ignite.engines import Trainer, Evaluator, Events
 from ignite.handlers import Timer
-from ignite.trainer import Trainer
 
 
 def test_timer():
