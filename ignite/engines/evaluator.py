@@ -1,4 +1,4 @@
-from ignite._utils import to_variable
+from ignite._utils import to_variable, to_tensor
 from ignite.engines import Engine, Events, State
 
 __all__ = ["Evaluator", "create_supervised_evaluator"]
@@ -42,7 +42,7 @@ def create_supervised_evaluator(model, metrics={}, cuda=False):
         model.eval()
         x, y = _prepare_batch(batch)
         y_pred = model(x)
-        return y_pred.data.cpu(), y.data.cpu()
+        return to_tensor(y_pred, cpu=not cuda), to_tensor(y, cpu=not cuda)
 
     evaluator = Evaluator(_inference)
 
