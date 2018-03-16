@@ -1,38 +1,39 @@
 from ignite.exceptions import NotComputableError
-from ignite.metrics import NegativeLogLikelihood
+from ignite.metrics import Loss
 import pytest
 import torch
 from torch import nn
+from torch.nn.functional import nll_loss
 from numpy.testing import assert_almost_equal
 
 
 def test_zero_div():
-    nll = NegativeLogLikelihood()
+    loss = Loss(nll_loss)
     with pytest.raises(NotComputableError):
-        nll.compute()
+        loss.compute()
 
 
 def test_compute():
-    nll = NegativeLogLikelihood()
+    loss = Loss(nll_loss)
 
     y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
     y = torch.LongTensor([2, 2])
-    nll.update((y_pred, y))
-    assert_almost_equal(nll.compute(), 1.1512925625)
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), 1.1512925625)
 
     y_pred = torch.Tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log()
     y = torch.LongTensor([2, 0, 2])
-    nll.update((y_pred, y))
-    assert_almost_equal(nll.compute(), 1.1253643036)  # average
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), 1.1253643036)  # average
 
 
 def test_reset():
-    nll = NegativeLogLikelihood()
+    loss = Loss(nll_loss)
 
     y_pred = torch.Tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2]]).log()
     y = torch.LongTensor([2, 0])
-    nll.update((y_pred, y))
-    nll.compute()
-    nll.reset()
+    loss.update((y_pred, y))
+    loss.compute()
+    loss.reset()
     with pytest.raises(NotComputableError):
-        nll.compute()
+        loss.compute()

@@ -31,7 +31,7 @@ except ImportError:
     raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
 
 from ignite.engines import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import CategoricalAccuracy, NegativeLogLikelihood
+from ignite.metrics import CategoricalAccuracy, Loss
 
 
 class Net(nn.Module):
@@ -84,10 +84,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
     if cuda:
         model = model.cuda()
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
-    trainer = create_supervised_trainer(model, optimizer, nn.NLLLoss(), cuda=cuda)
+    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, cuda=cuda)
     evaluator = create_supervised_evaluator(model,
                                             metrics={'accuracy': CategoricalAccuracy(),
-                                                     'nll': NegativeLogLikelihood()},
+                                                     'nll': Loss(F.nll_loss)},
                                             cuda=cuda)
 
     @trainer.on(Events.ITERATION_COMPLETED)
