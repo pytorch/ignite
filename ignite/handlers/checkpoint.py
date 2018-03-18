@@ -109,7 +109,7 @@ class ModelCheckpoint(object):
             torch.save(obj, path)
 
         else:
-            tmp = tempfile.NamedTemporaryFile(delete=False)
+            tmp = tempfile.NamedTemporaryFile(delete=False, dir=self._dirname)
 
             try:
                 torch.save(obj, tmp.file)
