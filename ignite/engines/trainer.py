@@ -10,7 +10,7 @@ __all__ = ["Trainer", "create_supervised_trainer"]
 
 
 class Trainer(Engine):
-    def run(self, data, max_epochs=1):
+    def run(self, data, initial_epoch=0, max_epochs=1):
         """
         Train the model, evaluate the validation set and update best parameters if the validation loss
         improves.
@@ -21,6 +21,8 @@ class Trainer(Engine):
         ----------
         data : Iterable
             Collection of training batches allowing repeated iteration (e.g., list or DataLoader)
+        initial_epoch : int, optional
+            epoch to start counting at [default=0]
         max_epochs: int, optional
             max epochs to train for [default=1]
 
@@ -28,7 +30,9 @@ class Trainer(Engine):
         -------
         None
         """
-        state = State(dataloader=data, epoch=0, max_epochs=max_epochs)
+        state = State(dataloader=data,
+                      epoch=initial_epoch,
+                      max_epochs=max_epochs)
 
         try:
             self._logger.info("Training starting with max_epochs={}".format(max_epochs))
