@@ -20,7 +20,7 @@ class Metric(object):
         """
         Resets the metric to to it's initial state.
 
-        This is called at the start of each evaluation run.
+        This is called at the start of each epoch.
         """
         pass
 
@@ -29,10 +29,10 @@ class Metric(object):
         """
         Updates the metric's state using the passed batch output.
 
-        This is called once for each batch of each evaluation run.
+        This is called once for each batch.
 
         Args:
-            output: the is the output from the evaluator's process function
+            output: the is the output from the engine's process function
         """
         pass
 
@@ -41,7 +41,7 @@ class Metric(object):
         """
         Computes the metric based on it's accumulated state.
 
-        This is called at the end of each evaluation run.
+        This is called at the end of each epoch.
 
         Returns:
             Any: the actual quantity of interest
@@ -61,6 +61,6 @@ class Metric(object):
         engine.state.metrics[name] = self.compute()
 
     def attach(self, engine, name):
-        engine.add_event_handler(Events.STARTED, self.started)
+        engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(Events.COMPLETED, self.completed, name)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
