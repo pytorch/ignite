@@ -220,8 +220,8 @@ def test_training_iteration_events_are_fired():
 
     expected_calls = []
     for i in range(max_epochs * num_batches):
-        expected_calls.append(call.iteration_started(trainer, trainer.state))
-        expected_calls.append(call.iteration_complete(trainer, trainer.state))
+        expected_calls.append(call.iteration_started(trainer))
+        expected_calls.append(call.iteration_complete(trainer))
 
     assert mock_manager.mock_calls == expected_calls
 

@@ -110,7 +110,7 @@ def test_best_k(dirname):
 
 def test_with_trainer(dirname):
 
-    def update_fn(batch):
+    def update_fn(engine, batch):
         pass
 
     name = 'model'

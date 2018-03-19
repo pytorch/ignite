@@ -8,7 +8,7 @@ def test_timer():
     sleep_t = 0.2
     n_iter = 3
 
-    def _train_func(batch):
+    def _train_func(engine, batch):
         time.sleep(sleep_t)
 
     def _test_func(batch):

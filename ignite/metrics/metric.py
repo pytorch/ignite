@@ -58,7 +58,7 @@ class Metric(object):
         self.update(engine.state.output)
 
     def completed(self, engine, name):
-        state.metrics[name] = self.compute()
+        engine.state.metrics[name] = self.compute()
 
     def attach(self, engine, name):
         engine.add_event_handler(Events.STARTED, self.started)
