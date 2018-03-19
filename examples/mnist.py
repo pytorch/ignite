@@ -61,7 +61,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     def log_training_loss(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
         if iter % log_interval == 0:
-            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
+            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
+                  "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
