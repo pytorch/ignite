@@ -73,7 +73,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
         y = to_variable(y, cuda=cuda)
         return x, y
 
-    def _update(batch):
+    def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
         x, y = _prepare_batch(batch)

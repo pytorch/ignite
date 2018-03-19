@@ -37,7 +37,7 @@ def create_supervised_evaluator(model, metrics={}, cuda=False):
         y = to_variable(y, cuda=cuda, volatile=True)
         return x, y
 
-    def _inference(batch):
+    def _inference(engine, batch):
         model.eval()
         x, y = _prepare_batch(batch)
         y_pred = model(x)
