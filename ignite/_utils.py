@@ -25,3 +25,18 @@ def to_variable(batch, cuda=False, volatile=False):
     else:
         raise TypeError(("batch must contain tensors, numbers, dicts or lists; found {}"
                          .format(type(batch[0]))))
+
+
+def to_tensor(variable, cpu=False):
+    if isinstance(variable, Variable):
+        t = variable.data
+        if cpu:
+            t = t.cpu()
+        return t
+    elif isinstance(variable, collections.Mapping):
+        return {k: to_tensor(sample, cpu=cpu) for k, sample in variable.items()}
+    elif isinstance(variable, collections.Sequence):
+        return [to_tensor(sample, cpu=cpu) for sample in variable]
+    else:
+        raise TypeError(("Argument variable must contain torch.autograd.Variable, numbers, dicts or lists; found {}"
+                         .format(type(variable))))
