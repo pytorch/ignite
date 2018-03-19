@@ -43,6 +43,7 @@ class Engine(object):
         self._logger.addHandler(logging.NullHandler())
         self._process_function = process_function
         self.should_terminate = False
+        self.state = None
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
@@ -99,11 +100,11 @@ class Engine(object):
             return f
         return decorator
 
-    def _fire_event(self, event_name, state, *event_args):
+    def _fire_event(self, event_name, *event_args):
         if event_name in self._event_handlers.keys():
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
-                func(self, state, *(event_args + args), **kwargs)
+                func(self, *(event_args + args), **kwargs)
 
     def terminate(self):
         """
@@ -112,15 +113,15 @@ class Engine(object):
         self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
         self.should_terminate = True
 
-    def _run_once_on_dataset(self, state):
+    def _run_once_on_dataset(self):
         try:
             start_time = time.time()
-            for batch in state.dataloader:
-                state.batch = batch
-                state.iteration += 1
-                self._fire_event(Events.ITERATION_STARTED, state)
-                state.output = self._process_function(batch)
-                self._fire_event(Events.ITERATION_COMPLETED, state)
+            for batch in self.state.dataloader:
+                self.state.batch = batch
+                self.state.iteration += 1
+                self._fire_event(Events.ITERATION_STARTED)
+                self.state.output = self._process_function(batch)
+                self._fire_event(Events.ITERATION_COMPLETED)
                 if self.should_terminate:
                     break
 
@@ -129,11 +130,11 @@ class Engine(object):
             return hours, mins, secs
         except BaseException as e:
             self._logger.error("Current run is terminating due to exception: %s", str(e))
-            self._handle_exception(state, e)
+            self._handle_exception(e)
 
-    def _handle_exception(self, state, e):
+    def _handle_exception(self, e):
         if Events.EXCEPTION_RAISED in self._event_handlers:
-            self._fire_event(Events.EXCEPTION_RAISED, state, e)
+            self._fire_event(Events.EXCEPTION_RAISED, e)
         else:
             raise e
 
