@@ -11,7 +11,7 @@ def test_timer():
     def _train_func(engine, batch):
         time.sleep(sleep_t)
 
-    def _test_func(batch):
+    def _test_func(engine, batch):
         time.sleep(sleep_t)
 
     trainer = Trainer(_train_func)
