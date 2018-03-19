@@ -91,21 +91,21 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
                                             cuda=cuda)
 
     @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss(trainer, state):
-        iter = (state.iteration - 1) % len(train_loader) + 1
+    def log_training_loss(engine):
+        iter = (engine.state.iteration - 1) % len(train_loader) + 1
         if iter % log_interval == 0:
-            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(state.epoch, iter, len(train_loader), state.output))
-            writer.add_scalar("training/loss", state.output, state.iteration)
+            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
+            writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(trainer, state):
+    def log_validation_results(engine):
         metrics = evaluator.run(val_loader).metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(state.epoch, avg_accuracy, avg_nll))
-        writer.add_scalar("valdation/loss", avg_nll, state.epoch)
-        writer.add_scalar("valdation/accuracy", avg_accuracy, state.epoch)
+              .format(engine.state.epoch, avg_accuracy, avg_nll))
+        writer.add_scalar("valdation/loss", avg_nll, engine.state.epoch)
+        writer.add_scalar("valdation/accuracy", avg_accuracy, engine.state.epoch)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
