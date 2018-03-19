@@ -43,7 +43,7 @@ class ModelCheckpoint(object):
     Notes:
           This handler expects two arguments: an `Engine` object and a `dict`
           mapping names to objects that should be saved.
-          
+
           These names are used to specify filenames for saved objects.
           Each filename has the following structure:
           `{filename_prefix}_{name}_{step_number}.pth`.
