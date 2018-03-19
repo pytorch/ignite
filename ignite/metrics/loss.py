@@ -22,8 +22,8 @@ class Loss(Metric):
 
     def update(self, output):
         y_pred, y = output
-        loss_sum = self._loss_fn(Variable(y_pred, volatile=True), Variable(y, volatile=True), size_average=False)
-        self._sum += loss_sum.data[0]
+        average_loss = self._loss_fn(Variable(y_pred, volatile=True), Variable(y, volatile=True))
+        self._sum += average_loss.data[0] * y.shape[0]
         self._num_examples += y.shape[0]
 
     def compute(self):
