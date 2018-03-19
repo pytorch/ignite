@@ -120,7 +120,7 @@ class Engine(object):
                 self.state.batch = batch
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
-                self.state.output = self._process_function(batch)
+                self.state.output = self._process_function(self, batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
                 if self.should_terminate:
                     break
