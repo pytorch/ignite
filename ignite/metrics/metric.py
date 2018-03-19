@@ -13,12 +13,12 @@ class Metric(object):
     fashion without having to store the entire output history of a model.
 
     Args:
-        output_transform (callable): an optional callable that used to transform
-            the model's output into the form expected by the metric. This can be
+        output_transform (callable): a callable that is used to transform the
+            model's output into the form expected by the metric. This can be
             useful if, for example, you have a multi-output model and you want to
             compute the metric with respect to one of the outputs.
     """
-    def __init__(self, output_transform=None):
+    def __init__(self, output_transform=lambda x: x):
         self._output_transform = output_transform
         self.reset()
 
@@ -62,7 +62,7 @@ class Metric(object):
         self.reset()
 
     def iteration_completed(self, engine):
-        output = self._output_transform(engine.state.output) if self._output_transform else engine.state.output
+        output = self._output_transform(engine.state.output)
         self.update(output)
 
     def completed(self, engine, name):
