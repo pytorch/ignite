@@ -31,7 +31,7 @@ def test_timer():
                    resume=Events.EPOCH_STARTED)
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def run_validation(trainer, state):
+    def run_validation(trainer):
         tester.run(range(n_iter))
 
     # Run "training"

@@ -100,7 +100,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
-        metrics = evaluator.run(val_loader).metrics
+        evaluator.run(val_loader)
+        metrics = evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
