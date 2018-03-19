@@ -7,7 +7,7 @@ from ignite.engines import Evaluator, Events, State, create_supervised_evaluator
 from ignite.metrics import MeanSquaredError
 
 
-def test_returns_state():
+def test_creates_state():
     evaluator = Evaluator(MagicMock(return_value=1))
     evaluator.run([])
 

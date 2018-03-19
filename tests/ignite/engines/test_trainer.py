@@ -39,7 +39,7 @@ class _PicklableMagicMock(object):
         return self.uuid
 
 
-def test_returns_state():
+def test_creates_state():
     trainer = Trainer(MagicMock(return_value=1))
     trainer.run([])
 
@@ -77,7 +77,7 @@ def test_custom_exception_handler():
     trainer.run([1])
 
     # only one call from _run_once_over_data, since the exception is swallowed
-    exception_handler.assert_has_calls([call(trainer, trainer.state, value_error)])
+    exception_handler.assert_has_calls([call(trainer, value_error)])
 
 
 def test_current_epoch_counter_increases_every_epoch():
@@ -132,8 +132,8 @@ def test_terminate_at_end_of_epoch_stops_training():
 
     trainer = Trainer(MagicMock(return_value=1))
 
-    def end_of_epoch_handler(trainer, state):
-        if state.epoch == last_epoch_to_run:
+    def end_of_epoch_handler(trainer):
+        if trainer.state.epoch == last_epoch_to_run:
             trainer.terminate()
 
     trainer.add_event_handler(Events.EPOCH_COMPLETED, end_of_epoch_handler)
