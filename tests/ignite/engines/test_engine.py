@@ -15,11 +15,10 @@ class DummyEngine(Engine):
         super(DummyEngine, self).__init__(process_func)
 
     def run(self, num_times):
-        state = State()
+        self.state = State()
         for _ in range(num_times):
-            self._fire_event(Events.STARTED, state)
-            self._fire_event(Events.COMPLETED, state)
-        return state
+            self._fire_event(Events.STARTED)
+            self._fire_event(Events.COMPLETED)
 
 
 def test_terminate():
@@ -33,7 +32,7 @@ def test_add_event_handler_raises_with_invalid_event():
     engine = DummyEngine()
 
     with pytest.raises(ValueError):
-        engine.add_event_handler("incorrect", lambda engine, state: None)
+        engine.add_event_handler("incorrect", lambda engine: None)
 
 
 def test_add_event_handler():
@@ -45,13 +44,13 @@ def test_add_event_handler():
 
     started_counter = Counter()
 
-    def handle_training_iteration_started(engine, state, counter):
+    def handle_training_iteration_started(engine, counter):
         counter.count += 1
     engine.add_event_handler(Events.STARTED, handle_training_iteration_started, started_counter)
 
     completed_counter = Counter()
 
-    def handle_training_iteration_completed(engine, state, counter):
+    def handle_training_iteration_completed(engine, counter):
         counter.count += 1
     engine.add_event_handler(Events.COMPLETED, handle_training_iteration_completed, completed_counter)
 
@@ -67,9 +66,9 @@ def test_adding_multiple_event_handlers():
     for handler in handlers:
         engine.add_event_handler(Events.STARTED, handler)
 
-    state = engine.run(1)
+    engine.run(1)
     for handler in handlers:
-        handler.assert_called_once_with(engine, state)
+        handler.assert_called_once_with(engine)
 
 
 def test_args_and_kwargs_are_passed_to_event():
@@ -82,15 +81,14 @@ def test_args_and_kwargs_are_passed_to_event():
         engine.add_event_handler(event, handler, *args, **kwargs)
         handlers.append(handler)
 
-    state = engine.run(1)
+    engine.run(1)
     called_handlers = [handle for handle in handlers if handle.called]
     assert len(called_handlers) == 2
 
     for handler in called_handlers:
         handler_args, handler_kwargs = handler.call_args
         assert handler_args[0] == engine
-        assert handler_args[1] == state
-        assert handler_args[2::] == args
+        assert handler_args[1::] == args
         assert handler_kwargs == kwargs
 
 
@@ -98,7 +96,7 @@ def test_on_decorator_raises_with_invalid_event():
     engine = DummyEngine()
     with pytest.raises(ValueError):
         @engine.on("incorrect")
-        def f(engine, state):
+        def f(engine):
             pass
 
 
@@ -112,13 +110,13 @@ def test_on_decorator():
     started_counter = Counter()
 
     @engine.on(Events.STARTED, started_counter)
-    def handle_training_iteration_started(engine, state, started_counter):
+    def handle_training_iteration_started(engine, started_counter):
         started_counter.count += 1
 
     completed_counter = Counter()
 
     @engine.on(Events.COMPLETED, completed_counter)
-    def handle_training_iteration_completed(engine, state, completed_counter):
+    def handle_training_iteration_completed(engine, completed_counter):
         completed_counter.count += 1
 
     engine.run(15)

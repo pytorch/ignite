@@ -9,20 +9,20 @@ from ignite.metrics import MeanSquaredError
 
 def test_returns_state():
     evaluator = Evaluator(MagicMock(return_value=1))
-    state = evaluator.run([])
+    evaluator.run([])
 
-    assert isinstance(state, State)
+    assert isinstance(evaluator.state, State)
 
 
 def test_state_attributes():
     dataloader = [1, 2, 3]
     evaluator = Evaluator(MagicMock(return_value=1))
-    state = evaluator.run(dataloader)
+    evaluator.run(dataloader)
 
-    assert state.iteration == 3
-    assert state.output == 1
-    assert state.batch == 3
-    assert state.dataloader == dataloader
+    assert evaluator.state.iteration == 3
+    assert evaluator.state.output == 1
+    assert evaluator.state.batch == 3
+    assert evaluator.state.dataloader == dataloader
 
 
 def test_current_validation_iteration_counter_increases_every_iteration():
@@ -35,8 +35,8 @@ def test_current_validation_iteration_counter_increases_every_iteration():
             self.current_iteration_count = 1
             self.total_count = 0
 
-        def __call__(self, evaluator, state):
-            assert state.iteration == self.current_iteration_count
+        def __call__(self, evaluator):
+            assert evaluator.state.iteration == self.current_iteration_count
             self.current_iteration_count += 1
             self.total_count += 1
 
@@ -45,7 +45,7 @@ def test_current_validation_iteration_counter_increases_every_iteration():
 
     iteration_counter = IterationCounter()
 
-    def clear_counter(evaluator, state, counter):
+    def clear_counter(evaluator, counter):
         counter.clear()
 
     evaluator.add_event_handler(Events.STARTED, clear_counter, iteration_counter)
@@ -72,14 +72,14 @@ def test_evaluation_iteration_events_are_fired():
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
 
     batches = [(1, 2), (3, 4), (5, 6)]
-    state = evaluator.run(batches)
+    evaluator.run(batches)
     assert iteration_started.call_count == len(batches)
     assert iteration_complete.call_count == len(batches)
 
     expected_calls = []
     for i in range(len(batches)):
-        expected_calls.append(call.iteration_started(evaluator, state))
-        expected_calls.append(call.iteration_complete(evaluator, state))
+        expected_calls.append(call.iteration_started(evaluator))
+        expected_calls.append(call.iteration_complete(evaluator))
 
     assert mock_manager.mock_calls == expected_calls
 
@@ -89,15 +89,15 @@ def test_terminate_stops_evaluator_when_called_during_iteration():
     iteration_to_stop = 3  # i.e. part way through the 3rd validation run
     evaluator = Evaluator(MagicMock(return_value=1))
 
-    def start_of_iteration_handler(evaluator, state):
-        if state.iteration == iteration_to_stop:
+    def start_of_iteration_handler(evaluator):
+        if evaluator.state.iteration == iteration_to_stop:
             evaluator.terminate()
 
     evaluator.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-    state = evaluator.run([None] * num_iterations)
+    evaluator.run([None] * num_iterations)
 
     # should complete the iteration when terminate called but not increment counter
-    assert state.iteration == iteration_to_stop
+    assert evaluator.state.iteration == iteration_to_stop
 
 
 def test_create_supervised():
@@ -111,8 +111,8 @@ def test_create_supervised():
     y = torch.FloatTensor([[3.0], [5.0]])
     data = [(x, y)]
 
-    state = evaluator.run(data)
-    y_pred, y = state.output
+    evaluator.run(data)
+    y_pred, y = evaluator.state.output
 
     assert y_pred[0, 0] == approx(0.0)
     assert y_pred[1, 0] == approx(0.0)
@@ -134,5 +134,5 @@ def test_create_supervised_with_metrics():
     y = torch.FloatTensor([[3.0], [4.0]])
     data = [(x, y)]
 
-    state = evaluator.run(data)
-    assert state.metrics['mse'] == 12.5
+    evaluator.run(data)
+    assert evaluator.state.metrics['mse'] == 12.5
