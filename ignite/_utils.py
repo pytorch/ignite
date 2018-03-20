@@ -33,6 +33,8 @@ def to_tensor(variable, cpu=False):
         if cpu:
             t = t.cpu()
         return t
+    elif isinstance(variable, string_classes):
+        return variable
     elif isinstance(variable, collections.Mapping):
         return {k: to_tensor(sample, cpu=cpu) for k, sample in variable.items()}
     elif isinstance(variable, collections.Sequence):
