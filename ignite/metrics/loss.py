@@ -10,6 +10,8 @@ class Loss(Metric):
     """
     Calculates the average loss according to the passed loss_fn.
 
+    `loss_fn` must return the average loss over all observations in the batch.
+
     `update` must receive output of the form (y_pred, y).
     """
     def __init__(self, loss_fn):
@@ -23,6 +25,7 @@ class Loss(Metric):
     def update(self, output):
         y_pred, y = output
         average_loss = self._loss_fn(Variable(y_pred, volatile=True), Variable(y, volatile=True))
+        assert average_loss.shape == (1,), '`loss_fn` did not return the average loss'
         self._sum += average_loss.data[0] * y.shape[0]
         self._num_examples += y.shape[0]
 
