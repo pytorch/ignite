@@ -1,3 +1,6 @@
+Ignite Documentation
+====================
+
 :mod:`ignite` is a high-level library to help with training neural networks in
 PyTorch.
 
