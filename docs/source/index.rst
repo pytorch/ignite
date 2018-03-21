@@ -6,6 +6,13 @@ PyTorch.
 
 .. toctree::
    :maxdepth: 2
+   :caption: Notes
+
+   concepts
+   quickstart
+
+.. toctree::
+   :maxdepth: 2
    :caption: Package Reference
 
    engines
