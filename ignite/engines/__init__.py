@@ -22,7 +22,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
     Returns:
         Engine: a trainer engine with supervised update function
     """
-    def _update(batch):
+    def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
         x, y = _prepare_batch(batch, cuda)
@@ -47,7 +47,7 @@ def create_supervised_evaluator(model, metrics={}, cuda=False):
     Returns:
         Engine: an evaluator engine with supervised inference function
     """
-    def _inference(batch):
+    def _inference(engine, batch):
         model.eval()
         x, y = _prepare_batch(batch, cuda, volatile=True)
         y_pred = model(x)

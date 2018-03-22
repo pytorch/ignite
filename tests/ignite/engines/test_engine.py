@@ -27,6 +27,7 @@ class DummyEngine(Engine):
         for _ in range(num_times):
             self._fire_event(Events.STARTED)
             self._fire_event(Events.COMPLETED)
+        return self.state
 
 
 def test_terminate():
@@ -184,7 +185,7 @@ def test_current_epoch_counter_increases_every_epoch():
             self.current_epoch_count = 1
 
         def __call__(self, engine):
-            assert state.epoch == self.current_epoch_count
+            assert engine.state.epoch == self.current_epoch_count
             self.current_epoch_count += 1
 
     engine.add_event_handler(Events.EPOCH_STARTED, EpochCounter())
@@ -204,7 +205,7 @@ def test_current_iteration_counter_increases_every_iteration():
             self.current_iteration_count = 1
 
         def __call__(self, engine):
-            assert state.iteration == self.current_iteration_count
+            assert engine.state.iteration == self.current_iteration_count
             self.current_iteration_count += 1
 
     engine.add_event_handler(Events.ITERATION_STARTED, IterationCounter())
@@ -228,7 +229,7 @@ def test_terminate_at_end_of_epoch_stops_run():
     engine = Engine(MagicMock(return_value=1))
 
     def end_of_epoch_handler(engine):
-        if state.epoch == last_epoch_to_run:
+        if engine.state.epoch == last_epoch_to_run:
             engine.terminate()
 
     engine.add_event_handler(Events.EPOCH_COMPLETED, end_of_epoch_handler)
@@ -249,7 +250,7 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration():
     engine = Engine(MagicMock(return_value=1))
 
     def start_of_epoch_handler(engine):
-        if state.epoch == epoch_to_terminate_on:
+        if engine.state.epoch == epoch_to_terminate_on:
             engine.terminate()
 
     engine.add_event_handler(Events.EPOCH_STARTED, start_of_epoch_handler)
@@ -271,7 +272,7 @@ def test_terminate_stops_run_mid_epoch():
     engine = Engine(MagicMock(return_value=1))
 
     def start_of_iteration_handler(engine):
-        if state.iteration == iteration_to_stop:
+        if engine.state.iteration == iteration_to_stop:
             engine.terminate()
 
     engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
