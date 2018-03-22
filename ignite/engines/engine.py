@@ -34,7 +34,8 @@ class Engine(object):
     Parameters
     ----------
     process_function : callable
-        A function receiving the current training batch in each iteration, outputing data to be stored in the state
+        A function receiving a handle to the engine and the current training
+        batch in each iteration, outputing data to be stored in the state
 
     """
     def __init__(self, process_function):
