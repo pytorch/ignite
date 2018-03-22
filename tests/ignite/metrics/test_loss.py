@@ -27,6 +27,29 @@ def test_compute():
     assert_almost_equal(loss.compute(), 1.1253643036)  # average
 
 
+def test_compute_on_criterion():
+    loss = Loss(nn.NLLLoss())
+
+    y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+    y = torch.LongTensor([2, 2])
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), 1.1512925625)
+
+    y_pred = torch.Tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log()
+    y = torch.LongTensor([2, 0, 2])
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), 1.1253643036)  # average
+
+
+def test_non_averaging_loss():
+    loss = Loss(nn.NLLLoss(reduce=False))
+
+    y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+    y = torch.LongTensor([2, 2])
+    with pytest.raises(AssertionError):
+        loss.update((y_pred, y))
+
+
 def test_reset():
     loss = Loss(nll_loss)
 
