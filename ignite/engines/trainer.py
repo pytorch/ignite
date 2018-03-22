@@ -28,31 +28,29 @@ class Trainer(Engine):
         -------
         None
         """
-        state = State(dataloader=data, epoch=0, max_epochs=max_epochs)
+        self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs)
 
         try:
             self._logger.info("Training starting with max_epochs={}".format(max_epochs))
             start_time = time.time()
-            self._fire_event(Events.STARTED, state)
-            while state.epoch < max_epochs and not self.should_terminate:
-                state.epoch += 1
-                self._fire_event(Events.EPOCH_STARTED, state)
-                hours, mins, secs = self._run_once_on_dataset(state)
-                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", state.epoch, hours, mins, secs)
+            self._fire_event(Events.STARTED)
+            while self.state.epoch < max_epochs and not self.should_terminate:
+                self.state.epoch += 1
+                self._fire_event(Events.EPOCH_STARTED)
+                hours, mins, secs = self._run_once_on_dataset()
+                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
                     break
-                self._fire_event(Events.EPOCH_COMPLETED, state)
+                self._fire_event(Events.EPOCH_COMPLETED)
 
-            self._fire_event(Events.COMPLETED, state)
+            self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
             self._logger.info("Training complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
             self._logger.error("Training is terminating due to exception: %s", str(e))
-            self._handle_exception(state, e)
-
-        return state
+            self._handle_exception(e)
 
 
 def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
@@ -75,7 +73,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
         y = to_variable(y, cuda=cuda)
         return x, y
 
-    def _update(batch):
+    def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
         x, y = _prepare_batch(batch)

@@ -7,10 +7,8 @@ import torch
 class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
-    This handler accepts three arguments:
+    This handler accepts two arguments:
         - an `ignite.engines.Engine` object
-        - an `ignite.engines.State` object, which will be passed to the
-            `score_function` (if it is provided)
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
             See Notes and Examples for further details.
 
@@ -24,8 +22,8 @@ class ModelCheckpoint(object):
             if not None, objects will be saved to disk every `save_interval` calls to the handler.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_function (Callable, optional):
-            if not None, it should be a function taking a 1single argument,
-            an `ignite.engines.State` object,
+            if not None, it should be a function taking a single argument,
+            an `ignite.engines.Engine` object,
             and return a score (`float`). Objects with highest scores will be retained.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         n_saved (int, optional):
@@ -43,9 +41,9 @@ class ModelCheckpoint(object):
             Passed to 'os.makedirs' call. Ignored if 'create_dir' is False.
 
     Notes:
-          This handler expects three arguments: an `Engine` object,
-          a `State` object, and a `dict` mapping names to objects that should
-          be saved.
+          This handler expects two arguments: an `Engine` object and a `dict`
+          mapping names to objects that should be saved.
+
           These names are used to specify filenames for saved objects.
           Each filename has the following structure:
           `{filename_prefix}_{name}_{step_number}.pth`.
@@ -123,14 +121,14 @@ class ModelCheckpoint(object):
                 tmp.close()
                 os.rename(tmp.name, path)
 
-    def __call__(self, engine, state, to_save):
+    def __call__(self, engine, to_save):
         if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")
 
         self._iteration += 1
 
         if self._score_function is not None:
-            priority = self._score_function(state)
+            priority = self._score_function(engine)
 
         else:
             priority = self._iteration

@@ -51,14 +51,14 @@ class Metric(object):
         """
         pass
 
-    def started(self, engine, state):
+    def started(self, engine):
         self.reset()
 
-    def iteration_completed(self, engine, state):
-        self.update(state.output)
+    def iteration_completed(self, engine):
+        self.update(engine.state.output)
 
-    def completed(self, engine, state, name):
-        state.metrics[name] = self.compute()
+    def completed(self, engine, name):
+        engine.state.metrics[name] = self.compute()
 
     def attach(self, engine, name):
         engine.add_event_handler(Events.STARTED, self.started)
