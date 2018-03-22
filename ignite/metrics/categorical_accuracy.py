@@ -19,7 +19,7 @@ class CategoricalAccuracy(Metric):
     def update(self, output):
         y_pred, y = output
         indices = torch.max(y_pred, 1)[1]
-        correct = torch.eq(indices, y)
+        correct = torch.eq(indices, y).view(-1)
         self._num_correct += torch.sum(correct)
         self._num_examples += correct.shape[0]
 
