@@ -1,9 +1,17 @@
+from __future__ import division
 from enum import Enum
 
 import pytest
-from mock import MagicMock
+from mock import call, MagicMock, Mock
+from pytest import raises, approx
+import numpy as np
+import torch
+from torch.nn import Linear
+from torch.nn.functional import mse_loss
+from torch.optim import SGD
 
-from ignite.engines import Engine, Events, State
+from ignite.engines import Engine, Events, State, create_supervised_trainer, create_supervised_evaluator
+from ignite.metrics import MeanSquaredError
 
 
 def process_func(batch):
@@ -19,6 +27,7 @@ class DummyEngine(Engine):
         for _ in range(num_times):
             self._fire_event(Events.STARTED)
             self._fire_event(Events.COMPLETED)
+        return self.state
 
 
 def test_terminate():
@@ -44,15 +53,15 @@ def test_add_event_handler():
 
     started_counter = Counter()
 
-    def handle_training_iteration_started(engine, counter):
+    def handle_iteration_started(engine, counter):
         counter.count += 1
-    engine.add_event_handler(Events.STARTED, handle_training_iteration_started, started_counter)
+    engine.add_event_handler(Events.STARTED, handle_iteration_started, started_counter)
 
     completed_counter = Counter()
 
-    def handle_training_iteration_completed(engine, counter):
+    def handle_iteration_completed(engine, counter):
         counter.count += 1
-    engine.add_event_handler(Events.COMPLETED, handle_training_iteration_completed, completed_counter)
+    engine.add_event_handler(Events.COMPLETED, handle_iteration_completed, completed_counter)
 
     engine.run(15)
 
@@ -110,16 +119,263 @@ def test_on_decorator():
     started_counter = Counter()
 
     @engine.on(Events.STARTED, started_counter)
-    def handle_training_iteration_started(engine, started_counter):
+    def handle_iteration_started(engine, started_counter):
         started_counter.count += 1
 
     completed_counter = Counter()
 
     @engine.on(Events.COMPLETED, completed_counter)
-    def handle_training_iteration_completed(engine, completed_counter):
+    def handle_iteration_completed(engine, completed_counter):
         completed_counter.count += 1
 
     engine.run(15)
 
     assert started_counter.count == 15
     assert completed_counter.count == 15
+
+
+def test_returns_state():
+    engine = Engine(MagicMock(return_value=1))
+    state = engine.run([])
+
+    assert isinstance(state, State)
+
+
+def test_state_attributes():
+    dataloader = [1, 2, 3]
+    engine = Engine(MagicMock(return_value=1))
+    state = engine.run(dataloader, max_epochs=3)
+
+    assert state.iteration == 9
+    assert state.output == 1
+    assert state.batch == 3
+    assert state.dataloader == dataloader
+    assert state.epoch == 3
+    assert state.max_epochs == 3
+    assert state.metrics == {}
+
+
+def test_default_exception_handler():
+    update_function = MagicMock(side_effect=ValueError())
+    engine = Engine(update_function)
+
+    with raises(ValueError):
+        engine.run([1])
+
+
+def test_custom_exception_handler():
+    value_error = ValueError()
+    update_function = MagicMock(side_effect=value_error)
+
+    engine = Engine(update_function)
+    exception_handler = MagicMock()
+    engine.add_event_handler(Events.EXCEPTION_RAISED, exception_handler)
+    state = engine.run([1])
+
+    # only one call from _run_once_over_data, since the exception is swallowed
+    exception_handler.assert_has_calls([call(engine, value_error)])
+
+
+def test_current_epoch_counter_increases_every_epoch():
+    engine = Engine(MagicMock(return_value=1))
+    max_epochs = 5
+
+    class EpochCounter(object):
+        def __init__(self):
+            self.current_epoch_count = 1
+
+        def __call__(self, engine):
+            assert engine.state.epoch == self.current_epoch_count
+            self.current_epoch_count += 1
+
+    engine.add_event_handler(Events.EPOCH_STARTED, EpochCounter())
+
+    state = engine.run([1], max_epochs=max_epochs)
+
+    assert state.epoch == max_epochs
+
+
+def test_current_iteration_counter_increases_every_iteration():
+    batches = [1, 2, 3]
+    engine = Engine(MagicMock(return_value=1))
+    max_epochs = 5
+
+    class IterationCounter(object):
+        def __init__(self):
+            self.current_iteration_count = 1
+
+        def __call__(self, engine):
+            assert engine.state.iteration == self.current_iteration_count
+            self.current_iteration_count += 1
+
+    engine.add_event_handler(Events.ITERATION_STARTED, IterationCounter())
+
+    state = engine.run(batches, max_epochs=max_epochs)
+
+    assert state.iteration == max_epochs * len(batches)
+
+
+def test_stopping_criterion_is_max_epochs():
+    engine = Engine(MagicMock(return_value=1))
+    max_epochs = 5
+    state = engine.run([1], max_epochs=max_epochs)
+    assert state.epoch == max_epochs
+
+
+def test_terminate_at_end_of_epoch_stops_run():
+    max_epochs = 5
+    last_epoch_to_run = 3
+
+    engine = Engine(MagicMock(return_value=1))
+
+    def end_of_epoch_handler(engine):
+        if engine.state.epoch == last_epoch_to_run:
+            engine.terminate()
+
+    engine.add_event_handler(Events.EPOCH_COMPLETED, end_of_epoch_handler)
+
+    assert not engine.should_terminate
+
+    state = engine.run([1], max_epochs=max_epochs)
+
+    assert state.epoch == last_epoch_to_run
+    assert engine.should_terminate
+
+
+def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration():
+    max_epochs = 5
+    epoch_to_terminate_on = 3
+    batches_per_epoch = [1, 2, 3]
+
+    engine = Engine(MagicMock(return_value=1))
+
+    def start_of_epoch_handler(engine):
+        if engine.state.epoch == epoch_to_terminate_on:
+            engine.terminate()
+
+    engine.add_event_handler(Events.EPOCH_STARTED, start_of_epoch_handler)
+
+    assert not engine.should_terminate
+
+    state = engine.run(batches_per_epoch, max_epochs=max_epochs)
+
+    # epoch is not completed so counter is not incremented
+    assert state.epoch == epoch_to_terminate_on
+    assert engine.should_terminate
+    # completes first iteration
+    assert state.iteration == ((epoch_to_terminate_on - 1) * len(batches_per_epoch)) + 1
+
+
+def test_terminate_stops_run_mid_epoch():
+    num_iterations_per_epoch = 10
+    iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 3rd epoch
+    engine = Engine(MagicMock(return_value=1))
+
+    def start_of_iteration_handler(engine):
+        if engine.state.iteration == iteration_to_stop:
+            engine.terminate()
+
+    engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
+    state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=3)
+    # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
+    assert (state.iteration == iteration_to_stop)
+    assert state.epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
+
+
+def _create_mock_data_loader(epochs, batches_per_epoch):
+    batches = [MagicMock()] * batches_per_epoch
+    data_loader_manager = MagicMock()
+    batch_iterators = [iter(batches) for _ in range(epochs)]
+
+    data_loader_manager.__iter__.side_effect = batch_iterators
+
+    return data_loader_manager
+
+
+def test_iteration_events_are_fired():
+    max_epochs = 5
+    num_batches = 3
+    data = _create_mock_data_loader(max_epochs, num_batches)
+
+    engine = Engine(MagicMock(return_value=1))
+
+    mock_manager = Mock()
+    iteration_started = Mock()
+    engine.add_event_handler(Events.ITERATION_STARTED, iteration_started)
+
+    iteration_complete = Mock()
+    engine.add_event_handler(Events.ITERATION_COMPLETED, iteration_complete)
+
+    mock_manager.attach_mock(iteration_started, 'iteration_started')
+    mock_manager.attach_mock(iteration_complete, 'iteration_complete')
+
+    state = engine.run(data, max_epochs=max_epochs)
+
+    assert iteration_started.call_count == num_batches * max_epochs
+    assert iteration_complete.call_count == num_batches * max_epochs
+
+    expected_calls = []
+    for i in range(max_epochs * num_batches):
+        expected_calls.append(call.iteration_started(engine))
+        expected_calls.append(call.iteration_complete(engine))
+
+    assert mock_manager.mock_calls == expected_calls
+
+
+def test_create_supervised_trainer():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+    trainer = create_supervised_trainer(model, optimizer, mse_loss)
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    assert model.weight.data[0, 0] == approx(0.0)
+    assert model.bias.data[0] == approx(0.0)
+
+    state = trainer.run(data)
+
+    assert state.output == approx(17.0)
+    assert model.weight.data[0, 0] == approx(1.3)
+    assert model.bias.data[0] == approx(0.8)
+
+
+def test_create_supervised():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    evaluator = create_supervised_evaluator(model)
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    state = evaluator.run(data)
+    y_pred, y = state.output
+
+    assert y_pred[0, 0] == approx(0.0)
+    assert y_pred[1, 0] == approx(0.0)
+    assert y[0, 0] == approx(3.0)
+    assert y[1, 0] == approx(5.0)
+
+    assert model.weight.data[0, 0] == approx(0.0)
+    assert model.bias.data[0] == approx(0.0)
+
+
+def test_create_supervised_with_metrics():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    evaluator = create_supervised_evaluator(model, metrics={'mse': MeanSquaredError()})
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [4.0]])
+    data = [(x, y)]
+
+    state = evaluator.run(data)
+    assert state.metrics['mse'] == 12.5
