@@ -23,3 +23,32 @@ def test_compute():
     y = torch.ones(2).type(torch.LongTensor)
     acc.update((y_pred, y))
     assert acc.compute() == 0.5
+
+
+def test_compute_batch_images():
+    acc = CategoricalAccuracy()
+    y_pred = torch.zeros(2, 3, 2, 2)
+    y_pred[0, 1, :] = 1
+    y_pred[0, 2, :] = 1
+
+    y = torch.LongTensor([[[0, 1],
+                           [0, 1]],
+                          [[0, 2],
+                           [0, 2]]])
+
+    acc.update((y_pred, y))
+
+    assert acc.compute() == 0.5
+
+    acc.reset()
+    y_pred = torch.zeros(2, 3, 2, 2)
+    y_pred[0, 1, :] = 1
+    y_pred[1, 2, :] = 1
+
+    y = torch.LongTensor([[[2, 1],
+                           [1, 1]],
+                          [[2, 2],
+                           [0, 2]]])
+
+    acc.update((y_pred, y))
+    assert acc.compute() == 0.75

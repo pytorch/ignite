@@ -53,10 +53,10 @@ class ModelCheckpoint(object):
 
     Examples:
         >>> import os
-        >>> from ignite.engines import Trainer, Events
+        >>> from ignite.engines import Engine, Events
         >>> from ignite.handlers import ModelCheckpoint
         >>> from torch import nn
-        >>> trainer = Trainer(lambda batch: None)
+        >>> trainer = Engine(lambda batch: None)
         >>> handler = ModelCheckpoint('/tmp/models', 'myprefix', save_interval=2, n_saved=2, create_dir=True)
         >>> model = nn.Linear(3, 3)
         >>> trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, {'mymodel': model})
