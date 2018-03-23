@@ -14,8 +14,8 @@ class Loss(Metric):
 
     `update` must receive output of the form (y_pred, y).
     """
-    def __init__(self, loss_fn):
-        super(Loss, self).__init__()
+    def __init__(self, loss_fn, output_transform=lambda x: x):
+        super(Loss, self).__init__(output_transform)
         self._loss_fn = loss_fn
 
     def reset(self):
