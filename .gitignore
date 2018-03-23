@@ -2,3 +2,4 @@
 *.pyc
 /docs/src/
 /docs/build/
+ignite.egg-info
