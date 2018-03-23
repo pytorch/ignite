@@ -1,6 +1,6 @@
 import time
 
-from ignite.engines import Trainer, Evaluator, Events
+from ignite.engines import Engine, Events
 from ignite.handlers import Timer
 
 
@@ -14,8 +14,8 @@ def test_timer():
     def _test_func(engine, batch):
         time.sleep(sleep_t)
 
-    trainer = Trainer(_train_func)
-    tester = Evaluator(_test_func)
+    trainer = Engine(_train_func)
+    tester = Engine(_test_func)
 
     t_total = Timer()
     t_batch = Timer(average=True)

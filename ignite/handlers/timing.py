@@ -25,7 +25,7 @@ class Timer:
 
     Examples:
 
-        Measuring total time of the entire 'training' epoch:
+        Measuring total time of the epoch:
         >>> from ignite.handlers import Timer
         >>> import time
         >>> work = lambda : time.sleep(0.1)
@@ -38,7 +38,7 @@ class Timer:
         >>> t.value()
         2.003073937026784
 
-        Measuring average time of the 'training' epoch:
+        Measuring average time of the epoch:
         >>> t = Timer(average=True)
         >>> for _ in range(10):
         ...    work()
@@ -61,9 +61,9 @@ class Timer:
         0.10016545779653825
 
         Using the Timer to measure average time it takes to process a single batch of examples
-        >>> from ignite.engines import Trainer, Events
+        >>> from ignite.engines import Engine, Events
         >>> from ignite.handlers import Timer
-        >>> trainer = Trainer(training_update_function)
+        >>> trainer = Engine(training_update_function)
         >>> timer = Timer(average=True)
         >>> timer.attach(trainer,
         ...              start=Events.EPOCH_STARTED,

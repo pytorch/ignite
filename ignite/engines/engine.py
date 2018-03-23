@@ -26,16 +26,14 @@ class State(object):
 
 
 class Engine(object):
-    __metaclass__ = ABCMeta
-
     """
-    Abstract Engine class that is the super class of the Trainer and Evaluator engines.
+    Runs a given process_function over each batch of a dataset, emitting events as it goes.
 
     Parameters
     ----------
     process_function : callable
-        A function receiving a handle to the engine and the current training
-        batch in each iteration, outputing data to be stored in the state
+        A function receiving a handle to the engine and the current batch
+        in each iteration, outputing data to be stored in the state
 
     """
     def __init__(self, process_function):
@@ -139,23 +137,43 @@ class Engine(object):
         else:
             raise e
 
-    @abstractmethod
-    def run(self, data, **kwargs):
+    def run(self, data, max_epochs=1):
         """
-        Train the model, evaluate the validation set and update best parameters if the validation loss
-        improves.
-        In the event that the validation set is not run (or doesn't exist), the training loss is used
-        to update the best parameters.
+        Runs the process_function over the passed data.
 
         Parameters
         ----------
         data : Iterable
-            Collection of batches allowing for the engine to iterate over(e.g., list or DataLoader)
-        **kwargs: optional
-            Any additional kwargs
+            Collection of batches allowing repeated iteration (e.g., list or DataLoader)
+        max_epochs: int, optional
+            max epochs to run for [default=1]
 
         Returns
         -------
-        None
+        state
         """
-        raise NotImplementedError("This method should be implemented by a subclass")
+        self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
+
+        try:
+            self._logger.info("Training starting with max_epochs={}".format(max_epochs))
+            start_time = time.time()
+            self._fire_event(Events.STARTED)
+            while self.state.epoch < max_epochs and not self.should_terminate:
+                self.state.epoch += 1
+                self._fire_event(Events.EPOCH_STARTED)
+                hours, mins, secs = self._run_once_on_dataset()
+                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+                if self.should_terminate:
+                    break
+                self._fire_event(Events.EPOCH_COMPLETED)
+
+            self._fire_event(Events.COMPLETED)
+            time_taken = time.time() - start_time
+            hours, mins, secs = _to_hours_mins_secs(time_taken)
+            self._logger.info("Training complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+
+        except BaseException as e:
+            self._logger.error("Training is terminating due to exception: %s", str(e))
+            self._handle_exception(e)
+
+        return self.state
