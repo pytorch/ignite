@@ -23,3 +23,24 @@ def test_compute():
     y = torch.ones(4).type(torch.LongTensor)
     acc.update((y_pred, y))
     assert acc.compute() == 0.75
+
+
+def test_compute_batch_images():
+    acc = BinaryAccuracy()
+
+    y_pred = torch.FloatTensor([[[0.3, 0.7],
+                                 [0.1, 0.6]],
+                                [[0.2, 0.7],
+                                 [0.2, 0.6]]])
+    y = torch.ones(1, 2, 2).type(torch.LongTensor)
+    acc.update((y_pred, y))
+    assert acc.compute() == 0.5
+
+    acc.reset()
+    y_pred = torch.FloatTensor([[[0.3, 0.7],
+                                 [0.8, 0.6]],
+                                [[0.2, 0.7],
+                                 [0.9, 0.6]]])
+    y = torch.ones(2, 2, 2).type(torch.LongTensor)
+    acc.update((y_pred, y))
+    assert acc.compute() == 0.75
