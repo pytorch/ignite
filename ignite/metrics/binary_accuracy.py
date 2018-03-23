@@ -11,6 +11,8 @@ class BinaryAccuracy(Metric):
     Calculates the binary accuracy.
 
     `update` must receive output of the form (y_pred, y).
+    `y_pred` must be in the following shape (batch_size, ...)
+    `y` must be in the following shape (batch_size, ...)
     """
     def reset(self):
         self._num_correct = 0
