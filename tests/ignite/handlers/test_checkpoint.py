@@ -5,7 +5,7 @@ import pytest
 import torch
 import shutil
 
-from ignite.engines import Trainer, Events
+from ignite.engines import Engine, Events
 from ignite.handlers import ModelCheckpoint
 
 _PREFIX = 'PREFIX'
@@ -108,18 +108,18 @@ def test_best_k(dirname):
     assert sorted(os.listdir(dirname)) == expected
 
 
-def test_with_trainer(dirname):
+def test_with_engine(dirname):
 
     def update_fn(engine, batch):
         pass
 
     name = 'model'
-    trainer = Trainer(update_fn)
+    engine = Engine(update_fn)
     handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False,
                               n_saved=2, save_interval=1)
 
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, {name: 42})
-    trainer.run([0], max_epochs=4)
+    engine.add_event_handler(Events.EPOCH_COMPLETED, handler, {name: 42})
+    engine.run([0], max_epochs=4)
 
     expected = ['{}_{}_{}.pth'.format(_PREFIX, name, i)
                 for i in [3, 4]]
