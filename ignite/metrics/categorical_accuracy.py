@@ -11,6 +11,8 @@ class CategoricalAccuracy(Metric):
     Calculates the categorical accuracy.
 
     `update` must receive output of the form (y_pred, y).
+    `y_pred` must be in the following shape (batch_size, num_categories, ...)
+    `y` must be in the following shape (batch_size, ...)
     """
     def reset(self):
         self._num_correct = 0
@@ -19,7 +21,7 @@ class CategoricalAccuracy(Metric):
     def update(self, output):
         y_pred, y = output
         indices = torch.max(y_pred, 1)[1]
-        correct = torch.eq(indices, y)
+        correct = torch.eq(indices, y).view(-1)
         self._num_correct += torch.sum(correct)
         self._num_examples += correct.shape[0]
 

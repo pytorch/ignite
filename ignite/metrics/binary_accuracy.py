@@ -11,6 +11,8 @@ class BinaryAccuracy(Metric):
     Calculates the binary accuracy.
 
     `update` must receive output of the form (y_pred, y).
+    `y_pred` must be in the following shape (batch_size, ...)
+    `y` must be in the following shape (batch_size, ...)
     """
     def reset(self):
         self._num_correct = 0
@@ -18,7 +20,7 @@ class BinaryAccuracy(Metric):
 
     def update(self, output):
         y_pred, y = output
-        correct = torch.eq(torch.round(y_pred).type(torch.LongTensor), y)
+        correct = torch.eq(torch.round(y_pred).type(torch.LongTensor), y).view(-1)
         self._num_correct += torch.sum(correct)
         self._num_examples += correct.shape[0]
 
