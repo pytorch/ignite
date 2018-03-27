@@ -1,0 +1,119 @@
+import os
+
+import pytest
+import torch
+
+from ignite.engines import Engine, Events
+from ignite.handlers import EarlyStopping
+
+
+def test_args_validation():
+
+    # save_interval & score_func
+    with pytest.raises(AssertionError):
+        h = EarlyStopping(patience=-1, score_function=lambda engine: 0)
+
+    with pytest.raises(AssertionError):
+        h = EarlyStopping(patience=2, score_function=12345)
+
+
+def test_simple_early_stopping():
+
+    scores = iter([1.0, 0.8, 0.88])
+
+    def score_function(engine):
+        return next(scores)
+
+    def update_fn(engine, batch):
+        pass
+
+    trainer = Engine(update_fn)
+
+    h = EarlyStopping(patience=2, score_function=score_function)
+    # Call 3 times and check if stopped
+    assert not trainer.should_terminate
+    h(None, trainer)
+    h(None, trainer)
+    h(None, trainer)
+    assert trainer.should_terminate
+
+
+def test_simple_no_early_stopping():
+
+    scores = iter([1.0, 0.8, 1.2])
+
+    def score_function(engine):
+        return next(scores)
+
+    def update_fn(engine, batch):
+        pass
+
+    trainer = Engine(update_fn)
+
+    h = EarlyStopping(patience=2, score_function=score_function)
+    # Call 3 times and check if not stopped
+    assert not trainer.should_terminate
+    h(None, trainer)
+    h(None, trainer)
+    h(None, trainer)
+    assert not trainer.should_terminate
+
+
+def test_with_engine_early_stopping():
+
+    class Counter(object):
+        def __init__(self, count=0):
+            self.count = count
+
+    n_epochs_counter = Counter()
+
+    scores = iter([1.0, 0.8, 1.2, 1.5, 0.9, 1.0, 0.99, 1.1, 0.9])
+
+    def score_function(engine):
+        return next(scores)
+
+    def update_fn(engine, batch):
+        pass
+
+    trainer = Engine(update_fn)
+    evaluator = Engine(update_fn)
+    early_stopping = EarlyStopping(patience=3, score_function=score_function)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def evaluation(engine):
+        evaluator.run([0])
+        n_epochs_counter.count += 1
+
+    evaluator.add_event_handler(Events.COMPLETED, early_stopping, trainer)
+    trainer.run([0], max_epochs=10)
+    assert n_epochs_counter.count == 7
+
+
+def test_with_engine_no_early_stopping():
+
+    class Counter(object):
+        def __init__(self, count=0):
+            self.count = count
+
+    n_epochs_counter = Counter()
+
+    scores = iter([1.0, 0.8, 1.2, 1.23, 0.9, 1.0, 1.1, 1.253, 1.26, 1.2])
+
+    def score_function(engine):
+        return next(scores)
+
+    def update_fn(engine, batch):
+        pass
+
+    trainer = Engine(update_fn)
+    evaluator = Engine(update_fn)
+    early_stopping = EarlyStopping(patience=5, score_function=score_function)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def evaluation(engine):
+        evaluator.run([0])
+        n_epochs_counter.count += 1
+
+    evaluator.add_event_handler(Events.COMPLETED, early_stopping, trainer)
+    trainer.run([0], max_epochs=10)
+    assert n_epochs_counter.count == 10
