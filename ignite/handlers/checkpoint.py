@@ -26,6 +26,9 @@ class ModelCheckpoint(object):
             an `ignite.engines.Engine` object,
             and return a score (`float`). Objects with highest scores will be retained.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
+        score_name (str, optional):
+            if `score_function` not None, it is possible to store its absolute value using `score_name`. See Notes for
+            more details.
         n_saved (int, optional):
             Number of objects that should be kept on disk. Older files will be removed.
         atomic (bool, optional):
@@ -51,6 +54,12 @@ class ModelCheckpoint(object):
           `name` is the key in the aforementioned `dict`, and `step_number`
           is incremented by `1` with every call to the handler.
 
+          If `score_function` is provided, user can store its absolute value using `score_name` in the filename.
+          Each filename can have the following structure:
+          `{filename_prefix}_{name}_{step_number}_{score_name}={abs(score_function_result)}.pth`.
+          For example, `score_name="val_loss"` and `score_function` that returns `-loss` (as objects with highest scores
+          will be retained), then saved models filenames will be `model_resnet_10_val_loss=0.1234.pth`.
+
     Examples:
         >>> import os
         >>> from ignite.engines import Engine, Events
@@ -66,7 +75,7 @@ class ModelCheckpoint(object):
     """
 
     def __init__(self, dirname, filename_prefix,
-                 save_interval=None, score_function=None,
+                 save_interval=None, score_function=None, score_name=None,
                  n_saved=1,
                  atomic=True, require_empty=True,
                  create_dir=True, exist_ok=False):
@@ -76,6 +85,7 @@ class ModelCheckpoint(object):
         self._n_saved = n_saved
         self._save_interval = save_interval
         self._score_function = score_function
+        self._score_name = score_name
         self._atomic = atomic
         self._saved = []  # list of tuples (priority, saved_objects)
         self._iteration = 0
@@ -83,6 +93,10 @@ class ModelCheckpoint(object):
         if not (save_interval is None) ^ (score_function is None):
             raise ValueError("Exactly one of `save_interval`, or `score_function` "
                              "arguments must be provided.")
+
+        if score_function is None and score_name is not None:
+            raise ValueError("If `score_name` is provided, then `score_function` "
+                             "should be also provided")
 
         if create_dir:
             exists = os.path.exists(dirname)
@@ -138,8 +152,12 @@ class ModelCheckpoint(object):
         if (len(self._saved) < self._n_saved) or (self._saved[0][0] < priority):
             saved_objs = []
 
+            suffix = ""
+            if self._score_name is not None:
+                suffix = "_{}={:.7}".format(self._score_name, abs(priority))
+
             for name, obj in to_save.items():
-                fname = '{}_{}_{}.pth'.format(self._fname_prefix, name, self._iteration)
+                fname = '{}_{}_{}{}.pth'.format(self._fname_prefix, name, self._iteration, suffix)
                 path = os.path.join(self._dirname, fname)
 
                 self._save(obj=obj, path=path)
