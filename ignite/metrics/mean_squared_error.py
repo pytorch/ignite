@@ -1,8 +1,9 @@
 from __future__ import division
 
 import torch
-from .metric import Metric
+
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import Metric
 
 
 class MeanSquaredError(Metric):

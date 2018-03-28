@@ -1,5 +1,5 @@
+from ignite.engines.engine import Engine, Events, State
 from ignite._utils import to_variable, to_tensor
-from .engine import Engine, Events, State
 
 
 def _prepare_batch(batch, cuda, volatile=False):
