@@ -26,6 +26,7 @@ script:
   # mnist.py
   - python examples/mnist.py --epochs=1
   # mnist_with_visdom.py
+  - python -c "from visdom.server import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
   - python -m visdom.server &
   - sleep 10
   - python examples/mnist_with_visdom.py --epochs=1

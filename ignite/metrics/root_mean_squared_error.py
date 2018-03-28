@@ -3,8 +3,8 @@ import math
 
 import torch
 
-from .mean_squared_error import MeanSquaredError
 from ignite.exceptions import NotComputableError
+from ignite.metrics.mean_squared_error import MeanSquaredError
 
 
 class RootMeanSquaredError(MeanSquaredError):

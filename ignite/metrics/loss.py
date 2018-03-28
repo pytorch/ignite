@@ -2,8 +2,8 @@ from __future__ import division
 
 from torch.autograd import Variable
 
-from .metric import Metric
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import Metric
 
 
 class Loss(Metric):
