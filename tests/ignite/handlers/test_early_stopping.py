@@ -1,7 +1,5 @@
-import os
 
 import pytest
-import torch
 
 from ignite.engines import Engine, Events
 from ignite.handlers import EarlyStopping
@@ -9,12 +7,20 @@ from ignite.handlers import EarlyStopping
 
 def test_args_validation():
 
+    def update_fn(engine, batch):
+        pass
+
+    trainer = Engine(update_fn)
+
     # save_interval & score_func
     with pytest.raises(AssertionError):
-        h = EarlyStopping(patience=-1, score_function=lambda engine: 0)
+        h = EarlyStopping(patience=-1, score_function=lambda engine: 0, trainer=trainer)
 
     with pytest.raises(AssertionError):
-        h = EarlyStopping(patience=2, score_function=12345)
+        h = EarlyStopping(patience=2, score_function=12345, trainer=trainer)
+
+    with pytest.raises(AssertionError):
+        h = EarlyStopping(patience=2, score_function=lambda engine: 0, trainer=None)
 
 
 def test_simple_early_stopping():
@@ -29,12 +35,14 @@ def test_simple_early_stopping():
 
     trainer = Engine(update_fn)
 
-    h = EarlyStopping(patience=2, score_function=score_function)
+    h = EarlyStopping(patience=2, score_function=score_function, trainer=trainer)
     # Call 3 times and check if stopped
     assert not trainer.should_terminate
-    h(None, trainer)
-    h(None, trainer)
-    h(None, trainer)
+    h(None)
+    assert not trainer.should_terminate
+    h(None)
+    assert not trainer.should_terminate
+    h(None)
     assert trainer.should_terminate
 
 
@@ -50,12 +58,12 @@ def test_simple_no_early_stopping():
 
     trainer = Engine(update_fn)
 
-    h = EarlyStopping(patience=2, score_function=score_function)
+    h = EarlyStopping(patience=2, score_function=score_function, trainer=trainer)
     # Call 3 times and check if not stopped
     assert not trainer.should_terminate
-    h(None, trainer)
-    h(None, trainer)
-    h(None, trainer)
+    h(None)
+    h(None)
+    h(None)
     assert not trainer.should_terminate
 
 
@@ -77,14 +85,14 @@ def test_with_engine_early_stopping():
 
     trainer = Engine(update_fn)
     evaluator = Engine(update_fn)
-    early_stopping = EarlyStopping(patience=3, score_function=score_function)
+    early_stopping = EarlyStopping(patience=3, score_function=score_function, trainer=trainer)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluation(engine):
         evaluator.run([0])
         n_epochs_counter.count += 1
 
-    evaluator.add_event_handler(Events.COMPLETED, early_stopping, trainer)
+    evaluator.add_event_handler(Events.COMPLETED, early_stopping)
     trainer.run([0], max_epochs=10)
     assert n_epochs_counter.count == 7
 
@@ -107,13 +115,13 @@ def test_with_engine_no_early_stopping():
 
     trainer = Engine(update_fn)
     evaluator = Engine(update_fn)
-    early_stopping = EarlyStopping(patience=5, score_function=score_function)
+    early_stopping = EarlyStopping(patience=5, score_function=score_function, trainer=trainer)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluation(engine):
         evaluator.run([0])
         n_epochs_counter.count += 1
 
-    evaluator.add_event_handler(Events.COMPLETED, early_stopping, trainer)
+    evaluator.add_event_handler(Events.COMPLETED, early_stopping)
     trainer.run([0], max_epochs=10)
     assert n_epochs_counter.count == 10
