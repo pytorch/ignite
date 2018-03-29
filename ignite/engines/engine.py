@@ -26,14 +26,11 @@ class State(object):
 
 
 class Engine(object):
-    """
-    Runs a given process_function over each batch of a dataset, emitting events as it goes.
+    """Runs a given process_function over each batch of a dataset, emitting events as it goes.
 
-    Parameters
-    ----------
-    process_function : callable
-        A function receiving a handle to the engine and the current batch
-        in each iteration, outputing data to be stored in the state
+    Args:
+        process_function (Callable): A function receiving a handle to the engine and the current batch
+            in each iteration, outputing data to be stored in the state
 
     """
     def __init__(self, process_function):
@@ -48,24 +45,14 @@ class Engine(object):
             raise ValueError("Engine must be given a processing function in order to run")
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
-        """
-        Add an event handler to be executed when the specified event is fired
+        """Add an event handler to be executed when the specified event is fired
 
-        Parameters
-        ----------
-        event_name: Events
-            event from ignite.engines.Events to attach the
-            handler to
-        handler: Callable
-            the callable event handler that should be invoked
-        args:
-            optional args to be passed to `handler`
-        kwargs:
-            optional keyword args to be passed to `handler`
+        Args:
+            event_name (Events): event from ignite.engines.Events to attach the handler to
+            handler (Callable): the callable event handler that should be invoked
+            *args: optional args to be passed to `handler`
+            **kwargs: optional keyword args to be passed to `handler`
 
-        Returns
-        -------
-        None
         """
         if event_name not in Events.__members__.values():
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
@@ -78,21 +65,13 @@ class Engine(object):
         self._logger.debug("added handler for event %s ", event_name)
 
     def on(self, event_name, *args, **kwargs):
-        """
-        Decorator shortcut for add_event_handler
+        """Decorator shortcut for add_event_handler
 
-        Parameters
-        ----------
-        event_name: enum
-            event to attach the handler to
-        args:
-            optional args to be passed to `handler`
-        kwargs:
-            optional keyword args to be passed to `handler`
+        Args:
+            event_name (Events): event to attach the handler to
+            *args: optional args to be passed to `handler`
+            **kwargs: optional keyword args to be passed to `handler`
 
-        Returns
-        -------
-        None
         """
         def decorator(f):
             self.add_event_handler(event_name, f, *args, **kwargs)
@@ -106,8 +85,7 @@ class Engine(object):
                 func(self, *(event_args + args), **kwargs)
 
     def terminate(self):
-        """
-        Sends terminate signal to the engine, so that it terminates after the current iteration
+        """Sends terminate signal to the engine, so that it terminates after the current iteration
         """
         self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
         self.should_terminate = True
@@ -138,19 +116,14 @@ class Engine(object):
             raise e
 
     def run(self, data, max_epochs=1):
-        """
-        Runs the process_function over the passed data.
+        """Runs the process_function over the passed data.
 
-        Parameters
-        ----------
-        data : Iterable
-            Collection of batches allowing repeated iteration (e.g., list or DataLoader)
-        max_epochs: int, optional
-            max epochs to run for [default=1]
+        Args:
+            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or DataLoader)
+            max_epochs (int, optional): max epochs to run for (default: 1)
 
-        Returns
-        -------
-        state
+        Returns:
+            State: output state
         """
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
