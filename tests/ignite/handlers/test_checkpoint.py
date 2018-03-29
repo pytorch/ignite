@@ -41,6 +41,11 @@ def test_args_validation(dirname):
         h = ModelCheckpoint(nonempty, _PREFIX, exist_ok=True,
                             save_interval=42)
 
+    with pytest.raises(ValueError):
+        h = ModelCheckpoint(nonempty, _PREFIX, exist_ok=True,
+                            score_function="score",
+                            save_interval=42)
+
 
 def test_simple_recovery(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, save_interval=1)
@@ -103,6 +108,26 @@ def test_best_k(dirname):
         h(None, to_save)
 
     expected = ['{}_{}_{}.pth'.format(_PREFIX, 'name', i)
+                for i in [1, 3]]
+
+    assert sorted(os.listdir(dirname)) == expected
+
+
+def test_best_k_with_suffix(dirname):
+    scores = [0.3456789, 0.1234, 0.4567, 0.134567]
+    scores_iter = iter(scores)
+
+    def score_function(engine):
+        return next(scores_iter)
+
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2,
+                        score_function=score_function, score_name="val_loss")
+
+    to_save = {'name': 42}
+    for _ in range(4):
+        h(None, to_save)
+
+    expected = ['{}_{}_{}_val_loss={:.7}.pth'.format(_PREFIX, 'name', i, scores[i - 1])
                 for i in [1, 3]]
 
     assert sorted(os.listdir(dirname)) == expected
