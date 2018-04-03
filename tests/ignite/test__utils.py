@@ -42,4 +42,4 @@ def test_to_onehot():
     indices = torch.LongTensor([0, 1, 2, 3])
     actual = to_onehot(indices, 4)
     expected = torch.eye(4)
-    assert actual.eq(expected).sum() == 16
+    assert actual.equal(expected)
