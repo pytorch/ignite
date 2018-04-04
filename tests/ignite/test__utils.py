@@ -1,7 +1,7 @@
 import pytest
 import torch
 from torch.autograd import Variable
-from ignite._utils import to_variable, to_tensor
+from ignite._utils import to_variable, to_tensor, to_onehot
 
 
 def test_to_variable():
@@ -36,3 +36,10 @@ def test_to_tensor():
 
     with pytest.raises(TypeError):
         to_tensor(12345)
+
+
+def test_to_onehot():
+    indices = torch.LongTensor([0, 1, 2, 3])
+    actual = to_onehot(indices, 4)
+    expected = torch.eye(4)
+    assert actual.equal(expected)
