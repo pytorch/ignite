@@ -3,8 +3,8 @@ from __future__ import division
 import torch
 from torch.nn.functional import pairwise_distance
 
-from .metric import Metric
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import Metric
 
 
 class MeanPairwiseDistance(Metric):
@@ -13,8 +13,8 @@ class MeanPairwiseDistance(Metric):
 
     `update` must receive output of the form (y_pred, y).
     """
-    def __init__(self, p=2, eps=1e-6):
-        super(MeanPairwiseDistance, self).__init__()
+    def __init__(self, p=2, eps=1e-6, output_transform=lambda x: x):
+        super(MeanPairwiseDistance, self).__init__(output_transform)
         self._p = p
         self._eps = eps
 

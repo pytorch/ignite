@@ -2,7 +2,7 @@ from __future__ import division
 
 import torch
 
-from .metric import Metric
+from ignite.metrics.metric import Metric
 from ignite.exceptions import NotComputableError
 
 
@@ -12,8 +12,8 @@ class TopKCategoricalAccuracy(Metric):
 
     `update` must receive output of the form (y_pred, y).
     """
-    def __init__(self, k=5):
-        super(TopKCategoricalAccuracy, self).__init__()
+    def __init__(self, k=5, output_transform=lambda x: x):
+        super(TopKCategoricalAccuracy, self).__init__(output_transform)
         self._k = k
 
     def reset(self):
