@@ -32,3 +32,16 @@ def test_compute():
     result = list(recall.compute())
     assert result[0] == 0.5
     assert result[1] == 0.5
+
+
+def test_compute_all_wrong():
+    recall = Recall()
+
+    y_pred = torch.FloatTensor([[1.0, 0.0], [1.0, 0.0]])
+    y = torch.ones(2).type(torch.LongTensor)
+    recall.update((y_pred, y))
+    result = list(recall.compute())
+    # assert isnan(result[0])
+    # assert result[1] == 0.25
+    # assert isnan(result[2])
+    # assert isnan(result[3])

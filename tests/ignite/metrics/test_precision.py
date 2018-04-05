@@ -1,3 +1,4 @@
+from math import isnan
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
 import pytest
@@ -31,3 +32,14 @@ def test_compute():
     results = list(precision.compute())
     assert results[0] == 0.5
     assert results[1] == 0.5
+
+
+def test_compute_all_wrong():
+    precision = Precision()
+
+    y_pred = torch.FloatTensor([[1.0, 0.0], [1.0, 0.0]])
+    y = torch.ones(2).type(torch.LongTensor)
+    precision.update((y_pred, y))
+    results = list(precision.compute())
+    assert results[0] == 0.0
+    assert isnan(results[1])
