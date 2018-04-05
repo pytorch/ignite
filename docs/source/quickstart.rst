@@ -25,20 +25,20 @@ Code
                                             })
 
     @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss(engine):
-        print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, len(train_loader), engine.state.output))
+    def log_training_loss(trainer):
+        print("Epoch[{}] Loss: {:.2f}".format(trainer.state.epoch, len(train_loader), trainer.state.output))
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(engine):
+    def log_validation_results(trainer):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, metrics['accuracy'], metrics['nll']))
+              .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
 
     trainer.run(train_loader, max_epochs=100)
 
 
-Complete code can be found in the file `examples/mnist.py`.
+Complete code can be found in the file `examples/mnist.py <https://github.com/pytorch/ignite/blob/master/examples/mnist.py>`_.
 
 Explanation
 -----------
@@ -56,9 +56,9 @@ datasets (as :class:`torch.utils.data.DataLoader`), optimizer and loss function:
 Next we define trainer and evaluator engines. The main component of Ignite is the :class:`Engine`, an abstraction over your
 training loop. Getting started with the engine is easy, the constructor only requires one things:
 
-- `update_function`: a function which is passed a batch and passes data through and updates your model
+- `update_function`: a function which is passed the engine and a batch and it passes data through and updates your model
 
-We are using helper methods :meth:`create_supervised_trainer` and :meth:`create_supervised_evaluator`:
+Here we are using helper methods :meth:`create_supervised_trainer` and :meth:`create_supervised_evaluator`:
 
 .. code-block:: python
 
@@ -102,7 +102,7 @@ And update functions of the trainer and evaluator are simply:
         y_pred = model(x)
         return to_tensor(y_pred, cpu=not cuda), to_tensor(y, cpu=not cuda)
 
-Remark that the helper function :meth:`create_supervised_evaluator` to create an evaluator accepts an
+Note that the helper function :meth:`create_supervised_evaluator` to create an evaluator accepts an
 argument `metrics`:
 
 .. code-block:: python
@@ -117,7 +117,7 @@ metrics can be found at :doc:`metrics`.
 
 
 The most interesting part of the code snippet is adding event handlers. :class:`Engine` allows to add handlers on
-various events that fired during the run. When event is fired, attached handlers (functions) are executed. Thus, for
+various events that fired during the run. When an event is fired, attached handlers (functions) are executed. Thus, for
 logging purposes we added a function to be executed after every iteration:
 
 .. code-block:: python
@@ -148,10 +148,18 @@ event:
               .format(engine.state.epoch, metrics['accuracy'], metrics['nll']))
 
 
+.. Note ::
+
+   Function :meth:`add_event_handler` (as well as :meth:`on` decorator) also accepts optional `args`, `kwargs` to be passed
+   to the handler. For example:
+
+   .. code-block:: python
+
+      trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss, train_loader)
+
+
 Finally, we start the engine on the training dataset and run it during 100 epochs:
 
 .. code-block:: python
 
     trainer.run(train_loader, max_epochs=100)
-
-
