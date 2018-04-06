@@ -41,7 +41,5 @@ def test_compute_all_wrong():
     y = torch.ones(2).type(torch.LongTensor)
     recall.update((y_pred, y))
     result = list(recall.compute())
-    # assert isnan(result[0])
-    # assert result[1] == 0.25
-    # assert isnan(result[2])
-    # assert isnan(result[3])
+    assert isnan(result[0])
+    assert result[1] == 0.0
