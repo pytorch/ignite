@@ -40,8 +40,6 @@ class ModelCheckpoint(object):
             in the directory 'dirname'
         create_dir (bool, optional):
             If True, will create directory 'dirname' if it doesnt exist.
-        exist_ok (bool, optional):
-            Passed to 'os.makedirs' call. Ignored if 'create_dir' is False.
 
     Notes:
           This handler expects two arguments: an `Engine` object and a `dict`
@@ -78,7 +76,7 @@ class ModelCheckpoint(object):
                  save_interval=None, score_function=None, score_name=None,
                  n_saved=1,
                  atomic=True, require_empty=True,
-                 create_dir=True, exist_ok=False):
+                 create_dir=True):
 
         self._dirname = dirname
         self._fname_prefix = filename_prefix
@@ -99,11 +97,12 @@ class ModelCheckpoint(object):
                              "should be also provided")
 
         if create_dir:
-            exists = os.path.exists(dirname)
-            if exists and not exist_ok:
-                raise OSError("Directory {} already exists. Pass exist_ok=True to ignore this error.")
-            elif not exists:
+            if not os.path.exists(dirname):
                 os.makedirs(dirname)
+
+        # Ensure that dirname exists
+        if not os.path.exists(dirname):
+            raise ValueError("Directory path '{}' is not found".format(dirname))
 
         if require_empty:
             matched = [fname

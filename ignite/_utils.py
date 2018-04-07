@@ -42,3 +42,10 @@ def to_tensor(variable, cpu=False):
     else:
         raise TypeError(("Argument variable must contain torch.autograd.Variable, numbers, dicts or lists; found {}"
                          .format(type(variable))))
+
+
+def to_onehot(indices, num_classes):
+    onehot = torch.zeros(indices.size(0), num_classes)
+    if indices.is_cuda:
+        onehot = onehot.cuda()
+    return onehot.scatter_(1, indices.unsqueeze(1), 1)
