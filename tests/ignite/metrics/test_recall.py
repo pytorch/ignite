@@ -1,5 +1,4 @@
-from math import isnan
-from ignite.exceptions import NotComputableError
+from ignite.exceptions import NotComputableError, UndefinedMetricWarning
 from ignite.metrics import Recall
 import pytest
 import torch
@@ -17,11 +16,14 @@ def test_compute():
     y_pred = torch.eye(4)
     y = torch.ones(4).type(torch.LongTensor)
     recall.update((y_pred, y))
-    result = list(recall.compute())
-    assert isnan(result[0])
+
+    with pytest.warns(UndefinedMetricWarning):
+        result = list(recall.compute())
+
+    assert result[0] == 0.0
     assert result[1] == 0.25
-    assert isnan(result[2])
-    assert isnan(result[3])
+    assert result[2] == 0.0
+    assert result[3] == 0.0
 
     recall.reset()
     y_pred = torch.eye(2)
@@ -40,6 +42,9 @@ def test_compute_all_wrong():
     y_pred = torch.FloatTensor([[1.0, 0.0], [1.0, 0.0]])
     y = torch.ones(2).type(torch.LongTensor)
     recall.update((y_pred, y))
-    result = list(recall.compute())
-    assert isnan(result[0])
+
+    with pytest.warns(UndefinedMetricWarning):
+        result = list(recall.compute())
+
+    assert result[0] == 0.0
     assert result[1] == 0.0
