@@ -36,6 +36,17 @@ def test_compute():
     assert result[1] == 0.5
 
 
+def test_compute_average():
+    recall = Recall(average=True)
+
+    y_pred = torch.eye(4)
+    y = torch.ones(4).type(torch.LongTensor)
+    recall.update((y_pred, y))
+
+    with pytest.warns(UndefinedMetricWarning):
+        assert recall.compute() == 0.0625
+
+
 def test_compute_all_wrong():
     recall = Recall()
 

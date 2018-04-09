@@ -33,6 +33,15 @@ def test_compute():
     assert results[1] == 0.5
 
 
+def test_compute_average():
+    precision = Precision(average=True)
+
+    y_pred = torch.eye(4)
+    y = torch.ones(4).type(torch.LongTensor)
+    precision.update((y_pred, y))
+    assert precision.compute() == 0.25
+
+
 def test_compute_all_wrong():
     precision = Precision()
 

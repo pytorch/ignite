@@ -13,7 +13,14 @@ class Precision(Metric):
     Calculates precision.
 
     `update` must receive output of the form (y_pred, y).
+
+    If `average` is True, returns the unweighted average across all classes.
+        Otherwise, returns a tensor with the precision for each class.
     """
+    def __init__(self, average=False, output_transform=lambda x: x):
+        super(Precision, self).__init__(output_transform)
+        self._average = average
+
     def reset(self):
         self._all_positives = None
         self._true_positives = None
@@ -44,4 +51,7 @@ class Precision(Metric):
             warnings.warn('Labels with no predicted examples are set to have precision of 0.0.', UndefinedMetricWarning)
         result = self._true_positives / self._all_positives
         result[result != result] = 0.0
-        return result
+        if self._average:
+            return result.mean()
+        else:
+            return result
