@@ -1,10 +1,9 @@
 from __future__ import division
-import warnings
 
 import torch
 
 from ignite.metrics.metric import Metric
-from ignite.exceptions import NotComputableError, UndefinedMetricWarning
+from ignite.exceptions import NotComputableError
 from ignite._utils import to_onehot
 
 
@@ -47,8 +46,6 @@ class Recall(Metric):
     def compute(self):
         if self._actual is None:
             raise NotComputableError('Recall must have at least one example before it can be computed')
-        elif self._actual.eq(0.0).any():
-            warnings.warn('Labels with no examples are set to have recall of 0.0.', UndefinedMetricWarning)
         result = self._true_positives / self._actual
         result[result != result] = 0.0
         if self._average:

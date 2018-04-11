@@ -1,4 +1,4 @@
-from ignite.exceptions import NotComputableError, UndefinedMetricWarning
+from ignite.exceptions import NotComputableError
 from ignite.metrics import Recall
 import pytest
 import torch
@@ -17,8 +17,7 @@ def test_compute():
     y = torch.ones(4).type(torch.LongTensor)
     recall.update((y_pred, y))
 
-    with pytest.warns(UndefinedMetricWarning):
-        result = list(recall.compute())
+    result = list(recall.compute())
 
     assert result[0] == 0.0
     assert result[1] == 0.25
@@ -31,7 +30,9 @@ def test_compute():
     recall.update((y_pred, y))
     y = torch.zeros(2).type(torch.LongTensor)
     recall.update((y_pred, y))
+
     result = list(recall.compute())
+
     assert result[0] == 0.5
     assert result[1] == 0.5
 
@@ -43,8 +44,7 @@ def test_compute_average():
     y = torch.ones(4).type(torch.LongTensor)
     recall.update((y_pred, y))
 
-    with pytest.warns(UndefinedMetricWarning):
-        assert recall.compute() == 0.0625
+    assert recall.compute() == 0.0625
 
 
 def test_compute_all_wrong():
@@ -54,8 +54,7 @@ def test_compute_all_wrong():
     y = torch.ones(2).type(torch.LongTensor)
     recall.update((y_pred, y))
 
-    with pytest.warns(UndefinedMetricWarning):
-        result = list(recall.compute())
+    result = list(recall.compute())
 
     assert result[0] == 0.0
     assert result[1] == 0.0

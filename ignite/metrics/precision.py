@@ -1,10 +1,9 @@
 from __future__ import division
-import warnings
 
 import torch
 
 from ignite.metrics.metric import Metric
-from ignite.exceptions import NotComputableError, UndefinedMetricWarning
+from ignite.exceptions import NotComputableError
 from ignite._utils import to_onehot
 
 
@@ -47,8 +46,6 @@ class Precision(Metric):
     def compute(self):
         if self._all_positives is None:
             raise NotComputableError('Precision must have at least one example before it can be computed')
-        elif self._all_positives.eq(0.0).any():
-            warnings.warn('Labels with no predicted examples are set to have precision of 0.0.', UndefinedMetricWarning)
         result = self._true_positives / self._all_positives
         result[result != result] = 0.0
         if self._average:

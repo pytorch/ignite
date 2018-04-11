@@ -1,4 +1,4 @@
-from ignite.exceptions import NotComputableError, UndefinedMetricWarning
+from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
 import pytest
 import torch
@@ -28,7 +28,9 @@ def test_compute():
     precision.update((y_pred, y))
     y = torch.zeros(2).type(torch.LongTensor)
     precision.update((y_pred, y))
+
     results = list(precision.compute())
+
     assert results[0] == 0.5
     assert results[1] == 0.5
 
@@ -49,8 +51,7 @@ def test_compute_all_wrong():
     y = torch.ones(2).type(torch.LongTensor)
     precision.update((y_pred, y))
 
-    with pytest.warns(UndefinedMetricWarning):
-        results = list(precision.compute())
+    results = list(precision.compute())
 
     assert results[0] == 0.0
     assert results[1] == 0.0
