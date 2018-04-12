@@ -4,8 +4,8 @@ Concepts
 Engine
 ------
 
-The **essence** of the framework is the class :class:`Engine`, an abstraction that loops given number of times over
-provided data, executes a processing and returns a result:
+The **essence** of the framework is the class :class:`Engine`, an abstraction that loops a given number of times over
+provided data, executes a processing function and returns a result:
 
 .. code-block:: python
 
@@ -105,4 +105,3 @@ epochs:
         print("Epoch: {}, Iteration: {}, Loss: {}".format(epoch, iteration, loss))
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
-
