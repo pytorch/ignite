@@ -32,7 +32,7 @@ class Recall(Metric):
         actual_onehot = to_onehot(y, num_classes)
         actual = actual_onehot.sum(dim=0)
         if correct.sum() == 0:
-            true_positives = torch.zeros(num_classes)
+            true_positives = torch.zeros_like(actual)
         else:
             correct_onehot = to_onehot(indices[correct], num_classes)
             true_positives = correct_onehot.sum(dim=0)

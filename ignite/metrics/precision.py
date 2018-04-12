@@ -32,7 +32,7 @@ class Precision(Metric):
         pred_onehot = to_onehot(indices, num_classes)
         all_positives = pred_onehot.sum(dim=0)
         if correct.sum() == 0:
-            true_positives = torch.zeros(num_classes)
+            true_positives = torch.zeros_like(all_positives)
         else:
             correct_onehot = to_onehot(indices[correct], num_classes)
             true_positives = correct_onehot.sum(dim=0)
