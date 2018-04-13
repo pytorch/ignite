@@ -105,3 +105,13 @@ epochs:
         print("Epoch: {}, Iteration: {}, Loss: {}".format(epoch, iteration, loss))
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
+
+.. Note ::
+
+   A good practice is to use :class:`State` also as a storage of user data created in update or handler functions.
+   For example, we would like to save `new_attribute` in the `state`:
+
+   .. code-block:: python
+
+      def user_handler_function(engine):
+          engine.state.new_attribute = 12345
