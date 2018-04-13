@@ -4,8 +4,8 @@ Concepts
 Engine
 ------
 
-The **essence** of the framework is the class :class:`Engine`, an abstraction that loops given number of times over
-provided data, executes a processing and returns a result:
+The **essence** of the framework is the class :class:`Engine`, an abstraction that loops a given number of times over
+provided data, executes a processing function and returns a result:
 
 .. code-block:: python
 
@@ -106,3 +106,12 @@ epochs:
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
 
+.. Note ::
+
+   A good practice is to use :class:`State` also as a storage of user data created in update or handler functions.
+   For example, we would like to save `new_attribute` in the `state`:
+
+   .. code-block:: python
+
+      def user_handler_function(engine):
+          engine.state.new_attribute = 12345
