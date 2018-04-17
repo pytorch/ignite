@@ -33,17 +33,17 @@ def test_args_validation(dirname):
         h = ModelCheckpoint(existing, _PREFIX,
                             create_dir=False)
 
-    with pytest.raises(OSError):
-        h = ModelCheckpoint(existing, _PREFIX, create_dir=True,
-                            save_interval=42)
+    with pytest.raises(ValueError):
+        h = ModelCheckpoint(nonempty, _PREFIX, save_interval=42)
 
     with pytest.raises(ValueError):
-        h = ModelCheckpoint(nonempty, _PREFIX, exist_ok=True,
-                            save_interval=42)
-
-    with pytest.raises(ValueError):
-        h = ModelCheckpoint(nonempty, _PREFIX, exist_ok=True,
+        h = ModelCheckpoint(nonempty, _PREFIX,
                             score_function="score",
+                            save_interval=42)
+
+    with pytest.raises(ValueError):
+        h = ModelCheckpoint(os.path.join(dirname, 'non_existing_dir'), _PREFIX,
+                            create_dir=False,
                             save_interval=42)
 
 
@@ -53,6 +53,19 @@ def test_simple_recovery(dirname):
 
     fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
     assert torch.load(fname) == 42
+
+
+def test_simple_recovery_from_existing_non_empty(dirname):
+    previous_fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
+    with open(previous_fname, 'w') as f:
+        f.write("test")
+
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=False, save_interval=1)
+    h(None, {'obj': 42})
+
+    fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
+    assert torch.load(fname) == 42
+    assert os.path.exists(previous_fname)
 
 
 def test_atomic(dirname):

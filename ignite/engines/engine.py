@@ -1,6 +1,5 @@
 import logging
 import time
-from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 from ignite._utils import _to_hours_mins_secs
