@@ -58,15 +58,19 @@ class Engine(object):
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
-        signature = inspect.signature(handler)
+        callable_ = handler if hasattr(handler, '__name__') else handler.__call__
         try:
-            signature.bind(self, *args, **kwargs)
+            inspect.getcallargs(callable_, self, *args, **kwargs)
         except TypeError as exc:
-            parameters = signature.parameters
+            spec = inspect.getargspec(callable_)
+            arg_names = (spec.args +
+                         list(spec.varargs or {}) +
+                         list(spec.keywords or {}) +
+                         list(spec.defaults or {}))
             raise ValueError("Error adding handler '{}': "
                              "takes parameters {} but will be called with {} "
                              "({})".format(
-                                 handler, list(parameters), [self] + list(args) + list(kwargs), exc))
+                                 handler, arg_names, [self] + list(args) + list(kwargs), exc))
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
