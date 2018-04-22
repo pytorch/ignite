@@ -1,3 +1,4 @@
+import inspect
 import logging
 import time
 from enum import Enum
@@ -56,6 +57,16 @@ class Engine(object):
         if event_name not in Events.__members__.values():
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
+
+        signature = inspect.signature(handler)
+        try:
+            signature.bind(self, *args, **kwargs)
+        except TypeError as exc:
+            parameters = signature.parameters
+            raise ValueError("Error adding handler '{}': "
+                             "takes parameters {} but will be called with {} "
+                             "({})".format(
+                                 handler, list(parameters), [self] + list(args) + list(kwargs), exc))
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
