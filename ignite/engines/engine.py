@@ -63,14 +63,10 @@ class Engine(object):
             inspect.getcallargs(callable_, self, *args, **kwargs)
         except TypeError as exc:
             spec = inspect.getargspec(callable_)
-            arg_names = (spec.args +
-                         list(spec.varargs or {}) +
-                         list(spec.keywords or {}) +
-                         list(spec.defaults or {}))
             raise ValueError("Error adding handler '{}': "
                              "takes parameters {} but will be called with {} "
                              "({})".format(
-                                 handler, arg_names, [self] + list(args) + list(kwargs), exc))
+                                 handler, spec.args, [self] + list(args) + list(kwargs), exc))
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
