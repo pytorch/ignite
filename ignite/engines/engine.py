@@ -1,5 +1,6 @@
 import inspect
 import logging
+import sys
 import time
 from enum import Enum
 
@@ -58,21 +59,39 @@ class Engine(object):
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
-        callable_ = handler if hasattr(handler, '__name__') else handler.__call__
-        try:
-            inspect.getcallargs(callable_, self, *args, **kwargs)
-        except TypeError as exc:
-            spec = inspect.getargspec(callable_)
-            raise ValueError("Error adding handler '{}': "
-                             "takes parameters {} but will be called with {} "
-                             "({})".format(
-                                 handler, spec.args, [self] + list(args) + list(kwargs), exc))
+        self._check_handler_signature(handler, *args, **kwargs)
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s ", event_name)
+
+    def _check_handler_signature(self, handler, *args, **kwargs):
+        exception_msg = None
+
+        if sys.version_info[0] < 3:
+            try:
+                callable_ = handler if hasattr(handler, '__name__') else handler.__call__
+                inspect.getcallargs(callable_, self, *args, **kwargs)
+            except TypeError as exc:
+                spec = inspect.getargspec(callable_)
+                handler_params = list(spec.args)
+                exception_msg = str(exc)
+        else:
+            signature = inspect.signature(handler)
+            try:
+                signature.bind(self, *args, **kwargs)
+            except TypeError as exc:
+                handler_params = list(signature.parameters)
+                exception_msg = str(exc)
+
+        if exception_msg:
+            passed_params = [self] + list(args) + list(kwargs)
+            raise ValueError("Error adding handler '{}': "
+                             "takes parameters {} but will be called with {} "
+                             "({})".format(
+                                 handler, handler_params, passed_params, exception_msg))
 
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler
