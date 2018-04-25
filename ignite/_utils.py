@@ -15,7 +15,8 @@ def to_variable(batch, cuda=False, volatile=False):
     if torch.is_tensor(batch):
         if cuda:
             batch = batch.cuda()
-        return Variable(batch, volatile=volatile)
+        with torch.set_grad_enabled(not volatile):
+            return batch
     elif isinstance(batch, string_classes):
         return batch
     elif isinstance(batch, collections.Mapping):
