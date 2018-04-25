@@ -17,10 +17,12 @@ def test_compute():
     y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
     y = torch.zeros(2, 2)
     mpd.update((y_pred, y))
+    assert isinstance(mpd.compute(), float)
     assert mpd.compute() == approx(5.0)
 
     mpd.reset()
     y_pred = torch.Tensor([[4.0, 4.0, 4.0, 4.0], [-4.0, -4.0, -4.0, -4.0]])
     y = torch.zeros(2, 4)
     mpd.update((y_pred, y))
+    assert isinstance(mpd.compute(), float)
     assert mpd.compute() == approx(8.0)

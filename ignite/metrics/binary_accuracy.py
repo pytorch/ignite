@@ -22,7 +22,7 @@ class BinaryAccuracy(Metric):
     def update(self, output):
         y_pred, y = output
         correct = torch.eq(torch.round(y_pred).type(y.type()), y).view(-1)
-        self._num_correct += torch.sum(correct)
+        self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
 
     def compute(self):

@@ -49,6 +49,6 @@ class Precision(Metric):
         result = self._true_positives / self._all_positives
         result[result != result] = 0.0
         if self._average:
-            return result.mean()
+            return result.mean().item()
         else:
             return result

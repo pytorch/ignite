@@ -41,6 +41,7 @@ def test_compute_average():
     y_pred = torch.eye(4)
     y = torch.ones(4).type(torch.LongTensor)
     precision.update((y_pred, y))
+    assert isinstance(precision.compute(), float)
     assert precision.compute() == 0.25
 
 
