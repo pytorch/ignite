@@ -6,6 +6,8 @@ from enum import Enum
 
 from ignite._utils import _to_hours_mins_secs
 
+IS_PYTHON2 = sys.version_info[0] < 3
+
 
 class Events(Enum):
     EPOCH_STARTED = "epoch_started"
@@ -70,7 +72,7 @@ class Engine(object):
     def _check_handler_signature(self, handler, *args, **kwargs):
         exception_msg = None
 
-        if sys.version_info[0] < 3:
+        if IS_PYTHON2:
             try:
                 callable_ = handler if hasattr(handler, '__name__') else handler.__call__
                 inspect.getcallargs(callable_, self, *args, **kwargs)
