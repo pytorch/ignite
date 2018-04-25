@@ -6,6 +6,7 @@ from ignite._utils import _to_hours_mins_secs
 
 
 class Events(Enum):
+    """Events that are fired by the :class:`ignite.engines.Engine` during execution"""
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"
@@ -16,6 +17,7 @@ class Events(Enum):
 
 
 class State(object):
+    """An object that is used to pass internal and user-defined state between event handlers"""
     def __init__(self, **kwargs):
         self.iteration = 0
         self.output = None
