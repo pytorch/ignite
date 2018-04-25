@@ -1,2 +1,10 @@
 ignite.handlers
 ===============
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: ModelCheckpoint
+
+.. autoclass:: EarlyStopping
+
+.. autoclass:: Timer
