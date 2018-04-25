@@ -1,4 +1,4 @@
-from ignite.engines.engine import Engine, Events, State
+from .engine import Engine, State, Events
 from ignite._utils import to_variable, to_tensor
 
 

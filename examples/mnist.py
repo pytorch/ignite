@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torchvision.transforms import Compose, ToTensor, Normalize
 from torchvision.datasets import MNIST
 
-from ignite.engines import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
 
 

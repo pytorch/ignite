@@ -30,7 +30,7 @@ try:
 except ImportError:
     raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
 
-from ignite.engines import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
 
 

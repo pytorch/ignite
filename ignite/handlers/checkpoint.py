@@ -8,7 +8,7 @@ class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
     This handler accepts two arguments:
-        - an `ignite.engines.Engine` object
+        - an `ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
             See Notes and Examples for further details.
 
@@ -23,7 +23,7 @@ class ModelCheckpoint(object):
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_function (Callable, optional):
             if not None, it should be a function taking a single argument,
-            an `ignite.engines.Engine` object,
+            an `ignite.engine.Engine` object,
             and return a score (`float`). Objects with highest scores will be retained.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_name (str, optional):
@@ -60,7 +60,7 @@ class ModelCheckpoint(object):
 
     Examples:
         >>> import os
-        >>> from ignite.engines import Engine, Events
+        >>> from ignite.engine import Engine, Events
         >>> from ignite.handlers import ModelCheckpoint
         >>> from torch import nn
         >>> trainer = Engine(lambda batch: None)

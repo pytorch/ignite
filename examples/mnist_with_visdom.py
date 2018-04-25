@@ -14,7 +14,7 @@ try:
 except ImportError:
     raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
 
-from ignite.engines import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
 
 

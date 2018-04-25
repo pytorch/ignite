@@ -1,6 +1,6 @@
 import logging
 
-from ignite.engines import Engine
+from ignite.engine import Engine
 
 
 class EarlyStopping(object):
@@ -10,12 +10,12 @@ class EarlyStopping(object):
         patience (int):
             Number of events to wait if no improvement and then stop the training
         score_function (Callable):
-            It should be a function taking a single argument, an `ignite.engines.Engine` object,
+            It should be a function taking a single argument, an `ignite.engine.Engine` object,
             and return a score `float`. An improvement is considered if the score is higher.
 
     Examples:
     ```python
-    from ignite.engines import Engine, Events
+    from ignite.engine import Engine, Events
     from ignite.handlers import EarlyStopping
 
     def score_function(engine):

@@ -6,7 +6,7 @@ from ignite._utils import _to_hours_mins_secs
 
 
 class Events(Enum):
-    """Events that are fired by the :class:`ignite.engines.Engine` during execution"""
+    """Events that are fired by the :class:`ignite.engine.Engine` during execution"""
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"
@@ -49,7 +49,7 @@ class Engine(object):
         """Add an event handler to be executed when the specified event is fired
 
         Args:
-            event_name (Events): event from ignite.engines.Events to attach the handler to
+            event_name (Events): event from ignite.engine.Events to attach the handler to
             handler (Callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`

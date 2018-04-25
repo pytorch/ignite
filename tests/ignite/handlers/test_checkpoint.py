@@ -5,7 +5,7 @@ import pytest
 import torch
 import shutil
 
-from ignite.engines import Engine, Events
+from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint
 
 _PREFIX = 'PREFIX'
