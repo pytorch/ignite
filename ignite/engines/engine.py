@@ -37,17 +37,19 @@ class Engine(object):
 
     Example usage:
     ```python
-    def process_function(engine, batch):
+    def train_and_store_loss(engine, batch):
         inputs, targets = batch
         optimizer.zero_grad()
-        y_pred = model(inputs)
-        loss = loss_fn(y_pred, targets)
+        outputs = model(inputs)
+        loss = loss_fn(outputs, targets)
         loss.backward()
         optimizer.step()
         return loss.item()
 
-    engine = Engine(process_function)
+    engine = Engine(train_and_store_loss)
     engine.run(data_loader)
+
+    # Loss value is now stored in `engine.state.output`.
     ```
     """
     def __init__(self, process_function):
