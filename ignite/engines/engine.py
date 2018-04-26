@@ -63,6 +63,9 @@ class Engine(object):
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
 
+        BATCH_PLACEHOLDER = None
+        self._check_signature(process_function, 'process_function', BATCH_PLACEHOLDER)
+
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
 
@@ -92,7 +95,7 @@ class Engine(object):
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
-        self._check_handler_signature(handler, *args, **kwargs)
+        self._check_signature(handler, 'handler', *args, **kwargs)
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
@@ -100,31 +103,31 @@ class Engine(object):
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s ", event_name)
 
-    def _check_handler_signature(self, handler, *args, **kwargs):
+    def _check_signature(self, fn, fn_description, *args, **kwargs):
         exception_msg = None
 
         if IS_PYTHON2:
             try:
-                callable_ = handler if hasattr(handler, '__name__') else handler.__call__
+                callable_ = fn if hasattr(fn, '__name__') else fn.__call__
                 inspect.getcallargs(callable_, self, *args, **kwargs)
             except TypeError as exc:
                 spec = inspect.getargspec(callable_)
-                handler_params = list(spec.args)
+                fn_params = list(spec.args)
                 exception_msg = str(exc)
         else:
-            signature = inspect.signature(handler)
+            signature = inspect.signature(fn)
             try:
                 signature.bind(self, *args, **kwargs)
             except TypeError as exc:
-                handler_params = list(signature.parameters)
+                fn_params = list(signature.parameters)
                 exception_msg = str(exc)
 
         if exception_msg:
             passed_params = [self] + list(args) + list(kwargs)
-            raise ValueError("Error adding handler '{}': "
+            raise ValueError("Error adding {} '{}': "
                              "takes parameters {} but will be called with {} "
                              "({})".format(
-                                 handler, handler_params, passed_params, exception_msg))
+                                 fn, fn_description, fn_params, passed_params, exception_msg))
 
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler

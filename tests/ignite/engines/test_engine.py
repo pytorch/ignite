@@ -14,7 +14,7 @@ from ignite.engines import Engine, Events, State, create_supervised_trainer, cre
 from ignite.metrics import MeanSquaredError
 
 
-def process_func(batch):
+def process_func(engine, batch):
     return 1
 
 
@@ -35,6 +35,19 @@ def test_terminate():
     assert not engine.should_terminate
     engine.terminate()
     assert engine.should_terminate
+
+
+def test_invalid_process_raises_with_invalid_signature():
+    engine = Engine(lambda engine, batch: None)
+
+    with pytest.raises(ValueError):
+        Engine(lambda: None)
+
+    with pytest.raises(ValueError):
+        Engine(lambda batch: None)
+
+    with pytest.raises(ValueError):
+        Engine(lambda engine, batch, extra_arg: None)
 
 
 def test_add_event_handler_raises_with_invalid_event():
