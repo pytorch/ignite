@@ -33,8 +33,22 @@ class Engine(object):
 
     Args:
         process_function (Callable): A function receiving a handle to the engine and the current batch
-            in each iteration, outputing data to be stored in the state
+            in each iteration, and returns data to be stored in the engine's state
 
+    Example usage:
+    ```python
+    def process_function(engine, batch):
+        inputs, targets = batch
+        optimizer.zero_grad()
+        y_pred = model(inputs)
+        loss = loss_fn(y_pred, targets)
+        loss.backward()
+        optimizer.step()
+        return loss.item()
+
+    engine = Engine(process_function)
+    engine.run(data_loader)
+    ```
     """
     def __init__(self, process_function):
         self._event_handlers = {}
