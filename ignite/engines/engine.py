@@ -70,6 +70,21 @@ class Engine(object):
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
 
+        Notes:
+              The handler function's first argument will be `self`, the `Engine` object it was bound to.
+
+              Note that other arguments can be passed to the handler in addition to the `*args` and `**kwargs`
+              passed here, for example during `Events.EXCEPTION_RAISED`.
+
+        Example usage:
+        ```python
+        engine = Engine(process_function)
+
+        def print_epoch(engine):
+            print("Epoch: {}".format(engine.state.epoch))
+
+        engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
+        ```
         """
         if event_name not in Events.__members__.values():
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
