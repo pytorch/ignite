@@ -1,24 +1,7 @@
 import pytest
 import torch
 from torch.autograd import Variable
-from ignite._utils import to_variable, to_tensor, to_onehot
-
-
-def test_to_variable():
-    x = torch.Tensor([0.0])
-    var_x = to_variable(x)
-    assert isinstance(var_x, Variable)
-
-    x = (torch.Tensor([0.0]), torch.Tensor([0.0]))
-    var_x = to_variable(x)
-    assert isinstance(var_x, list) and isinstance(var_x[0], Variable) and isinstance(var_x[1], Variable)
-
-    x = {'a': torch.Tensor([0.0]), 'b': torch.Tensor([0.0])}
-    var_x = to_variable(x)
-    assert isinstance(var_x, dict) and isinstance(var_x['a'], Variable) and isinstance(var_x['b'], Variable)
-
-    with pytest.raises(TypeError):
-        to_variable(12345)
+from ignite._utils import to_tensor, to_onehot
 
 
 def test_to_tensor():
@@ -36,6 +19,12 @@ def test_to_tensor():
 
     with pytest.raises(TypeError):
         to_tensor(12345)
+
+    x = torch.ones(1, requires_grad=True)
+    y = to_tensor(x + 2, requires_grad=False)
+    z = y + 2
+    assert not y.requires_grad
+    assert not z.requires_grad
 
 
 def test_to_onehot():

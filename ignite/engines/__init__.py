@@ -1,11 +1,11 @@
 from ignite.engines.engine import Engine, Events, State
-from ignite._utils import to_variable, to_tensor
+from ignite._utils import to_tensor
 
 
-def _prepare_batch(batch, cuda, volatile=False):
+def _prepare_batch(batch, cuda, requires_grad=True):
     x, y = batch
-    x = to_variable(x, cuda=cuda, volatile=volatile)
-    y = to_variable(y, cuda=cuda, volatile=volatile)
+    x = to_tensor(x, cuda=cuda, requires_grad=requires_grad)
+    y = to_tensor(y, cuda=cuda, requires_grad=requires_grad)
     return x, y
 
 
@@ -49,9 +49,9 @@ def create_supervised_evaluator(model, metrics={}, cuda=False):
     """
     def _inference(engine, batch):
         model.eval()
-        x, y = _prepare_batch(batch, cuda, volatile=True)
+        x, y = _prepare_batch(batch, cuda, requires_grad=False)
         y_pred = model(x)
-        return to_tensor(y_pred, cpu=not cuda), to_tensor(y, cpu=not cuda)
+        return to_tensor(y_pred, cuda=cuda), to_tensor(y, cuda=cuda)
 
     engine = Engine(_inference)
 

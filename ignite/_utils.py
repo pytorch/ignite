@@ -11,35 +11,19 @@ def _to_hours_mins_secs(time_taken):
     return hours, mins, secs
 
 
-def to_variable(batch, cuda=False, volatile=False):
-    if torch.is_tensor(batch):
+def to_tensor(variable, cuda=False, requires_grad=False):
+    if torch.is_tensor(variable):
         if cuda:
-            batch = batch.cuda()
-        with torch.set_grad_enabled(not volatile):
-            return batch
-    elif isinstance(batch, string_classes):
-        return batch
-    elif isinstance(batch, collections.Mapping):
-        return {k: to_variable(sample, cuda=cuda, volatile=volatile) for k, sample in batch.items()}
-    elif isinstance(batch, collections.Sequence):
-        return [to_variable(sample, cuda=cuda, volatile=volatile) for sample in batch]
-    else:
-        raise TypeError(("batch must contain tensors, numbers, dicts or lists; found {}"
-                         .format(type(batch[0]))))
-
-
-def to_tensor(variable, cpu=False):
-    if isinstance(variable, Variable):
-        t = variable.data
-        if cpu:
-            t = t.cpu()
-        return t
+            variable = variable.cuda()
+        if not requires_grad:
+            variable = variable.detach()
+        return variable
     elif isinstance(variable, string_classes):
         return variable
     elif isinstance(variable, collections.Mapping):
-        return {k: to_tensor(sample, cpu=cpu) for k, sample in variable.items()}
+        return {k: to_tensor(sample, cuda=cuda, requires_grad=requires_grad) for k, sample in variable.items()}
     elif isinstance(variable, collections.Sequence):
-        return [to_tensor(sample, cpu=cpu) for sample in variable]
+        return [to_tensor(sample, cuda=cuda, requires_grad=requires_grad) for sample in variable]
     else:
         raise TypeError(("Argument variable must contain torch.autograd.Variable, numbers, dicts or lists; found {}"
                          .format(type(variable))))
