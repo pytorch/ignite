@@ -30,7 +30,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
         loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
-        return loss.data.cpu().item()
+        return loss.item()
 
     return Engine(_update)
 
