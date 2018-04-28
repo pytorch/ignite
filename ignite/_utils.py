@@ -11,26 +11,16 @@ def _to_hours_mins_secs(time_taken):
     return hours, mins, secs
 
 
-def to_tensor(variable, cuda=False, requires_grad=False):
-    if torch.is_tensor(variable):
-        if cuda:
-            variable = variable.cuda()
-        if not requires_grad:
-            variable = variable.detach()
-        return variable
-    elif isinstance(variable, string_classes):
-        return variable
-    elif isinstance(variable, collections.Mapping):
-        return {k: to_tensor(sample, cuda=cuda, requires_grad=requires_grad) for k, sample in variable.items()}
-    elif isinstance(variable, collections.Sequence):
-        return [to_tensor(sample, cuda=cuda, requires_grad=requires_grad) for sample in variable]
-    else:
-        raise TypeError(("Argument variable must contain torch.autograd.Variable, numbers, dicts or lists; found {}"
-                         .format(type(variable))))
+def convert_tensor(tensor, requires_grad=False, device=None):
+    if device:
+        tensor = tensor.to(device=device)
+    if requires_grad != tensor.requires_grad:
+        tensor.requires_grad_(requires_grad)
+    return tensor
 
 
 def to_onehot(indices, num_classes):
     onehot = torch.zeros(indices.size(0), num_classes)
     if indices.is_cuda:
-        onehot = onehot.cuda()
+        onehot = onehot.to('cuda')
     return onehot.scatter_(1, indices.unsqueeze(1), 1)

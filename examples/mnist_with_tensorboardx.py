@@ -81,14 +81,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     model = Net()
     writer = create_summary_writer(model, log_dir)
+    device = None
     if cuda:
-        model = model.cuda()
+        device = 'cuda'
+        model = model.to(device)
+
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
-    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, cuda=cuda)
+    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
     evaluator = create_supervised_evaluator(model,
                                             metrics={'accuracy': CategoricalAccuracy(),
                                                      'nll': Loss(F.nll_loss)},
-                                            cuda=cuda)
+                                            device=device)
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
