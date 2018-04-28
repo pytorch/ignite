@@ -44,12 +44,11 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
-    cuda = torch.cuda.is_available()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
-
     model = Net()
-    device = None
-    if cuda:
+    device = 'cpu'
+
+    if torch.cuda.is_available():
         device = 'cuda'
         model = model.to(device)
 
