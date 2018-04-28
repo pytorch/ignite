@@ -50,7 +50,7 @@ def create_supervised_evaluator(model, metrics={}, device=None):
         model.eval()
         x, y = _prepare_batch(batch, requires_grad=False, device=device)
         y_pred = model(x)
-        return (y_pred, y)
+        return y_pred, y
 
     engine = Engine(_inference)
 
