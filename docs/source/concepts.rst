@@ -4,7 +4,7 @@ Concepts
 Engine
 ------
 
-The **essence** of the framework is the class :class:`Engine`, an abstraction that loops a given number of times over
+The **essence** of the framework is the class :class:`ignite.engines.Engine`, an abstraction that loops a given number of times over
 provided data, executes a processing function and returns a result:
 
 .. code-block:: python
@@ -36,7 +36,7 @@ For example, model trainer for a supervised task:
 Events and Handlers
 -------------------
 
-To improve :class:`Engine` flexibility, an event system is introduced that facilitates interaction on each step of
+To improve the :class:`ignite.engines.Engine`'s flexibility, an event system is introduced that facilitates interaction on each step of
 the run:
 
 - *engine is started/completed*
@@ -45,8 +45,7 @@ the run:
 
 Complete list of events can be found `here <https://github.com/pytorch/ignite/blob/master/ignite/engines/engine.py#L8>`_.
 
-Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when
-:meth:`Engine.run` is called:
+Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when :meth:`Engine.run` is called:
 
 .. code-block:: python
 
@@ -90,7 +89,7 @@ Attaching an event handler is simple using method :meth:`Engine.add_event_handle
 
 State
 -----
-A state is introduced in :class:`Engine` to store the output of the `process_function`, current epoch, iteration and other
+A state is introduced in :class:`ignite.engines.Engine` to store the output of the `process_function`, current epoch, iteration and other
 helpful information. For example, in case of supervised trainer, we can log computed loss value, completed iterations and
 epochs:
 
@@ -108,7 +107,7 @@ epochs:
 
 .. Note ::
 
-   A good practice is to use :class:`State` also as a storage of user data created in update or handler functions.
+   A good practice is to use :class:`ignite.engines.State` also as a storage of user data created in update or handler functions.
    For example, we would like to save `new_attribute` in the `state`:
 
    .. code-block:: python
