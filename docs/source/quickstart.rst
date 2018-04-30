@@ -89,7 +89,7 @@ And update functions of the trainer and evaluator are simply:
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
-        x, y = _prepare_batch(batch, requires_grad=False, device=device)
+        x, y = _prepare_batch(batch, device=device)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
@@ -98,7 +98,7 @@ And update functions of the trainer and evaluator are simply:
 
     def _inference(engine, batch):
         model.eval()
-        x, y = _prepare_batch(batch, requires_grad=False, device=device)
+        x, y = _prepare_batch(batch, device=device)
         y_pred = model(x)
         return y_pred, y
 

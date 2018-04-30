@@ -1,11 +1,12 @@
+import torch
+
 from ignite.engines.engine import Engine, Events, State
 from ignite._utils import convert_tensor
 
 
-def _prepare_batch(batch, requires_grad=False, device=None):
+def _prepare_batch(batch, device=None):
     x, y = batch
-    return (convert_tensor(x, requires_grad=requires_grad, device=device),
-            convert_tensor(y, requires_grad=requires_grad, device=device))
+    return convert_tensor(x, device=device), convert_tensor(y, device=device)
 
 
 def create_supervised_trainer(model, optimizer, loss_fn, device=None):
@@ -24,7 +25,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None):
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
-        x, y = _prepare_batch(batch, requires_grad=False, device=device)
+        x, y = _prepare_batch(batch, device=device)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
@@ -48,9 +49,10 @@ def create_supervised_evaluator(model, metrics={}, device=None):
     """
     def _inference(engine, batch):
         model.eval()
-        x, y = _prepare_batch(batch, requires_grad=False, device=device)
-        y_pred = model(x)
-        return y_pred, y
+        with torch.no_grad():
+            x, y = _prepare_batch(batch, device=device)
+            y_pred = model(x)
+            return y_pred, y
 
     engine = Engine(_inference)
 
