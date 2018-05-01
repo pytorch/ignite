@@ -248,3 +248,35 @@ def test_with_state_dict(dirname):
 
     assert not isinstance(load_model, DummyModel)
     assert isinstance(load_model, dict)
+
+
+def test_valid_state_dict_save(dirname):
+    model = DummyModel()
+    h = ModelCheckpoint(
+        dirname,
+        _PREFIX,
+        create_dir=False,
+        n_saved=1,
+        save_interval=1,
+        save_as_state_dict=True)
+
+    to_save = {'name': 42}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': "string"}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': []}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': {}}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': ()}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': model}
+    try:
+        h(None, to_save)
+    except ValueError:
+        pytest.fail("Unexpected ValueError")
