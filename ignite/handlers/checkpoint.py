@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import torch
-import torch.nn as nn
 
 
 class ModelCheckpoint(object):
@@ -73,15 +72,10 @@ class ModelCheckpoint(object):
         ['myprefix_mymodel_4.pth', 'myprefix_mymodel_6.pth']
     """
 
-    def __init__(self,
-                 dirname,
-                 filename_prefix,
-                 save_interval=None,
-                 score_function=None,
-                 score_name=None,
+    def __init__(self, dirname, filename_prefix,
+                 save_interval=None, score_function=None, score_name=None,
                  n_saved=1,
-                 atomic=True,
-                 require_empty=True,
+                 atomic=True, require_empty=True,
                  create_dir=True,
                  save_as_state_dict=False):
 
@@ -97,14 +91,12 @@ class ModelCheckpoint(object):
         self._save_as_state_dict = save_as_state_dict
 
         if not (save_interval is None) ^ (score_function is None):
-            raise ValueError(
-                "Exactly one of `save_interval`, or `score_function` "
-                "arguments must be provided.")
+            raise ValueError("Exactly one of `save_interval`, or `score_function` "
+                             "arguments must be provided.")
 
         if score_function is None and score_name is not None:
-            raise ValueError(
-                "If `score_name` is provided, then `score_function` "
-                "should be also provided")
+            raise ValueError("If `score_name` is provided, then `score_function` "
+                             "should be also provided")
 
         if create_dir:
             if not os.path.exists(dirname):
@@ -112,28 +104,24 @@ class ModelCheckpoint(object):
 
         # Ensure that dirname exists
         if not os.path.exists(dirname):
-            raise ValueError(
-                "Directory path '{}' is not found".format(dirname))
+            raise ValueError("Directory path '{}' is not found".format(dirname))
 
         if require_empty:
-            matched = [
-                fname for fname in os.listdir(dirname)
-                if fname.startswith(self._fname_prefix)
-            ]
+            matched = [fname
+                       for fname in os.listdir(dirname)
+                       if fname.startswith(self._fname_prefix)]
 
             if len(matched) > 0:
-                raise ValueError(
-                    "Files prefixed with {} are already present "
-                    "in the directory {}. If you want to use this "
-                    "directory anyway, pass `require_empty=False`. "
-                    "".format(filename_prefix, dirname))
+                raise ValueError("Files prefixed with {} are already present "
+                                 "in the directory {}. If you want to use this "
+                                 "directory anyway, pass `require_empty=False`. "
+                                 "".format(filename_prefix, dirname))
 
     def _save(self, obj, path):
         if not self._atomic:
             self._internal_save(obj, path)
         else:
             tmp = tempfile.NamedTemporaryFile(delete=False, dir=self._dirname)
-
             try:
                 self._internal_save(obj, tmp.file)
             except BaseException:
@@ -143,6 +131,7 @@ class ModelCheckpoint(object):
             else:
                 tmp.close()
                 os.rename(tmp.name, path)
+
 
     def _internal_save(self, obj, path):
         if not self._save_as_state_dict:
@@ -160,13 +149,13 @@ class ModelCheckpoint(object):
 
         if self._score_function is not None:
             priority = self._score_function(engine)
+
         else:
             priority = self._iteration
             if (self._iteration % self._save_interval) != 0:
                 return
 
-        if (len(self._saved) < self._n_saved) or (self._saved[0][0] <
-                                                  priority):
+        if (len(self._saved) < self._n_saved) or (self._saved[0][0] < priority):
             saved_objs = []
 
             suffix = ""
@@ -174,8 +163,7 @@ class ModelCheckpoint(object):
                 suffix = "_{}={:.7}".format(self._score_name, abs(priority))
 
             for name, obj in to_save.items():
-                fname = '{}_{}_{}{}.pth'.format(self._fname_prefix, name,
-                                                self._iteration, suffix)
+                fname = '{}_{}_{}{}.pth'.format(self._fname_prefix, name, self._iteration, suffix)
                 path = os.path.join(self._dirname, fname)
 
                 self._save(obj=obj, path=path)
