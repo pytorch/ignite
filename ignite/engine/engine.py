@@ -195,6 +195,10 @@ class Engine(object):
         Returns:
             State: output state
         """
+
+        if self._process_function is None:
+            raise ValueError("Engine must be given a processing function in order to run")
+
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:
