@@ -11,19 +11,17 @@ def _to_hours_mins_secs(time_taken):
     return hours, mins, secs
 
 
-def convert_tensor(input_, requires_grad=False, device=None):
+def convert_tensor(input_, device=None):
     if torch.is_tensor(input_):
         if device:
             input_ = input_.to(device=device)
-        if requires_grad != input_.requires_grad:
-            input_.requires_grad_(requires_grad)
         return input_
     elif isinstance(input_, string_classes):
         return input_
     elif isinstance(input_, collections.Mapping):
-        return {k: convert_tensor(sample, requires_grad=requires_grad, device=device) for k, sample in input_.items()}
+        return {k: convert_tensor(sample, device=device) for k, sample in input_.items()}
     elif isinstance(input_, collections.Sequence):
-        return [convert_tensor(sample, requires_grad=requires_grad, device=device) for sample in input_]
+        return [convert_tensor(sample, device=device) for sample in input_]
     else:
         raise TypeError(("input must contain tensors, numbers, dicts or lists; found {}"
                          .format(type(input_[0]))))
