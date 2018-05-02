@@ -98,9 +98,10 @@ And update functions of the trainer and evaluator are simply:
 
     def _inference(engine, batch):
         model.eval()
-        x, y = _prepare_batch(batch, device=device)
-        y_pred = model(x)
-        return y_pred, y
+        with torch.no_grad():
+            x, y = _prepare_batch(batch, device=device)
+            y_pred = model(x)
+            return y_pred, y
 
 Note that the helper function :meth:`create_supervised_evaluator` to create an evaluator accepts an
 argument `metrics`:
