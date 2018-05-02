@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch.autograd import Variable
 from ignite._utils import convert_tensor, to_onehot
 
 

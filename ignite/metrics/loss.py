@@ -1,7 +1,5 @@
 from __future__ import division
 
-from torch.autograd import Variable
-
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 
