@@ -8,7 +8,6 @@ import shutil
 
 from ignite.engines import Engine, Events
 from ignite.handlers import ModelCheckpoint
-from distutils.version import StrictVersion
 
 _PREFIX = 'PREFIX'
 
@@ -209,10 +208,7 @@ def test_no_state_dict(dirname):
         model_value = model_state_dict[key]
         loaded_model_value = loaded_model_state_dict[key]
 
-        if StrictVersion(torch.__version__) < StrictVersion("0.4.0"):
-            assert model_value.numpy() == loaded_model_value.numpy()
-        else:
-            assert model_value == loaded_model_value
+        assert model_value.numpy() == loaded_model_value.numpy()
 
 
 def test_with_state_dict(dirname):
@@ -248,10 +244,7 @@ def test_with_state_dict(dirname):
         model_value = model_state_dict[key]
         loaded_model_value = loaded_model_state_dict[key]
 
-        if StrictVersion(torch.__version__) < StrictVersion("0.4.0"):
-            assert model_value.numpy() == loaded_model_value.numpy()
-        else:
-            assert model_value == loaded_model_value
+        assert model_value.numpy() == loaded_model_value.numpy()
 
 
 def test_valid_state_dict_save(dirname):
