@@ -16,12 +16,14 @@ def test_compute():
     y_pred = torch.eye(4)
     y = torch.ones(4).type(torch.LongTensor)
     acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.25
 
     acc.reset()
     y_pred = torch.eye(2)
     y = torch.ones(2).type(torch.LongTensor)
     acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.5
 
 
@@ -38,6 +40,7 @@ def test_compute_batch_images():
 
     acc.update((y_pred, y))
 
+    assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.5
 
     acc.reset()
@@ -51,4 +54,5 @@ def test_compute_batch_images():
                            [0, 2]]])
 
     acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.75

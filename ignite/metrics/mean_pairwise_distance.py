@@ -25,7 +25,7 @@ class MeanPairwiseDistance(Metric):
     def update(self, output):
         y_pred, y = output
         distances = pairwise_distance(y_pred, y, p=self._p, eps=self._eps)
-        self._sum_of_distances += torch.sum(distances)
+        self._sum_of_distances += torch.sum(distances).item()
         self._num_examples += y.shape[0]
 
     def compute(self):

@@ -44,6 +44,7 @@ def test_compute_average():
     y = torch.ones(4).type(torch.LongTensor)
     recall.update((y_pred, y))
 
+    assert isinstance(recall.compute(), float)
     assert recall.compute() == 0.0625
 
 

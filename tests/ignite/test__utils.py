@@ -1,41 +1,30 @@
 import pytest
 import torch
 from torch.autograd import Variable
-from ignite._utils import to_variable, to_tensor, to_onehot
+from ignite._utils import convert_tensor, to_onehot
 
 
-def test_to_variable():
+def test_convert_tensor():
     x = torch.Tensor([0.0])
-    var_x = to_variable(x)
-    assert isinstance(var_x, Variable)
+    tensor = convert_tensor(x)
+    assert torch.is_tensor(tensor)
 
     x = (torch.Tensor([0.0]), torch.Tensor([0.0]))
-    var_x = to_variable(x)
-    assert isinstance(var_x, list) and isinstance(var_x[0], Variable) and isinstance(var_x[1], Variable)
+    list_ = convert_tensor(x)
+    assert isinstance(list_, list)
+    assert torch.is_tensor(list_[0])
+    assert torch.is_tensor(list_[1])
 
     x = {'a': torch.Tensor([0.0]), 'b': torch.Tensor([0.0])}
-    var_x = to_variable(x)
-    assert isinstance(var_x, dict) and isinstance(var_x['a'], Variable) and isinstance(var_x['b'], Variable)
+    dict_ = convert_tensor(x)
+    assert isinstance(dict_, dict)
+    assert torch.is_tensor(dict_['a'])
+    assert torch.is_tensor(dict_['b'])
+
+    assert convert_tensor('a') == 'a'
 
     with pytest.raises(TypeError):
-        to_variable(12345)
-
-
-def test_to_tensor():
-    var_x = Variable(torch.Tensor([0.0]))
-    x = to_tensor(var_x)
-    assert torch.is_tensor(x)
-
-    var_x = (Variable(torch.Tensor([0.0])), Variable(torch.Tensor([0.0])))
-    x = to_tensor(var_x)
-    assert isinstance(x, list) and torch.is_tensor(x[0]) and torch.is_tensor(x[1])
-
-    var_x = {'a': Variable(torch.Tensor([0.0])), 'b': Variable(torch.Tensor([0.0]))}
-    x = to_tensor(var_x)
-    assert isinstance(x, dict) and torch.is_tensor(x['a']) and torch.is_tensor(x['b'])
-
-    with pytest.raises(TypeError):
-        to_tensor(12345)
+        convert_tensor(12345)
 
 
 def test_to_onehot():

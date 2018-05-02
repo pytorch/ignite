@@ -22,7 +22,7 @@ class CategoricalAccuracy(Metric):
         y_pred, y = output
         indices = torch.max(y_pred, 1)[1]
         correct = torch.eq(indices, y).view(-1)
-        self._num_correct += torch.sum(correct)
+        self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
 
     def compute(self):

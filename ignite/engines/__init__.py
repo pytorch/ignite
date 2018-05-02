@@ -1,15 +1,15 @@
+import torch
+
 from ignite.engines.engine import Engine, Events, State
-from ignite._utils import to_variable, to_tensor
+from ignite._utils import convert_tensor
 
 
-def _prepare_batch(batch, cuda, volatile=False):
+def _prepare_batch(batch, device=None):
     x, y = batch
-    x = to_variable(x, cuda=cuda, volatile=volatile)
-    y = to_variable(y, cuda=cuda, volatile=volatile)
-    return x, y
+    return convert_tensor(x, device=device), convert_tensor(y, device=device)
 
 
-def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
+def create_supervised_trainer(model, optimizer, loss_fn, device=None):
     """
     Factory function for creating a trainer for supervised models
 
@@ -25,17 +25,17 @@ def create_supervised_trainer(model, optimizer, loss_fn, cuda=False):
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
-        x, y = _prepare_batch(batch, cuda)
+        x, y = _prepare_batch(batch, device=device)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
-        return loss.data.cpu()[0]
+        return loss.item()
 
     return Engine(_update)
 
 
-def create_supervised_evaluator(model, metrics={}, cuda=False):
+def create_supervised_evaluator(model, metrics={}, device=None):
     """
     Factory function for creating an evaluator for supervised models
 
@@ -49,9 +49,10 @@ def create_supervised_evaluator(model, metrics={}, cuda=False):
     """
     def _inference(engine, batch):
         model.eval()
-        x, y = _prepare_batch(batch, cuda, volatile=True)
-        y_pred = model(x)
-        return to_tensor(y_pred, cpu=not cuda), to_tensor(y, cpu=not cuda)
+        with torch.no_grad():
+            x, y = _prepare_batch(batch, device=device)
+            y_pred = model(x)
+            return y_pred, y
 
     engine = Engine(_inference)
 
