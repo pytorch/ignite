@@ -24,7 +24,7 @@ def convert_tensor(input_, device=None):
         return [convert_tensor(sample, device=device) for sample in input_]
     else:
         raise TypeError(("input must contain tensors, numbers, dicts or lists; found {}"
-                         .format(type(input_[0]))))
+                         .format(type(input_))))
 
 
 def to_onehot(indices, num_classes):
