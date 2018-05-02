@@ -18,6 +18,7 @@ def dirname():
     yield path
     shutil.rmtree(path)
 
+
 class DummyModel(nn.Module):
     def __init__(self):
         super(DummyModel, self).__init__()

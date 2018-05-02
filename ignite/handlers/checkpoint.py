@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import torch
+import torch.nn as nn
 
 
 class ModelCheckpoint(object):
@@ -131,7 +132,6 @@ class ModelCheckpoint(object):
             else:
                 tmp.close()
                 os.rename(tmp.name, path)
-
 
     def _internal_save(self, obj, path):
         if not self._save_as_state_dict:
