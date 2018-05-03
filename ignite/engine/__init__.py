@@ -17,7 +17,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None):
         model (torch.nn.Module): the model to train
         optimizer (torch.optim.Optimizer): the optimizer to use
         loss_fn (torch.nn loss function): the loss function to use
-        cuda (bool, optional): whether or not to transfer batch to GPU (default: False)
+        device (optional): device type specification (default: None)
 
     Returns:
         Engine: a trainer engine with supervised update function
@@ -42,7 +42,7 @@ def create_supervised_evaluator(model, metrics={}, device=None):
     Args:
         model (torch.nn.Module): the model to train
         metrics (dict of str: Metric): a map of metric names to Metrics
-        cuda (bool, optional): whether or not to transfer batch to GPU (default: False)
+        device (optional): device type specification (default: None)
 
     Returns:
         Engine: an evaluator engine with supervised inference function
