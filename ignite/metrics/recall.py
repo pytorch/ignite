@@ -49,6 +49,6 @@ class Recall(Metric):
         result = self._true_positives / self._actual
         result[result != result] = 0.0
         if self._average:
-            return result.mean()
+            return result.mean().item()
         else:
             return result

@@ -3,6 +3,7 @@ import tempfile
 
 import pytest
 import torch
+import torch.nn as nn
 import shutil
 
 from ignite.engine import Engine, Events
@@ -16,6 +17,15 @@ def dirname():
     path = tempfile.mkdtemp()
     yield path
     shutil.rmtree(path)
+
+
+class DummyModel(nn.Module):
+    def __init__(self):
+        super(DummyModel, self).__init__()
+        self.net = nn.Linear(1, 1)
+
+    def forward(self, x):
+        return self.net
 
 
 def test_args_validation(dirname):
@@ -163,3 +173,107 @@ def test_with_engine(dirname):
                 for i in [3, 4]]
 
     assert sorted(os.listdir(dirname)) == expected
+
+
+def test_no_state_dict(dirname):
+    model = DummyModel()
+
+    def update_fn(engine, batch):
+        pass
+
+    name = 'model'
+    engine = Engine(update_fn)
+    handler = ModelCheckpoint(
+        dirname,
+        _PREFIX,
+        create_dir=False,
+        n_saved=1,
+        save_interval=1,
+        save_as_state_dict=False)
+
+    engine.add_event_handler(Events.EPOCH_COMPLETED, handler, {name: model})
+    engine.run([0], max_epochs=4)
+
+    saved_model = os.path.join(dirname, os.listdir(dirname)[0])
+    load_model = torch.load(saved_model)
+
+    assert isinstance(load_model, DummyModel)
+    assert not isinstance(load_model, dict)
+
+    model_state_dict = model.state_dict()
+    loaded_model_state_dict = load_model.state_dict()
+    for key in model_state_dict.keys():
+        assert key in loaded_model_state_dict
+
+        model_value = model_state_dict[key]
+        loaded_model_value = loaded_model_state_dict[key]
+
+        assert model_value.numpy() == loaded_model_value.numpy()
+
+
+def test_with_state_dict(dirname):
+    model = DummyModel()
+
+    def update_fn(engine, batch):
+        pass
+
+    name = 'model'
+    engine = Engine(update_fn)
+    handler = ModelCheckpoint(
+        dirname,
+        _PREFIX,
+        create_dir=False,
+        n_saved=1,
+        save_interval=1,
+        save_as_state_dict=True)
+
+    engine.add_event_handler(Events.EPOCH_COMPLETED, handler, {name: model})
+    engine.run([0], max_epochs=4)
+
+    saved_model = os.path.join(dirname, os.listdir(dirname)[0])
+    load_model = torch.load(saved_model)
+
+    assert not isinstance(load_model, DummyModel)
+    assert isinstance(load_model, dict)
+
+    model_state_dict = model.state_dict()
+    loaded_model_state_dict = load_model
+    for key in model_state_dict.keys():
+        assert key in loaded_model_state_dict
+
+        model_value = model_state_dict[key]
+        loaded_model_value = loaded_model_state_dict[key]
+
+        assert model_value.numpy() == loaded_model_value.numpy()
+
+
+def test_valid_state_dict_save(dirname):
+    model = DummyModel()
+    h = ModelCheckpoint(
+        dirname,
+        _PREFIX,
+        create_dir=False,
+        n_saved=1,
+        save_interval=1,
+        save_as_state_dict=True)
+
+    to_save = {'name': 42}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': "string"}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': []}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': {}}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': ()}
+    with pytest.raises(ValueError):
+        h(None, to_save)
+    to_save = {'name': model}
+    try:
+        h(None, to_save)
+    except ValueError:
+        pytest.fail("Unexpected ValueError")

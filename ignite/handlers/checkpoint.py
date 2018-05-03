@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import torch
+import torch.nn as nn
 
 
 class ModelCheckpoint(object):
@@ -76,7 +77,8 @@ class ModelCheckpoint(object):
                  save_interval=None, score_function=None, score_name=None,
                  n_saved=1,
                  atomic=True, require_empty=True,
-                 create_dir=True):
+                 create_dir=True,
+                 save_as_state_dict=False):
 
         self._dirname = dirname
         self._fname_prefix = filename_prefix
@@ -87,6 +89,7 @@ class ModelCheckpoint(object):
         self._atomic = atomic
         self._saved = []  # list of tuples (priority, saved_objects)
         self._iteration = 0
+        self._save_as_state_dict = save_as_state_dict
 
         if not (save_interval is None) ^ (score_function is None):
             raise ValueError("Exactly one of `save_interval`, or `score_function` "
@@ -117,22 +120,26 @@ class ModelCheckpoint(object):
 
     def _save(self, obj, path):
         if not self._atomic:
-            torch.save(obj, path)
-
+            self._internal_save(obj, path)
         else:
             tmp = tempfile.NamedTemporaryFile(delete=False, dir=self._dirname)
-
             try:
-                torch.save(obj, tmp.file)
-
+                self._internal_save(obj, tmp.file)
             except BaseException:
                 tmp.close()
                 os.remove(tmp.name)
                 raise
-
             else:
                 tmp.close()
                 os.rename(tmp.name, path)
+
+    def _internal_save(self, obj, path):
+        if not self._save_as_state_dict:
+            torch.save(obj, path)
+        else:
+            if not isinstance(obj, nn.Module):
+                raise ValueError("Instance does not inherit nn.Module")
+            torch.save(obj.state_dict(), path)
 
     def __call__(self, engine, to_save):
         if len(to_save) == 0:

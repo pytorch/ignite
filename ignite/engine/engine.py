@@ -1,8 +1,12 @@
+import inspect
 import logging
+import sys
 import time
 from enum import Enum
 
 from ignite._utils import _to_hours_mins_secs
+
+IS_PYTHON2 = sys.version_info[0] < 3
 
 
 class Events(Enum):
@@ -31,8 +35,24 @@ class Engine(object):
 
     Args:
         process_function (Callable): A function receiving a handle to the engine and the current batch
-            in each iteration, outputing data to be stored in the state
+            in each iteration, and returns data to be stored in the engine's state
 
+    Example usage:
+    ```python
+    def train_and_store_loss(engine, batch):
+        inputs, targets = batch
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = loss_fn(outputs, targets)
+        loss.backward()
+        optimizer.step()
+        return loss.item()
+
+    engine = Engine(train_and_store_loss)
+    engine.run(data_loader)
+
+    # Loss value is now stored in `engine.state.output`.
+    ```
     """
     def __init__(self, process_function):
         self._event_handlers = {}
@@ -45,6 +65,8 @@ class Engine(object):
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
 
+        self._check_signature(process_function, 'process_function', None)
+
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
 
@@ -54,16 +76,59 @@ class Engine(object):
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
 
+        Notes:
+              The handler function's first argument will be `self`, the `Engine` object it was bound to.
+
+              Note that other arguments can be passed to the handler in addition to the `*args` and `**kwargs`
+              passed here, for example during `Events.EXCEPTION_RAISED`.
+
+        Example usage:
+        ```python
+        engine = Engine(process_function)
+
+        def print_epoch(engine):
+            print("Epoch: {}".format(engine.state.epoch))
+
+        engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
+        ```
         """
         if event_name not in Events.__members__.values():
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
+
+        self._check_signature(handler, 'handler', *args, **kwargs)
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s ", event_name)
+
+    def _check_signature(self, fn, fn_description, *args, **kwargs):
+        exception_msg = None
+
+        if IS_PYTHON2:
+            try:
+                callable_ = fn if hasattr(fn, '__name__') else fn.__call__
+                inspect.getcallargs(callable_, self, *args, **kwargs)
+            except TypeError as exc:
+                spec = inspect.getargspec(callable_)
+                fn_params = list(spec.args)
+                exception_msg = str(exc)
+        else:
+            signature = inspect.signature(fn)
+            try:
+                signature.bind(self, *args, **kwargs)
+            except TypeError as exc:
+                fn_params = list(signature.parameters)
+                exception_msg = str(exc)
+
+        if exception_msg:
+            passed_params = [self] + list(args) + list(kwargs)
+            raise ValueError("Error adding {} '{}': "
+                             "takes parameters {} but will be called with {} "
+                             "({})".format(
+                                 fn, fn_description, fn_params, passed_params, exception_msg))
 
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler

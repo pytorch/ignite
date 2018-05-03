@@ -44,18 +44,20 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
-    cuda = torch.cuda.is_available()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
-
     model = Net()
-    if cuda:
-        model = model.cuda()
+    device = 'cpu'
+
+    if torch.cuda.is_available():
+        device = 'cuda'
+        model = model.to(device)
+
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
-    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, cuda=cuda)
+    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
     evaluator = create_supervised_evaluator(model,
                                             metrics={'accuracy': CategoricalAccuracy(),
                                                      'nll': Loss(F.nll_loss)},
-                                            cuda=cuda)
+                                            device=device)
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):

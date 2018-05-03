@@ -14,17 +14,19 @@ class EarlyStopping(object):
             and return a score `float`. An improvement is considered if the score is higher.
 
     Examples:
-    ```python
-    from ignite.engine import Engine, Events
-    from ignite.handlers import EarlyStopping
 
-    def score_function(engine):
-        val_loss = engine.state.metrics['nll']
-        return -val_loss
+    .. code-block:: python
 
-    handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
-    evaluator.add_event_handler(Events.COMPLETED, handler)
-    ```
+        from ignite.engine import Engine, Events
+        from ignite.handlers import EarlyStopping
+
+        def score_function(engine):
+            val_loss = engine.state.metrics['nll']
+            return -val_loss
+
+        handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
+        evaluator.add_event_handler(Events.COMPLETED, handler)
+
     """
     def __init__(self, patience, score_function, trainer):
         assert callable(score_function), "Argument score_function should be a function"
