@@ -14,7 +14,7 @@ from ignite.engines import Engine, Events, State, create_supervised_trainer, cre
 from ignite.metrics import MeanSquaredError
 
 
-def process_func(batch):
+def process_func(engine, batch):
     return 1
 
 
@@ -37,11 +37,60 @@ def test_terminate():
     assert engine.should_terminate
 
 
+def test_invalid_process_raises_with_invalid_signature():
+    engine = Engine(lambda engine, batch: None)
+
+    with pytest.raises(ValueError):
+        Engine(lambda: None)
+
+    with pytest.raises(ValueError):
+        Engine(lambda batch: None)
+
+    with pytest.raises(ValueError):
+        Engine(lambda engine, batch, extra_arg: None)
+
+
 def test_add_event_handler_raises_with_invalid_event():
     engine = DummyEngine()
 
     with pytest.raises(ValueError):
         engine.add_event_handler("incorrect", lambda engine: None)
+
+
+def test_add_event_handler_raises_with_invalid_signature():
+    engine = Engine(MagicMock())
+
+    def handler(engine):
+        pass
+
+    engine.add_event_handler(Events.STARTED, handler)
+    with pytest.raises(ValueError):
+        engine.add_event_handler(Events.STARTED, handler, 1)
+
+    def handler_with_args(engine, a):
+        pass
+
+    engine.add_event_handler(Events.STARTED, handler_with_args, 1)
+    with pytest.raises(ValueError):
+        engine.add_event_handler(Events.STARTED, handler_with_args)
+
+    def handler_with_kwargs(engine, b=42):
+        pass
+
+    engine.add_event_handler(Events.STARTED, handler_with_kwargs, b=2)
+    with pytest.raises(ValueError):
+        engine.add_event_handler(Events.STARTED, handler_with_kwargs, c=3)
+    with pytest.raises(ValueError):
+        engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
+
+    def handler_with_args_and_kwargs(engine, a, b=42):
+        pass
+
+    engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2)
+    with pytest.raises(ValueError):
+        engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
+    with pytest.raises(ValueError):
+        engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2, c=3)
 
 
 def test_add_event_handler():
