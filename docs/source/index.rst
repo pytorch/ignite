@@ -15,7 +15,7 @@ PyTorch.
    :maxdepth: 2
    :caption: Package Reference
 
-   engines
+   engine
    handlers
    metrics
    exceptions

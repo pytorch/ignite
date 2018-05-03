@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from ignite.engines import Events
+from ignite.engine import Events
 
 
 class Metric(object):

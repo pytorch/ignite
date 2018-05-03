@@ -10,7 +10,7 @@ Code
 
 .. code-block:: python
 
-    from ignite.engines import Events, create_supervised_trainer, create_supervised_evaluator
+    from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 
     model = Net()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
@@ -53,7 +53,7 @@ datasets (as :class:`torch.utils.data.DataLoader`), optimizer and loss function:
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8))
     loss = torch.nn.NLLLoss()
 
-Next we define trainer and evaluator engines. The main component of Ignite is the :class:`Engine`, an abstraction over your
+Next we define trainer and evaluator engines. The main component of Ignite is the :class:`ignite.engine.Engine`, an abstraction over your
 training loop. Getting started with the engine is easy, the constructor only requires one things:
 
 - `update_function`: a function which is passed the engine and a batch and it passes data through and updates your model

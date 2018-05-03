@@ -1,6 +1,6 @@
 import torch
 
-from ignite.engines.engine import Engine, Events, State
+from ignite.engine.engine import Engine, State, Events
 from ignite._utils import convert_tensor
 
 

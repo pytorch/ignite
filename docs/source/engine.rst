@@ -1,7 +1,7 @@
-ignite.engines
+ignite.engine
 ==============
 
-.. currentmodule:: ignite.engines
+.. currentmodule:: ignite.engine
 
 .. autoclass:: Engine
 

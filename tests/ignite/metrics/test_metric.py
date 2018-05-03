@@ -1,5 +1,5 @@
 from ignite.metrics import Metric
-from ignite.engines import State
+from ignite.engine import State
 import torch
 from mock import MagicMock
 

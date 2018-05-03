@@ -10,7 +10,7 @@ IS_PYTHON2 = sys.version_info[0] < 3
 
 
 class Events(Enum):
-    """Events that are fired by the :class:`ignite.engines.Engine` during execution"""
+    """Events that are fired by the :class:`ignite.engine.Engine` during execution"""
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"
@@ -71,7 +71,7 @@ class Engine(object):
         """Add an event handler to be executed when the specified event is fired
 
         Args:
-            event_name (Events): event from ignite.engines.Events to attach the handler to
+            event_name (Events): event from ignite.engine.Events to attach the handler to
             handler (Callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
@@ -194,7 +194,7 @@ class Engine(object):
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:
-            self._logger.info("Training starting with max_epochs={}".format(max_epochs))
+            self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
             start_time = time.time()
             self._fire_event(Events.STARTED)
             while self.state.epoch < max_epochs and not self.should_terminate:
@@ -209,10 +209,10 @@ class Engine(object):
             self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self._logger.info("Training complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
-            self._logger.error("Training is terminating due to exception: %s", str(e))
+            self._logger.error("Engine run is terminating due to exception: %s", str(e))
             self._handle_exception(e)
 
         return self.state
