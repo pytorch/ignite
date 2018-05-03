@@ -63,8 +63,7 @@ class Engine(object):
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
 
-        batch_placeholder = None
-        self._check_signature(process_function, 'process_function', batch_placeholder)
+        self._check_signature(process_function, 'process_function', None)
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
