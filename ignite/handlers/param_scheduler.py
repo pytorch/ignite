@@ -49,6 +49,7 @@ class CyclicalScheduler(ParamScheduler):
         self.end_value = end_value
         self.cycle_size = float(cycle_size)
         self.cycle_mult = cycle_mult
+        self.cycle = 0
 
     def get_cycle_progress(self):
         """
@@ -57,6 +58,7 @@ class CyclicalScheduler(ParamScheduler):
         if self.event_index != 0 and self.event_index % self.cycle_size == 0:
             self.event_index = 0
             self.cycle_size *= self.cycle_mult
+            self.cycle += 1
 
         return self.event_index / float(self.cycle_size)
 
