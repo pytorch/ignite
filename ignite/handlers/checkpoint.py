@@ -3,6 +3,9 @@ import tempfile
 
 import torch
 import torch.nn as nn
+from torch.optim import Optimizer
+
+from ignite.engine import State
 
 
 class ModelCheckpoint(object):
@@ -176,3 +179,80 @@ class ModelCheckpoint(object):
             _, paths = self._saved.pop(0)
             for p in paths:
                 os.remove(p)
+
+
+class EngineCheckpoint(object):
+    """EngineCheckpoint handler
+    """
+
+    def __init__(self, dirname, models, optimizers,
+                 save_interval=100,
+                 atomic=True, require_empty=True, create_dir=True):
+        assert isinstance(dirname, str)
+        assert isinstance(models, (list, tuple)) and \
+            all([isinstance(m, nn.Module) for m in models]), ""
+        assert isinstance(optimizers, (list, tuple)) and \
+            all([isinstance(o, Optimizer) for o in optimizers])
+
+        self.dirname = dirname
+        self.models = models
+        self.optimizers = optimizers
+        self.save_interval = save_interval
+        self._atomic = atomic
+        self._save_interval = save_interval
+        self._iteration = 0
+
+        if create_dir:
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+
+        # Ensure that dirname exists
+        if not os.path.exists(dirname):
+            raise ValueError("Directory path '{}' is not found".format(dirname))
+
+        if require_empty:
+            matched = [fname for fname in os.listdir(dirname)]
+
+            if len(matched) > 0:
+                raise ValueError("Files are already present "
+                                 "in the directory {}. If you want to use this "
+                                 "directory anyway, pass `require_empty=False`. "
+                                 "".format(dirname))
+
+    def __call__(self, engine):
+        self._iteration += 1
+        if self._iteration % self._save_interval != 0:
+            return
+        checkpoint = self._setup_checkpoint(engine)
+        path = os.path.join(self.dirname, "checkpoint.pth.tar")
+        self._save(obj=checkpoint, path=path)
+
+    def _setup_checkpoint(self, engine):
+        state = State(epoch=engine.state.epoch, max_epochs=engine.state.max_epochs, seed=engine.state.seed)
+        state.iteration = engine.state.iteration
+
+        checkpoint = {
+            "models": [m.state_dict() for m in self.models],
+            "optimizers": [o.state_dict() for o in self.optimizers],
+            "engine": state
+        }
+        return checkpoint
+
+    def _save(self, obj, path):
+        if not self._atomic:
+            torch.save(obj, path)
+        else:
+            tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
+            try:
+                torch.save(obj, tmp.file)
+            except BaseException:
+                tmp.close()
+                os.remove(tmp.name)
+                raise
+            else:
+                tmp.close()
+                os.rename(tmp.name, path)
+
+    @staticmethod
+    def load(dirname):
+        return torch.load(os.path.join(dirname, "checkpoint.pth.tar"))

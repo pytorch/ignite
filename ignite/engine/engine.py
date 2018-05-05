@@ -4,7 +4,11 @@ import sys
 import time
 from enum import Enum
 
-from ignite._utils import _to_hours_mins_secs
+import torch
+from torch.utils.data import DataLoader
+
+from ignite._utils import _to_hours_mins_secs, RewindableBatchSampler
+
 
 IS_PYTHON2 = sys.version_info[0] < 3
 
@@ -28,6 +32,14 @@ class State(object):
         self.batch = None
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    def __repr__(self):
+        s = "State:\n"
+        for attr, value in self.__dict__.items():
+            if attr in ("batch", "output"):
+                value = type(value)
+            s += "\t{}: {}\n".format(attr, value)
+        return s
 
 
 class Engine(object):
@@ -61,6 +73,7 @@ class Engine(object):
         self._process_function = process_function
         self.should_terminate = False
         self.state = None
+        self.dataloader = None
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
@@ -159,7 +172,7 @@ class Engine(object):
     def _run_once_on_dataset(self):
         try:
             start_time = time.time()
-            for batch in self.state.dataloader:
+            for batch in self.dataloader:
                 self.state.batch = batch
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
@@ -181,30 +194,59 @@ class Engine(object):
         else:
             raise e
 
-    def run(self, data, max_epochs=1):
+    def run(self, data, max_epochs=1, seed=None):
         """Runs the process_function over the passed data.
 
         Args:
-            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or DataLoader)
+            data (Iterable with length): Collection of batches allowing repeated iteration (e.g., list or DataLoader)
             max_epochs (int, optional): max epochs to run for (default: 1)
+            seed (int, optional): random state seed for a reproducible run
 
         Returns:
             State: output state
         """
-        self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
+        self._check_input_data(data)
 
+        seed = torch.LongTensor(1).random_()[0] if seed is None else seed
+        self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
+        self.state = State(epoch=0, max_epochs=max_epochs, metrics={}, seed=seed)
+        self._run_with_resume(data)
+        return self.state
+
+    def resume(self, data, checkpoint_dirname):
+        """Resume engine run from a checkpoint"""
+        self._check_input_data(data)
+
+        from ignite.handlers.checkpoint import EngineCheckpoint
+
+        checkpoint = EngineCheckpoint.load(checkpoint_dirname)
+        self._logger.info("Engine run resuming from epoch {} and iteration {} with max_epochs={}"
+                          .format(self.state.epoch, self.state.iteration, self.state.max_epochs))
+
+        self.state = checkpoint['engine']
+        self.state.metrics = {}
+        self._run_with_resume(data)
+        return self.state
+
+    def _check_input_data(self, data):
+        if not hasattr(data, "__len__"):
+            raise TypeError("Data should have built-in __len__ method")
+        assert len(data) > 0, "Data length should be positive"
+
+    def _run_with_resume(self, data):
         try:
-            self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
+            # We need to copy torch DataLoader to replace batch sampler by a rewindable, reproducible batch sampler
+            self.dataloader = self._copy_dataloader(data) if isinstance(data, DataLoader) else data
             start_time = time.time()
             self._fire_event(Events.STARTED)
-            while self.state.epoch < max_epochs and not self.should_terminate:
-                self.state.epoch += 1
-                self._fire_event(Events.EPOCH_STARTED)
-                hours, mins, secs = self._run_once_on_dataset()
-                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
-                if self.should_terminate:
-                    break
-                self._fire_event(Events.EPOCH_COMPLETED)
+
+            start_batch_index = self.state.iteration % len(self.dataloader)
+            if start_batch_index > 0:
+                self._resume_from_batch_index(start_batch_index)
+
+            # Continue normally
+            if not self.should_terminate:
+                self._run_epochs()
 
             self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
@@ -215,4 +257,46 @@ class Engine(object):
             self._logger.error("Engine run is terminating due to exception: %s", str(e))
             self._handle_exception(e)
 
-        return self.state
+    def _resume_from_batch_index(self, start_batch_index):
+        self._manual_seed(self.state.seed, self.state.epoch)
+
+        if hasattr(self.dataloader, 'original_batch_sampler') and isinstance(self.dataloader, DataLoader):
+            # Change batch sampler to a rewindable and reproducible batch sampler
+            self.dataloader.batch_sampler = RewindableBatchSampler(self.dataloader.original_batch_sampler,
+                                                                   start_batch_index=start_batch_index)
+        else:
+            # We need to advance self.dataloader until start_batch_index
+            pass
+
+        hours, mins, secs = self._run_once_on_dataset()
+        self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+        self._fire_event(Events.EPOCH_COMPLETED)
+
+    def _run_epochs(self):
+
+        while self.state.epoch < self.state.max_epochs and not self.should_terminate:
+            self.state.epoch += 1
+            self._fire_event(Events.EPOCH_STARTED)
+            self._manual_seed(self.state.seed, self.state.epoch)
+
+            if hasattr(self.dataloader, 'original_batch_sampler') and isinstance(self.dataloader, DataLoader):
+                # Change batch sampler to a rewindable and reproducible batch sampler
+                self.dataloader.batch_sampler = RewindableBatchSampler(self.dataloader.original_batch_sampler,
+                                                                       start_batch_index=0)
+            hours, mins, secs = self._run_once_on_dataset()
+            self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+            if self.should_terminate:
+                break
+            self._fire_event(Events.EPOCH_COMPLETED)
+
+    def _manual_seed(self, seed, epoch):
+        torch.manual_seed(seed + epoch)
+
+    def _copy_dataloader(self, loader):
+        # Copy data if a dataloader and and new attribute original_batch_sampler
+        output = DataLoader(loader.dataset, batch_sampler=loader.batch_sampler,
+                            num_workers=loader.num_workers, collate_fn=loader.collate_fn,
+                            pin_memory=loader.collate_fn, timeout=loader.timeout,
+                            worker_init_fn=loader.worker_init_fn)
+        output.original_batch_sampler = loader.batch_sampler
+        return output

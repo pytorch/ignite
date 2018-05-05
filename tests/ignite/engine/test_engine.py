@@ -184,8 +184,9 @@ def test_on_decorator():
 
 
 def test_returns_state():
+    dataloader = [1, 2, 3]
     engine = Engine(MagicMock(return_value=1))
-    state = engine.run([])
+    state = engine.run(dataloader)
 
     assert isinstance(state, State)
 
@@ -198,7 +199,9 @@ def test_state_attributes():
     assert state.iteration == 9
     assert state.output == 1
     assert state.batch == 3
-    assert state.dataloader == dataloader
+    # dataloader is now attributed to engine
+    # assert state.dataloader == dataloader
+    assert engine.dataloader == dataloader
     assert state.epoch == 3
     assert state.max_epochs == 3
     assert state.metrics == {}
@@ -337,6 +340,7 @@ def _create_mock_data_loader(epochs, batches_per_epoch):
     batch_iterators = [iter(batches) for _ in range(epochs)]
 
     data_loader_manager.__iter__.side_effect = batch_iterators
+    data_loader_manager.__len__.return_value = batches_per_epoch
 
     return data_loader_manager
 
@@ -428,3 +432,137 @@ def test_create_supervised_with_metrics():
 
     state = evaluator.run(data)
     assert state.metrics['mse'] == 12.5
+
+
+def _check_resume_engine(data_loader, batch_size, n_epochs, fail_iteration):
+
+    # Setup engine with a handler to fetch batches
+    n_iterations = n_epochs * len(data_loader)
+    true_samples = np.zeros((n_iterations, batch_size), dtype=np.float)
+    true_targets = np.zeros((n_iterations, batch_size), dtype=np.int)
+    true_epochs = -1 * np.ones((n_iterations,), dtype=np.int)
+
+    def update(engine, batch):
+        return batch
+
+    engine = Engine(update)
+
+    def get_batch(engine):
+        batch_x, batch_y = engine.state.output
+        iteration = engine.state.iteration - 1
+        true_samples[iteration, :] = batch_x
+        true_targets[iteration, :] = batch_y
+        true_epochs[iteration] = engine.state.epoch
+
+    engine.add_event_handler(Events.ITERATION_COMPLETED, get_batch)
+
+    # 1) Run engine
+    engine.run(data_loader, max_epochs=n_epochs, seed=12345)
+
+    # Setup another engine and run until an exception:
+    failed_engine = Engine(update)
+
+    failed_engine_samples = np.zeros((n_iterations, batch_size), dtype=np.float)
+    failed_engine_targets = np.zeros((n_iterations, batch_size), dtype=np.int)
+
+    def get_batch(engine):
+        batch_x, batch_y = engine.state.output
+        iteration = engine.state.iteration - 1
+        failed_engine_samples[iteration, :] = batch_x
+        failed_engine_targets[iteration, :] = batch_y
+
+    def make_engine_fail(engine):
+        if engine.state.iteration == fail_iteration:
+            raise RuntimeError("STOP")
+
+    failed_engine.add_event_handler(Events.ITERATION_COMPLETED, get_batch)
+    failed_engine.add_event_handler(Events.ITERATION_COMPLETED, make_engine_fail)
+
+    # 2) Run engine until the fail
+    try:
+        failed_engine.run(data_loader, max_epochs=n_epochs, seed=12345)
+    except RuntimeError:
+        pass
+
+    # Let's check that seen targets are the same:
+    assert np.all(true_targets[:fail_iteration, :] == failed_engine_targets[:fail_iteration, :])
+
+    # 3) Resume 3rd engine from fail_iteration + 1
+    resumed_engine = Engine(update)
+
+    resumed_engine_samples = np.zeros((n_iterations, batch_size), dtype=np.float)
+    resumed_engine_targets = np.zeros((n_iterations, batch_size), dtype=np.int)
+    resumed_epochs = -1 * np.ones((n_iterations,), dtype=np.int)
+
+    def get_batch(engine):
+        batch_x, batch_y = engine.state.output
+        iteration = engine.state.iteration - 1
+        resumed_engine_samples[iteration, :] = batch_x
+        resumed_engine_targets[iteration, :] = batch_y
+        resumed_epochs[iteration] = engine.state.epoch
+
+    resumed_engine.add_event_handler(Events.ITERATION_COMPLETED, get_batch)
+
+    # Manually setup the resumed state:
+    resumed_engine.state = State(iteration=failed_engine.state.iteration,
+                                 epoch=failed_engine.state.epoch,
+                                 max_epochs=failed_engine.state.max_epochs,
+                                 seed=12345)
+    resumed_engine._run_with_resume(data_loader)
+
+    # Let's check that seen targets are the same:
+    assert np.all(true_targets[fail_iteration + 1:, :] == resumed_engine_targets[fail_iteration + 1:, :])
+    assert np.all(true_epochs[fail_iteration + 1:] == resumed_epochs[fail_iteration + 1:])
+
+
+def test_resume_engine_data_loader():
+
+    # Idea is to
+    # 1) run engine normally and fetch batches
+    # 2) run again (with same seed) and raise exception at given iteration
+    # 3) resume engine from given iteration and compare batches
+    #
+    # ! No check of model/optimizer !
+    #
+
+    from torch.utils.data import DataLoader, Dataset
+
+    # Setup dataset & data loader
+    n_samples = 30
+    x = np.arange(n_samples)
+
+    def transform(v):
+        return torch.rand(1).item()
+
+    class TestDataset(Dataset):
+        def __len__(self):
+            return n_samples
+
+        def __getitem__(self, index):
+            return transform(x[index]), x[index]
+
+    dataset = TestDataset()
+    batch_size = 4
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True)
+
+    _check_resume_engine(data_loader, batch_size, n_epochs=3, fail_iteration=11)
+    _check_resume_engine(data_loader, batch_size, n_epochs=3, fail_iteration=8)  # start of the epoch
+    _check_resume_engine(data_loader, batch_size, n_epochs=3, fail_iteration=14)  # end of the epoch
+
+
+def test_resume_engine_ndarray():
+
+    # Idea is to
+    # 1) run engine normally and fetch batches
+    # 2) run again (with same seed) and raise exception at given iteration
+    # 3) resume engine from given iteration and compare batches
+    #
+    # ! No check of model/optimizer !
+    #
+    batch_size = 4
+    n_samples = 32
+    batches = np.arange(2 * n_samples).reshape(-1, 2, batch_size)
+
+    _check_resume_engine(batches, batch_size, n_epochs=3, fail_iteration=11)
+    _check_resume_engine(batches, batch_size, n_epochs=3, fail_iteration=8)  # start of the epoch
+    _check_resume_engine(batches, batch_size, n_epochs=3, fail_iteration=14)  # end of the epoch
