@@ -38,21 +38,23 @@ class Engine(object):
             in each iteration, and returns data to be stored in the engine's state
 
     Example usage:
-    ```python
-    def train_and_store_loss(engine, batch):
-        inputs, targets = batch
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = loss_fn(outputs, targets)
-        loss.backward()
-        optimizer.step()
-        return loss.item()
 
-    engine = Engine(train_and_store_loss)
-    engine.run(data_loader)
+    .. code-block:: python
 
-    # Loss value is now stored in `engine.state.output`.
-    ```
+        def train_and_store_loss(engine, batch):
+            inputs, targets = batch
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = loss_fn(outputs, targets)
+            loss.backward()
+            optimizer.step()
+            return loss.item()
+
+        engine = Engine(train_and_store_loss)
+        engine.run(data_loader)
+
+        # Loss value is now stored in `engine.state.output`.
+
     """
     def __init__(self, process_function):
         self._event_handlers = {}
@@ -83,14 +85,16 @@ class Engine(object):
               passed here, for example during `Events.EXCEPTION_RAISED`.
 
         Example usage:
-        ```python
-        engine = Engine(process_function)
 
-        def print_epoch(engine):
-            print("Epoch: {}".format(engine.state.epoch))
+        .. code-block:: python
 
-        engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
-        ```
+            engine = Engine(process_function)
+
+            def print_epoch(engine):
+                print("Epoch: {}".format(engine.state.epoch))
+
+            engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
+
         """
         if event_name not in Events.__members__.values():
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
