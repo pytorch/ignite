@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 
 
@@ -47,7 +49,7 @@ class CyclicalScheduler(ParamScheduler):
         super(CyclicalScheduler, self).__init__(optimizer, param_name, save_history=save_history)
         self.start_value = start_value
         self.end_value = end_value
-        self.cycle_size = float(cycle_size)
+        self.cycle_size = cycle_size
         self.cycle_mult = cycle_mult
         self.cycle = 0
 
@@ -60,7 +62,7 @@ class CyclicalScheduler(ParamScheduler):
             self.cycle_size *= self.cycle_mult
             self.cycle += 1
 
-        return self.event_index / float(self.cycle_size)
+        return self.event_index / self.cycle_size
 
 
 class LinearScheduler(CyclicalScheduler):
