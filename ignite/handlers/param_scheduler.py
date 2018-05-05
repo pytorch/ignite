@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 
 
@@ -56,18 +54,11 @@ class CyclicalScheduler(ParamScheduler):
         """
         Returns float in range [0.0, 1.0] representing the progress of the current cycle as a percentage.
         """
-        if self.cycle_mult == 1:
-            return (self.event_index % self.cycle_size) / self.cycle_size
+        if self.event_index != 0 and self.event_index % self.cycle_size == 0:
+            self.event_index = 0
+            self.cycle_size *= self.cycle_mult
 
-        # Handle cycle_mult: calculate length of current cycle based on the multiplier.
-        base_cycle = np.floor(1 + self.event_index / self.cycle_size)
-        cycle = np.floor(math.log(base_cycle, self.cycle_mult)) + 1
-        cycle_size = self.cycle_size * (self.cycle_mult ** (cycle - 1))
-
-        # Calculate progress through current cycle
-        num_previous_cycles = (self.cycle_mult ** (cycle - 1) - 1) if base_cycle > 1 else 0
-        event_index = self.event_index - (num_previous_cycles * self.cycle_size)
-        return event_index / cycle_size
+        return self.event_index / float(self.cycle_size)
 
 
 class LinearScheduler(CyclicalScheduler):
