@@ -21,8 +21,7 @@ class Loss(Metric):
         self._num_examples = 0
 
     def update(self, output):
-        y_pred, y = output
-        average_loss = self._loss_fn(y_pred, y)
+        average_loss = self._loss_fn(*output)
         assert len(average_loss.shape) == 0, '`loss_fn` did not return the average loss'
         self._sum += average_loss.item() * y.shape[0]
         self._num_examples += y.shape[0]
