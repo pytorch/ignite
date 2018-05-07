@@ -9,9 +9,11 @@ class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
     This handler accepts two arguments:
+
         - an `ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
-            See Notes and Examples for further details.
+
+    See Notes and Examples for further details.
 
     Args:
         dirname (str):

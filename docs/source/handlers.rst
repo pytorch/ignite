@@ -8,3 +8,4 @@ ignite.handlers
 .. autoclass:: EarlyStopping
 
 .. autoclass:: Timer
+    :members:

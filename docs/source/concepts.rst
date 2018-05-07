@@ -90,9 +90,8 @@ Attaching an event handler is simple using method :meth:`Engine.add_event_handle
 State
 -----
 A state is introduced in :class:`ignite.engine.Engine` to store the output of the `process_function`, current epoch,
- iteration and other
-helpful information. For example, in case of supervised trainer, we can log computed loss value, completed iterations and
-epochs:
+iteration and other helpful information. For example, in case of supervised trainer, we can log computed loss value,
+completed iterations and epochs:
 
 .. code-block:: python
 
