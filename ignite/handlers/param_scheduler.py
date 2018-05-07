@@ -53,16 +53,13 @@ class CyclicalScheduler(ParamScheduler):
         self.cycle_mult = cycle_mult
         self.cycle = 0
 
-    def get_cycle_progress(self):
-        """
-        Returns float in range [0.0, 1.0] representing the progress of the current cycle as a percentage.
-        """
+    def __call__(self, engine):
         if self.event_index != 0 and self.event_index % self.cycle_size == 0:
             self.event_index = 0
             self.cycle_size *= self.cycle_mult
             self.cycle += 1
 
-        return self.event_index / self.cycle_size
+        return super(CyclicalScheduler, self).__call__(engine)
 
 
 class LinearScheduler(CyclicalScheduler):
@@ -74,7 +71,7 @@ class LinearScheduler(CyclicalScheduler):
         super(LinearScheduler, self).__init__(*args, **kwargs)
 
     def get_param(self):
-        cycle_progress = self.get_cycle_progress()
+        cycle_progress = self.event_index / self.cycle_size
         return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
 
 
@@ -86,5 +83,5 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         super(CosineAnnealingScheduler, self).__init__(*args, **kwargs)
 
     def get_param(self):
-        cycle_progress = self.get_cycle_progress()
+        cycle_progress = self.event_index / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 + np.cos(np.pi * cycle_progress))
