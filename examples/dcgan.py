@@ -382,6 +382,7 @@ def main(dataset, dataroot,
             df = pd.read_csv(os.path.join(output_dir, LOGS_FNAME), delimiter='\t')
             x = np.arange(1, engine.state.iteration + 1, PRINT_FREQ)
             _ = df.plot(x=x, subplots=True, figsize=(20, 20))
+            _ = plt.xlabel('Iteration number')
             fig = plt.gcf()
             path = os.path.join(output_dir, PLOT_FNAME)
 
