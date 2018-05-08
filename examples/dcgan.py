@@ -21,13 +21,13 @@ except ImportError:
                       "via conda by running 'conda install -c pytorch torchvision'. ")
 
 
-PRINT_FREQ     = 100
+PRINT_FREQ = 100
 FAKE_IMG_FNAME = 'fake_sample_epoch_{:04d}.png'
 REAL_IMG_FNAME = 'real_sample_epoch_{:04d}.png'
-LOGS_FNAME     = 'logs.tsv'
-PLOT_FNAME     = 'plot.svg'
-SAMPLES_FNAME  = 'samples.svg'
-CKPT_PREFIX    = 'networks'
+LOGS_FNAME = 'logs.tsv'
+PLOT_FNAME = 'plot.svg'
+SAMPLES_FNAME = 'samples.svg'
+CKPT_PREFIX = 'networks'
 
 
 class Net(nn.Module):
@@ -49,6 +49,7 @@ class Net(nn.Module):
 
     def forward(self, x):
         return x
+
 
 class Generator(Net):
     """ Generator network.
@@ -161,9 +162,9 @@ def check_dataset(dataset, dataroot):
         dataset (data.Dataset): torchvision Dataset object
 
     """
-    to_rgb    = transforms.Lambda(lambda img: img.convert('RGB'))
-    resize    = transforms.Resize(64)
-    crop      = transforms.CenterCrop(64)
+    to_rgb = transforms.Lambda(lambda img: img.convert('RGB'))
+    resize = transforms.Resize(64)
+    crop = transforms.CenterCrop(64)
     to_tensor = transforms.ToTensor()
     normalize = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
@@ -185,7 +186,7 @@ def check_dataset(dataset, dataroot):
                                                                                            normalize]))
 
     elif dataset == 'mnist':
-        dataset = dset.MNIST(root=dataroot, download=True, transform=transforms.Compose([to_rgb, 
+        dataset = dset.MNIST(root=dataroot, download=True, transform=transforms.Compose([to_rgb,
                                                                                          resize,
                                                                                          to_tensor,
                                                                                          normalize]))
@@ -216,7 +217,7 @@ def main(dataset, dataroot,
     netD = Discriminator(d_filters).to(device)
 
     # criterion
-    bce  = nn.BCELoss()
+    bce = nn.BCELoss()
 
     # optimizers
     optimizerG = optim.Adam(netG.parameters(), lr=learning_rate, betas=(beta_1, 0.999))
@@ -237,7 +238,9 @@ def main(dataset, dataroot,
     real_labels = torch.ones(batch_size, device=device)
     fake_labels = torch.zeros(batch_size, device=device)
     fixed_noise = torch.randn(batch_size, z_dim, 1, 1, device=device)
-    get_noise   = lambda: torch.randn(batch_size, z_dim, 1, 1, device=device)
+
+    def get_noise():
+        return torch.randn(batch_size, z_dim, 1, 1, device=device)
 
     # bookkeeping
     running_avgs = OrderedDict()
@@ -247,7 +250,7 @@ def main(dataset, dataroot,
 
         # unpack the batch. It comes from a dataset, so we have <images, labels> pairs. Discard labels.
         real, _ = batch
-        real    = real.to(device)
+        real = real.to(device)
 
         # -----------------------------------------------------------
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -290,9 +293,9 @@ def main(dataset, dataroot,
         optimizerG.step()
 
         return {
-            'errD':   errD.item(),
-            'errG':   errG.item(),
-            'D_x':    D_x,
+            'errD': errD.item(),
+            'errG': errG.item(),
+            'D_x': D_x,
             'D_G_z1': D_G_z1,
             'D_G_z2': D_G_z2
         }
@@ -356,7 +359,7 @@ def main(dataset, dataroot,
 
     # automatically adding handlers via a special `attach` method of `Timer` handler
     timer.attach(trainer, start=ignite.Events.EPOCH_STARTED, resume=ignite.Events.ITERATION_STARTED,
-                pause=ignite.Events.ITERATION_COMPLETED, step=ignite.Events.ITERATION_COMPLETED)
+                 pause=ignite.Events.ITERATION_COMPLETED, step=ignite.Events.ITERATION_COMPLETED)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.EPOCH_COMPLETED)
