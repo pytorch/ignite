@@ -1,14 +1,14 @@
 import argparse
 import os
 import random
+import warnings
 from collections import OrderedDict
 
+import ignite
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
-
-import ignite
 from ignite.handlers import ModelCheckpoint, Timer
 
 try:
@@ -21,12 +21,13 @@ except ImportError:
                       "via conda by running 'conda install -c pytorch torchvision'. ")
 
 
-PRINT_FREQ = 1000
+PRINT_FREQ     = 100
 FAKE_IMG_FNAME = 'fake_sample_epoch_{:04d}.png'
 REAL_IMG_FNAME = 'real_sample_epoch_{:04d}.png'
-LOGS_FNAME = 'logs.tsv'
-PLOT_FNAME = 'plot.svg'
-CKPT_PREFIX = 'networks'
+LOGS_FNAME     = 'logs.tsv'
+PLOT_FNAME     = 'plot.svg'
+SAMPLES_FNAME  = 'samples.svg'
+CKPT_PREFIX    = 'networks'
 
 
 class Net(nn.Module):
@@ -160,33 +161,34 @@ def check_dataset(dataset, dataroot):
         dataset (data.Dataset): torchvision Dataset object
 
     """
-
+    to_rgb    = transforms.Lambda(lambda img: img.convert('RGB'))
     resize    = transforms.Resize(64)
     crop      = transforms.CenterCrop(64)
     to_tensor = transforms.ToTensor()
     normalize = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
     if dataset in {'imagenet', 'folder', 'lfw'}:
-        dataset = dset.ImageFolder(root=dataroot, transforms=transforms.Compose([resize,
-                                                                                 crop,
-                                                                                 to_tensor,
-                                                                                 normalize]))
+        dataset = dset.ImageFolder(root=dataroot, transform=transforms.Compose([resize,
+                                                                                crop,
+                                                                                to_tensor,
+                                                                                normalize]))
 
     elif dataset == 'lsun':
-        dataset = dset.LSUN(root=dataroot, classes=['bedroom_train'], transforms=transforms.Compose([resize,
-                                                                                                     crop,
-                                                                                                     to_tensor,
-                                                                                                     normalize]))
+        dataset = dset.LSUN(root=dataroot, classes=['bedroom_train'], transform=transforms.Compose([resize,
+                                                                                                    crop,
+                                                                                                    to_tensor,
+                                                                                                    normalize]))
 
     elif dataset == 'cifar10':
-        dataset = dset.CIFAR10(root=dataroot, download=True, transforms=transforms.Compose([resize,
-                                                                                            to_tensor,
-                                                                                            normalize]))
+        dataset = dset.CIFAR10(root=dataroot, download=True, transform=transforms.Compose([resize,
+                                                                                           to_tensor,
+                                                                                           normalize]))
 
     elif dataset == 'mnist':
-        dataset = dset.MNIST(root=dataroot, download=True, transforms=transforms.Compose([resize,
-                                                                                          to_tensor,
-                                                                                          normalize]))
+        dataset = dset.MNIST(root=dataroot, download=True, transform=transforms.Compose([to_rgb, 
+                                                                                         resize,
+                                                                                         to_tensor,
+                                                                                         normalize]))
 
     elif dataset == 'fake':
         dataset = dset.FakeData(image_size=(3, 64, 64), transform=to_tensor)
@@ -222,7 +224,7 @@ def main(dataset, dataroot,
 
     # data
     dataset = check_dataset(dataset, dataroot)
-    loader = data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=n_workers)
+    loader = data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=n_workers, drop_last=True)
 
     # load pre-trained models
     if saved_G:
@@ -240,12 +242,7 @@ def main(dataset, dataroot,
     # bookkeeping
     running_avgs = OrderedDict()
 
-    # ignite objects
-    trainer = ignite.Engine()
-    checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, save_interval=1, n_saved=10, require_empty=False)
-    timer = Timer(average=True)
-
-    @trainer.process_function
+    # The main function, processing a batch of examples
     def step(engine, batch):
 
         # unpack the batch. It comes from a dataset, so we have <images, labels> pairs. Discard labels.
@@ -265,10 +262,10 @@ def main(dataset, dataroot,
 
         # get fake image from generator
         noise = get_noise()
-        fake = netG(noise).detach()
+        fake = netG(noise)
 
         # train with fake
-        output = netD(fake)
+        output = netD(fake.detach())
         errD_fake = bce(output, fake_labels)
         D_G_z1 = output.mean().item()
 
@@ -293,31 +290,36 @@ def main(dataset, dataroot,
         optimizerG.step()
 
         return {
-            'errD':    errD.item(),
-            'errG':    errG.item(),
-            'D_x' :    D_x,
-            'D_G_z1' : D_G_z1,
-            'D_G_z2' : D_G_z2
+            'errD':   errD.item(),
+            'errG':   errG.item(),
+            'D_x':    D_x,
+            'D_G_z1': D_G_z1,
+            'D_G_z2': D_G_z2
         }
+
+    # ignite objects
+    trainer = ignite.Engine(step)
+    checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, save_interval=1, n_saved=10, require_empty=False)
+    timer = Timer(average=True)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.EPOCH_COMPLETED)
-    def save_fake_eaxmple(state):
+    def save_fake_eaxmple(engine):
         fake = netG(fixed_noise)
-        path = os.path.join(output_dir, FAKE_IMG_FNAME.format(state.epoch))
+        path = os.path.join(output_dir, FAKE_IMG_FNAME.format(engine.state.epoch))
         vutils.save_image(fake.detach(), path, normalize=True)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.EPOCH_COMPLETED)
-    def save_real_example(state):
-        img, y = state.batch
-        path = os.path.join(output_dir, REAL_IMG_FNAME.format(state.epoch))
+    def save_real_example(engine):
+        img, y = engine.state.batch
+        path = os.path.join(output_dir, REAL_IMG_FNAME.format(engine.state.epoch))
         vutils.save_image(img, path, normalize=True)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.ITERATION_COMPLETED)
-    def update_logs(state):
-        for k, v in state.output.items():
+    def update_logs(engine):
+        for k, v in engine.state.output.items():
             old_v = running_avgs.get(k, v)
             new_v = alpha * old_v + (1 - alpha) * v
 
@@ -325,20 +327,20 @@ def main(dataset, dataroot,
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.ITERATION_COMPLETED)
-    def print_logs(state):
-        if state.iteration % PRINT_FREQ == 0:
+    def print_logs(engine):
+        if (engine.state.iteration - 1) % PRINT_FREQ == 0:
             fname = os.path.join(output_dir, LOGS_FNAME)
             columns = running_avgs.keys()
-            values = [round(value, 3) for value in running_avgs.values()]
+            values = [str(round(value, 5)) for value in running_avgs.values()]
 
             with open(fname, 'a') as f:
                 if f.tell() == 0:
                     print('\t'.join(columns), file=f)
                 print('\t'.join(values), file=f)
 
-            message = '[{epoch}/{max_epoch}][{i}/{max_i}]'.format(epoch=state.epoch,
+            message = '[{epoch}/{max_epoch}][{i}/{max_i}]'.format(epoch=engine.state.epoch,
                                                                   max_epoch=epochs,
-                                                                  i=(state.iteration % len(loader)),
+                                                                  i=(engine.state.iteration % len(loader)),
                                                                   max_i=len(loader))
             for name, value in zip(columns, values):
                 message += ' | {name}: {value}'.format(name=name, value=value)
@@ -354,31 +356,32 @@ def main(dataset, dataroot,
 
     # automatically adding handlers via a special `attach` method of `Timer` handler
     timer.attach(trainer, start=ignite.Events.EPOCH_STARTED, resume=ignite.Events.ITERATION_STARTED,
-                 pause=ignite.Events.ITERATION_COMPLETED, step=ignite.Events.ITERATION_COMPLETED)
+                pause=ignite.Events.ITERATION_COMPLETED, step=ignite.Events.ITERATION_COMPLETED)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.EPOCH_COMPLETED)
-    def print_times(state):
-        print('Time per batch: {:.3f}[ms]'.format(timer.value()))
+    def print_times(engine):
+        print('Epoch {} done. Time per batch: {:.3f}[s]'.format(engine.state.epoch, timer.value()))
         timer.reset()
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.EPOCH_COMPLETED)
-    def create_plots(state):
+    def create_plots(engine):
         try:
-            import pandas as pd
+            import matplotlib as mpl
+            mpl.use('agg')
+
             import numpy as np
+            import pandas as pd
             import matplotlib.pyplot as plt
 
         except ImportError:
-            print('Skipping plots -- pandas or matplotlib not found')
+            warnings.warn('Loss plots will not be generated -- pandas or matplotlib not found')
 
         else:
             df = pd.read_csv(os.path.join(output_dir, LOGS_FNAME), delimiter='\t')
-
-            x = np.arange(1, state.iteration + 1, PRINT_FREQ)
-            xticks = np.arange(1, state.iteration + 2, len(loader))
-            axes = df.plot(x=x, subplots=True, figsize=(20, 20), xticks=xticks)
+            x = np.arange(1, engine.state.iteration + 1, PRINT_FREQ)
+            _ = df.plot(x=x, subplots=True, figsize=(20, 20))
             fig = plt.gcf()
             path = os.path.join(output_dir, PLOT_FNAME)
 
@@ -386,18 +389,22 @@ def main(dataset, dataroot,
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(ignite.Events.EXCEPTION_RAISED)
-    def handle_exception(state, e):
-        if isinstance(e, KeyboardInterrupt):
-            print('KeyboardInterrupt caught. Exiting gracefully')
+    def handle_exception(engine, e):
+        if isinstance(e, KeyboardInterrupt) and (engine.state.iteration > 1):
+            engine.terminate()
+            warnings.warn('KeyboardInterrupt caught. Exiting gracefully.')
 
-            create_plots(state)
-            checkpoint_handler(state, {
+            create_plots(engine)
+            checkpoint_handler(engine, {
                 'netG_exception': netG,
                 'netD_exception': netD
             })
 
         else:
-            raise from e
+            raise e
+
+    # Setup is done. Now let's run the training
+    trainer.run(loader, epochs)
 
 
 if __name__ == '__main__':
@@ -415,7 +422,7 @@ if __name__ == '__main__':
                         type=int, default=2,
                         help='number of data loading workers')
 
-    parser.add_argument('--batchSize',
+    parser.add_argument('--batch-size',
                         type=int, default=64,
                         help='input batch size')
 
@@ -444,7 +451,7 @@ if __name__ == '__main__':
                         help='beta_1 for adam')
 
     parser.add_argument('--no-cuda',
-                        action='store_false',
+                        action='store_true',
                         help='disables cuda')
 
     parser.add_argument('--saved-G',
@@ -468,14 +475,19 @@ if __name__ == '__main__':
                         help='smoothing constant for exponential moving averages')
 
     args = parser.parse_args()
-    dev = 'cpu' if (not torch.cuda.is_available() or args.no_cuda) else 'gpu:0'
-    os.makedirs(args.output_dir, exist_ok=True)
+    dev = 'cpu' if (not torch.cuda.is_available() or args.no_cuda) else 'cuda:0'
+
+    try:
+        os.makedirs(args.output_dir)
+    except FileExistsError:
+        if (not os.path.isdir(args.output_dir)) or (len(os.listdir(args.output_dir)) > 0):
+            raise FileExistsError("Please provide a path to a non-existing or empty directory.")
 
     main(dataset=args.dataset, dataroot=args.dataroot,
          z_dim=args.z_dim, g_filters=args.g_filters, d_filters=args.d_filters,
          batch_size=args.batch_size, epochs=args.epochs,
          learning_rate=args.lr, beta_1=args.beta_1,
-         saved_D=args.netD, saved_G=args.netG,
+         saved_D=args.saved_D, saved_G=args.saved_G,
          seed=args.seed,
-         device=dev, n_workers=args.n_workers,
+         device=dev, n_workers=args.workers,
          alpha=args.alpha, output_dir=args.output_dir)
