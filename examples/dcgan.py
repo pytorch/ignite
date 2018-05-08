@@ -194,7 +194,7 @@ def check_dataset(dataset, dataroot):
                                                                                          normalize]))
 
     elif dataset == 'fake':
-        dataset = dset.FakeData(image_size=(3, 64, 64), transform=to_tensor)
+        dataset = dset.FakeData(size=256, image_size=(3, 64, 64), transform=to_tensor)
 
     else:
         raise RuntimeError("Invalid dataset name: {}".format(dataset))
