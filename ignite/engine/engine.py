@@ -161,8 +161,9 @@ class Engine(object):
         self.should_terminate = True
 
     def _run_once_on_dataset(self):
+        start_time = time.time()
+
         try:
-            start_time = time.time()
             for batch in self.state.dataloader:
                 self.state.batch = batch
                 self.state.iteration += 1
@@ -172,12 +173,14 @@ class Engine(object):
                 if self.should_terminate:
                     break
 
-            time_taken = time.time() - start_time
-            hours, mins, secs = _to_hours_mins_secs(time_taken)
-            return hours, mins, secs
         except BaseException as e:
             self._logger.error("Current run is terminating due to exception: %s", str(e))
             self._handle_exception(e)
+
+        time_taken = time.time() - start_time
+        hours, mins, secs = _to_hours_mins_secs(time_taken)
+
+        return hours, mins, secs
 
     def _handle_exception(self, e):
         if Events.EXCEPTION_RAISED in self._event_handlers:
@@ -195,6 +198,7 @@ class Engine(object):
         Returns:
             State: output state
         """
+
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:
