@@ -100,7 +100,8 @@ class Engine(object):
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
-        self._check_signature(handler, 'handler', *args, **kwargs)
+        event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
+        self._check_signature(handler, 'handler', *(event_args + args), **kwargs)
 
         if event_name not in self._event_handlers:
             self._event_handlers[event_name] = []

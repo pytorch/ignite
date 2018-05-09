@@ -217,12 +217,20 @@ def test_custom_exception_handler():
     update_function = MagicMock(side_effect=value_error)
 
     engine = Engine(update_function)
-    exception_handler = MagicMock()
-    engine.add_event_handler(Events.EXCEPTION_RAISED, exception_handler)
+
+    class ExceptionCounter(object):
+        def __init__(self):
+            self.exceptions = []
+
+        def __call__(self, engine, e):
+            self.exceptions.append(e)
+
+    counter = ExceptionCounter()
+    engine.add_event_handler(Events.EXCEPTION_RAISED, counter)
     state = engine.run([1])
 
     # only one call from _run_once_over_data, since the exception is swallowed
-    exception_handler.assert_has_calls([call(engine, value_error)])
+    assert len(counter.exceptions) == 1 and counter.exceptions[0] == value_error
 
 
 def test_current_epoch_counter_increases_every_epoch():
