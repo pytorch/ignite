@@ -2,6 +2,7 @@ import inspect
 import logging
 import sys
 import time
+from collections import defaultdict
 from enum import Enum
 
 from ignite._utils import _to_hours_mins_secs
@@ -57,7 +58,7 @@ class Engine(object):
 
     """
     def __init__(self, process_function):
-        self._event_handlers = {}
+        self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
         self._process_function = process_function
@@ -102,9 +103,6 @@ class Engine(object):
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
         self._check_signature(handler, 'handler', *(event_args + args), **kwargs)
-
-        if event_name not in self._event_handlers:
-            self._event_handlers[event_name] = []
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s ", event_name)
