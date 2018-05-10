@@ -4,6 +4,10 @@ Ignite
 .. image:: https://travis-ci.org/pytorch/ignite.svg?branch=master
     :target: https://travis-ci.org/pytorch/ignite
 
+.. image:: https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/pytorch/ignite
+
+
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
 *Note: Ignite is currently in alpha, and the API is subject to change. A first release coming soon, where we will stabilize the API. Stay tuned.*
