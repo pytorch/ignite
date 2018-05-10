@@ -17,7 +17,6 @@
 from __future__ import print_function
 from argparse import ArgumentParser
 import torch
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch import nn
 import torch.nn.functional as F
@@ -50,7 +49,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x)
+        return F.log_softmax(x, dim=-1)
 
 
 def get_data_loaders(train_batch_size, val_batch_size):
@@ -64,21 +63,21 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def create_summary_writer(model, log_dir):
+def create_summary_writer(model, data_loader, log_dir):
     writer = SummaryWriter(log_dir=log_dir)
+    data_loader_iter = iter(data_loader)
+    x, y = next(data_loader_iter)
     try:
-        dummy_input = Variable(torch.rand(10, 1, 28, 28))
-        torch.onnx.export(model, dummy_input, "model.proto", verbose=True)
-        writer.add_graph_onnx("model.proto")
-    except ImportError:
-        pass
+        writer.add_graph(model, x)
+    except Exception as e:
+        print("Failed to save model graph: {}".format(e))
     return writer
 
 
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, log_dir):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = create_summary_writer(model, log_dir)
+    writer = create_summary_writer(model, train_loader, log_dir)
     device = 'cpu'
 
     if torch.cuda.is_available():
@@ -101,6 +100,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
             writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
 
     @trainer.on(Events.EPOCH_COMPLETED)
+    def log_training_results(engine):
+        evaluator.run(train_loader)
+        metrics = evaluator.state.metrics
+        avg_accuracy = metrics['accuracy']
+        avg_nll = metrics['nll']
+        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(engine.state.epoch, avg_accuracy, avg_nll))
+        writer.add_scalar("training/avg_loss", avg_nll, engine.state.epoch)
+        writer.add_scalar("training/avg_accuracy", avg_accuracy, engine.state.epoch)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
@@ -108,8 +118,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-        writer.add_scalar("valdation/loss", avg_nll, engine.state.epoch)
-        writer.add_scalar("valdation/accuracy", avg_accuracy, engine.state.epoch)
+        writer.add_scalar("valdation/avg_loss", avg_nll, engine.state.epoch)
+        writer.add_scalar("valdation/avg_accuracy", avg_accuracy, engine.state.epoch)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)

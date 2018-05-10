@@ -34,7 +34,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x)
+        return F.log_softmax(x, dim=-1)
 
 
 def get_data_loaders(train_batch_size, val_batch_size):
@@ -73,8 +73,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
                                             device=device)
 
     train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss')
-    val_accuracy_window = create_plot_window(vis, '#Epochs', 'Accuracy', 'Validation Accuracy')
-    val_loss_window = create_plot_window(vis, '#Epochs', 'Loss', 'Validation Loss')
+    train_avg_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Average Loss')
+    train_avg_accuracy_window = create_plot_window(vis, '#Iterations', 'Accuracy', 'Training Average Accuracy')
+    val_avg_loss_window = create_plot_window(vis, '#Epochs', 'Loss', 'Validation Average Loss')
+    val_avg_accuracy_window = create_plot_window(vis, '#Epochs', 'Accuracy', 'Validation Average Accuracy')
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
@@ -87,6 +89,19 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
                      update='append', win=train_loss_window)
 
     @trainer.on(Events.EPOCH_COMPLETED)
+    def log_training_results(engine):
+        evaluator.run(train_loader)
+        metrics = evaluator.state.metrics
+        avg_accuracy = metrics['accuracy']
+        avg_nll = metrics['nll']
+        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(engine.state.epoch, avg_accuracy, avg_nll))
+        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]),
+                 win=train_avg_accuracy_window, update='append')
+        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]),
+                 win=train_avg_loss_window, update='append')
+
+    @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
@@ -94,8 +109,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]), win=val_accuracy_window, update='append')
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]), win=val_loss_window, update='append')
+        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]),
+                 win=val_avg_accuracy_window, update='append')
+        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]),
+                 win=val_avg_loss_window, update='append')
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
