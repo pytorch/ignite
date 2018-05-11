@@ -33,6 +33,8 @@ script:
   - kill %1
   # mnist_with_tensorboardx.py
   - python examples/mnist_with_tensorboardx.py --epochs=1
+  # dcgan.py
+  - python examples/dcgan.py --dataset fake --dataroot /tmp/fakedata --output-dir /tmp/outputs-dcgan --batch-size 2 --epochs 2  --workers 0
 
 after_success:
   # Ignore codecov failures as the codecov server is not
