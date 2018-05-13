@@ -12,9 +12,11 @@ class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
     This handler accepts two arguments:
+
         - an `ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
-            See Notes and Examples for further details.
+
+    See Notes and Examples for further details.
 
     Args:
         dirname (str):
@@ -182,21 +184,24 @@ class ModelCheckpoint(object):
 
 
 class EngineCheckpoint(object):
-    """EngineCheckpoint handler
+    """EngineCheckpoint handler can be used to periodically save engine and other objects
+     to disk. Saved checkpoint then can be used to resume Engine.
+
+    Args:
+        dirname (str):
+
+
     """
 
-    def __init__(self, dirname, models, optimizers,
+    def __init__(self, dirname, to_save,
                  save_interval=100,
                  atomic=True, require_empty=True, create_dir=True):
         assert isinstance(dirname, str)
-        assert isinstance(models, (list, tuple)) and \
-            all([isinstance(m, nn.Module) for m in models]), ""
-        assert isinstance(optimizers, (list, tuple)) and \
-            all([isinstance(o, Optimizer) for o in optimizers])
+        assert isinstance(to_save, dict), "Argument `to_save` should be a dictionary"
+        self.check_objects(to_save)
 
         self.dirname = dirname
-        self.models = models
-        self.optimizers = optimizers
+        self.to_save = to_save
         self.save_interval = save_interval
         self._atomic = atomic
         self._save_interval = save_interval
@@ -228,14 +233,11 @@ class EngineCheckpoint(object):
         self._save(obj=checkpoint, path=path)
 
     def _setup_checkpoint(self, engine):
-        state = State(epoch=engine.state.epoch, max_epochs=engine.state.max_epochs, seed=engine.state.seed)
-        state.iteration = engine.state.iteration
-
         checkpoint = {
-            "models": [m.state_dict() for m in self.models],
-            "optimizers": [o.state_dict() for o in self.optimizers],
-            "engine": state
+            "engine": engine.state_dict()
         }
+        for k, obj in self.to_save.items():
+            checkpoint[k] = obj.state_dict()
         return checkpoint
 
     def _save(self, obj, path):
@@ -254,5 +256,36 @@ class EngineCheckpoint(object):
                 os.rename(tmp.name, path)
 
     @staticmethod
+    def check_objects(to_save_or_load):
+        for k, obj in to_save_or_load.items():
+            assert hasattr(obj, "state_dict") and hasattr(obj, "load_state_dict"), \
+                "Object {} should have `state_dict` and `load_state_dict` methods".format(type(obj))
+
+    @staticmethod
     def load(dirname):
+        """Method to load checkpoint from directory
+
+        Args:
+            dirname (str): directory containing checkpoint.pth.tar
+
+        Returns:
+            checkpoint dictionary
+
+        """
         return torch.load(os.path.join(dirname, "checkpoint.pth.tar"))
+
+    @staticmethod
+    def load_objects(to_load, checkpoint):
+        """Method to load objects from Engine checkpoint
+
+        Args:
+            to_load (dict):
+            checkpoint (dict):
+
+        """
+        EngineCheckpoint.check_objects(to_load)
+        assert isinstance(checkpoint, dict), "Argument checkpoint should be a dictionary"
+        for k, obj in to_load.items():
+            assert k in checkpoint, \
+                "Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k)
+            obj.load_state_dict(checkpoint[k])

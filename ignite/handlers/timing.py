@@ -64,6 +64,7 @@ class Timer:
         0.10016545779653825
 
         Using the Timer to measure average time it takes to process a single batch of examples
+
         >>> from ignite.engine import Engine, Events
         >>> from ignite.handlers import Timer
         >>> trainer = Engine(training_update_function)

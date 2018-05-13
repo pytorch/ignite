@@ -13,15 +13,15 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION numpy mock pytorch
+  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION numpy mock pytorch-cpu
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   - source activate test-environment
   - python setup.py install
-  - pip install --upgrade pytest
+  - pip install --upgrade pytest codecov pytest-cov
   - pip install visdom torchvision tensorboardX
 
 script:
-  - pytest tests/
+  - py.test --cov ignite --cov-report term-missing
   # Smoke tests for the examples
   # mnist.py
   - python examples/mnist.py --epochs=1
@@ -33,7 +33,15 @@ script:
   - kill %1
   # mnist_with_tensorboardx.py
   - python examples/mnist_with_tensorboardx.py --epochs=1
+  # dcgan.py
+  - python examples/dcgan.py --dataset fake --dataroot /tmp/fakedata --output-dir /tmp/outputs-dcgan --batch-size 2 --epochs 2  --workers 0
 
+after_success:
+  # Ignore codecov failures as the codecov server is not
+  # very reliable but we don't want travis to report a failure
+  # in the github UI just because the coverage report failed to
+  # be published.
+  - codecov || echo "codecov upload failed"
 
 matrix:
   include:

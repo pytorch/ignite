@@ -16,6 +16,7 @@ ignite.metrics
 .. autoclass:: MeanSquaredError
 
 .. autoclass:: Metric
+    :members:
 
 .. autoclass:: Precision
 

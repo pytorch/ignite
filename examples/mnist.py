@@ -29,7 +29,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x)
+        return F.log_softmax(x, dim=-1)
 
 
 def get_data_loaders(train_batch_size, val_batch_size):
@@ -65,6 +65,15 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         if iter % log_interval == 0:
             print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
                   "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_training_results(engine):
+        evaluator.run(train_loader)
+        metrics = evaluator.state.metrics
+        avg_accuracy = metrics['accuracy']
+        avg_nll = metrics['nll']
+        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(engine.state.epoch, avg_accuracy, avg_nll))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
