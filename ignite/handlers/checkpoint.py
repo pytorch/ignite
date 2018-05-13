@@ -195,7 +195,7 @@ class EngineCheckpoint(object):
 
     def __init__(self, dirname, to_save,
                  save_interval=100,
-                 atomic=True, require_empty=True, create_dir=True):
+                 atomic=True, create_dir=True):
         assert isinstance(dirname, str)
         assert isinstance(to_save, dict), "Argument `to_save` should be a dictionary"
         self.check_objects(to_save)
@@ -205,7 +205,6 @@ class EngineCheckpoint(object):
         self.save_interval = save_interval
         self._atomic = atomic
         self._save_interval = save_interval
-        self._iteration = 0
 
         if create_dir:
             if not os.path.exists(dirname):
@@ -215,22 +214,12 @@ class EngineCheckpoint(object):
         if not os.path.exists(dirname):
             raise ValueError("Directory path '{}' is not found".format(dirname))
 
-        if require_empty:
-            matched = [fname for fname in os.listdir(dirname)]
-
-            if len(matched) > 0:
-                raise ValueError("Files are already present "
-                                 "in the directory {}. If you want to use this "
-                                 "directory anyway, pass `require_empty=False`. "
-                                 "".format(dirname))
-
     def __call__(self, engine):
-        self._iteration += 1
-        if self._iteration % self._save_interval != 0:
+        if engine.state.iteration % self._save_interval != 0:
             return
         checkpoint = self._setup_checkpoint(engine)
         path = os.path.join(self.dirname, "checkpoint.pth.tar")
-        self._save(obj=checkpoint, path=path)
+        self._save(checkpoint, path)
 
     def _setup_checkpoint(self, engine):
         checkpoint = {

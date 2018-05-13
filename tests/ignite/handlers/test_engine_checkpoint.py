@@ -54,9 +54,6 @@ def test_args_validation(dirname):
 
     model = DummyModel()
     optim = SGD(model.parameters(), lr=0.1)
-    # non empty dir
-    with pytest.raises(ValueError):
-        h = EngineCheckpoint(nonempty, to_save={"model": DummyModel(), "optimizer": optim})
 
     # Nonexisting dir with create_dir=False
     with pytest.raises(ValueError):
