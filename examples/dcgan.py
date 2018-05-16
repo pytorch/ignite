@@ -6,11 +6,11 @@ import random
 import warnings
 from collections import OrderedDict
 
-import ignite
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
+from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint, Timer
 
 try:
@@ -303,26 +303,26 @@ def main(dataset, dataroot,
         }
 
     # ignite objects
-    trainer = ignite.Engine(step)
+    trainer = Engine(step)
     checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, save_interval=1, n_saved=10, require_empty=False)
     timer = Timer(average=True)
 
     # adding handlers using `trainer.on` decorator API
-    @trainer.on(ignite.Events.EPOCH_COMPLETED)
+    @trainer.on(Events.EPOCH_COMPLETED)
     def save_fake_eaxmple(engine):
         fake = netG(fixed_noise)
         path = os.path.join(output_dir, FAKE_IMG_FNAME.format(engine.state.epoch))
         vutils.save_image(fake.detach(), path, normalize=True)
 
     # adding handlers using `trainer.on` decorator API
-    @trainer.on(ignite.Events.EPOCH_COMPLETED)
+    @trainer.on(Events.EPOCH_COMPLETED)
     def save_real_example(engine):
         img, y = engine.state.batch
         path = os.path.join(output_dir, REAL_IMG_FNAME.format(engine.state.epoch))
         vutils.save_image(img, path, normalize=True)
 
     # adding handlers using `trainer.on` decorator API
-    @trainer.on(ignite.Events.ITERATION_COMPLETED)
+    @trainer.on(Events.ITERATION_COMPLETED)
     def update_logs(engine):
         for k, v in engine.state.output.items():
             old_v = running_avgs.get(k, v)
@@ -331,7 +331,7 @@ def main(dataset, dataroot,
             running_avgs[k] = new_v
 
     # adding handlers using `trainer.on` decorator API
-    @trainer.on(ignite.Events.ITERATION_COMPLETED)
+    @trainer.on(Events.ITERATION_COMPLETED)
     def print_logs(engine):
         if (engine.state.iteration - 1) % PRINT_FREQ == 0:
             fname = os.path.join(output_dir, LOGS_FNAME)
@@ -353,24 +353,24 @@ def main(dataset, dataroot,
             print(message)
 
     # adding handlers using `trainer.add_event_handler` method API
-    trainer.add_event_handler(event_name=ignite.Events.EPOCH_COMPLETED, handler=checkpoint_handler,
+    trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
                               to_save={
                                   'netG': netG,
                                   'netD': netD
                               })
 
     # automatically adding handlers via a special `attach` method of `Timer` handler
-    timer.attach(trainer, start=ignite.Events.EPOCH_STARTED, resume=ignite.Events.ITERATION_STARTED,
-                 pause=ignite.Events.ITERATION_COMPLETED, step=ignite.Events.ITERATION_COMPLETED)
+    timer.attach(trainer, start=Events.EPOCH_STARTED, resume=Events.ITERATION_STARTED,
+                 pause=Events.ITERATION_COMPLETED, step=Events.ITERATION_COMPLETED)
 
     # adding handlers using `trainer.on` decorator API
-    @trainer.on(ignite.Events.EPOCH_COMPLETED)
+    @trainer.on(Events.EPOCH_COMPLETED)
     def print_times(engine):
         print('Epoch {} done. Time per batch: {:.3f}[s]'.format(engine.state.epoch, timer.value()))
         timer.reset()
 
     # adding handlers using `trainer.on` decorator API
-    @trainer.on(ignite.Events.EPOCH_COMPLETED)
+    @trainer.on(Events.EPOCH_COMPLETED)
     def create_plots(engine):
         try:
             import matplotlib as mpl
@@ -394,7 +394,7 @@ def main(dataset, dataroot,
             fig.savefig(path)
 
     # adding handlers using `trainer.on` decorator API
-    @trainer.on(ignite.Events.EXCEPTION_RAISED)
+    @trainer.on(Events.EXCEPTION_RAISED)
     def handle_exception(engine, e):
         if isinstance(e, KeyboardInterrupt) and (engine.state.iteration > 1):
             engine.terminate()
