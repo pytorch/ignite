@@ -22,7 +22,7 @@ def convert_tensor(input_, device=None):
     elif isinstance(input_, collections.Sequence):
         return [convert_tensor(sample, device=device) for sample in input_]
     else:
-        raise TypeError(("input must contain tensors, numbers, dicts or lists; found {}"
+        raise TypeError(("input must contain tensors, dicts or lists; found {}"
                          .format(type(input_))))
 
 
