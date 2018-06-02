@@ -8,7 +8,7 @@ from enum import Enum
 import torch
 from torch.utils.data import DataLoader
 
-from ignite._utils import _to_hours_mins_secs, RewindableBatchSampler
+from ignite._utils import _to_hours_mins_secs
 
 
 IS_PYTHON2 = sys.version_info[0] < 3
@@ -308,8 +308,8 @@ class Engine(object):
 
         if hasattr(self.dataloader, 'original_batch_sampler') and isinstance(self.dataloader, DataLoader):
             # Change batch sampler to a rewindable and reproducible batch sampler
-            self.dataloader.batch_sampler = RewindableBatchSampler(self.dataloader.original_batch_sampler,
-                                                                   start_batch_index=start_batch_index)
+            self.dataloader.batch_sampler = _RewindableBatchSampler(self.dataloader.original_batch_sampler,
+                                                                    start_batch_index=start_batch_index)
         else:
             # We need to advance self.dataloader until start_batch_index
             pass
@@ -327,8 +327,8 @@ class Engine(object):
 
             if hasattr(self.dataloader, 'original_batch_sampler') and isinstance(self.dataloader, DataLoader):
                 # Change batch sampler to a rewindable and reproducible batch sampler
-                self.dataloader.batch_sampler = RewindableBatchSampler(self.dataloader.original_batch_sampler,
-                                                                       start_batch_index=0)
+                self.dataloader.batch_sampler = _RewindableBatchSampler(self.dataloader.original_batch_sampler,
+                                                                        start_batch_index=0)
             hours, mins, secs = self._run_once_on_dataset()
             self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
             if self.should_terminate:
@@ -346,3 +346,32 @@ class Engine(object):
                             worker_init_fn=loader.worker_init_fn)
         output.original_batch_sampler = loader.batch_sampler
         return output
+
+
+class _RewindableBatchSampler(object):
+    """Deterministic rewindable batch sampler
+
+    Args:
+        batch_sampler: batch sampler same as used with torch.utils.data.DataLoader
+        start_batch_index (int): batch index to start from
+    """
+    def __init__(self, batch_sampler, start_batch_index=0):
+        assert 0 <= start_batch_index < len(batch_sampler)
+        self.batch_sampler = batch_sampler
+        self.start_batch_index = start_batch_index
+        self.batch_indices = self._setup_batch_indices(batch_sampler, start_batch_index)
+
+    @staticmethod
+    def _setup_batch_indices(batch_sampler, start_batch_index):
+        batch_indices = []
+        for batch in batch_sampler:
+            batch_indices.append(batch)
+        return batch_indices[start_batch_index:]
+
+    def __iter__(self):
+        for batch in self.batch_indices:
+            yield batch
+
+    def __len__(self):
+        return len(self.batch_sampler)
+

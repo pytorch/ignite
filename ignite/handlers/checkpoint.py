@@ -3,9 +3,6 @@ import tempfile
 
 import torch
 import torch.nn as nn
-from torch.optim import Optimizer
-
-from ignite.engine import State
 
 
 class ModelCheckpoint(object):
@@ -188,9 +185,15 @@ class EngineCheckpoint(object):
      to disk. Saved checkpoint then can be used to resume Engine.
 
     Args:
-        dirname (str):
-
-
+        dirname (str): Directory path where the checkpoint will be saved (file checkpoint.pth.tar)
+        to_save (dict): Dictionary with the objects to save. Objects should have implemented
+            `state_dict` and `load_state_dict` methods
+        save_interval (int, optional): if not None, objects will be saved to disk every `save_interval`
+            calls to the handler.
+        atomic (bool, optional): if True, checkpoint is serialized to a temporary file, and then
+            moved to final destination, so that files are guaranteed to not be damaged
+            (for example if exception occures during saving).
+        create_dir (bool, optional): if True, will create directory 'dirname' if it doesnt exist.
     """
 
     def __init__(self, dirname, to_save,
@@ -202,7 +205,6 @@ class EngineCheckpoint(object):
 
         self.dirname = dirname
         self.to_save = to_save
-        self.save_interval = save_interval
         self._atomic = atomic
         self._save_interval = save_interval
 

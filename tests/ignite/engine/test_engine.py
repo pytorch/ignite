@@ -199,8 +199,7 @@ def test_state_attributes():
     assert state.iteration == 9
     assert state.output == 1
     assert state.batch == 3
-    # dataloader is now attributed to engine
-    # assert state.dataloader == dataloader
+
     assert engine.dataloader == dataloader
     assert state.epoch == 3
     assert state.max_epochs == 3
