@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import torch
-import torch.nn as nn
 
 
 class ModelCheckpoint(object):
@@ -139,8 +138,8 @@ class ModelCheckpoint(object):
         if not self._save_as_state_dict:
             torch.save(obj, path)
         else:
-            if not isinstance(obj, nn.Module):
-                raise ValueError("Instance does not inherit nn.Module")
+            if not hasattr(obj, "state_dict") or not callable(obj.state_dict):
+                raise ValueError("Object should have `state_dict` method")
             torch.save(obj.state_dict(), path)
 
     def __call__(self, engine, to_save):
