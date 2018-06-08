@@ -1,0 +1,28 @@
+url: http://pytorch.org/ignite
+name: PyTorch Ignite
+description: 'Scientific Computing...'
+latest_version: 1.0
+baseurl:
+relative_permalinks: false
+timezone: America/Los_Angeles
+sass:
+    sass_dir: _sass # default
+    style: compressed
+safe: true
+highlighter: rouge
+markdown: kramdown
+future: true
+include:
+    - _static
+    - _modules
+    - _sources
+exclude:
+    - node_modules
+    - README.md
+    - CNAME
+    - Gemfile
+    - Gemfile.lock
+    - package.json
+
+plugins:
+  - jekyll-feed
