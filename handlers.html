@@ -1,0 +1,457 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite.handlers &mdash; ignite master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato" type="text/css" />
+  <link rel="stylesheet" href="_static/css/pytorch_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ignite.metrics" href="metrics.html" />
+    <link rel="prev" title="ignite.engine" href="engine.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master (0.1.0a1 )
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#state">State</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#explanation">Explanation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ignite</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>ignite.handlers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/handlers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="ignite-handlers">
+<h1>ignite.handlers<a class="headerlink" href="#ignite-handlers" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="ignite.handlers.ModelCheckpoint">
+<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">ModelCheckpoint</code><span class="sig-paren">(</span><em>dirname</em>, <em>filename_prefix</em>, <em>save_interval=None</em>, <em>score_function=None</em>, <em>score_name=None</em>, <em>n_saved=1</em>, <em>atomic=True</em>, <em>require_empty=True</em>, <em>create_dir=True</em>, <em>save_as_state_dict=False</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.ModelCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>ModelCheckpoint handler can be used to periodically save objects to disk.</p>
+<p>This handler accepts two arguments:</p>
+<blockquote>
+<div><ul class="simple">
+<li>an <cite>ignite.engine.Engine</cite> object</li>
+<li>a <cite>dict</cite> mapping names (<cite>str</cite>) to objects that should be saved to disk.</li>
+</ul>
+</div></blockquote>
+<p>See Notes and Examples for further details.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dirname</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Directory path where objects will be saved</li>
+<li><strong>filename_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – Prefix for the filenames to which objects will be saved. See Notes
+for more details.</li>
+<li><strong>save_interval</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – if not None, objects will be saved to disk every <cite>save_interval</cite> calls to the handler.
+Exactly one of (<cite>save_interval</cite>, <cite>score_function</cite>) arguments must be provided.</li>
+<li><strong>score_function</strong> (<em>Callable</em><em>, </em><em>optional</em>) – if not None, it should be a function taking a single argument,
+an <cite>ignite.engine.Engine</cite> object,
+and return a score (<cite>float</cite>). Objects with highest scores will be retained.
+Exactly one of (<cite>save_interval</cite>, <cite>score_function</cite>) arguments must be provided.</li>
+<li><strong>score_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – if <cite>score_function</cite> not None, it is possible to store its absolute value using <cite>score_name</cite>. See Notes for
+more details.</li>
+<li><strong>n_saved</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – Number of objects that should be kept on disk. Older files will be removed.</li>
+<li><strong>atomic</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, objects are serialized to a temporary file,
+and then moved to final destination, so that files are
+guaranteed to not be damaged (for example if exception occures during saving).</li>
+<li><strong>require_empty</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, will raise exception if there are any files starting with <cite>filename_prefix</cite>
+in the directory ‘dirname’</li>
+<li><strong>create_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, will create directory ‘dirname’ if it doesnt exist.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This handler expects two arguments: an <cite>Engine</cite> object and a <cite>dict</cite>
+mapping names to objects that should be saved.</p>
+<p>These names are used to specify filenames for saved objects.
+Each filename has the following structure:
+<cite>{filename_prefix}_{name}_{step_number}.pth</cite>.
+Here, <cite>filename_prefix</cite> is the argument passed to the constructor,
+<cite>name</cite> is the key in the aforementioned <cite>dict</cite>, and <cite>step_number</cite>
+is incremented by <cite>1</cite> with every call to the handler.</p>
+<p>If <cite>score_function</cite> is provided, user can store its absolute value using <cite>score_name</cite> in the filename.
+Each filename can have the following structure:
+<cite>{filename_prefix}_{name}_{step_number}_{score_name}={abs(score_function_result)}.pth</cite>.
+For example, <cite>score_name=”val_loss”</cite> and <cite>score_function</cite> that returns <cite>-loss</cite> (as objects with highest scores
+will be retained), then saved models filenames will be <cite>model_resnet_10_val_loss=0.1234.pth</cite>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">os</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ignite.engine</span> <span class="k">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ignite.handlers</span> <span class="k">import</span> <span class="n">ModelCheckpoint</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torch</span> <span class="k">import</span> <span class="n">nn</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="k">lambda</span> <span class="n">batch</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">ModelCheckpoint</span><span class="p">(</span><span class="s1">&#39;/tmp/models&#39;</span><span class="p">,</span> <span class="s1">&#39;myprefix&#39;</span><span class="p">,</span> <span class="n">save_interval</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_saved</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">create_dir</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span> <span class="n">handler</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;mymodel&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="s1">&#39;/tmp/models&#39;</span><span class="p">)</span>
+<span class="go">[&#39;myprefix_mymodel_4.pth&#39;, &#39;myprefix_mymodel_6.pth&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.handlers.EarlyStopping">
+<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">EarlyStopping</code><span class="sig-paren">(</span><em>patience</em>, <em>score_function</em>, <em>trainer</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.EarlyStopping" title="Permalink to this definition">¶</a></dt>
+<dd><p>EarlyStopping handler can be used to stop the training if no improvement after a given number of events</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>patience</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – Number of events to wait if no improvement and then stop the training</li>
+<li><strong>score_function</strong> (<em>Callable</em>) – It should be a function taking a single argument, an <cite>ignite.engine.Engine</cite> object,
+and return a score <cite>float</cite>. An improvement is considered if the score is higher.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Examples:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ignite.engine</span> <span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span> <span class="nn">ignite.handlers</span> <span class="kn">import</span> <span class="n">EarlyStopping</span>
+
+<span class="k">def</span> <span class="nf">score_function</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="n">val_loss</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;nll&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">val_loss</span>
+
+<span class="n">handler</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">patience</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">score_function</span><span class="o">=</span><span class="n">score_function</span><span class="p">,</span> <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">)</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.handlers.Timer">
+<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">Timer</code><span class="sig-paren">(</span><em>average=False</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.Timer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Timer object can be used to measure (average) time between events.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>average</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a><em>, </em><em>optional</em>) – if True, then when <code class="docutils literal notranslate"><span class="pre">.value()</span></code> method is called, the returned value
+will be equal to total time measured, divided by the value of internal counter.</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="ignite.handlers.Timer.total">
+<code class="descname">total</code><a class="headerlink" href="#ignite.handlers.Timer.total" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>float</em> – total time elapsed when the Timer was running (in seconds)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.handlers.Timer.step_count">
+<code class="descname">step_count</code><a class="headerlink" href="#ignite.handlers.Timer.step_count" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int</em> – internal counter, usefull to measure average time, e.g. of processing a single batch.
+Incremented with the <code class="docutils literal notranslate"><span class="pre">.step()</span></code> method.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.handlers.Timer.running">
+<code class="descname">running</code><a class="headerlink" href="#ignite.handlers.Timer.running" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>bool</em> – flag indicating if timer is measuring time.</p>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<p>When using <code class="docutils literal notranslate"><span class="pre">Timer(average=True)</span></code> do not forget to call <code class="docutils literal notranslate"><span class="pre">timer.step()</span></code> everytime an event occurs. See
+the examples below.</p>
+<p class="rubric">Examples</p>
+<p>Measuring total time of the epoch:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ignite.handlers</span> <span class="k">import</span> <span class="n">Timer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">work</span> <span class="o">=</span> <span class="k">lambda</span> <span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">idle</span> <span class="o">=</span> <span class="k">lambda</span> <span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="n">average</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+<span class="gp">... </span>   <span class="n">work</span><span class="p">()</span>
+<span class="gp">... </span>   <span class="n">idle</span><span class="p">()</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+<span class="go">2.003073937026784</span>
+</pre></div>
+</div>
+<p>Measuring average time of the epoch:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="n">average</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+<span class="gp">... </span>   <span class="n">work</span><span class="p">()</span>
+<span class="gp">... </span>   <span class="n">idle</span><span class="p">()</span>
+<span class="gp">... </span>   <span class="n">t</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+<span class="go">0.2003182829997968</span>
+</pre></div>
+</div>
+<p>Measuring average time it takes to execute a single <code class="docutils literal notranslate"><span class="pre">work()</span></code> call</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="n">average</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+<span class="gp">... </span>   <span class="n">t</span><span class="o">.</span><span class="n">resume</span><span class="p">()</span>
+<span class="gp">... </span>   <span class="n">work</span><span class="p">()</span>
+<span class="gp">... </span>   <span class="n">t</span><span class="o">.</span><span class="n">pause</span><span class="p">()</span>
+<span class="gp">... </span>   <span class="n">idle</span><span class="p">()</span>
+<span class="gp">... </span>   <span class="n">t</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+<span class="go">0.10016545779653825</span>
+</pre></div>
+</div>
+<p>Using the Timer to measure average time it takes to process a single batch of examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ignite.engine</span> <span class="k">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ignite.handlers</span> <span class="k">import</span> <span class="n">Timer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">training_update_function</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">timer</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="n">average</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">timer</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">start</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">resume</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">pause</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">step</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="ignite.handlers.Timer.attach">
+<code class="descname">attach</code><span class="sig-paren">(</span><em>engine</em>, <em>start=&lt;Events.STARTED: 'started'&gt;</em>, <em>pause=&lt;Events.COMPLETED: 'completed'&gt;</em>, <em>resume=None</em>, <em>step=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.Timer.attach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register callbacks to control the timer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>engine</strong> (<a class="reference internal" href="engine.html#ignite.engine.Engine" title="ignite.engine.Engine"><em>ignite.engine.Engine</em></a>) – Engine that this timer will be attached to</li>
+<li><strong>start</strong> (<a class="reference internal" href="engine.html#ignite.engine.Events" title="ignite.engine.Events"><em>ignite.engine.Events</em></a>) – Event which should start (reset) the timer</li>
+<li><strong>pause</strong> (<a class="reference internal" href="engine.html#ignite.engine.Events" title="ignite.engine.Events"><em>ignite.engine.Events</em></a>) – Event which should pause the timer</li>
+<li><strong>resume</strong> (<a class="reference internal" href="engine.html#ignite.engine.Events" title="ignite.engine.Events"><em>ignite.engine.Events</em></a><em>, </em><em>optional</em>) – Event which should resume the timer</li>
+<li><strong>step</strong> (<a class="reference internal" href="engine.html#ignite.engine.Events" title="ignite.engine.Events"><em>ignite.engine.Events</em></a><em>, </em><em>optional</em>) – Event which should call the <cite>step</cite> method of the counter</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">self (Timer)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="metrics.html" class="btn btn-neutral float-right" title="ignite.metrics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="engine.html" class="btn btn-neutral" title="ignite.engine" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Torch Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

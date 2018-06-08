@@ -1,0 +1,431 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Quickstart &mdash; ignite master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato" type="text/css" />
+  <link rel="stylesheet" href="_static/css/pytorch_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ignite.engine" href="engine.html" />
+    <link rel="prev" title="Concepts" href="concepts.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master (0.1.0a1 )
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#state">State</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#explanation">Explanation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ignite</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Quickstart</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/quickstart.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to Ignite quickstart guide that just gives essentials of getting a project up and running.</p>
+<p>In several lines you can get your model training and validating:</p>
+<div class="section" id="code">
+<h2>Code<a class="headerlink" href="#code" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ignite.engine</span> <span class="kn">import</span> <span class="n">Events</span><span class="p">,</span> <span class="n">create_supervised_trainer</span><span class="p">,</span> <span class="n">create_supervised_evaluator</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">Net</span><span class="p">()</span>
+<span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span> <span class="o">=</span> <span class="n">get_data_loaders</span><span class="p">(</span><span class="n">train_batch_size</span><span class="p">,</span> <span class="n">val_batch_size</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">))</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">NLLLoss</span><span class="p">()</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">create_supervised_trainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="p">)</span>
+<span class="n">evaluator</span> <span class="o">=</span> <span class="n">create_supervised_evaluator</span><span class="p">(</span><span class="n">model</span><span class="p">,</span>
+                                        <span class="n">metrics</span><span class="o">=</span><span class="p">{</span>
+                                            <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">CategoricalAccuracy</span><span class="p">(),</span>
+                                            <span class="s1">&#39;nll&#39;</span><span class="p">:</span> <span class="n">Loss</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+                                        <span class="p">})</span>
+
+<span class="nd">@trainer.on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">log_training_loss</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Epoch[{}] Loss: {:.2f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">),</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span><span class="p">))</span>
+
+<span class="nd">@trainer.on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">log_training_results</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+    <span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}&quot;</span>
+          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">],</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;nll&#39;</span><span class="p">]))</span>
+
+<span class="nd">@trainer.on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">log_validation_results</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+    <span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">val_loader</span><span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}&quot;</span>
+          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">],</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;nll&#39;</span><span class="p">]))</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Complete code can be found in the file <a class="reference external" href="https://github.com/pytorch/ignite/blob/master/examples/mnist.py">examples/mnist.py</a>.</p>
+</div>
+<div class="section" id="explanation">
+<h2>Explanation<a class="headerlink" href="#explanation" title="Permalink to this headline">¶</a></h2>
+<p>Now let’s break up the code and review it in details. In the first 4 lines we define our model, training and validation
+datasets (as <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.DataLoader</span></code>), optimizer and loss function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">Net</span><span class="p">()</span>
+<span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span> <span class="o">=</span> <span class="n">get_data_loaders</span><span class="p">(</span><span class="n">train_batch_size</span><span class="p">,</span> <span class="n">val_batch_size</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.8</span><span class="p">))</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">NLLLoss</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Next we define trainer and evaluator engines. The main component of Ignite is the <a class="reference internal" href="engine.html#ignite.engine.Engine" title="ignite.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.engine.Engine</span></code></a>, an abstraction over your
+training loop. Getting started with the engine is easy, the constructor only requires one things:</p>
+<ul class="simple">
+<li><cite>update_function</cite>: a function which is passed the engine and a batch and it passes data through and updates your model</li>
+</ul>
+<p>Here we are using helper methods <code class="xref py py-meth docutils literal notranslate"><span class="pre">create_supervised_trainer()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">create_supervised_evaluator()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">create_supervised_trainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="p">)</span>
+<span class="n">evaluator</span> <span class="o">=</span> <span class="n">create_supervised_evaluator</span><span class="p">(</span><span class="n">model</span><span class="p">,</span>
+                                        <span class="n">metrics</span><span class="o">=</span><span class="p">{</span>
+                                            <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">CategoricalAccuracy</span><span class="p">(),</span>
+                                            <span class="s1">&#39;nll&#39;</span><span class="p">:</span> <span class="n">Loss</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+                                        <span class="p">})</span>
+</pre></div>
+</div>
+<p>However, we could also define trainer and evaluator using <code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code>. If we look into the code of
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">create_supervised_trainer()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">create_supervised_evaluator()</span></code>, we can observe a pattern:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_engine</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="c1"># Update function logic</span>
+        <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">Engine</span><span class="p">(</span><span class="n">_update</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>And update functions of the trainer and evaluator are simply:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">_inference</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span>
+</pre></div>
+</div>
+<p>Note that the helper function <code class="xref py py-meth docutils literal notranslate"><span class="pre">create_supervised_evaluator()</span></code> to create an evaluator accepts an
+argument <cite>metrics</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">metrics</span><span class="o">=</span><span class="p">{</span>
+    <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">CategoricalAccuracy</span><span class="p">(),</span>
+    <span class="s1">&#39;nll&#39;</span><span class="p">:</span> <span class="n">Loss</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>where we define two metrics: <em>categorical accuracy</em> and <em>loss</em> to compute on validation dataset. More information on
+metrics can be found at <a class="reference internal" href="metrics.html"><span class="doc">ignite.metrics</span></a>.</p>
+<p>The most interesting part of the code snippet is adding event handlers. <code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code> allows to add handlers on
+various events that fired during the run. When an event is fired, attached handlers (functions) are executed. Thus, for
+logging purposes we added a function to be executed after every iteration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@trainer.on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">log_training_loss</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Epoch[{}] Loss: {:.2f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">),</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>or equivalently without the decorator</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">log_training_loss</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Epoch[{}] Loss: {:.2f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">),</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span><span class="p">))</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="n">log_training_loss</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When an epoch ends we want compute training and validation metrics <a class="footnote-reference" href="#f1" id="id1">[1]</a>. For that purpose we can run previously defined
+<cite>evaluator</cite> on <cite>train_loader</cite> and <cite>val_loader</cite>. Therefore we attach two additional handlers to the trainer on epoch
+complete event:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@trainer.on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">log_training_results</span><span class="p">(</span><span class="n">trainer</span><span class="p">):</span>
+    <span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}&quot;</span>
+          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">],</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;nll&#39;</span><span class="p">]))</span>
+
+<span class="nd">@trainer.on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">log_validation_results</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">val_loader</span><span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}&quot;</span>
+          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">],</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;nll&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Function <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_event_handler()</span></code> (as well as <code class="xref py py-meth docutils literal notranslate"><span class="pre">on()</span></code> decorator) also accepts optional <cite>args</cite>, <cite>kwargs</cite> to be passed
+to the handler. For example:</p>
+<div class="last highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="n">log_training_loss</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Finally, we start the engine on the training dataset and run it during 100 epochs:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="f1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><p class="first">In this example we follow a pattern that requires a second pass through the training set. This
+could be expensive on large datasets (even taking a subset). Another more common pattern is to accumulate
+measures online over an epoch in the training loop. In this case metrics are aggregated on a moving model,
+and thus, we do not want to encourage this pattern. However, if user still would like to implement the
+last pattern, it can be easily done redefining trainer’s update function and attaching metrics as following:</p>
+<div class="last highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_supervised_trainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">loss_fn</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">{},</span> <span class="n">device</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span>
+
+    <span class="k">def</span> <span class="nf">_metrics_transform</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">output</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">_update</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">metric</span><span class="o">.</span><span class="n">_output_transform</span> <span class="o">=</span> <span class="n">_metrics_transform</span>
+        <span class="n">metric</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">engine</span>
+</pre></div>
+</div>
+</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="engine.html" class="btn btn-neutral float-right" title="ignite.engine" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="concepts.html" class="btn btn-neutral" title="Concepts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Torch Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

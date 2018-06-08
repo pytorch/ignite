@@ -1,0 +1,373 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite.metrics &mdash; ignite master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato" type="text/css" />
+  <link rel="stylesheet" href="_static/css/pytorch_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ignite.exceptions" href="exceptions.html" />
+    <link rel="prev" title="ignite.handlers" href="handlers.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master (0.1.0a1 )
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#state">State</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#explanation">Explanation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ignite</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>ignite.metrics</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/metrics.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="ignite-metrics">
+<h1>ignite.metrics<a class="headerlink" href="#ignite-metrics" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="ignite.metrics.BinaryAccuracy">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">BinaryAccuracy</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.BinaryAccuracy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the binary accuracy.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).
+<cite>y_pred</cite> must be in the following shape (batch_size, …) and it’s elements must be between 0 and 1.
+<cite>y</cite> must be in the following shape (batch_size, …)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.CategoricalAccuracy">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">CategoricalAccuracy</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.CategoricalAccuracy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the categorical accuracy.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).
+<cite>y_pred</cite> must be in the following shape (batch_size, num_categories, …)
+<cite>y</cite> must be in the following shape (batch_size, …)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.Loss">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Loss</code><span class="sig-paren">(</span><em>loss_fn</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the average loss according to the passed loss_fn.</p>
+<p><cite>loss_fn</cite> must return the average loss over all observations in the batch.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.MeanAbsoluteError">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanAbsoluteError</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.MeanAbsoluteError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the mean absolute error.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.MeanPairwiseDistance">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanPairwiseDistance</code><span class="sig-paren">(</span><em>p=2</em>, <em>eps=1e-06</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.MeanPairwiseDistance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the mean pairwise distance.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.MeanSquaredError">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanSquaredError</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.MeanSquaredError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the mean squared error.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.Metric">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Metric</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="ignite.metrics.Metric.compute">
+<code class="descname">compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric.compute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the metric based on it’s accumulated state.</p>
+<p>This is called at the end of each epoch.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">the actual quantity of interest</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">Any</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">NotComputableError</span></code> – raised when the metric cannot be computed</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite.metrics.Metric.reset">
+<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets the metric to to it’s initial state.</p>
+<p>This is called at the start of each epoch.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite.metrics.Metric.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the metric’s state using the passed batch output.</p>
+<p>This is called once for each batch.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>output</strong> – the is the output from the engine’s process function</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.Precision">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Precision</code><span class="sig-paren">(</span><em>average=False</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Precision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates precision.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<dl class="docutils">
+<dt>If <cite>average</cite> is True, returns the unweighted average across all classes.</dt>
+<dd>Otherwise, returns a tensor with the precision for each class.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.Recall">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Recall</code><span class="sig-paren">(</span><em>average=False</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Recall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates recall.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<dl class="docutils">
+<dt>If <cite>average</cite> is True, returns the unweighted average across all classes.</dt>
+<dd>Otherwise, returns a tensor with the recall for each class.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.RootMeanSquaredError">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">RootMeanSquaredError</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.RootMeanSquaredError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the root mean squared error.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.metrics.TopKCategoricalAccuracy">
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">TopKCategoricalAccuracy</code><span class="sig-paren">(</span><em>k=5</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.TopKCategoricalAccuracy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the top-k categorical accuracy.</p>
+<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="exceptions.html" class="btn btn-neutral float-right" title="ignite.exceptions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="handlers.html" class="btn btn-neutral" title="ignite.handlers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Torch Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

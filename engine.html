@@ -1,0 +1,404 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite.engine &mdash; ignite master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato" type="text/css" />
+  <link rel="stylesheet" href="_static/css/pytorch_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ignite.handlers" href="handlers.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master (0.1.0a1 )
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#state">State</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#explanation">Explanation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ignite</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>ignite.engine</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/engine.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="ignite-engine">
+<h1>ignite.engine<a class="headerlink" href="#ignite-engine" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="ignite.engine.Engine">
+<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">Engine</code><span class="sig-paren">(</span><em>process_function</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs a given process_function over each batch of a dataset, emitting events as it goes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>process_function</strong> (<em>Callable</em>) – A function receiving a handle to the engine and the current batch
+in each iteration, and returns data to be stored in the engine’s state</td>
+</tr>
+</tbody>
+</table>
+<p>Example usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">train_and_store_loss</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span>
+    <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+<span class="n">engine</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">train_and_store_loss</span><span class="p">)</span>
+<span class="n">engine</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data_loader</span><span class="p">)</span>
+
+<span class="c1"># Loss value is now stored in `engine.state.output`.</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="ignite.engine.Engine.add_event_handler">
+<code class="descname">add_event_handler</code><span class="sig-paren">(</span><em>event_name</em>, <em>handler</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.add_event_handler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an event handler to be executed when the specified event is fired</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>event_name</strong> (<a class="reference internal" href="#ignite.engine.Events" title="ignite.engine.Events"><em>Events</em></a>) – event from ignite.engine.Events to attach the handler to</li>
+<li><strong>handler</strong> (<em>Callable</em>) – the callable event handler that should be invoked</li>
+<li><strong>*args</strong> – optional args to be passed to <cite>handler</cite></li>
+<li><strong>**kwargs</strong> – optional keyword args to be passed to <cite>handler</cite></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The handler function’s first argument will be <cite>self</cite>, the <cite>Engine</cite> object it was bound to.</p>
+<p>Note that other arguments can be passed to the handler in addition to the <cite>*args</cite> and <cite>**kwargs</cite>
+passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
+<p>Example usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">engine</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">process_function</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">print_epoch</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Epoch: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">))</span>
+
+<span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span> <span class="n">print_epoch</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite.engine.Engine.on">
+<code class="descname">on</code><span class="sig-paren">(</span><em>event_name</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator shortcut for add_event_handler</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>event_name</strong> (<a class="reference internal" href="#ignite.engine.Events" title="ignite.engine.Events"><em>Events</em></a>) – event to attach the handler to</li>
+<li><strong>*args</strong> – optional args to be passed to <cite>handler</cite></li>
+<li><strong>**kwargs</strong> – optional keyword args to be passed to <cite>handler</cite></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite.engine.Engine.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>data</em>, <em>max_epochs=1</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the process_function over the passed data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> (<em>Iterable</em>) – Collection of batches allowing repeated iteration (e.g., list or DataLoader)</li>
+<li><strong>max_epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – max epochs to run for (default: 1)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">output state</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#ignite.engine.State" title="ignite.engine.State">State</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite.engine.Engine.terminate">
+<code class="descname">terminate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.terminate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends terminate signal to the engine, so that it terminates after the current iteration</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.engine.Events">
+<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">Events</code><a class="headerlink" href="#ignite.engine.Events" title="Permalink to this definition">¶</a></dt>
+<dd><p>Events that are fired by the <a class="reference internal" href="#ignite.engine.Engine" title="ignite.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.engine.Engine</span></code></a> during execution</p>
+<dl class="attribute">
+<dt id="ignite.engine.Events.COMPLETED">
+<code class="descname">COMPLETED</code><em class="property"> = 'completed'</em><a class="headerlink" href="#ignite.engine.Events.COMPLETED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.engine.Events.EPOCH_COMPLETED">
+<code class="descname">EPOCH_COMPLETED</code><em class="property"> = 'epoch_completed'</em><a class="headerlink" href="#ignite.engine.Events.EPOCH_COMPLETED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.engine.Events.EPOCH_STARTED">
+<code class="descname">EPOCH_STARTED</code><em class="property"> = 'epoch_started'</em><a class="headerlink" href="#ignite.engine.Events.EPOCH_STARTED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.engine.Events.EXCEPTION_RAISED">
+<code class="descname">EXCEPTION_RAISED</code><em class="property"> = 'exception_raised'</em><a class="headerlink" href="#ignite.engine.Events.EXCEPTION_RAISED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.engine.Events.ITERATION_COMPLETED">
+<code class="descname">ITERATION_COMPLETED</code><em class="property"> = 'iteration_completed'</em><a class="headerlink" href="#ignite.engine.Events.ITERATION_COMPLETED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.engine.Events.ITERATION_STARTED">
+<code class="descname">ITERATION_STARTED</code><em class="property"> = 'iteration_started'</em><a class="headerlink" href="#ignite.engine.Events.ITERATION_STARTED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="ignite.engine.Events.STARTED">
+<code class="descname">STARTED</code><em class="property"> = 'started'</em><a class="headerlink" href="#ignite.engine.Events.STARTED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite.engine.State">
+<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">State</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.State" title="Permalink to this definition">¶</a></dt>
+<dd><p>An object that is used to pass internal and user-defined state between event handlers</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="handlers.html" class="btn btn-neutral float-right" title="ignite.handlers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="quickstart.html" class="btn btn-neutral" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Torch Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
