@@ -37,7 +37,7 @@ From source:
 
 Documentation
 =============
-API documentation and an overview of the library coming soon.
+API documentation and an overview of the library can be found `here <https://pytorch.org/ignite/index.html>`_.
 
 Examples
 ========
