@@ -10,6 +10,13 @@ Ignite
 
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
+- ignite helps you write compact but full-featured training loops in a few lines of code
+- you get a training loop with metrics, early-stopping, model checkpointing and other features without the boilerplate
+
+Here's an example to convince you ignite is useful:
+
+.. image:: ignite_vs_bare_pytorch.png
+
 
 Installation
 ============
