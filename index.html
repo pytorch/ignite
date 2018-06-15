@@ -54,7 +54,7 @@
 
           
             
-            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+            <img src="_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
           
           </a>
 
@@ -62,7 +62,7 @@
             
             
               <div class="version">
-                master (0.1.0a1 )
+                master (0.1.0 )
               </div>
             
           
@@ -172,8 +172,17 @@
             
   <div class="section" id="ignite-documentation">
 <h1>Ignite Documentation<a class="headerlink" href="#ignite-documentation" title="Permalink to this headline">¶</a></h1>
-<p><a class="reference internal" href="#module-ignite" title="ignite"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ignite</span></code></a> is a high-level library to help with training neural networks in
-PyTorch.</p>
+<p><a class="reference internal" href="#module-ignite" title="ignite"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ignite</span></code></a> is a high-level library to help with training neural networks in PyTorch.</p>
+<ul class="simple">
+<li>ignite helps you write compact but full-featured training loops in a few lines of code</li>
+<li>you get a training loop with metrics, early-stopping, model checkpointing and other features without the boilerplate</li>
+</ul>
+<p>Below we show a side-by-side comparison of using pure pytorch and using ignite to create a training loop
+to train and validate your model with occasional checkpointing:</p>
+<img alt="https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png" src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png" />
+<p>As you can see, the code is more concise and readable with ignite. Furthermore, adding additional metrics, or
+things like early stopping is a breeze in ignite, but can start to rapidly increase the complexity of
+your code when “rolling your own” training loop.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>

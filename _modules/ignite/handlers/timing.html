@@ -1,0 +1,377 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite.handlers.timing &mdash; ignite master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/pytorch_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html">
+          
+
+          
+            
+            <img src="../../../_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master (0.1.0 )
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#state">State</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#explanation">Explanation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../exceptions.html">ignite.exceptions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ignite</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite.handlers.timing</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ignite.handlers.timing</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">ignite.engine</span> <span class="k">import</span> <span class="n">Events</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">perf_counter</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span> <span class="k">as</span> <span class="n">perf_counter</span>
+
+
+<div class="viewcode-block" id="Timer"><a class="viewcode-back" href="../../../handlers.html#ignite.handlers.Timer">[docs]</a><span class="k">class</span> <span class="nc">Timer</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; Timer object can be used to measure (average) time between events.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        average (bool, optional): if True, then when ``.value()`` method is called, the returned value</span>
+<span class="sd">            will be equal to total time measured, divided by the value of internal counter.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        total (float): total time elapsed when the Timer was running (in seconds)</span>
+<span class="sd">        step_count (int): internal counter, usefull to measure average time, e.g. of processing a single batch.</span>
+<span class="sd">            Incremented with the ``.step()`` method.</span>
+<span class="sd">        running (bool): flag indicating if timer is measuring time.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        When using ``Timer(average=True)`` do not forget to call ``timer.step()`` everytime an event occurs. See</span>
+<span class="sd">        the examples below.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        Measuring total time of the epoch:</span>
+
+<span class="sd">        &gt;&gt;&gt; from ignite.handlers import Timer</span>
+<span class="sd">        &gt;&gt;&gt; import time</span>
+<span class="sd">        &gt;&gt;&gt; work = lambda : time.sleep(0.1)</span>
+<span class="sd">        &gt;&gt;&gt; idle = lambda : time.sleep(0.1)</span>
+<span class="sd">        &gt;&gt;&gt; t = Timer(average=False)</span>
+<span class="sd">        &gt;&gt;&gt; for _ in range(10):</span>
+<span class="sd">        ...    work()</span>
+<span class="sd">        ...    idle()</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; t.value()</span>
+<span class="sd">        2.003073937026784</span>
+
+<span class="sd">        Measuring average time of the epoch:</span>
+
+<span class="sd">        &gt;&gt;&gt; t = Timer(average=True)</span>
+<span class="sd">        &gt;&gt;&gt; for _ in range(10):</span>
+<span class="sd">        ...    work()</span>
+<span class="sd">        ...    idle()</span>
+<span class="sd">        ...    t.step()</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; t.value()</span>
+<span class="sd">        0.2003182829997968</span>
+
+<span class="sd">        Measuring average time it takes to execute a single ``work()`` call</span>
+
+<span class="sd">        &gt;&gt;&gt; t = Timer(average=True)</span>
+<span class="sd">        &gt;&gt;&gt; for _ in range(10):</span>
+<span class="sd">        ...    t.resume()</span>
+<span class="sd">        ...    work()</span>
+<span class="sd">        ...    t.pause()</span>
+<span class="sd">        ...    idle()</span>
+<span class="sd">        ...    t.step()</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; t.value()</span>
+<span class="sd">        0.10016545779653825</span>
+
+<span class="sd">        Using the Timer to measure average time it takes to process a single batch of examples</span>
+
+<span class="sd">        &gt;&gt;&gt; from ignite.engine import Engine, Events</span>
+<span class="sd">        &gt;&gt;&gt; from ignite.handlers import Timer</span>
+<span class="sd">        &gt;&gt;&gt; trainer = Engine(training_update_function)</span>
+<span class="sd">        &gt;&gt;&gt; timer = Timer(average=True)</span>
+<span class="sd">        &gt;&gt;&gt; timer.attach(trainer,</span>
+<span class="sd">        ...              start=Events.EPOCH_STARTED,</span>
+<span class="sd">        ...              resume=Events.ITERATION_STARTED,</span>
+<span class="sd">        ...              pause=Events.ITERATION_COMPLETED,</span>
+<span class="sd">        ...              step=Events.ITERATION_COMPLETED)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_average</span> <span class="o">=</span> <span class="n">average</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_t0</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Timer.attach"><a class="viewcode-back" href="../../../handlers.html#ignite.handlers.Timer.attach">[docs]</a>    <span class="k">def</span> <span class="nf">attach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">,</span> <span class="n">pause</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Register callbacks to control the timer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            engine (ignite.engine.Engine):</span>
+<span class="sd">                Engine that this timer will be attached to</span>
+<span class="sd">            start (ignite.engine.Events):</span>
+<span class="sd">                Event which should start (reset) the timer</span>
+<span class="sd">            pause (ignite.engine.Events):</span>
+<span class="sd">                Event which should pause the timer</span>
+<span class="sd">            resume (ignite.engine.Events, optional):</span>
+<span class="sd">                Event which should resume the timer</span>
+<span class="sd">            step (ignite.engine.Events, optional):</span>
+<span class="sd">                Event which should call the `step` method of the counter</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            self (Timer)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">)</span>
+        <span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">pause</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pause</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">resume</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">resume</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">resume</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_average</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">pause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elapsed</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">resume</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_t0</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elapsed</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average</span><span class="p">:</span>
+            <span class="n">denominator</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step_count</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">denominator</span> <span class="o">=</span> <span class="mf">1.</span>
+
+        <span class="k">return</span> <span class="n">total</span> <span class="o">/</span> <span class="n">denominator</span>
+
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">+=</span> <span class="mf">1.</span>
+
+    <span class="k">def</span> <span class="nf">_elapsed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t0</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Torch Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

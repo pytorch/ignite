@@ -55,7 +55,7 @@
 
           
             
-            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+            <img src="_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
           
           </a>
 
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                master (0.1.0a1 )
+                master (0.1.0 )
               </div>
             
           
@@ -175,7 +175,7 @@
 <h1>ignite.engine<a class="headerlink" href="#ignite-engine" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="ignite.engine.Engine">
-<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">Engine</code><span class="sig-paren">(</span><em>process_function</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">Engine</code><span class="sig-paren">(</span><em>process_function</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine/engine.html#Engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.Engine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs a given process_function over each batch of a dataset, emitting events as it goes.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -204,7 +204,7 @@ in each iteration, and returns data to be stored in the engine’s state</td>
 </div>
 <dl class="method">
 <dt id="ignite.engine.Engine.add_event_handler">
-<code class="descname">add_event_handler</code><span class="sig-paren">(</span><em>event_name</em>, <em>handler</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.add_event_handler" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_event_handler</code><span class="sig-paren">(</span><em>event_name</em>, <em>handler</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine/engine.html#Engine.add_event_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.Engine.add_event_handler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add an event handler to be executed when the specified event is fired</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -237,7 +237,7 @@ passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
 
 <dl class="method">
 <dt id="ignite.engine.Engine.on">
-<code class="descname">on</code><span class="sig-paren">(</span><em>event_name</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.on" title="Permalink to this definition">¶</a></dt>
+<code class="descname">on</code><span class="sig-paren">(</span><em>event_name</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine/engine.html#Engine.on"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.Engine.on" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorator shortcut for add_event_handler</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -256,7 +256,7 @@ passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
 
 <dl class="method">
 <dt id="ignite.engine.Engine.run">
-<code class="descname">run</code><span class="sig-paren">(</span><em>data</em>, <em>max_epochs=1</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.run" title="Permalink to this definition">¶</a></dt>
+<code class="descname">run</code><span class="sig-paren">(</span><em>data</em>, <em>max_epochs=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine/engine.html#Engine.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.Engine.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs the process_function over the passed data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -280,7 +280,7 @@ passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
 
 <dl class="method">
 <dt id="ignite.engine.Engine.terminate">
-<code class="descname">terminate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.Engine.terminate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">terminate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine/engine.html#Engine.terminate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.Engine.terminate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sends terminate signal to the engine, so that it terminates after the current iteration</p>
 </dd></dl>
 
@@ -288,7 +288,7 @@ passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
 
 <dl class="class">
 <dt id="ignite.engine.Events">
-<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">Events</code><a class="headerlink" href="#ignite.engine.Events" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">Events</code><a class="reference internal" href="_modules/ignite/engine/engine.html#Events"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.Events" title="Permalink to this definition">¶</a></dt>
 <dd><p>Events that are fired by the <a class="reference internal" href="#ignite.engine.Engine" title="ignite.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.engine.Engine</span></code></a> during execution</p>
 <dl class="attribute">
 <dt id="ignite.engine.Events.COMPLETED">
@@ -329,7 +329,7 @@ passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
 
 <dl class="class">
 <dt id="ignite.engine.State">
-<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">State</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.engine.State" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">State</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine/engine.html#State"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.State" title="Permalink to this definition">¶</a></dt>
 <dd><p>An object that is used to pass internal and user-defined state between event handlers</p>
 </dd></dl>
 

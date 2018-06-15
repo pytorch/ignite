@@ -55,7 +55,7 @@
 
           
             
-            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+            <img src="_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
           
           </a>
 
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                master (0.1.0a1 )
+                master (0.1.0 )
               </div>
             
           
@@ -210,7 +210,7 @@ the run:</p>
 <li><em>epoch is started/completed</em></li>
 <li><em>batch iteration is started/completed</em></li>
 </ul>
-<p>Complete list of events can be found <a class="reference external" href="https://github.com/pytorch/ignite/blob/master/ignite/engine/engine.py#L8">here</a>.</p>
+<p>Complete list of events can be found <a class="reference external" href="https://github.com/pytorch/ignite/blob/master/ignite/engine/engine.py#L13">here</a>.</p>
 <p>Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when <code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.run()</span></code> is called:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fire_event</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">)</span>
 <span class="k">while</span> <span class="n">epoch</span> <span class="o">&lt;</span> <span class="n">max_epochs</span><span class="p">:</span>
