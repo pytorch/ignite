@@ -26,7 +26,7 @@ requirements = ['enum34', 'torch']
 
 setup(
     # Metadata
-    name='ignite',
+    name='pytorch-ignite',
     version=VERSION,
     author='PyTorch Core Team',
     author_email='soumith@pytorch.org',
