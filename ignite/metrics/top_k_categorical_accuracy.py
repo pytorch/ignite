@@ -10,7 +10,7 @@ class TopKCategoricalAccuracy(Metric):
     """
     Calculates the top-k categorical accuracy.
 
-    `update` must receive output of the form (y_pred, y).
+    - `update` must receive output of the form `(y_pred, y)`.
     """
     def __init__(self, k=5, output_transform=lambda x: x):
         super(TopKCategoricalAccuracy, self).__init__(output_transform)

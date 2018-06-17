@@ -11,10 +11,10 @@ class Recall(Metric):
     """
     Calculates recall.
 
-    `update` must receive output of the form (y_pred, y).
+    - `update` must receive output of the form `(y_pred, y)`.
 
     If `average` is True, returns the unweighted average across all classes.
-        Otherwise, returns a tensor with the recall for each class.
+    Otherwise, returns a tensor with the recall for each class.
     """
     def __init__(self, average=False, output_transform=lambda x: x):
         super(Recall, self).__init__(output_transform)

@@ -10,7 +10,7 @@ class MeanAbsoluteError(Metric):
     """
     Calculates the mean absolute error.
 
-    `update` must receive output of the form (y_pred, y).
+    - `update` must receive output of the form `(y_pred, y)`.
     """
     def reset(self):
         self._sum_of_absolute_errors = 0.0
