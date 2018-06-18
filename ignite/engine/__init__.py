@@ -22,6 +22,9 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None):
     Returns:
         Engine: a trainer engine with supervised update function
     """
+    if device:
+        model.to(device)
+
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
@@ -47,6 +50,9 @@ def create_supervised_evaluator(model, metrics={}, device=None):
     Returns:
         Engine: an evaluator engine with supervised inference function
     """
+    if device:
+        model.to(device)
+
     def _inference(engine, batch):
         model.eval()
         with torch.no_grad():
