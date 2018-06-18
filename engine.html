@@ -286,6 +286,59 @@ passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
 
 </dd></dl>
 
+<span class="target" id="module-ignite.engine"></span><dl class="function">
+<dt id="ignite.engine.create_supervised_evaluator">
+<code class="descclassname">ignite.engine.</code><code class="descname">create_supervised_evaluator</code><span class="sig-paren">(</span><em>model</em>, <em>metrics={}</em>, <em>device=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine.html#create_supervised_evaluator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.create_supervised_evaluator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factory function for creating an evaluator for supervised models</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<cite>torch.nn.Module</cite>) – the model to train</li>
+<li><strong>metrics</strong> (dict of str - <a class="reference internal" href="metrics.html#ignite.metrics.Metric" title="ignite.metrics.Metric"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.metrics.Metric</span></code></a>) – a map of metric names to Metrics</li>
+<li><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – device type specification (default: None).
+Applies to both model and batches.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">an evaluator engine with supervised inference function</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#ignite.engine.Engine" title="ignite.engine.Engine">Engine</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite.engine.create_supervised_trainer">
+<code class="descclassname">ignite.engine.</code><code class="descname">create_supervised_trainer</code><span class="sig-paren">(</span><em>model</em>, <em>optimizer</em>, <em>loss_fn</em>, <em>device=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/engine.html#create_supervised_trainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.create_supervised_trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factory function for creating a trainer for supervised models</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<cite>torch.nn.Module</cite>) – the model to train</li>
+<li><strong>optimizer</strong> (<cite>torch.optim.Optimizer</cite>) – the optimizer to use</li>
+<li><strong>loss_fn</strong> (<em>torch.nn loss function</em>) – the loss function to use</li>
+<li><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – device type specification (default: None).
+Applies to both model and batches.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a trainer engine with supervised update function</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#ignite.engine.Engine" title="ignite.engine.Engine">Engine</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="ignite.engine.Events">
 <em class="property">class </em><code class="descclassname">ignite.engine.</code><code class="descname">Events</code><a class="reference internal" href="_modules/ignite/engine/engine.html#Events"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.engine.Events" title="Permalink to this definition">¶</a></dt>
