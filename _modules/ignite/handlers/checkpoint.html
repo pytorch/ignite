@@ -1,0 +1,408 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite.handlers.checkpoint &mdash; ignite master documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/pytorch_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html">
+          
+
+          
+            
+            <img src="../../../_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master (0.1.0 )
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../concepts.html#state">State</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#explanation">Explanation</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../exceptions.html">ignite.exceptions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ignite</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite.handlers.checkpoint</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ignite.handlers.checkpoint</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+
+<div class="viewcode-block" id="ModelCheckpoint"><a class="viewcode-back" href="../../../handlers.html#ignite.handlers.ModelCheckpoint">[docs]</a><span class="k">class</span> <span class="nc">ModelCheckpoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; ModelCheckpoint handler can be used to periodically save objects to disk.</span>
+
+<span class="sd">    This handler accepts two arguments:</span>
+
+<span class="sd">        - an `ignite.engine.Engine` object</span>
+<span class="sd">        - a `dict` mapping names (`str`) to objects that should be saved to disk.</span>
+
+<span class="sd">    See Notes and Examples for further details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dirname (str):</span>
+<span class="sd">            Directory path where objects will be saved</span>
+<span class="sd">        filename_prefix (str):</span>
+<span class="sd">            Prefix for the filenames to which objects will be saved. See Notes</span>
+<span class="sd">            for more details.</span>
+<span class="sd">        save_interval (int, optional):</span>
+<span class="sd">            if not None, objects will be saved to disk every `save_interval` calls to the handler.</span>
+<span class="sd">            Exactly one of (`save_interval`, `score_function`) arguments must be provided.</span>
+<span class="sd">        score_function (Callable, optional):</span>
+<span class="sd">            if not None, it should be a function taking a single argument,</span>
+<span class="sd">            an `ignite.engine.Engine` object,</span>
+<span class="sd">            and return a score (`float`). Objects with highest scores will be retained.</span>
+<span class="sd">            Exactly one of (`save_interval`, `score_function`) arguments must be provided.</span>
+<span class="sd">        score_name (str, optional):</span>
+<span class="sd">            if `score_function` not None, it is possible to store its absolute value using `score_name`. See Notes for</span>
+<span class="sd">            more details.</span>
+<span class="sd">        n_saved (int, optional):</span>
+<span class="sd">            Number of objects that should be kept on disk. Older files will be removed.</span>
+<span class="sd">        atomic (bool, optional):</span>
+<span class="sd">            If True, objects are serialized to a temporary file,</span>
+<span class="sd">            and then moved to final destination, so that files are</span>
+<span class="sd">            guaranteed to not be damaged (for example if exception occures during saving).</span>
+<span class="sd">        require_empty (bool, optional):</span>
+<span class="sd">            If True, will raise exception if there are any files starting with `filename_prefix`</span>
+<span class="sd">            in the directory &#39;dirname&#39;</span>
+<span class="sd">        create_dir (bool, optional):</span>
+<span class="sd">            If True, will create directory &#39;dirname&#39; if it doesnt exist.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">          This handler expects two arguments: an `Engine` object and a `dict`</span>
+<span class="sd">          mapping names to objects that should be saved.</span>
+
+<span class="sd">          These names are used to specify filenames for saved objects.</span>
+<span class="sd">          Each filename has the following structure:</span>
+<span class="sd">          `{filename_prefix}_{name}_{step_number}.pth`.</span>
+<span class="sd">          Here, `filename_prefix` is the argument passed to the constructor,</span>
+<span class="sd">          `name` is the key in the aforementioned `dict`, and `step_number`</span>
+<span class="sd">          is incremented by `1` with every call to the handler.</span>
+
+<span class="sd">          If `score_function` is provided, user can store its absolute value using `score_name` in the filename.</span>
+<span class="sd">          Each filename can have the following structure:</span>
+<span class="sd">          `{filename_prefix}_{name}_{step_number}_{score_name}={abs(score_function_result)}.pth`.</span>
+<span class="sd">          For example, `score_name=&quot;val_loss&quot;` and `score_function` that returns `-loss` (as objects with highest scores</span>
+<span class="sd">          will be retained), then saved models filenames will be `model_resnet_10_val_loss=0.1234.pth`.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import os</span>
+<span class="sd">        &gt;&gt;&gt; from ignite.engine import Engine, Events</span>
+<span class="sd">        &gt;&gt;&gt; from ignite.handlers import ModelCheckpoint</span>
+<span class="sd">        &gt;&gt;&gt; from torch import nn</span>
+<span class="sd">        &gt;&gt;&gt; trainer = Engine(lambda batch: None)</span>
+<span class="sd">        &gt;&gt;&gt; handler = ModelCheckpoint(&#39;/tmp/models&#39;, &#39;myprefix&#39;, save_interval=2, n_saved=2, create_dir=True)</span>
+<span class="sd">        &gt;&gt;&gt; model = nn.Linear(3, 3)</span>
+<span class="sd">        &gt;&gt;&gt; trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, {&#39;mymodel&#39;: model})</span>
+<span class="sd">        &gt;&gt;&gt; trainer.run([0], max_epochs=6)</span>
+<span class="sd">        &gt;&gt;&gt; os.listdir(&#39;/tmp/models&#39;)</span>
+<span class="sd">        [&#39;myprefix_mymodel_4.pth&#39;, &#39;myprefix_mymodel_6.pth&#39;]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dirname</span><span class="p">,</span> <span class="n">filename_prefix</span><span class="p">,</span>
+                 <span class="n">save_interval</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">score_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">score_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">n_saved</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">atomic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">require_empty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">create_dir</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">save_as_state_dict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dirname</span> <span class="o">=</span> <span class="n">dirname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fname_prefix</span> <span class="o">=</span> <span class="n">filename_prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_saved</span> <span class="o">=</span> <span class="n">n_saved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval</span> <span class="o">=</span> <span class="n">save_interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span> <span class="o">=</span> <span class="n">score_function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_score_name</span> <span class="o">=</span> <span class="n">score_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atomic</span> <span class="o">=</span> <span class="n">atomic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_saved</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># list of tuples (priority, saved_objects)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_as_state_dict</span> <span class="o">=</span> <span class="n">save_as_state_dict</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">save_interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="o">^</span> <span class="p">(</span><span class="n">score_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Exactly one of `save_interval`, or `score_function` &quot;</span>
+                             <span class="s2">&quot;arguments must be provided.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">score_function</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">score_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;If `score_name` is provided, then `score_function` &quot;</span>
+                             <span class="s2">&quot;should be also provided&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">create_dir</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dirname</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+
+        <span class="c1"># Ensure that dirname exists</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dirname</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Directory path &#39;</span><span class="si">{}</span><span class="s2">&#39; is not found&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dirname</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">require_empty</span><span class="p">:</span>
+            <span class="n">matched</span> <span class="o">=</span> <span class="p">[</span><span class="n">fname</span>
+                       <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+                       <span class="k">if</span> <span class="n">fname</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname_prefix</span><span class="p">)]</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Files prefixed with </span><span class="si">{}</span><span class="s2"> are already present &quot;</span>
+                                 <span class="s2">&quot;in the directory </span><span class="si">{}</span><span class="s2">. If you want to use this &quot;</span>
+                                 <span class="s2">&quot;directory anyway, pass `require_empty=False`. &quot;</span>
+                                 <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename_prefix</span><span class="p">,</span> <span class="n">dirname</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atomic</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_internal_save</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dirname</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_internal_save</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">tmp</span><span class="o">.</span><span class="n">file</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+                <span class="n">tmp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tmp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_internal_save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_as_state_dict</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;state_dict&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">state_dict</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Object should have `state_dict` method&quot;</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">to_save</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_save</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No objects to checkpoint found.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">priority</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">priority</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_saved</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_saved</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_saved</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">priority</span><span class="p">):</span>
+            <span class="n">saved_objs</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">=</span><span class="si">{:.7}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_score_name</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">priority</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">to_save</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}{}</span><span class="s1">.pth&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname_prefix</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dirname</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">obj</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+                <span class="n">saved_objs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_saved</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">priority</span><span class="p">,</span> <span class="n">saved_objs</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_saved</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_saved</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_saved</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saved</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Torch Contributors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'master',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

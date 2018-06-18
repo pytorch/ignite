@@ -55,7 +55,7 @@
 
           
             
-            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+            <img src="_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
           
           </a>
 
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                master (0.1.0a1 )
+                master (0.1.0 )
               </div>
             
           
@@ -175,57 +175,69 @@
 <h1>ignite.metrics<a class="headerlink" href="#ignite-metrics" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="ignite.metrics.BinaryAccuracy">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">BinaryAccuracy</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.BinaryAccuracy" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">BinaryAccuracy</code><span class="sig-paren">(</span><em>output_transform=&lt;function Metric.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/binary_accuracy.html#BinaryAccuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.BinaryAccuracy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the binary accuracy.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).
-<cite>y_pred</cite> must be in the following shape (batch_size, …) and it’s elements must be between 0 and 1.
-<cite>y</cite> must be in the following shape (batch_size, …)</p>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+<li><cite>y_pred</cite> must be in the following shape (batch_size, …) and it’s elements must be between 0 and 1.</li>
+<li><cite>y</cite> must be in the following shape (batch_size, …)</li>
+</ul>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.CategoricalAccuracy">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">CategoricalAccuracy</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.CategoricalAccuracy" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">CategoricalAccuracy</code><span class="sig-paren">(</span><em>output_transform=&lt;function Metric.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/categorical_accuracy.html#CategoricalAccuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.CategoricalAccuracy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the categorical accuracy.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).
-<cite>y_pred</cite> must be in the following shape (batch_size, num_categories, …)
-<cite>y</cite> must be in the following shape (batch_size, …)</p>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+<li><cite>y_pred</cite> must be in the following shape (batch_size, num_categories, …)</li>
+<li><cite>y</cite> must be in the following shape (batch_size, …)</li>
+</ul>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.Loss">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Loss</code><span class="sig-paren">(</span><em>loss_fn</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Loss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Loss</code><span class="sig-paren">(</span><em>loss_fn</em>, <em>output_transform=&lt;function Loss.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/loss.html#Loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.Loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the average loss according to the passed loss_fn.</p>
-<p><cite>loss_fn</cite> must return the average loss over all observations in the batch.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<ul class="simple">
+<li><cite>loss_fn</cite> must return the average loss over all observations in the batch.</li>
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+</ul>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.MeanAbsoluteError">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanAbsoluteError</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.MeanAbsoluteError" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanAbsoluteError</code><span class="sig-paren">(</span><em>output_transform=&lt;function Metric.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/mean_absolute_error.html#MeanAbsoluteError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.MeanAbsoluteError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the mean absolute error.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+</ul>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.MeanPairwiseDistance">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanPairwiseDistance</code><span class="sig-paren">(</span><em>p=2</em>, <em>eps=1e-06</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.MeanPairwiseDistance" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanPairwiseDistance</code><span class="sig-paren">(</span><em>p=2</em>, <em>eps=1e-06</em>, <em>output_transform=&lt;function MeanPairwiseDistance.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/mean_pairwise_distance.html#MeanPairwiseDistance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.MeanPairwiseDistance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the mean pairwise distance.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+</ul>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.MeanSquaredError">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanSquaredError</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.MeanSquaredError" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">MeanSquaredError</code><span class="sig-paren">(</span><em>output_transform=&lt;function Metric.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/mean_squared_error.html#MeanSquaredError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.MeanSquaredError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the mean squared error.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+</ul>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.Metric">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Metric</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Metric</code><span class="sig-paren">(</span><em>output_transform=&lt;function Metric.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#Metric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.Metric" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="ignite.metrics.Metric.compute">
-<code class="descname">compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric.compute" title="Permalink to this definition">¶</a></dt>
+<code class="descname">compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#Metric.compute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.Metric.compute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the metric based on it’s accumulated state.</p>
 <p>This is called at the end of each epoch.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -244,14 +256,14 @@
 
 <dl class="method">
 <dt id="ignite.metrics.Metric.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric.reset" title="Permalink to this definition">¶</a></dt>
+<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#Metric.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.Metric.reset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resets the metric to to it’s initial state.</p>
 <p>This is called at the start of each epoch.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="ignite.metrics.Metric.update">
-<code class="descname">update</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Metric.update" title="Permalink to this definition">¶</a></dt>
+<code class="descname">update</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#Metric.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.Metric.update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the metric’s state using the passed batch output.</p>
 <p>This is called once for each batch.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -268,38 +280,42 @@
 
 <dl class="class">
 <dt id="ignite.metrics.Precision">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Precision</code><span class="sig-paren">(</span><em>average=False</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Precision" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Precision</code><span class="sig-paren">(</span><em>average=False</em>, <em>output_transform=&lt;function Precision.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/precision.html#Precision"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.Precision" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates precision.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
-<dl class="docutils">
-<dt>If <cite>average</cite> is True, returns the unweighted average across all classes.</dt>
-<dd>Otherwise, returns a tensor with the precision for each class.</dd>
-</dl>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+</ul>
+<p>If <cite>average</cite> is True, returns the unweighted average across all classes.
+Otherwise, returns a tensor with the precision for each class.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.Recall">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Recall</code><span class="sig-paren">(</span><em>average=False</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.Recall" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">Recall</code><span class="sig-paren">(</span><em>average=False</em>, <em>output_transform=&lt;function Recall.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/recall.html#Recall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.Recall" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates recall.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
-<dl class="docutils">
-<dt>If <cite>average</cite> is True, returns the unweighted average across all classes.</dt>
-<dd>Otherwise, returns a tensor with the recall for each class.</dd>
-</dl>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+</ul>
+<p>If <cite>average</cite> is True, returns the unweighted average across all classes.
+Otherwise, returns a tensor with the recall for each class.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.RootMeanSquaredError">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">RootMeanSquaredError</code><span class="sig-paren">(</span><em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.RootMeanSquaredError" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">RootMeanSquaredError</code><span class="sig-paren">(</span><em>output_transform=&lt;function Metric.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/root_mean_squared_error.html#RootMeanSquaredError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.RootMeanSquaredError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the root mean squared error.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form (y_pred, y).</li>
+</ul>
 </dd></dl>
 
 <dl class="class">
 <dt id="ignite.metrics.TopKCategoricalAccuracy">
-<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">TopKCategoricalAccuracy</code><span class="sig-paren">(</span><em>k=5</em>, <em>output_transform=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.metrics.TopKCategoricalAccuracy" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.metrics.</code><code class="descname">TopKCategoricalAccuracy</code><span class="sig-paren">(</span><em>k=5</em>, <em>output_transform=&lt;function TopKCategoricalAccuracy.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/top_k_categorical_accuracy.html#TopKCategoricalAccuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.metrics.TopKCategoricalAccuracy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the top-k categorical accuracy.</p>
-<p><cite>update</cite> must receive output of the form (y_pred, y).</p>
+<ul class="simple">
+<li><cite>update</cite> must receive output of the form <cite>(y_pred, y)</cite>.</li>
+</ul>
 </dd></dl>
 
 </div>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Search &mdash; ignite master documentation</title>
+  <title>ignite.exceptions &mdash; ignite master documentation</title>
   
 
   
@@ -24,15 +24,15 @@
 
   
 
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato" type="text/css" />
-  <link rel="stylesheet" href="_static/css/pytorch_theme.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="#" /> 
+  <link rel="stylesheet" href="../../_static/css/pytorch_theme.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
 
   
-  <script src="_static/js/modernizr.min.js"></script>
+  <script src="../../_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -48,12 +48,12 @@
           
 
           
-            <a href="index.html">
+            <a href="../../index.html">
           
 
           
             
-            <img src="_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
+            <img src="../../_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
           
           </a>
 
@@ -68,7 +68,7 @@
 
           
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="#" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -87,24 +87,24 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="concepts.html#engine">Engine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="concepts.html#events-and-handlers">Events and Handlers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="concepts.html#state">State</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts.html#state">State</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#code">Code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#explanation">Explanation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#explanation">Explanation</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption"><span class="caption-text">Package Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
-<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exceptions.html">ignite.exceptions</a></li>
 </ul>
 
             
@@ -119,7 +119,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">ignite</a>
+          <a href="../../index.html">ignite</a>
         
       </nav>
 
@@ -148,14 +148,14 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
         
-      <li>Search</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite.exceptions</li>
     
     
       <li class="wy-breadcrumbs-aside">
-        
-            
         
       </li>
     
@@ -167,19 +167,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <noscript>
-  <div id="fallback" class="admonition warning">
-    <p class="last">
-      Please activate JavaScript to enable the search
-      functionality.
-    </p>
-  </div>
-  </noscript>
-
-  
-  <div id="search-results">
-  
-  </div>
+  <h1>Source code for ignite.exceptions</h1><div class="highlight"><pre>
+<div class="viewcode-block" id="NotComputableError"><a class="viewcode-back" href="../../exceptions.html#ignite.exceptions.NotComputableError">[docs]</a><span></span><span class="k">class</span> <span class="nc">NotComputableError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception class to raise if Metric cannot be computed.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+</pre></div>
 
            </div>
            
@@ -212,7 +205,7 @@
 
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
+            URL_ROOT:'../../',
             VERSION:'master',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
@@ -221,28 +214,20 @@
             SOURCELINK_SUFFIX: '.txt'
         };
     </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-      <script type="text/javascript" src="_static/searchtools.js"></script>
 
   
 
-  <script type="text/javascript" src="_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-  <script type="text/javascript">
-    jQuery(function() { Search.loadIndex("searchindex.js"); });
-  </script>
-  
-  <script type="text/javascript" id="searchindexloader"></script>
-   
-
+  </script> 
 
 </body>
 </html>

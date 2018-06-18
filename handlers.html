@@ -55,7 +55,7 @@
 
           
             
-            <img src="_static/pytorch-logo-dark.svg" class="logo" alt="Logo"/>
+            <img src="_static/ignite-logo-dark.svg" class="logo" alt="Logo"/>
           
           </a>
 
@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                master (0.1.0a1 )
+                master (0.1.0 )
               </div>
             
           
@@ -175,7 +175,7 @@
 <h1>ignite.handlers<a class="headerlink" href="#ignite-handlers" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="ignite.handlers.ModelCheckpoint">
-<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">ModelCheckpoint</code><span class="sig-paren">(</span><em>dirname</em>, <em>filename_prefix</em>, <em>save_interval=None</em>, <em>score_function=None</em>, <em>score_name=None</em>, <em>n_saved=1</em>, <em>atomic=True</em>, <em>require_empty=True</em>, <em>create_dir=True</em>, <em>save_as_state_dict=False</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.ModelCheckpoint" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">ModelCheckpoint</code><span class="sig-paren">(</span><em>dirname</em>, <em>filename_prefix</em>, <em>save_interval=None</em>, <em>score_function=None</em>, <em>score_name=None</em>, <em>n_saved=1</em>, <em>atomic=True</em>, <em>require_empty=True</em>, <em>create_dir=True</em>, <em>save_as_state_dict=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/handlers/checkpoint.html#ModelCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.handlers.ModelCheckpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>ModelCheckpoint handler can be used to periodically save objects to disk.</p>
 <p>This handler accepts two arguments:</p>
 <blockquote>
@@ -245,7 +245,7 @@ will be retained), then saved models filenames will be <cite>model_resnet_10_val
 
 <dl class="class">
 <dt id="ignite.handlers.EarlyStopping">
-<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">EarlyStopping</code><span class="sig-paren">(</span><em>patience</em>, <em>score_function</em>, <em>trainer</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.EarlyStopping" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">EarlyStopping</code><span class="sig-paren">(</span><em>patience</em>, <em>score_function</em>, <em>trainer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/handlers/early_stopping.html#EarlyStopping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.handlers.EarlyStopping" title="Permalink to this definition">¶</a></dt>
 <dd><p>EarlyStopping handler can be used to stop the training if no improvement after a given number of events</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -276,7 +276,7 @@ and return a score <cite>float</cite>. An improvement is considered if the score
 
 <dl class="class">
 <dt id="ignite.handlers.Timer">
-<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">Timer</code><span class="sig-paren">(</span><em>average=False</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.Timer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">ignite.handlers.</code><code class="descname">Timer</code><span class="sig-paren">(</span><em>average=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/handlers/timing.html#Timer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.handlers.Timer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Timer object can be used to measure (average) time between events.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -362,7 +362,7 @@ the examples below.</p>
 </div>
 <dl class="method">
 <dt id="ignite.handlers.Timer.attach">
-<code class="descname">attach</code><span class="sig-paren">(</span><em>engine</em>, <em>start=&lt;Events.STARTED: 'started'&gt;</em>, <em>pause=&lt;Events.COMPLETED: 'completed'&gt;</em>, <em>resume=None</em>, <em>step=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.Timer.attach" title="Permalink to this definition">¶</a></dt>
+<code class="descname">attach</code><span class="sig-paren">(</span><em>engine</em>, <em>start=&lt;Events.STARTED: 'started'&gt;</em>, <em>pause=&lt;Events.COMPLETED: 'completed'&gt;</em>, <em>resume=None</em>, <em>step=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/handlers/timing.html#Timer.attach"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite.handlers.Timer.attach" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register callbacks to control the timer.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
