@@ -14,10 +14,10 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None):
     Factory function for creating a trainer for supervised models
 
     Args:
-        model (torch.nn.Module): the model to train
-        optimizer (torch.optim.Optimizer): the optimizer to use
+        model (`torch.nn.Module`): the model to train
+        optimizer (`torch.optim.Optimizer`): the optimizer to use
         loss_fn (torch.nn loss function): the loss function to use
-        device (optional): device type specification (default: None)
+        device (str, optional): device type specification (default: None).
             Applies to both model and batches.
 
     Returns:
@@ -44,9 +44,9 @@ def create_supervised_evaluator(model, metrics={}, device=None):
     Factory function for creating an evaluator for supervised models
 
     Args:
-        model (torch.nn.Module): the model to train
-        metrics (dict of str: Metric): a map of metric names to Metrics
-        device (optional): device type specification (default: None)
+        model (`torch.nn.Module`): the model to train
+        metrics (dict of str - :class:`ignite.metrics.Metric`): a map of metric names to Metrics
+        device (str, optional): device type specification (default: None).
             Applies to both model and batches.
 
     Returns:
