@@ -18,10 +18,14 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None):
         optimizer (torch.optim.Optimizer): the optimizer to use
         loss_fn (torch.nn loss function): the loss function to use
         device (optional): device type specification (default: None)
+            Applies to both model and batches.
 
     Returns:
         Engine: a trainer engine with supervised update function
     """
+    if device:
+        model.to(device)
+
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
@@ -43,10 +47,14 @@ def create_supervised_evaluator(model, metrics={}, device=None):
         model (torch.nn.Module): the model to train
         metrics (dict of str: Metric): a map of metric names to Metrics
         device (optional): device type specification (default: None)
+            Applies to both model and batches.
 
     Returns:
         Engine: an evaluator engine with supervised inference function
     """
+    if device:
+        model.to(device)
+
     def _inference(engine, batch):
         model.eval()
         with torch.no_grad():
