@@ -400,8 +400,29 @@ def test_create_supervised_trainer():
     assert model.bias.item() == approx(0.8)
 
 
+def test_create_supervised_trainer_with_cpu():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device='cpu')
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+    state = trainer.run(data)
+
+    assert state.output == approx(17.0)
+    assert model.weight.data[0, 0].item() == approx(1.3)
+    assert model.bias.item() == approx(0.8)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_with_cuda():
+def test_create_supervised_trainer_on_cuda():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()
@@ -445,8 +466,31 @@ def test_create_supervised():
     assert model.bias.item() == approx(0.0)
 
 
+def test_create_supervised_on_cpu():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    evaluator = create_supervised_evaluator(model, device='cpu')
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    state = evaluator.run(data)
+    y_pred, y = state.output
+
+    assert y_pred[0, 0].item() == approx(0.0)
+    assert y_pred[1, 0].item() == approx(0.0)
+    assert y[0, 0].item() == approx(3.0)
+    assert y[1, 0].item() == approx(5.0)
+
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_with_cuda():
+def test_create_supervised_on_cuda():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()
