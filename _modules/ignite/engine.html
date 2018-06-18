@@ -184,10 +184,10 @@
 <span class="sd">    Factory function for creating a trainer for supervised models</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model (torch.nn.Module): the model to train</span>
-<span class="sd">        optimizer (torch.optim.Optimizer): the optimizer to use</span>
+<span class="sd">        model (`torch.nn.Module`): the model to train</span>
+<span class="sd">        optimizer (`torch.optim.Optimizer`): the optimizer to use</span>
 <span class="sd">        loss_fn (torch.nn loss function): the loss function to use</span>
-<span class="sd">        device (optional): device type specification (default: None)</span>
+<span class="sd">        device (str, optional): device type specification (default: None).</span>
 <span class="sd">            Applies to both model and batches.</span>
 
 <span class="sd">    Returns:</span>
@@ -214,9 +214,9 @@
 <span class="sd">    Factory function for creating an evaluator for supervised models</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model (torch.nn.Module): the model to train</span>
-<span class="sd">        metrics (dict of str: Metric): a map of metric names to Metrics</span>
-<span class="sd">        device (optional): device type specification (default: None)</span>
+<span class="sd">        model (`torch.nn.Module`): the model to train</span>
+<span class="sd">        metrics (dict of str - :class:`ignite.metrics.Metric`): a map of metric names to Metrics</span>
+<span class="sd">        device (str, optional): device type specification (default: None).</span>
 <span class="sd">            Applies to both model and batches.</span>
 
 <span class="sd">    Returns:</span>

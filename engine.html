@@ -295,9 +295,9 @@ passed here, for example during <cite>Events.EXCEPTION_RAISED</cite>.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>model</strong> (<em>torch.nn.Module</em>) – the model to train</li>
-<li><strong>(</strong><strong>dict of str</strong> (<em>metrics</em>) – Metric): a map of metric names to Metrics</li>
-<li><strong>device</strong> (<em>optional</em>) – device type specification (default: None)
+<li><strong>model</strong> (<cite>torch.nn.Module</cite>) – the model to train</li>
+<li><strong>metrics</strong> (dict of str - <a class="reference internal" href="metrics.html#ignite.metrics.Metric" title="ignite.metrics.Metric"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.metrics.Metric</span></code></a>) – a map of metric names to Metrics</li>
+<li><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – device type specification (default: None).
 Applies to both model and batches.</li>
 </ul>
 </td>
@@ -321,10 +321,10 @@ Applies to both model and batches.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>model</strong> (<em>torch.nn.Module</em>) – the model to train</li>
-<li><strong>optimizer</strong> (<em>torch.optim.Optimizer</em>) – the optimizer to use</li>
+<li><strong>model</strong> (<cite>torch.nn.Module</cite>) – the model to train</li>
+<li><strong>optimizer</strong> (<cite>torch.optim.Optimizer</cite>) – the optimizer to use</li>
 <li><strong>loss_fn</strong> (<em>torch.nn loss function</em>) – the loss function to use</li>
-<li><strong>device</strong> (<em>optional</em>) – device type specification (default: None)
+<li><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – device type specification (default: None).
 Applies to both model and batches.</li>
 </ul>
 </td>
