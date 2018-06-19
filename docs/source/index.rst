@@ -16,6 +16,34 @@ things like early stopping is a breeze in ignite, but can start to rapidly incre
 your code when "rolling your own" training loop.
 
 
+Installation
+============
+
+From pip:
+
+.. code:: bash
+
+    pip install pytorch-ignite
+
+
+From conda:
+
+.. code:: bash
+
+    conda install ignite -c pytorch
+
+
+From source:
+
+You can clone the source from `github <https://github.com/pytorch/ignite>`_ and run
+
+.. code:: bash
+
+    python setup.py install
+
+
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Notes
