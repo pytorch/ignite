@@ -43,9 +43,28 @@ after_success:
   # be published.
   - codecov || echo "codecov upload failed"
 
+  # requirements to build the docs
+  - pip install -r docs/requirements.txt
+  # Build docs
+  - cd docs && make html
+
+
 matrix:
   include:
     - env: LINT_CHECK
       python: "2.7"
       install: pip install flake8
       script: flake8
+      after_success: # Should be empty
+      deploy: # Should be empty
+
+
+# GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
+deploy:
+  provider: pages
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+  keep-history: true
+  local_dir: docs/build/html/
+  on:
+    branch: master
