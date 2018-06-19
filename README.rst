@@ -37,7 +37,7 @@ From conda:
 
 .. code:: bash
 
-    conda install pytorch-ignite -c pytorch
+    conda install ignite -c pytorch
 
 
 From source:
