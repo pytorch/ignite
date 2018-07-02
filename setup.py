@@ -22,7 +22,7 @@ readme = read('README.rst')
 
 VERSION = find_version('ignite', '__init__.py')
 
-requirements = ['enum34', 'torch']
+requirements = ['enum34;python_version<"3.4"', 'torch']
 
 setup(
     # Metadata
@@ -36,7 +36,7 @@ setup(
     license='BSD',
 
     # Package info
-    packages=find_packages(exclude=('tests',)),
+    packages=find_packages(exclude=('tests', 'tests.*',)),
 
     zip_safe=True,
     install_requires=requirements,
