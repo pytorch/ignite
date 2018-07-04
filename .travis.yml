@@ -3,6 +3,11 @@ python:
   - "2.7"
   - "3.5"
 
+stages:
+  - lint_check
+  - test
+  - docs
+
 install:
   - sudo apt-get update
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -43,9 +48,34 @@ after_success:
   # be published.
   - codecov || echo "codecov upload failed"
 
-matrix:
+jobs:
   include:
-    - env: LINT_CHECK
+    - stage: lint_check
       python: "2.7"
       install: pip install flake8
       script: flake8
+      after_success: # Nothing to do
+
+
+    # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
+    - stage: docs
+      python: "3.5"
+      install:
+        # Minimal install : ignite and dependencies just to build the docs
+        - pip install -r docs/requirements.txt
+        - pip install http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-linux_x86_64.whl
+        # `pip install .` vs `python setup.py install` : 1st works better to produce _module/ignite with source links
+        - pip install .
+      script:
+        - cd docs && make html
+        # Create .nojekyll file to serve correctly _static and friends
+        - touch build/html/.nojekyll
+      after_success: # Nothing to do
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+        keep-history: false
+        local_dir: docs/build/html
+        on:
+          branch: master
