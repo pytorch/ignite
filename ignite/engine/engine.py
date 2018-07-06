@@ -63,6 +63,7 @@ class Engine(object):
         self._logger.addHandler(logging.NullHandler())
         self._process_function = process_function
         self.should_terminate = False
+        self.should_terminate_single_epoch = False
         self.state = None
 
         if self._process_function is None:
@@ -154,10 +155,17 @@ class Engine(object):
                 func(self, *(event_args + args), **kwargs)
 
     def terminate(self):
-        """Sends terminate signal to the engine, so that it terminates after the current iteration
+        """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration
         """
         self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
         self.should_terminate = True
+
+    def terminate_epoch(self):
+        """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration
+        """
+        self._logger.info("Terminate current epoch is signaled. "
+                          "Current epoch iteration will stop after current iteration is finished")
+        self.should_terminate_single_epoch = True
 
     def _run_once_on_dataset(self):
         start_time = time.time()
@@ -169,7 +177,8 @@ class Engine(object):
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
-                if self.should_terminate:
+                if self.should_terminate or self.should_terminate_single_epoch:
+                    self.should_terminate_single_epoch = False
                     break
 
         except BaseException as e:

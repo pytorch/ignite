@@ -339,6 +339,23 @@ def test_terminate_stops_run_mid_epoch():
     assert state.epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
 
 
+def test_terminate_epoch_stops_mid_epoch():
+    num_iterations_per_epoch = 10
+    iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 3rd epoch
+    engine = Engine(MagicMock(return_value=1))
+
+    def start_of_iteration_handler(engine):
+        if engine.state.iteration == iteration_to_stop:
+            engine.terminate_epoch()
+
+    max_epochs = 3
+    engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
+    state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs)
+    # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
+    assert state.iteration == num_iterations_per_epoch * (max_epochs - 1) + \
+        iteration_to_stop % num_iterations_per_epoch
+
+
 def _create_mock_data_loader(epochs, batches_per_epoch):
     batches = [MagicMock()] * batches_per_epoch
     data_loader_manager = MagicMock()
