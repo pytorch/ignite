@@ -325,7 +325,7 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration():
 
 def test_terminate_stops_run_mid_epoch():
     num_iterations_per_epoch = 10
-    iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 3rd epoch
+    iteration_to_stop = num_iterations_per_epoch + 3
     engine = Engine(MagicMock(return_value=1))
 
     def start_of_iteration_handler(engine):
@@ -341,7 +341,7 @@ def test_terminate_stops_run_mid_epoch():
 
 def test_terminate_epoch_stops_mid_epoch():
     num_iterations_per_epoch = 10
-    iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 3rd epoch
+    iteration_to_stop = num_iterations_per_epoch + 3
     engine = Engine(MagicMock(return_value=1))
 
     def start_of_iteration_handler(engine):
