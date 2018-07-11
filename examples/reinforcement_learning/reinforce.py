@@ -1,6 +1,4 @@
 import argparse
-from itertools import count
-from collections import namedtuple
 
 import numpy as np
 
@@ -19,56 +17,47 @@ except ImportError:
 from ignite.engine import Engine, Events
 
 
-SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
-
-
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
         self.affine1 = nn.Linear(4, 128)
-        self.action_head = nn.Linear(128, 2)
-        self.value_head = nn.Linear(128, 1)
+        self.affine2 = nn.Linear(128, 2)
 
-        self.saved_actions = []
+        self.saved_log_probs = []
         self.rewards = []
 
     def forward(self, x):
         x = F.relu(self.affine1(x))
-        action_scores = self.action_head(x)
-        state_values = self.value_head(x)
-        return F.softmax(action_scores, dim=-1), state_values
+        action_scores = self.affine2(x)
+        return F.softmax(action_scores, dim=1)
 
 
 def select_action(model, observation):
-    observation = torch.from_numpy(observation).float()
-    probs, observation_value = model(observation)
+    state = torch.from_numpy(observation).float().unsqueeze(0)
+    probs = model(state)
     m = Categorical(probs)
     action = m.sample()
-    model.saved_actions.append(SavedAction(m.log_prob(action), observation_value))
+    model.saved_log_probs.append(m.log_prob(action))
     return action.item()
 
 
 def finish_episode(model, optimizer, gamma, eps):
     R = 0
-    saved_actions = model.saved_actions
-    policy_losses = []
-    value_losses = []
+    policy_loss = []
     rewards = []
     for r in model.rewards[::-1]:
         R = r + gamma * R
         rewards.insert(0, R)
     rewards = torch.tensor(rewards)
     rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
-    for (log_prob, value), r in zip(saved_actions, rewards):
-        reward = r - value.item()
-        policy_losses.append(-log_prob * reward)
-        value_losses.append(F.smooth_l1_loss(value, torch.tensor([r])))
+    for log_prob, reward in zip(model.saved_log_probs, rewards):
+        policy_loss.append(-log_prob * reward)
     optimizer.zero_grad()
-    loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
-    loss.backward()
+    policy_loss = torch.cat(policy_loss).sum()
+    policy_loss.backward()
     optimizer.step()
     del model.rewards[:]
-    del model.saved_actions[:]
+    del model.saved_log_probs[:]
 
 
 EPISODE_STARTED = Events.EPOCH_STARTED
@@ -78,11 +67,11 @@ EPISODE_COMPLETED = Events.EPOCH_COMPLETED
 def main(env, args):
 
     model = Policy()
-    optimizer = optim.Adam(model.parameters(), lr=3e-2)
+    optimizer = optim.Adam(model.parameters(), lr=1e-2)
     eps = np.finfo(np.float32).eps.item()
     timesteps = list(range(10000))
 
-    def run_single_timestep(engine, _):
+    def run_single_timestep(engine, timestep):
         observation = engine.state.observation
         action = select_action(model, observation)
         engine.state.observation, reward, done, _ = env.step(action)
@@ -92,7 +81,7 @@ def main(env, args):
 
         if done:
             engine.terminate_epoch()
-            engine.state.timestep = engine.state.iteration % len(timesteps)
+            engine.state.timestep = timestep
 
     trainer = Engine(run_single_timestep)
 
@@ -125,20 +114,22 @@ def main(env, args):
                   "the last episode runs to {} time steps!".format(running_reward, engine.state.timestep))
             engine.should_terminate = True
 
-    trainer.run(timesteps, max_epochs=1000000)
+    trainer.run(timesteps, max_epochs=args.max_episodes)
 
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Ignite actor-critic example')
+    parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                         help='discount factor (default: 0.99)')
     parser.add_argument('--seed', type=int, default=543, metavar='N',
-                        help='random seed (default: 1)')
+                        help='random seed (default: 543)')
     parser.add_argument('--render', action='store_true',
                         help='render the environment')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='interval between training status logs (default: 10)')
+    parser.add_argument('--max-episodes', type=int, default=1000000, metavar='N',
+                        help='Number of episodes for the training (default: 1000000)')
     args = parser.parse_args()
 
     env = gym.make('CartPole-v0')
