@@ -71,59 +71,54 @@ def finish_episode(model, optimizer, gamma, eps):
     del model.saved_actions[:]
 
 
+EPISODE_STARTED = Events.EPOCH_STARTED
+EPISODE_COMPLETED = Events.EPOCH_COMPLETED
+
+
 def main(env, args):
 
     model = Policy()
     optimizer = optim.Adam(model.parameters(), lr=3e-2)
     eps = np.finfo(np.float32).eps.item()
+    timesteps = list(range(10000))
 
     def run_single_timestep(engine, _):
-        # Hack to avoid to run a single step when episode is done
-        # As ignite does not have a possibility to terminate earlier an epoch without stopping the training
-        if engine.state.done:
-            return
-
         observation = engine.state.observation
         action = select_action(model, observation)
-        engine.state.observation, reward, engine.state.done, _ = env.step(action)
+        engine.state.observation, reward, done, _ = env.step(action)
         if args.render:
             env.render()
         model.rewards.append(reward)
 
-        if engine.state.done:
-            # Here we need just to stop `_run_once_on_dataset` and not `run`
-            # engine.should_terminate = True
+        if done:
+            engine.terminate_epoch()
             engine.state.timestep = engine.state.iteration % len(timesteps)
-            pass
 
     trainer = Engine(run_single_timestep)
-
-    timesteps = list(range(10000))
 
     @trainer.on(Events.STARTED)
     def initialize(engine):
         engine.state.running_reward = 10
 
-    @trainer.on(Events.EPOCH_STARTED)
+    @trainer.on(EPISODE_STARTED)
     def reset_environment_state(engine):
         engine.state.observation = env.reset()
-        engine.state.done = False
 
-    @trainer.on(Events.EPOCH_COMPLETED)
+    @trainer.on(EPISODE_COMPLETED)
     def update_model(engine):
         t = engine.state.timestep
         engine.state.running_reward = engine.state.running_reward * 0.99 + t * 0.01
         finish_episode(model, optimizer, args.gamma, eps)
 
-    @trainer.on(Events.EPOCH_COMPLETED)
+    @trainer.on(EPISODE_COMPLETED)
     def log_episode(engine):
         i_episode = engine.state.epoch
         if i_episode % args.log_interval == 0:
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, engine.state.timestep, engine.state.running_reward))
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def finish_training(engine):
+    @trainer.on(EPISODE_COMPLETED)
+    def should_finish_training(engine):
         running_reward = engine.state.running_reward
         if running_reward > env.spec.reward_threshold:
             print("Solved! Running reward is now {} and "
