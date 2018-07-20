@@ -4,8 +4,6 @@ from ignite.engine import Events
 
 
 class Metric(object):
-    __metaclass__ = ABCMeta
-
     """
     Base class for all Metrics.
 
@@ -14,10 +12,29 @@ class Metric(object):
 
     Args:
         output_transform (callable): a callable that is used to transform the
-            model's output into the form expected by the metric. This can be
-            useful if, for example, you have a multi-output model and you want to
-            compute the metric with respect to one of the outputs.
+            :class:`ignite.engine.Engine` `process_function`'s output into the
+            form expected by the metric.
+            This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+
+    Example with `output_transform`:
+
+        .. code-block:: python
+
+            def process_function(engine, batch):
+                # ...
+                return {'y_pred': y_pred, 'y_true': y, ...}
+
+            def output_transform(output):
+                # `output` variable is returned by above `process_function`
+                y_pred = output['y_pred']
+                y = output['y_true']
+                return y_pred, y  # output format is according to `CategoricalAccuracy` docs
+
+            metric = CategoricalAccuracy(output_transform=output_transform)
     """
+    __metaclass__ = ABCMeta
+
     def __init__(self, output_transform=lambda x: x):
         self._output_transform = output_transform
         self.reset()
