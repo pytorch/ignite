@@ -7,9 +7,6 @@ class Metric(object):
     """
     Base class for all Metrics.
 
-    Metrics provide a way to compute various quantities of interest in an online
-    fashion without having to store the entire output history of a model.
-
     Args:
         output_transform (callable): a callable that is used to transform the
             :class:`ignite.engine.Engine` `process_function`'s output into the
@@ -17,21 +14,6 @@ class Metric(object):
             This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
 
-    Example with `output_transform`:
-
-        .. code-block:: python
-
-            def process_function(engine, batch):
-                # ...
-                return {'y_pred': y_pred, 'y_true': y, ...}
-
-            def output_transform(output):
-                # `output` variable is returned by above `process_function`
-                y_pred = output['y_pred']
-                y = output['y_true']
-                return y_pred, y  # output format is according to `CategoricalAccuracy` docs
-
-            metric = CategoricalAccuracy(output_transform=output_transform)
     """
     __metaclass__ = ABCMeta
 
