@@ -45,7 +45,7 @@ Code
     trainer.run(train_loader, max_epochs=100)
 
 
-Complete code can be found in the file `examples/mnist.py <https://github.com/pytorch/ignite/blob/master/examples/mnist.py>`_.
+Complete code can be found in the file `examples/mnist/mnist.py <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py>`_.
 
 Explanation
 -----------
