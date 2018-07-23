@@ -4,8 +4,8 @@ ignite.metrics
 Metrics provide a way to compute various quantities of interest in an online
 fashion without having to store the entire output history of a model.
 
-In practice user needs to attach metric instance to engine. Metric value is
-computed using engine's output:
+In practice a user needs to attach the metric instance to an engine. The metric
+value is then computed using the output of the engine's `process_function`:
 
     .. code-block:: python
 
@@ -17,7 +17,8 @@ computed using engine's output:
         metric = CategoricalAccuracy()
         metric.attach(engine, "accuracy")
 
-If engine's output is not in the format `y_pred, y`, user can use `output_transform`:
+If the engine's output is not in the format `y_pred, y`, the user can
+use the `output_transform` argument to transform it:
 
     .. code-block:: python
 
