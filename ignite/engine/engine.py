@@ -5,6 +5,8 @@ import time
 from collections import defaultdict
 from enum import Enum
 
+import torch
+
 from ignite._utils import _to_hours_mins_secs
 
 IS_PYTHON2 = sys.version_info[0] < 3
@@ -210,22 +212,24 @@ class Engine(object):
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:
-            self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
-            start_time = time.time()
-            self._fire_event(Events.STARTED)
-            while self.state.epoch < max_epochs and not self.should_terminate:
-                self.state.epoch += 1
-                self._fire_event(Events.EPOCH_STARTED)
-                hours, mins, secs = self._run_once_on_dataset()
-                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
-                if self.should_terminate:
-                    break
-                self._fire_event(Events.EPOCH_COMPLETED)
+            with torch.autograd.detect_anomaly():
+                self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
+                start_time = time.time()
+                self._fire_event(Events.STARTED)
+                while self.state.epoch < max_epochs and not self.should_terminate:
+                    self.state.epoch += 1
+                    self._fire_event(Events.EPOCH_STARTED)
+                    hours, mins, secs = self._run_once_on_dataset()
+                    self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d",
+                                      self.state.epoch, hours, mins, secs)
+                    if self.should_terminate:
+                        break
+                    self._fire_event(Events.EPOCH_COMPLETED)
 
-            self._fire_event(Events.COMPLETED)
-            time_taken = time.time() - start_time
-            hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+                self._fire_event(Events.COMPLETED)
+                time_taken = time.time() - start_time
+                hours, mins, secs = _to_hours_mins_secs(time_taken)
+                self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
             self._logger.error("Engine run is terminating due to exception: %s", str(e))
