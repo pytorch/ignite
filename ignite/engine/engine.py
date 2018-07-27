@@ -39,6 +39,8 @@ class Engine(object):
     Args:
         process_function (Callable): A function receiving a handle to the engine and the current batch
             in each iteration, and returns data to be stored in the engine's state
+        detect_anomaly (bool, optional): Set detect anomaly using
+            `torch.autograd.set_detect_anomaly <https://pytorch.org/docs/stable/autograd.html#anomaly-detection>`_
 
     Example usage:
 
@@ -59,7 +61,7 @@ class Engine(object):
         # Loss value is now stored in `engine.state.output`.
 
     """
-    def __init__(self, process_function):
+    def __init__(self, process_function, detect_anomaly=True):
         self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
@@ -67,6 +69,7 @@ class Engine(object):
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self.detect_anomaly = detect_anomaly
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
@@ -212,7 +215,7 @@ class Engine(object):
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:
-            with torch.autograd.detect_anomaly():
+            with torch.autograd.set_detect_anomaly(self.detect_anomaly):
                 self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
                 start_time = time.time()
                 self._fire_event(Events.STARTED)
