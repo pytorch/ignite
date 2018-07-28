@@ -3,7 +3,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
-from enum import Enum
+from enum import Enum, auto
 
 from ignite._utils import _to_hours_mins_secs
 
@@ -12,13 +12,13 @@ IS_PYTHON2 = sys.version_info[0] < 3
 
 class Events(Enum):
     """Events that are fired by the :class:`ignite.engine.Engine` during execution"""
-    EPOCH_STARTED = "epoch_started"
-    EPOCH_COMPLETED = "epoch_completed"
-    STARTED = "started"
-    COMPLETED = "completed"
-    ITERATION_STARTED = "iteration_started"
-    ITERATION_COMPLETED = "iteration_completed"
-    EXCEPTION_RAISED = "exception_raised"
+    EPOCH_STARTED = auto()
+    EPOCH_COMPLETED = auto()
+    STARTED = auto()
+    COMPLETED = auto()
+    ITERATION_STARTED = auto()
+    ITERATION_COMPLETED = auto()
+    EXCEPTION_RAISED = auto()
 
 
 class State(object):
