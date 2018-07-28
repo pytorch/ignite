@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from enum import Enum, auto
+from enum import Enum
 import collections
 
 from ignite.contrib.events import add_events
@@ -15,8 +15,8 @@ class Tbptt_Events(Enum):
     trainer.
     """
 
-    TIME_ITERATION_STARTED = auto()
-    TIME_ITERATION_COMPLETED = auto()
+    TIME_ITERATION_STARTED = "time_iteration_started"
+    TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
 
 def _prepare_tbptt_batch(batch, tbptt_step, dim=0, device=None):
