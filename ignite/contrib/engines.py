@@ -3,9 +3,8 @@
 from enum import Enum
 import collections
 
-from ignite.contrib.events import add_events
 from ignite._utils import convert_tensor
-import ignite.engine
+from ignite.engine import Engine
 
 
 class Tbptt_Events(Enum):
@@ -67,8 +66,6 @@ def create_supervised_tbptt_trainer(
     Returns:
         Engine: a trainer engine with supervised update function
     """
-    # Add necessary events to the Engine core
-    add_events(Tbptt_Events)
 
     if device:
         model.to(device)
@@ -83,7 +80,7 @@ def create_supervised_tbptt_trainer(
         )
         for x_t, y_t in batch_splits:
             # Fire event for start of iteration
-            engine._fire_event(ignite.engine.Events.TIME_ITERATION_STARTED)
+            engine._fire_event(Tbptt_Events.TIME_ITERATION_STARTED)
 
             # Forward, backward and
             model.train()
@@ -102,9 +99,9 @@ def create_supervised_tbptt_trainer(
             loss_list.append(loss_t.item())
 
             # Fire event for end of iteration
-            engine._fire_event(ignite.engine.Events.TIME_ITERATION_STARTED)
+            engine._fire_event(Tbptt_Events.TIME_ITERATION_STARTED)
 
             # return average loss over the time splits
             return sum(loss_list) / len(loss_list)
 
-    return ignite.engine.Engine(_update)
+    return Engine(_update, Tbptt_Events)
