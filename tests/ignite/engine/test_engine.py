@@ -150,6 +150,32 @@ def test_args_and_kwargs_are_passed_to_event():
         assert handler_kwargs == kwargs
 
 
+def test_custom_events():
+    class Custom_Events(Enum):
+        TEST_EVENT = "test_event"
+
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0, Custom_Events)
+
+    # Handle is never called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert not handle.called
+
+    # Advanced engine
+    def process_func(engine, batch):
+        engine._fire_event(Custom_Events.TEST_EVENT)
+
+    engine = Engine(process_func, Custom_Events)
+
+    # Handle should be called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert handle.called
+
+
 def test_on_decorator_raises_with_invalid_event():
     engine = DummyEngine()
     with pytest.raises(ValueError):

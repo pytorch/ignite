@@ -37,9 +37,9 @@ class Engine(object):
     Args:
         process_function (Callable): A function receiving a handle to the engine and the current batch
             in each iteration, and returns data to be stored in the engine's state
-        events (Enum, optional): Additional events that can be fired. Use this
-            arg to add user-defined events. Firing those events is the responsability
-            of the user written code.
+        additional_events (Enum, optional): Additional events that can be fired.
+            Use this arg to add user-defined events. Firing those events is the
+            responsability of the user written code.
 
     Example usage:
 
@@ -60,7 +60,7 @@ class Engine(object):
         # Loss value is now stored in `engine.state.output`.
 
     """
-    def __init__(self, process_function, events=None):
+    def __init__(self, process_function, additional_events=None):
         self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
@@ -74,7 +74,7 @@ class Engine(object):
 
         self._check_signature(process_function, 'process_function', None)
 
-        self._additional_events = events
+        self._additional_events = additional_events
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
