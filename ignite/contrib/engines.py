@@ -50,9 +50,20 @@ def create_supervised_tbptt_trainer(
     dim=0,
     device=None
 ):
-    """
-    Factory function for creating a trainer for truncated backpropagation
-    through time supervised models.
+    """Create a trainer for truncated backprop through time supervised models.
+
+    Training recurrent model on long sequences is computationally intensive as
+    it requires to process the whole sequence before getting a gradient.
+    However, when the training loss is computed over many outputs
+    ([X to many](https://karpathy.github.io/2015/05/21/rnn-effectiveness/)),
+    there is an opportunity to compute a gradient over a subsequence. This is
+    known as
+    [truncated backpropagation through time](
+    https://machinelearningmastery.com/gentle-introduction-backpropagation-time/
+    ).
+    This supervised trainer apply gradient optimization step every `tbtt_step`
+    time steps of the sequence, while backpropagating through the same
+    `tbtt_step` time steps.
 
     Args:
         model (`torch.nn.Module`): the model to train
@@ -81,7 +92,6 @@ def create_supervised_tbptt_trainer(
         for x_t, y_t in batch_splits:
             # Fire event for start of iteration
             engine._fire_event(Tbptt_Events.TIME_ITERATION_STARTED)
-
             # Forward, backward and
             model.train()
             optimizer.zero_grad()
@@ -99,9 +109,9 @@ def create_supervised_tbptt_trainer(
             loss_list.append(loss_t.item())
 
             # Fire event for end of iteration
-            engine._fire_event(Tbptt_Events.TIME_ITERATION_STARTED)
+            engine._fire_event(Tbptt_Events.TIME_ITERATION_COMPLETED)
 
-            # return average loss over the time splits
-            return sum(loss_list) / len(loss_list)
+        # return average loss over the time splits
+        return sum(loss_list) / len(loss_list)
 
     return Engine(_update, Tbptt_Events)
