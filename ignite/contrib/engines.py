@@ -1,7 +1,8 @@
 # coding: utf-8
 
 from enum import Enum
-import collections
+
+import torch
 
 from ignite._utils import convert_tensor
 from ignite.engine import Engine
@@ -36,10 +37,12 @@ def _detach_hidden(hidden):
     Auxillary function to cut the backpropagation graph by detaching the hidden
     vector.
     """
-    if isinstance(hidden, collections.Iterable):
+    if isinstance(hidden, torch.Tensor):
+        return hidden.detach()
+    elif isinstance(hidden, tuple):
         return tuple(h.detach() for h in hidden)
     else:
-        return hidden.detach()
+        raise ValueError("Incorrect hidden vector type: " + repr(type(hidden)))
 
 
 def create_supervised_tbptt_trainer(
