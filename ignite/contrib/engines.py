@@ -76,8 +76,8 @@ def create_supervised_tbptt_trainer(
 
     Returns:
         Engine: a trainer engine with supervised update function
-    """
 
+    """
     if device:
         model.to(device)
 

@@ -55,6 +55,7 @@ def _test_create_supervised_tbptt_trainer(device):
     # should stay zero
     assert not model.weight_hh_l0.item() == pytest.approx(0)
 
+
 def test_create_supervised_tbptt_trainer_with_cpu():
     _test_create_supervised_tbptt_trainer("cpu")
 
