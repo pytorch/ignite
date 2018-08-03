@@ -56,12 +56,12 @@ def train(args):
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255))
     ])
-    
+
     if args.dataset == 'cifar10':
         train_dataset = datasets.CIFAR10(root='/tmp/cifar10', train=True, download=True, transform=transform)
     else:
         train_dataset = datasets.ImageFolder(args.dataset, transform)
-    
+
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     transformer = TransformerNet().to(device)
@@ -78,7 +78,7 @@ def train(args):
     else:
         imarray = np.random.rand(256, 256, 3).astype('uint8')
         style = Image.fromarray(imarray)
-        
+
     style = style_transform(style)
 
     style = style.repeat(args.batch_size, 1, 1, 1).to(device)
@@ -240,9 +240,9 @@ def main():
     train_arg_parser.add_argument("--checkpoint_model_dir", type=str, default='/tmp/checkpoints',
                                   help="path to folder where checkpoints of trained models will be saved")
     train_arg_parser.add_argument("--checkpoint_interval", type=int, default=1,
-                                  help="number of batches after which a checkpoint of the trained model will be created")
+                                  help="number of batches after which a checkpoint of trained model will be created")
     train_arg_parser.add_argument("--stylized_test_dir", type=str, default='/tmp/images/stylized_test',
-                                  help="path to folder where stylized test image will be saved at the end of each epoch")
+                                  help="path to folder where stylized test image will be saved at end of each epoch")
     train_arg_parser.add_argument("--image_size", type=int, default=32,
                                   help="size of training images, default is 256 X 256")
     train_arg_parser.add_argument("--style_size", type=int, default=None,
