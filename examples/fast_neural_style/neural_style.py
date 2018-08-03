@@ -57,8 +57,8 @@ def train(args):
         transforms.Lambda(lambda x: x.mul(255))
     ])
 
-    if args.dataset == 'cifar10':
-        train_dataset = datasets.CIFAR10(root='/tmp/cifar10', train=True, download=True, transform=transform)
+    if args.dataset == 'test':
+        train_dataset = datasets.FakeData(size=1000, image_size=(3, 32, 32), num_classes=1, transform=transform)
     else:
         train_dataset = datasets.ImageFolder(args.dataset, transform)
 
@@ -73,10 +73,10 @@ def train(args):
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255))
     ])
-    if args.style_image != 'random':
+    if args.style_image != 'test':
         style = utils.load_image(args.style_image, size=args.style_size)
     else:
-        imarray = np.random.rand(256, 256, 3).astype('uint8')
+        imarray = np.random.rand(32, 32, 3).astype('uint8')
         style = Image.fromarray(imarray)
 
     style = style_transform(style)
@@ -176,10 +176,10 @@ def train(args):
     def stylize_image(engine):
         path = os.path.join(args.stylized_test_dir, STYLIZED_IMG_FNAME.format(engine.state.epoch))
 
-        if args.test_image != 'random':
+        if args.test_image != 'test':
             content_image = utils.load_image(args.test_image, scale=None)
         else:
-            imarray = np.random.rand(256, 256, 3).astype('uint8')
+            imarray = np.random.rand(32, 32, 3).astype('uint8')
             content_image = Image.fromarray(imarray)
 
         content_transform = transforms.Compose([
@@ -202,10 +202,10 @@ def train(args):
 def stylize(args):
     device = torch.device("cuda" if args.cuda else "cpu")
 
-    if args.content_image != 'random':
+    if args.content_image != 'test':
         content_image = utils.load_image(args.content_image, scale=args.content_scale)
     else:
-        imarray = np.random.rand(256, 256, 3).astype('uint8')
+        imarray = np.random.rand(32, 32, 3).astype('uint8')
         content_image = Image.fromarray(imarray)
 
     content_transform = transforms.Compose([
@@ -230,12 +230,12 @@ def main():
     train_arg_parser.add_argument("--epochs", type=int, default=2, help="number of training epochs, default is 2")
     train_arg_parser.add_argument("--batch_size", type=int, default=8,
                                   help="batch size for training, default is 32")
-    train_arg_parser.add_argument("--dataset", type=str, default='cifar10',
+    train_arg_parser.add_argument("--dataset", type=str, default='test',
                                   help="path to training dataset, the path should point to a folder "
                                        "containing another folder with all the training images")
-    train_arg_parser.add_argument("--style_image", type=str, default="random",
+    train_arg_parser.add_argument("--style_image", type=str, default="test",
                                   help="path to style-image")
-    train_arg_parser.add_argument("--test_image", type=str, default="random",
+    train_arg_parser.add_argument("--test_image", type=str, default="test",
                                   help="path to test-image")
     train_arg_parser.add_argument("--checkpoint_model_dir", type=str, default='/tmp/checkpoints',
                                   help="path to folder where checkpoints of trained models will be saved")
@@ -243,7 +243,7 @@ def main():
                                   help="number of batches after which a checkpoint of trained model will be created")
     train_arg_parser.add_argument("--stylized_test_dir", type=str, default='/tmp/images/stylized_test',
                                   help="path to folder where stylized test image will be saved at end of each epoch")
-    train_arg_parser.add_argument("--image_size", type=int, default=32,
+    train_arg_parser.add_argument("--image_size", type=int, default=256,
                                   help="size of training images, default is 256 X 256")
     train_arg_parser.add_argument("--style_size", type=int, default=None,
                                   help="size of style-image, default is the original size of style image")
