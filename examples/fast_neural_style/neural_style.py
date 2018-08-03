@@ -256,7 +256,7 @@ def main():
     train_arg_parser.add_argument("--style_weight", type=float, default=1e10,
                                   help="weight for style-loss, default is 1e10")
     train_arg_parser.add_argument("--lr", type=float, default=1e-3,
-                                  help="learning rate, default is 1e-4")
+                                  help="learning rate, default is 1e-3")
 
     eval_arg_parser = subparsers.add_parser("eval", help="parser for evaluation/stylizing arguments")
     eval_arg_parser.add_argument("--content_image", type=str, required=True,
