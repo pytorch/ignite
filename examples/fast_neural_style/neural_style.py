@@ -58,7 +58,7 @@ def train(args):
     ])
 
     if args.dataset == 'test':
-        train_dataset = datasets.FakeData(size=1000, image_size=(3, 32, 32), num_classes=1, transform=transform)
+        train_dataset = datasets.FakeData(size=100, image_size=(3, 32, 32), num_classes=1, transform=transform)
     else:
         train_dataset = datasets.ImageFolder(args.dataset, transform)
 
