@@ -62,7 +62,7 @@ def train(args):
     else:
         train_dataset = datasets.ImageFolder(args.dataset, transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
     transformer = TransformerNet().to(device)
     optimizer = Adam(transformer.parameters(), args.lr)
