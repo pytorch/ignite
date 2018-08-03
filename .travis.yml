@@ -56,7 +56,7 @@ script:
   #train
   - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --style_image test --test_image test --image_size 32
   #eval
-  - python examples/fast_neural_style/neural_style.py eval --content_image random --output_image /tmp/test.png --cuda 0 --model /tmp/checkpoints/checkpoint_net_1.pth
+  - python examples/fast_neural_style/neural_style.py eval --content_image test --output_image /tmp/test.png --cuda 0 --model /tmp/checkpoints/checkpoint_net_1.pth
 after_success:
   # Ignore codecov failures as the codecov server is not
   # very reliable but we don't want travis to report a failure

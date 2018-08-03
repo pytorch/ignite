@@ -5,8 +5,6 @@ This example is ported over from [pytorch-examples](https://github.com/pytorch/e
 
 It uses pytorch-ignite to implement an algorithm for artistic style transfer as described in [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](https://arxiv.org/abs/1603.08155).
 
-This repo gives examples on how to create a Progress Bar with `pytorch-ignite`. 
-
 ### Requirements
 
 The code can be executed using both `Python 2.7` and `Python 3.5`.
