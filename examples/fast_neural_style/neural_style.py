@@ -1,4 +1,5 @@
 # coding: utf-8
+from __future__ import print_function, division
 
 import argparse
 import os
@@ -148,6 +149,7 @@ def train(args):
             progress = 0
             equal_to = 10
             sub = 0
+
         else:
             sub = 1
             progress = 1
