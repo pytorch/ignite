@@ -39,7 +39,7 @@ def test_detach_hidden_LSTM():
 
 
 def test_detach_hidden_raise():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         _detach_hidden(0)
 
 
