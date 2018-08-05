@@ -27,6 +27,7 @@ from collections import OrderedDict
 
 STYLIZED_IMG_FNAME = 'stylized_sample_epoch_{:04d}.png'
 
+
 def check_paths(args):
     try:
         if args.checkpoint_model_dir is not None and not (os.path.exists(args.checkpoint_model_dir)):
@@ -126,9 +127,9 @@ def train(args):
     checkpoint_handler = ModelCheckpoint(args.checkpoint_model_dir, 'checkpoint',
                                          save_interval=args.checkpoint_interval,
                                          n_saved=10, require_empty=False, create_dir=True)
-    
+
     progress_bar = Progbar(loader=train_loader, metrics=running_avgs)
-    
+
     @trainer.on(Events.EPOCH_COMPLETED)
     def stylize_image(engine):
         path = os.path.join(args.stylized_test_dir, STYLIZED_IMG_FNAME.format(engine.state.epoch))
@@ -150,10 +151,10 @@ def train(args):
             output = transformer(content_image).cpu()
 
         utils.save_image(path, output[0])
-                              
+
     trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
                               to_save={'net': transformer})
-    trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=progress_bar)                       
+    trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=progress_bar)
     trainer.run(train_loader, max_epochs=args.epochs)
 
 
