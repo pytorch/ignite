@@ -4,7 +4,6 @@ from __future__ import print_function, division
 import argparse
 import os
 import sys
-import time
 
 import numpy as np
 import random
