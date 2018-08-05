@@ -5,7 +5,6 @@ import argparse
 import os
 import sys
 import time
-import re
 
 import numpy as np
 import random
@@ -17,16 +16,16 @@ from torchvision import datasets
 from torchvision import transforms
 
 from ignite.engine import Engine, Events
-from ignite.handlers import ModelCheckpoint, Timer
+from ignite.handlers import ModelCheckpoint
 
 import utils
 from transformer_net import TransformerNet
 from vgg import Vgg16
+from handlers import Progbar
 
 from collections import OrderedDict
 
 STYLIZED_IMG_FNAME = 'stylized_sample_epoch_{:04d}.png'
-
 
 def check_paths(args):
     try:
@@ -87,8 +86,6 @@ def train(args):
     gram_style = [utils.gram_matrix(y) for y in features_style]
 
     running_avgs = OrderedDict()
-    output_stream = sys.stdout
-    alpha = 0.98
 
     def step(engine, batch):
 
@@ -129,49 +126,9 @@ def train(args):
     checkpoint_handler = ModelCheckpoint(args.checkpoint_model_dir, 'checkpoint',
                                          save_interval=args.checkpoint_interval,
                                          n_saved=10, require_empty=False, create_dir=True)
-
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def update_logs(engine):
-        for k, v in engine.state.output.items():
-            old_v = running_avgs.get(k, v)
-            new_v = alpha * old_v + (1 - alpha) * v
-            running_avgs[k] = new_v
-
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def print_logs(engine):
-
-        num_seen = engine.state.iteration - len(train_loader) * (engine.state.epoch - 1)
-
-        percent_seen = 100 * (float(num_seen / len(train_loader)))
-        percentages = list(range(0, 110, 10))
-
-        if int(percent_seen) == 100:
-            progress = 0
-            equal_to = 10
-            sub = 0
-
-        else:
-            sub = 1
-            progress = 1
-            equal_to = np.max(np.where([percent < percent_seen for percent in percentages])[0])
-
-        bar = '[' + '=' * equal_to + '>' * progress + ' ' * (10 - equal_to - sub) + ']'
-
-        message = 'Epoch {epoch} | {percent_seen:.2f}% | {bar}'.format(epoch=engine.state.epoch,
-                                                                       percent_seen=percent_seen,
-                                                                       bar=bar)
-        for key, value in running_avgs.items():
-            message += ' | {name}: {value:.2e}'.format(name=key, value=value)
-
-        message += '\r'
-
-        output_stream.write(message)
-        output_stream.flush()
-
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def complete_progress(engine):
-        output_stream.write('\n')
-
+    
+    progress_bar = Progbar(loader=train_loader, metrics=running_avgs)
+    
     @trainer.on(Events.EPOCH_COMPLETED)
     def stylize_image(engine):
         path = os.path.join(args.stylized_test_dir, STYLIZED_IMG_FNAME.format(engine.state.epoch))
@@ -193,9 +150,10 @@ def train(args):
             output = transformer(content_image).cpu()
 
         utils.save_image(path, output[0])
-
+                              
     trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
                               to_save={'net': transformer})
+    trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=progress_bar)                       
     trainer.run(train_loader, max_epochs=args.epochs)
 
 
@@ -229,7 +187,7 @@ def main():
     train_arg_parser = subparsers.add_parser("train", help="parser for training arguments")
     train_arg_parser.add_argument("--epochs", type=int, default=2, help="number of training epochs, default is 2")
     train_arg_parser.add_argument("--batch_size", type=int, default=8,
-                                  help="batch size for training, default is 32")
+                                  help="batch size for training, default is 8")
     train_arg_parser.add_argument("--dataset", type=str, default='test',
                                   help="path to training dataset, the path should point to a folder "
                                        "containing another folder with all the training images")
