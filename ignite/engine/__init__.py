@@ -27,7 +27,8 @@ def create_supervised_trainer(model, optimizer, loss_fn, prepare_batch=None, dev
     if device:
         model.to(device)
     if prepare_batch is None:
-        prepare_batch = lambda batch: batch
+        def prepare_batch(batch):
+            return batch
 
     def _update(engine, batch):
         model.train()
