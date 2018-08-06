@@ -65,7 +65,7 @@ class Engine(object):
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
-        self._allowed_events = list()
+        self._allowed_events = []
 
         self.register_events(*Events)
 
