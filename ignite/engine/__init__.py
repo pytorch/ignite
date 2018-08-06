@@ -9,7 +9,7 @@ def _prepare_batch(batch, device=None):
     return convert_tensor(x, device=device), convert_tensor(y, device=device)
 
 
-def create_supervised_trainer(model, optimizer, loss_fn, device=None):
+def create_supervised_trainer(model, optimizer, loss_fn, prepare_batch=None, device=None):
     """
     Factory function for creating a trainer for supervised models
 
@@ -17,6 +17,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None):
         model (`torch.nn.Module`): the model to train
         optimizer (`torch.optim.Optimizer`): the optimizer to use
         loss_fn (torch.nn loss function): the loss function to use
+        prepare_batch (function, optional): the batch preparation function to use (default: None).
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
 
@@ -25,11 +26,14 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None):
     """
     if device:
         model.to(device)
+    if prepare_batch is None:
+        def prepare_batch(batch):
+            return batch
 
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
-        x, y = _prepare_batch(batch, device=device)
+        x, y = _prepare_batch(prepare_batch(batch), device=device)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
