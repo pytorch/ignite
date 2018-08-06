@@ -142,7 +142,7 @@ class Engine(object):
         return fn
 
     def process_function(self):
-        """ Decorator used to set a ``process_function`` which will be run over each batch in the dataset. 
+        """ Decorator used to set a ``process_function`` which will be run over each batch in the dataset.
         See class docstring and constructor docstring for details.
 
         Example usage:
