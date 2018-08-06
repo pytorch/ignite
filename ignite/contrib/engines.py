@@ -89,7 +89,7 @@ def create_supervised_tbptt_trainer(
         )
         for x_t, y_t in batch_splits:
             # Fire event for start of iteration
-            engine._fire_event(Tbptt_Events.TIME_ITERATION_STARTED)
+            engine.fire_event(Tbptt_Events.TIME_ITERATION_STARTED)
             # Forward, backward and
             model.train()
             optimizer.zero_grad()
@@ -107,9 +107,11 @@ def create_supervised_tbptt_trainer(
             loss_list.append(loss_t.item())
 
             # Fire event for end of iteration
-            engine._fire_event(Tbptt_Events.TIME_ITERATION_COMPLETED)
+            engine.fire_event(Tbptt_Events.TIME_ITERATION_COMPLETED)
 
         # return average loss over the time splits
         return sum(loss_list) / len(loss_list)
 
-    return Engine(_update, Tbptt_Events)
+    engine = Engine(_update)
+    engine.register_events(*Tbptt_Events)
+    return engine

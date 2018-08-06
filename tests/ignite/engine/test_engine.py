@@ -25,8 +25,8 @@ class DummyEngine(Engine):
     def run(self, num_times):
         self.state = State()
         for _ in range(num_times):
-            self._fire_event(Events.STARTED)
-            self._fire_event(Events.COMPLETED)
+            self.fire_event(Events.STARTED)
+            self.fire_event(Events.COMPLETED)
         return self.state
 
 
@@ -155,7 +155,8 @@ def test_custom_events():
         TEST_EVENT = "test_event"
 
     # Dummy engine
-    engine = Engine(lambda engine, batch: 0, Custom_Events)
+    engine = Engine(lambda engine, batch: 0)
+    engine.register_events(*Custom_Events)
 
     # Handle is never called
     handle = MagicMock()
@@ -165,9 +166,10 @@ def test_custom_events():
 
     # Advanced engine
     def process_func(engine, batch):
-        engine._fire_event(Custom_Events.TEST_EVENT)
+        engine.fire_event(Custom_Events.TEST_EVENT)
 
-    engine = Engine(process_func, Custom_Events)
+    engine = Engine(process_func)
+    engine.register_events(*Custom_Events)
 
     # Handle should be called
     handle = MagicMock()

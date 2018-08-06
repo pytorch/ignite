@@ -37,9 +37,6 @@ class Engine(object):
     Args:
         process_function (Callable): A function receiving a handle to the engine and the current batch
             in each iteration, and returns data to be stored in the engine's state
-        additional_events (Enum, optional): Additional events that can be fired.
-            Use this arg to add user-defined events. Firing those events is the
-            responsability of the user written code.
 
     Example usage:
 
@@ -60,7 +57,7 @@ class Engine(object):
         # Loss value is now stored in `engine.state.output`.
 
     """
-    def __init__(self, process_function, additional_events=None):
+    def __init__(self, process_function):
         self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
@@ -68,19 +65,50 @@ class Engine(object):
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self._allowed_events = list()
+
+        self.register_events(*Events)
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
 
         self._check_signature(process_function, 'process_function', None)
 
-        self._additional_events = additional_events
+    def register_events(self, *event_names):
+        """Add events that can be fired.
+
+        Registering an event will let the user fire these events at any point.
+        This opens the door to make the `Engine.run` loop even more
+        configurable.
+
+        By default, the events from `ignite.engines.Events` are registerd.
+
+        Args:
+            *event_names: An object (ideally a string or int) to define the
+            name of the event bieng supported.
+
+        Example usage:
+
+        .. code-block:: python
+
+            from enum import Enum
+
+            class Custom_Events(Enum):
+                FOO_EVENT = "foo_event"
+                BAR_EVENT = "bar_event"
+
+            engine = Engine(process_function)
+            engine.register_events(*Custom_Events)
+
+        """
+        for name in event_names:
+            self._allowed_events.append(name)
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
 
         Args:
-            event_name (Events): event from ignite.engine.Events to attach the handler to
+            event_name: event from ignite.engine.Events to attach the handler to
             handler (Callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
@@ -103,13 +131,7 @@ class Engine(object):
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
         """
-        # Allowed events are the ones from core ignite plus the ones eventually
-        # passed at engine initialization
-        allowed_events = tuple(Events.__members__.values())
-        if self._additional_events is not None:
-            allowed_events += tuple(self._additional_events.__members__.values())
-
-        if event_name not in allowed_events:
+        if event_name not in self._allowed_events:
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
@@ -149,7 +171,7 @@ class Engine(object):
         """Decorator shortcut for add_event_handler
 
         Args:
-            event_name (Events): event to attach the handler to
+            event_name: event to attach the handler to
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
 
@@ -159,8 +181,22 @@ class Engine(object):
             return f
         return decorator
 
-    def _fire_event(self, event_name, *event_args):
-        if event_name in self._event_handlers.keys():
+    def fire_event(self, event_name, *event_args):
+        """Execute all the handlers associated with given event.
+
+        This method executes all handlers associated with the event
+        `event_name`. This is the method used in `Engine.run` to call the
+        core events found in `ignite.engines.Events`.
+
+        Custom events can be fired if they have been registerd before with
+        `Engine.register_events`.
+
+        Args:
+            event_name: event for which the handlers should be executed.
+            *event_args: optional args to be passed to all handlers.
+
+        """
+        if event_name in self._allowed_events:
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
                 func(self, *(event_args + args), **kwargs)
@@ -185,9 +221,9 @@ class Engine(object):
             for batch in self.state.dataloader:
                 self.state.batch = batch
                 self.state.iteration += 1
-                self._fire_event(Events.ITERATION_STARTED)
+                self.fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, batch)
-                self._fire_event(Events.ITERATION_COMPLETED)
+                self.fire_event(Events.ITERATION_COMPLETED)
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self.should_terminate_single_epoch = False
                     break
@@ -203,7 +239,7 @@ class Engine(object):
 
     def _handle_exception(self, e):
         if Events.EXCEPTION_RAISED in self._event_handlers:
-            self._fire_event(Events.EXCEPTION_RAISED, e)
+            self.fire_event(Events.EXCEPTION_RAISED, e)
         else:
             raise e
 
@@ -223,17 +259,17 @@ class Engine(object):
         try:
             self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
             start_time = time.time()
-            self._fire_event(Events.STARTED)
+            self.fire_event(Events.STARTED)
             while self.state.epoch < max_epochs and not self.should_terminate:
                 self.state.epoch += 1
-                self._fire_event(Events.EPOCH_STARTED)
+                self.fire_event(Events.EPOCH_STARTED)
                 hours, mins, secs = self._run_once_on_dataset()
                 self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
                     break
-                self._fire_event(Events.EPOCH_COMPLETED)
+                self.fire_event(Events.EPOCH_COMPLETED)
 
-            self._fire_event(Events.COMPLETED)
+            self.fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
             self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
