@@ -181,7 +181,7 @@ class Engine(object):
             return f
         return decorator
 
-    def fire_event(self, event_name, *event_args):
+    def fire_event(self, event_name, *event_args, **event_kwargs):
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -194,11 +194,13 @@ class Engine(object):
         Args:
             event_name: event for which the handlers should be executed.
             *event_args: optional args to be passed to all handlers.
+            **event_kwargs: optional keyword args to be passed to all handlers.
 
         """
         if event_name in self._allowed_events:
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
+                kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
 
     def terminate(self):
