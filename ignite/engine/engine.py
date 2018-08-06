@@ -36,7 +36,10 @@ class Engine(object):
 
     Args:
         process_function (Callable): A function receiving a handle to the engine and the current batch
-            in each iteration, and returns data to be stored in the engine's state
+            in each iteration, and returns data to be stored in the engine's state.
+            It can either be passed to the construcotr, or set later using
+            Engine.process_function decorator (see this method's docs for an example).
+
 
     Example usage:
 
@@ -57,19 +60,17 @@ class Engine(object):
         # Loss value is now stored in `engine.state.output`.
 
     """
-    def __init__(self, process_function):
+    def __init__(self, process_function=None):
         self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
-        self._process_function = process_function
+        self._process_function = None
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
 
-        if self._process_function is None:
-            raise ValueError("Engine must be given a processing function in order to run")
-
-        self._check_signature(process_function, 'process_function', None)
+        if process_function is not None:
+            self._set_process_function(process_function)
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
@@ -133,6 +134,34 @@ class Engine(object):
                              "takes parameters {} but will be called with {} "
                              "({})".format(
                                  fn, fn_description, fn_params, passed_params, exception_msg))
+
+    def _set_process_function(self, fn):
+        self._check_signature(fn, 'process_function', None)
+        self._process_function = fn
+
+        return fn
+
+    def process_function(self):
+        """ Decorator used to set a ``process_function`` which will be run over each batch in the dataset. 
+        See class docstring and constructor docstring for details.
+
+        Example usage:
+
+        .. code-block:: python
+
+            engine = Engine()
+
+            @engine.process_function()
+            def step(engine, batch):
+                x, y = batch
+                output = model(x)
+                loss = loss_function(output, y)
+                ...
+
+            engine.run(dataset)
+        """
+
+        return self._set_process_function
 
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler
@@ -206,6 +235,11 @@ class Engine(object):
         Returns:
             State: output state
         """
+
+        if self._process_function is None:
+            raise ValueError("Engine must be given a processing function in order to run. "
+                             "It can be either set in the constructor, "
+                             "or using ``Engine.process_function`` decorator. ")
 
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 

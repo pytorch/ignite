@@ -50,6 +50,20 @@ def test_invalid_process_raises_with_invalid_signature():
         Engine(lambda engine, batch, extra_arg: None)
 
 
+def test_process_func_decorator():
+    engine = Engine()
+
+    with pytest.raises(ValueError):
+        engine.run([])
+
+    @engine.process_function()
+    def fn(engine, batch):
+        return 42
+
+    state = engine.run([1])
+    assert state.output == 42
+
+
 def test_add_event_handler_raises_with_invalid_event():
     engine = DummyEngine()
 
