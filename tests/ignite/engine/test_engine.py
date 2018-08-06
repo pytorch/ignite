@@ -38,8 +38,6 @@ def test_terminate():
 
 
 def test_invalid_process_raises_with_invalid_signature():
-    engine = Engine(lambda engine, batch: None)
-
     with pytest.raises(ValueError):
         Engine(lambda: None)
 
@@ -255,7 +253,7 @@ def test_custom_exception_handler():
 
     counter = ExceptionCounter()
     engine.add_event_handler(Events.EXCEPTION_RAISED, counter)
-    state = engine.run([1])
+    engine.run([1])
 
     # only one call from _run_once_over_data, since the exception is swallowed
     assert len(counter.exceptions) == 1 and counter.exceptions[0] == value_error
@@ -411,7 +409,7 @@ def test_iteration_events_are_fired():
     mock_manager.attach_mock(iteration_started, 'iteration_started')
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
 
-    state = engine.run(data, max_epochs=max_epochs)
+    engine.run(data, max_epochs=max_epochs)
 
     assert iteration_started.call_count == num_batches * max_epochs
     assert iteration_complete.call_count == num_batches * max_epochs
