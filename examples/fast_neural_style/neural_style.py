@@ -90,7 +90,7 @@ def train(args):
 
         n_batch = len(x)
 
-        transformer.zero_grad()
+        optimizer.zero_grad()
 
         y = transformer(x)
 
