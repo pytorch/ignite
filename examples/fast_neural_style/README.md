@@ -3,15 +3,19 @@
 ### Introduction
 This example is ported over from [pytorch-examples](https://github.com/pytorch/examples/tree/master/fast_neural_style).
 
-It uses pytorch-ignite to implement an algorithm for artistic style transfer as described in [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](https://arxiv.org/abs/1603.08155).
+It uses `ignite` to implement an algorithm for artistic style transfer as described in [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](https://arxiv.org/abs/1603.08155).
+
+<p align="center">
+    <img src="images/style_images/mosaic.jpg" height="200px">
+    <img src="images/content_images/amber.jpg" height="200px">
+    <img src="images/output_images/mosaic-amber.jpg" height="200px">
+</p>
 
 ### Requirements
 
-The code can be executed using both `Python 2.7` and `Python 3.5`.
-
 * `torch`
 * `torchvision`
-* `pytorch-ignite`
+* `ignite`
 
 Example for `virtualenv` setup:
 

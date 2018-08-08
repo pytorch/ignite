@@ -4,11 +4,9 @@ from __future__ import print_function, division
 import argparse
 import os
 import sys
-import time
 
 import numpy as np
 import random
-from PIL import Image
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -25,19 +23,13 @@ from handlers import Progbar
 
 from collections import OrderedDict
 
-STYLIZED_IMG_FNAME = 'stylized_sample_epoch_{:04d}.png'
-
 
 def check_paths(args):
     try:
         if args.checkpoint_model_dir is not None and not (os.path.exists(args.checkpoint_model_dir)):
             os.makedirs(args.checkpoint_model_dir)
-        if not os.path.exists(args.stylized_test_dir):
-            os.makedirs(args.stylized_test_dir)
-
     except OSError as e:
-        print(e)
-        sys.exit(1)
+        raise OSError(e)
 
 
 def check_manual_seed(args):
@@ -47,9 +39,7 @@ def check_manual_seed(args):
     torch.manual_seed(seed)
 
 
-def train(args):
-    device = torch.device("cuda" if args.cuda else "cpu")
-
+def check_dataset(args):
     transform = transforms.Compose([
         transforms.Resize(args.image_size),
         transforms.CenterCrop(args.image_size),
@@ -57,13 +47,23 @@ def train(args):
         transforms.Lambda(lambda x: x.mul(255))
     ])
 
-    if args.dataset == 'test':
-        train_dataset = datasets.FakeData(size=100, image_size=(3, 32, 32), num_classes=1, transform=transform)
+    if args.dataset in {'folder', 'mscoco'}:
+        train_dataset = datasets.ImageFolder(args.dataroot, transform)
+    elif args.dataset == 'test':
+        train_dataset = datasets.FakeData(size=args.batch_size, image_size=(3, 32, 32),
+                                          num_classes=1, transform=transform)
     else:
-        train_dataset = datasets.ImageFolder(args.dataset, transform)
+        raise RuntimeError("Invalid dataset name: {}".format(args.dataset))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
+    return train_loader
+
+
+def train(args):
+    device = torch.device("cuda" if args.cuda else "cpu")
+
+    train_loader = check_dataset(args)
     transformer = TransformerNet().to(device)
     optimizer = Adam(transformer.parameters(), args.lr)
     mse_loss = torch.nn.MSELoss()
@@ -73,14 +73,9 @@ def train(args):
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255))
     ])
-    if args.style_image != 'test':
-        style = utils.load_image(args.style_image, size=args.style_size)
-    else:
-        imarray = np.random.rand(32, 32, 3).astype('uint8')
-        style = Image.fromarray(imarray)
 
+    style = utils.load_image(args.style_image, size=args.style_size)
     style = style_transform(style)
-
     style = style.repeat(args.batch_size, 1, 1, 1).to(device)
 
     features_style = vgg(utils.normalize_batch(style))
@@ -127,30 +122,7 @@ def train(args):
     checkpoint_handler = ModelCheckpoint(args.checkpoint_model_dir, 'checkpoint',
                                          save_interval=args.checkpoint_interval,
                                          n_saved=10, require_empty=False, create_dir=True)
-
     progress_bar = Progbar(loader=train_loader, metrics=running_avgs)
-
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def stylize_image(engine):
-        path = os.path.join(args.stylized_test_dir, STYLIZED_IMG_FNAME.format(engine.state.epoch))
-
-        if args.test_image != 'test':
-            content_image = utils.load_image(args.test_image, scale=None)
-        else:
-            imarray = np.random.rand(32, 32, 3).astype('uint8')
-            content_image = Image.fromarray(imarray)
-
-        content_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Lambda(lambda x: x.mul(255))
-        ])
-        content_image = content_transform(content_image)
-        content_image = content_image.unsqueeze(0).to(device)
-
-        with torch.no_grad():
-            output = transformer(content_image).cpu()
-
-        utils.save_image(path, output[0])
 
     trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
                               to_save={'net': transformer})
@@ -161,16 +133,12 @@ def train(args):
 def stylize(args):
     device = torch.device("cuda" if args.cuda else "cpu")
 
-    if args.content_image != 'test':
-        content_image = utils.load_image(args.content_image, scale=args.content_scale)
-    else:
-        imarray = np.random.rand(32, 32, 3).astype('uint8')
-        content_image = Image.fromarray(imarray)
-
     content_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255))
     ])
+
+    content_image = utils.load_image(args.content_image, scale=args.content_scale)
     content_image = content_transform(content_image)
     content_image = content_image.unsqueeze(0).to(device)
 
@@ -189,7 +157,9 @@ def main():
     train_arg_parser.add_argument("--epochs", type=int, default=2, help="number of training epochs, default is 2")
     train_arg_parser.add_argument("--batch_size", type=int, default=8,
                                   help="batch size for training, default is 8")
-    train_arg_parser.add_argument("--dataset", type=str, default='test',
+    train_arg_parser.add_argument("--dataset", type=str, required=True, choices={'test', 'folder', 'mscoco'},
+                                  help="type of dataset to be used.")
+    train_arg_parser.add_argument("--dataroot", type=str, required=True,
                                   help="path to training dataset, the path should point to a folder "
                                        "containing another folder with all the training images")
     train_arg_parser.add_argument("--style_image", type=str, default="test",
@@ -200,8 +170,6 @@ def main():
                                   help="path to folder where checkpoints of trained models will be saved")
     train_arg_parser.add_argument("--checkpoint_interval", type=int, default=1,
                                   help="number of batches after which a checkpoint of trained model will be created")
-    train_arg_parser.add_argument("--stylized_test_dir", type=str, default='/tmp/images/stylized_test',
-                                  help="path to folder where stylized test image will be saved at end of each epoch")
     train_arg_parser.add_argument("--image_size", type=int, default=256,
                                   help="size of training images, default is 256 X 256")
     train_arg_parser.add_argument("--style_size", type=int, default=None,
@@ -232,11 +200,9 @@ def main():
     args = main_arg_parser.parse_args()
 
     if args.subcommand is None:
-        print("ERROR: specify either train or eval")
-        sys.exit(1)
+        raise ValueError("ERROR: specify either train or eval")
     if args.cuda and not torch.cuda.is_available():
-        print("ERROR: cuda is not available, try running on CPU")
-        sys.exit(1)
+        raise ValueError("ERROR: cuda is not available, try running on CPU")
 
     if args.subcommand == "train":
         check_manual_seed(args)
