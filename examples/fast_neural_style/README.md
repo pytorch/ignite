@@ -51,10 +51,8 @@ Since the code using Pytorch's Dataset functions, ensure that directory with MSC
 * `--batch_size`: batch size for training, default is 32".
 * `--dataset`: path to training dataset, the path should point to a folder containing another folder with all the training images. 
 * `--style_image`: path to style-image. 
-* `--test_image`: path to test-image, stylized at the end of each epoch. 
 * `--checkpoint_model_dir`: path to folder where checkpoints of trained models will be saved. 
 * `--checkpoint_interval`: number of batches after which a checkpoint of trained model will be created. 
-* `--stylized_test_dir`: path to folder where stylized test image will be saved at end of each epoch. 
 * `--image_size`: size of training images, default is 256 X 256.
 * `--style_size`: size of style-image, default is the original size of style image. 
 * `--cuda`: set it to 1 for running on GPU, 0 for CPU. 
