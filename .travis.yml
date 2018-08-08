@@ -54,7 +54,7 @@ script:
 
   #fast-neural-style
   #train
-  - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
+  - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
 
 after_success:
   # Ignore codecov failures as the codecov server is not
