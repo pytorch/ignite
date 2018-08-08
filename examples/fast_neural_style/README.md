@@ -44,12 +44,13 @@ Since the code using Pytorch's Dataset functions, ensure that directory with MSC
 ```
 
 ##### Example
-`python neural_style.py train --epochs 2 --cuda 1 --style_image ./images/style_images/mosaic.jpg --test_image ./images/content_images/amber.jpg`
+`python neural_style.py train --epochs 2 --cuda 1 --dataset mscoco --dataroot /path/to/mscoco --style_image ./images/style_images/mosaic.jpg`
 
 ##### Flags
 * `--epochs`: number of training epochs, default is 2. 
-* `--batch_size`: batch size for training, default is 32".
-* `--dataset`: path to training dataset, the path should point to a folder containing another folder with all the training images. 
+* `--batch_size`: batch size for training, default is 8.
+* `--dataset`: type of dataset. 
+* `--dataroot`: path to training dataset, the path should point to a folder containing another folder with all the training images. 
 * `--style_image`: path to style-image. 
 * `--checkpoint_model_dir`: path to folder where checkpoints of trained models will be saved. 
 * `--checkpoint_interval`: number of batches after which a checkpoint of trained model will be created. 
