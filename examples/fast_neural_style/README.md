@@ -36,14 +36,14 @@ Since the code using Pytorch's Dataset functions, ensure that directory with MSC
 
 MSCOCO
 
-├── 0                    
-│   ├── RY48TY43YT.jpg          
-│   ├── 4324J0FNFL.jpg      
-│   └── Y9REWJKNFE.jpg                
+├── 0
+│   ├── RY48TY43YT.jpg
+│   ├── 4324J0FNFL.jpg
+│   └── Y9REWJKNFE.jpg
 └
 
 ##### Example
-`python examples/fast_neural_style/neural_style.py train --epochs 2 --cuda 1 --style_image ./images/style_images/mosaic.jpg --test_image ./images/content_images/amber.jpg`
+`python neural_style.py train --epochs 2 --cuda 1 --style_image ./images/style_images/mosaic.jpg --test_image ./images/content_images/amber.jpg`
 
 ##### Flags
 * `--epochs`: number of training epochs, default is 2. 
@@ -68,7 +68,7 @@ MSCOCO
 Code can be used to stylize an image using a trained style transfer model. 
 
 ##### Example
-`python examples/fast_neural_style/neural_style.py eval --content_image ./images/content_images/amber.jpg --output_image test.png --cuda 1 --model ./checkpoints/checkpoint_net_1.pth`
+`python neural_style.py eval --content_image ./images/content_images/amber.jpg --output_image test.png --cuda 1 --model /tmp/checkpoints/checkpoint_net_2.pth`
 
 #### Flags
 * `--content_image`: path to content image you want to stylize.
