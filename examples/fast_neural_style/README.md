@@ -8,7 +8,7 @@ It uses `ignite` to implement an algorithm for artistic style transfer as descri
 <p align="center">
     <img src="images/style_images/mosaic.jpg" height="200px">
     <img src="images/content_images/amber.jpg" height="200px">
-    <img src="images/output_images/mosaic-amber.jpg" height="200px">
+    <img src="images/output_images/mosaic_amber.jpg" height="200px">
 </p>
 
 ### Requirements
@@ -34,13 +34,14 @@ Code can be used to train a style transfer model for any image. To run code corr
 
 Since the code using Pytorch's Dataset functions, ensure that directory with MSCOCO dataset is formatted as shown below. The directory should be setup such that the location of the dataset is MSCOCO, which contains a single folder 0, containing all the images. 
 
-MSCOCO
 
-├── 0
-│   ├── RY48TY43YT.jpg
-│   ├── 4324J0FNFL.jpg
-│   └── Y9REWJKNFE.jpg
-└
+```bash
+├── MSCOCO
+│   ├── 0
+│   │   ├── RY48TY43YT.jpg
+│   │   ├── 4324J0FNFL.jpg
+│   │   ├── Y9REWJKNFE.jpg
+```
 
 ##### Example
 `python neural_style.py train --epochs 2 --cuda 1 --style_image ./images/style_images/mosaic.jpg --test_image ./images/content_images/amber.jpg`
