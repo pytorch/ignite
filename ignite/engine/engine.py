@@ -181,15 +181,13 @@ class Engine(object):
             return f
         return decorator
 
-    def fire_event(self, event_name, *event_args, **event_kwargs):
+    def _fire_event(self, event_name, *event_args, **event_kwargs):
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
-        `event_name`. This is the method used in `Engine.run` to call the
-        core events found in `ignite.engines.Events`.
-
-        Custom events can be fired if they have been registerd before with
-        `Engine.register_events`.
+        `event_name`. Optional positional and keyword arguments can be used to
+        pass arguments to **all** handlers added with this event. These
+        aguments updates arguments passed using `add_event_handler`.
 
         Args:
             event_name: event for which the handlers should be executed.
@@ -202,6 +200,27 @@ class Engine(object):
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
+
+    def fire_event(self, event_name):
+        """Execute all the handlers associated with given event.
+
+        This method executes all handlers associated with the event
+        `event_name`. This is the method used in `Engine.run` to call the
+        core events found in `ignite.engines.Events`.
+
+        Custom events can be fired if they have been registerd before with
+        `Engine.register_events`. The engine `state` attribute should be used
+        to exchange "dynamic" data among `process_function` and handlers.
+
+        This method is called automatically for core evnts. If no custom events
+        are used in the engine, there is no need for the user to call the
+        method.
+
+        Args:
+            event_name: event for which the handlers should be executed.
+
+        """
+        return self._fire_event(event_name)
 
     def terminate(self):
         """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration
@@ -241,7 +260,7 @@ class Engine(object):
 
     def _handle_exception(self, e):
         if Events.EXCEPTION_RAISED in self._event_handlers:
-            self.fire_event(Events.EXCEPTION_RAISED, e)
+            self._fire_event(Events.EXCEPTION_RAISED, e)
         else:
             raise e
 
