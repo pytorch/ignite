@@ -212,9 +212,9 @@ class Engine(object):
         `Engine.register_events`. The engine `state` attribute should be used
         to exchange "dynamic" data among `process_function` and handlers.
 
-        This method is called automatically for core evnts. If no custom events
-        are used in the engine, there is no need for the user to call the
-        method.
+        This method is called automatically for core events. If no custom
+        events are used in the engine, there is no need for the user to call
+        the method.
 
         Args:
             event_name: event for which the handlers should be executed.
@@ -242,9 +242,9 @@ class Engine(object):
             for batch in self.state.dataloader:
                 self.state.batch = batch
                 self.state.iteration += 1
-                self.fire_event(Events.ITERATION_STARTED)
+                self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, batch)
-                self.fire_event(Events.ITERATION_COMPLETED)
+                self._fire_event(Events.ITERATION_COMPLETED)
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self.should_terminate_single_epoch = False
                     break
@@ -280,17 +280,17 @@ class Engine(object):
         try:
             self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
             start_time = time.time()
-            self.fire_event(Events.STARTED)
+            self._fire_event(Events.STARTED)
             while self.state.epoch < max_epochs and not self.should_terminate:
                 self.state.epoch += 1
-                self.fire_event(Events.EPOCH_STARTED)
+                self._fire_event(Events.EPOCH_STARTED)
                 hours, mins, secs = self._run_once_on_dataset()
                 self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
                     break
-                self.fire_event(Events.EPOCH_COMPLETED)
+                self._fire_event(Events.EPOCH_COMPLETED)
 
-            self.fire_event(Events.COMPLETED)
+            self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
             self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
