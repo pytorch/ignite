@@ -4,7 +4,7 @@ from enum import Enum
 
 import torch
 
-from ignite._utils import convert_tensor, apply_func_tensor
+from ignite._utils import convert_tensor, apply_to_tensor
 from ignite.engine import Engine
 
 
@@ -37,7 +37,7 @@ def _detach_hidden(hidden):
     Auxillary function to cut the backpropagation graph by detaching the hidden
     vector.
     """
-    return apply_func_tensor(hidden, torch.Tensor.detach)
+    return apply_to_tensor(hidden, torch.Tensor.detach)
 
 
 def create_supervised_tbptt_trainer(
