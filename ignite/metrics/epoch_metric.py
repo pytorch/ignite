@@ -9,7 +9,8 @@ class EpochMetric(Metric):
     datatype should be `float32`. Target datatype should be `long`.
 
     Args:
-        compute_fn (callable): a callable 
+        compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
+            `predictions` and `targets` and returns a scalar.
 
     - `update` must receive output of the form `(y_pred, y)`. If target shape is `(batch_size, n_classes)`
     and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`
@@ -18,6 +19,7 @@ class EpochMetric(Metric):
     def __init__(self, compute_fn, output_transform=lambda x: x):
         assert callable(compute_fn), "Argument compute_fn should be callable"
         super(EpochMetric, self).__init__(output_transform=output_transform)
+        self.compute_fn = compute_fn
 
     def reset(self):
         self._predictions = torch.tensor([], dtype=torch.float32)
@@ -44,5 +46,12 @@ class EpochMetric(Metric):
         self._predictions = torch.cat([self._predictions, y_pred], dim=0)
         self._targets = torch.cat([self._targets, y], dim=0)
 
+        # Check once the signature and execution of compute_fn
+        if self._predictions.shape == y_pred.shape:
+            try:
+                self.compute_fn(self._predictions, self._targets)
+            except Exception as e:
+                raise RuntimeError("Problem with `compute_fn`:\n {}".format(e))
+
     def compute(self):
-        pass
+        return self.compute_fn(self._predictions, self._targets)
