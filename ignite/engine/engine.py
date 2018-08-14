@@ -5,6 +5,8 @@ import time
 from collections import defaultdict
 from enum import Enum
 
+import torch
+
 from ignite._utils import _to_hours_mins_secs
 
 IS_PYTHON2 = sys.version_info[0] < 3
@@ -37,6 +39,8 @@ class Engine(object):
     Args:
         process_function (Callable): A function receiving a handle to the engine and the current batch
             in each iteration, and returns data to be stored in the engine's state
+        detect_anomaly (bool, optional): Set detect anomaly using
+            `torch.autograd.set_detect_anomaly <https://pytorch.org/docs/stable/autograd.html#anomaly-detection>`_
 
     Example usage:
 
@@ -57,7 +61,7 @@ class Engine(object):
         # Loss value is now stored in `engine.state.output`.
 
     """
-    def __init__(self, process_function):
+    def __init__(self, process_function, detect_anomaly=True):
         self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
@@ -65,6 +69,7 @@ class Engine(object):
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self.detect_anomaly = detect_anomaly
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
@@ -210,22 +215,24 @@ class Engine(object):
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:
-            self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
-            start_time = time.time()
-            self._fire_event(Events.STARTED)
-            while self.state.epoch < max_epochs and not self.should_terminate:
-                self.state.epoch += 1
-                self._fire_event(Events.EPOCH_STARTED)
-                hours, mins, secs = self._run_once_on_dataset()
-                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
-                if self.should_terminate:
-                    break
-                self._fire_event(Events.EPOCH_COMPLETED)
+            with torch.autograd.set_detect_anomaly(self.detect_anomaly):
+                self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
+                start_time = time.time()
+                self._fire_event(Events.STARTED)
+                while self.state.epoch < max_epochs and not self.should_terminate:
+                    self.state.epoch += 1
+                    self._fire_event(Events.EPOCH_STARTED)
+                    hours, mins, secs = self._run_once_on_dataset()
+                    self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d",
+                                      self.state.epoch, hours, mins, secs)
+                    if self.should_terminate:
+                        break
+                    self._fire_event(Events.EPOCH_COMPLETED)
 
-            self._fire_event(Events.COMPLETED)
-            time_taken = time.time() - start_time
-            hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+                self._fire_event(Events.COMPLETED)
+                time_taken = time.time() - start_time
+                hours, mins, secs = _to_hours_mins_secs(time_taken)
+                self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
             self._logger.error("Engine run is terminating due to exception: %s", str(e))
