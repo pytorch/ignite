@@ -46,3 +46,26 @@ def test_transform():
     state = State(output=({'y': y_pred}, {'y': y}))
     engine = MagicMock(state=state)
     metric.iteration_completed(engine)
+
+
+def test_no_grad():
+    y_pred = torch.zeros(4, requires_grad=True)
+    y = torch.zeros(4, requires_grad=False)
+
+    class DummyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            y_pred, y = output
+            mse = torch.pow(y_pred - y.view_as(y_pred), 2)
+            assert y_pred.requires_grad
+            assert not mse.requires_grad
+
+    metric = DummyMetric()
+    state = State(output=(y_pred, y))
+    engine = MagicMock(state=state)
+    metric.iteration_completed(engine)

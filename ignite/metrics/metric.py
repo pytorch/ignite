@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod
 
 from ignite.engine import Events
 
+import torch
+
 
 class Metric(object):
     """
@@ -60,6 +62,7 @@ class Metric(object):
     def started(self, engine):
         self.reset()
 
+    @torch.no_grad()
     def iteration_completed(self, engine):
         output = self._output_transform(engine.state.output)
         self.update(output)
