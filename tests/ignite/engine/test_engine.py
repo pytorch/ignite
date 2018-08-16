@@ -25,8 +25,8 @@ class DummyEngine(Engine):
     def run(self, num_times):
         self.state = State()
         for _ in range(num_times):
-            self._fire_event(Events.STARTED)
-            self._fire_event(Events.COMPLETED)
+            self.fire_event(Events.STARTED)
+            self.fire_event(Events.COMPLETED)
         return self.state
 
 
@@ -38,8 +38,6 @@ def test_terminate():
 
 
 def test_invalid_process_raises_with_invalid_signature():
-    engine = Engine(lambda engine, batch: None)
-
     with pytest.raises(ValueError):
         Engine(lambda: None)
 
@@ -150,6 +148,34 @@ def test_args_and_kwargs_are_passed_to_event():
         assert handler_kwargs == kwargs
 
 
+def test_custom_events():
+    class Custom_Events(Enum):
+        TEST_EVENT = "test_event"
+
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0)
+    engine.register_events(*Custom_Events)
+
+    # Handle is never called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert not handle.called
+
+    # Advanced engine
+    def process_func(engine, batch):
+        engine.fire_event(Custom_Events.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*Custom_Events)
+
+    # Handle should be called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert handle.called
+
+
 def test_on_decorator_raises_with_invalid_event():
     engine = DummyEngine()
     with pytest.raises(ValueError):
@@ -227,7 +253,7 @@ def test_custom_exception_handler():
 
     counter = ExceptionCounter()
     engine.add_event_handler(Events.EXCEPTION_RAISED, counter)
-    state = engine.run([1])
+    engine.run([1])
 
     # only one call from _run_once_over_data, since the exception is swallowed
     assert len(counter.exceptions) == 1 and counter.exceptions[0] == value_error
@@ -383,7 +409,7 @@ def test_iteration_events_are_fired():
     mock_manager.attach_mock(iteration_started, 'iteration_started')
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
 
-    state = engine.run(data, max_epochs=max_epochs)
+    engine.run(data, max_epochs=max_epochs)
 
     assert iteration_started.call_count == num_batches * max_epochs
     assert iteration_complete.call_count == num_batches * max_epochs
