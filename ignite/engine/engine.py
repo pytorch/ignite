@@ -108,7 +108,8 @@ class Engine(object):
         """Add an event handler to be executed when the specified event is fired
 
         Args:
-            event_name: event from ignite.engine.Events to attach the handler to
+            event_name: An event to attach the handler to. Valid events are from
+            ignite.engine.Events or any `event_name` added by `register_events`.
             handler (Callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
@@ -171,7 +172,8 @@ class Engine(object):
         """Decorator shortcut for add_event_handler
 
         Args:
-            event_name: event to attach the handler to
+            event_name: An event to attach the handler to. Valid events are from
+            ignite.engine.Events or any `event_name` added by `register_events`.
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
 
@@ -190,7 +192,9 @@ class Engine(object):
         aguments updates arguments passed using `add_event_handler`.
 
         Args:
-            event_name: event for which the handlers should be executed.
+            event_name: event for which the handlers should be executed. Valid
+            events are from ignite.engine.Events or any `event_name` added by
+            `register_events`.
             *event_args: optional args to be passed to all handlers.
             **event_kwargs: optional keyword args to be passed to all handlers.
 
@@ -217,7 +221,9 @@ class Engine(object):
         the method.
 
         Args:
-            event_name: event for which the handlers should be executed.
+            event_name: event for which the handlers should be executed. Valid
+            events are from ignite.engine.Events or any `event_name` added by
+            `register_events`.
 
         """
         return self._fire_event(event_name)
