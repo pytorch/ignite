@@ -17,6 +17,7 @@ def convert_tensor(input_, device=None, **kwargs):
         non_blocking = kwargs.pop('non_blocking')
     else:
         non_blocking = False
+
     def _func(tensor):
         return tensor.to(device=device, non_blocking=non_blocking, **kwargs) if device else tensor
 
