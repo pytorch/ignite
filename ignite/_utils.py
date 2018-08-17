@@ -11,10 +11,14 @@ def _to_hours_mins_secs(time_taken):
     return hours, mins, secs
 
 
-def convert_tensor(input_, device=None):
+def convert_tensor(input_, device=None, **kwargs):
     """Move tensors to relevant device."""
+    if 'non_blocking' in kwargs:
+        non_blocking = kwargs.pop('non_blocking')
+    else:
+        non_blocking = False
     def _func(tensor):
-        return tensor.to(device=device) if device else tensor
+        return tensor.to(device=device, non_blocking=non_blocking, **kwargs) if device else tensor
 
     return apply_to_tensor(input_, _func)
 
