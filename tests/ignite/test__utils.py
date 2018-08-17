@@ -7,11 +7,11 @@ def test_convert_tensor():
     x = torch.Tensor([0.0])
     tensor = convert_tensor(x)
     assert torch.is_tensor(tensor)
-    
+
     x = torch.Tensor([0.0])
     tensor = convert_tensor(x, device='cpu', non_blocking=True)
     assert torch.is_tensor(tensor)
-    
+
     x = torch.Tensor([0.0])
     tensor = convert_tensor(x, device='cpu', non_blocking=False)
     assert torch.is_tensor(tensor)
