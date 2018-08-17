@@ -4,12 +4,13 @@ from ignite.engine.engine import Engine, State, Events
 from ignite._utils import convert_tensor
 
 
-def _prepare_batch(batch, device=None, **kwargs):
+def _prepare_batch(batch, device=None, non_blocking=False):
     x, y = batch
-    return convert_tensor(x, device=device, **kwargs), convert_tensor(y, device=device, **kwargs)
+    return (convert_tensor(x, device=device, non_blocking=non_blocking),
+            convert_tensor(y, device=device, non_blocking=non_blocking))
 
 
-def create_supervised_trainer(model, optimizer, loss_fn, device=None, **kwargs):
+def create_supervised_trainer(model, optimizer, loss_fn, device=None, non_blocking=False):
     """
     Factory function for creating a trainer for supervised models
 
@@ -29,7 +30,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None, **kwargs):
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
-        x, y = _prepare_batch(batch, device=device, **kwargs)
+        x, y = _prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
