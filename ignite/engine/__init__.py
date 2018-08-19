@@ -20,6 +20,8 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None, non_blocki
         loss_fn (torch.nn loss function): the loss function to use
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
+        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+            with respect to the host. For other cases, this argument has no effect.
 
     Returns:
         Engine: a trainer engine with supervised update function
