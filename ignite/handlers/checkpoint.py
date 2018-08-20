@@ -42,6 +42,9 @@ class ModelCheckpoint(object):
             in the directory 'dirname'
         create_dir (bool, optional):
             If True, will create directory 'dirname' if it doesnt exist.
+        save_as_state_dict (bool, optional):
+            If True, will save only the `state_dict` of the object specified in the dict argument,
+            otherwise the whole object will be saved.
 
     Notes:
           This handler expects two arguments: an `Engine` object and a `dict`
