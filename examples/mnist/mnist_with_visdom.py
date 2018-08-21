@@ -54,8 +54,9 @@ def create_plot_window(vis, xlabel, ylabel, title):
 
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     vis = visdom.Visdom()
-    if not vis.check_connection():
-        raise RuntimeError("Visdom server not running. Please run python -m visdom.server")
+
+    # if not vis.check_connection():
+    #     raise RuntimeError("Visdom server not running. Please run python -m visdom.server")
 
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
