@@ -11,10 +11,10 @@ def _to_hours_mins_secs(time_taken):
     return hours, mins, secs
 
 
-def convert_tensor(input_, device=None):
+def convert_tensor(input_, device=None, non_blocking=False):
     """Move tensors to relevant device."""
     def _func(tensor):
-        return tensor.to(device=device) if device else tensor
+        return tensor.to(device=device, non_blocking=non_blocking) if device else tensor
 
     return apply_to_tensor(input_, _func)
 
