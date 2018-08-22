@@ -1,7 +1,5 @@
 from abc import ABCMeta, abstractmethod
 
-import torch
-
 from ignite.engine import Events
 
 import torch

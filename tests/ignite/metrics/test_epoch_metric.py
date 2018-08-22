@@ -25,7 +25,6 @@ def test_epoch_metric():
         output = (torch.rand(4, 3), torch.randint(0, 5, size=(4, 3)))
         em.update(output)
 
-    torch.manual_seed(12)
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
@@ -47,7 +46,6 @@ def test_mse_epoch_metric():
 
     em = EpochMetric(compute_fn)
 
-    torch.manual_seed(12)
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
@@ -86,7 +84,6 @@ def test_bad_compute_fn():
 
     em = EpochMetric(compute_fn)
 
-    torch.manual_seed(12)
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     with pytest.raises(RuntimeError):
