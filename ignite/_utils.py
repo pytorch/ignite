@@ -20,8 +20,8 @@ def convert_tensor(input_, device=None, non_blocking=False):
 
 
 def apply_to_tensor(input_, func):
-    """Apply a funcction of a tensor or mapping, or sequence of tensors."""
-    if torch.is_tensor(input_):
+    """Apply a function of a tensor or mapping, or sequence of tensors."""
+    if isinstance(input_, torch.Tensor):
         return func(input_)
     elif isinstance(input_, string_classes):
         return input_

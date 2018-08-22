@@ -1,17 +1,14 @@
-import torch
 import logging
 import numbers
 
+import torch
+
+from ignite._utils import apply_to_tensor
+
 
 class TerminateOnNan(object):
-    """TerminateOnNan handler can be used to stop the training if the `process_function`'s output becomes
-    NaN or infinite `torch.tensor` or number.
-
-    Args:
-        output_transform (Callable, optional): a callable that is used to transform the
-            :class:`ignite.engine.Engine`'s `process_function`'s output into a number or `torch.tensor`.
-            This can be useful if, for example, you have a multi-output model and
-            you want to check one or multiple values of the output.
+    """TerminateOnNan handler can be used to stop the training if the `process_function`'s output being
+    a number, `torch.tensor` or collection of them contains NaN or infinite value.
 
     Examples:
 
@@ -21,20 +18,23 @@ class TerminateOnNan(object):
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self):
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.StreamHandler())
-        self._output_transform = output_transform
 
     def __call__(self, engine):
-        output = self._output_transform(engine.state.output)
 
+        output = engine.state.output
         if isinstance(output, numbers.Number):
             output = torch.tensor(output)
 
-        if not isinstance(output, torch.Tensor):
-            raise TypeError("Output should be either torch.tensor or number")
+        def raise_error(x):
+            if not bool(torch.isfinite(x).all()):
+                raise RuntimeError("Infinite or NaN tensor found")
 
-        if not bool(torch.isfinite(output).all()):
-            self._logger.warning("{}: Loss is NaN or Inf. Stop training".format(self.__class__.__name__))
+        try:
+            apply_to_tensor(output, raise_error)
+        except RuntimeError:
+            self._logger.warning("{}: Output '{}' contains NaN or Inf. Stop training"
+                                 .format(self.__class__.__name__, output))
             engine.terminate()
