@@ -1,7 +1,10 @@
 
 from functools import partial
 
-from sklearn.metrics import roc_auc_score
+try:
+    from sklearn.metrics import roc_auc_score
+except ImportError:
+    raise RuntimeError("This contrib module requires sklearn to be installed")
 
 from ignite.metrics import EpochMetric
 

@@ -23,6 +23,8 @@ install:
   - source activate test-environment
   - python setup.py install
   - pip install --upgrade pytest codecov pytest-cov
+  # Test contrib dependencies
+  - pip install scikit-learn
   # Examples dependencies
   - pip install visdom torchvision tensorboardX
   - pip install gym
