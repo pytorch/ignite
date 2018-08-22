@@ -17,6 +17,12 @@ def average_precision_compute_fn(y_preds, y_targets, activation=None):
 
 
 class AveragePrecision(EpochMetric):
+    """Computes Average Precision accumulating predictions and the ground-truth during an epoch
+    and applying `sklearn.metrics.average_precision_score <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score>`_  # noqa
 
+    Args:
+        activation (Callable, optional): optional function to apply on prediction tensors,
+            e.g. `activation=torch.sigmoid` to transform logits.
+    """
     def __init__(self, activation=None):
         super(AveragePrecision, self).__init__(partial(average_precision_compute_fn, activation=activation))
