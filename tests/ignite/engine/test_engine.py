@@ -39,6 +39,9 @@ def test_terminate():
 
 def test_invalid_process_raises_with_invalid_signature():
     with pytest.raises(ValueError):
+        Engine(None)
+
+    with pytest.raises(ValueError):
         Engine(lambda: None)
 
     with pytest.raises(ValueError):
