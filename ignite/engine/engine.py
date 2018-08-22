@@ -65,17 +65,51 @@ class Engine(object):
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self._allowed_events = []
+
+        self.register_events(*Events)
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
 
         self._check_signature(process_function, 'process_function', None)
 
+    def register_events(self, *event_names):
+        """Add events that can be fired.
+
+        Registering an event will let the user fire these events at any point.
+        This opens the door to make the `Engine.run` loop even more
+        configurable.
+
+        By default, the events from `ignite.engines.Events` are registerd.
+
+        Args:
+            *event_names: An object (ideally a string or int) to define the
+            name of the event bieng supported.
+
+        Example usage:
+
+        .. code-block:: python
+
+            from enum import Enum
+
+            class Custom_Events(Enum):
+                FOO_EVENT = "foo_event"
+                BAR_EVENT = "bar_event"
+
+            engine = Engine(process_function)
+            engine.register_events(*Custom_Events)
+
+        """
+        for name in event_names:
+            self._allowed_events.append(name)
+
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
 
         Args:
-            event_name (Events): event from ignite.engine.Events to attach the handler to
+            event_name: An event to attach the handler to. Valid events are from
+            ignite.engine.Events or any `event_name` added by `register_events`.
             handler (Callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
@@ -98,7 +132,7 @@ class Engine(object):
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
         """
-        if event_name not in Events.__members__.values():
+        if event_name not in self._allowed_events:
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
@@ -138,7 +172,8 @@ class Engine(object):
         """Decorator shortcut for add_event_handler
 
         Args:
-            event_name (Events): event to attach the handler to
+            event_name: An event to attach the handler to. Valid events are from
+            ignite.engine.Events or any `event_name` added by `register_events`.
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
 
@@ -148,11 +183,50 @@ class Engine(object):
             return f
         return decorator
 
-    def _fire_event(self, event_name, *event_args):
-        if event_name in self._event_handlers.keys():
+    def _fire_event(self, event_name, *event_args, **event_kwargs):
+        """Execute all the handlers associated with given event.
+
+        This method executes all handlers associated with the event
+        `event_name`. Optional positional and keyword arguments can be used to
+        pass arguments to **all** handlers added with this event. These
+        aguments updates arguments passed using `add_event_handler`.
+
+        Args:
+            event_name: event for which the handlers should be executed. Valid
+            events are from ignite.engine.Events or any `event_name` added by
+            `register_events`.
+            *event_args: optional args to be passed to all handlers.
+            **event_kwargs: optional keyword args to be passed to all handlers.
+
+        """
+        if event_name in self._allowed_events:
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
+                kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
+
+    def fire_event(self, event_name):
+        """Execute all the handlers associated with given event.
+
+        This method executes all handlers associated with the event
+        `event_name`. This is the method used in `Engine.run` to call the
+        core events found in `ignite.engines.Events`.
+
+        Custom events can be fired if they have been registerd before with
+        `Engine.register_events`. The engine `state` attribute should be used
+        to exchange "dynamic" data among `process_function` and handlers.
+
+        This method is called automatically for core events. If no custom
+        events are used in the engine, there is no need for the user to call
+        the method.
+
+        Args:
+            event_name: event for which the handlers should be executed. Valid
+            events are from ignite.engine.Events or any `event_name` added by
+            `register_events`.
+
+        """
+        return self._fire_event(event_name)
 
     def terminate(self):
         """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration

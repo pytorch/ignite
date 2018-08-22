@@ -43,7 +43,7 @@ the run:
 - *epoch is started/completed*
 - *batch iteration is started/completed*
 
-Complete list of events can be found `here <https://github.com/pytorch/ignite/blob/master/ignite/engine/engine.py#L13>`_.
+Complete list of events can be found at :class:`ignite.engine.Events`.
 
 Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when :meth:`Engine.run` is called:
 

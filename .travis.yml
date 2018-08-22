@@ -51,7 +51,10 @@ script:
   - python examples/reinforcement_learning/actor_critic.py --max-episodes=2
   # 1) Reinforce
   - python examples/reinforcement_learning/reinforce.py --max-episodes=2
-  
+
+  #fast-neural-style
+  #train
+  - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
 
 after_success:
   # Ignore codecov failures as the codecov server is not
@@ -75,7 +78,7 @@ jobs:
       install:
         # Minimal install : ignite and dependencies just to build the docs
         - pip install -r docs/requirements.txt
-        - pip install http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-linux_x86_64.whl
+        - pip install http://download.pytorch.org/whl/cpu/torch-0.4.1-cp35-cp35m-linux_x86_64.whl
         # `pip install .` vs `python setup.py install` : 1st works better to produce _module/ignite with source links
         - pip install .
       script:
