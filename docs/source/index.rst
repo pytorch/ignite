@@ -43,8 +43,6 @@ You can clone the source from `github <https://github.com/pytorch/ignite>`_ and 
     python setup.py install
 
 
-
-
 .. toctree::
    :maxdepth: 2
    :caption: Notes
@@ -61,6 +59,13 @@ You can clone the source from `github <https://github.com/pytorch/ignite>`_ and 
    handlers
    metrics
    exceptions
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contrib Package Reference
+    
+   contrib/engines
+   contrib/metrics
 
 .. automodule:: ignite
    :members:

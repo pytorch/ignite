@@ -19,7 +19,8 @@ def roc_auc_compute_fn(y_preds, y_targets, activation=None):
 class ROC_AUC(EpochMetric):
     """Computes Area Under the Receiver Operating Characteristic Curve (ROC AUC)
     accumulating predictions and the ground-truth during an epoch and applying
-    `sklearn.metrics.roc_auc_score <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score>`_  # noqa
+    `sklearn.metrics.roc_auc_score <http://scikit-learn.org/stable/modules/generated/
+    sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score>`_
 
     Args:
         activation (Callable, optional): optional function to apply on prediction tensors,

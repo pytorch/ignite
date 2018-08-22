@@ -62,3 +62,5 @@ use the `output_transform` argument to transform it:
 .. autoclass:: RootMeanSquaredError
 
 .. autoclass:: TopKCategoricalAccuracy
+
+.. autoclass:: EpochMetric

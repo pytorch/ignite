@@ -8,12 +8,14 @@ class EpochMetric(Metric):
     Model's output and targets are restricted to be of shape `(batch_size, n_classes)`. Output
     datatype should be `float32`. Target datatype should be `long`.
 
+    - `update` must receive output of the form `(y_pred, y)`.
+
+    If target shape is `(batch_size, n_classes)` and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`
+
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
             `predictions` and `targets` and returns a scalar.
 
-    - `update` must receive output of the form `(y_pred, y)`. If target shape is `(batch_size, n_classes)`
-    and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`
     """
 
     def __init__(self, compute_fn, output_transform=lambda x: x):
