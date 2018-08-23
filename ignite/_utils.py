@@ -20,18 +20,25 @@ def convert_tensor(input_, device=None, non_blocking=False):
 
 
 def apply_to_tensor(input_, func):
-    """Apply a funcction of a tensor or mapping, or sequence of tensors."""
-    if torch.is_tensor(input_):
+    """Apply a function on a tensor or mapping, or sequence of tensors.
+    """
+    return apply_to_type(input_, torch.Tensor, func)
+
+
+def apply_to_type(input_, input_type, func):
+    """Apply a function on a object of `input_type` or mapping, or sequence of objects of `input_type`.
+    """
+    if isinstance(input_, input_type):
         return func(input_)
     elif isinstance(input_, string_classes):
         return input_
     elif isinstance(input_, collections.Mapping):
-        return {k: apply_to_tensor(sample, func) for k, sample in input_.items()}
+        return {k: apply_to_type(sample, input_type, func) for k, sample in input_.items()}
     elif isinstance(input_, collections.Sequence):
-        return [apply_to_tensor(sample, func) for sample in input_]
+        return [apply_to_type(sample, input_type, func) for sample in input_]
     else:
-        raise TypeError(("input must contain tensors, dicts or lists; found {}"
-                         .format(type(input_))))
+        raise TypeError(("input must contain {}, dicts or lists; found {}"
+                         .format(input_type, type(input_))))
 
 
 def to_onehot(indices, num_classes):
