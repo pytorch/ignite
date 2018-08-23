@@ -45,7 +45,8 @@ the run:
 
 Complete list of events can be found at :class:`ignite.engine.Events`.
 
-Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when :meth:`Engine.run` is called:
+Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when
+:meth:`ignite.engine.Engine.run` is called:
 
 .. code-block:: python
 
@@ -66,7 +67,8 @@ At first *engine is started* event is fired and all this event handlers are exec
 how to add event handlers). Next, `while` loop is started and *epoch is started* event occurs, etc. Every time
 an event is "fired", attached handlers are executed.
 
-Attaching an event handler is simple using method :meth:`Engine.add_event_handler` or :meth:`Engine.on` decorator:
+Attaching an event handler is simple using method :meth:`ignite.engine.Engine.add_event_handler` or
+:meth:`ignite.engine.Engine.on` decorator:
 
 .. code-block:: python
 
@@ -85,6 +87,15 @@ Attaching an event handler is simple using method :meth:`Engine.add_event_handle
         print("Training is ended. mydata={}".format(data))
 
     trainer.add_event_handler(Events.STARTED, on_training_ended, mydata)
+
+
+.. Note ::
+
+   User can also register custom events with :meth:`ignite.engine.Engine.register_events`, attach handlers and fire custom events
+   calling :meth:`ignite.engine.Engine.fire_event` in any handler or `process_function`.
+
+   See the source code of :class:`ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
+   custom events.
 
 
 State

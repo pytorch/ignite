@@ -81,11 +81,11 @@ class Engine(object):
         This opens the door to make the `Engine.run` loop even more
         configurable.
 
-        By default, the events from `ignite.engines.Events` are registerd.
+        By default, the events from :class:`ignite.engines.Events` are registerd.
 
         Args:
             *event_names: An object (ideally a string or int) to define the
-            name of the event bieng supported.
+                name of the event being supported.
 
         Example usage:
 
@@ -109,7 +109,7 @@ class Engine(object):
 
         Args:
             event_name: An event to attach the handler to. Valid events are from
-            ignite.engine.Events or any `event_name` added by `register_events`.
+                :class:`ignite.engine.Events` or any `event_name` added by :meth:`register_events`.
             handler (Callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
@@ -173,7 +173,7 @@ class Engine(object):
 
         Args:
             event_name: An event to attach the handler to. Valid events are from
-            ignite.engine.Events or any `event_name` added by `register_events`.
+                :class:`ignite.engine.Events` or any `event_name` added by :meth:`register_events`.
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
 
@@ -193,8 +193,8 @@ class Engine(object):
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-            events are from ignite.engine.Events or any `event_name` added by
-            `register_events`.
+                events are from :class:`ignite.engine.Events` or any `event_name` added by
+                :meth:`register_events`.
             *event_args: optional args to be passed to all handlers.
             **event_kwargs: optional keyword args to be passed to all handlers.
 
@@ -222,8 +222,8 @@ class Engine(object):
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-            events are from ignite.engine.Events or any `event_name` added by
-            `register_events`.
+                events are from :class:`ignite.engine.Events` or any `event_name` added by
+                :meth:`register_events`.
 
         """
         return self._fire_event(event_name)
@@ -274,7 +274,7 @@ class Engine(object):
         """Runs the process_function over the passed data.
 
         Args:
-            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or DataLoader)
+            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`)
             max_epochs (int, optional): max epochs to run for (default: 1)
 
         Returns:
