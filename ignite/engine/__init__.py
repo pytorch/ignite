@@ -42,7 +42,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None, non_blocki
     return Engine(_update)
 
 
-def create_supervised_evaluator(model, metrics={}, device=None):
+def create_supervised_evaluator(model, metrics={}, device=None, non_blocking=False):
     """
     Factory function for creating an evaluator for supervised models
 
@@ -51,6 +51,8 @@ def create_supervised_evaluator(model, metrics={}, device=None):
         metrics (dict of str - :class:`ignite.metrics.Metric`): a map of metric names to Metrics
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
+        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+            with respect to the host. For other cases, this argument has no effect.
 
     Returns:
         Engine: an evaluator engine with supervised inference function
@@ -61,7 +63,7 @@ def create_supervised_evaluator(model, metrics={}, device=None):
     def _inference(engine, batch):
         model.eval()
         with torch.no_grad():
-            x, y = _prepare_batch(batch, device=device)
+            x, y = _prepare_batch(batch, device=device, non_blocking=non_blocking)
             y_pred = model(x)
             return y_pred, y
 
