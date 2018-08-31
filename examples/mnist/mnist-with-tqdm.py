@@ -14,6 +14,7 @@ from ignite.metrics import CategoricalAccuracy, Loss
 
 from tqdm import tqdm
 
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -64,7 +65,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         iter = (engine.state.iteration - 1)
         if iter == 0:
             engine.state.pdbar_iter = tqdm(
-                leave=False, total=len(train_loader), desc = 'Iteration'
+                leave=False, total=len(train_loader), desc='Iteration'
             )
 
     @trainer.on(Events.ITERATION_COMPLETED)
@@ -72,15 +73,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
         if iter % log_interval == 0:
             engine.state.pdbar_iter.update(log_interval)
-            tqdm.write("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-                       "".format(engine.state.epoch, iter,
-                           len(train_loader), engine.state.output)
-                    )
+            tqdm.write(
+                "Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
+                "".format(
+                    engine.state.epoch, iter,
+                    len(train_loader), engine.state.output
+                )
+            )
 
     @trainer.on(Events.STARTED)
-    def log_training_loss_start(engine):
-        engine.state.pdbar_epoch = tqdm(total=epochs, initial=1, desc = 'EPOCH')
-
+    def pbar_epoch_start(engine):
+        engine.state.pdbar_epoch = tqdm(total=epochs, initial=1, desc='EPOCH')
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
@@ -126,4 +129,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_interval)
-
