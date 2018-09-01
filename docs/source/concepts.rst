@@ -33,6 +33,7 @@ For example, model trainer for a supervised task:
     trainer = Engine(update_model)
     trainer.run(data, max_epochs=100)
 
+
 Events and Handlers
 -------------------
 
@@ -87,7 +88,6 @@ Attaching an event handler is simple using method :meth:`ignite.engine.Engine.ad
         print("Training is ended. mydata={}".format(data))
 
     trainer.add_event_handler(Events.STARTED, on_training_ended, mydata)
-
 
 .. Note ::
 
