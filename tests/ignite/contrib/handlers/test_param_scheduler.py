@@ -3,7 +3,7 @@ import pytest
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.handlers.param_scheduler import LinearScheduler, CosineAnnealingScheduler
+from ignite.contrib.handlers.param_scheduler import LinearScheduler, CosineAnnealingScheduler
 
 
 def test_linear_scheduler():
