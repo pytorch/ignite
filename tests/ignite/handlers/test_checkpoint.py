@@ -25,7 +25,7 @@ class DummyModel(nn.Module):
         self.net = nn.Linear(1, 1)
 
     def forward(self, x):
-        return self.net
+        return self.net(x)
 
 
 def test_args_validation(dirname):
@@ -277,3 +277,71 @@ def test_valid_state_dict_save(dirname):
         h(None, to_save)
     except ValueError:
         pytest.fail("Unexpected ValueError")
+
+
+def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
+    model = DummyModel()
+    optim = torch.optim.SGD(model.parameters(), lr=0.001)
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
+
+    def update_fn(engine, batch):
+        lr_scheduler.step()
+        x = torch.rand((4, 1))
+        optim.zero_grad()
+        y = model(x)
+        loss = y.pow(2.0).sum()
+        loss.backward()
+        optim.step()
+
+    engine = Engine(update_fn)
+    handler = ModelCheckpoint(
+        dirname,
+        _PREFIX,
+        create_dir=False,
+        n_saved=1,
+        save_interval=1,
+        save_as_state_dict=True)
+
+    engine.add_event_handler(Events.EPOCH_COMPLETED,
+                             handler,
+                             {
+                                 "model": model,
+                                 "optimizer": optim,
+                                 "lr_scheduler": lr_scheduler,
+                             })
+    engine.run([0], max_epochs=4)
+
+    saved_objects = sorted(os.listdir(dirname))
+    # saved objects are ['PREFIX_lr_scheduler_4.pth', 'PREFIX_model_4.pth', 'PREFIX_optimizer_4.pth']
+    saved_lr_scheduler = os.path.join(dirname, saved_objects[0])
+    saved_model = os.path.join(dirname, saved_objects[1])
+    saved_optimizer = os.path.join(dirname, saved_objects[2])
+
+    loaded_model_state_dict = torch.load(saved_model)
+    loaded_optimizer_state_dict = torch.load(saved_optimizer)
+    loaded_lr_scheduler_state_dict = torch.load(saved_lr_scheduler)
+
+    assert isinstance(loaded_model_state_dict, dict)
+    assert isinstance(loaded_optimizer_state_dict, dict)
+    assert isinstance(loaded_lr_scheduler_state_dict, dict)
+
+    model_state_dict = model.state_dict()
+    for key in model_state_dict.keys():
+        assert key in loaded_model_state_dict
+        model_value = model_state_dict[key]
+        loaded_model_value = loaded_model_state_dict[key]
+        assert model_value.numpy() == loaded_model_value.numpy()
+
+    optim_state_dict = optim.state_dict()
+    for key in optim_state_dict.keys():
+        assert key in loaded_optimizer_state_dict
+        optim_value = optim_state_dict[key]
+        loaded_optim_value = loaded_optimizer_state_dict[key]
+        assert optim_value == loaded_optim_value
+
+    lr_scheduler_state_dict = lr_scheduler.state_dict()
+    for key in lr_scheduler_state_dict.keys():
+        assert key in loaded_lr_scheduler_state_dict
+        lr_scheduler_value = lr_scheduler_state_dict[key]
+        loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
+        assert lr_scheduler_value == loaded_lr_scheduler_value

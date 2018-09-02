@@ -2,6 +2,7 @@ import inspect
 import logging
 import sys
 import time
+from collections import defaultdict
 from enum import Enum
 
 from ignite._utils import _to_hours_mins_secs
@@ -38,40 +39,77 @@ class Engine(object):
             in each iteration, and returns data to be stored in the engine's state
 
     Example usage:
-    ```python
-    def train_and_store_loss(engine, batch):
-        inputs, targets = batch
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = loss_fn(outputs, targets)
-        loss.backward()
-        optimizer.step()
-        return loss.item()
 
-    engine = Engine(train_and_store_loss)
-    engine.run(data_loader)
+    .. code-block:: python
 
-    # Loss value is now stored in `engine.state.output`.
-    ```
+        def train_and_store_loss(engine, batch):
+            inputs, targets = batch
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = loss_fn(outputs, targets)
+            loss.backward()
+            optimizer.step()
+            return loss.item()
+
+        engine = Engine(train_and_store_loss)
+        engine.run(data_loader)
+
+        # Loss value is now stored in `engine.state.output`.
+
     """
     def __init__(self, process_function):
-        self._event_handlers = {}
+        self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
         self._process_function = process_function
         self.should_terminate = False
+        self.should_terminate_single_epoch = False
         self.state = None
+        self._allowed_events = []
+
+        self.register_events(*Events)
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run")
 
         self._check_signature(process_function, 'process_function', None)
 
+    def register_events(self, *event_names):
+        """Add events that can be fired.
+
+        Registering an event will let the user fire these events at any point.
+        This opens the door to make the `Engine.run` loop even more
+        configurable.
+
+        By default, the events from :class:`ignite.engines.Events` are registerd.
+
+        Args:
+            *event_names: An object (ideally a string or int) to define the
+                name of the event being supported.
+
+        Example usage:
+
+        .. code-block:: python
+
+            from enum import Enum
+
+            class Custom_Events(Enum):
+                FOO_EVENT = "foo_event"
+                BAR_EVENT = "bar_event"
+
+            engine = Engine(process_function)
+            engine.register_events(*Custom_Events)
+
+        """
+        for name in event_names:
+            self._allowed_events.append(name)
+
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired
 
         Args:
-            event_name (Events): event from ignite.engine.Events to attach the handler to
+            event_name: An event to attach the handler to. Valid events are from
+                :class:`ignite.engine.Events` or any `event_name` added by :meth:`register_events`.
             handler (Callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
@@ -83,23 +121,23 @@ class Engine(object):
               passed here, for example during `Events.EXCEPTION_RAISED`.
 
         Example usage:
-        ```python
-        engine = Engine(process_function)
 
-        def print_epoch(engine):
-            print("Epoch: {}".format(engine.state.epoch))
+        .. code-block:: python
 
-        engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
-        ```
+            engine = Engine(process_function)
+
+            def print_epoch(engine):
+                print("Epoch: {}".format(engine.state.epoch))
+
+            engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
+
         """
-        if event_name not in Events.__members__.values():
+        if event_name not in self._allowed_events:
             self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
             raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
 
-        self._check_signature(handler, 'handler', *args, **kwargs)
-
-        if event_name not in self._event_handlers:
-            self._event_handlers[event_name] = []
+        event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
+        self._check_signature(handler, 'handler', *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s ", event_name)
@@ -134,7 +172,8 @@ class Engine(object):
         """Decorator shortcut for add_event_handler
 
         Args:
-            event_name (Events): event to attach the handler to
+            event_name: An event to attach the handler to. Valid events are from
+                :class:`ignite.engine.Events` or any `event_name` added by :meth:`register_events`.
             *args: optional args to be passed to `handler`
             **kwargs: optional keyword args to be passed to `handler`
 
@@ -144,36 +183,86 @@ class Engine(object):
             return f
         return decorator
 
-    def _fire_event(self, event_name, *event_args):
-        if event_name in self._event_handlers.keys():
+    def _fire_event(self, event_name, *event_args, **event_kwargs):
+        """Execute all the handlers associated with given event.
+
+        This method executes all handlers associated with the event
+        `event_name`. Optional positional and keyword arguments can be used to
+        pass arguments to **all** handlers added with this event. These
+        aguments updates arguments passed using `add_event_handler`.
+
+        Args:
+            event_name: event for which the handlers should be executed. Valid
+                events are from :class:`ignite.engine.Events` or any `event_name` added by
+                :meth:`register_events`.
+            *event_args: optional args to be passed to all handlers.
+            **event_kwargs: optional keyword args to be passed to all handlers.
+
+        """
+        if event_name in self._allowed_events:
             self._logger.debug("firing handlers for event %s ", event_name)
             for func, args, kwargs in self._event_handlers[event_name]:
+                kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
 
+    def fire_event(self, event_name):
+        """Execute all the handlers associated with given event.
+
+        This method executes all handlers associated with the event
+        `event_name`. This is the method used in `Engine.run` to call the
+        core events found in `ignite.engines.Events`.
+
+        Custom events can be fired if they have been registerd before with
+        `Engine.register_events`. The engine `state` attribute should be used
+        to exchange "dynamic" data among `process_function` and handlers.
+
+        This method is called automatically for core events. If no custom
+        events are used in the engine, there is no need for the user to call
+        the method.
+
+        Args:
+            event_name: event for which the handlers should be executed. Valid
+                events are from :class:`ignite.engine.Events` or any `event_name` added by
+                :meth:`register_events`.
+
+        """
+        return self._fire_event(event_name)
+
     def terminate(self):
-        """Sends terminate signal to the engine, so that it terminates after the current iteration
+        """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration
         """
         self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
         self.should_terminate = True
 
+    def terminate_epoch(self):
+        """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration
+        """
+        self._logger.info("Terminate current epoch is signaled. "
+                          "Current epoch iteration will stop after current iteration is finished")
+        self.should_terminate_single_epoch = True
+
     def _run_once_on_dataset(self):
+        start_time = time.time()
+
         try:
-            start_time = time.time()
             for batch in self.state.dataloader:
                 self.state.batch = batch
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
-                if self.should_terminate:
+                if self.should_terminate or self.should_terminate_single_epoch:
+                    self.should_terminate_single_epoch = False
                     break
 
-            time_taken = time.time() - start_time
-            hours, mins, secs = _to_hours_mins_secs(time_taken)
-            return hours, mins, secs
         except BaseException as e:
             self._logger.error("Current run is terminating due to exception: %s", str(e))
             self._handle_exception(e)
+
+        time_taken = time.time() - start_time
+        hours, mins, secs = _to_hours_mins_secs(time_taken)
+
+        return hours, mins, secs
 
     def _handle_exception(self, e):
         if Events.EXCEPTION_RAISED in self._event_handlers:
@@ -185,12 +274,13 @@ class Engine(object):
         """Runs the process_function over the passed data.
 
         Args:
-            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or DataLoader)
+            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`)
             max_epochs (int, optional): max epochs to run for (default: 1)
 
         Returns:
             State: output state
         """
+
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:

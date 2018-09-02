@@ -22,11 +22,11 @@ readme = read('README.rst')
 
 VERSION = find_version('ignite', '__init__.py')
 
-requirements = ['enum34', 'torch']
+requirements = ['enum34;python_version<"3.4"', 'torch']
 
 setup(
     # Metadata
-    name='ignite',
+    name='pytorch-ignite',
     version=VERSION,
     author='PyTorch Core Team',
     author_email='soumith@pytorch.org',
@@ -36,7 +36,7 @@ setup(
     license='BSD',
 
     # Package info
-    packages=find_packages(exclude=('tests',)),
+    packages=find_packages(exclude=('tests', 'tests.*',)),
 
     zip_safe=True,
     install_requires=requirements,

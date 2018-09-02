@@ -4,12 +4,42 @@ Ignite
 .. image:: https://travis-ci.org/pytorch/ignite.svg?branch=master
     :target: https://travis-ci.org/pytorch/ignite
 
+.. image:: https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/pytorch/ignite
+
+
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
-*Note: Ignite is currently in alpha, and the API is subject to change. A first release coming soon, where we will stabilize the API. Stay tuned.*
+- ignite helps you write compact but full-featured training loops in a few lines of code
+- you get a training loop with metrics, early-stopping, model checkpointing and other features without the boilerplate
+
+Below we show a side-by-side comparison of using pure pytorch and using ignite to create a training loop
+to train and validate your model with occasional checkpointing:
+
+.. image:: assets/ignite_vs_bare_pytorch.png
+    :target: https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png
+
+As you can see, the code is more concise and readable with ignite. Furthermore, adding additional metrics, or
+things like early stopping is a breeze in ignite, but can start to rapidly increase the complexity of
+your code when "rolling your own" training loop.
+
 
 Installation
 ============
+
+From pip:
+
+.. code:: bash
+
+    pip install pytorch-ignite
+
+
+From conda:
+
+.. code:: bash
+
+    conda install ignite -c pytorch
+
 
 From source:
 
@@ -17,11 +47,10 @@ From source:
 
     python setup.py install
 
-*Anaconda & pip coming soon*
 
 Documentation
 =============
-API documentation and an overview of the library coming soon.
+API documentation and an overview of the library can be found `here <https://pytorch.org/ignite/index.html>`_.
 
 Examples
 ========

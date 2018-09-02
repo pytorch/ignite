@@ -2,22 +2,23 @@ from abc import ABCMeta, abstractmethod
 
 from ignite.engine import Events
 
+import torch
+
 
 class Metric(object):
-    __metaclass__ = ABCMeta
-
     """
     Base class for all Metrics.
 
-    Metrics provide a way to compute various quantities of interest in an online
-    fashion without having to store the entire output history of a model.
-
     Args:
         output_transform (callable): a callable that is used to transform the
-            model's output into the form expected by the metric. This can be
-            useful if, for example, you have a multi-output model and you want to
-            compute the metric with respect to one of the outputs.
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric.
+            This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+
     """
+    __metaclass__ = ABCMeta
+
     def __init__(self, output_transform=lambda x: x):
         self._output_transform = output_transform
         self.reset()
@@ -61,6 +62,7 @@ class Metric(object):
     def started(self, engine):
         self.reset()
 
+    @torch.no_grad()
     def iteration_completed(self, engine):
         output = self._output_transform(engine.state.output)
         self.update(output)

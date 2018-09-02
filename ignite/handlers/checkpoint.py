@@ -2,16 +2,17 @@ import os
 import tempfile
 
 import torch
-import torch.nn as nn
 
 
 class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
     This handler accepts two arguments:
+
         - an `ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
-            See Notes and Examples for further details.
+
+    See Notes and Examples for further details.
 
     Args:
         dirname (str):
@@ -41,6 +42,8 @@ class ModelCheckpoint(object):
             in the directory 'dirname'
         create_dir (bool, optional):
             If True, will create directory 'dirname' if it doesnt exist.
+        save_as_state_dict (bool, optional):
+            If True, will save only the `state_dict` of the objects specified, otherwise the whole object will be saved.
 
     Notes:
           This handler expects two arguments: an `Engine` object and a `dict`
@@ -137,8 +140,8 @@ class ModelCheckpoint(object):
         if not self._save_as_state_dict:
             torch.save(obj, path)
         else:
-            if not isinstance(obj, nn.Module):
-                raise ValueError("Instance does not inherit nn.Module")
+            if not hasattr(obj, "state_dict") or not callable(obj.state_dict):
+                raise ValueError("Object should have `state_dict` method")
             torch.save(obj.state_dict(), path)
 
     def __call__(self, engine, to_save):

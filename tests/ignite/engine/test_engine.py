@@ -25,8 +25,8 @@ class DummyEngine(Engine):
     def run(self, num_times):
         self.state = State()
         for _ in range(num_times):
-            self._fire_event(Events.STARTED)
-            self._fire_event(Events.COMPLETED)
+            self.fire_event(Events.STARTED)
+            self.fire_event(Events.COMPLETED)
         return self.state
 
 
@@ -38,7 +38,8 @@ def test_terminate():
 
 
 def test_invalid_process_raises_with_invalid_signature():
-    engine = Engine(lambda engine, batch: None)
+    with pytest.raises(ValueError):
+        Engine(None)
 
     with pytest.raises(ValueError):
         Engine(lambda: None)
@@ -150,6 +151,34 @@ def test_args_and_kwargs_are_passed_to_event():
         assert handler_kwargs == kwargs
 
 
+def test_custom_events():
+    class Custom_Events(Enum):
+        TEST_EVENT = "test_event"
+
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0)
+    engine.register_events(*Custom_Events)
+
+    # Handle is never called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert not handle.called
+
+    # Advanced engine
+    def process_func(engine, batch):
+        engine.fire_event(Custom_Events.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*Custom_Events)
+
+    # Handle should be called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert handle.called
+
+
 def test_on_decorator_raises_with_invalid_event():
     engine = DummyEngine()
     with pytest.raises(ValueError):
@@ -217,12 +246,20 @@ def test_custom_exception_handler():
     update_function = MagicMock(side_effect=value_error)
 
     engine = Engine(update_function)
-    exception_handler = MagicMock()
-    engine.add_event_handler(Events.EXCEPTION_RAISED, exception_handler)
-    state = engine.run([1])
+
+    class ExceptionCounter(object):
+        def __init__(self):
+            self.exceptions = []
+
+        def __call__(self, engine, e):
+            self.exceptions.append(e)
+
+    counter = ExceptionCounter()
+    engine.add_event_handler(Events.EXCEPTION_RAISED, counter)
+    engine.run([1])
 
     # only one call from _run_once_over_data, since the exception is swallowed
-    exception_handler.assert_has_calls([call(engine, value_error)])
+    assert len(counter.exceptions) == 1 and counter.exceptions[0] == value_error
 
 
 def test_current_epoch_counter_increases_every_epoch():
@@ -317,7 +354,7 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration():
 
 def test_terminate_stops_run_mid_epoch():
     num_iterations_per_epoch = 10
-    iteration_to_stop = num_iterations_per_epoch + 3  # i.e. part way through the 3rd epoch
+    iteration_to_stop = num_iterations_per_epoch + 3
     engine = Engine(MagicMock(return_value=1))
 
     def start_of_iteration_handler(engine):
@@ -329,6 +366,23 @@ def test_terminate_stops_run_mid_epoch():
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert (state.iteration == iteration_to_stop)
     assert state.epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
+
+
+def test_terminate_epoch_stops_mid_epoch():
+    num_iterations_per_epoch = 10
+    iteration_to_stop = num_iterations_per_epoch + 3
+    engine = Engine(MagicMock(return_value=1))
+
+    def start_of_iteration_handler(engine):
+        if engine.state.iteration == iteration_to_stop:
+            engine.terminate_epoch()
+
+    max_epochs = 3
+    engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
+    state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs)
+    # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
+    assert state.iteration == num_iterations_per_epoch * (max_epochs - 1) + \
+        iteration_to_stop % num_iterations_per_epoch
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -358,7 +412,7 @@ def test_iteration_events_are_fired():
     mock_manager.attach_mock(iteration_started, 'iteration_started')
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
 
-    state = engine.run(data, max_epochs=max_epochs)
+    engine.run(data, max_epochs=max_epochs)
 
     assert iteration_started.call_count == num_batches * max_epochs
     assert iteration_complete.call_count == num_batches * max_epochs
@@ -392,12 +446,102 @@ def test_create_supervised_trainer():
     assert model.bias.item() == approx(0.8)
 
 
+def test_create_supervised_trainer_with_cpu():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device='cpu')
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+    state = trainer.run(data)
+
+    assert state.output == approx(17.0)
+    assert model.weight.data[0, 0].item() == approx(1.3)
+    assert model.bias.item() == approx(0.8)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_trainer_on_cuda():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device='cuda')
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+    state = trainer.run(data)
+
+    assert state.output == approx(17.0)
+    assert model.weight.data[0, 0].item() == approx(1.3)
+    assert model.bias.item() == approx(0.8)
+
+
 def test_create_supervised():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()
 
     evaluator = create_supervised_evaluator(model)
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    state = evaluator.run(data)
+    y_pred, y = state.output
+
+    assert y_pred[0, 0].item() == approx(0.0)
+    assert y_pred[1, 0].item() == approx(0.0)
+    assert y[0, 0].item() == approx(3.0)
+    assert y[1, 0].item() == approx(5.0)
+
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+
+def test_create_supervised_on_cpu():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    evaluator = create_supervised_evaluator(model, device='cpu')
+
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    state = evaluator.run(data)
+    y_pred, y = state.output
+
+    assert y_pred[0, 0].item() == approx(0.0)
+    assert y_pred[1, 0].item() == approx(0.0)
+    assert y[0, 0].item() == approx(3.0)
+    assert y[1, 0].item() == approx(5.0)
+
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_on_cuda():
+    model = Linear(1, 1)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    evaluator = create_supervised_evaluator(model, device='cuda')
 
     x = torch.FloatTensor([[1.0], [2.0]])
     y = torch.FloatTensor([[3.0], [5.0]])

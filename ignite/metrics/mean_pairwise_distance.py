@@ -11,7 +11,7 @@ class MeanPairwiseDistance(Metric):
     """
     Calculates the mean pairwise distance.
 
-    `update` must receive output of the form (y_pred, y).
+    - `update` must receive output of the form `(y_pred, y)`.
     """
     def __init__(self, p=2, eps=1e-6, output_transform=lambda x: x):
         super(MeanPairwiseDistance, self).__init__(output_transform)

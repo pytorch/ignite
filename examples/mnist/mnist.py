@@ -1,34 +1,13 @@
-"""
- MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
- Requirements:
-    TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
-    Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
- Usage:
-    Start tensorboard:
-    ```bash
-    tensorboard --logdir=/tmp/tensorboard_logs/
-    ```
-    Run the example:
-    ```bash
-    python mnist_with_tensorboardx.py --log_dir=/tmp/tensorboard_logs
-    ```
-"""
-
 from __future__ import print_function
 from argparse import ArgumentParser
-import torch
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
-from torch import nn
-import torch.nn.functional as F
-from torch.optim import SGD
-from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
 
-try:
-    from tensorboardX import SummaryWriter
-except ImportError:
-    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
+from torch import nn
+from torch.optim import SGD
+from torch.utils.data import DataLoader
+import torch
+import torch.nn.functional as F
+from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.datasets import MNIST
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
@@ -50,7 +29,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x)
+        return F.log_softmax(x, dim=-1)
 
 
 def get_data_loaders(train_batch_size, val_batch_size):
@@ -64,26 +43,13 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def create_summary_writer(model, log_dir):
-    writer = SummaryWriter(log_dir=log_dir)
-    try:
-        dummy_input = Variable(torch.rand(10, 1, 28, 28))
-        torch.onnx.export(model, dummy_input, "model.proto", verbose=True)
-        writer.add_graph_onnx("model.proto")
-    except ImportError:
-        pass
-    return writer
-
-
-def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, log_dir):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = create_summary_writer(model, log_dir)
     device = 'cpu'
 
     if torch.cuda.is_available():
         device = 'cuda'
-        model = model.to(device)
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
@@ -98,7 +64,15 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         if iter % log_interval == 0:
             print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
                   "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
-            writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_training_results(engine):
+        evaluator.run(train_loader)
+        metrics = evaluator.state.metrics
+        avg_accuracy = metrics['accuracy']
+        avg_nll = metrics['nll']
+        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(engine.state.epoch, avg_accuracy, avg_nll))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
@@ -108,13 +82,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-        writer.add_scalar("valdation/loss", avg_nll, engine.state.epoch)
-        writer.add_scalar("valdation/accuracy", avg_accuracy, engine.state.epoch)
 
-    # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
-
-    writer.close()
 
 
 if __name__ == "__main__":
@@ -131,10 +100,7 @@ if __name__ == "__main__":
                         help='SGD momentum (default: 0.5)')
     parser.add_argument('--log_interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
-    parser.add_argument("--log_dir", type=str, default="tensorboard_logs",
-                        help="log directory for Tensorboard log output")
 
     args = parser.parse_args()
 
-    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum,
-        args.log_interval, args.log_dir)
+    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_interval)

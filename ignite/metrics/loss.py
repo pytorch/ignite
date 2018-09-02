@@ -8,9 +8,8 @@ class Loss(Metric):
     """
     Calculates the average loss according to the passed loss_fn.
 
-    `loss_fn` must return the average loss over all observations in the batch.
-
-    `update` must receive output of the form (y_pred, y).
+    - `loss_fn` must return the average loss over all observations in the batch.
+    - `update` must receive output of the form `(y_pred, y)`.
     """
     def __init__(self, loss_fn, output_transform=lambda x: x):
         super(Loss, self).__init__(output_transform)

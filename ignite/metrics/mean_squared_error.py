@@ -10,7 +10,7 @@ class MeanSquaredError(Metric):
     """
     Calculates the mean squared error.
 
-    `update` must receive output of the form (y_pred, y).
+    - `update` must receive output of the form `(y_pred, y)`.
     """
     def reset(self):
         self._sum_of_squared_errors = 0.0

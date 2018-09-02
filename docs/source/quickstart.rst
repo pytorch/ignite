@@ -26,7 +26,14 @@ Code
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(trainer):
-        print("Epoch[{}] Loss: {:.2f}".format(trainer.state.epoch, len(train_loader), trainer.state.output))
+        print("Epoch[{}] Loss: {:.2f}".format(trainer.state.epoch, trainer.state.output))
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_training_results(trainer):
+        evaluator.run(train_loader)
+        metrics = evaluator.state.metrics
+        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
@@ -38,7 +45,7 @@ Code
     trainer.run(train_loader, max_epochs=100)
 
 
-Complete code can be found in the file `examples/mnist.py <https://github.com/pytorch/ignite/blob/master/examples/mnist.py>`_.
+Complete code can be found in the file `examples/mnist/mnist.py <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py>`_.
 
 Explanation
 -----------
@@ -136,10 +143,18 @@ or equivalently without the decorator
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss)
 
-When an epoch ends we want to run model validation, therefore we attach another handler to the trainer on epoch complete
-event:
+When an epoch ends we want compute training and validation metrics [#f1]_. For that purpose we can run previously defined
+`evaluator` on `train_loader` and `val_loader`. Therefore we attach two additional handlers to the trainer on epoch
+complete event:
 
 .. code-block:: python
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_training_results(trainer):
+        evaluator.run(train_loader)
+        metrics = evaluator.state.metrics
+        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
@@ -164,3 +179,40 @@ Finally, we start the engine on the training dataset and run it during 100 epoch
 .. code-block:: python
 
     trainer.run(train_loader, max_epochs=100)
+
+
+.. rubric:: Footnotes
+
+.. [#f1]
+
+   In this example we follow a pattern that requires a second pass through the training set. This
+   could be expensive on large datasets (even taking a subset). Another more common pattern is to accumulate
+   measures online over an epoch in the training loop. In this case metrics are aggregated on a moving model,
+   and thus, we do not want to encourage this pattern. However, if user still would like to implement the
+   last pattern, it can be easily done redefining trainer's update function and attaching metrics as following:
+
+   .. code-block:: python
+
+       def create_supervised_trainer(model, optimizer, loss_fn, metrics={}, device=None):
+
+           def _update(engine, batch):
+               model.train()
+               optimizer.zero_grad()
+               x, y = _prepare_batch(batch, device=device)
+               y_pred = model(x)
+               loss = loss_fn(y_pred, y)
+               loss.backward()
+               optimizer.step()
+               return loss.item(), y_pred, y
+
+           def _metrics_transform(output):
+               return output[1], output[2]
+
+           engine = Engine(_update)
+
+           for name, metric in metrics.items():
+               metric._output_transform = _metrics_transform
+               metric.attach(engine, name)
+
+           return engine
+

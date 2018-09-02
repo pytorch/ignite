@@ -8,6 +8,14 @@ def test_convert_tensor():
     tensor = convert_tensor(x)
     assert torch.is_tensor(tensor)
 
+    x = torch.Tensor([0.0])
+    tensor = convert_tensor(x, device='cpu', non_blocking=True)
+    assert torch.is_tensor(tensor)
+
+    x = torch.Tensor([0.0])
+    tensor = convert_tensor(x, device='cpu', non_blocking=False)
+    assert torch.is_tensor(tensor)
+
     x = (torch.Tensor([0.0]), torch.Tensor([0.0]))
     list_ = convert_tensor(x)
     assert isinstance(list_, list)

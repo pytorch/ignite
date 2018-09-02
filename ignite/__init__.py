@@ -1,1 +1,4 @@
-__version__ = '0.1.0a1'
+import ignite.engine
+import ignite.handlers
+
+__version__ = '0.1.0'
