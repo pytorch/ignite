@@ -1,4 +1,3 @@
-from __future__ import print_function
 from argparse import ArgumentParser
 
 from torch import nn
@@ -64,9 +63,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     def log_training_loss_start(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
         if iter == 1:
-            # engine.state.pdbar_iter = tqdm(
-            #     leave=False, total=len(train_loader), desc='Iteration'
-            # )
             engine.state.pdbar_iter = tqdm(
                 initial=log_interval, leave=False, total=len(train_loader),
                 desc='ITERATION - loss: '
