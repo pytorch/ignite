@@ -12,6 +12,8 @@ from torchvision.datasets import MNIST
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
 
+from tqdm import tqdm
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -58,30 +60,64 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
                                                      'nll': Loss(F.nll_loss)},
                                             device=device)
 
+    @trainer.on(Events.ITERATION_STARTED)
+    def log_training_loss_start(engine):
+        iter = (engine.state.iteration - 1) % len(train_loader) + 1
+        if iter == 1:
+            # engine.state.pdbar_iter = tqdm(
+            #     leave=False, total=len(train_loader), desc='Iteration'
+            # )
+            engine.state.pdbar_iter = tqdm(
+                initial=log_interval, leave=False, total=len(train_loader),
+                desc='ITERATION - loss: '
+            )
+
     @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss(engine):
+    def log_training_loss_end(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
         if iter % log_interval == 0:
-            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-                  "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
+            engine.state.pdbar_iter.desc = (
+                "ITERATION - loss: {:.2f}".format(engine.state.output)
+            )
+
+            engine.state.pdbar_iter.update(log_interval)
+
+    @trainer.on(Events.STARTED)
+    def pbar_epoch_start(engine):
+        desc = 'EPOCH - '
+        desc += 'acc: {:.2f}, loss: {:.2f}, '.format(0, 0)
+        desc += 'val_acc: {:.2f}, val_loss: {:.2f}'.format(0, 0)
+        engine.state.pdbar_epoch = tqdm(total=epochs, initial=1, desc=desc)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['nll']
-        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
+        tr_accuracy = metrics['accuracy']
+        tr_nll = metrics['nll']
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(engine):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['nll']
-        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
+        val_accuracy = metrics['accuracy']
+        val_nll = metrics['nll']
+
+        desc = 'EPOCH - '
+        desc += 'acc: {:.2f}, loss: {:.2f}, '.format(tr_accuracy, tr_nll)
+        desc += 'val_acc: {:.2f}, val_loss: {:.2f}'.format(
+            val_accuracy, val_nll
+        )
+
+        engine.state.pdbar_epoch.desc = desc
+        engine.state.pdbar_epoch.update()
+        engine.state.pdbar_iter.close()
+
+        if engine.state.epoch == args.epochs:
+            engine.state.pdbar_epoch.clear()
+            result = 'RESULTS - acc: {:.2f}, loss: {:.2f}, '.format(tr_accuracy, tr_nll)
+            result += 'val_acc: {:.2f}, val_loss: {:.2f}'.format(
+                val_accuracy, val_nll
+            )
+            print(result)
 
     trainer.run(train_loader, max_epochs=epochs)
 
