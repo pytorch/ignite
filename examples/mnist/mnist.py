@@ -59,23 +59,18 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
                                                      'nll': Loss(F.nll_loss)},
                                             device=device)
 
-    @trainer.on(Events.ITERATION_STARTED)
-    def log_training_loss_start(engine):
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def log_training_loss(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
+        desc = "ITERATION - loss: {:.2f}".format(engine.state.output)
+
         if iter == 1:
             engine.state.pdbar_iter = tqdm(
                 initial=log_interval, leave=False, total=len(train_loader),
-                desc='ITERATION - loss: '
+                desc=desc
             )
-
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss_end(engine):
-        iter = (engine.state.iteration - 1) % len(train_loader) + 1
-        if iter % log_interval == 0:
-            engine.state.pdbar_iter.desc = (
-                "ITERATION - loss: {:.2f}".format(engine.state.output)
-            )
-
+        elif iter % log_interval == 0:
+            engine.state.pdbar_iter.desc = desc
             engine.state.pdbar_iter.update(log_interval)
 
     @trainer.on(Events.STARTED)
