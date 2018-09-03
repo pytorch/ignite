@@ -73,42 +73,28 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
             engine.state.pdbar_iter.desc = desc
             engine.state.pdbar_iter.update(log_interval)
 
-    @trainer.on(Events.STARTED)
-    def pbar_epoch_start(engine):
-        desc = 'EPOCH - '
-        desc += 'acc: {:.2f}, loss: {:.2f}, '.format(0, 0)
-        desc += 'val_acc: {:.2f}, val_loss: {:.2f}'.format(0, 0)
-        engine.state.pdbar_epoch = tqdm(total=epochs, initial=1, desc=desc)
-
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
-        tr_accuracy = metrics['accuracy']
-        tr_nll = metrics['nll']
-
-        evaluator.run(val_loader)
-        metrics = evaluator.state.metrics
-        val_accuracy = metrics['accuracy']
-        val_nll = metrics['nll']
-
-        desc = 'EPOCH - '
-        desc += 'acc: {:.2f}, loss: {:.2f}, '.format(tr_accuracy, tr_nll)
-        desc += 'val_acc: {:.2f}, val_loss: {:.2f}'.format(
-            val_accuracy, val_nll
+        avg_accuracy = metrics['accuracy']
+        avg_nll = metrics['nll']
+        tqdm.write(
+            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+            .format(engine.state.epoch, avg_accuracy, avg_nll)
         )
 
-        engine.state.pdbar_epoch.desc = desc
-        engine.state.pdbar_epoch.update()
-        engine.state.pdbar_iter.close()
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_validation_results(engine):
+        evaluator.run(val_loader)
+        metrics = evaluator.state.metrics
+        avg_accuracy = metrics['accuracy']
+        avg_nll = metrics['nll']
+        tqdm.write(
+            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+            .format(engine.state.epoch, avg_accuracy, avg_nll))
 
-        if engine.state.epoch == args.epochs:
-            engine.state.pdbar_epoch.clear()
-            result = 'RESULTS - acc: {:.2f}, loss: {:.2f}, '.format(tr_accuracy, tr_nll)
-            result += 'val_acc: {:.2f}, val_loss: {:.2f}'.format(
-                val_accuracy, val_nll
-            )
-            print(result)
+        engine.state.pdbar_iter.close()
 
     trainer.run(train_loader, max_epochs=epochs)
 
