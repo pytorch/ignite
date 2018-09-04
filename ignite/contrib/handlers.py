@@ -17,7 +17,7 @@ class ProgressBar:
 
     Example:
         (...)
-        pbar = ProgressBar(train_loader, output_transform=lambda x: {'loss': x})
+        pbar = ProgressBar(trainer, train_loader, output_transform=lambda x: {'loss': x})
         trainer.add_handler(Events.ITERATION_COMPLETED, pbar)
     """
 
