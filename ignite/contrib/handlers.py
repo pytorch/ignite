@@ -11,14 +11,13 @@ class ProgressBar:
     TQDM progress bar handler to log training progress and computed metrics
 
     Args:
-        engine: ignite.Engine object
         loader: iterable or dataloader object
         output_transform: transform a function that transforms engine.state.output
                 into a dictionary of format {name: value}
 
     Example:
         (...)
-        pbar = ProgressBar(trainer, train_loader, output_transform=lambda x: {'loss': x})
+        pbar = ProgressBar(train_loader, output_transform=lambda x: {'loss': x})
         trainer.add_handler(Events.ITERATION_COMPLETED, pbar)
     """
 
@@ -31,6 +30,7 @@ class ProgressBar:
 
         engine.add_event_handler(Events.EPOCH_STARTED, self._reset)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._log_message)
 
     def _calc_running_avg(self, engine):
         output = self.output_transform(engine.state.output)
@@ -42,10 +42,17 @@ class ProgressBar:
     def _reset(self, engine):
         self.pbar = tqdm(
             total=self.num_iterations,
+            leave=False,
             bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]')
 
     def _close(self, engine):
         self.pbar.close()
+
+    def _log_message(self, engine):
+        message = 'Epoch {}'.format(engine.state.epoch)
+        for name, value in self.metrics.items():
+            message += ' | {}={:.2e}'.format(name, value)
+        tqdm.write(message)
 
     def _format_metrics(self):
         formatted_metrics = {}
