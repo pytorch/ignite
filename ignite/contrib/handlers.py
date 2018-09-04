@@ -11,6 +11,7 @@ class ProgressBar:
     TQDM progress bar handler to log training progress and computed metrics
 
     Args:
+        engine: ignite.Engine object
         loader: iterable or dataloader object
         output_transform: transform a function that transforms engine.state.output
                 into a dictionary of format {name: value}
