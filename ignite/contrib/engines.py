@@ -96,7 +96,7 @@ def create_supervised_tbptt_trainer(
                 y_pred_t, hidden = model(x_t)
             else:
                 hidden = _detach_hidden(hidden)
-                y_pred_t, hidden = model(x_t)
+                y_pred_t, hidden = model(x_t, hidden)
             loss_t = loss_fn(y_pred_t, y_t)
             loss_t.backward()
             optimizer.step()
