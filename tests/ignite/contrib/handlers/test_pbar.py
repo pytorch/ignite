@@ -19,5 +19,6 @@ def test_with_engine(capsys):
     out = captured.out.split('\n')
     out = list(filter(None, out))
     expected = 'Epoch {} | a={:.2e} | b={:.2e}'.format(engine.state.epoch, 1, 2)
+    expected2 = 'Epoch {} | b={:.2e} | a={:.2e}'.format(engine.state.epoch, 2, 1)
     assert len(out) == n_epochs
-    assert out[-1] == expected
+    assert out[-1] == expected or out[-1] == expected2
