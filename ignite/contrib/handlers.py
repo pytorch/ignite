@@ -2,10 +2,24 @@ from tqdm import tqdm
 
 
 class ProgressBar:
-    def __init__(self, loader, metrics, output_transform=lambda x: x):
+    """
+    TQDM progress bar handler to log training progress and computed metrics
+
+    Args:
+        loader: iterable or dataloader object
+        output: transform a function that transforms engine.state.output
+                into a dictionary of format {name: value}
+
+    Example:
+        (...)
+        pbar = ProgressBar(train_loader, output_transform=lambda x: {'loss': x})
+        trainer.add_handler(Events.ITERATION_COMPLETED, pbar)
+    """
+
+    def __init__(self, loader, output_transform=lambda x: x):
         self.num_iterations = len(loader)
         self.pbar = None
-        self.metrics = metrics
+        self.metrics = {}
         self.alpha = 0.98
         self.output_transform = output_transform
 
