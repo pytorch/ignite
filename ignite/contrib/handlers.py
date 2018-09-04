@@ -7,7 +7,7 @@ class ProgressBar:
 
     Args:
         loader: iterable or dataloader object
-        output: transform a function that transforms engine.state.output
+        output_transform: transform a function that transforms engine.state.output
                 into a dictionary of format {name: value}
 
     Example:
