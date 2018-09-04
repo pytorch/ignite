@@ -16,7 +16,8 @@ def test_with_engine(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    out = str(captured.out).split('\n')
+    out = captured.out.split('\n')
+    out = list(filter(None, out))
     expected = 'Epoch {} | a={:.2e} | b={:.2e}'.format(engine.state.epoch, 1, 2)
-    assert len(out) == n_epochs + 1
-    assert out[-2] == expected
+    assert len(out) == n_epochs
+    assert out[-1] == expected
