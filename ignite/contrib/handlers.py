@@ -1,4 +1,8 @@
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+except ImportError:
+    raise RuntimeError("This contrib module requires tqdm to be installed")
+
 from ignite.engine import Events
 
 

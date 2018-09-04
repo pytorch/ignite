@@ -22,7 +22,7 @@ readme = read('README.rst')
 
 VERSION = find_version('ignite', '__init__.py')
 
-requirements = ['enum34;python_version<"3.4"', 'torch', 'tqdm']
+requirements = ['enum34;python_version<"3.4"', 'torch']
 
 setup(
     # Metadata
