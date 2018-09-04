@@ -2,14 +2,16 @@ from tqdm import tqdm
 
 
 class ProgressBar:
-    def __init__(self, loader, metrics):
+    def __init__(self, loader, metrics, output_transform=lambda x: x):
         self.num_iterations = len(loader)
         self.pbar = None
         self.metrics = metrics
         self.alpha = 0.98
+        self.output_transform = output_transform
 
     def _calc_running_avg(self, engine):
-        for k, v in engine.state.output.items():
+        output = self.output_transform(engine.state.output)
+        for k, v in output.items():
             old_v = self.metrics.get(k, v)
             new_v = self.alpha * old_v + (1 - self.alpha) * v
             self.metrics[k] = new_v
