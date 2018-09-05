@@ -23,7 +23,7 @@ class ProgressBar:
     Example:
         (...)
         pbar = ProgressBar(trainer, train_loader, output_transform=lambda x: {'loss': x})
-        trainer.add_handler(Events.ITERATION_COMPLETED, pbar)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, pbar)
     """
 
     def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_interval=1):
