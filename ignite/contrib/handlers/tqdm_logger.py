@@ -14,7 +14,7 @@ class ProgressBar:
         engine (ignite.Engine): an engine object
         loader (iterable or DataLoader): data loader object
         output_transform: transform a function that transforms engine.state.output
-                into a dictionary of format {name: value}
+                into a dictionary of format {metric_name: metric_value}
         mode (str): 'iteration' or 'epoch' (default=epoch)
         log_interval (int or None): interval of which the metrics information is displayed.
                             If set to None, only the progress bar is shown and not
@@ -24,6 +24,12 @@ class ProgressBar:
         (...)
         pbar = ProgressBar(trainer, train_loader, output_transform=lambda x: {'loss': x})
         trainer.add_event_handler(Events.ITERATION_COMPLETED, pbar)
+
+    Note:
+        Bear in mind that `output_transform` should return a dictionary, whose values are floats.
+        This is due to the running average over every metric that is being computed. If you have
+        metrics that are tensors or arrays, you will have to unroll each value to its own
+        dictionary key.
     """
 
     def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_interval=1):
