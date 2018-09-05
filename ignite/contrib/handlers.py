@@ -31,7 +31,7 @@ class ProgressBar:
         self.output_transform = output_transform
         self.pbar = None
         self.mode = mode
-        self.log_frequency = log_interval
+        self.log_interval = log_interval
 
         assert log_interval >= 1, 'log_frequency must be positive'
         assert mode in {'iteration', 'epoch'}, \
@@ -63,7 +63,7 @@ class ProgressBar:
 
         i = engine.state.epoch if self.mode == 'epoch' else engine.state.iteration
 
-        if i % self.log_frequency == 0:
+        if i % self.log_interval == 0:
             if self.mode == 'epoch':
                 message = 'Epoch {}'.format(engine.state.epoch)
             else:
