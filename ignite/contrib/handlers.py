@@ -15,6 +15,8 @@ class ProgressBar:
         loader: iterable or dataloader object
         output_transform: transform a function that transforms engine.state.output
                 into a dictionary of format {name: value}
+        mode (str): 'iteration' or 'epoch' (default=epoch)
+        log_frequency (int): frequency of which the metrics information is displayed (default=1)
 
     Example:
         (...)
@@ -22,16 +24,24 @@ class ProgressBar:
         trainer.add_handler(Events.ITERATION_COMPLETED, pbar)
     """
 
-    def __init__(self, engine, loader, output_transform=lambda x: x):
+    def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_frequency=1):
         self.num_iterations = len(loader)
         self.metrics = {}
         self.alpha = 0.98
         self.output_transform = output_transform
         self.pbar = None
+        self.mode = mode
+        self.log_frequency = log_frequency
+
+        assert log_frequency >= 1, 'log_frequency must be positive'
+        assert mode in {'iteration', 'epoch'}, \
+            'incompatible mode {}, accepted modes {}'.format(mode, {'iteration', 'epoch'})
+
+        log_event = Events.EPOCH_COMPLETED if mode == 'epoch' else Events.ITERATION_COMPLETED
 
         engine.add_event_handler(Events.EPOCH_STARTED, self._reset)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._log_message)
+        engine.add_event_handler(log_event, self._log_message)
 
     def _calc_running_avg(self, engine):
         output = self.output_transform(engine.state.output)
@@ -50,10 +60,19 @@ class ProgressBar:
         self.pbar.close()
 
     def _log_message(self, engine):
-        message = 'Epoch {}'.format(engine.state.epoch)
-        for name, value in self.metrics.items():
-            message += ' | {}={:.2e}'.format(name, value)
-        tqdm.write(message)
+
+        i = engine.state.epoch if self.mode == 'epoch' else engine.state.iteration
+
+        if i % self.log_frequency == 0:
+            if self.mode == 'epoch':
+                message = 'Epoch {}'.format(engine.state.epoch)
+            else:
+                message = 'Iteration {}'.format(engine.state.iteration)
+
+            for name, value in self.metrics.items():
+                message += ' | {}={:.2e}'.format(name, value)
+
+            tqdm.write(message)
 
     def _format_metrics(self):
         formatted_metrics = {}
