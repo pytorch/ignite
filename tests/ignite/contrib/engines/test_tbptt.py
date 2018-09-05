@@ -8,7 +8,7 @@ import pytest
 import mock
 
 from ignite.contrib.engines import create_supervised_tbptt_trainer, Tbptt_Events
-from ignite.contrib.engines import _detach_hidden
+from ignite.contrib.engines.tbptt import _detach_hidden
 
 
 def test_detach_hidden_RNN():
@@ -43,7 +43,7 @@ def test_detach_hidden_raise():
         _detach_hidden(0)
 
 
-@mock.patch("ignite.contrib.engines._detach_hidden")
+@mock.patch("ignite.contrib.engines.tbptt._detach_hidden")
 def test_create_supervised_tbptt_trainer_callcounts(mock_detach_hidden):
     # Mocking objects
     model = mock.MagicMock()
