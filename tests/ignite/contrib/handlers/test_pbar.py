@@ -2,10 +2,11 @@ from ignite.engine import Engine, Events
 from ignite.contrib.handlers import ProgressBar
 
 
-def test_with_engine(capsys):
+def update_fn(engine, batch):
+    return {'a': 1, 'b': 2}
 
-    def update_fn(engine, batch):
-        return {'a': 1, 'b': 2}
+
+def test_epoch_mode(capsys):
 
     n_epochs = 2
     loader = [1, 2]
@@ -21,4 +22,23 @@ def test_with_engine(capsys):
     expected = 'Epoch {} | a={:.2e} | b={:.2e}'.format(engine.state.epoch, 1, 2)
     expected2 = 'Epoch {} | b={:.2e} | a={:.2e}'.format(engine.state.epoch, 2, 1)
     assert len(out) == n_epochs
+    assert out[-1] == expected or out[-1] == expected2
+
+
+def test_iteration_mode(capsys):
+
+    n_epochs = 2
+    loader = [1, 2]
+    engine = Engine(update_fn)
+    handler = ProgressBar(engine, loader, mode='iteration')
+
+    engine.add_event_handler(Events.ITERATION_COMPLETED, handler)
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    out = captured.out.split('\n')
+    out = list(filter(None, out))
+    expected = 'Iteration {} | a={:.2e} | b={:.2e}'.format(engine.state.iteration, 1, 2)
+    expected2 = 'Iteration {} | b={:.2e} | a={:.2e}'.format(engine.state.iteration, 2, 1)
+    assert len(out) == n_epochs * len(loader)
     assert out[-1] == expected or out[-1] == expected2
