@@ -60,8 +60,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
                                             device=device)
 
     desc = "ITERATION - loss: {:.2f}"
-    pdbar = tqdm(
-        initial=log_interval, leave=False, total=len(train_loader),
+    pbar = tqdm(
+        initial=0, leave=False, total=len(train_loader),
         desc=desc.format(0)
     )
 
@@ -70,11 +70,12 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
 
         if iter % log_interval == 0:
-            pdbar.desc = desc.format(engine.state.output)
-            pdbar.update(log_interval)
+            pbar.desc = desc.format(engine.state.output)
+            pbar.update(log_interval)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
+        pbar.refresh()
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
@@ -94,12 +95,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
             "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
             .format(engine.state.epoch, avg_accuracy, avg_nll))
 
-        pdbar.n = log_interval
-        pdbar.last_print_n = log_interval
-        pdbar.refresh()
+        pbar.n = pbar.last_print_n = 0
 
     trainer.run(train_loader, max_epochs=epochs)
-    pdbar.close()
+    pbar.close()
 
 
 if __name__ == "__main__":
