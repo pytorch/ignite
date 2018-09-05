@@ -16,7 +16,7 @@ class ProgressBar:
         output_transform: transform a function that transforms engine.state.output
                 into a dictionary of format {name: value}
         mode (str): 'iteration' or 'epoch' (default=epoch)
-        log_frequency (int): frequency of which the metrics information is displayed (default=1)
+        log_interval (int): interval of which the metrics information is displayed (default=1)
 
     Example:
         (...)
@@ -24,16 +24,16 @@ class ProgressBar:
         trainer.add_handler(Events.ITERATION_COMPLETED, pbar)
     """
 
-    def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_frequency=1):
+    def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_interval=1):
         self.num_iterations = len(loader)
         self.metrics = {}
         self.alpha = 0.98
         self.output_transform = output_transform
         self.pbar = None
         self.mode = mode
-        self.log_frequency = log_frequency
+        self.log_frequency = log_interval
 
-        assert log_frequency >= 1, 'log_frequency must be positive'
+        assert log_interval >= 1, 'log_frequency must be positive'
         assert mode in {'iteration', 'epoch'}, \
             'incompatible mode {}, accepted modes {}'.format(mode, {'iteration', 'epoch'})
 
