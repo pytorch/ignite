@@ -16,7 +16,9 @@ class ProgressBar:
         output_transform: transform a function that transforms engine.state.output
                 into a dictionary of format {name: value}
         mode (str): 'iteration' or 'epoch' (default=epoch)
-        log_interval (int): interval of which the metrics information is displayed (default=1)
+        log_interval (int or None): interval of which the metrics information is displayed.
+                            If set to None, only the progress bar is shown and not
+                            the metrics. (default=1)
 
     Example:
         (...)
@@ -33,7 +35,9 @@ class ProgressBar:
         self.mode = mode
         self.log_interval = log_interval
 
-        assert log_interval >= 1, 'log_frequency must be positive'
+        if log_interval is not None:
+            assert log_interval >= 1, 'log_frequency must be positive'
+
         assert mode in {'iteration', 'epoch'}, \
             'incompatible mode {}, accepted modes {}'.format(mode, {'iteration', 'epoch'})
 
@@ -63,7 +67,7 @@ class ProgressBar:
 
         i = engine.state.epoch if self.mode == 'epoch' else engine.state.iteration
 
-        if i % self.log_interval == 0:
+        if self.log_interval and i % self.log_interval == 0:
             if self.mode == 'epoch':
                 message = 'Epoch {}'.format(engine.state.epoch)
             else:
