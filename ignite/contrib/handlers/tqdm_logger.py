@@ -26,10 +26,13 @@ class ProgressBar:
         trainer.add_event_handler(Events.ITERATION_COMPLETED, pbar)
 
     Note:
-        Bear in mind that `output_transform` should return a dictionary, whose values are floats.
+        1) Bear in mind that `output_transform` should return a dictionary, whose values are floats.
         This is due to the running average over every metric that is being computed. If you have
         metrics that are tensors or arrays, you will have to unroll each value to its own
         dictionary key.
+
+        2) When adding this handler to an engine, it is recommend that you replace every print
+        operation in the engine's handlers with `tqdm.write()` to guarantee the correct stdout format.
     """
 
     def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_interval=1):
