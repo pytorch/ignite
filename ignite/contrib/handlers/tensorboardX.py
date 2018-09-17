@@ -49,7 +49,7 @@ class TensorBoardX(object):
 
         # Use engine.state.output
         if self.use_output:
-            engine.add_event_handler(Events.EPOCH_COMPLETED, self._log_engine_output)
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self._log_engine_output)
 
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._on_epoch_end)
 
