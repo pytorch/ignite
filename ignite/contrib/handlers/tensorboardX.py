@@ -101,7 +101,7 @@ class TensorBoardX(object):
 
     def _attach_child_function_to_epoch(self, engine):
         functions = [getattr(self, x) for x in dir(self) if
-                     (not x.startswith('_') and type(getattr(self, x)) == MethodType)]
+                     (not x.startswith('_') and type(getattr(self, x)) == MethodType and 'attach' not in x)]
 
         for function in functions:
             engine.add_event_handler(Events.EPOCH_COMPLETED, function)
