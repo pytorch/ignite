@@ -23,12 +23,7 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-
-try:
-    from tensorboardX import SummaryWriter
-except ImportError:
-    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
-
+from ignite.contrib.handlers.tensorboardX import TensorBoardX
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
 
@@ -63,21 +58,9 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def create_summary_writer(model, data_loader, log_dir):
-    writer = SummaryWriter(log_dir=log_dir)
-    data_loader_iter = iter(data_loader)
-    x, y = next(data_loader_iter)
-    try:
-        writer.add_graph(model, x)
-    except Exception as e:
-        print("Failed to save model graph: {}".format(e))
-    return writer
-
-
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, log_dir):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = create_summary_writer(model, train_loader, log_dir)
     device = 'cpu'
 
     if torch.cuda.is_available():
@@ -89,6 +72,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
                                             metrics={'accuracy': CategoricalAccuracy(),
                                                      'nll': Loss(F.nll_loss)},
                                             device=device)
+    train_evaluator = validation_evaluator = evaluator
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
@@ -96,34 +80,37 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         if iter % log_interval == 0:
             print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
                   "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
-            writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
-        evaluator.run(train_loader)
-        metrics = evaluator.state.metrics
+        train_evaluator.run(train_loader)
+        metrics = train_evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
         print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-        writer.add_scalar("training/avg_loss", avg_nll, engine.state.epoch)
-        writer.add_scalar("training/avg_accuracy", avg_accuracy, engine.state.epoch)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
-        evaluator.run(val_loader)
-        metrics = evaluator.state.metrics
+        validation_evaluator.run(val_loader)
+        metrics = validation_evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-        writer.add_scalar("valdation/avg_loss", avg_nll, engine.state.epoch)
-        writer.add_scalar("valdation/avg_accuracy", avg_accuracy, engine.state.epoch)
+
+    tbLogger = TensorBoardX(model=model,
+                            input_shape=[1, 28, 28],
+                            use_output=True,
+                            train_evaluator=train_evaluator,
+                            validation_evaluator=validation_evaluator,
+                            write_graph=True,
+                            histogram_freq=1,
+                            write_grads=True)
+    tbLogger.attach(trainer)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
-
-    writer.close()
 
 
 if __name__ == "__main__":
