@@ -106,7 +106,9 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
                             validation_evaluator=validation_evaluator,
                             write_graph=True,
                             histogram_freq=1,
-                            write_grads=True)
+                            write_grads=True,
+                            write_images=True)
+
     tbLogger.attach(trainer)
 
     # kick everything off
