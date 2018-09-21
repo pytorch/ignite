@@ -27,7 +27,7 @@ class RunningAverage(Metric):
         def log_running_avg_metrics(engine):
             print("running avg accuracy:", engine.state.metrics['running_avg_accuracy'])
             print("running avg loss:", engine.state.metrics['running_avg_loss'])
-    
+
     """
 
     def __init__(self, src=None, alpha=0.98, output_transform=None):
