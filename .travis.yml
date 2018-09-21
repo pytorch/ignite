@@ -82,6 +82,8 @@ jobs:
         # Minimal install : ignite and dependencies just to build the docs
         - pip install -r docs/requirements.txt
         - pip install http://download.pytorch.org/whl/cpu/torch-0.4.1-cp35-cp35m-linux_x86_64.whl
+        # Add contrib dependencies (otherwise doc is not built)
+        - pip install scikit-learn
         # `pip install .` vs `python setup.py install` : 1st works better to produce _module/ignite with source links
         - pip install .
       script:
