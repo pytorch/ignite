@@ -25,6 +25,7 @@ class EarlyStopping(object):
             return -val_loss
 
         handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
+        # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset)
         evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
