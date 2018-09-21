@@ -12,6 +12,22 @@ class RunningAverage(Metric):
         output_transform (Callable, optional): a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
 
+    Examples:
+
+    .. code-block:: python
+
+        alpha = 0.98
+        acc_metric = RunningAverage(CategoricalAccuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
+        acc_metric.attach(trainer, 'running_avg_accuracy')
+
+        avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
+        avg_output.attach(trainer, 'running_avg_loss')
+
+        @trainer.on(Events.ITERATION_COMPLETED)
+        def log_running_avg_metrics(engine):
+            print("running avg accuracy:", engine.state.metrics['running_avg_accuracy'])
+            print("running avg loss:", engine.state.metrics['running_avg_loss'])
+
     """
 
     def __init__(self, src=None, alpha=0.98, output_transform=None):
