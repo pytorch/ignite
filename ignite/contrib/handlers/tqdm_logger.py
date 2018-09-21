@@ -38,7 +38,6 @@ class ProgressBar:
     def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_interval=1):
         self.num_iterations = len(loader)
         self.metrics = {}
-        self.alpha = 0.98
         self.output_transform = output_transform
         self.pbar = None
         self.mode = mode
@@ -55,13 +54,6 @@ class ProgressBar:
         engine.add_event_handler(Events.EPOCH_STARTED, self._reset)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
         engine.add_event_handler(log_event, self._log_message)
-
-    def _calc_running_avg(self, engine):
-        output = self.output_transform(engine.state.output)
-        for k, v in output.items():
-            old_v = self.metrics.get(k, v)
-            new_v = self.alpha * old_v + (1 - self.alpha) * v
-            self.metrics[k] = new_v
 
     def _reset(self, engine):
         self.pbar = tqdm(
@@ -87,14 +79,14 @@ class ProgressBar:
 
             tqdm.write(message)
 
+    def __call__(self, engine):
+        self.metrics = self.output_transform(engine.state.output)
+        self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
+        self.pbar.set_postfix(**self._format_metrics())
+        self.pbar.update()
+
     def _format_metrics(self):
         formatted_metrics = {}
         for key in self.metrics:
             formatted_metrics[key] = '{:.2e}'.format(self.metrics[key])
         return formatted_metrics
-
-    def __call__(self, engine):
-        self._calc_running_avg(engine)
-        self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
-        self.pbar.set_postfix(**self._format_metrics())
-        self.pbar.update()
