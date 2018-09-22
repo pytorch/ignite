@@ -12,6 +12,8 @@ class EarlyStopping(object):
         score_function (Callable):
             It should be a function taking a single argument, an `ignite.engine.Engine` object,
             and return a score `float`. An improvement is considered if the score is higher.
+        trainer (Engine):
+            trainer engine to stop the run if no improvement
 
     Examples:
 
