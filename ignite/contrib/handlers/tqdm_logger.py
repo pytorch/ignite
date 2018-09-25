@@ -10,8 +10,10 @@ class ProgressBar:
     """
     TQDM progress bar handler to log training progress and computed metrics
 
-    Example:
-        (...)
+    Examples:
+
+    .. code-block:: python
+
         pbar = ProgressBar()
         pbar.attach(trainer, len(data_loader), ['loss'], mode='iteration', log_interval=1)
 
@@ -58,6 +60,7 @@ class ProgressBar:
     def attach(self, engine, num_iterations, metric_names, mode='epoch', log_interval=1):
         """
         Attaches the progress bar to an engine object
+
         Args:
             engine (Engine): trainer object
             num_iterations (int): number of iterations of one epoch

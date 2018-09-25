@@ -5,4 +5,6 @@ Contribution module of handlers
 
 .. currentmodule:: ignite.contrib.handlers
 
-.. autoclass:: ProgressBar
+.. automodule:: ignite.contrib.handlers
+   :members:
+   :undoc-members:
