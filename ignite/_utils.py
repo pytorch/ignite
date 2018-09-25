@@ -1,7 +1,14 @@
-import collections
+import sys
 
 import torch
 from torch._six import string_classes
+
+IS_PYTHON2 = sys.version_info[0] < 3
+
+if IS_PYTHON2:
+    import collections
+else:
+    import collections.abc as collections
 
 
 def _to_hours_mins_secs(time_taken):
