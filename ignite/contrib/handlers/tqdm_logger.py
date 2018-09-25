@@ -20,11 +20,11 @@ class ProgressBar:
             pbar = ProgressBar()
             pbar.attach(trainer, len(data_loader), ['loss'])
 
-        If additionally, you want to keep track of any metric, add a call to ``attach_metrics``
+        If additionally, you want to keep track of any metric, add a call to ``add_logging``
 
         .. code-block:: python
 
-            pbar.attach_metrics(trainer, ['loss', 'accuracy'], mode='epoch', log_interval=1)
+            pbar.add_logging(trainer, ['loss', 'accuracy'], mode='epoch', log_interval=1)
 
     Note:
         When adding attaching the progress bar to an engine, it is recommend that you replace
@@ -90,9 +90,9 @@ class ProgressBar:
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names)
 
-    def attach_metrics(self, engine, metric_names, mode='epoch', log_interval=1):
+    def add_logging(self, engine, metric_names, mode='epoch', log_interval=1):
         """
-        Attaches the default metrics logging method to an engine
+        Adds a periodic logging handler to complement the progress bar
 
         Args:
             engine (Engine): engine object
