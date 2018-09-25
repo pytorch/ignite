@@ -16,6 +16,7 @@ class ProgressBar:
 
         pbar = ProgressBar()
         pbar.attach(trainer, len(data_loader), ['loss'], mode='iteration', log_interval=1)
+        pbar.attach_metrics(trainer, ['loss', 'accuracy'], mode='epoch', log_interval=1)
 
     Note:
         When adding this handler to an engine, it is recommend that you replace every print
@@ -34,8 +35,23 @@ class ProgressBar:
     def _close(self, engine):
         self.pbar.close()
 
+    def _update(self, engine, metric_names):
+        metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
+        self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
+        self.pbar.set_postfix(**metrics)
+        self.pbar.update()
+
     @staticmethod
-    def _log_message(engine, metric_names, mode, log_interval):
+    def log_message(message):
+        """
+        Logs a message, preserving the progress bar correct output format
+
+        Args:
+            message (str): string you wish to log
+        """
+        tqdm.write(message)
+
+    def _log_metrics(self, engine, metric_names, mode='epoch', log_interval=1):
 
         i = engine.state.epoch if mode == 'epoch' else engine.state.iteration
 
@@ -49,26 +65,33 @@ class ProgressBar:
             for name, value in metrics.items():
                 message += ' | {}={}'.format(name, value)
 
-            tqdm.write(message)
+            self.log_message(message)
 
-    def _update(self, engine, metric_names):
-        metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
-        self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
-        self.pbar.set_postfix(**metrics)
-        self.pbar.update()
-
-    def attach(self, engine, num_iterations, metric_names, mode='epoch', log_interval=1):
+    def attach(self, engine, num_iterations, metric_names):
         """
         Attaches the progress bar to an engine object
 
         Args:
-            engine (Engine): trainer object
+            engine (Engine): engine object
             num_iterations (int): number of iterations of one epoch
+            metric_names (list): list of the metrics names to log
+        """
+
+        engine.add_event_handler(Events.EPOCH_STARTED, self._reset, num_iterations)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
+        engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names)
+
+    def attach_metrics(self, engine, metric_names, mode='epoch', log_interval=1):
+        """
+        Attaches the default metrics logging method to an engine
+
+        Args:
+            engine (Engine): engine object
             metric_names (list): list of the metrics names to log
             mode (str): 'iteration' or 'epoch' (default=epoch)
             log_interval (int or None): interval of which the metrics information is displayed.
-                                If set to None, only the progress bar is shown and not
-                                the metrics. (default=1)
+                                        If set to None, only the progress bar is shown and not
+                                        the metrics. (default=1)
         """
 
         if log_interval is not None:
@@ -78,8 +101,4 @@ class ProgressBar:
             'incompatible mode {}, accepted modes {}'.format(mode, {'iteration', 'epoch'})
 
         log_event = Events.EPOCH_COMPLETED if mode == 'epoch' else Events.ITERATION_COMPLETED
-
-        engine.add_event_handler(Events.EPOCH_STARTED, self._reset, num_iterations)
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
-        engine.add_event_handler(log_event, self._log_message, metric_names, mode, log_interval)
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names)
+        engine.add_event_handler(log_event, self._log_metrics, metric_names, mode, log_interval)

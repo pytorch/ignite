@@ -16,7 +16,8 @@ def test_epoch_mode(capsys):
     engine = Engine(update_fn)
 
     pbar = ProgressBar()
-    pbar.attach(engine, len(loader), ['a', 'b'])
+    pbar.attach(engine, len(loader), ['a'])
+    pbar.attach_metrics(engine, ['a', 'b'], mode='epoch', log_interval=1)
 
     engine.run(loader, max_epochs=n_epochs)
 
@@ -36,7 +37,8 @@ def test_iteration_mode(capsys):
     engine = Engine(update_fn)
 
     pbar = ProgressBar()
-    pbar.attach(engine, len(loader), ['a', 'b'], mode='iteration')
+    pbar.attach(engine, len(loader), ['a'])
+    pbar.attach_metrics(engine, ['a', 'b'], mode='iteration', log_interval=1)
 
     engine.run(loader, max_epochs=n_epochs)
 
