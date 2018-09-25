@@ -26,9 +26,25 @@ class Recall(Metric):
 
     def update(self, output):
         y_pred, y = output
-        num_classes = y_pred.size(1)
-        indices = torch.max(y_pred, 1)[1]
-        correct = torch.eq(indices, y)
+
+        if y.ndimension() == 2 and y.shape[1] == 1:
+            y = y.squeeze(dim=-1)
+
+        if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
+            y_pred = y_pred.squeeze(dim=-1)
+
+        y_dim = list(y.shape)[1:]
+        pred_dim = list(y_pred.shape)[:-len(y_dim)]
+
+        if len(pred_dim) or y_pred.ndimension() == 1:
+            num_classes = 2
+            indices = torch.round(y_pred).type(y.type())
+            correct = torch.eq(indices, y).view(-1)
+        else:
+            num_classes = y_pred.size(1)
+            indices = torch.max(y_pred, 1)[1]
+            correct = torch.eq(indices, y)
+
         actual_onehot = to_onehot(y, num_classes)
         actual = actual_onehot.sum(dim=0)
         if correct.sum() == 0:

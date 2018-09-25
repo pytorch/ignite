@@ -56,3 +56,41 @@ def test_compute_all_wrong():
 
     assert results[0] == 0.0
     assert results[1] == 0.0
+
+
+def test_binary_vs_categorical():
+    precision_sigmoid = Precision(average=True)
+    precision_softmax = Precision(average=True)
+
+    y_pred_binary = torch.FloatTensor([0.9, 0.2])
+    y_pred_categorical = torch.FloatTensor([[0.1, 0.9], [0.8, 0.2]])
+    y = torch.LongTensor([1, 0])
+
+    precision_sigmoid.update((y_pred_binary, y))
+    precision_softmax.update((y_pred_categorical, y))
+
+    results_sigmoid = precision_sigmoid.compute()
+    results_softmax = precision_softmax.compute()
+
+    assert results_sigmoid == results_softmax
+    assert results_sigmoid == 1.0
+    assert results_softmax == 1.0
+
+
+def test_binary_shapes():
+    precision = Precision(average=True)
+
+    y = torch.LongTensor([1, 0])
+    y_pred_ndim = torch.FloatTensor([[0.9], [0.2]])
+    y_pred_1dim = torch.FloatTensor([0.9, 0.2])
+
+    precision.update((y_pred_1dim, y))
+    results_1dim = precision.compute()
+    precision.reset()
+
+    precision.update((y_pred_ndim, y))
+    results_ndim = precision.compute()
+
+    assert results_1dim == results_ndim
+    assert results_1dim == 1.0
+    assert results_ndim == 1.0

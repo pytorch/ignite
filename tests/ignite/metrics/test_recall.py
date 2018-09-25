@@ -59,3 +59,41 @@ def test_compute_all_wrong():
 
     assert result[0] == 0.0
     assert result[1] == 0.0
+
+
+def test_binary_vs_categorical():
+    recall_sigmoid = Recall(average=True)
+    recall_softmax = Recall(average=True)
+
+    y_pred_binary = torch.FloatTensor([0.9, 0.2])
+    y_pred_categorical = torch.FloatTensor([[0.1, 0.9], [0.8, 0.2]])
+    y = torch.LongTensor([1, 0])
+
+    recall_sigmoid.update((y_pred_binary, y))
+    recall_softmax.update((y_pred_categorical, y))
+
+    results_sigmoid = recall_sigmoid.compute()
+    results_softmax = recall_softmax.compute()
+
+    assert results_sigmoid == results_softmax
+    assert results_sigmoid == 1.0
+    assert results_softmax == 1.0
+
+
+def test_binary_shapes():
+    recall = Recall(average=True)
+
+    y = torch.LongTensor([1, 0])
+    y_pred_ndim = torch.FloatTensor([[0.9], [0.2]])
+    y_pred_1dim = torch.FloatTensor([0.9, 0.2])
+
+    recall.update((y_pred_1dim, y))
+    results_1dim = recall.compute()
+    recall.reset()
+
+    recall.update((y_pred_ndim, y))
+    results_ndim = recall.compute()
+
+    assert results_1dim == results_ndim
+    assert results_1dim == 1.0
+    assert results_ndim == 1.0
