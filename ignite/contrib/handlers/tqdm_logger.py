@@ -8,19 +8,28 @@ from ignite.engine import Events
 
 class ProgressBar:
     """
-    TQDM progress bar handler to log training progress and computed metrics
+    TQDM progress bar handler to log training progress and computed metrics.
 
     Examples:
 
-    .. code-block:: python
+        Create a progress bar that shows you some metrics as they are computed,
+        by simply attaching the progress bar object to your engine.
 
-        pbar = ProgressBar()
-        pbar.attach(trainer, len(data_loader), ['loss'], mode='iteration', log_interval=1)
-        pbar.attach_metrics(trainer, ['loss', 'accuracy'], mode='epoch', log_interval=1)
+        .. code-block:: python
+
+            pbar = ProgressBar()
+            pbar.attach(trainer, len(data_loader), ['loss'], mode='iteration', log_interval=1)
+
+        If additionally, you want to keep track of any metric, add a call to ``attach_metrics``
+
+        .. code-block:: python
+
+            pbar.attach_metrics(trainer, ['loss', 'accuracy'], mode='epoch', log_interval=1)
 
     Note:
-        When adding this handler to an engine, it is recommend that you replace every print
-        operation in the engine's handlers with `tqdm.write()` to guarantee the correct stdout format.
+        When adding attaching the progress bar to an engine, it is recommend that you replace
+        every print operation in the engine's handlers with ``pbar.log_message`` to guarantee
+        the correct format of the stdout.
     """
 
     def __init__(self):
