@@ -10,38 +10,63 @@ class ProgressBar:
     """
     TQDM progress bar handler to log training progress and computed metrics
 
-    Args:
-        engine (ignite.Engine): an engine object
-        loader (iterable or DataLoader): data loader object
-        output_transform: transform a function that transforms engine.state.output
-                into a dictionary of format {metric_name: metric_value}
-        mode (str): 'iteration' or 'epoch' (default=epoch)
-        log_interval (int or None): interval of which the metrics information is displayed.
-                            If set to None, only the progress bar is shown and not
-                            the metrics. (default=1)
-
     Example:
         (...)
-        pbar = ProgressBar(trainer, train_loader, output_transform=lambda x: {'loss': x})
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, pbar)
+        pbar = ProgressBar()
+        pbar.attach(trainer, len(data_loader), ['loss'], mode='iteration', log_interval=1)
 
     Note:
-        1) Bear in mind that `output_transform` should return a dictionary, whose values are floats.
-        This is due to the running average over every metric that is being computed. If you have
-        metrics that are tensors or arrays, you will have to unroll each value to its own
-        dictionary key.
-
-        2) When adding this handler to an engine, it is recommend that you replace every print
+        When adding this handler to an engine, it is recommend that you replace every print
         operation in the engine's handlers with `tqdm.write()` to guarantee the correct stdout format.
     """
 
-    def __init__(self, engine, loader, output_transform=lambda x: x, mode='epoch', log_interval=1):
-        self.num_iterations = len(loader)
-        self.metrics = {}
-        self.output_transform = output_transform
+    def __init__(self):
         self.pbar = None
-        self.mode = mode
-        self.log_interval = log_interval
+
+    def _reset(self, engine, num_iterations):
+        self.pbar = tqdm(
+            total=num_iterations,
+            leave=False,
+            bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]')
+
+    def _close(self, engine):
+        self.pbar.close()
+
+    @staticmethod
+    def _log_message(engine, metric_names, mode, log_interval):
+
+        i = engine.state.epoch if mode == 'epoch' else engine.state.iteration
+
+        if log_interval and i % log_interval == 0:
+            if mode == 'epoch':
+                message = 'Epoch {}'.format(engine.state.epoch)
+            else:
+                message = 'Iteration {}'.format(engine.state.iteration)
+
+            metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
+            for name, value in metrics.items():
+                message += ' | {}={}'.format(name, value)
+
+            tqdm.write(message)
+
+    def _update(self, engine, metric_names):
+        metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
+        self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
+        self.pbar.set_postfix(**metrics)
+        self.pbar.update()
+
+    def attach(self, engine, num_iterations, metric_names, mode='epoch', log_interval=1):
+        """
+        Attaches the progress bar to an engine object
+        Args:
+            engine (Engine): trainer object
+            num_iterations (int): number of iterations of one epoch
+            metric_names (list): list of the metrics names to log
+            mode (str): 'iteration' or 'epoch' (default=epoch)
+            log_interval (int or None): interval of which the metrics information is displayed.
+                                If set to None, only the progress bar is shown and not
+                                the metrics. (default=1)
+        """
 
         if log_interval is not None:
             assert log_interval >= 1, 'log_frequency must be positive'
@@ -51,42 +76,7 @@ class ProgressBar:
 
         log_event = Events.EPOCH_COMPLETED if mode == 'epoch' else Events.ITERATION_COMPLETED
 
-        engine.add_event_handler(Events.EPOCH_STARTED, self._reset)
+        engine.add_event_handler(Events.EPOCH_STARTED, self._reset, num_iterations)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
-        engine.add_event_handler(log_event, self._log_message)
-
-    def _reset(self, engine):
-        self.pbar = tqdm(
-            total=self.num_iterations,
-            leave=False,
-            bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]')
-
-    def _close(self, engine):
-        self.pbar.close()
-
-    def _log_message(self, engine):
-
-        i = engine.state.epoch if self.mode == 'epoch' else engine.state.iteration
-
-        if self.log_interval and i % self.log_interval == 0:
-            if self.mode == 'epoch':
-                message = 'Epoch {}'.format(engine.state.epoch)
-            else:
-                message = 'Iteration {}'.format(engine.state.iteration)
-
-            for name, value in self.metrics.items():
-                message += ' | {}={:.2e}'.format(name, value)
-
-            tqdm.write(message)
-
-    def __call__(self, engine):
-        self.metrics = self.output_transform(engine.state.output)
-        self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
-        self.pbar.set_postfix(**self._format_metrics())
-        self.pbar.update()
-
-    def _format_metrics(self):
-        formatted_metrics = {}
-        for key in self.metrics:
-            formatted_metrics[key] = '{:.2e}'.format(self.metrics[key])
-        return formatted_metrics
+        engine.add_event_handler(log_event, self._log_message, metric_names, mode, log_interval)
+        engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names)

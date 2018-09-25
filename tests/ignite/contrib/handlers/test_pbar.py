@@ -1,9 +1,12 @@
-from ignite.engine import Engine, Events
+from ignite.engine import Engine
+from ignite.metrics import Loss
 from ignite.contrib.handlers import ProgressBar
 
 
 def update_fn(engine, batch):
-    return {'a': 1, 'b': 2}
+    engine.state.metrics['a'] = 1
+    engine.state.metrics['b'] = 2
+    return None
 
 
 def test_epoch_mode(capsys):
@@ -11,9 +14,10 @@ def test_epoch_mode(capsys):
     n_epochs = 2
     loader = [1, 2]
     engine = Engine(update_fn)
-    handler = ProgressBar(engine, loader)
 
-    engine.add_event_handler(Events.ITERATION_COMPLETED, handler)
+    pbar = ProgressBar()
+    pbar.attach(engine, len(loader), ['a', 'b'])
+
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
@@ -30,9 +34,10 @@ def test_iteration_mode(capsys):
     n_epochs = 2
     loader = [1, 2]
     engine = Engine(update_fn)
-    handler = ProgressBar(engine, loader, mode='iteration')
 
-    engine.add_event_handler(Events.ITERATION_COMPLETED, handler)
+    pbar = ProgressBar()
+    pbar.attach(engine, len(loader), ['a', 'b'], mode='iteration')
+
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
