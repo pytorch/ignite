@@ -18,7 +18,7 @@ class ProgressBar:
         .. code-block:: python
 
             pbar = ProgressBar()
-            pbar.attach(trainer, len(data_loader), ['loss'], mode='iteration', log_interval=1)
+            pbar.attach(trainer, len(data_loader), ['loss'])
 
         If additionally, you want to keep track of any metric, add a call to ``attach_metrics``
 
