@@ -8,6 +8,7 @@ stages:
   - Lint check
   - Test
 #  - Docs
+  - Deploy
 
 before_install: &before_install
   - sudo apt-get update
@@ -20,23 +21,21 @@ before_install: &before_install
   # Useful for debugging any issues with conda
   - conda info -a
   - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION pytorch-cpu
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   - source activate test-environment
-  - python setup.py install
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
+  # Test contrib dependencies
+  - pip install scikit-learn
 
 install:
-  - sleep 1
-#  - pip install numpy mock pytest codecov pytest-cov
-  # Test contrib dependencies
-#  - pip install scikit-learn
+  - python setup.py install
+  - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
-#  - pip install visdom torchvision tensorboardX
-#  - pip install gym
+  - pip install visdom torchvision tensorboardX
+  - pip install gym
 
 script:
-  - sleep 1
-#  - py.test --cov ignite --cov-report term-missing
-#
+  - py.test --cov ignite --cov-report term-missing
+
 #  # Smoke tests for the examples
 #  # Mnist
 #  # 1) mnist.py
@@ -56,87 +55,45 @@ script:
 #  # RL
 #  # 1) Actor-Critic
 #  - python examples/reinforcement_learning/actor_critic.py --max-episodes=2
-#  # 1) Reinforce
+#  # 2) Reinforce
 #  - python examples/reinforcement_learning/reinforce.py --max-episodes=2
 #
 #  #fast-neural-style
 #  #train
 #  - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
-#
-#after_success:
-#  - codecov
 
-before_deploy:
-  # Conda deploy if on tag
-  # ANACONDA_TOKEN should be provided by Travis
-  # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
-
-  # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
-  - conda install -y conda-build conda-verify anaconda-client
-  - conda config --set anaconda_upload no
-  - conda build --quiet --no-test --output-folder conda_build conda.recipe
-  # Convert to other platforms: OSX, WIN
-  - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
-  - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
-  # Upload to Anaconda
-  # We could use --all but too much platforms to uploaded
-  - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload {}
-
-
-# PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
-deploy:
-
-  provider: pypi
-
-  user: $PYPI_USER
-  # If password contains non alphanumeric characters
-  # https://github.com/travis-ci/dpl/issues/377
-  # pass it as secured variable
-  password: $PYPI_TOKEN
-  # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
-  # `travis encrypt deploy.password="password"`
-  #  secure: "secured_password"
-
-  # For debug purposes -> deploy on test.pypi
-  server: https://test.pypi.org/legacy/
-
-  skip_cleanup: true
-
-  distributions: "sdist bdist_wheel"
-
-  on:
-    tags: true
-
-    python: "3.5"
+after_success:
+  - codecov
 
 
 jobs:
   include:
     - stage: Lint check
-      python: "2.7"
+      python: "3.5"
       before_install: # Nothing to do
       install: pip install flake8
       script: flake8
       after_success: # Nothing to do
 
-
-#    # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
+    # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
 #    - stage: Docs
 #      python: "3.5"
-
-      # Use previously defined before_install
-#      <<: *before_install
-
+#
+#      # Use previously defined before_install
+#      before_install: *before_install
+#
 #      install:
 #        - pip install -r docs/requirements.txt
 #        # `pip install .` vs `python setup.py install` : 1st works better to produce _module/ignite with source links
 #        - pip install .
-
+#
 #      script:
 #        - cd docs && make html
 #        # Create .nojekyll file to serve correctly _static and friends
 #        - touch build/html/.nojekyll
 #      after_success: # Nothing to do
+#
+#      # Deploy built docs when PR is merged to master
 #      deploy:
 #        provider: pages
 #        skip-cleanup: true
@@ -145,3 +102,56 @@ jobs:
 #        local_dir: docs/build/html
 #        on:
 #          branch: master
+
+    - stage: Deploy
+      python: "3.5"
+      if: tag IS present
+
+      # Use previously defined before_install
+      before_install: *before_install
+
+      install:
+        - python setup.py install
+
+      script: true
+
+      before_deploy:
+        # Conda deploy if on tag
+        # ANACONDA_TOKEN should be provided by Travis
+        # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
+
+        # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
+        - conda install -y conda-build conda-verify anaconda-client
+        - conda config --set anaconda_upload no
+        - conda build --quiet --no-test --output-folder conda_build conda.recipe
+        # Convert to other platforms: OSX, WIN
+        - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        # Upload to Anaconda
+        # We could use --all but too much platforms to uploaded
+        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload {}
+
+
+      # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
+      deploy:
+
+        provider: pypi
+
+        user: $PYPI_USER
+        # If password contains non alphanumeric characters
+        # https://github.com/travis-ci/dpl/issues/377
+        # pass it as secured variable
+        password: $PYPI_TOKEN
+        # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
+        # `travis encrypt deploy.password="password"`
+        #  secure: "secured_password"
+
+        # For debug purposes -> deploy on test.pypi
+        server: https://test.pypi.org/legacy/
+
+        skip_cleanup: true
+
+        distributions: "sdist bdist_wheel"
+
+        on:
+          tags: true
