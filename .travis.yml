@@ -66,6 +66,26 @@ after_success:
   # be published.
   - codecov || echo "codecov upload failed"
 
+
+# PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
+deploy:
+  provider: pypi
+  user: vfdev-5
+  # If password contains non alphanumeric characters
+  # https://github.com/travis-ci/dpl/issues/377
+  # pass it as secured variable
+  password: $PYPI_TOKEN
+  # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
+  # `travis encrypt deploy.password="password"`
+#    secure: "secured_password"
+
+  skip_cleanup: true
+  distributions: "sdist bdist_wheel"
+  on:
+    tags: true
+    python: "3.5"
+
+
 jobs:
   include:
     - stage: lint_check
