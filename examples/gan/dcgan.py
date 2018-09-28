@@ -313,7 +313,7 @@ def main(dataset, dataroot,
 
     # attach progress bar
     pbar = ProgressBar()
-    pbar.attach(trainer, num_iterations=len(loader), metric_names=monitoring_metrics)
+    pbar.attach(trainer, metric_names=monitoring_metrics)
     pbar.add_logging(trainer, monitoring_metrics, mode='iteration', log_interval=PRINT_FREQ)
 
     # adding handlers using `trainer.on` decorator API

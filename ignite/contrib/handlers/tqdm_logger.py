@@ -18,7 +18,7 @@ class ProgressBar:
         .. code-block:: python
 
             pbar = ProgressBar()
-            pbar.attach(trainer, len(data_loader), ['loss'])
+            pbar.attach(trainer, ['loss'])
 
         If additionally, you want to keep track of any metric, add a call to ``add_logging``
 
@@ -35,19 +35,22 @@ class ProgressBar:
     def __init__(self):
         self.pbar = None
 
-    def _reset(self, engine, num_iterations):
+    def _reset(self, engine):
         self.pbar = tqdm(
-            total=num_iterations,
+            total=len(engine.state.dataloader),
             leave=False,
             bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]')
 
     def _close(self, engine):
         self.pbar.close()
 
-    def _update(self, engine, metric_names):
-        metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
+    def _update(self, engine, metric_names=None):
         self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
-        self.pbar.set_postfix(**metrics)
+
+        if metric_names is not None:
+            metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
+            self.pbar.set_postfix(**metrics)
+
         self.pbar.update()
 
     @staticmethod
@@ -76,17 +79,16 @@ class ProgressBar:
 
             self.log_message(message)
 
-    def attach(self, engine, num_iterations, metric_names):
+    def attach(self, engine, metric_names=None):
         """
         Attaches the progress bar to an engine object
 
         Args:
             engine (Engine): engine object
-            num_iterations (int): number of iterations of one epoch
-            metric_names (list): list of the metrics names to log
+            metric_names (list): (Optional) list of the metrics names to log as the bar progresses
         """
 
-        engine.add_event_handler(Events.EPOCH_STARTED, self._reset, num_iterations)
+        engine.add_event_handler(Events.EPOCH_STARTED, self._reset)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names)
 
