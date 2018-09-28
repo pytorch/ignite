@@ -1,4 +1,3 @@
-from __future__ import print_function
 from argparse import ArgumentParser
 
 from torch import nn
@@ -11,6 +10,8 @@ from torchvision.datasets import MNIST
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
+
+from tqdm import tqdm
 
 
 class Net(nn.Module):
@@ -58,21 +59,31 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
                                                      'nll': Loss(F.nll_loss)},
                                             device=device)
 
+    desc = "ITERATION - loss: {:.2f}"
+    pbar = tqdm(
+        initial=0, leave=False, total=len(train_loader),
+        desc=desc.format(0)
+    )
+
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
+
         if iter % log_interval == 0:
-            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-                  "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
+            pbar.desc = desc.format(engine.state.output)
+            pbar.update(log_interval)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
+        pbar.refresh()
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
-        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
+        tqdm.write(
+            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+            .format(engine.state.epoch, avg_accuracy, avg_nll)
+        )
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
@@ -80,10 +91,14 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         metrics = evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
-        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
+        tqdm.write(
+            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+            .format(engine.state.epoch, avg_accuracy, avg_nll))
+
+        pbar.n = pbar.last_print_n = 0
 
     trainer.run(train_loader, max_epochs=epochs)
+    pbar.close()
 
 
 if __name__ == "__main__":
