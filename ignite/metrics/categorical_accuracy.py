@@ -1,31 +1,14 @@
 from __future__ import division
+import warnings
 
-import torch
-
-from ignite.metrics.metric import Metric
-from ignite.exceptions import NotComputableError
+from ignite.metrics.accuracy import Accuracy
 
 
-class CategoricalAccuracy(Metric):
+class CategoricalAccuracy(Accuracy):
     """
-    Calculates the categorical accuracy.
-
-    - `update` must receive output of the form `(y_pred, y)`.
-    - `y_pred` must be in the following shape (batch_size, num_categories, ...)
-    - `y` must be in the following shape (batch_size, ...)
+    Note: This metric is deprecated in favor of Accuracy.
     """
-    def reset(self):
-        self._num_correct = 0
-        self._num_examples = 0
-
-    def update(self, output):
-        y_pred, y = output
-        indices = torch.max(y_pred, 1)[1]
-        correct = torch.eq(indices, y).view(-1)
-        self._num_correct += torch.sum(correct).item()
-        self._num_examples += correct.shape[0]
-
-    def compute(self):
-        if self._num_examples == 0:
-            raise NotComputableError('CategoricalAccuracy must have at least one example before it can be computed')
-        return self._num_correct / self._num_examples
+    def __init__(self, *args, **kwargs):
+        warnings.warn("The use of ignite.metrics.CategoricalAccuracy is deprecated, " +
+                      "it will be removed in 0.1.2")
+        super(Accuracy, self).__init__(*args, **kwargs)

@@ -1,30 +1,14 @@
 from __future__ import division
+import warnings
 
-import torch
-
-from ignite.metrics.metric import Metric
-from ignite.exceptions import NotComputableError
+from ignite.metrics.accuracy import Accuracy
 
 
-class BinaryAccuracy(Metric):
+class BinaryAccuracy(Accuracy):
     """
-    Calculates the binary accuracy.
-
-    - `update` must receive output of the form `(y_pred, y)`.
-    - `y_pred` must be in the following shape (batch_size, ...) and it's elements must be between 0 and 1.
-    - `y` must be in the following shape (batch_size, ...)
+    Note: This metric is deprecated in favor of Accuracy.
     """
-    def reset(self):
-        self._num_correct = 0
-        self._num_examples = 0
-
-    def update(self, output):
-        y_pred, y = output
-        correct = torch.eq(torch.round(y_pred).type(y.type()), y).view(-1)
-        self._num_correct += torch.sum(correct).item()
-        self._num_examples += correct.shape[0]
-
-    def compute(self):
-        if self._num_examples == 0:
-            raise NotComputableError('BinaryAccuracy must have at least one example before it can be computed')
-        return self._num_correct / self._num_examples
+    def __init__(self, *args, **kwargs):
+        warnings.warn("The use of ignite.metrics.BinaryAccuracy is deprecated, " +
+                      "it will be removed in 0.1.2")
+        super(Accuracy, self).__init__(*args, **kwargs)

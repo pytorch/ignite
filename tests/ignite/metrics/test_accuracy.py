@@ -31,9 +31,7 @@ def test_binary_compute_batch_images():
     acc = Accuracy()
 
     y_pred = torch.FloatTensor([[[0.3, 0.7],
-                                 [0.1, 0.6]],
-                                [[0.2, 0.7],
-                                 [0.2, 0.6]]])
+                                 [0.2, 0.8]]])
     y = torch.ones(1, 2, 2).type(torch.LongTensor)
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
@@ -41,10 +39,8 @@ def test_binary_compute_batch_images():
 
     acc.reset()
     y_pred = torch.FloatTensor([[[0.3, 0.7],
-                                 [0.8, 0.6]],
-                                [[0.2, 0.7],
-                                 [0.9, 0.6]]])
-    y = torch.ones(2, 2, 2).type(torch.LongTensor)
+                                 [0.9, 0.8]]])
+    y = torch.ones(1, 2, 2).type(torch.LongTensor)
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.75
@@ -71,7 +67,7 @@ def test_categorical_compute_batch_images():
     acc = Accuracy()
     y_pred = torch.zeros(2, 3, 2, 2)
     y_pred[0, 1, :] = 1
-    y_pred[0, 2, :] = 1
+    y_pred[1, 2, :] = 1
 
     y = torch.LongTensor([[[0, 1],
                            [0, 1]],

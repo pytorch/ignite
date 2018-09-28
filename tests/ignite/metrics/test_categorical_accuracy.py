@@ -31,7 +31,7 @@ def test_compute_batch_images():
     acc = CategoricalAccuracy()
     y_pred = torch.zeros(2, 3, 2, 2)
     y_pred[0, 1, :] = 1
-    y_pred[0, 2, :] = 1
+    y_pred[1, 2, :] = 1
 
     y = torch.LongTensor([[[0, 1],
                            [0, 1]],
