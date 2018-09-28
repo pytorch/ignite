@@ -4,14 +4,16 @@ import argparse
 import os
 import random
 import warnings
-from collections import OrderedDict
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
+
+from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint, Timer
+from ignite.metrics import RunningAverage
 
 try:
     import torchvision.datasets as dset
@@ -244,9 +246,6 @@ def main(dataset, dataroot,
     def get_noise():
         return torch.randn(batch_size, z_dim, 1, 1, device=device)
 
-    # bookkeeping
-    running_avgs = OrderedDict()
-
     # The main function, processing a batch of examples
     def step(engine, batch):
 
@@ -307,9 +306,19 @@ def main(dataset, dataroot,
     checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, save_interval=1, n_saved=10, require_empty=False)
     timer = Timer(average=True)
 
+    # attach running average metrics
+    monitoring_metrics = ['errD', 'errG', 'D_x', 'D_G_z1', 'D_G_z2']
+    for metric in monitoring_metrics:
+        RunningAverage(alpha=alpha, output_transform=lambda x: x[metric]).attach(trainer, metric)
+
+    # attach progress bar
+    pbar = ProgressBar()
+    pbar.attach(trainer, num_iterations=len(loader), metric_names=monitoring_metrics)
+    pbar.add_logging(trainer, monitoring_metrics, mode='iteration', log_interval=PRINT_FREQ)
+
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)
-    def save_fake_eaxmple(engine):
+    def save_fake_example(engine):
         fake = netG(fixed_noise)
         path = os.path.join(output_dir, FAKE_IMG_FNAME.format(engine.state.epoch))
         vutils.save_image(fake.detach(), path, normalize=True)
@@ -320,37 +329,6 @@ def main(dataset, dataroot,
         img, y = engine.state.batch
         path = os.path.join(output_dir, REAL_IMG_FNAME.format(engine.state.epoch))
         vutils.save_image(img, path, normalize=True)
-
-    # adding handlers using `trainer.on` decorator API
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def update_logs(engine):
-        for k, v in engine.state.output.items():
-            old_v = running_avgs.get(k, v)
-            new_v = alpha * old_v + (1 - alpha) * v
-
-            running_avgs[k] = new_v
-
-    # adding handlers using `trainer.on` decorator API
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def print_logs(engine):
-        if (engine.state.iteration - 1) % PRINT_FREQ == 0:
-            fname = os.path.join(output_dir, LOGS_FNAME)
-            columns = running_avgs.keys()
-            values = [str(round(value, 5)) for value in running_avgs.values()]
-
-            with open(fname, 'a') as f:
-                if f.tell() == 0:
-                    print('\t'.join(columns), file=f)
-                print('\t'.join(values), file=f)
-
-            message = '[{epoch}/{max_epoch}][{i}/{max_i}]'.format(epoch=engine.state.epoch,
-                                                                  max_epoch=epochs,
-                                                                  i=(engine.state.iteration % len(loader)),
-                                                                  max_i=len(loader))
-            for name, value in zip(columns, values):
-                message += ' | {name}: {value}'.format(name=name, value=value)
-
-            print(message)
 
     # adding handlers using `trainer.add_event_handler` method API
     trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
