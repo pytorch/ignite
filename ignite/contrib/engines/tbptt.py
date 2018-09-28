@@ -53,12 +53,11 @@ def create_supervised_tbptt_trainer(
     Training recurrent model on long sequences is computationally intensive as
     it requires to process the whole sequence before getting a gradient.
     However, when the training loss is computed over many outputs
-    ([X to many](https://karpathy.github.io/2015/05/21/rnn-effectiveness/)),
+    (`X to many <https://karpathy.github.io/2015/05/21/rnn-effectiveness/>`_),
     there is an opportunity to compute a gradient over a subsequence. This is
     known as
-    [truncated backpropagation through time](
-    https://machinelearningmastery.com/gentle-introduction-backpropagation-time/
-    ).
+    `truncated backpropagation through time <https://machinelearningmastery.com/
+    gentle-introduction-backpropagation-time/>`_.
     This supervised trainer apply gradient optimization step every `tbtt_step`
     time steps of the sequence, while backpropagating through the same
     `tbtt_step` time steps.
@@ -97,7 +96,7 @@ def create_supervised_tbptt_trainer(
                 y_pred_t, hidden = model(x_t)
             else:
                 hidden = _detach_hidden(hidden)
-                y_pred_t, hidden = model(x_t)
+                y_pred_t, hidden = model(x_t, hidden)
             loss_t = loss_fn(y_pred_t, y_t)
             loss_t.backward()
             optimizer.step()

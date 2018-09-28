@@ -9,3 +9,5 @@ ignite.handlers
 
 .. autoclass:: Timer
     :members:
+
+.. autoclass:: TerminateOnNan
