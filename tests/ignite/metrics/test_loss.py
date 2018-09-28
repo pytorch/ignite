@@ -46,7 +46,7 @@ def test_non_averaging_loss():
 
     y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
     y = torch.LongTensor([2, 2])
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         loss.update((y_pred, y))
 
 

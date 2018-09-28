@@ -19,7 +19,10 @@ class EpochMetric(Metric):
     """
 
     def __init__(self, compute_fn, output_transform=lambda x: x):
-        assert callable(compute_fn), "Argument compute_fn should be callable"
+
+        if not callable(compute_fn):
+            raise TypeError("Argument compute_fn should be callable")
+
         super(EpochMetric, self).__init__(output_transform=output_transform)
         self.compute_fn = compute_fn
 
@@ -30,11 +33,15 @@ class EpochMetric(Metric):
     def update(self, output):
         y_pred, y = output
 
-        assert 1 <= y_pred.ndimension() <= 2, "Predictions should be of shape (batch_size, n_classes)"
-        assert 1 <= y.ndimension() <= 2, "Targets should be of shape (batch_size, n_classes)"
+        if y_pred.ndimension() not in (1, 2):
+            raise ValueError("Predictions should be of shape (batch_size, n_classes) or (batch_size, )")
+
+        if y.ndimension() not in (1, 2):
+            raise ValueError("Targets should be of shape (batch_size, n_classes) or (batch_size, )")
 
         if y.ndimension() == 2:
-            assert torch.equal(y ** 2, y), 'Targets should be binary (0 or 1)'
+            if not torch.equal(y ** 2, y):
+                raise ValueError('Targets should be binary (0 or 1)')
 
         if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
             y_pred = y_pred.squeeze(dim=-1)

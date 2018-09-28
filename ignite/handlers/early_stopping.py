@@ -32,9 +32,16 @@ class EarlyStopping(object):
 
     """
     def __init__(self, patience, score_function, trainer):
-        assert callable(score_function), "Argument score_function should be a function"
-        assert patience > 0, "Argument patience should be positive"
-        assert isinstance(trainer, Engine), "Argument trainer should be an instance of Engine"
+
+        if not callable(score_function):
+            raise TypeError("Argument score_function should be a function")
+
+        if patience < 1:
+            raise ValueError("Argument patience should be positive")
+
+        if not isinstance(trainer, Engine):
+            raise TypeError("Argument trainer should be an instance of Engine")
+
         self.score_function = score_function
         self.patience = patience
         self.trainer = trainer
