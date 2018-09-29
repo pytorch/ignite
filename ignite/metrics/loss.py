@@ -11,6 +11,7 @@ class Loss(Metric):
     - `loss_fn` must return the average loss over all observations in the batch.
     - `update` must receive output of the form `(y_pred, y)`.
     """
+
     def __init__(self, loss_fn, output_transform=lambda x: x):
         super(Loss, self).__init__(output_transform)
         self._loss_fn = loss_fn
@@ -20,8 +21,12 @@ class Loss(Metric):
         self._num_examples = 0
 
     def update(self, output):
-        y_pred, y = output
-        average_loss = self._loss_fn(y_pred, y)
+        if len(output) == 2:
+            y_pred, y = output
+            kwargs = {}
+        else:
+            y_pred, y, kwargs = output
+        average_loss = self._loss_fn(y_pred, y, **kwargs)
         assert len(average_loss.shape) == 0, '`loss_fn` did not return the average loss'
         self._sum += average_loss.item() * y.shape[0]
         self._num_examples += y.shape[0]
