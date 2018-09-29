@@ -8,8 +8,19 @@ class Loss(Metric):
     """
     Calculates the average loss according to the passed loss_fn.
 
-    - `loss_fn` must return the average loss over all observations in the batch.
-    - `update` must receive output of the form `(y_pred, y)`.
+    Args:
+        loss_fn (callable): a callble taking a prediction tensor, a target
+            tensor, eventually other arguments, and returns the average loss
+            over all observations in the batch.
+        output_transform (callable): a callable that is used to transform the
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric.
+            This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+            The output is is expected to be a tuple (prediction, target) or
+            (prediction, target, kwargs) where kwargs is a dictionary of extra
+            keywords arguments.
+
     """
 
     def __init__(self, loss_fn, output_transform=lambda x: x):

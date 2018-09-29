@@ -15,9 +15,6 @@ class Metric(object):
             form expected by the metric.
             This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-            The output is is expected to be a tuple (prediction, target) or
-            (prediction, target, kwargs) where kwargs is a dictionary of extra
-            keywords arguments.
 
     """
     __metaclass__ = ABCMeta
