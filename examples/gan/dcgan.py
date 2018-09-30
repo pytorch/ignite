@@ -314,7 +314,27 @@ def main(dataset, dataroot,
     # attach progress bar
     pbar = ProgressBar()
     pbar.attach(trainer, metric_names=monitoring_metrics)
-    pbar.add_logging(trainer, monitoring_metrics, mode='iteration', log_interval=PRINT_FREQ)
+
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def print_logs(engine):
+        if (engine.state.iteration - 1) % PRINT_FREQ == 0:
+            fname = os.path.join(output_dir, LOGS_FNAME)
+            columns = engine.state.metrics.keys()
+            values = [str(round(value, 5)) for value in engine.state.metrics.values()]
+
+            with open(fname, 'a') as f:
+                if f.tell() == 0:
+                    print('\t'.join(columns), file=f)
+                print('\t'.join(values), file=f)
+
+            message = '[{epoch}/{max_epoch}][{i}/{max_i}]'.format(epoch=engine.state.epoch,
+                                                                  max_epoch=epochs,
+                                                                  i=(engine.state.iteration % len(loader)),
+                                                                  max_i=len(loader))
+            for name, value in zip(columns, values):
+                message += ' | {name}: {value}'.format(name=name, value=value)
+
+            pbar.log_message(message)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)

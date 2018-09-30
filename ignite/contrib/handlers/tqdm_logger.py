@@ -20,16 +20,10 @@ class ProgressBar:
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
 
-        If additionally, you want to keep track of any metric, add a call to ``add_logging``
-
-        .. code-block:: python
-
-            pbar.add_logging(trainer, ['loss', 'accuracy'], mode='epoch', log_interval=1)
-
     Note:
         When adding attaching the progress bar to an engine, it is recommend that you replace
-        every print operation in the engine's handlers with ``pbar.log_message`` to guarantee
-        the correct format of the stdout.
+        every print operation in the engine's handlers triggered every iteration with
+        ``pbar.log_message`` to guarantee the correct format of the stdout.
     """
 
     def __init__(self):
@@ -43,8 +37,12 @@ class ProgressBar:
 
     def _close(self, engine):
         self.pbar.close()
+        self.pbar = None
 
     def _update(self, engine, metric_names=None):
+        if self.pbar is None:
+            self._reset(engine)
+
         self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
 
         if metric_names is not None:
@@ -63,22 +61,6 @@ class ProgressBar:
         """
         tqdm.write(message)
 
-    def _log_metrics(self, engine, metric_names, mode='epoch', log_interval=1):
-
-        i = engine.state.epoch if mode == 'epoch' else engine.state.iteration
-
-        if log_interval and i % log_interval == 0:
-            if mode == 'epoch':
-                message = 'Epoch {}'.format(engine.state.epoch)
-            else:
-                message = 'Iteration {}'.format(engine.state.iteration)
-
-            metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
-            for name, value in metrics.items():
-                message += ' | {}={}'.format(name, value)
-
-            self.log_message(message)
-
     def attach(self, engine, metric_names=None):
         """
         Attaches the progress bar to an engine object
@@ -87,29 +69,8 @@ class ProgressBar:
             engine (Engine): engine object
             metric_names (list): (Optional) list of the metrics names to log as the bar progresses
         """
+        if not isinstance(metric_names, list):
+            raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
 
-        engine.add_event_handler(Events.EPOCH_STARTED, self._reset)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names)
-
-    def add_logging(self, engine, metric_names, mode='epoch', log_interval=1):
-        """
-        Adds a periodic logging handler to complement the progress bar
-
-        Args:
-            engine (Engine): engine object
-            metric_names (list): list of the metrics names to log
-            mode (str): 'iteration' or 'epoch' (default=epoch)
-            log_interval (int or None): interval of which the metrics information is displayed.
-                                        If set to None, only the progress bar is shown and not
-                                        the metrics. (default=1)
-        """
-
-        if log_interval is not None:
-            assert log_interval >= 1, 'log_frequency must be positive'
-
-        assert mode in {'iteration', 'epoch'}, \
-            'incompatible mode {}, accepted modes {}'.format(mode, {'iteration', 'epoch'})
-
-        log_event = Events.EPOCH_COMPLETED if mode == 'epoch' else Events.ITERATION_COMPLETED
-        engine.add_event_handler(log_event, self._log_metrics, metric_names, mode, log_interval)
