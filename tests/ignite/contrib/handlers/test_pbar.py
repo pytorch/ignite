@@ -1,5 +1,4 @@
 from ignite.engine import Engine
-from ignite.metrics import Loss
 from ignite.contrib.handlers import ProgressBar
 
 
