@@ -32,6 +32,14 @@ def test_pbar(capsys):
     assert err[-1] == expected
 
 
+def test_attach_fail_with_string():
+    engine = Engine(update_fn)
+    pbar = ProgressBar()
+
+    with pytest.raises(TypeError):
+        pbar.attach(engine, 'a')
+
+
 def test_pbar_with_metric():
 
     n_iters = 20

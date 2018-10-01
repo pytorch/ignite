@@ -46,8 +46,7 @@ class ProgressBar:
         self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
 
         if metric_names is not None:
-            if not engine.state.metrics \
-                    or not all(metric in metric_names for metric in engine.state.metrics):
+            if not all(metric in engine.state.metrics for metric in metric_names):
                 raise KeyError("metrics not found in engine.state.metrics")
 
             metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
