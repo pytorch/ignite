@@ -28,7 +28,7 @@ def test_pbar(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = 'Epoch 2: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch 2: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
     assert err[-1] == expected
 
 
