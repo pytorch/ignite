@@ -66,6 +66,7 @@ You can clone the source from `github <https://github.com/pytorch/ignite>`_ and 
     
    contrib/engines
    contrib/metrics
+   contrib/handlers
 
 .. automodule:: ignite
    :members:
