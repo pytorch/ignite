@@ -4,14 +4,16 @@ import argparse
 import os
 import random
 import warnings
-from collections import OrderedDict
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
+
+from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint, Timer
+from ignite.metrics import RunningAverage
 
 try:
     import torchvision.datasets as dset
@@ -244,9 +246,6 @@ def main(dataset, dataroot,
     def get_noise():
         return torch.randn(batch_size, z_dim, 1, 1, device=device)
 
-    # bookkeeping
-    running_avgs = OrderedDict()
-
     # The main function, processing a batch of examples
     def step(engine, batch):
 
@@ -307,36 +306,21 @@ def main(dataset, dataroot,
     checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, save_interval=1, n_saved=10, require_empty=False)
     timer = Timer(average=True)
 
-    # adding handlers using `trainer.on` decorator API
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def save_fake_eaxmple(engine):
-        fake = netG(fixed_noise)
-        path = os.path.join(output_dir, FAKE_IMG_FNAME.format(engine.state.epoch))
-        vutils.save_image(fake.detach(), path, normalize=True)
+    # attach running average metrics
+    monitoring_metrics = ['errD', 'errG', 'D_x', 'D_G_z1', 'D_G_z2']
+    for metric in monitoring_metrics:
+        RunningAverage(alpha=alpha, output_transform=lambda x: x[metric]).attach(trainer, metric)
 
-    # adding handlers using `trainer.on` decorator API
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def save_real_example(engine):
-        img, y = engine.state.batch
-        path = os.path.join(output_dir, REAL_IMG_FNAME.format(engine.state.epoch))
-        vutils.save_image(img, path, normalize=True)
+    # attach progress bar
+    pbar = ProgressBar()
+    pbar.attach(trainer, metric_names=monitoring_metrics)
 
-    # adding handlers using `trainer.on` decorator API
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def update_logs(engine):
-        for k, v in engine.state.output.items():
-            old_v = running_avgs.get(k, v)
-            new_v = alpha * old_v + (1 - alpha) * v
-
-            running_avgs[k] = new_v
-
-    # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.ITERATION_COMPLETED)
     def print_logs(engine):
         if (engine.state.iteration - 1) % PRINT_FREQ == 0:
             fname = os.path.join(output_dir, LOGS_FNAME)
-            columns = running_avgs.keys()
-            values = [str(round(value, 5)) for value in running_avgs.values()]
+            columns = engine.state.metrics.keys()
+            values = [str(round(value, 5)) for value in engine.state.metrics.values()]
 
             with open(fname, 'a') as f:
                 if f.tell() == 0:
@@ -350,7 +334,21 @@ def main(dataset, dataroot,
             for name, value in zip(columns, values):
                 message += ' | {name}: {value}'.format(name=name, value=value)
 
-            print(message)
+            pbar.log_message(message)
+
+    # adding handlers using `trainer.on` decorator API
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def save_fake_example(engine):
+        fake = netG(fixed_noise)
+        path = os.path.join(output_dir, FAKE_IMG_FNAME.format(engine.state.epoch))
+        vutils.save_image(fake.detach(), path, normalize=True)
+
+    # adding handlers using `trainer.on` decorator API
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def save_real_example(engine):
+        img, y = engine.state.batch
+        path = os.path.join(output_dir, REAL_IMG_FNAME.format(engine.state.epoch))
+        vutils.save_image(img, path, normalize=True)
 
     # adding handlers using `trainer.add_event_handler` method API
     trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
@@ -366,7 +364,7 @@ def main(dataset, dataroot,
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)
     def print_times(engine):
-        print('Epoch {} done. Time per batch: {:.3f}[s]'.format(engine.state.epoch, timer.value()))
+        pbar.log_message('Epoch {} done. Time per batch: {:.3f}[s]'.format(engine.state.epoch, timer.value()))
         timer.reset()
 
     # adding handlers using `trainer.on` decorator API
