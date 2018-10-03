@@ -21,51 +21,29 @@ class Accuracy(Metric):
     def update(self, output):
         y_pred, y = output
 
-        if y.ndimension() == 2 and y.shape[1] == 1:
-            y = y.squeeze(dim=-1)
+        assert y.ndimension() >= 1 and y_pred.ndimension() >= 1
+        assert y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()
 
-        if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
-            y_pred = y_pred.squeeze(dim=-1)
+        if y.ndimension() > 1 and y.shape[1] == 1:
+            y = y.squeeze(dim=1)
 
-        if y_pred.shape[0] != y.shape[0]:
-            raise ValueError("y and y_pred must be of same length or batch size.")
+        if y_pred.ndimension() > 1 and y_pred.shape[1] == 1:
+            y_pred = y_pred.squeeze(dim=1)
 
-        if y.ndimension() > 1:
+        y_shape = y.shape
+        y_pred_shape = y_pred.shape
 
-            y_shape = list(y.shape)[1:]
-            y_pred_shape = list(y_pred.shape)[-len(y_shape):]
-            pred_dim = list(y_pred.shape)[:-len(y_shape)]
+        if y.ndimension() + 1 == y_pred.ndimension():
+            y_pred_shape = (y_pred_shape[0], ) + y_pred_shape[2:]
 
-            if y_shape != y_pred_shape:
-                raise ValueError("y must have shape of (batch_size, ...) " +
-                                 "and y_pred must have shape of (batch_size, num_classes, ...) " +
-                                 "(batch_size, ...).")
+        assert y_shape == y_pred_shape
 
-            if len(pred_dim) == 2:
-                if pred_dim[1] > 1:
-                    is_categorical = True
-                else:
-                    is_categorical = False
-            elif len(pred_dim) == 1:
-                is_categorical = False
-            else:
-                raise ValueError("y must have shape of (batch_size, ...) " +
-                                 "and y_pred must have shape of (batch_size, num_classes, ...) " +
-                                 "(batch_size, ...).")
+        if y_pred.ndimension() == y.ndimension() + 1:
+            indices = torch.max(y_pred, dim=1)[1]
         else:
-            if y_pred.ndimension() == 2:
-                is_categorical = True
-            elif y_pred.ndimension() == 1:
-                is_categorical = False
-            else:
-                raise ValueError("y must have shape of (batch_size, ...) " +
-                                 "and y_pred must have shape of (batch_size, num_classes, ...) " +
-                                 "(batch_size, ...).")
-        if is_categorical:
-            indices = torch.max(y_pred, 1)[1]
-            correct = torch.eq(indices, y).view(-1)
-        else:
-            correct = torch.eq(torch.round(y_pred).type(y.type()), y).view(-1)
+            indices = torch.round(y_pred).type(y.type())
+
+        correct = torch.eq(indices, y).view(-1)
 
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]

@@ -94,3 +94,53 @@ def test_binary_shapes():
     assert results_1dim == results_ndim
     assert results_1dim == 1.0
     assert results_ndim == 1.0
+
+
+def test_multilabel_average():
+    precision = Precision(average=True)
+
+    y = torch.eye(4).type(torch.LongTensor)
+    y_pred = torch.Tensor([[1., 0., 1., 0.],
+                           [0., 1., 0., 0.],
+                           [0., 0., 1., 0.],
+                           [1., 0., 0., 1.]])
+
+    precision.update((y_pred, y))
+    results = precision.compute()
+
+    assert results == 0.75
+
+
+def test_multilabel():
+    precision = Precision()
+
+    y = torch.eye(4).type(torch.LongTensor)
+    y_pred = torch.Tensor([[1., 0., 1., 0.],
+                           [0., 1., 0., 0.],
+                           [0., 0., 1., 0.],
+                           [1., 0., 0., 1.]])
+    precision.update((y_pred, y))
+    results = precision.compute()
+
+    assert results[0] == 0.5
+    assert results[1] == 1.0
+    assert results[2] == 0.5
+    assert results[3] == 1.0
+
+
+def test_ner_example():
+    precision = Precision()
+
+    y = torch.Tensor([[1, 1, 1, 1, 1, 1, 1, 1],
+                      [2, 2, 2, 2, 2, 2, 2, 2]]).type(torch.LongTensor)
+
+    y_pred = torch.zeros(2, 3, 8)
+    y_pred[0, 1, :] = 1
+    y_pred[1, 2, :] = 1
+
+    precision.update((y_pred, y))
+    results = precision.compute()
+
+    assert results[0] == 0.
+    assert results[1] == 1.
+    assert results[2] == 1.

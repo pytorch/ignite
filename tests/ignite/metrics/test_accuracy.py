@@ -45,6 +45,23 @@ def test_binary_compute_batch_images():
     assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.75
 
+    acc.reset()
+    y_pred = torch.FloatTensor([[[0.3, 0.7],
+                                 [0.9, 0.8]],
+                                [[0.8, 0.3],
+                                 [0.9, 0.4]]])
+    y = torch.ones(2, 2, 2).type(torch.LongTensor)
+    acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
+    assert acc.compute() == 0.625
+
+    acc.reset()
+    y_pred = torch.zeros(2, 1, 2, 2).type(torch.FloatTensor)
+    y = torch.ones(2, 2, 2).type(torch.LongTensor)
+    acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
+    assert acc.compute() == 0.
+
 
 def test_categorical_compute():
     acc = Accuracy()
@@ -92,3 +109,30 @@ def test_categorical_compute_batch_images():
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.75
+
+
+def test_multi_label():
+    acc = Accuracy()
+
+    y_pred = torch.eye(4)
+    y = torch.Tensor([[1., 0., 1., 0.],
+                      [0., 1., 0., 0.],
+                      [0., 0., 1., 0.],
+                      [1., 0., 0., 1.]]).type(torch.LongTensor)
+
+    acc.update((y_pred, y))
+    assert acc.compute() == 0.875
+
+
+def test_ner_example():
+    acc = Accuracy()
+
+    y_pred = torch.zeros(2, 3, 8)
+    y_pred[0, 1, :] = 1
+    y_pred[1, 2, :] = 1
+
+    y = torch.Tensor([[1, 1, 1, 1, 1, 1, 1, 1],
+                      [2, 2, 2, 2, 2, 2, 2, 2]]).type(torch.LongTensor)
+
+    acc.update((y_pred, y))
+    assert acc.compute() == 1.0
