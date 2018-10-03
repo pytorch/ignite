@@ -38,11 +38,11 @@ class Accuracy(Metric):
 
         assert y_shape == y_pred_shape
 
-        if y_pred.ndimension() == y.ndimension() + 1:
-            indices = torch.max(y_pred, dim=1)[1]
-        else:
-            indices = torch.round(y_pred).type(y.type())
+        if y_pred.ndimension() == y.ndimension():
+            y_pred = y_pred.unsqueeze(1)
+            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 
+        indices = torch.max(y_pred, dim=1)[1]
         correct = torch.eq(indices, y).view(-1)
 
         self._num_correct += torch.sum(correct).item()

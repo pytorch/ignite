@@ -100,7 +100,7 @@ def test_binary_shapes():
 
 
 def test_multilabel_average():
-    recall = Recall()
+    recall = Recall(average=True)
 
     y = torch.eye(4).type(torch.LongTensor)
     y_pred = torch.Tensor([[1., 0., 1., 0.],
