@@ -17,9 +17,9 @@ class Recall(Metric):
     Otherwise, returns a tensor with the recall for each class.
     """
 
-    def __init__(self, threshold=0.5, average=False, output_transform=lambda x: x):
+    def __init__(self, threshold_function=lambda x: torch.round(x), average=False, output_transform=lambda x: x):
         super(Recall, self).__init__(output_transform)
-        self._threshold = threshold
+        self._threshold = threshold_function
         self._average = average
 
     def reset(self):
@@ -28,7 +28,6 @@ class Recall(Metric):
 
     def update(self, output):
         y_pred, y = output
-
         dtype = y_pred.type()
 
         if y.ndimension() > 1 and y.shape[1] == 1:
@@ -45,14 +44,15 @@ class Recall(Metric):
 
         assert y_shape == y_pred_shape
 
-        num_classes = y_pred.size(1) if y_pred.ndimension() == y.ndimension() + 1 else 1
-        y_pred = y_pred >= self._threshold
-
         if y_pred.ndimension() == y.ndimension() + 1:
-            if y.ndimension() == 1:
-                y = y.unsqueeze(1)
-            # Works for y.ndimension() equals 1, 2
-            y = torch.cat([to_onehot(t, num_classes) for t in y], dim=0) if num_classes > 1 else y
+            y = y.unsqueeze(1) if y.ndimension() == 1 else y
+            y = torch.cat([to_onehot(t, num_classes=y_pred.size(1)) for t in y], dim=0)
+
+            indices = torch.max(y_pred, dim=1)[1]
+            indices = indices.view(-1).unsqueeze(dim=1)
+            y_pred = torch.cat([to_onehot(t, num_classes=y_pred.size(1)) for t in indices], dim=0)
+        else:
+            y_pred = self._threshold(y_pred)
 
         # Named Entity Recognition - N x C x L
         if y.ndimension() == 3:
@@ -61,10 +61,10 @@ class Recall(Metric):
         if y_pred.ndimension() == 3:
             y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
 
-        y = y.type(dtype)
+        # y and y_pred are in shape of [-1, num_classes] or [batch_size], element-wised product outputs correct
         y_pred = y_pred.type(dtype)
+        y = y.type(dtype)
 
-        # y and y_pred are in shape of [-1, C], element-wised product outputs correct
         correct = y * y_pred
         actual = y.sum(dim=0)
 
