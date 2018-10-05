@@ -21,8 +21,10 @@ class Accuracy(Metric):
     def update(self, output):
         y_pred, y = output
 
-        assert y.ndimension() >= 1 and y_pred.ndimension() >= 1
-        assert y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()
+        if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
+            raise ValueError("y must have shape of (batch_size, ...) " +
+                             "and y_pred must have shape of (batch_size, num_classes, ...) or " +
+                             "(batch_size, ...).")
 
         if y.ndimension() > 1 and y.shape[1] == 1:
             y = y.squeeze(dim=1)
@@ -36,7 +38,8 @@ class Accuracy(Metric):
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0], ) + y_pred_shape[2:]
 
-        assert y_shape == y_pred_shape
+        if not (y_shape == y_pred_shape):
+            raise ValueError("y and y_pred must have compatible shapes.")
 
         if y_pred.ndimension() == y.ndimension():
             y_pred = y_pred.unsqueeze(1)

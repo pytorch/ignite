@@ -30,6 +30,11 @@ class Recall(Metric):
         y_pred, y = output
         dtype = y_pred.type()
 
+        if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
+            raise ValueError("y must have shape of (batch_size, ...) " +
+                             "and y_pred must have shape of (batch_size, num_classes, ...) or " +
+                             "(batch_size, ...).")
+
         if y.ndimension() > 1 and y.shape[1] == 1:
             y = y.squeeze(dim=1)
 
@@ -42,7 +47,8 @@ class Recall(Metric):
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
 
-        assert y_shape == y_pred_shape
+        if not (y_shape == y_pred_shape):
+            raise ValueError("y and y_pred must have compatible shapes.")
 
         if y_pred.ndimension() == y.ndimension() + 1:
             y = y.unsqueeze(1) if y.ndimension() == 1 else y
@@ -54,14 +60,12 @@ class Recall(Metric):
         else:
             y_pred = self._threshold(y_pred)
 
-        # Named Entity Recognition - N x C x L
         if y.ndimension() == 3:
             y = y.transpose(2, 1).contiguous().view(-1, y.size(1))
 
         if y_pred.ndimension() == 3:
             y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
 
-        # y and y_pred are in shape of [-1, num_classes] or [batch_size], element-wised product outputs correct
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
 
