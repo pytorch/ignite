@@ -50,20 +50,14 @@ class Precision(Metric):
             raise ValueError("y and y_pred must have compatible shapes.")
 
         if y_pred.ndimension() == y.ndimension() + 1:
-            y = y.unsqueeze(1) if y.ndimension() == 1 else y
-            y = torch.cat([to_onehot(t, num_classes=y_pred.size(1)) for t in y], dim=0)
-
-            indices = torch.max(y_pred, dim=1)[1]
-            indices = indices.view(-1).unsqueeze(dim=1)
-            y_pred = torch.cat([to_onehot(t, num_classes=y_pred.size(1)) for t in indices], dim=0)
+            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
+            indices = torch.max(y_pred, dim=1)[1].view(-1)
+            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
         else:
             y_pred = self._threshold(y_pred)
-
-        if y.ndimension() == 3:
-            y = y.transpose(2, 1).contiguous().view(-1, y.size(1))
-
-        if y_pred.ndimension() == 3:
-            y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+            if y.ndimension() == 3:
+                y = y.transpose(2, 1).contiguous().view(-1, y.size(1))
+                y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
 
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
