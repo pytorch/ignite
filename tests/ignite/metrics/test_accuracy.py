@@ -26,6 +26,13 @@ def test_binary_compute():
     assert isinstance(acc.compute(), float)
     assert acc.compute() == 0.75
 
+    acc.reset()
+    y_pred = torch.FloatTensor([[0.2], [0.7], [0.8], [0.9]])
+    y = torch.ones(4, 1).type(torch.LongTensor)
+    acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
+    assert acc.compute() == 0.75
+
 
 def test_binary_compute_batch_images():
     acc = Accuracy()
@@ -136,3 +143,19 @@ def test_ner_example():
 
     acc.update((y_pred, y))
     assert acc.compute() == 1.0
+
+
+def test_incorrect_shape():
+    acc = Accuracy()
+
+    y_pred = torch.zeros(2, 3, 2, 2)
+    y = torch.zeros(2, 3)
+
+    with pytest.raises(ValueError):
+        acc.update((y_pred, y))
+
+    y_pred = torch.zeros(2, 3, 2, 2)
+    y = torch.zeros(2, 3, 4, 4)
+
+    with pytest.raises(ValueError):
+        acc.update((y_pred, y))

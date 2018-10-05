@@ -81,13 +81,15 @@ def test_binary_shapes():
     precision = Precision(average=True)
 
     y = torch.LongTensor([1, 0])
-    y_pred_ndim = torch.FloatTensor([[0.9], [0.2]])
     y_pred_1dim = torch.FloatTensor([0.9, 0.2])
 
     precision.update((y_pred_1dim, y))
     results_1dim = precision.compute()
-    precision.reset()
 
+    y = torch.LongTensor([[1], [0]])
+    y_pred_ndim = torch.FloatTensor([[0.9], [0.2]])
+
+    precision.reset()
     precision.update((y_pred_ndim, y))
     results_ndim = precision.compute()
 
@@ -166,3 +168,19 @@ def test_ner_multilabel_example():
     assert results[0] == 1.
     assert results[1] == 1.
     assert results[2] == 1.
+
+
+def test_incorrect_shape():
+    precision = Precision()
+
+    y_pred = torch.zeros(2, 3, 2, 2)
+    y = torch.zeros(2, 3)
+
+    with pytest.raises(ValueError):
+        precision.update((y_pred, y))
+
+    y_pred = torch.zeros(2, 3, 2, 2)
+    y = torch.zeros(2, 3, 4, 4)
+
+    with pytest.raises(ValueError):
+        precision.update((y_pred, y))
