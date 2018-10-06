@@ -40,7 +40,7 @@ class Loss(Metric):
         average_loss = self._loss_fn(y_pred, y, **kwargs)
 
         if len(average_loss.shape) != 0:
-            raise ValueError('`loss_fn` did not return the average loss')
+            raise ValueError('loss_fn did not return the average loss')
 
         self._sum += average_loss.item() * y.shape[0]
         self._num_examples += y.shape[0]
