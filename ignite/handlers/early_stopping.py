@@ -37,7 +37,7 @@ class EarlyStopping(object):
             raise TypeError("Argument score_function should be a function")
 
         if patience < 1:
-            raise ValueError("Argument patience should be positive")
+            raise ValueError("Argument patience should be positive integer")
 
         if not isinstance(trainer, Engine):
             raise TypeError("Argument trainer should be an instance of Engine")
