@@ -24,7 +24,7 @@ before_install: &before_install
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install scikit-learn
+  - pip install tqdm scikit-learn
 
 install:
   - python setup.py install
