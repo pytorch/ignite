@@ -4,8 +4,7 @@ import numpy as np
 
 
 class ParamScheduler(object):
-    """
-    Updates an optimizer's parameter value during training.
+    """Updates an optimizer's parameter value during training.
     """
     def __init__(self, optimizer, param_name, save_history=False):
         self.optimizer = optimizer
@@ -28,12 +27,14 @@ class ParamScheduler(object):
         self.event_index += 1
 
     def get_param(self):
+        """Method to get current optimizer's parameter value
+
+        """
         raise NotImplementedError()
 
 
 class CyclicalScheduler(ParamScheduler):
-    """
-    Updates an optimizer's parameter value over a cycle of some size.
+    """Updates an optimizer's parameter value over a cycle of some size.
 
     NOTE: If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should usually be
     the number of batches in an epoch.
@@ -62,13 +63,13 @@ class CyclicalScheduler(ParamScheduler):
         return super(CyclicalScheduler, self).__call__(engine)
 
 
-class LinearScheduler(CyclicalScheduler):
+class LinearCyclicalScheduler(CyclicalScheduler):
     """
     Linearly adjusts param value to 'end_value' for a half-cycle, then linearly
     adjusts it back to 'start_value' for a half-cycle.
     """
     def __init__(self, *args, **kwargs):
-        super(LinearScheduler, self).__init__(*args, **kwargs)
+        super(LinearCyclicalScheduler, self).__init__(*args, **kwargs)
 
     def get_param(self):
         cycle_progress = self.event_index / self.cycle_size

@@ -3,14 +3,14 @@ import pytest
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.contrib.handlers.param_scheduler import LinearScheduler, CosineAnnealingScheduler
+from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, CosineAnnealingScheduler
 
 
 def test_linear_scheduler():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler = LinearScheduler(optimizer, 'lr', 1, 0, 10)
+    scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1, 0, 10)
     lrs = []
 
     def save_lr(engine):
@@ -31,7 +31,7 @@ def test_linear_scheduler():
     ]))
 
     optimizer = torch.optim.SGD([tensor], lr=0)
-    scheduler = LinearScheduler(optimizer, 'lr', 1, 0, 10, cycle_mult=2)
+    scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1, 0, 10, cycle_mult=2)
 
     trainer = Engine(lambda engine, batch: None)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
@@ -79,7 +79,7 @@ def test_save_param_history():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler = LinearScheduler(optimizer, 'lr', 1, 0, 10, save_history=True)
+    scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1, 0, 10, save_history=True)
     lrs = []
 
     def save_lr(engine):
