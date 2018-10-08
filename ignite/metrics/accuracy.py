@@ -41,11 +41,11 @@ class Accuracy(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
-        if y_pred.ndimension() == y.ndimension():
-            y_pred = y_pred.unsqueeze(1)
-            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
+        if y_pred.ndimension() == y.ndimension() + 1:
+            indices = torch.max(y_pred, dim=1)[1]
+        else:
+            indices = torch.round(y_pred).type(y.type())
 
-        indices = torch.max(y_pred, dim=1)[1]
         correct = torch.eq(indices, y).view(-1)
 
         self._num_correct += torch.sum(correct).item()
