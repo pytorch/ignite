@@ -124,35 +124,35 @@ class TensorBoardX(object):
         """
 
         if mode not in ['iteration', 'epoch']:
-            raise ValueError("mode should be iteration or epoch, got {} instead.").format(mode)
+            raise ValueError("mode should be iteration or epoch, got {} instead.".format(mode))
 
         if not isinstance(model, nn.Module):
             raise TypeError("model should be of type nn.Module, got {} instead.".format(type(model)))
 
         if not isinstance(input_shape, list):
-            raise TypeError("input_shape should be a list of integers, got {} instead.").format(type(input_shape))
+            raise TypeError("input_shape should be a list of integers, got {} instead.".format(type(input_shape)))
 
         if not isinstance(write_graph, bool):
-            raise TypeError("write_graph should be a boolean, got {} instead.").format(type(write_graph))
+            raise TypeError("write_graph should be a boolean, got {} instead.".format(type(write_graph)))
 
         if not isinstance(train_evaluator, Engine):
-            raise TypeError("train_evaluator should be an ignite.engine, got {} instead.").format(type(train_evaluator))
+            raise TypeError("train_evaluator should be an ignite.engine, got {} instead.".format(type(train_evaluator)))
 
         if not isinstance(validation_evaluator, Engine):
-            raise TypeError("validation_evaluator should be an "
-                            "ignite.engine, got {} instead.").format(type(validation_evaluator))
+            raise TypeError("validation_evaluator should be an " +
+                            "ignite.engine, got {} instead.".format(type(validation_evaluator)))
 
         if not isinstance(use_metrics, bool):
-            raise TypeError("write_graph should be a boolean, got {} instead.").format(type(use_metrics))
+            raise TypeError("write_graph should be a boolean, got {} instead.".format(type(use_metrics)))
 
-        if not isinstance(state_keys, list):
-            raise TypeError("state_keys should be a list, got {} instead.").format(type(state_keys))
+        if state_keys and not isinstance(state_keys, list):
+            raise TypeError("state_keys should be a list, got {} instead.".format(type(state_keys)))
 
         if not isinstance(histogram_freq, int):
-            raise TypeError("histogram_freq should be an int, got {} instead.").format(type(histogram_freq))
+            raise TypeError("histogram_freq should be an int, got {} instead.".format(type(histogram_freq)))
 
         if not isinstance(write_grads, bool):
-            raise TypeError("write_grads should be a boolean, got {} instead.").format(type(write_grads))
+            raise TypeError("write_grads should be a boolean, got {} instead.".format(type(write_grads)))
 
         engine.add_event_handler(Events.STARTED, self._start, model, input_shape, write_graph)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update_iteration, mode, use_metrics, state_keys)

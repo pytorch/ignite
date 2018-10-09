@@ -23,7 +23,7 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-from ignite.contrib.handlers.tensorboardX_ import TensorBoardX
+from ignite.contrib.handlers.tensorboardX import TensorBoardX
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
 from ignite.metrics import RunningAverage
