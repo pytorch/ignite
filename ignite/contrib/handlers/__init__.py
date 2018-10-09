@@ -5,3 +5,5 @@ from ignite.contrib.handlers.param_scheduler import ParamScheduler, CyclicalSche
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 
 __all__ = ['ProgressBar']
+
+from ignite.contrib.handlers.tensorboardX import TensorBoardX

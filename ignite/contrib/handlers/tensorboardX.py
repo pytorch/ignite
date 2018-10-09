@@ -20,7 +20,6 @@ class TensorBoardX(object):
         ..code-block:: python
 
             tbLogger = TensorBoardX()
-
             tbLogger.attach(engine=trainer,
                             mode='iteration',
                             model=model,
@@ -30,7 +29,6 @@ class TensorBoardX(object):
                             use_metrics=True,
                             histogram_freq=1,
                             write_grads=True)
-
     Note:
         When adding tensorboard event handler to an engine, it is recommended that the evaluator
         is run before the code block above. If custom functions are needed, use tbLogger.writer.add_*.
@@ -52,21 +50,22 @@ class TensorBoardX(object):
     def _update_iteration(self, engine, mode, use_metrics, state_keys):
         if use_metrics and mode == 'iteration':
             for key, value in engine.state.metrics.items():
-                self.writer.add_scalar(tag='trainer/'+key,
+                self.writer.add_scalar(tag='trainer/' + key,
                                        scalar_value=value,
                                        global_step=engine.state.iteration)
         if state_keys:
             for key in state_keys:
                 state = getattr(engine.state, key)
                 if isinstance(state, (int, float)):
-                    self.writer.add_scalar(tag='trainer/'+key,
+                    self.writer.add_scalar(tag='trainer/' + key,
                                            scalar_value=state,
                                            global_step=engine.state.iteration)
 
-    def _update_epoch(self, engine, mode, train_evaluator, validation_evaluator, use_metrics, model, histogram_freq, write_grads):
+    def _update_epoch(self, engine, mode, train_evaluator, validation_evaluator,
+                      use_metrics, model, histogram_freq, write_grads):
         if use_metrics and mode == 'epoch':
             for key, value in engine.state.metrics.items():
-                self.writer.add_scalar(tag='trainer/'+key,
+                self.writer.add_scalar(tag='trainer/' + key,
                                        scalar_value=value,
                                        global_step=engine.state.epoch)
         if use_metrics:
@@ -90,7 +89,7 @@ class TensorBoardX(object):
                                               values=param.cpu().data.numpy().flatten(),
                                               global_step=engine.state.epoch)
                     if write_grads:
-                        self.writer.add_histogram(tag=name+'_grad',
+                        self.writer.add_histogram(tag=name + '_grad',
                                                   values=param.grad.cpu().data.numpy().flatten(),
                                                   global_step=engine.state.epoch)
 
@@ -140,7 +139,8 @@ class TensorBoardX(object):
             raise TypeError("train_evaluator should be an ignite.engine, got {} instead.").format(type(train_evaluator))
 
         if not isinstance(validation_evaluator, Engine):
-            raise TypeError("validation_evaluator should be an ignite.engine, got {} instead.").format(type(validation_evaluator))
+            raise TypeError("validation_evaluator should be an "
+                            "ignite.engine, got {} instead.").format(type(validation_evaluator))
 
         if not isinstance(use_metrics, bool):
             raise TypeError("write_graph should be a boolean, got {} instead.").format(type(use_metrics))
@@ -156,5 +156,6 @@ class TensorBoardX(object):
 
         engine.add_event_handler(Events.STARTED, self._start, model, input_shape, write_graph)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update_iteration, mode, use_metrics, state_keys)
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._update_epoch, mode, train_evaluator, validation_evaluator, use_metrics, model, histogram_freq, write_grads)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._update_epoch, mode, train_evaluator,
+                                 validation_evaluator, use_metrics, model, histogram_freq, write_grads)
         engine.add_event_handler(Events.COMPLETED, self._close)
