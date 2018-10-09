@@ -66,3 +66,5 @@ use the `output_transform` argument to transform it:
 .. autoclass:: TopKCategoricalAccuracy
 
 .. autoclass:: EpochMetric
+
+.. autoclass:: RunningAverage
