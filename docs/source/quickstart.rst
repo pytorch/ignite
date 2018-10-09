@@ -14,7 +14,7 @@ Code
 
     model = Net()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8))
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
     loss = torch.nn.NLLLoss()
 
     trainer = create_supervised_trainer(model, optimizer, loss)

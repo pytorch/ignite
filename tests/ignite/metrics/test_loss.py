@@ -50,6 +50,15 @@ def test_non_averaging_loss():
         loss.update((y_pred, y))
 
 
+def test_kwargs_loss():
+    loss = Loss(nll_loss)
+
+    y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+    y = torch.LongTensor([2, 2])
+    loss.update((y_pred, y, {"weight": torch.Tensor([0, 0, 0])}))
+    assert_almost_equal(loss.compute(), 0)
+
+
 def test_reset():
     loss = Loss(nll_loss)
 
