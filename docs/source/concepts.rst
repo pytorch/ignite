@@ -86,7 +86,7 @@ Attaching an event handler is simple using method :meth:`ignite.engine.Engine.ad
     def on_training_ended(engine, data):
         print("Training is ended. mydata={}".format(data))
 
-    trainer.add_event_handler(Events.STARTED, on_training_ended, mydata)
+    trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
 
 .. Note ::

@@ -10,7 +10,9 @@ def _prepare_batch(batch, device=None, non_blocking=False):
             convert_tensor(y, device=device, non_blocking=non_blocking))
 
 
-def create_supervised_trainer(model, optimizer, loss_fn, device=None, non_blocking=False):
+def create_supervised_trainer(model, optimizer, loss_fn,
+                              device=None, non_blocking=False,
+                              prepare_batch=_prepare_batch):
     """
     Factory function for creating a trainer for supervised models
 
@@ -22,6 +24,8 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None, non_blocki
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
+        prepare_batch (Callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+            tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
         Engine: a trainer engine with supervised update function
@@ -32,7 +36,7 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None, non_blocki
     def _update(engine, batch):
         model.train()
         optimizer.zero_grad()
-        x, y = _prepare_batch(batch, device=device, non_blocking=non_blocking)
+        x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
@@ -42,7 +46,9 @@ def create_supervised_trainer(model, optimizer, loss_fn, device=None, non_blocki
     return Engine(_update)
 
 
-def create_supervised_evaluator(model, metrics={}, device=None, non_blocking=False):
+def create_supervised_evaluator(model, metrics={},
+                                device=None, non_blocking=False,
+                                prepare_batch=_prepare_batch):
     """
     Factory function for creating an evaluator for supervised models
 
@@ -53,6 +59,8 @@ def create_supervised_evaluator(model, metrics={}, device=None, non_blocking=Fal
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
+        prepare_batch (Callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+            tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
         Engine: an evaluator engine with supervised inference function
@@ -63,7 +71,7 @@ def create_supervised_evaluator(model, metrics={}, device=None, non_blocking=Fal
     def _inference(engine, batch):
         model.eval()
         with torch.no_grad():
-            x, y = _prepare_batch(batch, device=device, non_blocking=non_blocking)
+            x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
             y_pred = model(x)
             return y_pred, y
 

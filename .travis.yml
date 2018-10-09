@@ -28,6 +28,7 @@ install:
   # Examples dependencies
   - pip install visdom torchvision tensorboardX
   - pip install gym
+  - pip install tqdm
 
 script:
   - py.test --cov ignite --cov-report term-missing
