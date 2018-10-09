@@ -23,9 +23,10 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-from ignite.contrib.handlers.tensorboardX import TensorBoardX
+from ignite.contrib.handlers.tensorboardX_ import TensorBoardX
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
+from ignite.metrics import RunningAverage
 
 
 class Net(nn.Module):
@@ -68,6 +69,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
+    avg_output = RunningAverage(output_transform=lambda x: x)
+    avg_output.attach(trainer, 'loss')
     evaluator = create_supervised_evaluator(model,
                                             metrics={'accuracy': CategoricalAccuracy(),
                                                      'nll': Loss(F.nll_loss)},
@@ -99,17 +102,18 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
 
-    tbLogger = TensorBoardX(model=model,
-                            input_shape=[1, 28, 28],
-                            use_output=True,
-                            train_evaluator=train_evaluator,
-                            validation_evaluator=validation_evaluator,
-                            write_graph=True,
-                            histogram_freq=1,
-                            write_grads=True,
-                            write_images=True)
+    tbLogger = TensorBoardX()
 
-    tbLogger.attach(trainer)
+    tbLogger.attach(engine=trainer,
+                    mode='iteration',
+                    model=model,
+                    input_shape=[1, 28, 28],
+                    write_graph=True,
+                    train_evaluator=train_evaluator,
+                    validation_evaluator=validation_evaluator,
+                    use_metrics=True,
+                    histogram_freq=1,
+                    write_grads=True)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)

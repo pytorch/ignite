@@ -1,263 +1,160 @@
-from types import MethodType
-import torch
-from torchvision import utils
-import numpy as np
+try:
+    from tensorboardX import SummaryWriter
+except:
+    raise RuntimeError("This contrib module requires tensorboardX to be installed.")
+
 from ignite.engine import Engine, Events
-from tensorboardX import SummaryWriter
+import torch
+from torch import nn as nn
 
 
 class TensorBoardX(object):
     """
-        Event Handler to create TensorBoard Summary
+    TensorBoard handler to log metrics related to training, validation and model.
 
-        Args:
-            log_dir (`str`): directory to save TensorBoard runs
-            model (`torch.nn.Module`): the model to train
-            input_shape (`list`): shape of input to model
-            use_output (`bool`): True, if engine.state.output should be recorded (at the end of iteration)
-            use_metrics (`bool`): True, if engine.state.metrics should be recorded (at the end of epoch)
-            state_keys ('list'): list of strings that are attributes to engine.state.
-                                Ensure that attribute is of `int` or `float` type.
-            train_evaluator (`ignite.engine`): ignite engine that has been run on the training set.
-            validation_evaluator (`ignite.engine`): ignite engine that has been run on the validation set.
-            write_graph (`bool`): True, if graph should be recorded
-            histogram_freq (`int`): frequency of epoch to record histogram of weights and gradients (if applicable)
-            write_grads (`bool`): True, if gradients to model weights should be recorded
-            write_images (`bool`): True, if model weights should be written as images
+    Examples:
 
-        Returns:
-            SummaryWriter: a TensorBoard summary report
-        """
+        Create a TensorBoard summary that visualizes metrics related to training,
+        validation, and model parameters, by simply attaching the handler to your engine.
 
-    def __init__(self, 
-                 log_dir=None,
-                 model=None,
-                 input_shape=None,
-                 use_output=False,
-                 use_metrics=False,
-                 state_keys=None,
-                 train_evaluator=None,
-                 validation_evaluator=None,
-                 write_graph=False,
-                 histogram_freq=0,
-                 write_grads=False,
-                 write_images=False):
+        ..code-block:: python
 
-        self.log_dir = log_dir
-        self.model = model
-        self.input_shape = input_shape
-        self.use_output = use_output
-        self.use_metrics = use_metrics
-        self.state_keys = state_keys
+            tbLogger = TensorBoardX()
 
-        self.train_evaluator = train_evaluator
-        self.validation_evaluator = validation_evaluator
+            tbLogger.attach(engine=trainer,
+                            mode='iteration',
+                            model=model,
+                            input_shape=[1, 28, 28],
+                            write_graph=True,
+                            validation_evaluator=evaluator,
+                            use_metrics=True,
+                            histogram_freq=1,
+                            write_grads=True)
 
-        self.write_graph = write_graph
-        self.histogram_freq = histogram_freq
-        self.write_grads = write_grads
-        self.write_images = write_images
+    Note:
+        When adding tensorboard event handler to an engine, it is recommended that the evaluator
+        is run before the code block above. If custom functions are needed, use tbLogger.writer.add_*.
+    """
 
-    def _on_start(self, engine):
-        """
-        This function creates the directory for the run and creates a TensorBoard graph using the model and input_shape.
-        """
-        self.writer = SummaryWriter(log_dir=self.log_dir)
+    def __init__(self, log_dir=None):
+        self.writer = SummaryWriter(log_dir=log_dir)
 
-        if self.write_graph:
-            x_shape = [1] + self.input_shape
-            x = torch.zeros(*x_shape)
-            self.is_cuda = False
-            if next(self.model.parameters()).is_cuda:
-                self.is_cuda = True
-                x = x.cuda()
-            self.writer.add_graph(self.model, x)
+    def _start(self, engine, model, input_shape, write_graph):
+        if write_graph:
+            x = torch.zeros([1] + input_shape)
+            x = x.cuda() if next(model.parameters()).is_cuda else x
+            self.writer.add_graph(model, x)
             del x
 
-    def _log_engine_output(self, engine):
-        """
-        This function logs the engine.state.output if engine.state.output is a single scalar or a dictionary of scalars.
-        """
-        if engine.state.output is None:
-            raise ValueError('If use_output is True, engine.state.output cannot be None.')
-        else:
-            if isinstance(engine.state.output, dict):
-                for key, value in engine.state.output.items():
-                    if isinstance(value, (int, float)):
-                        self.writer.add_scalar(''.join(['trainer/', key]),
-                                               value,
-                                               engine.state.iteration)
-            elif isinstance(engine.state.output, (int, float)):
-                self.writer.add_scalar('trainer/output',
-                                       engine.state.output,
-                                       engine.state.iteration)
-            else:
-                raise ValueError(
-                    'Preferred format for engine.state.output is a single scalar or dictionary of scalars.')
-
-    def _log_metrics(self, engine):
-        if engine.state.metrics is None:
-            raise ValueError('If use_metrics, engine.state.metrics cannot be None. Please attach metrics to engine.')
-        else:
-            for key, value in engine.state.metrics.items():
-                self.writer.add_scalar(''.join(['trainer/', key]), value, engine.state.epoch)
-
-    def _log_custom_state(self, engine):
-        for key in self.state_keys:
-            if hasattr(engine.state, key):
-                state = getattr(engine.state, key)
-                if isinstance(state, (int, float)):
-                    self.writer.add_scalar(''.join(['trainer/', key]),
-                                           getattr(engine.state, key),
-                                           engine.state.iteration)
-                else:
-                    raise ValueError('engine.state.{key} should be of int or float.'.format(key=key))
-            else:
-                raise ValueError('engine.state does not have attribute %s.' % key)
-
-    def _log_evaluator(self, engine, evaluator, mode='training'):
-        if not isinstance(evaluator, Engine) and evaluator.state.metrics is not None:
-            raise ValueError('evaluator must be an instance of ignite.Engine and have metrics attached to it.')
-        else:
-            for key, value in evaluator.state.metrics.items():
-                self.writer.add_scalar(''.join([mode, '/', key]), value, engine.state.epoch)
-
-    def _log_histograms(self, engine, model, add_name=False):
-        if engine.state.epoch % self.histogram_freq == 0:
-            for name, param in model.named_parameters():
-                name = name.replace('.', '/')
-                if add_name:
-                    name = ''.join([model.__class__.__name__, '/', name])
-
-                if param.requires_grad:
-                    self.writer.add_histogram(name,
-                                              param.cpu().data.numpy().flatten(),
-                                              engine.state.epoch)
-                    if self.write_grads:
-                        self.writer.add_histogram(name + '_grad',
-                                                  param.grad.cpu().data.numpy().flatten(),
-                                                  engine.state.epoch)
-
-    def _log_weight_image(self, engine, model):
-
-        if engine.state.epoch % self.histogram_freq == 0:
-
-            prefix = model.__class__.__name__ + '/'
-
-            for name, param in model.named_parameters():
-
-                name = ''.join([prefix, name.replace('.', '/')])
-
-                w_img = param.data
-                shape = list(w_img.size())
-
-                if len(shape) == 1:
-                    w_img = w_img.view(shape[0], 1, 1, 1)
-                    grid = self._vistensor(w_img,
-                                           ch=0,
-                                           allkernels=True,
-                                           padding=0,
-                                           nrow=int(shape[0]/16) + 1)
-                elif len(shape) == 2:
-                    if shape[0] > shape[1]:
-                        w_img = torch.transpose(w_img, 0, 1)
-                        shape = list(w_img.size())
-                    w_img = w_img.view(shape[0] * shape[1], 1, 1, 1)
-                    grid = self._vistensor(w_img,
-                                           ch=0,
-                                           allkernels=True,
-                                           nrow=shape[1],
-                                           padding=0)
-                elif len(shape) == 3:
-                    w_img = w_img.view(shape[0], 1, shape[1], shape[2])
-                    grid = self._vistensor(w_img,
-                                           ch=0,
-                                           allkernels=True,
-                                           nrow=int(shape[0]/4) + 1,
-                                           padding=1)
-                elif len(shape) == 4:
-                    grid = self._vistensor(w_img,
-                                           ch=0,
-                                           allkernels=True,
-                                           nrow=int(shape[0]*shape[1]/4) + 1,
-                                           padding=1)
-                else:
-                    continue
-
-                self.writer.add_image(name, grid.numpy(), global_step=engine.state.epoch)
-
-    def _base_epoch_functions(self, engine):
-        # Use engine.state.metrics
-        if self.use_metrics:
-            self._log_metrics(engine=engine)
-
-        # Train Evaluator
-        if self.train_evaluator is not None:
-            self._log_evaluator(engine=engine,
-                                evaluator=self.train_evaluator,
-                                mode='training')
-        # Validation Evaluator
-        if self.validation_evaluator is not None:
-            self._log_evaluator(engine=engine,
-                                evaluator=self.validation_evaluator,
-                                mode='validation')
-
-        # Histogram of Weights and Gradients; in the case of multiple models, users can create custom functions
-        if self.model is not None and self.histogram_freq > 0:
-            self._log_histograms(engine=engine,
-                                 model=self.model,
-                                 add_name=False)
-
-        if self.write_images and self.model is not None and self.histogram_freq > 0:
-            self._log_weight_image(engine=engine, model=self.model)
-
-    def _base_iteration_functions(self, engine):
-        # Use user created state attributes such as 'reward' for RL
-        if self.state_keys is not None:
-            self._log_custom_state(engine=engine)
-
-        # Use engine.state.output for example mnist.py example
-        if self.use_output:
-            self._log_engine_output(engine=engine)
-
-    def _on_complete(self, engine):
+    def _close(self, engine):
         self.writer.close()
 
-    def _call_children_function(self):
-        functions = [getattr(self, x)
-                     for x in dir(self) if (not x.startswith('_') and
-                                            type(getattr(self, x)) == MethodType and
-                                            x != 'attach')]
-        return functions
+    def _update_iteration(self, engine, mode, use_metrics, state_keys):
+        if use_metrics and mode == 'iteration':
+            for key, value in engine.state.metrics.items():
+                self.writer.add_scalar(tag='trainer/'+key,
+                                       scalar_value=value,
+                                       global_step=engine.state.iteration)
+        if state_keys:
+            for key in state_keys:
+                state = getattr(engine.state, key)
+                if isinstance(state, (int, float)):
+                    self.writer.add_scalar(tag='trainer/'+key,
+                                           scalar_value=state,
+                                           global_step=engine.state.iteration)
 
-    def _vistensor(self, tensor, ch=0, allkernels=False, nrow=8, padding=1):
-        '''
-        vistensor: visuzlization tensor
-            @ch: visualization channel
-            @allkernels: visualization all tensors
-        '''
+    def _update_epoch(self, engine, mode, train_evaluator, validation_evaluator, use_metrics, model, histogram_freq, write_grads):
+        if use_metrics and mode == 'epoch':
+            for key, value in engine.state.metrics.items():
+                self.writer.add_scalar(tag='trainer/'+key,
+                                       scalar_value=value,
+                                       global_step=engine.state.epoch)
+        if use_metrics:
+            if train_evaluator:
+                for key, value in train_evaluator.state.metrics.items():
+                    self.writer.add_scalar(tag='training/' + key,
+                                           scalar_value=value,
+                                           global_step=engine.state.epoch)
 
-        n, c, w, h = tensor.shape
-        if allkernels:
-            tensor = tensor.view(n * c, -1, w, h)
-        elif c != 3:
-            tensor = tensor[:, ch, :, :].unsqueeze(dim=1)
+            if validation_evaluator:
+                for key, value in validation_evaluator.state.metrics.items():
+                    self.writer.add_scalar(tag='validation/' + key,
+                                           scalar_value=value,
+                                           global_step=engine.state.epoch)
 
-        if w < 3 and h < 3:
-            padding = 0
+        if engine.state.epoch % histogram_freq == 0:
+            for name, param in model.named_parameters():
 
-        rows = np.min((tensor.shape[0] // nrow + 1, 64))
-        grid = utils.make_grid(tensor.cpu().data, nrow=rows, normalize=True, padding=padding)
+                if param.requires_grad:
+                    self.writer.add_histogram(tag=name,
+                                              values=param.cpu().data.numpy().flatten(),
+                                              global_step=engine.state.epoch)
+                    if write_grads:
+                        self.writer.add_histogram(tag=name+'_grad',
+                                                  values=param.grad.cpu().data.numpy().flatten(),
+                                                  global_step=engine.state.epoch)
 
-        return grid
+    def attach(self,
+               engine,
+               mode='iteration',
+               model=None,
+               input_shape=None,
+               write_graph=False,
+               train_evaluator=None,
+               validation_evaluator=None,
+               use_metrics=False,
+               state_keys=None,
+               histogram_freq=0,
+               write_grads=False
+               ):
+        """
+        Attaches the TensorBoard event handler to an engine object.
 
-    def attach(self, engine):
-        engine.add_event_handler(Events.STARTED, self._on_start)
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self._base_iteration_functions)
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._base_epoch_functions)
+        Args:
+            engine (Engine): engine object.
+            mode (str): (Optional) iteration or epoch.
+            model (nn.Module): (Optional) model to train.
+            input_shape (list): (Optional) shape of input to model.
+            write_graph (bool): (Optional) True, if model graph should be written.
+            train_evaluator (Engine): (Optional) ignite engine that has been run on the training set.
+            validation_evaluator (Engine): (Optional) ignite engine that has been run on the validation set.
+            use_metrics (bool): (Optional) True, if metrics for engine and evaluator should be visualized.
+            state_keys (list): (Optional) list of string, state attributes to be visualized.
+            histogram_freq (int): (Optional) frequency histograms should be plotted.
+            write_grads (bool): (Optional) True, if gradients to model parameters should be visualized.
+        """
 
-        child_functions = self._call_children_function()
-        for func in child_functions:
-            engine.add_event_handler(Events.EPOCH_COMPLETED, func)
+        if mode not in ['iteration', 'epoch']:
+            raise ValueError("mode should be iteration or epoch, got {} instead.").format(mode)
 
-        engine.add_event_handler(Events.COMPLETED, self._on_complete)
+        if not isinstance(model, nn.Module):
+            raise TypeError("model should be of type nn.Module, got {} instead.".format(type(model)))
+
+        if not isinstance(input_shape, list):
+            raise TypeError("input_shape should be a list of integers, got {} instead.").format(type(input_shape))
+
+        if not isinstance(write_graph, bool):
+            raise TypeError("write_graph should be a boolean, got {} instead.").format(type(write_graph))
+
+        if not isinstance(train_evaluator, Engine):
+            raise TypeError("train_evaluator should be an ignite.engine, got {} instead.").format(type(train_evaluator))
+
+        if not isinstance(validation_evaluator, Engine):
+            raise TypeError("validation_evaluator should be an ignite.engine, got {} instead.").format(type(validation_evaluator))
+
+        if not isinstance(use_metrics, bool):
+            raise TypeError("write_graph should be a boolean, got {} instead.").format(type(use_metrics))
+
+        if not isinstance(state_keys, list):
+            raise TypeError("state_keys should be a list, got {} instead.").format(type(state_keys))
+
+        if not isinstance(histogram_freq, int):
+            raise TypeError("histogram_freq should be an int, got {} instead.").format(type(histogram_freq))
+
+        if not isinstance(write_grads, bool):
+            raise TypeError("write_grads should be a boolean, got {} instead.").format(type(write_grads))
+
+        engine.add_event_handler(Events.STARTED, self._start, model, input_shape, write_graph)
+        engine.add_event_handler(Events.ITERATION_COMPLETED, self._update_iteration, mode, use_metrics, state_keys)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._update_epoch, mode, train_evaluator, validation_evaluator, use_metrics, model, histogram_freq, write_grads)
+        engine.add_event_handler(Events.COMPLETED, self._close)
