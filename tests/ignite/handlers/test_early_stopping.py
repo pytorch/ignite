@@ -12,14 +12,13 @@ def test_args_validation():
 
     trainer = Engine(update_fn)
 
-    # save_interval & score_func
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         h = EarlyStopping(patience=-1, score_function=lambda engine: 0, trainer=trainer)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         h = EarlyStopping(patience=2, score_function=12345, trainer=trainer)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         h = EarlyStopping(patience=2, score_function=lambda engine: 0, trainer=None)
 
 
