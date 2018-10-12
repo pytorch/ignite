@@ -47,6 +47,7 @@ class ProgressBar:
 
         if metric_names is not None:
             if not all(metric in engine.state.metrics for metric in metric_names):
+                self._close(engine)
                 raise KeyError("metrics not found in engine.state.metrics")
 
             metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}

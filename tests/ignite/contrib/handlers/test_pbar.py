@@ -66,3 +66,23 @@ def test_pbar_with_metric():
 
     with pytest.raises(KeyError):
         trainer.run(data=data, max_epochs=1)
+
+
+def test_pbar_no_metric_names(capsys):
+
+    n_epochs = 2
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine)
+
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch 2: [1/2]  50%|█████      [00:00<00:00]'
+    assert actual == expected
