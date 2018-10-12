@@ -68,9 +68,6 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     Linearly adjusts param value to 'end_value' for a half-cycle, then linearly
     adjusts it back to 'start_value' for a half-cycle.
     """
-    def __init__(self, *args, **kwargs):
-        super(LinearCyclicalScheduler, self).__init__(*args, **kwargs)
-
     def get_param(self):
         cycle_progress = self.event_index / self.cycle_size
         return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
@@ -80,9 +77,6 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     """
     Anneals 'start_value' to 'end_value' over each cycle.
     """
-    def __init__(self, *args, **kwargs):
-        super(CosineAnnealingScheduler, self).__init__(*args, **kwargs)
-
     def get_param(self):
         cycle_progress = self.event_index / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 + np.cos(np.pi * cycle_progress))
