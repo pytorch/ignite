@@ -4,6 +4,7 @@ import torch
 
 from ignite.engine import Engine, Events
 from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, CosineAnnealingScheduler
+from ignite.contrib.handlers.param_scheduler import ConcatScheduler
 
 
 def test_linear_scheduler():
@@ -72,6 +73,56 @@ def test_cosine_annealing_scheduler():
         0.5, 0.6545084971874737, 0.7938926261462365, 0.9045084971874737, 0.9755282581475768,
         0.0, 0.02447174185242318, 0.09549150281252627, 0.20610737385376332, 0.3454915028125263,
         0.5, 0.6545084971874737, 0.7938926261462365, 0.9045084971874737, 0.9755282581475768
+    ]))
+
+
+def test_concat_scheduler():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    concat_scheduler = ConcatScheduler(
+        optimizer=optimizer,
+        param_name='lr',
+        schedulers_list=[
+            (
+                LinearCyclicalScheduler,
+                dict(
+                    start_value=1,
+                    end_value=0,
+                    cycle_size=10
+                ),
+                10
+            ),
+            (
+                CosineAnnealingScheduler,
+                dict(
+                    start_value=1,
+                    end_value=0,
+                    cycle_size=10
+                ),
+                None
+            )
+        ],
+        save_history=True
+    )
+
+    lrs = []
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]['lr'])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, concat_scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+    trainer.run([0] * 10, max_epochs=2)
+
+    assert lrs == list(map(pytest.approx, [
+        # Cycle 1 of the LinearCyclicalScheduler
+        1.0, 0.8, 0.6, 0.4, 0.2,
+        0.0, 0.2, 0.4, 0.6, 0.8,
+        # Cycle 1 of the CosineAnnealingScheduler
+        0.0, 0.02447174185242318, 0.09549150281252627, 0.20610737385376332, 0.3454915028125263,
+        0.5, 0.6545084971874737, 0.7938926261462365, 0.9045084971874737, 0.9755282581475768,
     ]))
 
 
