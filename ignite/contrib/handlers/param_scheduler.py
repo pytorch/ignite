@@ -4,7 +4,14 @@ import numpy as np
 
 
 class ParamScheduler(object):
-    """Updates an optimizer's parameter value during training.
+    """An abstract class for updating an optimizer's parameter value during
+    training.
+
+    Args:
+        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        param_name (str): name of optimizer's parameter to update
+        save_history (bool, optional): whether to log the parameter values
+            (default=False)
     """
     def __init__(self, optimizer, param_name, save_history=False):
         self.optimizer = optimizer
@@ -28,16 +35,28 @@ class ParamScheduler(object):
 
     def get_param(self):
         """Method to get current optimizer's parameter value
-
         """
         raise NotImplementedError()
 
 
 class CyclicalScheduler(ParamScheduler):
-    """Updates an optimizer's parameter value over a cycle of some size.
+    """An abstract class for updating an optimizer's parameter value over a
+    cycle of some size.
 
-    NOTE: If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should usually be
-    the number of batches in an epoch.
+    Args:
+        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        param_name (str): name of optimizer's parameter to update
+        start_value (float): value at start of cycle
+        end_value (float) : value at the middle of the cycle
+        cycle_size (int) : length of cycle.
+        cycle_mult (float, optional) : ratio by which to change the cycle_size
+            at the end of each cycle (default=1),
+        save_history (bool, optional): whether to log the parameter values
+            (default: False)
+
+    Note:
+        If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
+        usually be the number of batches in an epoch.
     """
     def __init__(self,
                  optimizer,
@@ -64,9 +83,24 @@ class CyclicalScheduler(ParamScheduler):
 
 
 class LinearCyclicalScheduler(CyclicalScheduler):
-    """
-    Linearly adjusts param value to 'end_value' for a half-cycle, then linearly
+    """Linearly adjusts param value to 'end_value' for a half-cycle, then linearly
     adjusts it back to 'start_value' for a half-cycle.
+
+    Args:
+        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        param_name (str): name of optimizer's parameter to update
+        start_value (float): value at start of cycle
+        end_value (float) : value at the middle of the cycle
+        cycle_size (int) : length of cycle.
+        cycle_mult (float, optional) : ratio by which to change the cycle_size
+            at the end of each cycle (default=1),
+        save_history (bool, optional): whether to log the parameter values
+            (default: False)
+
+    Note:
+        If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
+        usually be the number of batches in an epoch.
+
     """
     def get_param(self):
         cycle_progress = self.event_index / self.cycle_size
@@ -74,20 +108,48 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
 
 class CosineAnnealingScheduler(CyclicalScheduler):
-    """
-    Anneals 'start_value' to 'end_value' over each cycle.
+    """Anneals 'start_value' to 'end_value' over each cycle.
+
+    Args:
+        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        param_name (str): name of optimizer's parameter to update
+        start_value (float): value at start of cycle
+        end_value (float) : value at the middle of the cycle
+        cycle_size (int) : length of cycle.
+        cycle_mult (float, optional) : ratio by which to change the cycle_size
+            at the end of each cycle (default=1),
+        save_history (bool, optional): whether to log the parameter values
+            (default: False)
+
+    Note:
+        If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
+        usually be the number of batches in an epoch.
+
     """
     def get_param(self):
+        """Method to get current optimizer's parameter value
+        """
         cycle_progress = self.event_index / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 + np.cos(np.pi * cycle_progress))
 
 
 class ConcatScheduler(ParamScheduler):
     """Concat a list of Schedulers.
+
+    The `ConcatScheduler` cycles through a list of schedulers (given by
+    `schedulers_list`). Each element in the list is a tuple whose first
+    element is the scheduler class, the second is the parameters used for
+    instantiating the scheduler, and the third is the duration of the
+    scheduler. If duration is `None` the `ConcatScheduler` will not
+    switch to the next scheduler.
+
     Args:
-        ...
-        schedulers_list (list): List of (scheduler_cls, scheduler_kwds, duration).
-        ...
+        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        param_name (str): name of optimizer's parameter to update
+        schedulers_list (list): List of three tuple of the order (scheduler_cls,
+            scheduler_kwds, duration).
+        save_history (bool, optional): whether to log the parameter values
+            (default: False)
     """
     def __init__(self,
                  optimizer,
