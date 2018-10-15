@@ -4,8 +4,8 @@ from enum import Enum
 
 import torch
 
-from ignite._utils import convert_tensor, apply_to_tensor
-from ignite.engine import Engine
+from ignite._utils import apply_to_tensor
+from ignite.engine import Engine, _prepare_batch
 
 
 class Tbptt_Events(Enum):
@@ -17,18 +17,6 @@ class Tbptt_Events(Enum):
 
     TIME_ITERATION_STARTED = "time_iteration_started"
     TIME_ITERATION_COMPLETED = "time_iteration_completed"
-
-
-def _prepare_tbptt_batch(batch, tbptt_step, dim=0, device=None):
-    """Prepare batch for tbptt trainer.
-
-    Batch come from the dataloader. It is split in chunks along the time
-    dimension and fed to the truncated backpropagation throught time trainer.
-    """
-    x, y = batch
-    x = convert_tensor(x, device=device)
-    y = convert_tensor(y, device=device)
-    return zip(x.split(tbptt_step, dim=dim), y.split(tbptt_step, dim=dim))
 
 
 def _detach_hidden(hidden):
@@ -46,7 +34,9 @@ def create_supervised_tbptt_trainer(
     loss_fn,
     tbtt_step,
     dim=0,
-    device=None
+    device=None,
+    non_blocking=False,
+    prepare_batch=_prepare_batch
 ):
     """Create a trainer for truncated backprop through time supervised models.
 
@@ -70,6 +60,11 @@ def create_supervised_tbptt_trainer(
         dim (int): axis representing the time dimension
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
+        non_blocking (bool, optional): if True and this copy is between CPU and GPU,
+            the copy may occur asynchronously with respect to the host. For other cases,
+            this argument has no effect.
+        prepare_batch (Callable, optional): function that receives `batch`, `device`,
+            `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
         Engine: a trainer engine with supervised update function
@@ -82,11 +77,9 @@ def create_supervised_tbptt_trainer(
         loss_list = []
         hidden = None
 
-        # Batches split in time chunks
-        batch_splits = _prepare_tbptt_batch(
-            batch, tbtt_step, dim=dim, device=device
-        )
-        for x_t, y_t in batch_splits:
+        x, y = batch
+        for batch_t in zip(x.split(tbtt_step, dim=dim), y.split(tbtt_step, dim=dim)):
+            x_t, y_t = prepare_batch(batch_t, device=device, non_blocking=non_blocking)
             # Fire event for start of iteration
             engine.fire_event(Tbptt_Events.TIME_ITERATION_STARTED)
             # Forward, backward and
