@@ -47,6 +47,7 @@ class ProgressBar:
 
         if metric_names is not None:
             if not all(metric in engine.state.metrics for metric in metric_names):
+                self._close(engine)
                 raise KeyError("metrics not found in engine.state.metrics")
 
             metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
@@ -72,7 +73,7 @@ class ProgressBar:
             engine (Engine): engine object
             metric_names (list): (Optional) list of the metrics names to log as the bar progresses
         """
-        if not isinstance(metric_names, list):
+        if metric_names is not None and not isinstance(metric_names, list):
             raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
 
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
