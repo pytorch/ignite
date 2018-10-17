@@ -118,19 +118,6 @@ def test_categorical_compute_batch_images():
     assert acc.compute() == 0.75
 
 
-def test_multi_label():
-    acc = Accuracy()
-
-    y_pred = torch.eye(4)
-    y = torch.Tensor([[1., 0., 1., 0.],
-                      [0., 1., 0., 0.],
-                      [0., 0., 1., 0.],
-                      [1., 0., 0., 1.]]).type(torch.LongTensor)
-
-    acc.update((y_pred, y))
-    assert acc.compute() == 0.875
-
-
 def test_ner_example():
     acc = Accuracy()
 
