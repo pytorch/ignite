@@ -101,38 +101,6 @@ def test_binary_shapes():
     assert results_ndim == 1.0
 
 
-def test_multilabel_average():
-    recall = Recall(average=True)
-
-    y = torch.eye(4).type(torch.LongTensor)
-    y_pred = torch.Tensor([[1., 0., 1., 0.],
-                           [0., 1., 0., 0.],
-                           [0., 0., 1., 0.],
-                           [1., 0., 0., 1.]])
-
-    recall.update((y_pred, y))
-    results = recall.compute()
-
-    assert results == 1.0
-
-
-def test_multilabel():
-    recall = Recall()
-
-    y = torch.eye(4).type(torch.LongTensor)
-    y_pred = torch.Tensor([[1., 0., 1., 0.],
-                           [0., 1., 0., 0.],
-                           [0., 0., 1., 0.],
-                           [1., 0., 0., 1.]])
-    recall.update((y_pred, y))
-    results = recall.compute()
-
-    assert results[0] == 1.0
-    assert results[1] == 1.0
-    assert results[2] == 1.0
-    assert results[3] == 1.0
-
-
 def test_ner_example():
     recall = Recall()
 
@@ -147,28 +115,6 @@ def test_ner_example():
     results = recall.compute()
 
     assert results[0] == 0.
-    assert results[1] == 1.
-    assert results[2] == 1.
-
-
-def test_ner_multilabel_example():
-    recall = Recall()
-
-    y_pred = torch.zeros(2, 3, 8)
-    y_pred[0, 1, :] = 1
-    y_pred[0, 0, :] = 1
-    y_pred[1, 2, :] = 1
-
-    y = torch.zeros(2, 3, 8)
-    y[0, 1, :] = 1
-    y[0, 0, :] = 1
-    y[1, 0, :] = 1
-    y[1, 2, :] = 1
-
-    recall.update((y_pred, y))
-    results = recall.compute()
-
-    assert results[0] == 0.5
     assert results[1] == 1.
     assert results[2] == 1.
 

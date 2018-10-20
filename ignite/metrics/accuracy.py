@@ -42,6 +42,7 @@ class Accuracy(Metric):
             raise ValueError("y and y_pred must have compatible shapes.")
 
         if y_pred.ndimension() == y.ndimension():
+            # Maps Binary Case to Categorical Case with 2 classes
             y_pred = y_pred.unsqueeze(dim=1)
             y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 

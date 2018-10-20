@@ -17,9 +17,8 @@ class Recall(Metric):
     Otherwise, returns a tensor with the recall for each class.
     """
 
-    def __init__(self, threshold_function=lambda x: torch.round(x), average=False, output_transform=lambda x: x):
+    def __init__(self, average=False, output_transform=lambda x: x):
         super(Recall, self).__init__(output_transform)
-        self._threshold = threshold_function
         self._average = average
 
     def reset(self):
@@ -50,15 +49,14 @@ class Recall(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
-        if y_pred.ndimension() == y.ndimension() + 1:
-            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
-            indices = torch.max(y_pred, dim=1)[1].view(-1)
-            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
-        else:
-            y_pred = self._threshold(y_pred)
-            if y.ndimension() == 3:
-                y = y.transpose(2, 1).contiguous().view(-1, y.size(1))
-                y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+        if y_pred.ndimension() == y.ndimension():
+            # Maps Binary Case to Categorical Case with 2 classes
+            y_pred = y_pred.unsqueeze(dim=1)
+            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
+
+        y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
+        indices = torch.max(y_pred, dim=1)[1].view(-1)
+        y_pred = to_onehot(indices, num_classes=y_pred.size(1))
 
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
