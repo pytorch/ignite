@@ -20,6 +20,8 @@ class Loss(Metric):
             The output is is expected to be a tuple (prediction, target) or
             (prediction, target, kwargs) where kwargs is a dictionary of extra
             keywords arguments.
+        batch_size (callable): a callable taking a target tensor that returns the
+            first dimension size (usually the batch size).
 
     """
 
@@ -43,6 +45,7 @@ class Loss(Metric):
 
         if len(average_loss.shape) != 0:
             raise ValueError('loss_fn did not return the average loss')
+
         N = self._batch_size(y)
         self._sum += average_loss.item() * N
         self._num_examples += N
