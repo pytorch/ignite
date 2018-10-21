@@ -33,7 +33,7 @@ class RunningAverage(Metric):
     def __init__(self, src=None, alpha=0.98, output_transform=None):
         if not (isinstance(src, Metric) or src is None):
             raise TypeError("Argument src should be a Metric or None")
-        if not (0.0 < alpha <= 1.0):
+        if not (0.0 <= alpha <= 1.0):
             raise ValueError("Argument alpha should be a float between 0.0 and 1.0")
 
         if isinstance(src, Metric):
