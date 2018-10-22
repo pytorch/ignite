@@ -11,17 +11,38 @@ class ProgressBar:
     TQDM progress bar handler to log training progress and computed metrics.
 
     Args:
-        persist (bool): (Optional) set to True to persist the progress bar after completion (default=False)
+        persist (bool): (Optional) set to ``True`` to persist the progress bar after completion (default = ``False``)
 
     Examples:
 
-        Create a progress bar that shows you some metrics as they are computed,
-        by simply attaching the progress bar object to your engine.
+        Simple progress bar
 
         .. code-block:: python
 
+            trainer = create_supervised_trainer(model, optimizer, loss)
+
+            pbar = ProgressBar()
+            pbar.attach(trainer)
+
+        Attach metrics that already has been computed (such as `RunningAverage`)
+
+        .. code-block:: python
+
+            trainer = create_supervised_trainer(model, optimizer, loss)
+
+            RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
+
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
+
+        Directly attach the engine's output
+
+        .. code-block:: python
+
+            trainer = create_supervised_trainer(model, optimizer, loss)
+
+            pbar = ProgressBar()
+            pbar.attach(trainer, output_transform=lambda x: {'loss': x})
 
     Note:
         When adding attaching the progress bar to an engine, it is recommend that you replace
@@ -89,7 +110,7 @@ class ProgressBar:
             engine (Engine): engine object
             metric_names (list): (Optional) list of the metrics names to log as the bar progresses
             output_transform (function): (Optional) function to transform the engine output into a
-                dictionary of format {name: value}
+                dictionary with entries in the format of ``{name: value}``
         """
         if metric_names is not None and not isinstance(metric_names, list):
             raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
