@@ -24,7 +24,7 @@ class ProgressBar:
             pbar = ProgressBar()
             pbar.attach(trainer)
 
-        Attach metrics that already has been computed (such as `RunningAverage`)
+        Attach metrics that already have been computed at `ITERATION_COMPLETED` (such as `RunningAverage`)
 
         .. code-block:: python
 
