@@ -10,6 +10,9 @@ class ProgressBar:
     """
     TQDM progress bar handler to log training progress and computed metrics.
 
+    Args:
+        persist (bool): (Optional) set to True to persist the progress bar after completion (default=False)
+
     Examples:
 
         Create a progress bar that shows you some metrics as they are computed,
@@ -26,31 +29,44 @@ class ProgressBar:
         ``pbar.log_message`` to guarantee the correct format of the stdout.
     """
 
-    def __init__(self):
+    def __init__(self, persist=False):
         self.pbar = None
+        self.persist = persist
 
     def _reset(self, engine):
         self.pbar = tqdm(
             total=len(engine.state.dataloader),
-            leave=False,
+            leave=self.persist,
             bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]')
 
     def _close(self, engine):
         self.pbar.close()
         self.pbar = None
 
-    def _update(self, engine, metric_names=None):
+    def _update(self, engine, metric_names=None, output_transform=None):
         if self.pbar is None:
             self._reset(engine)
 
         self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
 
+        metrics = {}
         if metric_names is not None:
             if not all(metric in engine.state.metrics for metric in metric_names):
                 self._close(engine)
                 raise KeyError("metrics not found in engine.state.metrics")
 
-            metrics = {name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names}
+            metrics.update({name: '{:.2e}'.format(engine.state.metrics[name]) for name in metric_names})
+
+        if output_transform is not None:
+            output_dict = output_transform(engine.state.output)
+
+            if not isinstance(output_dict, dict):
+                raise ValueError("output_transform function should return a dict, got {} instead"
+                                 .format(type(output_dict)))
+
+            metrics.update({name: '{:.2e}'.format(value) for name, value in output_dict.items()})
+
+        if metrics:
             self.pbar.set_postfix(**metrics)
 
         self.pbar.update()
@@ -65,16 +81,22 @@ class ProgressBar:
         """
         tqdm.write(message)
 
-    def attach(self, engine, metric_names=None):
+    def attach(self, engine, metric_names=None, output_transform=None):
         """
         Attaches the progress bar to an engine object
 
         Args:
             engine (Engine): engine object
             metric_names (list): (Optional) list of the metrics names to log as the bar progresses
+            output_transform (function): (Optional) function to transform the engine output into a
+                dictionary of format {name: value}
         """
         if metric_names is not None and not isinstance(metric_names, list):
             raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
 
+        if output_transform is not None and not callable(output_transform):
+            raise TypeError("output_transform should be a function, got {} instead"
+                            .format(type(output_transform)))
+
         engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names)
+        engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names, output_transform)
