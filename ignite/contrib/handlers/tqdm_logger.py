@@ -109,7 +109,7 @@ class ProgressBar:
         Args:
             engine (Engine): engine object
             metric_names (list): (Optional) list of the metrics names to log as the bar progresses
-            output_transform (function): (Optional) function to transform the engine output into a
+            output_transform (Callable, optional) a function to transform the engine output into a
                 dictionary with entries in the format of ``{name: value}``
         """
         if metric_names is not None and not isinstance(metric_names, list):
