@@ -82,8 +82,7 @@ class ProgressBar:
             output_dict = output_transform(engine.state.output)
 
             if not isinstance(output_dict, dict):
-                raise ValueError("output_transform function should return a dict, got {} instead"
-                                 .format(type(output_dict)))
+                output_dict = {"output": output_dict}
 
             metrics.update({name: '{:.2e}'.format(value) for name, value in output_dict.items()})
 

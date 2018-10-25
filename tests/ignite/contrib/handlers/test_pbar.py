@@ -115,14 +115,19 @@ def test_pbar_fail_with_non_callable_transform():
         pbar.attach(engine, output_transform=1)
 
 
-def test_pbar_fail_with_wrong_transform():
+def test_pbar_with_scalar_output(capsys):
     n_epochs = 2
     loader = [1, 2]
-
     engine = Engine(update_fn)
 
     pbar = ProgressBar()
     pbar.attach(engine, output_transform=lambda x: x)
 
-    with pytest.raises(ValueError):
-        engine.run(loader, max_epochs=n_epochs)
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = u'Epoch 2: [1/2]  50%|█████     , output=1.00e+00 [00:00<00:00]'
+    assert err[-1] == expected
