@@ -11,7 +11,7 @@ class ProgressBar:
     TQDM progress bar handler to log training progress and computed metrics.
 
     Args:
-        persist (bool): (Optional) set to ``True`` to persist the progress bar after completion (default = ``False``)
+        persist (bool, optional): set to ``True`` to persist the progress bar after completion (default = ``False``)
 
     Examples:
 
@@ -107,7 +107,7 @@ class ProgressBar:
 
         Args:
             engine (Engine): engine object
-            metric_names (list): (Optional) list of the metrics names to log as the bar progresses
+            metric_names (list, optional): list of the metrics names to log as the bar progresses
             output_transform (Callable, optional): a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
