@@ -108,8 +108,9 @@ class ProgressBar:
         Args:
             engine (Engine): engine object
             metric_names (list): (Optional) list of the metrics names to log as the bar progresses
-            output_transform (Callable, optional) a function to transform the engine output into a
-                dictionary with entries in the format of ``{name: value}``
+            output_transform (Callable, optional) a function to select what you want to print from the engine's
+                output. This function may return either a dictionary with entries in the format of ``{name: value}``,
+                or a single scalar, which will be displayed with the default name `output`.
         """
         if metric_names is not None and not isinstance(metric_names, list):
             raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
