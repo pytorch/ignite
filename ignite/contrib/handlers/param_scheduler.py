@@ -66,7 +66,11 @@ class CyclicalScheduler(ParamScheduler):
                  cycle_size,
                  cycle_mult=1,
                  save_history=False):
-        super(CyclicalScheduler, self).__init__(optimizer, param_name, save_history=save_history)
+        super(CyclicalScheduler, self).__init__(
+            optimizer,
+            param_name,
+            save_history=save_history
+        )
         self.start_value = start_value
         self.end_value = end_value
         self.cycle_size = cycle_size
@@ -101,6 +105,18 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
         usually be the number of batches in an epoch.
 
+    Examples:
+
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+
+        scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        #
+        # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
+        # over the course of 1 epoch
+        #
     """
     def get_param(self):
         cycle_progress = self.event_index / self.cycle_size
@@ -108,7 +124,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
 
 class CosineAnnealingScheduler(CyclicalScheduler):
-    """Anneals 'start_value' to 'end_value' over each cycle.
+    """Anneals 'end_value' to 'start_value' over each cycle.
 
     Args:
         optimizer (`torch.optim.Optimizer`): the optimizer to use
@@ -125,6 +141,18 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
         usually be the number of batches in an epoch.
 
+    Examples:
+
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+
+        scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        #
+        # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
+        # Annealing takes the form of a cosine.
+        #
     """
     def get_param(self):
         """Method to get current optimizer's parameter value
@@ -150,6 +178,45 @@ class ConcatScheduler(ParamScheduler):
             scheduler_kwds, duration).
         save_history (bool, optional): whether to log the parameter values
             (default: False)
+
+    Examples:
+
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import ConcatScheduler
+        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+
+        scheduler = ConcatScheduler(
+            optimizer,
+            "lr",
+            [
+                (
+                    LinearCyclicalScheduler,
+                    dict(
+                        start_value=0.1,
+                        end_value=0.5,
+                        cycle_size=60
+                    ),
+                    30
+                ),
+                (
+                    CosineAnnealingScheduler,
+                    dict(
+                        start_value=0.01,
+                        end_value=0.5,
+                        cycle_size=60
+                    ),
+                    None
+                ),
+            ],
+        )
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        #
+        # Sets the Learning rate linearly from 0.1 to 0.5 over 30 iterations. Then
+        # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
+        # The annealing cycles are repeated indefinitely.
+        #
     """
     def __init__(self,
                  optimizer,
