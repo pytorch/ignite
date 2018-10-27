@@ -28,7 +28,7 @@ For example, model trainer for a supervised task:
         loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
-        return loss.data[0]
+        return loss.item()
 
     trainer = Engine(update_model)
     trainer.run(data, max_epochs=100)
