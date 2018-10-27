@@ -57,7 +57,7 @@ def test_cosine_annealing_scheduler():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1, 0, 10)
+    scheduler = CosineAnnealingScheduler(optimizer, 'lr', 0, 1, 10)
     lrs = []
 
     def save_lr(engine):
@@ -96,8 +96,8 @@ def test_concat_scheduler():
             (
                 CosineAnnealingScheduler,
                 dict(
-                    start_value=1,
-                    end_value=0,
+                    start_value=0,
+                    end_value=1,
                     cycle_size=10
                 ),
                 None

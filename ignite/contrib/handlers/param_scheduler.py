@@ -124,13 +124,13 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
 
 class CosineAnnealingScheduler(CyclicalScheduler):
-    """Anneals 'end_value' to 'start_value' over each cycle.
+    """Anneals 'start_value' to 'end_value' over each cycle.
 
     Args:
         optimizer (`torch.optim.Optimizer`): the optimizer to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
-        end_value (float) : value at the middle of the cycle
+        end_value (float) : value at the end of the cycle
         cycle_size (int) : length of cycle.
         cycle_mult (float, optional) : ratio by which to change the cycle_size
             at the end of each cycle (default=1),
@@ -147,7 +147,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
         from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
 
-        scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
+        scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
         #
         # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
@@ -158,7 +158,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         """Method to get current optimizer's parameter value
         """
         cycle_progress = self.event_index / self.cycle_size
-        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 + np.cos(np.pi * cycle_progress))
+        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - np.cos(np.pi * cycle_progress))
 
 
 class ConcatScheduler(ParamScheduler):
@@ -203,8 +203,8 @@ class ConcatScheduler(ParamScheduler):
                 (
                     CosineAnnealingScheduler,
                     dict(
-                        start_value=0.01,
-                        end_value=0.5,
+                        start_value=0.5,
+                        end_value=0.01,
                         cycle_size=60
                     ),
                     None
