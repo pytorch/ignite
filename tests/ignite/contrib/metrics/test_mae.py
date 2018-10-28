@@ -2,7 +2,7 @@ from ignite.contrib.metrics import MaximumAbsoluteError
 import torch
 
 
-def test_maximum_absolute_error():
+def test_maximum_absolute_error(tol=1e-6):
     a = torch.tensor([0.0, 0.2, -0.8])
     b = torch.tensor([1.0, -2.0, 3.0])
     c = torch.tensor([0.0, 2.0, 0.0])
@@ -13,13 +13,13 @@ def test_maximum_absolute_error():
     m.reset()
 
     m.update((a, ground_truth))
-    assert m.compute() == 0.8
+    assert abs(m.compute() - 0.8) < tol
 
     m.update((b, ground_truth))
-    assert m.compute() == 3.0
+    assert abs(m.compute() - 3.0) < tol
 
     m.update((c, ground_truth))
-    assert m.compute() == 3.0
+    assert abs(m.compute() - 3.0) < tol
 
     m.update((d, ground_truth))
-    assert m.compute() == 5.0
+    assert abs(m.compute() - 5.0) < tol
