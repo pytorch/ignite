@@ -1,5 +1,6 @@
 from ignite.metrics import Metric
 from ignite.exceptions import NotComputableError
+import torch
 
 
 class MaximumAbsoluteError(Metric):
