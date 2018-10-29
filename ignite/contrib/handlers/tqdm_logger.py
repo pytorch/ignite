@@ -68,7 +68,7 @@ class ProgressBar:
         if self.pbar is None:
             self._reset(engine)
 
-        self.pbar.set_description('Epoch {}'.format(engine.state.epoch))
+        self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
 
         metrics = {}
         if metric_names is not None:

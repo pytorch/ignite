@@ -29,7 +29,7 @@ def test_pbar(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch 2: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -85,7 +85,7 @@ def test_pbar_no_metric_names(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch 2: [1/2]  50%|█████      [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████      [00:00<00:00]'
     assert actual == expected
 
 
@@ -103,7 +103,7 @@ def test_pbar_with_output(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch 2: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -129,5 +129,5 @@ def test_pbar_with_scalar_output(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch 2: [1/2]  50%|█████     , output=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , output=1.00e+00 [00:00<00:00]'
     assert err[-1] == expected
