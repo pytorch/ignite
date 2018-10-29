@@ -8,3 +8,5 @@ Contribution module of metrics
 .. autoclass:: ROC_AUC
 
 .. autoclass:: AveragePrecision
+
+.. autoclass:: MaximumAbsoluteError
