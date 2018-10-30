@@ -5,7 +5,7 @@ import torch
 
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine
-from ignite.metrics import CategoricalAccuracy
+from ignite.metrics import Accuracy
 
 
 def update_fn(engine, batch):
@@ -58,7 +58,7 @@ def test_pbar_with_metric():
 
     trainer = Engine(step)
 
-    accuracy = CategoricalAccuracy(output_transform=lambda x: (x[1], x[2]))
+    accuracy = Accuracy(output_transform=lambda x: (x[1], x[2]))
     accuracy.attach(trainer, "avg_accuracy")
 
     pbar = ProgressBar()

@@ -145,10 +145,14 @@ def test_sklearn_compare():
     indices = torch.max(y_pred, dim=1)[1]
     recall.update((y_pred, y))
 
-    assert torch.equal(torch.from_numpy(recall_score(y.data.numpy(),
-                                                     indices.data.numpy(),
-                                                     average=None)).type(torch.FloatTensor), recall.compute())
+    y_pred_labels = list(set(indices.tolist()))
 
-    recall = Recall(average=True)
-    recall.update((y_pred, y))
-    assert recall_score(y.data.numpy(), indices.data.numpy(), average='macro') == pytest.approx(recall.compute())
+    recall_sk = recall_score(y.data.numpy(),
+                             indices.data.numpy(),
+                             labels=y_pred_labels,
+                             average=None)
+
+    recall_ig = recall.compute().tolist()
+    recall_ig = [recall_ig[i] for i in y_pred_labels]
+
+    assert all([a == pytest.approx(b) for a, b in zip(recall_sk, recall_ig)])

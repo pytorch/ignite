@@ -142,10 +142,14 @@ def test_sklearn_compare():
     indices = torch.max(y_pred, dim=1)[1]
     precision.update((y_pred, y))
 
-    assert torch.equal(torch.from_numpy(precision_score(y.data.numpy(),
-                                                        indices.data.numpy(),
-                                                        average=None)).type(torch.FloatTensor), precision.compute())
+    y_pred_labels = list(set(indices.tolist()))
 
-    precision = Precision(average=True)
-    precision.update((y_pred, y))
-    assert precision_score(y.data.numpy(), indices.data.numpy(), average='macro') == pytest.approx(precision.compute())
+    precision_sk = precision_score(y.data.numpy(),
+                                   indices.data.numpy(),
+                                   labels=y_pred_labels,
+                                   average=None)
+
+    precision_ig = precision.compute().tolist()
+    precision_ig = [precision_ig[i] for i in y_pred_labels]
+
+    assert all([a == pytest.approx(b) for a, b in zip(precision_sk, precision_ig)])
