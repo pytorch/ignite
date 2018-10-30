@@ -1,4 +1,4 @@
-from ignite.contrib.metrics import MaximumAbsoluteError
+from ignite.metrics import MaximumAbsoluteError
 import torch
 from pytest import approx
 
