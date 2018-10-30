@@ -2,6 +2,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
 import pytest
 import torch
+from sklearn.metrics import precision_score
 
 
 def test_no_update():
@@ -130,3 +131,21 @@ def test_incorrect_shape():
 
     with pytest.raises(ValueError):
         precision.update((y_pred, y))
+
+
+def test_sklearn_compare():
+    precision = Precision(average=False)
+
+    y = torch.Tensor(range(5)).type(torch.LongTensor)
+    y_pred = torch.softmax(torch.rand(5, 5), dim=1)
+
+    indices = torch.max(y_pred, dim=1)[1]
+    precision.update((y_pred, y))
+
+    assert torch.equal(torch.from_numpy(precision_score(y.data.numpy(),
+                                                        indices.data.numpy(),
+                                                        average=None)).type(torch.FloatTensor), precision.compute())
+
+    precision = Precision(average=True)
+    precision.update((y_pred, y))
+    assert precision_score(y.data.numpy(), indices.data.numpy(), average='macro') == pytest.approx(precision.compute())

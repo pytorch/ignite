@@ -2,6 +2,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import Recall
 import pytest
 import torch
+from sklearn.metrics import recall_score
 
 
 def test_no_update():
@@ -133,3 +134,21 @@ def test_incorrect_shape():
 
     with pytest.raises(ValueError):
         recall.update((y_pred, y))
+
+
+def test_sklearn_compare():
+    recall = Recall(average=False)
+
+    y = torch.Tensor(range(5)).type(torch.LongTensor)
+    y_pred = torch.softmax(torch.rand(5, 5), dim=1)
+
+    indices = torch.max(y_pred, dim=1)[1]
+    recall.update((y_pred, y))
+
+    assert torch.equal(torch.from_numpy(recall_score(y.data.numpy(),
+                                                     indices.data.numpy(),
+                                                     average=None)).type(torch.FloatTensor), recall.compute())
+
+    recall = Recall(average=True)
+    recall.update((y_pred, y))
+    assert recall_score(y.data.numpy(), indices.data.numpy(), average='macro') == pytest.approx(recall.compute())

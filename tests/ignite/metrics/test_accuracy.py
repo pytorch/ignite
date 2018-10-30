@@ -2,6 +2,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import Accuracy
 import pytest
 import torch
+from sklearn.metrics import accuracy_score
 
 
 def test_zero_div():
@@ -146,3 +147,14 @@ def test_incorrect_shape():
 
     with pytest.raises(ValueError):
         acc.update((y_pred, y))
+
+
+def test_sklearn_compare():
+    acc = Accuracy()
+
+    y = torch.Tensor(range(5)).type(torch.LongTensor)
+    y_pred = torch.softmax(torch.rand(5, 5), dim=1)
+
+    indices = torch.max(y_pred, dim=1)[1]
+    acc.update((indices, y))
+    assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
