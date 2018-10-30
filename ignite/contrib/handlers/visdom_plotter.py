@@ -7,7 +7,64 @@ import visdom
 
 
 class VisdomPlotter:
-    """
+    """Handler that plots metrics using Visdom graphs.
+
+    The `VisdomPlotter` can be used to plot to multiple windows each one with a different
+    set of metrics.
+
+    Args:
+        vis (Visdom object, optional): Visdom client.
+        server (str, optinal): URL of visdom server.
+        env (str, optional): Name of Visdom environment for the graphs. Defaults to "main".
+        log_to_filename (str, optional): If given, the plots will be also be save to a file
+            by this name. Later this graphs can be replayed from this file.
+        save_by_default (bool, optional): The graphs will be saved by default by the server.
+
+    Note:
+        Either the `vis` or `server` arguments should be given to the constructor.
+
+    Examples:
+
+    Plotting of trainer loss.
+
+    .. code-block:: python
+
+        trainer = create_supervised_trainer(model, optimizer, loss)
+
+        visdom_plotter = VisdomPlotter(vis, env=env)
+
+        visdom_plotter.create_window(
+            engine=trainer,
+            window_title="Training Losses",
+            xlabel="epoch",
+            plot_event=Events.ITERATION_COMPLETED,
+            update_period=LOG_INTERVAL,
+            output_transform=lambda x: {'loss": x}
+        )
+
+    Attach validation metrics
+
+    .. code-block:: python
+
+        metrics={
+            'accuracy': CategoricalAccuracy(),
+            'nll': Loss(loss)
+        }
+        evaluator = create_supervised_evaluator(
+            model,
+            metrics=metrics
+        )
+
+        visdom_plotter = VisdomPlotter(vis, env=env)
+
+        visdom_plotter.create_window(
+            engine=evaluator,
+            window_title="Evaluation",
+            xlabel="epoch",
+            plot_event=Events.EPOCH_COMPLETED,
+            metric_names=list(metrics.keys())
+        )
+
     """
 
     def __init__(
@@ -38,11 +95,16 @@ class VisdomPlotter:
     def _update(
             self,
             engine: Engine,
-            step: int,
+            step_cb: Callable,
             window_title: str,
             window_opts: dict,
+            update_period:int,
             metric_names: List=None,
             output_transform: Callable=None):
+
+        step = step_cb(engine)
+        if step % update_period != 0:
+            return
 
         #
         # Get all the metrics
@@ -52,7 +114,7 @@ class VisdomPlotter:
             if not all(metric in engine.state.metrics for metric in metric_names):
                 raise KeyError("metrics not found in engine.state.metrics")
 
-            metrics.append([(name, engine.state.metrics[name]) for name in metric_names])
+            metrics.extend([(name, engine.state.metrics[name]) for name in metric_names])
 
         if output_transform is not None:
             output_dict = output_transform(engine.state.output)
@@ -60,14 +122,14 @@ class VisdomPlotter:
             if not isinstance(output_dict, dict):
                 output_dict = {"output": output_dict}
 
-            metrics.append([(name, value) for name, value in output_dict.items()])
+            metrics.extend([(name, value) for name, value in output_dict.items()])
 
         if not metrics:
             return
 
         metric_names, metric_values = list(zip(*metrics))
         line_opts = window_opts.copy()
-        line_opts['legend'] = metric_names
+        line_opts['legend'] = list(metric_names)
 
         if window_title not in self.plots:
             self.plots[window_title] = \
@@ -75,7 +137,7 @@ class VisdomPlotter:
                     X=np.array([step] * len(metric_values)).reshape(1, -1),
                     Y=np.array(metric_values).reshape(1, -1),
                     env=self.env,
-                    opts=window_opts
+                    opts=line_opts
                 )
         else:
             self.vis.line(
@@ -98,13 +160,21 @@ class VisdomPlotter:
             ylabel: str="value",
             show_legend: bool=False,
             plot_event: str=Events.EPOCH_COMPLETED,
+            update_period: int=1,
             metric_names: List=None,
             output_transform: Callable=None):
         """
-        Attaches the visdom window to an engine object
+        Creates a Visdom window and attaches it to an engine object
+
         Args:
             engine (Engine): engine object
-            metric_names (list, optional): list of the metrics names to log.
+            window_title (str, optional): The title that will given to the window.
+            xlabel (str, optional): Label of the x-axis.
+            ylabel (str, optional): Label of the y-axis.
+            show_legend (bool, optional): Whether to add a legend to the window,
+            plot_event (str, optional): Name of event to handle.
+            update_period (int, optional): Can be used to limit the number of plot updates.
+            metric_names (list, optional): list of the metrics names to plot.
             output_transform (Callable, optional): a function to select what you want to plot from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
@@ -125,13 +195,18 @@ class VisdomPlotter:
             ylabel=ylabel,
             showlegend=show_legend
         )
+        if plot_event == Events.ITERATION_COMPLETED:
+            step_cb = lambda x: x.state.iteration
+        else:
+            step_cb = lambda x: x.state.epoch
+
         engine.add_event_handler(
             plot_event,
             self._update,
-            engine,
-            engine.state.iteration if plot_event == Events.ITERATION_COMPLETED else engine.state.epoch,
-            window_title,
-            window_opts,
-            metric_names,
-            output_transform
+            step_cb=step_cb,
+            window_title=window_title,
+            window_opts=window_opts,
+            update_period=update_period,
+            metric_names=metric_names,
+            output_transform=output_transform
         )
