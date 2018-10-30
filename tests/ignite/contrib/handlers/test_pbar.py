@@ -9,8 +9,9 @@ from ignite.metrics import CategoricalAccuracy
 
 
 def update_fn(engine, batch):
-    engine.state.metrics['a'] = 1
-    return None
+    a = 1
+    engine.state.metrics['a'] = a
+    return a
 
 
 def test_pbar(capsys):
@@ -28,7 +29,7 @@ def test_pbar(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch 2: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -66,3 +67,67 @@ def test_pbar_with_metric():
 
     with pytest.raises(KeyError):
         trainer.run(data=data, max_epochs=1)
+
+
+def test_pbar_no_metric_names(capsys):
+
+    n_epochs = 2
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine)
+
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch [2/2]: [1/2]  50%|█████      [00:00<00:00]'
+    assert actual == expected
+
+
+def test_pbar_with_output(capsys):
+    n_epochs = 2
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine, output_transform=lambda x: {'a': x})
+
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
+    assert err[-1] == expected
+
+
+def test_pbar_fail_with_non_callable_transform():
+    engine = Engine(update_fn)
+    pbar = ProgressBar()
+
+    with pytest.raises(TypeError):
+        pbar.attach(engine, output_transform=1)
+
+
+def test_pbar_with_scalar_output(capsys):
+    n_epochs = 2
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine, output_transform=lambda x: x)
+
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , output=1.00e+00 [00:00<00:00]'
+    assert err[-1] == expected

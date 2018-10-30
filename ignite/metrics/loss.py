@@ -20,12 +20,16 @@ class Loss(Metric):
             The output is is expected to be a tuple (prediction, target) or
             (prediction, target, kwargs) where kwargs is a dictionary of extra
             keywords arguments.
+        batch_size (callable): a callable taking a target tensor that returns the
+            first dimension size (usually the batch size).
 
     """
 
-    def __init__(self, loss_fn, output_transform=lambda x: x):
+    def __init__(self, loss_fn, output_transform=lambda x: x,
+                 batch_size=lambda x: x.shape[0]):
         super(Loss, self).__init__(output_transform)
         self._loss_fn = loss_fn
+        self._batch_size = batch_size
 
     def reset(self):
         self._sum = 0
@@ -42,8 +46,9 @@ class Loss(Metric):
         if len(average_loss.shape) != 0:
             raise ValueError('loss_fn did not return the average loss')
 
-        self._sum += average_loss.item() * y.shape[0]
-        self._num_examples += y.shape[0]
+        N = self._batch_size(y)
+        self._sum += average_loss.item() * N
+        self._num_examples += N
 
     def compute(self):
         if self._num_examples == 0:

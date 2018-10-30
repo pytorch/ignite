@@ -5,6 +5,9 @@ from ignite._utils import convert_tensor
 
 
 def _prepare_batch(batch, device=None, non_blocking=False):
+    """Prepare batch for training: pass to a device with options
+
+    """
     x, y = batch
     return (convert_tensor(x, device=device, non_blocking=non_blocking),
             convert_tensor(y, device=device, non_blocking=non_blocking))
