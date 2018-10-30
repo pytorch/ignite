@@ -156,5 +156,5 @@ def test_sklearn_compare():
     y_pred = torch.softmax(torch.rand(5, 5), dim=1)
 
     indices = torch.max(y_pred, dim=1)[1]
-    acc.update((indices, y))
+    acc.update((y_pred, y))
     assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
