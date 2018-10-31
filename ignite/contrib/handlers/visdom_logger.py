@@ -6,10 +6,10 @@ from typing import Callable, List
 import visdom
 
 
-class VisdomPlotter:
+class VisdomLogger:
     """Handler that plots metrics using Visdom graphs.
 
-    The `VisdomPlotter` can be used to plot to multiple windows each one with a different
+    The `VisdomLogger` can be used to plot to multiple windows each one with a different
     set of metrics.
 
     Args:
@@ -31,7 +31,7 @@ class VisdomPlotter:
 
         trainer = create_supervised_trainer(model, optimizer, loss)
 
-        visdom_plotter = VisdomPlotter(vis, env=env)
+        visdom_plotter = VisdomLogger(vis, env=env)
 
         visdom_plotter.create_window(
             engine=trainer,
@@ -55,7 +55,7 @@ class VisdomPlotter:
             metrics=metrics
         )
 
-        visdom_plotter = VisdomPlotter(vis, env=env)
+        visdom_plotter = VisdomLogger(vis, env=env)
 
         visdom_plotter.create_window(
             engine=evaluator,
@@ -91,18 +91,20 @@ class VisdomPlotter:
         self.env = env
         self.save_by_default = save_by_default
         self.plots = dict()
+        self.metrics_step = []
 
     def _update(
             self,
             engine: Engine,
-            step_cb: Callable,
+            attach_id: int,
             window_title: str,
             window_opts: dict,
-            update_period:int,
+            update_period: int,
             metric_names: List=None,
             output_transform: Callable=None):
 
-        step = step_cb(engine)
+        step = self.metrics_step[attach_id]
+        self.metrics_step[attach_id] += 1
         if step % update_period != 0:
             return
 
@@ -132,14 +134,16 @@ class VisdomPlotter:
         line_opts['legend'] = list(metric_names)
 
         if window_title not in self.plots:
-            self.plots[window_title] = \
-                self.vis.line(
+            win = self.vis.line(
                     X=np.array([step] * len(metric_values)).reshape(1, -1),
                     Y=np.array(metric_values).reshape(1, -1),
                     env=self.env,
                     opts=line_opts
                 )
+            self.plots[window_title] = win
+
         else:
+            win = self.plots[window_title]
             self.vis.line(
                 X=np.array([step] * len(metric_values)).reshape(1, -1),
                 Y=np.array(metric_values).reshape(1, -1),
@@ -195,15 +199,14 @@ class VisdomPlotter:
             ylabel=ylabel,
             showlegend=show_legend
         )
-        if plot_event == Events.ITERATION_COMPLETED:
-            step_cb = lambda x: x.state.iteration
-        else:
-            step_cb = lambda x: x.state.epoch
+
+        attach_id = len(self.metrics_step)
+        self.metrics_step.append(0)
 
         engine.add_event_handler(
             plot_event,
             self._update,
-            step_cb=step_cb,
+            attach_id=attach_id,
             window_title=window_title,
             window_opts=window_opts,
             update_period=update_period,
