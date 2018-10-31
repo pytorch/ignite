@@ -5,7 +5,7 @@ from typing import Callable, List
 import mlflow
 
 
-class MlflowPlotter:
+class MlflowLogger:
     """Handler that logs metrics using the `mlflow tracking` system.
 
     Examples:
@@ -26,7 +26,7 @@ class MlflowPlotter:
 
             trainer = create_supervised_trainer(model, optimizer, loss)
 
-            mlflow_plotter = MlflowPlotter()
+            mlflow_plotter = MlflowLogger()
 
             mlflow_plotter.attach(
                 engine=trainer,
@@ -39,16 +39,21 @@ class MlflowPlotter:
 
     """
 
+    def __init__(self):
+
+        self.metrics_step = []
+
     def _update(
             self,
             engine: Engine,
-            step_cb: Callable,
+            attach_id: int,
             prefix: str,
             update_period: int,
             metric_names: List=None,
             output_transform: Callable=None):
 
-        step = step_cb(engine)
+        step = self.metrics_step[attach_id]
+        self.metrics_step[attach_id] += 1
         if step % update_period != 0:
             return
 
@@ -107,15 +112,13 @@ class MlflowPlotter:
         assert plot_event in (Events.ITERATION_COMPLETED, Events.EPOCH_COMPLETED), \
             "The plotting event should be either {} or {}".format(Events.ITERATION_COMPLETED, Events.EPOCH_COMPLETED)
 
-        if plot_event == Events.ITERATION_COMPLETED:
-            step_cb = lambda x: x.state.iteration
-        else:
-            step_cb = lambda x: x.state.epoch
+        attach_id = len(self.metrics_step)
+        self.metrics_step.append(0)
 
         engine.add_event_handler(
             plot_event,
             self._update,
-            step_cb=step_cb,
+            attach_id=attach_id,
             prefix=prefix,
             update_period=update_period,
             metric_names=metric_names,
