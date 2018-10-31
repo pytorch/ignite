@@ -23,7 +23,7 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-from ignite.contrib.handlers.tensorboardX import TensorBoardX
+from ignite.contrib.handlers import TensorboardLogger
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import CategoricalAccuracy, Loss
 from ignite.metrics import RunningAverage
@@ -77,6 +77,19 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
                                             device=device)
     train_evaluator = validation_evaluator = evaluator
 
+    tbLogger = TensorboardLogger(log_dir=log_dir)
+
+    tbLogger.attach(engine=trainer,
+                    mode='iteration',
+                    model=model,
+                    use_metrics=True,
+                    histogram_freq=1,
+                    write_grads=True)
+
+    @trainer.on(Events.STARTED)
+    def write_graph(engine):
+        tbLogger.write_graph(model, train_loader)
+
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
@@ -92,6 +105,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_nll = metrics['nll']
         print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
+        tbLogger.plot_metrics(train_evaluator, 'training', mode='epoch')
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
@@ -101,19 +115,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-
-    tbLogger = TensorBoardX()
-
-    tbLogger.attach(engine=trainer,
-                    mode='iteration',
-                    model=model,
-                    input_shape=[1, 28, 28],
-                    write_graph=True,
-                    train_evaluator=train_evaluator,
-                    validation_evaluator=validation_evaluator,
-                    use_metrics=True,
-                    histogram_freq=1,
-                    write_grads=True)
+        tbLogger.plot_metrics(train_evaluator, 'validation', mode='epoch')
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)

@@ -6,4 +6,4 @@ from ignite.contrib.handlers.tqdm_logger import ProgressBar
 
 __all__ = ['ProgressBar']
 
-from ignite.contrib.handlers.tensorboardX import TensorBoardX
+from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger
