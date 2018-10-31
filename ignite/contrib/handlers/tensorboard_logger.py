@@ -1,6 +1,6 @@
 try:
     from tensorboardX import SummaryWriter
-except:
+except ImportError:
     raise RuntimeError("This contrib module requires tensorboardX to be installed.")
 
 from ignite.engine import Engine, Events
