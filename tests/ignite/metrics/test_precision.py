@@ -60,43 +60,43 @@ def test_compute_all_wrong():
 
 
 def test_binary_vs_categorical():
-    precision_sigmoid = Precision(average=True)
-    precision_softmax = Precision(average=True)
+    precision = Precision(average=True)
 
-    y_pred_binary = torch.FloatTensor([0.9, 0.2])
-    y_pred_categorical = torch.FloatTensor([[0.1, 0.9], [0.8, 0.2]])
+    y_pred = torch.FloatTensor([0.9, 0.2])
     y = torch.LongTensor([1, 0])
+    y_pred = y_pred.unsqueeze(1)
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
+    precision.update((y_pred, y))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == 1.0
 
-    precision_sigmoid.update((y_pred_binary, y))
-    precision_softmax.update((y_pred_categorical, y))
-
-    results_sigmoid = precision_sigmoid.compute()
-    results_softmax = precision_softmax.compute()
-
-    assert results_sigmoid == results_softmax
-    assert results_sigmoid == 1.0
-    assert results_softmax == 1.0
+    precision.reset()
+    y_pred = torch.FloatTensor([[0.1, 0.9], [0.8, 0.2]])
+    y = torch.LongTensor([1, 0])
+    indices = torch.max(y_pred, dim=1)[1]
+    precision.update((y_pred, y))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == 1.0
 
 
 def test_binary_shapes():
     precision = Precision(average=True)
 
     y = torch.LongTensor([1, 0])
-    y_pred_1dim = torch.FloatTensor([0.9, 0.2])
-
-    precision.update((y_pred_1dim, y))
-    results_1dim = precision.compute()
+    y_pred = torch.FloatTensor([0.9, 0.2])
+    y_pred = y_pred.unsqueeze(1)
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
+    precision.update((y_pred, y))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == 1.0
 
     y = torch.LongTensor([[1], [0]])
-    y_pred_ndim = torch.FloatTensor([[0.9], [0.2]])
-
+    y_pred = torch.FloatTensor([[0.9], [0.2]])
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     precision.reset()
-    precision.update((y_pred_ndim, y))
-    results_ndim = precision.compute()
-
-    assert results_1dim == results_ndim
-    assert results_1dim == 1.0
-    assert results_ndim == 1.0
+    precision.update((y_pred, y))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == 1.0
 
 
 def test_ner_example():
@@ -104,17 +104,19 @@ def test_ner_example():
 
     y = torch.Tensor([[1, 1, 1, 1, 1, 1, 1, 1],
                       [2, 2, 2, 2, 2, 2, 2, 2]]).type(torch.LongTensor)
+    y_pred = torch.softmax(torch.rand(2, 3, 8), dim=1)
+    indices = torch.max(y_pred, dim=1)[1]
+    y_pred_labels = list(set(indices.view(-1).tolist()))
 
-    y_pred = torch.zeros(2, 3, 8)
-    y_pred[0, 1, :] = 1
-    y_pred[1, 2, :] = 1
-
+    precision_sk = precision_score(y.view(-1).data.numpy(),
+                                   indices.view(-1).data.numpy(),
+                                   labels=y_pred_labels,
+                                   average=None)
     precision.update((y_pred, y))
-    results = precision.compute()
+    precision_ig = precision.compute().tolist()
+    precision_ig = [precision_ig[i] for i in y_pred_labels]
 
-    assert results[0] == 0.
-    assert results[1] == 1.
-    assert results[2] == 1.
+    assert all([a == pytest.approx(b) for a, b in zip(precision_sk, precision_ig)])
 
 
 def test_incorrect_shape():
@@ -133,7 +135,7 @@ def test_incorrect_shape():
         precision.update((y_pred, y))
 
 
-def test_sklearn_compare():
+def test_sklearn_compute():
     precision = Precision(average=False)
 
     y = torch.Tensor(range(5)).type(torch.LongTensor)
