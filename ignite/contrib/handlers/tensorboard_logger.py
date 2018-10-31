@@ -37,14 +37,33 @@ class TensorboardLogger(object):
         self.writer = SummaryWriter(log_dir=log_dir)
 
     def _close(self, engine):
+        """
+        Closes Summary Writer
+        """
         self.writer.close()
 
     def write_graph(self, model, dataloader):
+        """
+        Plots engine.state.metrics on epoch or iteration.
+
+        Args:
+            model (nn.Module): model to be written
+            dataloader (torch.utils.DataLoader): data loader for training data
+        """
+
         x, y = next(iter(dataloader))
         x = x.cuda() if next(model.parameters()).is_cuda else x
         self.writer.add_graph(model, x)
 
     def plot_metrics(self, engine, name, mode='epoch'):
+        """
+        Plots engine.state.metrics on epoch or iteration.
+
+        Args:
+            engine (ignite.Engine): training engine or evaluator engine
+            name (str): name of trainer or evaluator
+            mode (str): 'epoch' or 'iteration'
+        """
 
         global_step = self.engine.state.epoch if mode == 'epoch' else self.engine.state.iteration
 
@@ -54,9 +73,17 @@ class TensorboardLogger(object):
                                    global_step=global_step)
 
     def plot_state_keys(self, engine, state_keys, name, mode='epoch'):
-        
+        """
+        Plots engine.state attributes on epoch or iteration.
+
+        Args:
+            engine (ignite.Engine): training engine or evaluator engine
+            state_keys (list): list of keys of engine.state attributes
+            name (str): name of trainer or evaluator
+            mode (str): 'epoch' or 'iteration'
+        """
+
         global_step = self.engine.state.epoch if mode == 'epoch' else self.engine.state.iteration
-        
         for key in state_keys:
 
             if hasattr(engine.state, key):
