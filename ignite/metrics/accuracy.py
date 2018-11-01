@@ -22,7 +22,7 @@ class Accuracy(Metric):
         y_pred, y = output
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
-            raise ValueError("y must have shape of (batch_size, ...) and y_pred"
+            raise ValueError("y must have shape of (batch_size, ...) and y_pred "
                              "must have shape of (batch_size, num_classes, ...) or (batch_size, ...).")
 
         if y.ndimension() > 1 and y.shape[1] == 1:
