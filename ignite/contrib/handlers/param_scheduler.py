@@ -126,6 +126,9 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 class CosineAnnealingScheduler(CyclicalScheduler):
     """Anneals 'start_value' to 'end_value' over each cycle.
 
+    The annealing takes the form of the first half of a cosine
+    wave (as suggested in [Smith17]_).
+
     Args:
         optimizer (`torch.optim.Optimizer`): the optimizer to use
         param_name (str): name of optimizer's parameter to update
@@ -151,8 +154,10 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
         #
         # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
-        # Annealing takes the form of a cosine.
         #
+
+    .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
+                 Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
     """
     def get_param(self):
         """Method to get current optimizer's parameter value
