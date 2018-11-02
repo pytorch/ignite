@@ -9,6 +9,7 @@ stages:
   - Test
   - Docs
   - Deploy
+  - Nightly
 
 before_install: &before_install
   - sudo apt-get update
@@ -107,6 +108,58 @@ jobs:
     - stage: Deploy
       python: "3.5"
       if: tag IS present
+
+      # Use previously defined before_install
+      before_install: *before_install
+
+      install:
+        - python setup.py install
+
+      script: true
+
+      after_success: # Nothing to do
+
+      before_deploy:
+        # Conda deploy if on tag
+        # ANACONDA_TOKEN should be provided by Travis
+        # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
+
+        # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
+        - conda install -y conda-build conda-verify anaconda-client
+        - conda config --set anaconda_upload no
+        - conda build --quiet --no-test --output-folder conda_build conda.recipe
+        # Convert to other platforms: OSX, WIN
+        - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        # Upload to Anaconda
+        # We could use --all but too much platforms to uploaded
+        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch {}
+
+
+      # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
+      deploy:
+
+        provider: pypi
+
+        user: $PYPI_USER
+        # If password contains non alphanumeric characters
+        # https://github.com/travis-ci/dpl/issues/377
+        # pass it as secured variable
+        password: $PYPI_TOKEN
+        # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
+        # `travis encrypt deploy.password="password"`
+        #  secure: "secured_password"
+
+        skip_cleanup: true
+
+        distributions: "sdist bdist_wheel"
+
+        on:
+          tags: true
+
+    - stage: Nightly
+      python: "3.5"
+      if: branch = nightly
 
       # Use previously defined before_install
       before_install: *before_install
