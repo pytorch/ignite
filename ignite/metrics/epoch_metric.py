@@ -10,6 +10,12 @@ class EpochMetric(Metric):
     Model's output and targets are restricted to be of shape `(batch_size, n_classes)`. Output
     datatype should be `float32`. Target datatype should be `long`.
 
+    .. warning::
+
+        Current implementation stores all input data (output and target) in as tensors before computing a metric.
+        This can potentially lead to a memory error if the input data is larger than available RAM.
+
+
     - `update` must receive output of the form `(y_pred, y)`.
 
     If target shape is `(batch_size, n_classes)` and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`
