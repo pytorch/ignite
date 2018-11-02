@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 
 from ignite.metrics.metric import Metric
@@ -15,6 +17,10 @@ class EpochMetric(Metric):
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
             `predictions` and `targets` and returns a scalar.
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
 
     """
 
@@ -60,7 +66,8 @@ class EpochMetric(Metric):
             try:
                 self.compute_fn(self._predictions, self._targets)
             except Exception as e:
-                raise RuntimeError("Problem with `compute_fn`:\n {}".format(e))
+                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}".format(e),
+                              RuntimeWarning)
 
     def compute(self):
         return self.compute_fn(self._predictions, self._targets)
