@@ -15,6 +15,11 @@ class EpochMetric(Metric):
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
             `predictions` and `targets` and returns a scalar.
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric.
+            This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
 
     """
 
