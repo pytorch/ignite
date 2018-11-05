@@ -104,9 +104,12 @@ class VisdomLogger:
             output_transform: Callable=None):
 
         step = self.metrics_step[attach_id]
-        self.metrics_step[attach_id] += 1
-        if step % update_period != 0:
-            return
+        if type(step) is int:
+            self.metrics_step[attach_id] += 1
+            if step % update_period != 0:
+                return
+        else:
+            step = step(engine.state)
 
         #
         # Get all the metrics
@@ -163,10 +166,11 @@ class VisdomLogger:
             xlabel: str="epoch",
             ylabel: str="value",
             show_legend: bool=False,
-            plot_event: str=Events.EPOCH_COMPLETED,
+            plot_event: Events=Events.EPOCH_COMPLETED,
             update_period: int=1,
             metric_names: List=None,
-            output_transform: Callable=None):
+            output_transform: Callable=None,
+            step_callback: Callable=None):
         """
         Creates a Visdom window and attaches it to an engine object
 
@@ -182,6 +186,8 @@ class VisdomLogger:
             output_transform (Callable, optional): a function to select what you want to plot from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
+            step_callback (Callable, optional): a function to select what to use as the x value (step) from the engine's
+                state. This function should return a single scalar.
         """
         if metric_names is not None and not isinstance(metric_names, list):
             raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
@@ -189,6 +195,10 @@ class VisdomLogger:
         if output_transform is not None and not callable(output_transform):
             raise TypeError("output_transform should be a function, got {} instead"
                             .format(type(output_transform)))
+
+        if step_callback is not None and not callable(step_callback):
+            raise TypeError("step_callback should be a function, got {} instead"
+                            .format(type(step_callback)))
 
         assert plot_event in (Events.ITERATION_COMPLETED, Events.EPOCH_COMPLETED), \
             "The plotting event should be either {} or {}".format(Events.ITERATION_COMPLETED, Events.EPOCH_COMPLETED)
@@ -201,7 +211,11 @@ class VisdomLogger:
         )
 
         attach_id = len(self.metrics_step)
-        self.metrics_step.append(0)
+
+        if step_callback is None:
+            self.metrics_step.append(0)
+        else:
+            self.metrics_step.append(step_callback)
 
         engine.add_event_handler(
             plot_event,
