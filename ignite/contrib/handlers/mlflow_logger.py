@@ -85,7 +85,7 @@ class MlflowLogger:
             self,
             engine: Engine,
             prefix: str="",
-            plot_event: str=Events.EPOCH_COMPLETED,
+            plot_event: Events=Events.EPOCH_COMPLETED,
             update_period: int=1,
             metric_names: List=None,
             output_transform: Callable=None):
