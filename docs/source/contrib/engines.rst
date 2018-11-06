@@ -8,3 +8,4 @@ Contribution module of engines
 .. automodule:: ignite.contrib.engines
    :members:
    :undoc-members:
+   :imported-members:

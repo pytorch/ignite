@@ -8,3 +8,4 @@ Contribution module of handlers
 .. automodule:: ignite.contrib.handlers
    :members:
    :undoc-members:
+   :imported-members:
