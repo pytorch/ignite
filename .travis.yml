@@ -30,7 +30,7 @@ install:
   - python setup.py install
   - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
-  - pip install visdom torchvision tensorboardX
+  - pip install visdom mlflow torchvision tensorboardX
   - pip install gym
   - pip install tqdm
   - pip install typing
