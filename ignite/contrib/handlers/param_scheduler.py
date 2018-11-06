@@ -8,7 +8,7 @@ class ParamScheduler(object):
     training.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer`/dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         save_history (bool, optional): whether to log the parameter values
             (default=False)
@@ -53,7 +53,7 @@ class CyclicalScheduler(ParamScheduler):
     cycle of some size.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer`/dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
         end_value (float) : value at the middle of the cycle
@@ -100,7 +100,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     adjusts it back to 'start_value' for a half-cycle.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer`/dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
         end_value (float) : value at the middle of the cycle
@@ -139,7 +139,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     wave (as suggested in [Smith17]_).
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer`/dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
         end_value (float) : value at the end of the cycle
@@ -186,7 +186,7 @@ class ConcatScheduler(ParamScheduler):
     switch to the next scheduler.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer`/dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         schedulers_list (list): List of three tuple of the order (scheduler_cls,
             scheduler_kwds, duration).
