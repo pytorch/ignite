@@ -69,11 +69,12 @@ class VisdomLogger:
 
     def __init__(
             self,
-            vis: visdom.Visdom=None,
-            server: str=None,
-            env: str="main",
-            log_to_filename: str=None,
-            save_by_default: bool=True):
+            vis=None,             # type: visdom.Visdom
+            server=None,          # type: str
+            env="main",           # type: str
+            log_to_filename=None, # type: str
+            save_by_default=True, # type: bool
+            ):
 
         assert (vis is not None) or (server is not None), \
             "Either a visdom object or visdom server should be supplied."
@@ -95,13 +96,14 @@ class VisdomLogger:
 
     def _update(
             self,
-            engine: Engine,
-            attach_id: int,
-            window_title: str,
-            window_opts: dict,
-            update_period: int,
-            metric_names: List=None,
-            output_transform: Callable=None):
+            engine,                # type: Engine
+            attach_id,             # type: int
+            window_title,          # type: str
+            window_opts,           # type: dict
+            update_period,         # type: int
+            metric_names=None,     # type: List
+            output_transform=None, # type: Callable
+            ):
 
         step = self.metrics_step[attach_id]
         if type(step) is int:
@@ -161,16 +163,17 @@ class VisdomLogger:
 
     def create_window(
             self,
-            engine: Engine,
-            window_title: str="Metrics",
-            xlabel: str="epoch",
-            ylabel: str="value",
-            show_legend: bool=False,
-            plot_event: Events=Events.EPOCH_COMPLETED,
-            update_period: int=1,
-            metric_names: List=None,
-            output_transform: Callable=None,
-            step_callback: Callable=None):
+            engine,                            # type: Engine
+            window_title="Metrics",            # type: str
+            xlabel="epoch",                    # type: str
+            ylabel="value",                    # type: str
+            show_legend=False,                 # type: bool
+            plot_event=Events.EPOCH_COMPLETED, # type: Events
+            update_period=1,                   # type: int
+            metric_names=None,                 # type: List
+            output_transform=None,             # type: Callable
+            step_callback=None,                # type: Callable
+            ):
         """
         Creates a Visdom window and attaches it to an engine object
 
