@@ -19,17 +19,25 @@ class ParamScheduler(object):
         self.save_history = save_history
         self.event_index = 0
 
-    def __call__(self, engine):
+    def __call__(self, engine, name=None):
+
         value = self.get_param()
-        for param_group in self.optimizer.param_groups:
-            param_group[self.param_name] = value
+
+        if callable(self.optimizer):
+            self.optimizer(value)
+        else:
+            for param_group in self.optimizer.param_groups:
+                param_group[self.param_name] = value
+
+        if name is None:
+            name = self.param_name
 
         if self.save_history:
             if not hasattr(engine.state, 'param_history'):
                 setattr(engine.state, 'param_history', {})
-            engine.state.param_history.setdefault(self.param_name, [])
-            values = [pg[self.param_name] for pg in self.optimizer.param_groups]
-            engine.state.param_history[self.param_name].append(values)
+            engine.state.param_history.setdefault(name, [])
+            values = [pg[name] for pg in self.optimizer.param_groups]
+            engine.state.param_history[name].append(values)
 
         self.event_index += 1
 
@@ -249,10 +257,10 @@ class ConcatScheduler(ParamScheduler):
         self._scheduler = scheduler_cls(**kwds)
         self._schedulers_index = (self._schedulers_index + 1) % len(self._schedulers_list)
 
-    def __call__(self, engine):
+    def __call__(self, engine, name=None):
         if self._next_scheduler_switch is not None:
             self._next_scheduler_switch -= 1
             if self._next_scheduler_switch <= 0:
                 self._next_scheduler()
 
-        return self._scheduler(engine)
+        return self._scheduler(engine, name)
