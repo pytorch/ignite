@@ -68,13 +68,13 @@ class VisdomLogger:
     """
 
     def __init__(
-            self,
-            vis=None,             # type: visdom.Visdom
-            server=None,          # type: str
-            env="main",           # type: str
-            log_to_filename=None, # type: str
-            save_by_default=True, # type: bool
-            ):
+        self,
+        vis=None,              # type: visdom.Visdom
+        server=None,           # type: str
+        env="main",            # type: str
+        log_to_filename=None,  # type: str
+        save_by_default=True,  # type: bool
+    ):
 
         assert (vis is not None) or (server is not None), \
             "Either a visdom object or visdom server should be supplied."
@@ -95,15 +95,15 @@ class VisdomLogger:
         self.metrics_step = []
 
     def _update(
-            self,
-            engine,                # type: Engine
-            attach_id,             # type: int
-            window_title,          # type: str
-            window_opts,           # type: dict
-            update_period,         # type: int
-            metric_names=None,     # type: List
-            output_transform=None, # type: Callable
-            ):
+        self,
+        engine,                 # type: Engine
+        attach_id,              # type: int
+        window_title,           # type: str
+        window_opts,            # type: dict
+        update_period,          # type: int
+        metric_names=None,      # type: List
+        output_transform=None,  # type: Callable
+    ):
 
         step = self.metrics_step[attach_id]
         if type(step) is int:
@@ -140,15 +140,15 @@ class VisdomLogger:
 
         if window_title not in self.plots:
             win = self.vis.line(
-                    X=np.array([step] * len(metric_values)).reshape(1, -1),
-                    Y=np.array(metric_values).reshape(1, -1),
-                    env=self.env,
-                    opts=line_opts
-                )
+                X=np.array([step] * len(metric_values)).reshape(1, -1),
+                Y=np.array(metric_values).reshape(1, -1),
+                env=self.env,
+                opts=line_opts
+            )
             self.plots[window_title] = win
 
         else:
-            win = self.plots[window_title]
+            self.plots[window_title]
             self.vis.line(
                 X=np.array([step] * len(metric_values)).reshape(1, -1),
                 Y=np.array(metric_values).reshape(1, -1),
@@ -162,18 +162,18 @@ class VisdomLogger:
             self.vis.save([self.env])
 
     def create_window(
-            self,
-            engine,                            # type: Engine
-            window_title="Metrics",            # type: str
-            xlabel="epoch",                    # type: str
-            ylabel="value",                    # type: str
-            show_legend=False,                 # type: bool
-            plot_event=Events.EPOCH_COMPLETED, # type: Events
-            update_period=1,                   # type: int
-            metric_names=None,                 # type: List
-            output_transform=None,             # type: Callable
-            step_callback=None,                # type: Callable
-            ):
+        self,
+        engine,                             # type: Engine
+        window_title="Metrics",             # type: str
+        xlabel="epoch",                     # type: str
+        ylabel="value",                     # type: str
+        show_legend=False,                  # type: bool
+        plot_event=Events.EPOCH_COMPLETED,  # type: Events
+        update_period=1,                    # type: int
+        metric_names=None,                  # type: List
+        output_transform=None,              # type: Callable
+        step_callback=None,                 # type: Callable
+    ):
         """
         Creates a Visdom window and attaches it to an engine object
 
