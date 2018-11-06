@@ -44,14 +44,14 @@ class MlflowLogger:
         self.metrics_step = []
 
     def _update(
-            self,
-            engine,                # type: Engine
-            attach_id,             # type: int
-            prefix,                # type: str
-            update_period,         # type: int
-            metric_names=None,     # type: List
-            output_transform=None, # type: Callable
-            ):
+        self,
+        engine,                 # type: Engine
+        attach_id,              # type: int
+        prefix,                 # type: str
+        update_period,          # type: int
+        metric_names=None,      # type: List
+        output_transform=None,  # type: Callable
+    ):
 
         step = self.metrics_step[attach_id]
         self.metrics_step[attach_id] += 1
@@ -83,14 +83,14 @@ class MlflowLogger:
             mlflow.log_metric(prefix + metric_name, new_value)
 
     def attach(
-            self,
-            engine,                            # type: Engine
-            prefix="",                         # type: str
-            plot_event=Events.EPOCH_COMPLETED, # type: Events
-            update_period=1,                   # type: int
-            metric_names=None,                 # type: List
-            output_transform=None,             # type: Callable
-            ):
+        self,
+        engine,                             # type: Engine
+        prefix="",                          # type: str
+        plot_event=Events.EPOCH_COMPLETED,  # type: Events
+        update_period=1,                    # type: int
+        metric_names=None,                  # type: List
+        output_transform=None,              # type: Callable
+    ):
         """
         Attaches the mlflow plotter to an engine object
 
