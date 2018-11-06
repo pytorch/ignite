@@ -14,7 +14,11 @@ class ParamScheduler(object):
             (default=False)
     """
     def __init__(self, optimizer, param_name, save_history=False):
-        self.optimizer = optimizer
+
+        if isinstance(optimizer, dict):
+            self.optimizer_param_groups = [optimizer]
+        else:
+            self.optimizer_param_groups = optimizer.param_groups
         self.param_name = param_name
         self.save_history = save_history
         self.event_index = 0
@@ -23,11 +27,8 @@ class ParamScheduler(object):
 
         value = self.get_param()
 
-        if callable(self.optimizer):
-            self.optimizer(value)
-        else:
-            for param_group in self.optimizer.param_groups:
-                param_group[self.param_name] = value
+        for param_group in self.optimizer_param_groups:
+            param_group[self.param_name] = value
 
         if name is None:
             name = self.param_name
@@ -36,7 +37,7 @@ class ParamScheduler(object):
             if not hasattr(engine.state, 'param_history'):
                 setattr(engine.state, 'param_history', {})
             engine.state.param_history.setdefault(name, [])
-            values = [pg[name] for pg in self.optimizer.param_groups]
+            values = [pg[name] for pg in self.optimizer_param_groups]
             engine.state.param_history[name].append(values)
 
         self.event_index += 1
@@ -248,7 +249,7 @@ class ConcatScheduler(ParamScheduler):
         kwds = scheduler_kwds.copy()
         kwds.update(
             dict(
-                optimizer=self.optimizer,
+                optimizer_param_groups=self.optimizer_param_groups,
                 param_name=self.param_name,
                 save_history=self.save_history
             )
