@@ -26,7 +26,7 @@ install:
   # Test contrib dependencies
   - pip install tqdm scikit-learn
   # Examples dependencies
-  - pip install visdom torchvision tensorboardX
+  - pip install visdom mlflow torchvision tensorboardX
   - pip install gym
   - pip install tqdm
   - pip install typing
