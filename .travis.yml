@@ -29,6 +29,7 @@ install:
   - pip install visdom torchvision tensorboardX
   - pip install gym
   - pip install tqdm
+  - pip install typing
 
 script:
   - py.test --cov ignite --cov-report term-missing
