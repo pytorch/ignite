@@ -37,7 +37,7 @@ class ParamScheduler(object):
             if not hasattr(engine.state, 'param_history'):
                 setattr(engine.state, 'param_history', {})
             engine.state.param_history.setdefault(name, [])
-            values = [pg[name] for pg in self.optimizer_param_groups]
+            values = [pg[self.param_name] for pg in self.optimizer_param_groups]
             engine.state.param_history[name].append(values)
 
         self.event_index += 1
@@ -86,13 +86,13 @@ class CyclicalScheduler(ParamScheduler):
         self.cycle_mult = cycle_mult
         self.cycle = 0
 
-    def __call__(self, engine):
+    def __call__(self, engine, name=None):
         if self.event_index != 0 and self.event_index % self.cycle_size == 0:
             self.event_index = 0
             self.cycle_size *= self.cycle_mult
             self.cycle += 1
 
-        return super(CyclicalScheduler, self).__call__(engine)
+        return super(CyclicalScheduler, self).__call__(engine, name)
 
 
 class LinearCyclicalScheduler(CyclicalScheduler):
