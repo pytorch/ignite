@@ -1,14 +1,16 @@
 language: python
+
 python:
   - "2.7"
   - "3.5"
 
 stages:
-  - lint_check
-  - test
-  - docs
+  - Lint check
+  - Test
+  - Docs
+  - Deploy
 
-install:
+before_install: &before_install
   - sudo apt-get update
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -18,13 +20,15 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION numpy mock pytorch-cpu
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
+  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION pytorch-cpu
   - source activate test-environment
-  - python setup.py install
-  - pip install --upgrade pytest codecov pytest-cov
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
   - pip install tqdm scikit-learn
+
+install:
+  - python setup.py install
+  - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
   - pip install visdom torchvision tensorboardX
   - pip install gym
@@ -52,7 +56,7 @@ script:
   # RL
   # 1) Actor-Critic
   - python examples/reinforcement_learning/actor_critic.py --max-episodes=2
-  # 1) Reinforce
+  # 2) Reinforce
   - python examples/reinforcement_learning/reinforce.py --max-episodes=2
 
   #fast-neural-style
@@ -60,37 +64,37 @@ script:
   - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
 
 after_success:
-  # Ignore codecov failures as the codecov server is not
-  # very reliable but we don't want travis to report a failure
-  # in the github UI just because the coverage report failed to
-  # be published.
-  - codecov || echo "codecov upload failed"
+  - codecov
+
 
 jobs:
   include:
-    - stage: lint_check
-      python: "2.7"
+    - stage: Lint check
+      python: "3.5"
+      before_install: # Nothing to do
       install: pip install flake8
       script: flake8
       after_success: # Nothing to do
 
-
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
-    - stage: docs
+    - stage: Docs
       python: "3.5"
+
+      # Use previously defined before_install
+      before_install: *before_install
+
       install:
-        # Minimal install : ignite and dependencies just to build the docs
         - pip install -r docs/requirements.txt
-        - pip install http://download.pytorch.org/whl/cpu/torch-0.4.1-cp35-cp35m-linux_x86_64.whl
-        # Add contrib dependencies (otherwise doc is not built)
-        - pip install scikit-learn scipy tqdm
         # `pip install .` vs `python setup.py install` : 1st works better to produce _module/ignite with source links
         - pip install .
+
       script:
         - cd docs && make html
         # Create .nojekyll file to serve correctly _static and friends
         - touch build/html/.nojekyll
       after_success: # Nothing to do
+
+      # Deploy built docs when PR is merged to master
       deploy:
         provider: pages
         skip-cleanup: true
@@ -99,3 +103,55 @@ jobs:
         local_dir: docs/build/html
         on:
           branch: master
+
+    - stage: Deploy
+      python: "3.5"
+      if: tag IS present
+
+      # Use previously defined before_install
+      before_install: *before_install
+
+      install:
+        - python setup.py install
+
+      script: true
+
+      after_success: # Nothing to do
+
+      before_deploy:
+        # Conda deploy if on tag
+        # ANACONDA_TOKEN should be provided by Travis
+        # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
+
+        # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
+        - conda install -y conda-build conda-verify anaconda-client
+        - conda config --set anaconda_upload no
+        - conda build --quiet --no-test --output-folder conda_build conda.recipe
+        # Convert to other platforms: OSX, WIN
+        - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        # Upload to Anaconda
+        # We could use --all but too much platforms to uploaded
+        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch {}
+
+
+      # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
+      deploy:
+
+        provider: pypi
+
+        user: $PYPI_USER
+        # If password contains non alphanumeric characters
+        # https://github.com/travis-ci/dpl/issues/377
+        # pass it as secured variable
+        password: $PYPI_TOKEN
+        # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
+        # `travis encrypt deploy.password="password"`
+        #  secure: "secured_password"
+
+        skip_cleanup: true
+
+        distributions: "sdist bdist_wheel"
+
+        on:
+          tags: true
