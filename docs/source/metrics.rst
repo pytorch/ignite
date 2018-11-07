@@ -14,7 +14,7 @@ value is then computed using the output of the engine's `process_function`:
             return y_pred, y
 
         engine = Engine(process_function)
-        metric = CategoricalAccuracy()
+        metric = Accuracy()
         metric.attach(engine, "accuracy")
 
 If the engine's output is not in the format `y_pred, y`, the user can
@@ -32,9 +32,9 @@ use the `output_transform` argument to transform it:
             # `output` variable is returned by above `process_function`
             y_pred = output['y_pred']
             y = output['y_true']
-            return y_pred, y  # output format is according to `CategoricalAccuracy` docs
+            return y_pred, y  # output format is according to `Accuracy` docs
 
-        metric = CategoricalAccuracy(output_transform=output_transform)
+        metric = Accuracy(output_transform=output_transform)
         metric.attach(engine, "accuracy")
 
 
