@@ -1,8 +1,8 @@
+from __future__ import division
 from ignite.metrics import Metric
 from ignite.engine import State
 import torch
 from mock import MagicMock
-from __future__ import division
 from pytest import approx
 
 
@@ -86,6 +86,7 @@ class ListGatherMetric(Metric):
 
         def compute(self):
             return self.list_[self.index]
+
 
 def test_arithmetics():
     m0 = ListGatherMetric(0)
