@@ -166,6 +166,24 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
         #
 
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+
+        optimizer = SGD(
+            [
+                {"params": model.base.parameters(), 'lr': 0.001),
+                {"params": model.fc.parameters(), 'lr': 0.01),
+            ]
+        )
+
+        scheduler1 = LinearCyclicalScheduler(optimizer.param_groups[0], 'lr', 1e-7, 1e-5, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler1, "lr (base)")
+
+        scheduler2 = CosineAnnealingScheduler(optimizer.param_groups[1], 'lr', 1e-5, 1e-3, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler2, "lr (fc)")
+
     .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
     """
