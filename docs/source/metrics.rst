@@ -37,6 +37,13 @@ use the `output_transform` argument to transform it:
         metric = Accuracy(output_transform=output_transform)
         metric.attach(engine, "accuracy")
 
+Metrics could be combined together to form a new metric through arithmetics,
+for example:
+    .. code-block:: python
+        precision = Precision()
+        recall = Recall()
+        F1 = precision * recall * 2 / (precision + recall)
+
 
 .. currentmodule:: ignite.metrics
 
