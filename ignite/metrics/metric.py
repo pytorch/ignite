@@ -95,6 +95,10 @@ class Metric(object):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x % y, self, other)
 
+    def __div__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x.__div__(y), self, other)
+
     def __truediv__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__truediv__(y), self, other)

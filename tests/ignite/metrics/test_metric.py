@@ -1,4 +1,3 @@
-from __future__ import division
 from ignite.metrics import Metric
 from ignite.engine import State
 import torch
@@ -148,14 +147,25 @@ def test_arithmetics():
     m2_mod_2.update([1, 10, 100])
     assert m2_mod_2.compute() == 0
 
+    # __div__
+    m0_div_m1 = m0.__div__(m1)
+    m0_div_m1.update([1, 10, 100])
+    assert m0_div_m1.compute() == 0
+    m0_div_m1.update([2, 20, 200])
+    assert m0_div_m1.compute() == 0
+
+    m2_div_2 = m2.__div__(2)
+    m2_div_2.update([1, 10, 100])
+    assert m2_div_2.compute() == 50
+
     # __truediv__
-    m0_truediv_m1 = m0 / m1
+    m0_truediv_m1 = m0.__truediv__(m1)
     m0_truediv_m1.update([1, 10, 100])
     assert m0_truediv_m1.compute() == approx(0.1)
     m0_truediv_m1.update([2, 20, 200])
     assert m0_truediv_m1.compute() == approx(0.1)
 
-    m2_truediv_2 = m2 / 2
+    m2_truediv_2 = m2.__truediv__(2)
     m2_truediv_2.update([1, 10, 100])
     assert m2_truediv_2.compute() == approx(50.0)
 
