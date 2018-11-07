@@ -6,9 +6,9 @@ class MetricsLambda(Metric):
     Apply a function to other metrics to obtain a new metric.
     The result of the new metric is defined to be the result
     of applying the function to the result of argument metrics.
-    For example, ``MetricsLambda(lambda x, y: x + y, metric1, 2)``
+    For example, ``MetricsLambda(lambda x, y: x + y, metric1, metric2)``
     will give a new metrics whose value is always the value of metric1
-    plus 2.
+    plus metric2.
 
     Arguments:
         f (callable): the function that defines the computation
