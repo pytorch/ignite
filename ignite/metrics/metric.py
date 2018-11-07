@@ -97,7 +97,7 @@ class Metric(object):
 
     def __truediv__(self, other):
         from ignite.metrics import MetricsLambda
-        return MetricsLambda(lambda x, y: x / y, self, other)
+        return MetricsLambda(lambda x, y: x.__truediv__(y), self, other)
 
     def __floordiv__(self, other):
         from ignite.metrics import MetricsLambda
