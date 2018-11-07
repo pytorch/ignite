@@ -127,13 +127,13 @@ def test_arithmetics():
     assert m2_times_2.compute() == 200
 
     # __pow__
-    m0_pow_m1 = m0 * m1
+    m0_pow_m1 = m0 ** m1
     m0_pow_m1.update([1, 10, 100])
     assert m0_pow_m1.compute() == 1
     m0_pow_m1.update([2, 20, 200])
     assert m0_pow_m1.compute() == 2 ** 20
 
-    m2_pow_2 = m2 * 2
+    m2_pow_2 = m2 ** 2
     m2_pow_2.update([1, 10, 100])
     assert m2_pow_2.compute() == 10000
 
