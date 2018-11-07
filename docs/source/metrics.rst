@@ -40,6 +40,8 @@ use the `output_transform` argument to transform it:
 
 .. currentmodule:: ignite.metrics
 
+.. autoclass:: Accuracy
+
 .. autoclass:: BinaryAccuracy
 
 .. autoclass:: CategoricalAccuracy
