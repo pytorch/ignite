@@ -3,6 +3,7 @@ from ignite.engine import State
 import torch
 from mock import MagicMock
 from pytest import approx
+import sys
 
 
 def test_no_transform():
@@ -147,16 +148,17 @@ def test_arithmetics():
     m2_mod_2.update([1, 10, 100])
     assert m2_mod_2.compute() == 0
 
-    # __div__
-    m0_div_m1 = m0.__div__(m1)
-    m0_div_m1.update([1, 10, 100])
-    assert m0_div_m1.compute() == 0
-    m0_div_m1.update([2, 20, 200])
-    assert m0_div_m1.compute() == 0
+    # __div__, only applicable to python2
+    if sys.version_info[0] < 3:
+        m0_div_m1 = m0.__div__(m1)
+        m0_div_m1.update([1, 10, 100])
+        assert m0_div_m1.compute() == 0
+        m0_div_m1.update([2, 20, 200])
+        assert m0_div_m1.compute() == 0
 
-    m2_div_2 = m2.__div__(2)
-    m2_div_2.update([1, 10, 100])
-    assert m2_div_2.compute() == 50
+        m2_div_2 = m2.__div__(2)
+        m2_div_2.update([1, 10, 100])
+        assert m2_div_2.compute() == 50
 
     # __truediv__
     m0_truediv_m1 = m0.__truediv__(m1)
