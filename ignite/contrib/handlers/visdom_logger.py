@@ -1,9 +1,8 @@
 from ignite.engine import Engine
 from ignite.engine import Events
+import os
 import numpy as np
 from typing import Callable, List
-
-import visdom
 
 
 class VisdomLogger:
@@ -21,7 +20,11 @@ class VisdomLogger:
         save_by_default (bool, optional): The graphs will be saved by default by the server.
 
     Note:
-        Either the `vis` or `server` arguments should be given to the constructor.
+        The visdom server can be set by passing an already configured visdom client (using
+        the `vis` argument). Alternatively, the URL of the server can be passed using
+        the `server` argument or by setting the `VISDOM_SERVER_URL` environment variable.
+        By default, when none of these methods is used, the constructor will try to connect
+        to `http://localhost`.
 
     Examples:
 
@@ -39,7 +42,7 @@ class VisdomLogger:
             xlabel="epoch",
             plot_event=Events.ITERATION_COMPLETED,
             update_period=LOG_INTERVAL,
-            output_transform=lambda x: {'loss": x}
+            output_transform=lambda x: {"loss": x}
         )
 
     Attach validation metrics
@@ -76,17 +79,23 @@ class VisdomLogger:
         save_by_default=True,  # type: bool
     ):
 
-        assert (vis is not None) or (server is not None), \
-            "Either a visdom object or visdom server should be supplied."
+        try:
+            import visdom
+        except ImportError:
+            raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
 
         if vis is None:
+            if server is None:
+                server = os.environ.get("VISDOM_SERVER_URL", 'http://localhost')
+
             vis = visdom.Visdom(
                 server=server,
                 log_to_filename=log_to_filename,
             )
 
         if not vis.check_connection():
-            raise RuntimeError("Visdom server not running. Please run python -m visdom.server")
+            raise RuntimeError("Failed to connect to Visdom server at {}. " \
+                               "Did you run python -m visdom.server ?".format(server))
 
         self.vis = vis
         self.env = env
@@ -148,7 +157,6 @@ class VisdomLogger:
             self.plots[window_title] = win
 
         else:
-            self.plots[window_title]
             self.vis.line(
                 X=np.array([step] * len(metric_values)).reshape(1, -1),
                 Y=np.array(metric_values).reshape(1, -1),
