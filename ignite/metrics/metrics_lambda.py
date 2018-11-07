@@ -27,9 +27,9 @@ class MetricsLambda(Metric):
         >>> F4 = MetricsLambda(Fbeta, recall, precison, 4)
     """
     def __init__(self, f, *args):
-        super(MetricsLambda, self).__init__()
         self.function = f
         self.args = args
+        super(MetricsLambda, self).__init__()
 
     def reset(self):
         for i in self.args:
