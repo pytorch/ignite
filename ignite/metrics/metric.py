@@ -74,3 +74,31 @@ class Metric(object):
         engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
+
+    def __add__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x + y, self, other)
+
+    def __sub__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x - y, self, other)
+
+    def __mul__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x * y, self, other)
+
+    def __pow__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x ** y, self, other)
+
+    def __mod__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x % y, self, other)
+
+    def __truediv__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x / y, self, other)
+
+    def __floordiv__(self, other):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x, y: x // y, self, other)
