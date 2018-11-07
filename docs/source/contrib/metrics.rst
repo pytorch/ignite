@@ -5,8 +5,7 @@ Contribution module of metrics
 
 .. currentmodule:: ignite.contrib.metrics
 
-.. autoclass:: ROC_AUC
-
-.. autoclass:: AveragePrecision
-
-.. autoclass:: MaximumAbsoluteError
+.. automodule:: ignite.contrib.metrics
+   :members:
+   :undoc-members:
+   :imported-members:
