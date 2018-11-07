@@ -6,14 +6,24 @@ class MetricsLambda(Metric):
     Apply a function to other metrics to obtain a new metric.
     The result of the new metric is defined to be the result
     of applying the function to the result of argument metrics.
-    For example, ``MetricsLambda(lambda x, y, z: x + y + z, metric1, metric2, 3)``
+    For example, ``MetricsLambda(lambda x, y, z: x + y, metric1, metric2)``
     will give a new metrics whose value is always the sum of value of metric1,
-    metric2 and constant 3.
+    metric2.
 
     Arguments:
         f (callable): the function that defines the computation
         args (sequence): Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
+
+    Examples::
+        >>> precision = Precision()
+        >>> recall = Recall()
+        >>> def Fbeta(r, p, beta):
+        >>>     return (1 + beta ** 2) * p * r / (beta ** 2 * p + r)
+        >>> F1 = MetricsLambda(Fbeta, recall, precison, 1)
+        >>> F2 = MetricsLambda(Fbeta, recall, precison, 2)
+        >>> F3 = MetricsLambda(Fbeta, recall, precison, 3)
+        >>> F4 = MetricsLambda(Fbeta, recall, precison, 4)
     """
     def __init__(self, f, *args):
         self.function = f
