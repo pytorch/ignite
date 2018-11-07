@@ -7,6 +7,10 @@ class MetricsLambda(Metric):
     The result of the new metric is defined to be the result
     of applying the function to the result of argument metrics.
 
+    Note that initiating a new instance of this class will reset
+    all its argument metrics. Please make a copy if this is not
+    the desired behavior.
+
     Arguments:
         f (callable): the function that defines the computation
         args (sequence): Sequence of other metrics or something
@@ -23,6 +27,7 @@ class MetricsLambda(Metric):
         >>> F4 = MetricsLambda(Fbeta, recall, precison, 4)
     """
     def __init__(self, f, *args):
+        super(MetricsLambda, self).__init__()
         self.function = f
         self.args = args
 

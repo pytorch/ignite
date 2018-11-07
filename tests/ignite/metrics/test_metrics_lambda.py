@@ -41,8 +41,17 @@ def test_metrics_lambda_reset():
     m2.update([1, 10, 100])
 
     m = MetricsLambda(lambda x, y, z, t: 1, m0, m1, m2, 0)
-    m.reset()
 
+    # initiating a new instance of MetricsLambda must reset
+    # its argument metrics
+    assert m0.list_ is None
+    assert m1.list_ is None
+    assert m2.list_ is None
+
+    m0.update([1, 10, 100])
+    m1.update([1, 10, 100])
+    m2.update([1, 10, 100])
+    m.reset()
     assert m0.list_ is None
     assert m1.list_ is None
     assert m2.list_ is None
