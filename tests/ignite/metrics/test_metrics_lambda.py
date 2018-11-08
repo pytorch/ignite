@@ -1,4 +1,4 @@
-from ignite import Engine
+from ignite.engine import Engine
 from ignite.metrics import Metric, MetricsLambda
 
 
