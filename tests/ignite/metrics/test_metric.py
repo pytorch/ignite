@@ -100,16 +100,16 @@ def test_attach():
     m1.attach(engine, "m1")
     m2.attach(engine, "m2_1")
     m2.attach(engine, "m2_2")
-    engine.run(range(10))
+    engine.run(range(10), 5)
 
     assert engine.state.metrics["m1"] == 123
     assert engine.state.metrics["m2_1"] == 456
     assert engine.state.metrics["m2_2"] == 456
 
-    assert m1.reset_count == 10
-    assert m1.compute_count == 10
-    assert m1.update_count == 10
+    assert m1.reset_count == 5
+    assert m1.compute_count == 5
+    assert m1.update_count == 50
 
-    assert m2.reset_count == 10
-    assert m2.compute_count == 20
-    assert m2.update_count == 10
+    assert m2.reset_count == 5
+    assert m2.compute_count == 10
+    assert m2.update_count == 50
