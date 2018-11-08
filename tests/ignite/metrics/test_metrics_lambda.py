@@ -1,3 +1,4 @@
+from ignite import Engine
 from ignite.metrics import Metric, MetricsLambda
 
 
@@ -21,15 +22,21 @@ def test_metrics_lambda():
     m1 = ListGatherMetric(1)
     m2 = ListGatherMetric(2)
 
-    m0_plus_m1 = MetricsLambda(lambda x, y: x + y, m0, m1)
-    m0_plus_m1.update([1, 10, 100])
-    assert m0_plus_m1.compute() == 11
-    m0_plus_m1.update([2, 20, 200])
-    assert m0_plus_m1.compute() == 22
+    def process_function(engine, data):
+        return data
 
+    engine = Engine(process_function)
+    m0_plus_m1 = MetricsLambda(lambda x, y: x + y, m0, m1)
     m2_plus_2 = MetricsLambda(lambda x, y: x + y, m2, 2)
-    m2_plus_2.update([1, 10, 100])
-    assert m2_plus_2.compute() == 102
+    m0_plus_m1.attach(engine, 'm0_plus_m1')
+    m2_plus_2.attach(engine, 'm2_plus_2')
+
+    engine.run([[1, 10, 100]])
+    assert engine.state.metrics['m0_plus_m1'] == 11
+    assert engine.state.metrics['m2_plus_2'] == 102
+    engine.run([[2, 20, 200]])
+    assert engine.state.metrics['m0_plus_m1'] == 22
+    assert engine.state.metrics['m2_plus_2'] == 202
 
 
 def test_metrics_lambda_reset():

@@ -7,9 +7,10 @@ class MetricsLambda(Metric):
     The result of the new metric is defined to be the result
     of applying the function to the result of argument metrics.
 
-    Note that initiating a new instance of this class will reset
-    all its argument metrics. Please make a copy if this is not
-    the desired behavior.
+    When update, this metric does not recursively update the metrics
+    it depend on. When reset, all its dependency metrics would be
+    resetted. When attach, all its dependencies would be automatically
+    attached.
 
     Arguments:
         f (callable): the function that defines the computation
@@ -37,10 +38,18 @@ class MetricsLambda(Metric):
                 i.reset()
 
     def update(self, output):
-        for i in self.args:
-            if isinstance(i, Metric):
-                i.update(output)
+        # NB: this method does not recursively update dependency metrics,
+        # which might cause duplicate update issue. To update this metric,
+        # users should manually update its dependencies.
+        pass
 
     def compute(self):
         materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
         return self.function(*materialized)
+
+    def attach(self, engine, name):
+        # recursively attach all its dependencies
+        for index, metric in enumerate(self.args):
+            if isinstance(metric, Metric):
+                metric.attach(engine, name + '[{}]'.format(index))
+        super(MetricsLambda, self).attach(engine, name)
