@@ -74,6 +74,7 @@ def test_no_grad():
 def test_attach():
     class CountMetric(Metric):
         def __init__(self, value):
+            super(CountMetric, self).__init__()
             self.reset_count = 0
             self.compute_count = 0
             self.update_count = 0
