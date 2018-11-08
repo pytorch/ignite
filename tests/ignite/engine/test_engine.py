@@ -142,10 +142,12 @@ def test_has_event_handler():
         assert engine.has_event_handler(handler, Events.STARTED)
         assert engine.has_event_handler(handler)
         assert not engine.has_event_handler(handler, Events.COMPLETED)
+        assert not engine.has_event_handler(handler, Events.EPOCH_STARTED)
 
     assert not engine.has_event_handler(m, Events.STARTED)
     assert engine.has_event_handler(m, Events.COMPLETED)
     assert engine.has_event_handler(m)
+    assert not engine.has_event_handler(m, Events.EPOCH_STARTED)
 
 
 def test_args_and_kwargs_are_passed_to_event():
