@@ -6,9 +6,9 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 
 
-class MeanError(Metric):
+class MeanBiasError(Metric):
     """
-    Calculates the mean error.
+    Calculates the mean bias error.
 
     - `update` must receive output of the form `(y_pred, y)`.
     """
@@ -18,11 +18,11 @@ class MeanError(Metric):
 
     def update(self, output):
         y_pred, y = output
-        errors = y_pred - y.view_as(y_pred)
+        errors = (y_pred - y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanError must have at least one example before it can be computed')
-        return self._sum_of_absolute_errors / self._num_examples
+            raise NotComputableError('MeanBiasError must have at least one example before it can be computed')
+        return self._sum_of_errors / self._num_examples
