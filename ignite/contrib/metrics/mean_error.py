@@ -6,7 +6,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 
 
-class MeanBiasError(Metric):
+class MeanError(Metric):
     """
     Calculates the mean bias error.
 
@@ -24,5 +24,5 @@ class MeanBiasError(Metric):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanBiasError must have at least one example before it can be computed')
+            raise NotComputableError('MeanError must have at least one example before it can be computed')
         return self._sum_of_errors / self._num_examples
