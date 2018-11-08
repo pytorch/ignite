@@ -5,6 +5,7 @@ from ignite.metrics import Metric, MetricsLambda
 class ListGatherMetric(Metric):
 
         def __init__(self, index):
+            super(ListGatherMetric, self).__init__()
             self.index = index
 
         def reset(self):
