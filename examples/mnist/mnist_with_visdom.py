@@ -8,12 +8,10 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-import numpy as np
-try:
-    import visdom
-except ImportError:
-    raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
 
+from ignite.contrib.handlers import ProgressBar
+from ignite.contrib.handlers import CosineAnnealingScheduler
+from ignite.contrib.handlers import VisdomLogger
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 
@@ -48,71 +46,106 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def create_plot_window(vis, xlabel, ylabel, title):
-    return vis.line(X=np.array([1]), Y=np.array([np.nan]), opts=dict(xlabel=xlabel, ylabel=ylabel, title=title))
-
-
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
-    vis = visdom.Visdom()
-
-    # if not vis.check_connection():
-    #     raise RuntimeError("Visdom server not running. Please run python -m visdom.server")
+    visdom_logger = VisdomLogger()
 
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    device = 'cpu'
 
     if torch.cuda.is_available():
         device = 'cuda'
+    else:
+        device = 'cpu'
 
+    #
+    # Setup the optimizer with learning rate scheduler
+    #
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
+    lr_scheduler = CosineAnnealingScheduler(
+        optimizer=optimizer,
+        param_name='lr',
+        start_value=lr,
+        end_value=lr / 10,
+        cycle_size=epochs,
+        save_history=True
+    )
+
+    #
+    # Setup the training/validation engines
+    #
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
-    evaluator = create_supervised_evaluator(model,
-                                            metrics={'accuracy': Accuracy(),
-                                                     'nll': Loss(F.nll_loss)},
-                                            device=device)
+    ProgressBar().attach(trainer, output_transform=lambda x: {"Loss": x})
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, lr_scheduler)
 
-    train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss')
-    train_avg_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Average Loss')
-    train_avg_accuracy_window = create_plot_window(vis, '#Iterations', 'Accuracy', 'Training Average Accuracy')
-    val_avg_loss_window = create_plot_window(vis, '#Epochs', 'Loss', 'Validation Average Loss')
-    val_avg_accuracy_window = create_plot_window(vis, '#Epochs', 'Accuracy', 'Validation Average Accuracy')
+    metrics = {'accuracy': Accuracy(),
+               'nll': Loss(F.nll_loss)}
 
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss(engine):
-        iter = (engine.state.iteration - 1) % len(train_loader) + 1
-        if iter % log_interval == 0:
-            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-                  "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
-            vis.line(X=np.array([engine.state.iteration]),
-                     Y=np.array([engine.state.output]),
-                     update='append', win=train_loss_window)
+    train_evaluator = create_supervised_evaluator(
+        model,
+        metrics=metrics,
+        device=device
+    )
+
+    evaluator = create_supervised_evaluator(
+        model,
+        metrics=metrics,
+        device=device
+    )
+
+    loss_win = visdom_logger.create_window(
+        window_title="Training Loss",
+        xlabel="Iteration",
+        ylabel="Loss"
+    )
+    loss_win.attach(
+        engine=trainer,
+        update_period=log_interval,
+        plot_event=Events.ITERATION_COMPLETED,
+        output_transform=lambda x: {"loss": x},
+    )
+
+    visdom_logger.create_window(
+        window_title="Learning Rate"
+    ).attach(
+        engine=trainer,
+        param_history=True
+    )
+
+    avg_loss_win = visdom_logger.create_window(
+        window_title="Average Loss",
+        ylabel="Loss",
+        show_legend=True
+    )
+    avg_loss_win.attach(
+        engine=train_evaluator,
+        metric_names={'train': 'nll'}
+    )
+    avg_loss_win.attach(
+        engine=evaluator,
+        metric_names={'val': 'nll'}
+    )
+
+    avg_acc_win = visdom_logger.create_window(
+        window_title="Average Acc",
+        ylabel="Accuracy",
+        show_legend=True
+    )
+    avg_acc_win.attach(
+        engine=train_evaluator,
+        metric_names={'train': 'accuracy'}
+    )
+    avg_acc_win.attach(
+        engine=evaluator,
+        metric_names={'val': 'accuracy'}
+    )
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
-        evaluator.run(train_loader)
-        metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['nll']
-        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]),
-                 win=train_avg_accuracy_window, update='append')
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]),
-                 win=train_avg_loss_window, update='append')
+        train_evaluator.run(train_loader)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
         evaluator.run(val_loader)
-        metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['nll']
-        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]),
-                 win=val_avg_accuracy_window, update='append')
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]),
-                 win=val_avg_loss_window, update='append')
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
