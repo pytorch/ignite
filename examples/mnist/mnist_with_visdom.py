@@ -77,7 +77,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     ProgressBar().attach(trainer, output_transform=lambda x: {"Loss": x})
     trainer.add_event_handler(Events.EPOCH_COMPLETED, lr_scheduler)
 
-    metrics = {'accuracy': CategoricalAccuracy(),
+    metrics = {'accuracy': Accuracy(),
                'nll': Loss(F.nll_loss)}
 
     train_evaluator = create_supervised_evaluator(
