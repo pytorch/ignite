@@ -177,8 +177,8 @@ class VisdomLogger:
         self,
         engine,                             # type: Engine
         window_title="Metrics",             # type: str
-        xlabel="epoch",                     # type: str
-        ylabel="value",                     # type: str
+        xlabel="Epoch",                     # type: str
+        ylabel="Value",                     # type: str
         show_legend=False,                  # type: bool
         plot_event=Events.EPOCH_COMPLETED,  # type: Events
         update_period=1,                    # type: int
