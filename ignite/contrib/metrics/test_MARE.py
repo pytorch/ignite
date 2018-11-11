@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Nov 11 15:57:57 2018
-
-@author: weihuangxu
-"""
-
 from ignite.contrib.metrics import MeanAbsoluteRelativeError
 import torch
 from pytest import approx
