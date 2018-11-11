@@ -15,7 +15,6 @@ class ParamScheduler(object):
     """
     def __init__(self, optimizer, param_name, save_history=False):
 
-        self.optimizer = optimizer
         if isinstance(optimizer, dict):
             self.optimizer_param_groups = [optimizer]
         else:
@@ -260,6 +259,7 @@ class ConcatScheduler(ParamScheduler):
         self._schedulers_list = schedulers_list
         self._schedulers_index = 0
         self._next_scheduler_switch = 0
+        self.optimizer = optimizer
 
     def _next_scheduler(self):
         scheduler_cls, scheduler_kwds, self._next_scheduler_switch = \
