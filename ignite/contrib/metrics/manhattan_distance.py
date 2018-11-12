@@ -20,6 +20,7 @@ class ManhattanDistance(Metric):
         y_pred, y = output
         errors = y_pred - y.view_as(y_pred)
         self._sum_of_errors += torch.sum(errors).item()
+        self._num_examples += y.shape[0]
 
     def compute(self):
         if self._num_examples == 0:

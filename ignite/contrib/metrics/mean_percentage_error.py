@@ -18,11 +18,15 @@ class MeanPercentageError(Metric):
 
     def update(self, output):
         y_pred, y = output
-        errors = (y_pred - y.view_as(y_pred))/y
-        self._sum_of_errors += 100 * torch.sum(errors).item()
+
+        if (y == 0).any():
+            raise NotComputableError('The ground truth has 0.')
+
+        errors = (y_pred - y.view_as(y_pred)) / y
+        self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('MeanPercentageError must have at least one example before it can be computed')
-        return self._sum_of_errors / self._num_examples
+        return 100.00 * self._sum_of_errors / self._num_examples
