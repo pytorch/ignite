@@ -8,54 +8,82 @@ from ignite.engine import Engine
 import tempfile
 
 
-expected_log = [['events',
-  {'data': [{'x': [0],
-     'y': [1],
-     'name': 'loss',
-     'type': 'scatter',
-     'mode': 'lines',
-     'textposition': 'right',
-     'marker': {'size': 10,
-      'symbol': 'dot',
-      'line': {'color': '#000000', 'width': 0.5}}}],
-   'eid': 'main',
-   'layout': {'showlegend': False,
-    'title': 'Training Loss',
-    'margin': {'l': 60, 'r': 60, 't': 60, 'b': 60},
-    'xaxis': {'title': 'Iteration'},
-    'yaxis': {'title': 'Loss'}},
-   'opts': {'title': 'Training Loss',
-    'xlabel': 'Iteration',
-    'ylabel': 'Loss',
-    'showlegend': False,
-    'markers': False,
-    'fillarea': False,
-    'mode': 'lines',
-    'markersymbol': 'dot',
-    'markersize': 10}}],
- ['update',
-  {'data': [{'x': [1],
-     'y': [1],
-     'name': 'loss',
-     'type': 'scatter',
-     'mode': 'lines',
-     'textposition': 'right',
-     'marker': {'size': 10,
-      'symbol': 'dot',
-      'line': {'color': '#000000', 'width': 0.5}}}],
-   'eid': 'main',
-   'layout': {},
-   'opts': {'title': 'Training Loss',
-    'xlabel': 'Iteration',
-    'ylabel': 'Loss',
-    'showlegend': False,
-    'markers': False,
-    'fillarea': False,
-    'mode': 'lines',
-    'markersymbol': 'dot',
-    'markersize': 10},
-   'name': 'loss',
-   'append': True}]]
+expected_log = [
+    [
+        'events',
+        {
+            'data': [
+                {
+                    'x': [0],
+                    'y': [1],
+                    'name': 'loss',
+                    'type': 'scatter',
+                    'mode': 'lines',
+                    'textposition': 'right',
+                    'marker': {
+                        'size': 10,
+                        'symbol': 'dot',
+                        'line': {'color': '#000000', 'width': 0.5}
+                    }
+                }
+            ],
+            'eid': 'main',
+            'layout': {
+                'showlegend': False,
+                'title': 'Training Loss',
+                'margin': {'l': 60, 'r': 60, 't': 60, 'b': 60},
+                'xaxis': {'title': 'Iteration'},
+                'yaxis': {'title': 'Loss'}
+            },
+            'opts': {
+                'title': 'Training Loss',
+                'xlabel': 'Iteration',
+                'ylabel': 'Loss',
+                'showlegend': False,
+                'markers': False,
+                'fillarea': False,
+                'mode': 'lines',
+                'markersymbol': 'dot',
+                'markersize': 10
+            }
+        }
+    ],
+    [
+        'update',
+        {
+            'data': [
+                {
+                    'x': [1],
+                    'y': [1],
+                    'name': 'loss',
+                    'type': 'scatter',
+                    'mode': 'lines',
+                    'textposition': 'right',
+                    'marker': {
+                        'size': 10,
+                        'symbol': 'dot',
+                        'line': {'color': '#000000', 'width': 0.5}
+                    }
+                }
+            ],
+            'eid': 'main',
+            'layout': {},
+            'opts': {
+                'title': 'Training Loss',
+                'xlabel': 'Iteration',
+                'ylabel': 'Loss',
+                'showlegend': False,
+                'markers': False,
+                'fillarea': False,
+                'mode': 'lines',
+                'markersymbol': 'dot',
+                'markersize': 10
+            },
+            'name': 'loss',
+            'append': True
+        }
+    ]
+]
 
 
 def update_fn(engine, batch):
