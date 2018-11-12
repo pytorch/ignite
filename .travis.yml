@@ -36,6 +36,9 @@ install:
   - pip install tqdm
 
 script:
+  - python -c "from visdom.server import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
+  - python -m visdom.server &
+  - sleep 10
   - py.test --cov ignite --cov-report term-missing
 
   # Smoke tests for the examples
@@ -43,9 +46,6 @@ script:
   # 1) mnist.py
   - python examples/mnist/mnist.py --epochs=1
   # 2) mnist_with_visdom.py
-  - python -c "from visdom.server import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
-  - python -m visdom.server &
-  - sleep 10
   - python examples/mnist/mnist_with_visdom.py --epochs=1
   - kill %1
   # 3) mnist_with_tensorboardx.py
