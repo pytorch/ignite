@@ -31,5 +31,5 @@ class MeanAbsoluteRelativeError(Metric):
 
     def compute(self):
         if self._num_samples == 0:
-            raise NotComputableError('MeanAbsoluteError must have at least one example before it can be computed')
+            raise NotComputableError('MeanAbsoluteRelativeError must have at least one example before it can be computed')
         return self._sum_of_absolute_relative_errors / self._num_samples
