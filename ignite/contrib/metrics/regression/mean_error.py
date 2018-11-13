@@ -6,24 +6,22 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 
 
-class MeanNormalizedBias(Metric):
+class MeanError(Metric):
     r"""
-    Calculates the Mean Normalized Bias.
+    Calculates the Mean Error.
 
     It has been proposed in `Performance Metrics (Error Measures) in Machine Learning Regression, Forecasting and
     Prognostics: Properties and Typology`.
 
-    More details can be found in `here`_.
+    More details can be found in `https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf`.
 
-    :math:`\text{MNB} = \frac{1}{n}\sum _j^n\frac{A_j - P_j}{A_j}`
+    :math:`\text{ME} = \frac{1}{n}\sum _j^n (A_j - P_j)`
 
     Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
 
-    .. _here:
-        https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.
     """
     def reset(self):
         self._sum_of_errors = 0.0
@@ -31,15 +29,11 @@ class MeanNormalizedBias(Metric):
 
     def update(self, output):
         y_pred, y = output
-
-        if (y == 0).any():
-            raise NotComputableError('The ground truth has 0.')
-
-        errors = (y_pred - y.view_as(y_pred)) / y
+        errors = (y_pred - y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanNormalizedBias must have at least one example before it can be computed')
+            raise NotComputableError('MeanError must have at least one example before it can be computed')
         return self._sum_of_errors / self._num_examples
