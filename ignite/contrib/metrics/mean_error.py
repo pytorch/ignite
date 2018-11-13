@@ -7,10 +7,23 @@ from ignite.metrics.metric import Metric
 
 
 class MeanError(Metric):
-    """
-    Calculates the mean bias error.
+    r"""
+    Calculates the Mean Error.
+
+    It has been proposed in `Performance Metrics (Error Measures) in Machine Learning Regression, Forecasting and
+    Prognostics: Properties and Typology`.
+
+    More details can be found in `here`_.
+
+    :math:`\text{ME} = \frac{1}{n}\sum _j^n (A_j - P_j)`
+
+    Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
     - `update` must receive output of the form `(y_pred, y)`.
+    - `y` and `y_pred` must be of same shape.
+
+    .. _here:
+        https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.
     """
     def reset(self):
         self._sum_of_errors = 0.0
