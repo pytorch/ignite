@@ -68,9 +68,6 @@ class MultilabelAccuracy(Accuracy):
         if not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
             raise ValueError("y and y_pred must have same shape of (batch_size, num_classes, ...).")
 
-        if not (y == y**2).all():
-            raise ValueError("y must be composed of 0's and 1's only.")
-
         num_classes = y_pred.size(1)
 
         if y_pred.ndimension() == 3:
@@ -82,6 +79,13 @@ class MultilabelAccuracy(Accuracy):
             y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
 
         indices = self._threshold(y_pred).type(y.type())
+
+        if not torch.equal(y, y ** 2):
+            raise ValueError("For binary and multilabel cases, y must contain 0's and 1's only.")
+
+        if not torch.equal(y_pred, y_pred ** 2):
+            raise ValueError("threshold_function must convert y_pred to 0's and 1's only.")
+
         correct = [torch.equal(true, pred) for true, pred in zip(y, indices)]
 
         self._num_correct += sum(correct)

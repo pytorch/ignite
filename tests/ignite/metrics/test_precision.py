@@ -64,10 +64,9 @@ def test_binary_vs_categorical():
 
     y_pred = torch.FloatTensor([0.9, 0.2])
     y = torch.LongTensor([1, 0])
-    y_pred = y_pred.unsqueeze(1)
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
+    y_pred = torch.round(y_pred)
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='macro'))
     assert precision.compute() == 1.0
 
     precision.reset()
@@ -84,18 +83,17 @@ def test_binary_shapes():
 
     y = torch.LongTensor([1, 0])
     y_pred = torch.FloatTensor([0.9, 0.2])
-    y_pred = y_pred.unsqueeze(1)
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
+    y_pred = torch.round(y_pred)
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='macro'))
     assert precision.compute() == 1.0
 
     y = torch.LongTensor([[1], [0]])
     y_pred = torch.FloatTensor([[0.9], [0.2]])
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
+    y_pred = torch.round(y_pred)
     precision.reset()
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='macro'))
     assert precision.compute() == 1.0
 
 
@@ -155,3 +153,66 @@ def test_sklearn_compute():
     precision_ig = [precision_ig[i] for i in y_pred_labels]
 
     assert all([a == pytest.approx(b) for a, b in zip(precision_sk, precision_ig)])
+
+
+def test_multilabel_example():
+    precision = Precision(average=True)
+
+    # N x C case
+    y_pred = torch.round(torch.rand(4, 4))
+    y = torch.ones(4, 4).type(torch.LongTensor)
+
+    precision.update((y_pred, y))
+    print(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+
+    # N x C x L case
+    y_pred = torch.round(torch.rand(4, 5, 3))
+    y = torch.ones(4, 5, 3).type(torch.LongTensor)
+
+    precision.reset()
+    precision.update((y_pred, y))
+    num_classes = y_pred.size(1)
+    y_pred = y_pred.transpose(2, 1).contiguous().view(-1, num_classes)
+    y = y.transpose(2, 1).contiguous().view(-1, num_classes)
+    print(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+
+    # N x C x H x W
+    y_pred = torch.round(torch.rand(4, 5, 3, 3))
+    y = torch.ones(4, 5, 3, 3).type(torch.LongTensor)
+
+    precision.reset()
+    precision.update((y_pred, y))
+    num_classes = y_pred.size(1)
+    y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
+    y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
+    print(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+
+
+def test_incorrect_multilabel_output():
+    precision = Precision(threshold_function=lambda x: x + 2, average=True)
+
+    y_pred = torch.rand(4, 4)
+    y = torch.ones(4, 4).type(torch.LongTensor)
+
+    with pytest.raises(ValueError):
+        precision.update((y_pred, y))
+
+    precision.reset()
+    y_pred = torch.round(torch.rand(4, 4))
+    y = torch.LongTensor(16).random_(0, 10).view(4, 4)
+
+    with pytest.raises(ValueError):
+        precision.update((y_pred, y))
+
+
+def test_multilabel_average_parameter():
+    precision = Precision(average=False)
+
+    y_pred = torch.round(torch.rand(4, 4))
+    y = torch.ones(4, 4).type(torch.LongTensor)
+
+    with pytest.warns(UserWarning):
+        precision.update((y_pred, y))
