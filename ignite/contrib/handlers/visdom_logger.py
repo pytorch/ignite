@@ -194,6 +194,8 @@ class VisdomLogger:
         the `server` argument or by setting the `VISDOM_SERVER_URL` environment variable.
         By default, when none of these methods is used, the constructor will try to connect
         to `http://localhost`.
+        It is also possible to authenticate (username/password) using the environment
+        variables: `VISDOM_USERNAME`, `VISDOM_PASSWORD`.
 
     Examples:
 
@@ -257,9 +259,14 @@ class VisdomLogger:
             if server is None:
                 server = os.environ.get("VISDOM_SERVER_URL", 'http://localhost')
 
+            username = os.environ.get("VISDOM_USERNAME", None)
+            password = os.environ.get("VISDOM_PASSWORD", None)
+
             vis = visdom.Visdom(
                 server=server,
                 log_to_filename=log_to_filename,
+                username=username,
+                password=password
             )
 
         if not vis.check_connection():
