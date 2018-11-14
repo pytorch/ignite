@@ -12,8 +12,12 @@ class Precision(Metric):
     """
     Calculates precision.
     - `update` must receive output of the form `(y_pred, y)`.
+    - `y` and `y_pred` must have same shape of (batch_size, num_classes, ...) for multilabel.
+
     If `average` is True, returns the unweighted average across all classes.
     Otherwise, returns a tensor with the precision for each class.
+
+    For multilabel cases `average` is True and returns the unweighted average across all samples.
     """
 
     def __init__(self, average=False, threshold_function=lambda x: torch.round(x), output_transform=lambda x: x):

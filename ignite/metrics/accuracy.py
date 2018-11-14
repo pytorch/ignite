@@ -78,7 +78,7 @@ class MultilabelAccuracy(Accuracy):
             y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
             y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
 
-        indices = self._threshold(y_pred).type(y.type())
+        y_pred = self._threshold(y_pred).type(y.type())
 
         if not torch.equal(y, y ** 2):
             raise ValueError("For binary and multilabel cases, y must contain 0's and 1's only.")
@@ -86,7 +86,7 @@ class MultilabelAccuracy(Accuracy):
         if not torch.equal(y_pred, y_pred ** 2):
             raise ValueError("threshold_function must convert y_pred to 0's and 1's only.")
 
-        correct = [torch.equal(true, pred) for true, pred in zip(y, indices)]
+        correct = [torch.equal(true, pred) for true, pred in zip(y, y_pred)]
 
         self._num_correct += sum(correct)
         self._num_examples += len(correct)
