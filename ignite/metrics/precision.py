@@ -11,6 +11,7 @@ from ignite._utils import to_onehot
 class Precision(Metric):
     """
     Calculates precision.
+    - `threshold_function` is only needed for binary and multilabel cases. Default is `torch.round(x)`.
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must have same shape of (batch_size, num_classes, ...) for multilabel.
 
@@ -33,6 +34,9 @@ class Precision(Metric):
     def update(self, output):
         y_pred, y = output
         dtype = y_pred.type()
+
+        # axis = 0, calculates metric across labels - used in binary and multiclass problems.
+        # axis = 1, calculates metric across samples - used in multilabel problems.
         axis = 0
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
@@ -40,33 +44,15 @@ class Precision(Metric):
                              "must have shape of (batch_size, num_classes, ...) or (batch_size, ...).")
 
         if y.ndimension() == 1 or y.shape[1] == 1:
-            # Binary Case, flattens y
+            # Binary Case, flattens y and num_classes is equal to 1.
             y = y.squeeze(dim=1).view(-1) if (y.ndimension() > 1) else y.view(-1)
 
         if y_pred.ndimension() == 1 or y_pred.shape[1] == 1:
-            # Binary Case, flattens y_pred
+            # Binary Case, flattens y and num_classes is equal to 1.
             y_pred = y_pred.squeeze(dim=1).view(-1) if (y_pred.ndimension() > 1) else y_pred.view(-1)
 
         y_shape = y.shape
         y_pred_shape = y_pred.shape
-
-        if (y_shape == y_pred_shape) and y.ndimension() > 1:
-            # Multilabel Case, as y is flatted in binary case. average has to be True and calculated across samples.
-            self._is_multi = True
-            if not(self._average):
-                warnings.warn('average should be True for multilabel cases.', UserWarning)
-                self._average = True
-            axis = 1
-
-            if y_pred.ndimension() == 3:
-                # Converts y and y_pred to (-1, num_classes) from N x C x L
-                y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
-                y = y.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
-
-            if y_pred.ndimension() == 4:
-                # Converts y and y_pred to (-1, num_classes) from N x C x H x W
-                y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
-                y = y.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -74,7 +60,27 @@ class Precision(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
+        if (y.shape == y_pred.shape) and y.ndimension() > 1:
+            # Multilabel Case, as y is flatted in binary case. average has to be True and calculated across samples.
+            self._is_multi = True
+            axis = 1
+
+            if not(self._average):
+                warnings.warn('average should be True for multilabel cases.', UserWarning)
+                self._average = True
+
+            if y_pred.ndimension() == 3:
+                # Converts y and y_pred to (-1, num_classes) from N x C x L
+                y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+                y = y.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+
+            elif y_pred.ndimension() == 4:
+                # Converts y and y_pred to (-1, num_classes) from N x C x H x W
+                y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
+                y = y.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
+
         if y_pred.ndimension() == y.ndimension():
+            # Binary or MultiLabel Case
             y_pred = self._threshold(y_pred)
 
             if not torch.equal(y_pred, y_pred ** 2):
@@ -82,8 +88,8 @@ class Precision(Metric):
 
             if not torch.equal(y, y ** 2):
                 raise ValueError("For binary and multilabel cases, y must contain 0's and 1's only.")
-
         else:
+            # Categorical Case
             y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
             indices = torch.max(y_pred, dim=1)[1].view(-1)
             y_pred = to_onehot(indices, num_classes=y_pred.size(1))
