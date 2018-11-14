@@ -166,7 +166,6 @@ def test_multilabel_example():
     y = torch.ones(4, 4).type(torch.LongTensor)
 
     recall.update((y_pred, y))
-    print(recall_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
     assert recall.compute() == pytest.approx(recall_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
 
     # N x C x L case
@@ -178,7 +177,6 @@ def test_multilabel_example():
     num_classes = y_pred.size(1)
     y_pred = y_pred.transpose(2, 1).contiguous().view(-1, num_classes)
     y = y.transpose(2, 1).contiguous().view(-1, num_classes)
-    print(recall_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
     assert recall.compute() == pytest.approx(recall_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
 
     # N x C x H x W
@@ -190,7 +188,6 @@ def test_multilabel_example():
     num_classes = y_pred.size(1)
     y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
     y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
-    print(recall_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
     assert recall.compute() == pytest.approx(recall_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
 
 
