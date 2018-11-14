@@ -9,13 +9,14 @@ class MeanAbsoluteRelativeError(Metric):
     Calculate Mean Absolute Relative Error
 
     :math:`\text{MARE} = \frac{1}{n}\sum _j^n\frac{\left|A_j-P_j\right|}{\left|A_j\right|}`
-    Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
-    More details can be found `here`_ .
+    where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+
+    More details can be found in the reference `Botchkarev 2018`_ .
 
     - `update` must receive output of the form `(y_pred, y)`
 
-    .. _`here`:
+    .. _`Botchkarev 2018`:
         https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
     """
 
@@ -29,7 +30,7 @@ class MeanAbsoluteRelativeError(Metric):
             raise NotComputableError('The ground truth has 0')
         absolute_error = torch.abs(y_pred - y.view_as(y_pred)) / torch.abs(y.view_as(y_pred))
         self._sum_of_absolute_relative_errors += torch.sum(absolute_error).item()
-        self._num_samples += y.shape[0]
+        self._num_samples += y.size()[0]
 
     def compute(self):
         if self._num_samples == 0:
