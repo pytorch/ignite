@@ -10,8 +10,7 @@ class ManhattanDistance(Metric):
     r"""
     Calculates the Manhattan Distance.
 
-    It has been proposed in `Performance Metrics (Error Measures) in Machine Learning Regression, Forecasting and
-    Prognostics: Properties and Typology`.
+    It has been proposed in `Botchkarev 2018`__.
 
     More details can be found in `https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf`.
 
@@ -22,18 +21,16 @@ class ManhattanDistance(Metric):
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
 
+    __ https://arxiv.org/abs/1809.03006
+
     """
     def reset(self):
         self._sum_of_errors = 0.0
-        self._num_examples = 0
 
     def update(self, output):
         y_pred, y = output
         errors = y_pred - y.view_as(y_pred)
         self._sum_of_errors += torch.sum(errors).item()
-        self._num_examples += y.shape[0]
 
     def compute(self):
-        if self._num_examples == 0:
-            raise NotComputableError('ManhattanDistance must have at least one example before it can be computed')
         return self._sum_of_errors

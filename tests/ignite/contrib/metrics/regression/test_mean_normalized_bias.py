@@ -16,7 +16,6 @@ def test_zero_gt():
     ground_truth = np.zeros(4)
 
     m = MeanNormalizedBias()
-    m.reset()
 
     with pytest.raises(NotComputableError):
         m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
@@ -30,7 +29,6 @@ def test_mean_error():
     ground_truth = np.random.randn(4)
 
     m = MeanNormalizedBias()
-    m.reset()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = ((a - ground_truth) / ground_truth).sum()

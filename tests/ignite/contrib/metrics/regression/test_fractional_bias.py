@@ -19,7 +19,6 @@ def test_fractional_bias():
     ground_truth = np.random.randn(4)
 
     m = FractionalBias()
-    m.reset()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = (2 * (a - ground_truth) / (a + ground_truth)).sum()

@@ -10,10 +10,7 @@ class FractionalBias(Metric):
     r"""
     Calculates the Fractional Bias.
 
-    It has been proposed in `Performance Metrics (Error Measures) in Machine Learning Regression, Forecasting and
-    Prognostics: Properties and Typology`.
-
-    More details can be found in `https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf`.
+    It has been proposed in `Botchkarev 2018`__.
 
     :math:`\text{FB} = \frac{1}{n}\sum _j^n\frac{2 * (A_j - P_j)}{A_j + P_j}`
 
@@ -22,6 +19,8 @@ class FractionalBias(Metric):
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
 
+    __ https://arxiv.org/abs/1809.03006
+
     """
     def reset(self):
         self._sum_of_errors = 0.0
@@ -29,13 +28,7 @@ class FractionalBias(Metric):
 
     def update(self, output):
         y_pred, y = output
-
-        denominator = y_pred + y.view_as(y_pred)
-
-        if (denominator == 0).any():
-            raise NotComputableError('The denominator has 0.')
-
-        errors = 2 * (y_pred - y.view_as(y_pred)) / denominator
+        errors = 2 * (y_pred - y.view_as(y_pred)) / (y_pred + y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 

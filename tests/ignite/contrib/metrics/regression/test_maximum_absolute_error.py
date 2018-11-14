@@ -19,7 +19,6 @@ def test_maximum_absolute_error():
     ground_truth = np.random.randn(4)
 
     m = MaximumAbsoluteError()
-    m.reset()
 
     np_ans = -1
 

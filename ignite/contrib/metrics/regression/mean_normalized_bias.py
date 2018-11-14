@@ -10,10 +10,7 @@ class MeanNormalizedBias(Metric):
     r"""
     Calculates the Mean Normalized Bias.
 
-    It has been proposed in `Performance Metrics (Error Measures) in Machine Learning Regression, Forecasting and
-    Prognostics: Properties and Typology`.
-
-    More details can be found in `https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf`.
+    It has been proposed in `Botchkarev 2018`__.
 
     :math:`\text{MNB} = \frac{1}{n}\sum _j^n\frac{A_j - P_j}{A_j}`
 
@@ -21,6 +18,8 @@ class MeanNormalizedBias(Metric):
 
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
+
+    __ https://arxiv.org/abs/1809.03006
 
     """
     def reset(self):

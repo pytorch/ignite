@@ -5,12 +5,6 @@ import numpy as np
 import pytest
 
 
-def test_zero_div():
-    m = ManhattanDistance()
-    with pytest.raises(NotComputableError):
-        m.compute()
-
-
 def test_mahattan_distance():
     a = np.random.randn(4)
     b = np.random.randn(4)
@@ -19,7 +13,6 @@ def test_mahattan_distance():
     ground_truth = np.random.randn(4)
 
     m = ManhattanDistance()
-    m.reset()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_ans = (a - ground_truth).sum()
