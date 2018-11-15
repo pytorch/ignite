@@ -1,0 +1,6 @@
+
+from ignite.contrib.metrics.regression.canberra_metric import CanberraMetric
+from ignite.contrib.metrics.regression.fractional_absolute_error import FractionalAbsoluteError
+from ignite.contrib.metrics.regression.wave_hedges_distance import WaveHedgesDistance
+from ignite.contrib.metrics.regression.geometric_mean_absolute_error import GeometricMeanAbsoluteError
+from ignite.contrib.metrics.regression.geometric_mean_relative_absolute_error import GeometricMeanRelativeAbsoluteError
