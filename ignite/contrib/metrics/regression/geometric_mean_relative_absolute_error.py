@@ -2,6 +2,7 @@ from __future__ import division
 import torch
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
+import numpy as np
 
 
 class GeometricMeanRelativeAbsoluteError(Metric):
@@ -23,13 +24,16 @@ class GeometricMeanRelativeAbsoluteError(Metric):
     def update(self, output):
         y_pred, y = output
         errors = torch.abs(y.view_as(y_pred) - y_pred)
-        self._product_of_errors = self._product_of_errors * torch.cumprod(errors).item()
-        prev_mean_of_actuals = self._mean_of_actuals * self._num_examples
+        # previous sum is required to calculate new average of ground truth
+        prev_sum_of_gt = self._mean_of_actuals * self._num_examples
         self._num_examples += y.shape[0]
-        self._mean_of_actuals = (prev_mean_of_actuals + torch.mean(y.view_as(y_pred))) / self._num_examples
+        # once num_examples is updated, new average is (prev_sum + y.sum())/num_examples
+        self._mean_of_actuals = (prev_sum_of_gt + y.sum().item()) / self._num_examples
+        relative_error = errors / torch.abs(y - self._mean_of_actuals)
+        self._product_of_errors = self._product_of_errors * torch.prod(relative_error).item()
 
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('GeometricMeanRelativeAbsoluteError must have at'
                                      'least one example before it can be computed.')
-        return torch.pow(self._product_of_errors / self._mean_of_actuals, 1.0 / self._num_examples)
+        return np.power(self._product_of_errors, 1.0 / self._num_examples)

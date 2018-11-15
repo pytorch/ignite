@@ -2,6 +2,7 @@ from __future__ import division
 import torch
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
+import numpy as np
 
 
 class GeometricMeanAbsoluteError(Metric):
@@ -22,11 +23,11 @@ class GeometricMeanAbsoluteError(Metric):
     def update(self, output):
         y_pred, y = output
         errors = torch.abs(y.view_as(y_pred) - y_pred)
-        self._product_of_errors = self._product_of_errors * torch.cumprod(errors).item()
+        self._product_of_errors = self._product_of_errors * torch.prod(errors).item()
         self._num_examples += y.shape[0]
 
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('GeometricMeanAbsoluteError must have at'
                                      'least one example before it can be computed.')
-        return torch.pow(self._product_of_errors, 1.0 / self._num_examples)
+        return np.power(self._product_of_errors, 1.0 / self._num_examples)

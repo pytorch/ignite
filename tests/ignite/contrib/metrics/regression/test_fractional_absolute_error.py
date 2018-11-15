@@ -11,7 +11,7 @@ def test_zero_div():
         m.compute()
 
 
-def test_fractional_absolute_error():
+def test_compute():
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
