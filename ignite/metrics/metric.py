@@ -1,11 +1,44 @@
 from abc import ABCMeta, abstractmethod
-
+from six import with_metaclass
 from ignite.engine import Events
-
+from ignite.exceptions import NotComputableError
+import functools
 import torch
 
 
-class Metric(object):
+class MetricMeta(ABCMeta):
+    """Metaclass for creating metric classes.
+
+    This class does the following to metric classes:
+
+    - Hijack code to prevent metric from being ``compute``d before ``update``d.
+    """
+
+    def __init__(cls, name, bases, dct):
+        super(MetricMeta, cls).__init__(name, bases, dct)
+
+        old_reset = cls.reset
+        old_update = cls.update
+        old_compute = cls.compute
+
+        def wrapped_reset(self):
+            self._updated = False
+            old_reset(self)
+        cls.reset = functools.wraps(cls.reset)(wrapped_reset)
+
+        def wrapped_update(self, output):
+            self._updated = True
+            old_update(self, output)
+        cls.update = functools.wraps(cls.update)(wrapped_update)
+
+        def wrapped_compute(self):
+            if not self._updated:
+                raise NotComputableError('not updated before compute')
+            return old_compute(self)
+        cls.compute = functools.wraps(cls.compute)(wrapped_compute)
+
+
+class Metric(with_metaclass(MetricMeta)):
     """
     Base class for all Metrics.
 
@@ -16,7 +49,6 @@ class Metric(object):
             you want to compute the metric with respect to one of the outputs.
 
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, output_transform=lambda x: x):
         self._output_transform = output_transform

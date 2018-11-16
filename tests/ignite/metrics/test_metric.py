@@ -1,7 +1,36 @@
 from ignite.metrics import Metric
+from ignite.exceptions import NotComputableError
 from ignite.engine import State
 import torch
+import pytest
 from mock import MagicMock
+
+
+def test_updated():
+    class MyMetric(Metric):
+        def reset(self):
+            if hasattr(self, 'value'):
+                del self.value
+
+        def update(self, output):
+            self.value = output
+
+        def compute(self):
+            return self.value
+
+    m = MyMetric()
+    with pytest.raises(NotComputableError):
+        m.compute()
+
+    m.update(147)
+    assert m.compute() == 147
+
+    m.reset()
+    with pytest.raises(NotComputableError):
+        m.compute()
+
+    m.update(258)
+    assert m.compute() == 258
 
 
 def test_no_transform():
