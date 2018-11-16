@@ -52,7 +52,7 @@ def test_zero_div():
     a = torch.tensor([2.0, -1.0, -1.0, 2.0])
     ground_truth = torch.tensor([0.0, 0.5, 0.2, 1.0])
 
-    m = m = MeanAbsoluteRelativeError()
+    m = MeanAbsoluteRelativeError()
     m.reset()
     with raises(NotComputableError):
         m.update((a, ground_truth))
