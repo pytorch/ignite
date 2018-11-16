@@ -21,25 +21,25 @@ def test_fractional_bias():
     m = FractionalBias()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (2 * (a - ground_truth) / (a + ground_truth)).sum()
+    np_sum = (2 * (ground_truth - a) / (a + ground_truth)).sum()
     np_len = len(a)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += (2 * (b - ground_truth) / (b + ground_truth)).sum()
+    np_sum += (2 * (ground_truth - b) / (b + ground_truth)).sum()
     np_len += len(b)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += (2 * (c - ground_truth) / (c + ground_truth)).sum()
+    np_sum += (2 * (ground_truth - c) / (c + ground_truth)).sum()
     np_len += len(c)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (2 * (d - ground_truth) / (d + ground_truth)).sum()
+    np_sum += (2 * (ground_truth - d) / (d + ground_truth)).sum()
     np_len += len(d)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)

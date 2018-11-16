@@ -29,7 +29,7 @@ class ManhattanDistance(Metric):
 
     def update(self, output):
         y_pred, y = output
-        errors = y_pred - y.view_as(y_pred)
+        errors = y.view_as(y_pred) - y_pred
         self._sum_of_errors += torch.sum(errors).item()
 
     def compute(self):

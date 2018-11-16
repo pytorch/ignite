@@ -15,17 +15,17 @@ def test_mahattan_distance():
     m = ManhattanDistance()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_ans = (a - ground_truth).sum()
+    np_ans = (ground_truth - a).sum()
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_ans += (b - ground_truth).sum()
+    np_ans += (ground_truth - b).sum()
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_ans += (c - ground_truth).sum()
+    np_ans += (ground_truth - c).sum()
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_ans += (d - ground_truth).sum()
+    np_ans += (ground_truth - d).sum()
     assert m.compute() == pytest.approx(np_ans)

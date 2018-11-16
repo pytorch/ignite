@@ -31,25 +31,25 @@ def test_mean_error():
     m = MeanNormalizedBias()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = ((a - ground_truth) / ground_truth).sum()
+    np_sum = ((ground_truth - a) / ground_truth).sum()
     np_len = len(a)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += ((b - ground_truth) / ground_truth).sum()
+    np_sum += ((ground_truth - b) / ground_truth).sum()
     np_len += len(b)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += ((c - ground_truth) / ground_truth).sum()
+    np_sum += ((ground_truth - c) / ground_truth).sum()
     np_len += len(c)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += ((d - ground_truth) / ground_truth).sum()
+    np_sum += ((ground_truth - d) / ground_truth).sum()
     np_len += len(d)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)

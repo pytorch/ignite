@@ -28,7 +28,7 @@ class FractionalBias(Metric):
 
     def update(self, output):
         y_pred, y = output
-        errors = 2 * (y_pred - y.view_as(y_pred)) / (y_pred + y.view_as(y_pred))
+        errors = 2 * (y.view_as(y_pred) - y_pred) / (y_pred + y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 
