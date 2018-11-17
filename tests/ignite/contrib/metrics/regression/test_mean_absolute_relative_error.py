@@ -1,4 +1,4 @@
-from ignite.contrib.metrics import MeanAbsoluteRelativeError
+from ignite.contrib.metrics.regression import MeanAbsoluteRelativeError
 from ignite.exceptions import NotComputableError
 import torch
 from pytest import approx
@@ -13,7 +13,6 @@ def test_mean_absolute_relative_error():
     ground_truth = torch.rand(4)
 
     m = MeanAbsoluteRelativeError()
-    m.reset()
 
     m.update((a, ground_truth))
     abs_error_a = torch.sum(torch.abs(ground_truth - a) / torch.abs(ground_truth))
@@ -52,14 +51,12 @@ def test_zero_div():
     a = torch.tensor([2.0, -1.0, -1.0, 2.0])
     ground_truth = torch.tensor([0.0, 0.5, 0.2, 1.0])
 
-    m = m = MeanAbsoluteRelativeError()
-    m.reset()
+    m = MeanAbsoluteRelativeError()
     with raises(NotComputableError):
         m.update((a, ground_truth))
 
 
 def test_zero_sample():
     m = MeanAbsoluteRelativeError()
-    m.reset()
     with raises(NotComputableError):
         m.compute()
