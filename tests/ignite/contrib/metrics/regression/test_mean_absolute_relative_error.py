@@ -52,10 +52,6 @@ def test_zero_div():
     ground_truth = torch.tensor([0.0, 0.5, 0.2, 1.0])
 
     m = MeanAbsoluteRelativeError()
-<<<<<<< HEAD:tests/ignite/contrib/metrics/regression/test_mean_absolute_relative_error.py
-=======
-    m.reset()
->>>>>>> 2ea30b4505a3e5719366d1e32fa5ce88f67134b3:tests/ignite/contrib/metrics/test_mean_absolute_relative_error.py
     with raises(NotComputableError):
         m.update((a, ground_truth))
 
