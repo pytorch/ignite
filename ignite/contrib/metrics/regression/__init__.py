@@ -1,1 +1,1 @@
-from ignite.contrib.metrics.regression import MaximumAbsoluteError
+from ignite.contrib.metrics.regression.mean_absolute_relative_error import MeanAbsoluteRelativeError
