@@ -75,3 +75,5 @@ for example:
 .. autoclass:: EpochMetric
 
 .. autoclass:: RunningAverage
+
+.. autoclass:: MetricsLambda
