@@ -66,13 +66,15 @@ class RunningAverage(Metric):
             self._value = self._value * self.alpha + (1.0 - self.alpha) * self._get_src_value()
         return self._value
 
+    def iteration_completed(self, engine, name):
+        super(RunningAverage, self).iteration_completed(engine)
+        self.completed(engine, name)
+
     def attach(self, engine, name):
         # restart average every epoch
         engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         # compute metric
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        # apply running average
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.completed, name)
 
     def _get_metric_value(self):
         return self.src.compute()
