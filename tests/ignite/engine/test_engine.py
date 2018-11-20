@@ -130,6 +130,26 @@ def test_adding_multiple_event_handlers():
         handler.assert_called_once_with(engine)
 
 
+def test_has_event_handler():
+    engine = DummyEngine()
+    handlers = [MagicMock(), MagicMock()]
+    m = MagicMock()
+    for handler in handlers:
+        engine.add_event_handler(Events.STARTED, handler)
+    engine.add_event_handler(Events.COMPLETED, m)
+
+    for handler in handlers:
+        assert engine.has_event_handler(handler, Events.STARTED)
+        assert engine.has_event_handler(handler)
+        assert not engine.has_event_handler(handler, Events.COMPLETED)
+        assert not engine.has_event_handler(handler, Events.EPOCH_STARTED)
+
+    assert not engine.has_event_handler(m, Events.STARTED)
+    assert engine.has_event_handler(m, Events.COMPLETED)
+    assert engine.has_event_handler(m)
+    assert not engine.has_event_handler(m, Events.EPOCH_STARTED)
+
+
 def test_args_and_kwargs_are_passed_to_event():
     engine = DummyEngine()
     kwargs = {'a': 'a', 'b': 'b'}

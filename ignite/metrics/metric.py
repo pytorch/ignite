@@ -10,10 +10,9 @@ class Metric(object):
     Base class for all Metrics.
 
     Args:
-        output_transform (callable): a callable that is used to transform the
+        output_transform (callable, optional): a callable that is used to transform the
             :class:`ignite.engine.Engine`'s `process_function`'s output into the
-            form expected by the metric.
-            This can be useful if, for example, you have a multi-output model and
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
 
     """
@@ -71,6 +70,8 @@ class Metric(object):
         engine.state.metrics[name] = self.compute()
 
     def attach(self, engine, name):
-        engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
+        if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
+            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
+        if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)

@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 
 from ignite.metrics.metric import Metric
@@ -8,6 +10,12 @@ class EpochMetric(Metric):
     Model's output and targets are restricted to be of shape `(batch_size, n_classes)`. Output
     datatype should be `float32`. Target datatype should be `long`.
 
+    .. warning::
+
+        Current implementation stores all input data (output and target) in as tensors before computing a metric.
+        This can potentially lead to a memory error if the input data is larger than available RAM.
+
+
     - `update` must receive output of the form `(y_pred, y)`.
 
     If target shape is `(batch_size, n_classes)` and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`
@@ -15,6 +23,10 @@ class EpochMetric(Metric):
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
             `predictions` and `targets` and returns a scalar.
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
 
     """
 
@@ -60,7 +72,8 @@ class EpochMetric(Metric):
             try:
                 self.compute_fn(self._predictions, self._targets)
             except Exception as e:
-                raise RuntimeError("Problem with `compute_fn`:\n {}".format(e))
+                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}".format(e),
+                              RuntimeWarning)
 
     def compute(self):
         return self.compute_fn(self._predictions, self._targets)
