@@ -17,7 +17,7 @@ class MetricsLambda(Metric):
         args (sequence): Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
 
-    Examples::
+    Examples:
         >>> precision = Precision()
         >>> recall = Recall()
         >>> def Fbeta(r, p, beta):
