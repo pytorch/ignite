@@ -1,5 +1,5 @@
 from ignite.metrics import Metric
-from ignite.engine import State
+from ignite.engine import Engine, State
 import torch
 from mock import MagicMock
 from pytest import approx
@@ -181,3 +181,47 @@ def test_arithmetics():
     m2_floordiv_2 = m2 // 2
     m2_floordiv_2.update([1, 10, 100])
     assert m2_floordiv_2.compute() == 50
+
+
+def test_attach():
+    class CountMetric(Metric):
+        def __init__(self, value):
+            self.reset_count = 0
+            super(CountMetric, self).__init__()
+            self.reset_count = 0
+            self.compute_count = 0
+            self.update_count = 0
+            self.value = value
+
+        def reset(self):
+            self.reset_count += 1
+
+        def compute(self):
+            self.compute_count += 1
+            return self.value
+
+        def update(self, output):
+            self.update_count += 1
+
+    def process_function(*args, **kwargs):
+        return 1
+
+    engine = Engine(process_function)
+    m1 = CountMetric(123)
+    m2 = CountMetric(456)
+    m1.attach(engine, "m1")
+    m2.attach(engine, "m2_1")
+    m2.attach(engine, "m2_2")
+    engine.run(range(10), 5)
+
+    assert engine.state.metrics["m1"] == 123
+    assert engine.state.metrics["m2_1"] == 456
+    assert engine.state.metrics["m2_2"] == 456
+
+    assert m1.reset_count == 5
+    assert m1.compute_count == 5
+    assert m1.update_count == 50
+
+    assert m2.reset_count == 5
+    assert m2.compute_count == 10
+    assert m2.update_count == 50

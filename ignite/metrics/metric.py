@@ -70,9 +70,11 @@ class Metric(object):
         engine.state.metrics[name] = self.compute()
 
     def attach(self, engine, name):
-        engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
+        if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
+            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
+        if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
