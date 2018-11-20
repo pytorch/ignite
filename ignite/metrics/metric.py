@@ -1,11 +1,10 @@
 from abc import ABCMeta, abstractmethod
-
+from six import with_metaclass
 from ignite.engine import Events
-
 import torch
 
 
-class Metric(object):
+class Metric(with_metaclass(ABCMeta, object)):
     """
     Base class for all Metrics.
 
@@ -16,7 +15,6 @@ class Metric(object):
             you want to compute the metric with respect to one of the outputs.
 
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, output_transform=lambda x: x):
         self._output_transform = output_transform
