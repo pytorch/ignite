@@ -8,7 +8,7 @@ class MetricsLambda(Metric):
     of applying the function to the result of argument metrics.
 
     When update, this metric does not recursively update the metrics
-    it depend on. When reset, all its dependency metrics would be
+    it depends on. When reset, all its dependency metrics would be
     resetted. When attach, all its dependencies would be automatically
     attached.
 
