@@ -23,9 +23,9 @@ class MetricsLambda(Metric):
         >>> def Fbeta(r, p, beta):
         >>>     return (1 + beta ** 2) * p * r / (beta ** 2 * p + r)
         >>> F1 = MetricsLambda(Fbeta, recall, precision, 1)
-        >>> F2 = MetricsLambda(Fbeta, recall, precison, 2)
-        >>> F3 = MetricsLambda(Fbeta, recall, precison, 3)
-        >>> F4 = MetricsLambda(Fbeta, recall, precison, 4)
+        >>> F2 = MetricsLambda(Fbeta, recall, precision, 2)
+        >>> F3 = MetricsLambda(Fbeta, recall, precision, 3)
+        >>> F4 = MetricsLambda(Fbeta, recall, precision, 4)
     """
     def __init__(self, f, *args):
         self.function = f
