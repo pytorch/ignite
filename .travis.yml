@@ -3,6 +3,11 @@ language: python
 python:
   - "2.7"
   - "3.5"
+  - "3.6"
+
+env:
+  - PYTORCH_PACKAGE=pytorch-cpu
+  - PYTORCH_PACKAGE=pytorch-nightly-cpu
 
 stages:
   - Lint check
@@ -20,7 +25,7 @@ before_install: &before_install
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION pytorch-cpu
+  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION $PYTORCH_PACKAGE
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
