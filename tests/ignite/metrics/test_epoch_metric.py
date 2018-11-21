@@ -109,5 +109,5 @@ def test_bad_compute_fn():
 
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
-    with pytest.raises(RuntimeError):
+    with pytest.warns(RuntimeWarning):
         em.update(output1)

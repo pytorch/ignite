@@ -24,6 +24,12 @@ class AveragePrecision(EpochMetric):
     Args:
         activation (Callable, optional): optional function to apply on prediction tensors,
             e.g. `activation=torch.sigmoid` to transform logits.
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+
     """
-    def __init__(self, activation=None):
-        super(AveragePrecision, self).__init__(partial(average_precision_compute_fn, activation=activation))
+    def __init__(self, activation=None, output_transform=lambda x: x):
+        super(AveragePrecision, self).__init__(partial(average_precision_compute_fn, activation=activation),
+                                               output_transform=output_transform)
