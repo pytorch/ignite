@@ -18,10 +18,10 @@ class MetricsLambda(Metric):
             else that will be fed to ``f`` as arguments.
 
     Examples:
-        >>> precision = Precision()
-        >>> recall = Recall()
+        >>> precision = Precision(average=False)
+        >>> recall = Recall(average=False)
         >>> def Fbeta(r, p, beta):
-        >>>     return (1 + beta ** 2) * p * r / (beta ** 2 * p + r)
+        >>>     return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
         >>> F1 = MetricsLambda(Fbeta, recall, precision, 1)
         >>> F2 = MetricsLambda(Fbeta, recall, precision, 2)
         >>> F3 = MetricsLambda(Fbeta, recall, precision, 3)
