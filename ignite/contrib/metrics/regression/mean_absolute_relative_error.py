@@ -6,18 +6,18 @@ import torch
 
 class MeanAbsoluteRelativeError(Metric):
     r"""
-    Calculate Mean Absolute Relative Error
+    Calculate Mean Absolute Relative Error:
 
-    :math:`\text{MARE} = \frac{1}{n}\sum _j^n\frac{\left|A_j-P_j\right|}{\left|A_j\right|}`
+    :math:`\text{MARE} = \frac{1}{n}\sum_{j=1}^n\frac{\left|A_j-P_j\right|}{\left|A_j\right|}`,
 
-    where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
-    More details can be found in the reference `Botchkarev 2018`_ .
+    More details can be found in the reference `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`
 
-    .. _`Botchkarev 2018`:
-        https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
+    __ https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
+
     """
 
     def reset(self):
