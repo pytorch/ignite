@@ -199,6 +199,7 @@ def test_arithmetics():
     m2.update([1, 10, 100])
     assert m2_floordiv_2.compute() == 50
 
+
 def test_attach():
     class CountMetric(Metric):
         def __init__(self, value):
