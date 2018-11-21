@@ -115,6 +115,9 @@ def test_integration():
     recall_true = recall_score(y_true, np.argmax(y_pred, axis=-1), average=None)
     f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average='macro')
 
-    assert precision_true == approx(state.metrics['precision'].numpy()), "{} vs {}".format(precision_true, state.metrics['precision'])
-    assert recall_true == approx(state.metrics['recall'].numpy()), "{} vs {}".format(recall_true, state.metrics['recall'])
+    precision = state.metrics['precision'].numpy()
+    recall = state.metrics['recall'].numpy()
+
+    assert precision_true == approx(precision), "{} vs {}".format(precision_true, precision)
+    assert recall_true == approx(recall), "{} vs {}".format(recall_true, recall)
     assert f1_true == approx(state.metrics['f1']), "{} vs {}".format(f1_true, state.metrics['f1'])
