@@ -40,8 +40,8 @@ use the `output_transform` argument to transform it:
 Metrics could be combined together to form a new metric through arithmetics,
 for example:
     .. code-block:: python
-        precision = Precision()
-        recall = Recall()
+        precision = Precision(average=False)
+        recall = Recall(average=False)
         F1 = precision * recall * 2 / (precision + recall)
 
 

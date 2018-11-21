@@ -1,9 +1,11 @@
-from ignite.metrics import Metric
+from ignite.metrics import Metric, Precision, Recall
 from ignite.engine import Engine, State
 import torch
 from mock import MagicMock
 from pytest import approx
 import sys
+import numpy as np
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def test_no_transform():
@@ -242,3 +244,53 @@ def test_attach():
     assert m2.reset_count == 5
     assert m2.compute_count == 10
     assert m2.update_count == 50
+
+
+def test_integration():
+    np.random.seed(1)
+
+    n_iters = 10
+    batch_size = 10
+    n_classes = 10
+
+    y_true = np.arange(0, n_iters * batch_size) % n_classes
+    y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
+    for i in range(n_iters * batch_size):
+        if np.random.rand() > 0.4:
+            y_pred[i, y_true[i]] = 1.0
+        else:
+            j = np.random.randint(0, n_classes)
+            y_pred[i, j] = 0.7
+
+    y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
+    y_pred_batch_values = iter(y_pred.reshape(n_iters, batch_size, n_classes))
+
+    def update_fn(engine, batch):
+        y_true_batch = next(y_true_batch_values)
+        y_pred_batch = next(y_pred_batch_values)
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+
+    evaluator = Engine(update_fn)
+
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+    F1 = precision * recall * 2 / (precision + recall)
+
+    precision.attach(evaluator, "precision")
+    recall.attach(evaluator, "recall")
+    F1.attach(evaluator, "f1")
+
+    data = list(range(n_iters))
+    state = evaluator.run(data, max_epochs=1)
+
+    precision_true = precision_score(y_true, np.argmax(y_pred, axis=-1), average=None)
+    recall_true = recall_score(y_true, np.argmax(y_pred, axis=-1), average=None)
+    f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average=None)
+
+    precision = state.metrics['precision'].numpy()
+    recall = state.metrics['recall'].numpy()
+    f1 = state.metrics['f1'].numpy()
+
+    assert precision_true == approx(precision), "{} vs {}".format(precision_true, precision)
+    assert recall_true == approx(recall), "{} vs {}".format(recall_true, recall)
+    assert f1_true == approx(f1), "{} vs {}".format(f1_true, f1)
