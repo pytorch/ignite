@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from six import with_metaclass
+from ignite._six import with_metaclass
 from ignite.engine import Events
 import torch
 

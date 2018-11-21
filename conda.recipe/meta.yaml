@@ -18,13 +18,11 @@ requirements:
     - setuptools
     - pytorch
     - enum34 # [py < 34]
-    - six
 
   run:
     - python
     - pytorch
     - enum34 # [py < 34]
-    - six
 
 test:
   imports:
