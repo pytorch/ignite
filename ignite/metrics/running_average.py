@@ -74,7 +74,7 @@ class RunningAverage(Metric):
         # restart average every epoch
         engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         # compute metric
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.update_then_compute)
+        engine.add_event_handler(Events.ITERATION_COMPLETED, self.update_then_compute, name)
 
     def _get_metric_value(self):
         return self.src.compute()
