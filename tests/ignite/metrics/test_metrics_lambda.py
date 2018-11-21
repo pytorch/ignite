@@ -89,12 +89,10 @@ def test_integration():
     y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
     y_pred_batch_values = iter(y_pred.reshape(n_iters, batch_size, n_classes))
 
-
     def update_fn(engine, batch):
         y_true_batch = next(y_true_batch_values)
         y_pred_batch = next(y_pred_batch_values)
         return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
-
 
     evaluator = Engine(update_fn)
 
@@ -103,7 +101,6 @@ def test_integration():
 
     def Fbeta(r, p, beta):
         return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
-
 
     F1 = MetricsLambda(Fbeta, recall, precision, 1)
 
