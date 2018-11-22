@@ -2,6 +2,7 @@ import os
 import io
 import re
 from setuptools import setup, find_packages
+import datetime
 
 
 def read(*names, **kwargs):
@@ -27,7 +28,7 @@ requirements = ['enum34;python_version<"3.4"', 'torch_nightly']
 setup(
     # Metadata
     name='pytorch-ignite-nightly',
-    version=VERSION,
+    version=datetime.datetime.now().strftime("%Y%m%d"),
     author='PyTorch Core Team',
     author_email='soumith@pytorch.org',
     url='https://github.com/pytorch/ignite',
