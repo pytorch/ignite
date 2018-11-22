@@ -8,15 +8,13 @@ from ignite.metrics.metric import Metric
 
 class ManhattanDistance(Metric):
     r"""
-    Calculates the Manhattan Distance.
+    Calculates the Manhattan Distance:
 
-    It has been proposed in `Botchkarev 2018`__.
+    :math:`\text{MD} = \sum_{j=1}^n (A_j - P_j)`,
 
-    More details can be found in `https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf`.
+    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
-    :math:`\text{MD} = \sum _j^n (A_j - P_j)`
-
-    Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+    More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.

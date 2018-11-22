@@ -2,6 +2,7 @@ from ignite.metrics import Metric
 from ignite.engine import Engine, State
 import torch
 from mock import MagicMock
+from pytest import raises
 
 
 def test_no_transform():
@@ -113,3 +114,8 @@ def test_attach():
     assert m2.reset_count == 5
     assert m2.compute_count == 10
     assert m2.update_count == 50
+
+
+def test_abstract_class():
+    with raises(TypeError):
+        Metric()

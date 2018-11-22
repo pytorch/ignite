@@ -68,3 +68,5 @@ use the `output_transform` argument to transform it:
 .. autoclass:: EpochMetric
 
 .. autoclass:: RunningAverage
+
+.. autoclass:: MetricsLambda

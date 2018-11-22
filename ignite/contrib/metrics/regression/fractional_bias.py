@@ -8,16 +8,17 @@ from ignite.metrics.metric import Metric
 
 class FractionalBias(Metric):
     r"""
-    Calculates the Fractional Bias.
+    Calculates the Fractional Bias:
 
-    It has been proposed in `Botchkarev 2018`__.
+    :math:`\text{FB} = \frac{1}{n}\sum_{j=1}^n\frac{2 * (A_j - P_j)}{A_j + P_j}`,
 
-    :math:`\text{FB} = \frac{1}{n}\sum _j^n\frac{2 * (A_j - P_j)}{A_j + P_j}`
+    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
-    Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+    More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
+
 
     __ https://arxiv.org/abs/1809.03006
 
