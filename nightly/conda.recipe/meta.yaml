@@ -2,7 +2,7 @@
 
 package:
   name: ignite-nightly
-  version: {{ data['version'] }}.nightly
+  version: {{ data['version'] }}
 
 source:
   path: ..

@@ -27,7 +27,7 @@ requirements = ['enum34;python_version<"3.4"', 'torch_nightly']
 setup(
     # Metadata
     name='pytorch-ignite-nightly',
-    version=VERSION + ".nightly",
+    version=VERSION,
     author='PyTorch Core Team',
     author_email='soumith@pytorch.org',
     url='https://github.com/pytorch/ignite',

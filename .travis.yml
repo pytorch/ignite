@@ -181,10 +181,9 @@ jobs:
         # Copy "nightly" files
         - cp nightly/setup_nightly.py setup.py
         - cp -R nightly/conda.recipe .
-        # Install package
-        - python setup.py install
         # Push to nightly branch
-#        - git
+        - git remote rm origin && git remote add origin https://$GITHUB_TOKEN@github.com/${TRAVIS_REPO_SLUG}.git
+        - git push origin nightly
 
       script: true
 
@@ -198,7 +197,7 @@ jobs:
         # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
         - conda install -y conda-build conda-verify anaconda-client
         - conda config --set anaconda_upload no
-        - conda build --quiet --no-test --output-folder conda_build conda.recipe
+        - conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
         # Convert to other platforms: OSX, WIN
         - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
