@@ -111,6 +111,8 @@ jobs:
 
     - stage: Deploy
       python: "3.5"
+      env:
+        - PYTORCH_PACKAGE=pytorch-cpu
       if: tag IS present
 
       # Use previously defined before_install

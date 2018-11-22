@@ -41,7 +41,7 @@ def test_terminate_on_nan_and_inf():
     assert trainer.should_terminate
     trainer.should_terminate = False
 
-    trainer.state.output = (10.0, 1.0 / torch.randint(0, 2, size=(4,)), 1.0)
+    trainer.state.output = (10.0, 1.0 / torch.randint(0, 2, size=(4,)).type(torch.float), 1.0)
     h(trainer)
     assert trainer.should_terminate
     trainer.should_terminate = False
@@ -50,7 +50,7 @@ def test_terminate_on_nan_and_inf():
     h(trainer)
     assert not trainer.should_terminate
 
-    trainer.state.output = 1.0 / torch.randint(0, 2, size=(4, 4))
+    trainer.state.output = 1.0 / torch.randint(0, 2, size=(4, 4)).type(torch.float)
     h(trainer)
     assert trainer.should_terminate
     trainer.should_terminate = False
@@ -95,7 +95,7 @@ def test_with_terminate_on_inf():
     torch.manual_seed(12)
 
     data = [1.0, 0.8, torch.rand(4, 4),
-            (1.0 / torch.randint(0, 2, size=(4,)), torch.tensor(1.234)),
+            (1.0 / torch.randint(0, 2, size=(4,)).type(torch.float), torch.tensor(1.234)),
             torch.rand(5), torch.asin(torch.randn(4, 4)), 0.0, 1.0]
 
     def update_fn(engine, batch):
