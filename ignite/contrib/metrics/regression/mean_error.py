@@ -8,13 +8,13 @@ from ignite.metrics.metric import Metric
 
 class MeanError(Metric):
     r"""
-    Calculates the Mean Error.
+    Calculates the Mean Error:
 
-    It has been proposed in `Botchkarev 2018`__.
+    :math:`\text{ME} = \frac{1}{n}\sum_{j=1}^n (A_j - P_j)`,
 
-    :math:`\text{ME} = \frac{1}{n}\sum _j^n (A_j - P_j)`
+    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
-    Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+    More details can be found in the reference `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.

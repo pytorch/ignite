@@ -1,9 +1,10 @@
+import sys
 from ignite.metrics import Metric, Precision, Recall
 from ignite.engine import Engine, State
 import torch
 from mock import MagicMock
-from pytest import approx
-import sys
+
+from pytest import approx, raises
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
 
@@ -294,3 +295,8 @@ def test_integration():
     assert precision_true == approx(precision), "{} vs {}".format(precision_true, precision)
     assert recall_true == approx(recall), "{} vs {}".format(recall_true, recall)
     assert f1_true == approx(f1), "{} vs {}".format(f1_true, f1)
+
+
+def test_abstract_class():
+    with raises(TypeError):
+        Metric()
