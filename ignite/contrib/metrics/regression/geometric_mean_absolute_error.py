@@ -2,7 +2,6 @@ from __future__ import division
 import torch
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
-import numpy as np
 
 
 class GeometricMeanAbsoluteError(Metric):
@@ -30,4 +29,4 @@ class GeometricMeanAbsoluteError(Metric):
         if self._num_examples == 0:
             raise NotComputableError('GeometricMeanAbsoluteError must have at'
                                      'least one example before it can be computed.')
-        return np.power(self._product_of_errors, 1.0 / self._num_examples)
+        return self._product_of_errors ** (1.0 / self._num_examples)
