@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
+from mock import call, patch
 import numpy as np
 import os
 import tempfile
-from mock import call, patch
+import time
 
 from ignite.contrib.handlers import VisdomLogger
 from ignite.engine import Engine
@@ -44,6 +45,11 @@ def test_events(vis):
     )
 
     engine.run(loader, max_epochs=n_epochs)
+
+    #
+    # Sleep to allow the visdom logger thread to finish.
+    #
+    time.sleep(0.1)
 
     line_calls = [
         call(
@@ -102,6 +108,11 @@ def test_log_file():
     )
 
     engine.run(loader, max_epochs=n_epochs)
+
+    #
+    # Sleep to allow the visdom logger thread to finish.
+    #
+    time.sleep(0.1)
 
     with open(log_filename) as f:
         visdom_log = [json.loads(l.strip()) for l in f.readlines()]
