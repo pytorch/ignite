@@ -2,10 +2,8 @@
 import json
 import numpy as np
 import os
-import pytest
 import tempfile
-from unittest.mock import call
-from unittest.mock import patch
+from mock import call, patch
 
 from ignite.contrib.handlers import VisdomLogger
 from ignite.engine import Engine
