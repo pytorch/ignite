@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from ignite.engine import Engine
 from ignite.engine import Events
 import os
@@ -44,6 +45,11 @@ class _VisdomWindows:
         self.save_by_default = save_by_default
         self.win = None
         self.metrics_step = []
+
+        self.executor = ThreadPoolExecutor(max_workers=1)
+
+    def __del__(self):
+        self.executor.shutdown()
 
     def _update(
         self,
@@ -102,18 +108,26 @@ class _VisdomWindows:
             update = 'append'
 
         for metric_name, metric_value in zip(metric_names, metric_values):
-            self.win = self.vis.line(
-                X=np.array([step]),
-                Y=np.array([metric_value]),
-                env=self.env,
-                win=self.win,
-                update=update,
-                opts=line_opts,
-                name=metric_name
-            )
+            future = \
+                self.executor.submit(
+                    fn=self.vis.line,
+                    X=np.array([step]),
+                    Y=np.array([metric_value]),
+                    env=self.env,
+                    win=self.win,
+                    update=update,
+                    opts=line_opts,
+                    name=metric_name
+                )
+
+            if self.win is None:
+                self.win = future.result()
 
         if self.save_by_default:
-            self.vis.save([self.env])
+            self.executor.submit(
+                fn=self.vis.save,
+                envs=[self.env]
+            )
 
     def attach(
         self,
