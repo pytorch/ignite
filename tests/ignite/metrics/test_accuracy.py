@@ -120,7 +120,7 @@ def test_incorrect_shape():
 
 
 def test_multilabel_compute():
-    acc = Accuracy(is_multilabel=True)
+    acc = Accuracy(is_multilabel=True, threshold_function=torch.round)
 
     # N x C case
     y_pred = torch.round(torch.rand(4, 4))
@@ -177,3 +177,8 @@ def test_multilabel_incorrect_output():
 
     with pytest.raises(ValueError):
         acc.update((y_pred, y))
+
+
+def test_multilabel_incorrect_threshold():
+    with pytest.raises(ValueError):
+        acc = Accuracy(is_multilabel=True, threshold_function=2)

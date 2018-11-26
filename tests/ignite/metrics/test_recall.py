@@ -209,10 +209,10 @@ def test_incorrect_multilabel_output():
 
 
 def test_multilabel_average_parameter():
-    recall = Recall(is_multilabel=True, average=False)
-
-    y_pred = torch.round(torch.rand(4, 4))
-    y = torch.ones(4, 4).type(torch.LongTensor)
-
     with pytest.warns(UserWarning):
-        recall.update((y_pred, y))
+        recall = Recall(is_multilabel=True, average=False)
+
+
+def test_multilabel_incorrect_threshold():
+    with pytest.raises(ValueError):
+        recall = Recall(is_multilabel=True, threshold_function=2)

@@ -6,13 +6,15 @@ from sklearn.metrics import accuracy_score
 
 
 def test_zero_div():
-    acc = CategoricalAccuracy()
+    with pytest.warns(UserWarning):
+        acc = CategoricalAccuracy()
     with pytest.raises(NotComputableError):
         acc.compute()
 
 
 def test_compute():
-    acc = CategoricalAccuracy()
+    with pytest.warns(UserWarning):
+        acc = CategoricalAccuracy()
 
     y_pred = torch.softmax(torch.rand(4, 4), dim=1)
     y = torch.ones(4).type(torch.LongTensor)
@@ -31,7 +33,8 @@ def test_compute():
 
 
 def test_compute_batch_images():
-    acc = CategoricalAccuracy()
+    with pytest.warns(UserWarning):
+        acc = CategoricalAccuracy()
 
     y_pred = torch.softmax(torch.rand(2, 3, 2, 2), dim=1)
     y = torch.LongTensor([[[0, 1],

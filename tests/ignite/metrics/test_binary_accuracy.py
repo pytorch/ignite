@@ -6,13 +6,16 @@ from sklearn.metrics import accuracy_score
 
 
 def test_zero_div():
-    acc = BinaryAccuracy()
+    with pytest.warns(UserWarning):
+        acc = BinaryAccuracy()
+
     with pytest.raises(NotComputableError):
         acc.compute()
 
 
 def test_compute():
-    acc = BinaryAccuracy()
+    with pytest.warns(UserWarning):
+        acc = BinaryAccuracy()
 
     y_pred = torch.sigmoid(torch.rand(4, 1))
     y = torch.ones(4).type(torch.LongTensor)
@@ -32,7 +35,8 @@ def test_compute():
 
 
 def test_compute_batch_images():
-    acc = BinaryAccuracy()
+    with pytest.warns(UserWarning):
+        acc = BinaryAccuracy()
 
     y_pred = torch.sigmoid(torch.rand(1, 2, 2))
     y = torch.ones(1, 2, 2).type(torch.LongTensor)

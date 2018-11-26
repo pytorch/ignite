@@ -11,50 +11,74 @@ from ignite._utils import to_onehot
 class Recall(Metric):
     """
     Calculates recall.
-    - `threshold_function` is only needed for binary and multilabel cases. Default is `torch.round(x)`.
+    - `is_multilabel`, True for multilabel cases and False for binary or multiclass cases.
+    - `threshold_function` is only needed for multilabel cases. Default is `torch.round(x)`. It is
+       used to convert `y_pred` to 0's and 1's.
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y` and `y_pred` must have same shape of (batch_size, num_classes, ...) for multilabel.
-
-    If `average` is True, returns the unweighted average across all classes.
-    Otherwise, returns a tensor with the recall for each class.
-
+    - For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...)
+      or (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
+    - For multilabel cases, `y` and `y_pred` must have same shape of (batch_size, num_categories, ...).
+    For binary or multiclass cases, if `average` is True, returns the unweighted average across all classes.
+    Otherwise, returns a tensor with the precision for each class.
     For multilabel cases `average` is True and returns the unweighted average across all samples.
     """
 
-    def __init__(self, is_multilabel=False, average=False,
-                 threshold_function=lambda x: torch.round(x), output_transform=lambda x: x):
-        super(Recall, self).__init__(output_transform)
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, average=False, threshold_function=None):
         self._average = average
-        self._threshold = threshold_function
         if is_multilabel:
+            if threshold_function is None:
+                self._threshold = torch.round
+            else:
+                if callable(threshold_function):
+                    self._threshold = threshold_function
+                else:
+                    raise ValueError("threshold_function must be a callable function.")
+            if not self._average:
+                warnings.warn('average should be True for multilabel cases. Precision._average updated'
+                              ' to True. Average is calculated across samples, instead of classes.', UserWarning)
+                self._average = True
             self.update = self._update_multilabel
         else:
             self.update = self._update_multiclass
+        super(Recall, self).__init__(output_transform=output_transform)
 
     def reset(self):
         self._actual = None
         self._true_positives = None
+
+    def update(self, output):
+        pass
+
+    def compute(self):
+        if self._actual is None:
+            raise NotComputableError('Recall must have at least one example before it can be computed')
+        result = self._true_positives / self._actual
+        result[result != result] = 0.0
+        if self._average:
+            return result.mean().item()
+        else:
+            return result
 
     def _update_multilabel(self, output):
         y_pred, y = output
         dtype = y_pred.type()
         axis = 1
 
-        if (y.shape == y_pred.shape) and y.ndimension() > 1:
-            if not self._average:
-                warnings.warn('average should be True for multilabel cases. Precision._average updated'
-                              ' to True. Average is calculated across samples, instead of classes.', UserWarning)
-                self._average = True
+        if not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
+            raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
 
-            if y_pred.ndimension() == 3:
-                # Converts y and y_pred to (-1, num_classes) from N x C x L
-                y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
-                y = y.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+        if y_pred.ndimension() == 3:
+            # Converts y and y_pred to (-1, num_classes) from N x C x L
+            y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+            y = y.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
 
-            elif y_pred.ndimension() == 4:
-                # Converts y and y_pred to (-1, num_classes) from N x C x H x W
-                y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
-                y = y.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
+        elif y_pred.ndimension() == 4:
+            # Converts y and y_pred to (-1, num_classes) from N x C x H x W
+            y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
+            y = y.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
+
+        else:
+            pass
 
         y_pred = self._threshold(y_pred)
 
@@ -109,18 +133,12 @@ class Recall(Metric):
 
         if y_pred.ndimension() == y.ndimension():
             # Binary Case
-            y_pred = self._threshold(y_pred)
+            y_pred = y_pred.unsqueeze(dim=1)
+            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 
-            if not torch.equal(y_pred, y_pred ** 2):
-                raise ValueError("threshold_function must convert y_pred to 0's and 1's only.")
-
-            if not torch.equal(y, y ** 2):
-                raise ValueError("For binary and multilabel cases, y must contain 0's and 1's only.")
-        else:
-            # Categorical Case
-            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
-            indices = torch.max(y_pred, dim=1)[1].view(-1)
-            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
+        y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
+        indices = torch.max(y_pred, dim=1)[1].view(-1)
+        y_pred = to_onehot(indices, num_classes=y_pred.size(1))
 
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
@@ -138,13 +156,3 @@ class Recall(Metric):
         else:
             self._actual += actual
             self._true_positives += true_positives
-
-    def compute(self):
-        if self._actual is None:
-            raise NotComputableError('Recall must have at least one example before it can be computed')
-        result = self._true_positives / self._actual
-        result[result != result] = 0.0
-        if self._average:
-            return result.mean().item()
-        else:
-            return result

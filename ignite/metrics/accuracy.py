@@ -9,28 +9,45 @@ from ignite.exceptions import NotComputableError
 class Accuracy(Metric):
     """
     Calculates the accuracy.
-
+    - `is_multilabel`, True for multilabel cases and False for binary or multiclass cases.
+    - `threshold_function` is only needed for multilabel cases. Default is `torch.round(x)`. It is
+       used to convert `y_pred` to 0's and 1's.
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
-    - `y` must be in the following shape (batch_size, ...)
+    - For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...)
+      or (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
+    - For multilabel cases, `y` and `y_pred` must have same shape of (batch_size, num_categories, ...).
     """
-    def __init__(self, is_multilabel=False, threshold_function=lambda x: torch.round(x), output_transform=lambda x: x):
-        super(Accuracy, self).__init__(output_transform)
-        self._threshold = threshold_function
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, threshold_function=None):
         if is_multilabel:
+            if threshold_function is None:
+                self._threshold = torch.round
+            else:
+                if callable(threshold_function):
+                    self._threshold = threshold_function
+                else:
+                    raise ValueError("threshold_function must be a callable function.")
             self.update = self._update_multilabel
         else:
             self.update = self._update_multiclass
+        super(Accuracy, self).__init__(output_transform)
 
     def reset(self):
         self._num_correct = 0
         self._num_examples = 0
 
+    def update(self, output):
+        pass
+
+    def compute(self):
+        if self._num_examples == 0:
+            raise NotComputableError('Accuracy must have at least one example before it can be computed')
+        return self._num_correct / self._num_examples
+
     def _update_multilabel(self, output):
         y_pred, y = output
 
         if not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
-            raise ValueError("y and y_pred must have same shape of (batch_size, num_classes, ...).")
+            raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
 
         num_classes = y_pred.size(1)
 
@@ -60,7 +77,7 @@ class Accuracy(Metric):
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError("y must have shape of (batch_size, ...) and y_pred "
-                             "must have shape of (batch_size, num_classes, ...) or (batch_size, ...).")
+                             "must have shape of (batch_size, num_categories, ...) or (batch_size, ...).")
 
         if y.ndimension() > 1 and y.shape[1] == 1:
             y = y.squeeze(dim=1)
@@ -87,8 +104,3 @@ class Accuracy(Metric):
 
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
-
-    def compute(self):
-        if self._num_examples == 0:
-            raise NotComputableError('Accuracy must have at least one example before it can be computed')
-        return self._num_correct / self._num_examples
