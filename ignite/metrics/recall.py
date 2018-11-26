@@ -21,22 +21,69 @@ class Recall(Metric):
     For multilabel cases `average` is True and returns the unweighted average across all samples.
     """
 
-    def __init__(self, average=False, threshold_function=lambda x: torch.round(x), output_transform=lambda x: x):
+    def __init__(self, is_multilabel=False, average=False,
+                 threshold_function=lambda x: torch.round(x), output_transform=lambda x: x):
         super(Recall, self).__init__(output_transform)
         self._average = average
         self._threshold = threshold_function
-        self._is_multi = False
+        if is_multilabel:
+            self.update = self._update_multilabel
+        else:
+            self.update = self._update_multiclass
 
     def reset(self):
         self._actual = None
         self._true_positives = None
 
-    def update(self, output):
+    def _update_multilabel(self, output):
         y_pred, y = output
         dtype = y_pred.type()
+        axis = 1
 
-        # axis = 0, calculates metric across labels - used in binary and multiclass problems.
-        # axis = 1, calculates metric across samples - used in multilabel problems.
+        if (y.shape == y_pred.shape) and y.ndimension() > 1:
+            if not self._average:
+                warnings.warn('average should be True for multilabel cases. Precision._average updated'
+                              ' to True. Average is calculated across samples, instead of classes.', UserWarning)
+                self._average = True
+
+            if y_pred.ndimension() == 3:
+                # Converts y and y_pred to (-1, num_classes) from N x C x L
+                y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+                y = y.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
+
+            elif y_pred.ndimension() == 4:
+                # Converts y and y_pred to (-1, num_classes) from N x C x H x W
+                y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
+                y = y.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
+
+        y_pred = self._threshold(y_pred)
+
+        if not torch.equal(y_pred, y_pred ** 2):
+            raise ValueError("threshold_function must convert y_pred to 0's and 1's only.")
+
+        if not torch.equal(y, y ** 2):
+            raise ValueError("For binary and multilabel cases, y must contain 0's and 1's only.")
+
+        y_pred = y_pred.type(dtype)
+        y = y.type(dtype)
+
+        correct = y * y_pred
+        actual = y.sum(dim=axis)
+
+        if correct.sum() == 0:
+            true_positives = torch.zeros_like(actual)
+        else:
+            true_positives = correct.sum(dim=axis)
+        if self._actual is None:
+            self._actual = actual
+            self._true_positives = true_positives
+        else:
+            self._actual = torch.cat([self._actual, actual])
+            self._true_positives = torch.cat([self._true_positives, true_positives])
+
+    def _update_multiclass(self, output):
+        y_pred, y = output
+        dtype = y_pred.type()
         axis = 0
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
@@ -60,27 +107,8 @@ class Recall(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
-        if (y.shape == y_pred.shape) and y.ndimension() > 1:
-            # Multilabel Case, as y is flatted in binary case. average has to be True and calculated across samples.
-            self._is_multi = True
-            axis = 1
-
-            if not(self._average):
-                warnings.warn('average should be True for multilabel cases.', UserWarning)
-                self._average = True
-
-            if y_pred.ndimension() == 3:
-                # Converts y and y_pred to (-1, num_classes) from N x C x L
-                y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
-                y = y.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
-
-            elif y_pred.ndimension() == 4:
-                # Converts y and y_pred to (-1, num_classes) from N x C x H x W
-                y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
-                y = y.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
-
         if y_pred.ndimension() == y.ndimension():
-            # Binary or MultiLabel Case
+            # Binary Case
             y_pred = self._threshold(y_pred)
 
             if not torch.equal(y_pred, y_pred ** 2):
@@ -108,11 +136,8 @@ class Recall(Metric):
             self._actual = actual
             self._true_positives = true_positives
         else:
-            # In multilabel case, concatenate all positive and true positive tensors to calculate precision per sample
-            # In binary or multiclass case, all positive and true positives are summed over classes
-            self._actual = torch.cat([self._actual, actual]) if self._is_multi else self._actual + actual
-            self._true_positives = torch.cat([self._true_positives, true_positives]) \
-                if self._is_multi else self._true_positives + true_positives
+            self._actual += actual
+            self._true_positives += true_positives
 
     def compute(self):
         if self._actual is None:

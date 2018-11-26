@@ -14,11 +14,48 @@ class Accuracy(Metric):
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
     """
+    def __init__(self, is_multilabel=False, threshold_function=lambda x: torch.round(x), output_transform=lambda x: x):
+        super(Accuracy, self).__init__(output_transform)
+        self._threshold = threshold_function
+        if is_multilabel:
+            self.update = self._update_multilabel
+        else:
+            self.update = self._update_multiclass
+
     def reset(self):
         self._num_correct = 0
         self._num_examples = 0
 
-    def update(self, output):
+    def _update_multilabel(self, output):
+        y_pred, y = output
+
+        if not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
+            raise ValueError("y and y_pred must have same shape of (batch_size, num_classes, ...).")
+
+        num_classes = y_pred.size(1)
+
+        if y_pred.ndimension() == 3:
+            y_pred = y_pred.transpose(2, 1).contiguous().view(-1, num_classes)
+            y = y.transpose(2, 1).contiguous().view(-1, num_classes)
+
+        if y_pred.ndimension() == 4:
+            y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
+            y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
+
+        y_pred = self._threshold(y_pred).type(y.type())
+
+        if not torch.equal(y, y ** 2):
+            raise ValueError("For binary and multilabel cases, y must contain 0's and 1's only.")
+
+        if not torch.equal(y_pred, y_pred ** 2):
+            raise ValueError("threshold_function must convert y_pred to 0's and 1's only.")
+
+        correct = [torch.equal(true, pred) for true, pred in zip(y, y_pred)]
+
+        self._num_correct += sum(correct)
+        self._num_examples += len(correct)
+
+    def _update_multiclass(self, output):
         y_pred, y = output
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
@@ -55,38 +92,3 @@ class Accuracy(Metric):
         if self._num_examples == 0:
             raise NotComputableError('Accuracy must have at least one example before it can be computed')
         return self._num_correct / self._num_examples
-
-
-class MultilabelAccuracy(Accuracy):
-    def __init__(self, threshold_function=lambda x: torch.round(x), output_transform=lambda x: x):
-        super(MultilabelAccuracy, self).__init__(output_transform)
-        self._threshold = threshold_function
-
-    def update(self, output):
-        y_pred, y = output
-
-        if not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
-            raise ValueError("y and y_pred must have same shape of (batch_size, num_classes, ...).")
-
-        num_classes = y_pred.size(1)
-
-        if y_pred.ndimension() == 3:
-            y_pred = y_pred.transpose(2, 1).contiguous().view(-1, num_classes)
-            y = y.transpose(2, 1).contiguous().view(-1, num_classes)
-
-        if y_pred.ndimension() == 4:
-            y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
-            y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
-
-        y_pred = self._threshold(y_pred).type(y.type())
-
-        if not torch.equal(y, y ** 2):
-            raise ValueError("For binary and multilabel cases, y must contain 0's and 1's only.")
-
-        if not torch.equal(y_pred, y_pred ** 2):
-            raise ValueError("threshold_function must convert y_pred to 0's and 1's only.")
-
-        correct = [torch.equal(true, pred) for true, pred in zip(y, y_pred)]
-
-        self._num_correct += sum(correct)
-        self._num_examples += len(correct)

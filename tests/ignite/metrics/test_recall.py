@@ -159,7 +159,7 @@ def test_sklearn_compute():
 
 
 def test_multilabel_example():
-    recall = Recall(average=True)
+    recall = Recall(is_multilabel=True, average=True)
 
     # N x C case
     y_pred = torch.round(torch.rand(4, 4))
@@ -192,7 +192,7 @@ def test_multilabel_example():
 
 
 def test_incorrect_multilabel_output():
-    recall = Recall(threshold_function=lambda x: x + 2, average=True)
+    recall = Recall(is_multilabel=True, average=True, threshold_function=lambda x: x + 2)
 
     y_pred = torch.rand(4, 4)
     y = torch.ones(4, 4).type(torch.LongTensor)
@@ -209,7 +209,7 @@ def test_incorrect_multilabel_output():
 
 
 def test_multilabel_average_parameter():
-    recall = Recall(average=False)
+    recall = Recall(is_multilabel=True, average=False)
 
     y_pred = torch.round(torch.rand(4, 4))
     y = torch.ones(4, 4).type(torch.LongTensor)
