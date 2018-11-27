@@ -10,11 +10,11 @@ class Accuracy(Metric):
     """
     Calculates the accuracy.
     - `is_multilabel`, True for multilabel cases and False for binary or multiclass cases.
-    - `threshold_function` is only needed for multilabel cases. Default is `torch.round(x)`. It is
-       used to convert `y_pred` to 0's and 1's.
+    - | `threshold_function` is only needed for multilabel cases. Default is `torch.round(x)`. It is used to convert
+      | `y_pred` to 0's and 1's.
     - `update` must receive output of the form `(y_pred, y)`.
-    - For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...)
-      or (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
+    - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
+      | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
     - For multilabel cases, `y` and `y_pred` must have same shape of (batch_size, num_categories, ...).
     """
     def __init__(self, output_transform=lambda x: x, is_multilabel=False, threshold_function=None):
