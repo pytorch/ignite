@@ -21,7 +21,7 @@ def test_compute():
     indices = torch.max(y_pred, dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
     acc.reset()
     y_pred = torch.softmax(torch.rand(2, 2), dim=1)
@@ -29,7 +29,7 @@ def test_compute():
     indices = torch.max(y_pred, dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
 
 def test_compute_batch_images():
@@ -44,4 +44,4 @@ def test_compute_batch_images():
     indices = torch.max(y_pred, dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())

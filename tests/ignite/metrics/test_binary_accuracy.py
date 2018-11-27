@@ -22,7 +22,7 @@ def test_compute():
     indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.numpy(), indices.numpy()) == pytest.approx(acc.compute())
 
     acc.reset()
     y_pred = torch.sigmoid(torch.rand(4))
@@ -31,7 +31,7 @@ def test_compute():
     indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.numpy(), indices.numpy()) == pytest.approx(acc.compute())
 
 
 def test_compute_batch_images():
@@ -44,7 +44,7 @@ def test_compute_batch_images():
     indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
     acc.reset()
     y_pred = torch.sigmoid(torch.rand(2, 1, 2, 2))
@@ -52,7 +52,7 @@ def test_compute_batch_images():
     indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
     acc.reset()
     y_pred = torch.sigmoid(torch.rand(2, 1, 2, 2))
@@ -60,4 +60,4 @@ def test_compute_batch_images():
     indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
