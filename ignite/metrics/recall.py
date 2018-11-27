@@ -67,18 +67,10 @@ class Recall(Metric):
         if not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
             raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
 
-        if y_pred.ndimension() == 3:
-            # Converts y and y_pred to (-1, num_classes) from N x C x L
-            y_pred = y_pred.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
-            y = y.transpose(2, 1).contiguous().view(-1, y_pred.size(1))
-
-        elif y_pred.ndimension() == 4:
-            # Converts y and y_pred to (-1, num_classes) from N x C x H x W
-            y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
-            y = y.permute(0, 2, 3, 1).contiguous().view(-1, y_pred.size(1))
-
-        else:
-            pass
+        if y_pred.ndimension() > 2:
+            num_classes = y_pred.size(1)
+            y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+            y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
 
         y_pred = self._threshold(y_pred)
 
@@ -111,8 +103,8 @@ class Recall(Metric):
         axis = 0
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
-            raise ValueError("y must have shape of (batch_size, ...) and y_pred "
-                             "must have shape of (batch_size, num_classes, ...) or (batch_size, ...).")
+            raise ValueError("y must have shape of (batch_size, ...) and y_pred must have "
+                             "shape of (batch_size, num_categories, ...) or (batch_size, ...).")
 
         if y.ndimension() == 1 or y.shape[1] == 1:
             # Binary Case, flattens y and num_classes is equal to 1.
@@ -132,7 +124,7 @@ class Recall(Metric):
             raise ValueError("y and y_pred must have compatible shapes.")
 
         if y_pred.ndimension() == y.ndimension():
-            # Binary Case
+            # Mapping Binary Case to Categorical Case
             y_pred = y_pred.unsqueeze(dim=1)
             y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 

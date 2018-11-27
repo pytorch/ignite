@@ -66,7 +66,7 @@ def test_binary_vs_categorical():
     y = torch.LongTensor([1, 0])
     y_pred = torch.round(y_pred)
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='macro'))
+    assert precision.compute() == pytest.approx(precision_score(y.numpy(), y_pred.numpy(), average='macro'))
     assert precision.compute() == 1.0
 
     precision.reset()
@@ -74,7 +74,7 @@ def test_binary_vs_categorical():
     y = torch.LongTensor([1, 0])
     indices = torch.max(y_pred, dim=1)[1]
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), indices.data.numpy(), average='macro'))
+    assert precision.compute() == pytest.approx(precision_score(y.numpy(), indices.numpy(), average='macro'))
     assert precision.compute() == 1.0
 
 
@@ -85,7 +85,7 @@ def test_binary_shapes():
     y_pred = torch.FloatTensor([0.9, 0.2])
     y_pred = torch.round(y_pred)
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='macro'))
+    assert precision.compute() == pytest.approx(precision_score(y.numpy(), y_pred.numpy(), average='macro'))
     assert precision.compute() == 1.0
 
     y = torch.LongTensor([[1], [0]])
@@ -93,7 +93,7 @@ def test_binary_shapes():
     y_pred = torch.round(y_pred)
     precision.reset()
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='macro'))
+    assert precision.compute() == pytest.approx(precision_score(y.numpy(), y_pred.numpy(), average='macro'))
     assert precision.compute() == 1.0
 
 
@@ -106,8 +106,8 @@ def test_ner_example():
     indices = torch.max(y_pred, dim=1)[1]
     y_pred_labels = list(set(indices.view(-1).tolist()))
 
-    precision_sk = precision_score(y.view(-1).data.numpy(),
-                                   indices.view(-1).data.numpy(),
+    precision_sk = precision_score(y.view(-1).numpy(),
+                                   indices.view(-1).numpy(),
                                    labels=y_pred_labels,
                                    average=None)
     precision.update((y_pred, y))
@@ -144,8 +144,8 @@ def test_sklearn_compute():
 
     y_pred_labels = list(set(indices.tolist()))
 
-    precision_sk = precision_score(y.data.numpy(),
-                                   indices.data.numpy(),
+    precision_sk = precision_score(y.numpy(),
+                                   indices.numpy(),
                                    labels=y_pred_labels,
                                    average=None)
 
@@ -163,7 +163,7 @@ def test_multilabel_example():
     y = torch.ones(4, 4).type(torch.LongTensor)
 
     precision.update((y_pred, y))
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+    assert precision.compute() == pytest.approx(precision_score(y.numpy(), y_pred.numpy(), average='samples'))
 
     # N x C x L case
     y_pred = torch.round(torch.rand(4, 5, 3))
@@ -172,9 +172,9 @@ def test_multilabel_example():
     precision.reset()
     precision.update((y_pred, y))
     num_classes = y_pred.size(1)
-    y_pred = y_pred.transpose(2, 1).contiguous().view(-1, num_classes)
-    y = y.transpose(2, 1).contiguous().view(-1, num_classes)
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+    y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+    y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+    assert precision.compute() == pytest.approx(precision_score(y.numpy(), y_pred.numpy(), average='samples'))
 
     # N x C x H x W
     y_pred = torch.round(torch.rand(4, 5, 3, 3))
@@ -183,9 +183,9 @@ def test_multilabel_example():
     precision.reset()
     precision.update((y_pred, y))
     num_classes = y_pred.size(1)
-    y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
-    y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
-    assert precision.compute() == pytest.approx(precision_score(y.data.numpy(), y_pred.data.numpy(), average='samples'))
+    y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+    y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+    assert precision.compute() == pytest.approx(precision_score(y.numpy(), y_pred.numpy(), average='samples'))
 
 
 def test_incorrect_multilabel_output():

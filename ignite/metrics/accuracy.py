@@ -49,15 +49,10 @@ class Accuracy(Metric):
         if not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
             raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
 
-        num_classes = y_pred.size(1)
-
-        if y_pred.ndimension() == 3:
-            y_pred = y_pred.transpose(2, 1).contiguous().view(-1, num_classes)
-            y = y.transpose(2, 1).contiguous().view(-1, num_classes)
-
-        if y_pred.ndimension() == 4:
-            y_pred = y_pred.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
-            y = y.permute(0, 2, 3, 1).contiguous().view(-1, num_classes)
+        if y_pred.ndimension() > 2:
+            num_classes = y_pred.size(1)
+            y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+            y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
 
         y_pred = self._threshold(y_pred).type(y.type())
 
@@ -76,8 +71,8 @@ class Accuracy(Metric):
         y_pred, y = output
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
-            raise ValueError("y must have shape of (batch_size, ...) and y_pred "
-                             "must have shape of (batch_size, num_categories, ...) or (batch_size, ...).")
+            raise ValueError("y must have shape of (batch_size, ...) and y_pred must have "
+                             "shape of (batch_size, num_categories, ...) or (batch_size, ...).")
 
         if y.ndimension() > 1 and y.shape[1] == 1:
             y = y.squeeze(dim=1)
