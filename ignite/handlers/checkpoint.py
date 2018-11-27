@@ -1,4 +1,5 @@
 import os
+import os.path
 import tempfile
 
 import torch
@@ -83,7 +84,7 @@ class ModelCheckpoint(object):
                  create_dir=True,
                  save_as_state_dict=False):
 
-        self._dirname = dirname
+        self._dirname = os.path.expanduser(dirname)
         self._fname_prefix = filename_prefix
         self._n_saved = n_saved
         self._save_interval = save_interval
