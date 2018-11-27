@@ -200,7 +200,8 @@ def test_incorrect_multilabel_output():
     with pytest.raises(ValueError):
         recall.update((y_pred, y))
 
-    recall.reset()
+    recall = Recall(is_multilabel=True, average=True)
+
     y_pred = torch.round(torch.rand(4, 4))
     y = torch.LongTensor(16).random_(0, 10).view(4, 4)
 
@@ -216,3 +217,39 @@ def test_multilabel_average_parameter():
 def test_multilabel_incorrect_threshold():
     with pytest.raises(ValueError):
         recall = Recall(is_multilabel=True, threshold_function=2)
+
+
+def test_multilabel_incorrect_shape():
+    recall = Recall(is_multilabel=True, average=True)
+
+    y_pred = torch.round(torch.rand(4, 1))
+    y = torch.ones(4, 1).type(torch.LongTensor)
+
+    with pytest.raises(ValueError):
+        recall.update((y_pred, y))
+
+
+def test_multilabel_compute_all_wrong():
+    recall = Recall(is_multilabel=True, average=True)
+
+    y = torch.ones(4, 4).type(torch.LongTensor)
+    y_pred = torch.zeros(4, 4)
+
+    recall.update((y_pred, y))
+    assert recall.compute() == pytest.approx(recall_score(y.numpy(), y_pred.numpy(), average='samples'))
+
+
+def test_mutlilabel_batch_update():
+    recall = Recall(is_multilabel=True, average=True)
+
+    y = torch.ones(2, 3).type(torch.LongTensor)
+    y_pred = torch.rand(2, 3)
+
+    recall.update((y_pred, y))
+    recall.update((y_pred, y))
+    recall.update((y_pred, y))
+
+    y = torch.cat([y, y, y], dim=0)
+    y_pred = torch.round(torch.cat([y_pred, y_pred, y_pred], dim=0))
+
+    assert recall.compute() == pytest.approx(recall_score(y.numpy(), y_pred.numpy(), average='samples'))
