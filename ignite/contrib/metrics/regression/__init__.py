@@ -4,3 +4,7 @@ from ignite.contrib.metrics.regression.manhattan_distance import ManhattanDistan
 from ignite.contrib.metrics.regression.mean_error import MeanError
 from ignite.contrib.metrics.regression.mean_normalized_bias import MeanNormalizedBias
 from ignite.contrib.metrics.regression.mean_absolute_relative_error import MeanAbsoluteRelativeError
+from ignite.contrib.metrics.regression.median_absolute_error import MedianAbsoluteError
+from ignite.contrib.metrics.regression.median_relative_absolute_error import MedianRelativeAbsoluteError
+from ignite.contrib.metrics.regression.median_absolute_percentage_error import MedianAbsolutePercentageError
+from ignite.contrib.metrics.regression.geometric_mean_relative_absolute_error import GeometricMeanRelativeAbsoluteError
