@@ -40,10 +40,12 @@ class Precision(Metric):
         else:
             self.update = self._update_multiclass
         super(Precision, self).__init__(output_transform=output_transform)
+        self._is_binary = None
 
     def reset(self):
         self._all_positives = None
         self._true_positives = None
+        self._is_binary = None
 
     def update(self, output):
         pass
@@ -127,6 +129,11 @@ class Precision(Metric):
             # Maps Binary Case to Categorical Case with 2 classes
             y_pred = y_pred.unsqueeze(dim=1)
             y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
+            if self._is_binary is None:
+                self._is_binary = True
+            elif not self._is_binary:
+                raise ValueError("A binary y (shape={}) or y_pred (shape={}) values encountered values while previous "
+                                 "values are categorical.".format(y.shape, y_pred.shape))
 
         y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
         indices = torch.max(y_pred, dim=1)[1].view(-1)
@@ -137,6 +144,10 @@ class Precision(Metric):
 
         correct = y * y_pred
         all_positives = y_pred.sum(dim=axis)
+
+        if self._is_binary:
+            correct = correct[:, 1, ...]
+            all_positives = all_positives[1, ...]
 
         if correct.sum() == 0:
             true_positives = torch.zeros_like(all_positives)

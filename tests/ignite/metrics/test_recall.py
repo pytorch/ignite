@@ -65,39 +65,38 @@ def test_compute_all_wrong():
 def test_binary_vs_categorical():
     recall = Recall(average=True)
 
-    y_pred = torch.FloatTensor([0.9, 0.2])
-    y = torch.LongTensor([1, 0])
-    y_pred = torch.round(y_pred)
+    y_pred = torch.FloatTensor([0.9, 0.2, 0.3, 0.5, 0.6])
+    y = torch.LongTensor([1, 0, 1, 0, 0])
     recall.update((y_pred, y))
-    assert recall.compute() == pytest.approx(recall_score(y.numpy(), y_pred.numpy(), average='macro'))
-    assert recall.compute() == 1.0
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert recall.compute() == pytest.approx(recall_score(np_y, np_y_pred))
 
     recall.reset()
-    y_pred = torch.FloatTensor([[0.1, 0.9], [0.8, 0.2]])
-    y = torch.LongTensor([1, 0])
+    y_pred = torch.FloatTensor([[0.1, 0.9], [0.8, 0.2], [0.25, 0.75], [0.95, 0.05], [0.54, 0.46]])
+    y = torch.LongTensor([1, 0, 0, 0, 1])
     indices = torch.max(y_pred, dim=1)[1]
     recall.update((y_pred, y))
     assert recall.compute() == pytest.approx(recall_score(y.numpy(), indices.numpy(), average='macro'))
-    assert recall.compute() == 1.0
 
 
 def test_binary_shapes():
     recall = Recall(average=True)
 
-    y = torch.LongTensor([1, 0])
-    y_pred = torch.FloatTensor([0.9, 0.2])
-    y_pred = torch.round(y_pred)
+    y = torch.LongTensor([1, 0, 1, 0, 0])
+    y_pred = torch.FloatTensor([0.9, 0.2, 0.7, 0.54, 0.29])
     recall.update((y_pred, y))
-    assert recall.compute() == pytest.approx(recall_score(y.numpy(), y_pred.numpy(), average='macro'))
-    assert recall.compute() == 1.0
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert recall.compute() == pytest.approx(recall_score(np_y, np_y_pred))
 
-    y = torch.LongTensor([[1], [0]])
-    y_pred = torch.FloatTensor([[0.9], [0.2]])
-    y_pred = torch.round(y_pred)
+    y = torch.LongTensor([[1], [0], [0], [1], [0]])
+    y_pred = torch.FloatTensor([[0.9], [0.2], [0.43], [0.56], [0.78]])
     recall.reset()
     recall.update((y_pred, y))
-    assert recall.compute() == pytest.approx(recall_score(y.numpy(), y_pred.numpy(), average='macro'))
-    assert recall.compute() == 1.0
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert recall.compute() == pytest.approx(recall_score(np_y, np_y_pred))
 
 
 def test_ner_example():
