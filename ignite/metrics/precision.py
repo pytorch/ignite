@@ -42,15 +42,15 @@ class Precision(Metric):
 
         if self._type == 'binary':
             y_pred = self._threshold(y_pred)
-            if not torch.equal(y, y **2):
+            if not torch.equal(y, y ** 2):
                 raise ValueError("For binary cases, y must contain 0's and 1's only.")
-            if not torch.equal(y_pred, y_pred**2):
+            if not torch.equal(y_pred, y_pred ** 2):
                 raise ValueError("For binary cases, y_pred must contain 0's and 1's only.")
         else:
             y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
             indices = torch.max(y_pred, dim=1)[1].view(-1)
             y_pred = to_onehot(indices, num_classes=y_pred.size(1))
-        
+
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
 
