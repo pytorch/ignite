@@ -26,7 +26,7 @@ class Precision(Metric):
             else:
                 raise ValueError("threshold_function must be a callable function.")
         else:
-            self._threshold = torch.round
+            self._threshold = threshold_function
         self._updated = False
         super(Precision, self).__init__(output_transform=output_transform)
 
@@ -112,6 +112,8 @@ class Precision(Metric):
             update_type = 'multiclass'
         elif y_pred.shape == y.shape and y.ndimension() == 1:
             update_type = 'binary'
+            if not self._updated and self._threshold is None:
+                self._threshold = torch.round
         else:
             raise TypeError('Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation'
                             ' for expected shapes of y and y_pred.'.format(y.shape, y_pred.shape))
