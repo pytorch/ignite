@@ -1,7 +1,7 @@
-from ignite.metrics._classification_support import PrecisionRecallSupport
+from ignite.metrics.precision import _BasePrecisionRecallSupport
 
 
-class Recall(PrecisionRecallSupport):
+class Recall(_BasePrecisionRecallSupport):
     """
     Calculates recall.
     - | `threshold_function` is only needed for binary cases. Default is `torch.round(x)`. It is used to convert
@@ -16,3 +16,8 @@ class Recall(PrecisionRecallSupport):
         self._precision_vs_recall = False
         super(Recall, self).__init__(output_transform=output_transform, average=average,
                                      threshold_function=threshold_function)
+
+    def update(self, output):
+        correct, _, y = self._calculate_correct(output)
+        actual_positives = y.sum(dim=0)
+        self._sum_positives(correct, actual_positives)

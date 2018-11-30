@@ -14,49 +14,52 @@ def test_zero_div():
 def test_binary_compute():
     acc = Accuracy()
 
-    y_pred = torch.sigmoid(torch.rand(4, 1))
+    y_pred = torch.rand(4, 1)
     y = torch.ones(4).type(torch.LongTensor)
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
     acc.reset()
-    y_pred = torch.sigmoid(torch.rand(4))
+    y_pred = torch.rand(4)
     y = torch.ones(4).type(torch.LongTensor)
-    y_pred = y_pred.unsqueeze(1)
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
 
 def test_compute_batch_images():
     acc = Accuracy()
 
-    y_pred = torch.sigmoid(torch.rand(1, 2, 2))
+    y_pred = torch.rand(1, 2, 2)
     y = torch.ones(1, 2, 2).type(torch.LongTensor)
-    y_pred = y_pred.unsqueeze(1)
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
+    np_y = y.numpy().ravel()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
     acc.reset()
-    y_pred = torch.sigmoid(torch.rand(2, 1, 2, 2))
+    y_pred = torch.rand(2, 1, 2, 2)
     y = torch.ones(2, 2, 2).type(torch.LongTensor)
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
+    np_y = y.numpy().ravel()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
     acc.reset()
-    y_pred = torch.sigmoid(torch.rand(2, 1, 2, 2))
+    y_pred = torch.rand(2, 1, 2, 2)
     y = torch.ones(2, 1, 2, 2).type(torch.LongTensor)
-    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
+    np_y = y.numpy().ravel()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     assert isinstance(acc.compute(), float)
-    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
 
 def test_categorical_compute():
