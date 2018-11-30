@@ -17,43 +17,6 @@ class _BasePrecisionRecallSupport(_BaseClassification):
         self._true_positives = None
         self._positives = None
 
-    def _calculate_correct(self, output):
-        y_pred, y = self._check_shape(output)
-        self._check_type((y_pred, y))
-
-        dtype = y_pred.type()
-
-        if self._type == 'binary':
-            y_pred = y_pred.view(-1)
-            y = y.view(-1)
-            y_pred = self._threshold(y_pred)
-            if not torch.equal(y, y ** 2):
-                raise ValueError("For binary cases, y must contain 0's and 1's only.")
-            if not torch.equal(y_pred, y_pred ** 2):
-                raise ValueError("For binary cases, y_pred must contain 0's and 1's only.")
-        else:
-            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
-            indices = torch.max(y_pred, dim=1)[1].view(-1)
-            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
-
-        y_pred = y_pred.type(dtype)
-        y = y.type(dtype)
-        correct = y * y_pred
-
-        return correct, y_pred, y
-
-    def _sum_positives(self, correct, positives):
-        if correct.sum() == 0:
-            true_positives = torch.zeros_like(positives)
-        else:
-            true_positives = correct.sum(dim=0)
-        if self._true_positives is None:
-            self._true_positives = true_positives
-            self._positives = positives
-        else:
-            self._true_positives += true_positives
-            self._positives += positives
-
     def compute(self):
         if self._positives is None:
             raise NotComputableError('{} must have at least one example before'
@@ -84,9 +47,40 @@ class Precision(_BasePrecisionRecallSupport):
                                         threshold_function=threshold_function)
 
     def update(self, output):
-        correct, y_pred, _ = self._calculate_correct(output)
+        y_pred, y = self._check_shape(output)
+        self._check_type((y_pred, y))
+
+        dtype = y_pred.type()
+
+        if self._type == 'binary':
+            y_pred = y_pred.view(-1)
+            y = y.view(-1)
+            y_pred = self._threshold(y_pred)
+            if not torch.equal(y, y ** 2):
+                raise ValueError("For binary cases, y must contain 0's and 1's only.")
+            if not torch.equal(y_pred, y_pred ** 2):
+                raise ValueError("For binary cases, y_pred must contain 0's and 1's only.")
+        else:
+            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
+            indices = torch.max(y_pred, dim=1)[1].view(-1)
+            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
+
+        y_pred = y_pred.type(dtype)
+        y = y.type(dtype)
+
+        correct = y * y_pred
         all_positives = y_pred.sum(dim=0)
-        self._sum_positives(correct, all_positives)
+
+        if correct.sum() == 0:
+            true_positives = torch.zeros_like(all_positives)
+        else:
+            true_positives = correct.sum(dim=0)
+        if self._true_positives is None:
+            self._true_positives = true_positives
+            self._positives = all_positives
+        else:
+            self._true_positives += true_positives
+            self._positives += all_positives
 
 
 class Recall(_BasePrecisionRecallSupport):
@@ -106,6 +100,37 @@ class Recall(_BasePrecisionRecallSupport):
                                      threshold_function=threshold_function)
 
     def update(self, output):
-        correct, _, y = self._calculate_correct(output)
+        y_pred, y = self._check_shape(output)
+        self._check_type((y_pred, y))
+
+        dtype = y_pred.type()
+
+        if self._type == 'binary':
+            y_pred = y_pred.view(-1)
+            y = y.view(-1)
+            y_pred = self._threshold(y_pred)
+            if not torch.equal(y, y ** 2):
+                raise ValueError("For binary cases, y must contain 0's and 1's only.")
+            if not torch.equal(y_pred, y_pred ** 2):
+                raise ValueError("For binary cases, y_pred must contain 0's and 1's only.")
+        else:
+            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
+            indices = torch.max(y_pred, dim=1)[1].view(-1)
+            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
+
+        y_pred = y_pred.type(dtype)
+        y = y.type(dtype)
+
+        correct = y * y_pred
         actual_positives = y.sum(dim=0)
-        self._sum_positives(correct, actual_positives)
+
+        if correct.sum() == 0:
+            true_positives = torch.zeros_like(actual_positives)
+        else:
+            true_positives = correct.sum(dim=0)
+        if self._true_positives is None:
+            self._true_positives = true_positives
+            self._positives = actual_positives
+        else:
+            self._true_positives += true_positives
+            self._positives += actual_positives
