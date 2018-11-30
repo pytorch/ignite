@@ -5,6 +5,9 @@ import torch
 from sklearn.metrics import precision_score
 
 
+torch.manual_seed(12)
+
+
 def test_no_update():
     precision = Precision()
     with pytest.raises(NotComputableError):

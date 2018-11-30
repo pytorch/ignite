@@ -5,6 +5,9 @@ import torch
 from sklearn.metrics import recall_score
 
 
+torch.manual_seed(12)
+
+
 def test_no_update():
     recall = Recall()
     with pytest.raises(NotComputableError):
