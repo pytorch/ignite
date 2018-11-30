@@ -14,4 +14,5 @@ class Recall(PrecisionRecallSupport):
     """
     def __init__(self, output_transform=lambda x: x, average=False, threshold_function=None):
         self._precision_vs_recall = False
-        super(Recall, self).__init__(output_transform=output_transform, average=average, threshold_function=threshold_function)
+        super(Recall, self).__init__(output_transform=output_transform, average=average,
+                                     threshold_function=threshold_function)

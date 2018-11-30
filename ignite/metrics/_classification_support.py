@@ -71,7 +71,8 @@ class ClassificationSupport(Metric):
 class PrecisionRecallSupport(ClassificationSupport):
     def __init__(self, output_transform=lambda x: x, average=False, threshold_function=None):
         self._average = average
-        super(PrecisionRecallSupport, self).__init__(output_transform=output_transform, threshold_function=threshold_function)
+        super(PrecisionRecallSupport, self).__init__(output_transform=output_transform,
+                                                     threshold_function=threshold_function)
 
     def reset(self):
         self._numerator = None
@@ -113,7 +114,7 @@ class PrecisionRecallSupport(ClassificationSupport):
 
     def compute(self):
         if self._denominator is None:
-            raise NotComputableError('{} must have at least one example before' 
+            raise NotComputableError('{} must have at least one example before'
                                      ' it can be computed'.format(self.__class__.__name__))
 
         result = self._numerator / self._denominator
@@ -122,4 +123,3 @@ class PrecisionRecallSupport(ClassificationSupport):
             return result.mean().item()
         else:
             return result
-
