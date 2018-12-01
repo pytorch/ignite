@@ -2,6 +2,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import BinaryAccuracy
 import pytest
 import torch
+from sklearn.metrics import accuracy_score
 
 
 def test_zero_div():
@@ -13,38 +14,46 @@ def test_zero_div():
 def test_compute():
     acc = BinaryAccuracy()
 
-    y_pred = torch.FloatTensor([0.2, 0.4, 0.6, 0.8])
+    y_pred = torch.sigmoid(torch.rand(4, 1))
     y = torch.ones(4).type(torch.LongTensor)
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert acc.compute() == 0.5
+    assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
 
     acc.reset()
-    y_pred = torch.FloatTensor([0.2, 0.7, 0.8, 0.9])
+    y_pred = torch.sigmoid(torch.rand(4))
     y = torch.ones(4).type(torch.LongTensor)
+    y_pred = y_pred.unsqueeze(1)
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert acc.compute() == 0.75
+    assert accuracy_score(y.data.numpy(), indices.data.numpy()) == pytest.approx(acc.compute())
 
 
 def test_compute_batch_images():
     acc = BinaryAccuracy()
 
-    y_pred = torch.FloatTensor([[[0.3, 0.7],
-                                 [0.1, 0.6]],
-                                [[0.2, 0.7],
-                                 [0.2, 0.6]]])
+    y_pred = torch.sigmoid(torch.rand(1, 2, 2))
     y = torch.ones(1, 2, 2).type(torch.LongTensor)
+    y_pred = y_pred.unsqueeze(1)
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert acc.compute() == 0.5
+    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
 
     acc.reset()
-    y_pred = torch.FloatTensor([[[0.3, 0.7],
-                                 [0.8, 0.6]],
-                                [[0.2, 0.7],
-                                 [0.9, 0.6]]])
+    y_pred = torch.sigmoid(torch.rand(2, 1, 2, 2))
     y = torch.ones(2, 2, 2).type(torch.LongTensor)
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
     acc.update((y_pred, y))
     assert isinstance(acc.compute(), float)
-    assert acc.compute() == 0.75
+    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())
+
+    acc.reset()
+    y_pred = torch.sigmoid(torch.rand(2, 1, 2, 2))
+    y = torch.ones(2, 1, 2, 2).type(torch.LongTensor)
+    indices = torch.max(torch.cat([1.0 - y_pred, y_pred], dim=1), dim=1)[1]
+    acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
+    assert accuracy_score(y.view(-1).data.numpy(), indices.view(-1).data.numpy()) == pytest.approx(acc.compute())

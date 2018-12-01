@@ -308,8 +308,11 @@ def main(dataset, dataroot,
 
     # attach running average metrics
     monitoring_metrics = ['errD', 'errG', 'D_x', 'D_G_z1', 'D_G_z2']
-    for metric in monitoring_metrics:
-        RunningAverage(alpha=alpha, output_transform=lambda x: x[metric]).attach(trainer, metric)
+    RunningAverage(alpha=alpha, output_transform=lambda x: x['errD']).attach(trainer, 'errD')
+    RunningAverage(alpha=alpha, output_transform=lambda x: x['errG']).attach(trainer, 'errG')
+    RunningAverage(alpha=alpha, output_transform=lambda x: x['D_x']).attach(trainer, 'D_x')
+    RunningAverage(alpha=alpha, output_transform=lambda x: x['D_G_z1']).attach(trainer, 'D_G_z1')
+    RunningAverage(alpha=alpha, output_transform=lambda x: x['D_G_z2']).attach(trainer, 'D_G_z2')
 
     # attach progress bar
     pbar = ProgressBar()

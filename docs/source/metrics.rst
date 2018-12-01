@@ -14,7 +14,7 @@ value is then computed using the output of the engine's `process_function`:
             return y_pred, y
 
         engine = Engine(process_function)
-        metric = CategoricalAccuracy()
+        metric = Accuracy()
         metric.attach(engine, "accuracy")
 
 If the engine's output is not in the format `y_pred, y`, the user can
@@ -32,13 +32,30 @@ use the `output_transform` argument to transform it:
             # `output` variable is returned by above `process_function`
             y_pred = output['y_pred']
             y = output['y_true']
-            return y_pred, y  # output format is according to `CategoricalAccuracy` docs
+            return y_pred, y  # output format is according to `Accuracy` docs
 
-        metric = CategoricalAccuracy(output_transform=output_transform)
+        metric = Accuracy(output_transform=output_transform)
         metric.attach(engine, "accuracy")
+
+Metrics could be combined together to form a new metric through arithmetics,
+for example:
+
+    .. code-block:: python
+
+        precision = Precision(average=False)
+        recall = Recall(average=False)
+        F1 = precision * recall * 2 / (precision + recall)
+
+    .. note::  This example computes F1 for each class separately, rather than
+        the mean of F1 across class. To combine precision and recall to get
+        F1 or other F metrics, we have to be careful that `average=False`, i.e.
+        to use the unaveraged precision and recall, otherwise we will not be
+        computing F metrics.
 
 
 .. currentmodule:: ignite.metrics
+
+.. autoclass:: Accuracy
 
 .. autoclass:: BinaryAccuracy
 
@@ -66,3 +83,5 @@ use the `output_transform` argument to transform it:
 .. autoclass:: EpochMetric
 
 .. autoclass:: RunningAverage
+
+.. autoclass:: MetricsLambda

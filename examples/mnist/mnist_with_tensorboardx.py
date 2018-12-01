@@ -25,7 +25,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
 from ignite.contrib.handlers import TensorboardLogger
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import CategoricalAccuracy, Loss
+from ignite.metrics import Accuracy, Loss
 from ignite.metrics import RunningAverage
 
 
@@ -72,7 +72,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
     avg_output = RunningAverage(output_transform=lambda x: x)
     avg_output.attach(trainer, 'loss')
     evaluator = create_supervised_evaluator(model,
-                                            metrics={'accuracy': CategoricalAccuracy(),
+                                            metrics={'accuracy': Accuracy(),
                                                      'nll': Loss(F.nll_loss)},
                                             device=device)
     train_evaluator = validation_evaluator = evaluator
