@@ -304,7 +304,7 @@ class LRScheduler(ParamScheduler):
 
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
-    def __init__(self, lr_scheduler, save_history=False):
+    def __init__(self, lr_scheduler, save_history=False, **kwds):
 
         self.lr_scheduler = lr_scheduler
         super(LRScheduler, self).__init__(
@@ -338,10 +338,13 @@ class ReduceLROnPlateau(ParamScheduler):
 
     Args:
         optimizer (Optimizer): Wrapped optimizer.
-        metric_name (str, optional): name of  metrics by which to measure plateau (either `metric_name` or
+        metric_name (str, optional): name of  metrics by which to
+             measure plateau (either `metric_name` or
             `output_transform` should be used, but not both).
-        output_transform (Callable, optional): a function to select (from the engine's output) what you want
-         to measure plateau by. This function should return a single scalar. (either `metric_name` or
+        output_transform (Callable, optional): a function to select
+            (from the engine's output) what you want
+            to measure plateau by. This function should return a
+            single scalar. (either `metric_name` or
             `output_transform` should be used, but not both).
         mode (str): One of `min`, `max`. In `min` mode, lr will
             be reduced when the quantity monitored has stopped
@@ -381,15 +384,15 @@ class ReduceLROnPlateau(ParamScheduler):
         scheduler = ReduceLROnPlateau(optimizer, output_transform=lambda x: x, patience=2, factor=0.2)
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
-    def __init__(self, optimizer, metric_name=None, output_transform=None, mode='min', factor=0.1,
-                 patience=10, threshold=1e-4, threshold_mode='rel',
-                 cooldown=0, min_lr=0, eps=1e-8, save_history=False):
+    def __init__(self, optimizer, metric_name=None, output_transform=None, mode='min',
+                 factor=0.1, patience=10, threshold=1e-4, threshold_mode='rel',
+                 cooldown=0, min_lr=0, eps=1e-8, save_history=False, **kwds):
 
         assert (metric_name is None and output_transform is not None) or \
                (metric_name is not None and output_transform is None), \
             "One of the parameters: `metric_name`, `output_transform` should be used but not both. "
 
-        import torch.optim.lr_scheduler.ReduceLROnPlateau as pytorch_ROP
+        from torch.optim.lr_scheduler import ReduceLROnPlateau as pytorch_ROP
 
         self._lr_scheduler = pytorch_ROP(
             optimizer=optimizer,
