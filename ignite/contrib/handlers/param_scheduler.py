@@ -447,5 +447,3 @@ class ReduceLROnPlateau(ParamScheduler):
         param_group = list(self.optimizer_param_groups)[0]
 
         return param_group[self.param_name]
-
-
