@@ -64,9 +64,6 @@ class Accuracy(_BaseClassification):
     - `y` must be in the following shape (batch_size, ...)
     """
 
-    def __init__(self, output_transform=lambda x: x):
-        super(Accuracy, self).__init__(output_transform)
-
     def reset(self):
         self._num_correct = 0
         self._num_examples = 0
