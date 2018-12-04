@@ -123,19 +123,6 @@ def test_incorrect_shape():
         acc.update((y_pred, y))
 
 
-def test_incorrect_threshold():
-    with pytest.raises(ValueError):
-        acc = Accuracy(threshold_function=2)
-
-    acc = Accuracy(threshold_function=lambda x: x + 2)
-
-    y_pred = torch.rand(4, 1)
-    y = torch.ones(4, 1).type(torch.LongTensor)
-
-    with pytest.raises(ValueError):
-        acc.update((y_pred, y))
-
-
 def test_incorrect_binary_y():
     acc = Accuracy()
 

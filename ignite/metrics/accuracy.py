@@ -7,14 +7,7 @@ from ignite.exceptions import NotComputableError
 
 
 class _BaseClassification(Metric):
-    def __init__(self, output_transform=lambda x: x, threshold_function=None):
-        if threshold_function is not None:
-            if callable(threshold_function):
-                self._threshold = threshold_function
-            else:
-                raise ValueError("threshold_function must be a callable function.")
-        else:
-            self._threshold = threshold_function
+    def __init__(self, output_transform=lambda x: x):
         self._updated = False
         super(_BaseClassification, self).__init__(output_transform=output_transform)
 
@@ -47,10 +40,10 @@ class _BaseClassification(Metric):
 
         if y.ndimension() + 1 == y_pred.ndimension():
             update_type = 'multiclass'
-        elif (y_pred.shape == y.shape) or y_pred.shape[1] == 1:
+        elif y.ndimension() == y_pred.ndimension():
             update_type = 'binary'
-            if not self._updated and self._threshold is None:
-                self._threshold = torch.round
+            if not torch.equal(y, y**2):
+                raise ValueError('For binary cases, y must be comprised of 0\'s and 1\'s.')
         else:
             raise TypeError('Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation'
                             ' for expected shapes of y and y_pred.'.format(y.shape, y_pred.shape))
@@ -71,8 +64,8 @@ class Accuracy(_BaseClassification):
     - `y` must be in the following shape (batch_size, ...)
     """
 
-    def __init__(self, output_transform=lambda x: x, threshold_function=None):
-        super(Accuracy, self).__init__(output_transform, threshold_function)
+    def __init__(self, output_transform=lambda x: x):
+        super(Accuracy, self).__init__(output_transform)
 
     def reset(self):
         self._num_correct = 0
@@ -86,18 +79,11 @@ class Accuracy(_BaseClassification):
         y_pred, y = output
 
         if self._type == 'binary':
-            y_pred = y_pred.view(-1)
-            y = y.view(-1)
+            y_pred = y_pred.unsqueeze(dim=1)
+            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 
-            y_pred = self._threshold(y_pred)
-            if not torch.equal(y, y ** 2):
-                raise ValueError("For binary cases, y must contain 0's and 1's only.")
-            if not torch.equal(y_pred, y_pred ** 2):
-                raise ValueError("For binary cases, y_pred must contain 0's and 1's only.")
-            correct = torch.eq(y_pred, y.type_as(y_pred)).view(-1)
-        else:
-            indices = torch.max(y_pred, dim=1)[1]
-            correct = torch.eq(indices, y.type_as(indices)).view(-1)
+        indices = torch.max(y_pred, dim=1)[1]
+        correct = torch.eq(indices.view_as(y), y.type_as(indices)).view(-1)
 
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
