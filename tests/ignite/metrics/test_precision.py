@@ -65,16 +65,16 @@ def test_compute_all_wrong():
 def test_binary_vs_categorical():
     precision = Precision(average=True)
 
-    y_pred = torch.FloatTensor([0.9, 0.2, 0.3, 0.5, 0.6])
-    y = torch.LongTensor([1, 0, 1, 0, 0])
+    y_pred = torch.rand(10)
+    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
     precision.update((y_pred, y))
     np_y = y.numpy()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     assert precision.compute() == pytest.approx(precision_score(np_y, np_y_pred))
 
     precision = Precision(average=True)
-    y_pred = torch.FloatTensor([[0.1, 0.9], [0.8, 0.2], [0.25, 0.75], [0.95, 0.05], [0.54, 0.46]])
-    y = torch.LongTensor([1, 0, 0, 0, 1])
+    y_pred = torch.softmax(torch.rand(10, 2), dim=1)
+    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
     indices = torch.max(y_pred, dim=1)[1]
     precision.update((y_pred, y))
     assert precision.compute() == pytest.approx(precision_score(y.numpy(), indices.numpy(), average='macro'))
@@ -83,28 +83,44 @@ def test_binary_vs_categorical():
 def test_binary_shapes():
     precision = Precision(average=True)
 
-    y = torch.LongTensor([1, 0, 1, 0, 0])
-    y_pred = torch.FloatTensor([0.9, 0.2, 0.7, 0.54, 0.29])
+    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+    y_pred = torch.rand(10, 1)
     precision.update((y_pred, y))
     np_y = y.numpy()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     assert precision.compute() == pytest.approx(precision_score(np_y, np_y_pred))
 
-    y = torch.LongTensor([[1], [0], [0], [1], [0]])
-    y_pred = torch.FloatTensor([[0.9], [0.2], [0.43], [0.56], [0.78]])
+    y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
+    y_pred = torch.rand(10)
     precision.reset()
     precision.update((y_pred, y))
     np_y = y.numpy()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
     assert precision.compute() == pytest.approx(precision_score(np_y, np_y_pred))
 
+    precision = Precision()
+
+    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+    y_pred = torch.rand(10)
+    precision.update((y_pred, y))
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert precision.compute().numpy() == pytest.approx(precision_score(np_y, np_y_pred, average=None))
+
+    y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
+    y_pred = torch.rand(10, 1)
+    precision.reset()
+    precision.update((y_pred, y))
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert precision.compute().numpy() == pytest.approx(precision_score(np_y, np_y_pred, average=None))
+
 
 def test_ner_example():
     precision = Precision()
 
-    y = torch.Tensor([[1, 1, 1, 1, 1, 1, 1, 1],
-                      [2, 2, 2, 2, 2, 2, 2, 2]]).type(torch.LongTensor)
     y_pred = torch.softmax(torch.rand(2, 3, 8), dim=1)
+    y = torch.randint(0, 3, size=(2, 8)).type(torch.LongTensor)
     indices = torch.max(y_pred, dim=1)[1]
     y_pred_labels = list(set(indices.view(-1).tolist()))
 
@@ -155,19 +171,6 @@ def test_sklearn_compute():
     precision_ig = [precision_ig[i] for i in y_pred_labels]
 
     assert all([a == pytest.approx(b) for a, b in zip(precision_sk, precision_ig)])
-
-
-def test_incorrect_threshold():
-    with pytest.raises(ValueError):
-        precision = Precision(threshold_function=2)
-
-    precision = Precision(threshold_function=lambda x: x + 2)
-
-    y_pred = torch.rand(4, 1)
-    y = torch.ones(4, 1).type(torch.LongTensor)
-
-    with pytest.raises(ValueError):
-        precision.update((y_pred, y))
 
 
 def test_incorrect_binary_y():

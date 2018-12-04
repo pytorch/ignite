@@ -7,11 +7,10 @@ from ignite.exceptions import NotComputableError
 from ignite._utils import to_onehot
 
 
-class _BasePrecisionRecallSupport(_BaseClassification):
-    def __init__(self, output_transform=lambda x: x, average=False, threshold_function=None):
+class _BasePrecisionRecall(_BaseClassification):
+    def __init__(self, output_transform=lambda x: x, average=False):
         self._average = average
-        super(_BasePrecisionRecallSupport, self).__init__(output_transform=output_transform,
-                                                          threshold_function=threshold_function)
+        super(_BasePrecisionRecall, self).__init__(output_transform=output_transform)
 
     def reset(self):
         self._true_positives = None
@@ -25,26 +24,23 @@ class _BasePrecisionRecallSupport(_BaseClassification):
         result = self._true_positives / self._positives
         result[result != result] = 0.0
         if self._average:
-            return result.mean().item()
+            if self._type == 'binary':
+                return result[1].item()
+            else:
+                return result.mean().item()
         else:
             return result
 
 
-class Precision(_BasePrecisionRecallSupport):
+class Precision(_BasePrecisionRecall):
     """
     Calculates precision.
-    - | `threshold_function` is only needed for binary cases. Default is `torch.round(x)`. It is used to convert
-      | `y_pred` to 0's and 1's.
     - `update` must receive output of the form `(y_pred, y)`.
     - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
       | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
     For binary or multiclass cases, if `average` is True, returns the unweighted average across all classes.
     Otherwise, returns a tensor with the precision for each class.
     """
-    def __init__(self, output_transform=lambda x: x, average=False, threshold_function=None):
-        self._precision_vs_recall = True
-        super(Precision, self).__init__(output_transform=output_transform, average=average,
-                                        threshold_function=threshold_function)
 
     def update(self, output):
         y_pred, y = self._check_shape(output)
@@ -53,17 +49,13 @@ class Precision(_BasePrecisionRecallSupport):
         dtype = y_pred.type()
 
         if self._type == 'binary':
-            y_pred = y_pred.view(-1)
-            y = y.view(-1)
-            y_pred = self._threshold(y_pred)
-            if not torch.equal(y, y ** 2):
-                raise ValueError("For binary cases, y must contain 0's and 1's only.")
-            if not torch.equal(y_pred, y_pred ** 2):
-                raise ValueError("For binary cases, y_pred must contain 0's and 1's only.")
-        else:
-            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
-            indices = torch.max(y_pred, dim=1)[1].view(-1)
-            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
+            y_pred = y_pred.unsqueeze(dim=1)
+            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
+
+        num_classes = y_pred.size(1)
+        y = to_onehot(y.view(-1), num_classes=num_classes)
+        indices = torch.max(y_pred, dim=1)[1].view(-1)
+        y_pred = to_onehot(indices, num_classes=num_classes)
 
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
@@ -83,21 +75,15 @@ class Precision(_BasePrecisionRecallSupport):
             self._positives += all_positives
 
 
-class Recall(_BasePrecisionRecallSupport):
+class Recall(_BasePrecisionRecall):
     """
     Calculates recall.
-    - | `threshold_function` is only needed for binary cases. Default is `torch.round(x)`. It is used to convert
-      | `y_pred` to 0's and 1's.
     - `update` must receive output of the form `(y_pred, y)`.
     - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
       | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
     For binary or multiclass cases, if `average` is True, returns the unweighted average across all classes.
     Otherwise, returns a tensor with the recall for each class.
     """
-    def __init__(self, output_transform=lambda x: x, average=False, threshold_function=None):
-        self._precision_vs_recall = False
-        super(Recall, self).__init__(output_transform=output_transform, average=average,
-                                     threshold_function=threshold_function)
 
     def update(self, output):
         y_pred, y = self._check_shape(output)
@@ -106,17 +92,13 @@ class Recall(_BasePrecisionRecallSupport):
         dtype = y_pred.type()
 
         if self._type == 'binary':
-            y_pred = y_pred.view(-1)
-            y = y.view(-1)
-            y_pred = self._threshold(y_pred)
-            if not torch.equal(y, y ** 2):
-                raise ValueError("For binary cases, y must contain 0's and 1's only.")
-            if not torch.equal(y_pred, y_pred ** 2):
-                raise ValueError("For binary cases, y_pred must contain 0's and 1's only.")
-        else:
-            y = to_onehot(y.view(-1), num_classes=y_pred.size(1))
-            indices = torch.max(y_pred, dim=1)[1].view(-1)
-            y_pred = to_onehot(indices, num_classes=y_pred.size(1))
+            y_pred = y_pred.unsqueeze(dim=1)
+            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
+
+        num_classes = y_pred.size(1)
+        y = to_onehot(y.view(-1), num_classes=num_classes)
+        indices = torch.max(y_pred, dim=1)[1].view(-1)
+        y_pred = to_onehot(indices, num_classes=num_classes)
 
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
