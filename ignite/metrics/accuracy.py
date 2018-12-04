@@ -62,6 +62,7 @@ class Accuracy(_BaseClassification):
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
+    - In binary cases if a specific threshold probability is required, use output_transform.
     """
 
     def reset(self):
@@ -73,9 +74,7 @@ class Accuracy(_BaseClassification):
         y_pred, y = self._check_shape(output)
         self._check_type((y_pred, y))
 
-        y_pred, y = output
-
-        if self._type == 'binary':
+        if y_pred.ndimension() == y.ndimension():
             y_pred = y_pred.unsqueeze(dim=1)
             y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 

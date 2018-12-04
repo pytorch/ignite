@@ -38,6 +38,9 @@ class Precision(_BasePrecisionRecall):
     - `update` must receive output of the form `(y_pred, y)`.
     - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
       | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
+    - In binary cases if a specific threshold probability is required, use output_transform.
+    - In binary cases if a specific threshold probability is required, use output_transform.
+    For binary cases, if `average` is True, returns precision of positive class, assumed to be 1.
     For binary or multiclass cases, if `average` is True, returns the unweighted average across all classes.
     Otherwise, returns a tensor with the precision for each class.
     """
@@ -48,7 +51,7 @@ class Precision(_BasePrecisionRecall):
 
         dtype = y_pred.type()
 
-        if self._type == 'binary':
+        if y_pred.ndimension() == y.ndimension():
             y_pred = y_pred.unsqueeze(dim=1)
             y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 
@@ -81,7 +84,9 @@ class Recall(_BasePrecisionRecall):
     - `update` must receive output of the form `(y_pred, y)`.
     - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
       | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
-    For binary or multiclass cases, if `average` is True, returns the unweighted average across all classes.
+    - In binary cases if a specific threshold probability is required, use output_transform.
+    For binary cases, if `average` is True, returns precision of positive class, assumed to be 1.
+    For multiclass cases, if `average` is True, returns the unweighted average across all classes.
     Otherwise, returns a tensor with the recall for each class.
     """
 
@@ -91,7 +96,7 @@ class Recall(_BasePrecisionRecall):
 
         dtype = y_pred.type()
 
-        if self._type == 'binary':
+        if y_pred.ndimension() == y.ndimension():
             y_pred = y_pred.unsqueeze(dim=1)
             y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 
