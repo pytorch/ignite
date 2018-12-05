@@ -8,7 +8,7 @@ from ignite.exceptions import NotComputableError
 
 class _BaseClassification(Metric):
     def __init__(self, output_transform=lambda x: x):
-        self._updated = False
+        self._type = None
         super(_BaseClassification, self).__init__(output_transform=output_transform)
 
     def _check_shape(self, output):
@@ -47,9 +47,8 @@ class _BaseClassification(Metric):
         else:
             raise TypeError('Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation'
                             ' for expected shapes of y and y_pred.'.format(y.shape, y_pred.shape))
-        if not self._updated:
+        if self._type is None:
             self._type = update_type
-            self._updated = True
         else:
             if self._type != update_type:
                 raise TypeError('update_type has changed from {} to {}.'.format(self._type, update_type))

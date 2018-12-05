@@ -19,7 +19,7 @@ class _BasePrecisionRecall(_BaseClassification):
         if y.ndimension() + 1 == y_pred.ndimension():
             if y_pred.shape[1] == 2:
                 update_type = 'binary_multiclass'
-                if not self._updated:
+                if self._type is None:
                     warnings.warn('Given num_classes=2, only {}'
                                   ' for positive class, 1, will be computed.'.format(self.__class__.__name__))
             else:
@@ -31,9 +31,8 @@ class _BasePrecisionRecall(_BaseClassification):
         else:
             raise TypeError('Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation'
                             ' for expected shapes of y and y_pred.'.format(y.shape, y_pred.shape))
-        if not self._updated:
+        if self._type is None:
             self._type = update_type
-            self._updated = True
         else:
             if self._type != update_type:
                 raise TypeError('update_type has changed from {} to {}.'.format(self._type, update_type))
