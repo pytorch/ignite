@@ -16,27 +16,29 @@ def test_no_update():
 
 def test_compute():
     recall = Recall()
-
     y_pred = torch.eye(4)
     y = torch.ones(4).type(torch.LongTensor)
     recall.update((y_pred, y))
 
     result = list(recall.compute())
 
+    assert recall._type == 'multiclass'
     assert result[0] == 0.0
     assert result[1] == 0.25
     assert result[2] == 0.0
     assert result[3] == 0.0
 
-    recall.reset()
+    recall = Recall()
     y_pred = torch.eye(2)
     y = torch.ones(2).type(torch.LongTensor)
-    recall.update((y_pred, y))
+    with pytest.warns(UserWarning):
+        recall.update((y_pred, y))
     y = torch.zeros(2).type(torch.LongTensor)
     recall.update((y_pred, y))
 
     result = list(recall.compute())
 
+    assert recall._type == 'binary_multiclass'
     assert result[0] == 0.5
     assert result[1] == 0.5
 
@@ -48,6 +50,7 @@ def test_compute_average():
     y = torch.ones(4).type(torch.LongTensor)
     recall.update((y_pred, y))
 
+    assert recall._type == 'multiclass'
     assert isinstance(recall.compute(), float)
     assert recall.compute() == 0.0625
 
@@ -57,66 +60,70 @@ def test_compute_all_wrong():
 
     y_pred = torch.FloatTensor([[1.0, 0.0], [1.0, 0.0]])
     y = torch.ones(2).type(torch.LongTensor)
-    recall.update((y_pred, y))
+    with pytest.warns(UserWarning):
+        recall.update((y_pred, y))
 
     result = list(recall.compute())
 
+    assert recall._type == 'binary_multiclass'
     assert result[0] == 0.0
     assert result[1] == 0.0
 
 
-def test_binary_vs_categorical():
+def test_binary_shapes():
     recall = Recall(average=True)
-
-    y_pred = torch.rand(10)
     y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+    y_pred = torch.rand(10, 1)
     recall.update((y_pred, y))
     np_y = y.numpy()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert recall._type == 'binary'
     assert recall.compute() == pytest.approx(recall_score(np_y, np_y_pred))
+
+    y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
+    y_pred = torch.rand(10)
+    recall.reset()
+    recall.update((y_pred, y))
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert recall._type == 'binary'
+    assert recall.compute() == pytest.approx(recall_score(np_y, np_y_pred))
+
+    recall = Recall()
+    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+    y_pred = torch.rand(10)
+    recall.update((y_pred, y))
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert recall._type == 'binary'
+    assert recall.compute().numpy() == pytest.approx(recall_score(np_y, np_y_pred, average=None))
+
+    y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
+    y_pred = torch.rand(10, 1)
+    recall.reset()
+    recall.update((y_pred, y))
+    np_y = y.numpy()
+    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert recall._type == 'binary'
+    assert recall.compute().numpy() == pytest.approx(recall_score(np_y, np_y_pred, average=None))
+
+    recall = Recall(average=False)
+    y_pred = torch.softmax(torch.rand(10, 2), dim=1)
+    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+    indices = torch.max(y_pred, dim=1)[1]
+    with pytest.warns(UserWarning):
+        recall.update((y_pred, y))
+    assert recall._type == 'binary_multiclass'
+    assert recall.compute().numpy() == pytest.approx(recall_score(y.numpy(), indices.numpy(), average=None))
 
     recall = Recall(average=True)
     y_pred = torch.softmax(torch.rand(10, 2), dim=1)
     y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
     indices = torch.max(y_pred, dim=1)[1]
-    recall.update((y_pred, y))
-    assert recall.compute() == pytest.approx(recall_score(y.numpy(), indices.numpy(), average='macro'))
-
-
-def test_binary_shapes():
-    recall = Recall(average=True)
-
-    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
-    y_pred = torch.rand(10, 1)
-    recall.update((y_pred, y))
-    np_y = y.numpy()
-    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
-    assert recall.compute() == pytest.approx(recall_score(np_y, np_y_pred))
-
-    y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
-    y_pred = torch.rand(10)
-    recall.reset()
-    recall.update((y_pred, y))
-    np_y = y.numpy()
-    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
-    assert recall.compute() == pytest.approx(recall_score(np_y, np_y_pred))
-
-    recall = Recall()
-
-    y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
-    y_pred = torch.rand(10)
-    recall.update((y_pred, y))
-    np_y = y.numpy()
-    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
-    assert recall.compute().numpy() == pytest.approx(recall_score(np_y, np_y_pred, average=None))
-
-    y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
-    y_pred = torch.rand(10, 1)
-    recall.reset()
-    recall.update((y_pred, y))
-    np_y = y.numpy()
-    np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
-    assert recall.compute().numpy() == pytest.approx(recall_score(np_y, np_y_pred, average=None))
+    with pytest.warns(UserWarning):
+        recall.update((y_pred, y))
+    assert recall._type == 'binary_multiclass'
+    assert recall.compute() == pytest.approx(recall_score(y.numpy(), indices.numpy(), average='binary'))
 
 
 def test_ner_example():
@@ -135,6 +142,7 @@ def test_ner_example():
     recall_ig = recall.compute().tolist()
     recall_ig = [recall_ig[i] for i in y_pred_labels]
 
+    assert recall._type == 'multiclass'
     assert all([a == pytest.approx(b) for a, b in zip(recall_sk, recall_ig)])
 
 
@@ -173,6 +181,7 @@ def test_sklearn_compute():
     recall_ig = recall.compute().tolist()
     recall_ig = [recall_ig[i] for i in y_pred_labels]
 
+    assert recall._type == 'multiclass'
     assert all([a == pytest.approx(b) for a, b in zip(recall_sk, recall_ig)])
 
 
