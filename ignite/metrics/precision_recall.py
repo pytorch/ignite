@@ -65,7 +65,6 @@ class Precision(_BasePrecisionRecall):
     - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
       | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
     - In binary cases if a specific threshold probability is required, use output_transform.
-    - In binary cases if a specific threshold probability is required, use output_transform.
     For binary cases, if `average` is True, returns precision of positive class, assumed to be 1.
     For binary or multiclass cases, if `average` is True, returns the unweighted average across all classes.
     Otherwise, returns a tensor with the precision for each class.
