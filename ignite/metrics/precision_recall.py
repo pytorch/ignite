@@ -20,7 +20,8 @@ class _BasePrecisionRecall(_BaseClassification):
             if y_pred.shape[1] == 2:
                 update_type = 'binary_multiclass'
                 if not self._updated:
-                    warnings.warn('Given num_classes=2, only Precision/Recall for positive class {1} will be computed.')
+                    warnings.warn('Given num_classes=2, only {}'
+                                  ' for positive class {1} will be computed.'.format(self.__class__.__name__))
             else:
                 update_type = 'multiclass'
         elif y.ndimension() == y_pred.ndimension():
