@@ -22,6 +22,7 @@ def test_binary_compute():
     acc.update((y_pred, y))
     np_y = y.numpy().ravel()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert acc._type == 'binary'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
@@ -32,6 +33,7 @@ def test_binary_compute():
     acc.update((y_pred, y))
     np_y = y.numpy().ravel()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert acc._type == 'binary'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
@@ -45,6 +47,7 @@ def test_compute_batch_images():
     acc.update((y_pred, y))
     np_y = y.numpy().ravel()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert acc._type == 'binary'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
@@ -54,6 +57,7 @@ def test_compute_batch_images():
     acc.update((y_pred, y))
     np_y = y.numpy().ravel()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert acc._type == 'binary'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
@@ -63,6 +67,7 @@ def test_compute_batch_images():
     acc.update((y_pred, y))
     np_y = y.numpy().ravel()
     np_y_pred = (y_pred.numpy().ravel() > 0.5).astype('int')
+    assert acc._type == 'binary'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
@@ -74,6 +79,7 @@ def test_categorical_compute():
     y = torch.randint(0, 4, size=(10,)).type(torch.LongTensor)
     indices = torch.max(y_pred, dim=1)[1]
     acc.update((y_pred, y))
+    assert acc._type == 'multiclass'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
@@ -82,6 +88,7 @@ def test_categorical_compute():
     y = torch.randint(0, 10, size=(4,)).type(torch.LongTensor)
     indices = torch.max(y_pred, dim=1)[1]
     acc.update((y_pred, y))
+    assert acc._type == 'multiclass'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
@@ -93,6 +100,7 @@ def test_categorical_compute_batch_images():
     y = torch.randint(0, 4, size=(4, 64, 48)).type(torch.LongTensor)
     indices = torch.max(y_pred, dim=1)[1]
     acc.update((y_pred, y))
+    assert acc._type == 'multiclass'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
@@ -104,6 +112,7 @@ def test_ner_example():
     y = torch.randint(0, 3, size=(2, 8)).type(torch.LongTensor)
     indices = torch.max(y_pred, dim=1)[1]
     acc.update((y_pred, y))
+    assert acc._type == 'multiclass'
     assert accuracy_score(y.view(-1).numpy(), indices.view(-1).numpy()) == pytest.approx(acc.compute())
 
 
