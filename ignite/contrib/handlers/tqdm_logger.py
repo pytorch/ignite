@@ -1,4 +1,9 @@
 try:
+    import collections.abc as _collections_abc
+except ImportError:  # Python 2.7 compatibility
+    import collections as _collections_abc
+
+try:
     from tqdm import tqdm
 except ImportError:
     raise RuntimeError("This contrib module requires tqdm to be installed")
@@ -94,7 +99,7 @@ class ProgressBar:
         if output_transform is not None:
             output_dict = output_transform(engine.state.output)
 
-            if not isinstance(output_dict, dict):
+            if not isinstance(output_dict, _collections_abc.Mapping):
                 output_dict = {"output": output_dict}
 
             metrics.update({name: '{:.2e}'.format(value) for name, value in output_dict.items()})
@@ -125,8 +130,8 @@ class ProgressBar:
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
         """
-        if metric_names is not None and not isinstance(metric_names, list):
-            raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
+        if metric_names is not None and not isinstance(metric_names, _collections_abc.Sequence):
+            raise TypeError("metric_names should be a sequence, got {} instead".format(type(metric_names)))
 
         if output_transform is not None and not callable(output_transform):
             raise TypeError("output_transform should be a function, got {} instead"
