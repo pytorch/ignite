@@ -78,7 +78,7 @@ class Accuracy(_BaseClassification):
             y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
 
         indices = torch.max(y_pred, dim=1)[1]
-        correct = torch.eq(indices.view_as(y), y.type_as(indices)).view(-1)
+        correct = torch.eq(indices, y).view(-1)
 
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]

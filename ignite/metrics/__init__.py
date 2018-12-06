@@ -7,7 +7,8 @@ from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
 from ignite.metrics.metric import Metric
 from ignite.metrics.epoch_metric import EpochMetric
-from ignite.metrics.precision_recall import Precision, Recall
+from ignite.metrics.precision import Precision
+from ignite.metrics.recall import Recall
 from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
 from ignite.metrics.running_average import RunningAverage
