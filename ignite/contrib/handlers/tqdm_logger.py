@@ -131,9 +131,9 @@ class ProgressBar:
                 or a single scalar, which will be displayed with the default name `output`.
         """
         if (
-            metric_names is not None
-            and not isinstance(metric_names, _collections_abc.Sequence)
-            or isinstance(metric_names, str)
+            metric_names is not None and
+            not isinstance(metric_names, _collections_abc.Sequence) or
+            isinstance(metric_names, str)
         ):
             raise TypeError("metric_names should be a sequence of strings, got {} instead".format(type(metric_names)))
 
