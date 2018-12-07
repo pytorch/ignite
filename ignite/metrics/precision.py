@@ -60,6 +60,7 @@ class _BasePrecisionRecall(_BaseClassification):
 class Precision(_BasePrecisionRecall):
     """
     Calculates precision.
+    - y_pred must be in the form of probabilities, use output_transform as needed.
     - `update` must receive output of the form `(y_pred, y)`.
     - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
       | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
