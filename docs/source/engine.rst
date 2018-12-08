@@ -3,6 +3,8 @@ ignite.engine
 
 .. currentmodule:: ignite.engine
 
+.. autofunction:: filter_traceback
+
 .. autoclass:: Engine
    :members:
 

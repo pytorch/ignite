@@ -12,6 +12,15 @@ _FILTER_TB = True
 
 
 def filter_traceback(flag=True):
+    """ Turns on or off the ignite traceback filtering (ON by default).
+
+    If traceback filtering is ON, the traceback printed in case of exception
+    will not contain frames from the ignite code.
+
+    Args:
+        flag (bool): if ``True``, turns on the traceback filtering. If
+        ``False``, turns it off.
+    """
     global _FILTER_TB
     _FILTER_TB = flag
 
@@ -195,9 +204,11 @@ class Engine(object):
                                  fn, fn_description, fn_params, passed_params, exception_msg))
 
     def _is_ignite_file(self, tb_frame):
+        """ Checks if a particular frame is from ignite code. """
         return tb_frame.f_globals['__name__'].split('.')[0] == 'ignite'
 
     def _filter_traceback(self, e):
+        """ Returns exception with a filtered traceback. """
         tb = e.__traceback__
         filtered = []
         full = []
