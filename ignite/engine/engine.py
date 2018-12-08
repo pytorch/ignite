@@ -209,6 +209,10 @@ class Engine(object):
 
     def _filter_traceback(self, e):
         """ Returns exception with a filtered traceback. """
+
+        if not _FILTER_TB:
+            return e
+
         tb = e.__traceback__
         filtered = []
         full = []
