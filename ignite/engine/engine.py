@@ -194,20 +194,28 @@ class Engine(object):
                              "({})".format(
                                  fn, fn_description, fn_params, passed_params, exception_msg))
 
+    def _is_ignite_file(self, tb_frame):
+        return tb_frame.f_globals['__name__'].split('.')[0] == 'ignite'
+
     def _filter_traceback(self, e):
         tb = e.__traceback__
         filtered = []
+        full = []
 
         while tb is not None:
-            frame = tb.tb_frame
-            if not frame.f_globals['__name__'].split('.')[0] == 'ignite':
+            if not self._is_ignite_file(tb.tb_frame):
                 filtered.append(tb)
+            full.append(tb)
             tb = tb.tb_next
 
         for prv, nxt in zip(filtered, filtered[1:]):
             prv.tb_next = nxt
 
-        return e.with_traceback(filtered[0])
+        # if the exception occured in ignite, we want to raise it as-is
+        if self._is_ignite_file(full[-1].tb_frame):
+            return e
+        else:
+            return e.with_traceback(filtered[0])
 
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler
