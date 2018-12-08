@@ -8,6 +8,12 @@ from enum import Enum
 from ignite._utils import _to_hours_mins_secs
 
 IS_PYTHON2 = sys.version_info[0] < 3
+_FILTER_TB = True
+
+
+def filter_traceback(flag=True):
+    global _FILTER_TB
+    _FILTER_TB = flag
 
 
 class Events(Enum):
@@ -188,6 +194,21 @@ class Engine(object):
                              "({})".format(
                                  fn, fn_description, fn_params, passed_params, exception_msg))
 
+    def _filter_traceback(self, e):
+        tb = e.__traceback__
+        filtered = []
+
+        while tb is not None:
+            frame = tb.tb_frame
+            if not frame.f_globals['__name__'].split('.')[0] == 'ignite':
+                filtered.append(tb)
+            tb = tb.tb_next
+
+        for prv, nxt in zip(filtered, filtered[1:]):
+            prv.tb_next = nxt
+
+        return e.with_traceback(filtered[0])
+
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler
 
@@ -323,6 +344,6 @@ class Engine(object):
 
         except BaseException as e:
             self._logger.error("Engine run is terminating due to exception: %s", str(e))
-            self._handle_exception(e)
+            raise self._filter_traceback(e)
 
         return self.state
