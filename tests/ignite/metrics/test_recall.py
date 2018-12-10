@@ -205,5 +205,5 @@ def test_incorrect_type():
     y_pred = torch.rand(4, 1)
     y = torch.ones(4).type(torch.LongTensor)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         recall.update((y_pred, y))

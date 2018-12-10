@@ -205,6 +205,17 @@ def test_multiclass_input_N():
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
+    # 2-classes
+    acc.reset()
+    y_pred = torch.rand(4, 2)
+    y = torch.randint(0, 2, size=(4, 1)).type(torch.LongTensor)
+    acc.update((y_pred, y))
+    np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+    np_y = y.numpy().ravel()
+    assert acc._type == 'multiclass'
+    assert isinstance(acc.compute(), float)
+    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
 
 def test_multiclass_input_NL():
     # Multiclass input data of shape (N, L) and (N, C, L)

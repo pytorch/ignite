@@ -1,5 +1,4 @@
 from __future__ import division
-import warnings
 
 import torch
 
@@ -18,13 +17,7 @@ class _BasePrecisionRecall(_BaseClassification):
         y_pred, y = output
 
         if y.ndimension() + 1 == y_pred.ndimension():
-            if y_pred.shape[1] == 2:
-                update_type = "binary_multiclass"
-                if self._type is None:
-                    warnings.warn("Given num_classes=2, only {} for positive class, "
-                                  "1, will be computed.".format(self.__class__.__name__))
-            else:
-                update_type = "multiclass"
+            update_type = "multiclass"
         elif y.ndimension() == y_pred.ndimension():
             update_type = "binary"
             if not torch.equal(y, y**2):
@@ -39,21 +32,18 @@ class _BasePrecisionRecall(_BaseClassification):
                 raise RuntimeError("update_type has changed from {} to {}.".format(self._type, update_type))
 
     def reset(self):
-        self._true_positives = None
-        self._positives = None
+        self._true_positives = 0
+        self._positives = 0
 
     def compute(self):
-        if self._positives is None:
+        if not isinstance(self._positives, torch.Tensor):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed".format(self.__class__.__name__))
 
         result = self._true_positives / self._positives
         result[result != result] = 0.0
         if self._average:
-            if "binary" in self._type:
-                return result[1].item()
-            else:
-                return result.mean().item()
+            return result.mean().item()
         else:
             return result
 
@@ -77,18 +67,16 @@ class Precision(_BasePrecisionRecall):
 
         dtype = y_pred.type()
 
-        if y_pred.ndimension() == y.ndimension():
-            y_pred = y_pred.unsqueeze(dim=1)
-            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
-
-        num_classes = y_pred.size(1)
-        y = to_onehot(y.view(-1), num_classes=num_classes)
-        indices = torch.max(y_pred, dim=1)[1].view(-1)
-        y_pred = to_onehot(indices, num_classes=num_classes)
+        if self._type == "binary":
+            y_pred = torch.round(y_pred)
+        elif self._type == "multiclass":
+            num_classes = y_pred.size(1)
+            y = to_onehot(y.view(-1), num_classes=num_classes)
+            indices = torch.max(y_pred, dim=1)[1].view(-1)
+            y_pred = to_onehot(indices, num_classes=num_classes)
 
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
-
         correct = y * y_pred
         all_positives = y_pred.sum(dim=0)
 
@@ -96,9 +84,6 @@ class Precision(_BasePrecisionRecall):
             true_positives = torch.zeros_like(all_positives)
         else:
             true_positives = correct.sum(dim=0)
-        if self._true_positives is None:
-            self._true_positives = true_positives
-            self._positives = all_positives
-        else:
-            self._true_positives += true_positives
-            self._positives += all_positives
+
+        self._true_positives += true_positives
+        self._positives += all_positives
