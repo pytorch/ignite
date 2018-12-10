@@ -9,6 +9,7 @@ from ignite._utils import to_onehot
 
 
 class _BasePrecisionRecall(_BaseClassification):
+
     def __init__(self, output_transform=lambda x: x, average=False):
         self._average = average
         super(_BasePrecisionRecall, self).__init__(output_transform=output_transform)
@@ -18,24 +19,24 @@ class _BasePrecisionRecall(_BaseClassification):
 
         if y.ndimension() + 1 == y_pred.ndimension():
             if y_pred.shape[1] == 2:
-                update_type = 'binary_multiclass'
+                update_type = "binary_multiclass"
                 if self._type is None:
-                    warnings.warn('Given num_classes=2, only {} for positive class, '
-                                  '1, will be computed.'.format(self.__class__.__name__))
+                    warnings.warn("Given num_classes=2, only {} for positive class, "
+                                  "1, will be computed.".format(self.__class__.__name__))
             else:
-                update_type = 'multiclass'
+                update_type = "multiclass"
         elif y.ndimension() == y_pred.ndimension():
-            update_type = 'binary'
+            update_type = "binary"
             if not torch.equal(y, y**2):
-                raise ValueError('For binary cases, y must be comprised of 0\'s and 1\'s.')
+                raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
         else:
-            raise TypeError('Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation'
-                            ' for expected shapes of y and y_pred.'.format(y.shape, y_pred.shape))
+            raise RuntimeError("Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation"
+                               " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape))
         if self._type is None:
             self._type = update_type
         else:
             if self._type != update_type:
-                raise TypeError('update_type has changed from {} to {}.'.format(self._type, update_type))
+                raise RuntimeError("update_type has changed from {} to {}.".format(self._type, update_type))
 
     def reset(self):
         self._true_positives = None
@@ -43,13 +44,13 @@ class _BasePrecisionRecall(_BaseClassification):
 
     def compute(self):
         if self._positives is None:
-            raise NotComputableError('{} must have at least one example before'
-                                     ' it can be computed'.format(self.__class__.__name__))
+            raise NotComputableError("{} must have at least one example before"
+                                     " it can be computed".format(self.__class__.__name__))
 
         result = self._true_positives / self._positives
         result[result != result] = 0.0
         if self._average:
-            if 'binary' in self._type:
+            if "binary" in self._type:
                 return result[1].item()
             else:
                 return result.mean().item()
