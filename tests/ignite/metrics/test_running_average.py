@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.metrics import CategoricalAccuracy, RunningAverage
+from ignite.metrics import Accuracy, RunningAverage
 
 import pytest
 
@@ -17,7 +17,7 @@ def test_wrong_input_args():
         _ = RunningAverage(alpha=-1.0)
 
     with pytest.raises(ValueError):
-        _ = RunningAverage(CategoricalAccuracy(), output_transform=lambda x: x[0])
+        _ = RunningAverage(Accuracy(), output_transform=lambda x: x[0])
 
     with pytest.raises(ValueError):
         _ = RunningAverage()
@@ -41,7 +41,7 @@ def test_integration():
     trainer = Engine(update_fn)
     alpha = 0.98
 
-    acc_metric = RunningAverage(CategoricalAccuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
+    acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
     acc_metric.attach(trainer, 'running_avg_accuracy')
 
     avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
