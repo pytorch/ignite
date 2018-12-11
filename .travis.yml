@@ -167,7 +167,7 @@ jobs:
       python: "3.5"
       env:
         - PYTORCH_PACKAGE=pytorch-nightly-cpu
-      if: branch = master
+      if: branch = master & type = cron
       # Use previously defined before_install
       before_install: *before_install
       install:
