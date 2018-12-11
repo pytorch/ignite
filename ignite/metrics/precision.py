@@ -13,27 +13,6 @@ class _BasePrecisionRecall(_BaseClassification):
         self._average = average
         super(_BasePrecisionRecall, self).__init__(output_transform=output_transform)
 
-    def _check_type(self, output):
-        y_pred, y = output
-
-        if y.ndimension() + 1 == y_pred.ndimension():
-            update_type = "multiclass"
-        elif y.ndimension() == y_pred.ndimension():
-            update_type = "binary"
-            if not torch.equal(y, y**2):
-                raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
-            # TODO: Uncomment the following after 0.1.2 release
-            # if not torch.equal(y_pred, y_pred ** 2):
-            #     raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
-        else:
-            raise RuntimeError("Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation"
-                               " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape))
-        if self._type is None:
-            self._type = update_type
-        else:
-            if self._type != update_type:
-                raise RuntimeError("update_type has changed from {} to {}.".format(self._type, update_type))
-
     def reset(self):
         self._true_positives = 0
         self._positives = 0
