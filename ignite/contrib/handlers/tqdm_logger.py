@@ -62,16 +62,20 @@ class ProgressBar:
     """
 
     def __init__(self, persist=False,
-                 bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'):
+                 bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]',
+                 **kwargs):
         self.pbar = None
         self.persist = persist
         self.bar_format = bar_format
+        self.tqdm_kwargs = kwargs
 
     def _reset(self, engine):
         self.pbar = tqdm(
             total=len(engine.state.dataloader),
             leave=self.persist,
-            bar_format=self.bar_format)
+            bar_format=self.bar_format,
+            **self.tqdm_kwargs
+        )
 
     def _close(self, engine):
         self.pbar.close()
@@ -81,7 +85,8 @@ class ProgressBar:
         if self.pbar is None:
             self._reset(engine)
 
-        self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
+        if 'desc' not in self.tqdm_kwargs:
+            self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
 
         metrics = {}
         if metric_names is not None:
