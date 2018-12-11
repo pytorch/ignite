@@ -1,7 +1,11 @@
 import pytest
+import warnings
+
+from sklearn.metrics import recall_score
+from sklearn.exceptions import UndefinedMetricWarning
+
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Recall
-from sklearn.metrics import recall_score
 
 import torch
 
@@ -195,7 +199,9 @@ def test_multiclass_input_N():
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
-        assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
 
         re.reset()
         y_pred = torch.rand(10, 4)
@@ -207,7 +213,9 @@ def test_multiclass_input_N():
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
-        assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
 
         # 2-classes
         re.reset()
@@ -220,7 +228,9 @@ def test_multiclass_input_N():
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
-        assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
 
     _test(average=True)
     _test(average=False)
@@ -241,7 +251,9 @@ def test_multiclass_input_NL():
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
-        assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
 
         re.reset()
         y_pred = torch.rand(15, 10, 8)
@@ -253,7 +265,9 @@ def test_multiclass_input_NL():
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
-        assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
 
     _test(average=True)
     _test(average=False)
@@ -265,8 +279,8 @@ def test_multiclass_input_NHW():
     def _test(average):
         re = Recall(average=average)
 
-        y_pred = torch.rand(10, 5, 12, 10)
-        y = torch.randint(0, 4, size=(10, 12, 10)).type(torch.LongTensor)
+        y_pred = torch.rand(10, 5, 18, 16)
+        y = torch.randint(0, 4, size=(10, 18, 16)).type(torch.LongTensor)
         re.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -274,11 +288,13 @@ def test_multiclass_input_NHW():
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
-        assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
 
         re.reset()
-        y_pred = torch.rand(10, 7, 12, 10)
-        y = torch.randint(0, 6, size=(10, 12, 10)).type(torch.LongTensor)
+        y_pred = torch.rand(10, 7, 20, 12)
+        y = torch.randint(0, 6, size=(10, 20, 12)).type(torch.LongTensor)
         re.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -286,7 +302,9 @@ def test_multiclass_input_NHW():
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
-        assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            assert recall_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(re_compute)
 
     _test(average=True)
     _test(average=False)
