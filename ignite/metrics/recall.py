@@ -22,18 +22,17 @@ class Recall(_BasePrecisionRecall):
 
         dtype = y_pred.type()
 
-        if y_pred.ndimension() == y.ndimension():
-            y_pred = y_pred.unsqueeze(dim=1)
-            y_pred = torch.cat([1.0 - y_pred, y_pred], dim=1)
-
-        num_classes = y_pred.size(1)
-        y = to_onehot(y.view(-1), num_classes=num_classes)
-        indices = torch.max(y_pred, dim=1)[1].view(-1)
-        y_pred = to_onehot(indices, num_classes=num_classes)
+        if self._type == "binary":
+            y_pred = torch.round(y_pred).view(-1)
+            y = y.view(-1)
+        elif self._type == "multiclass":
+            num_classes = y_pred.size(1)
+            y = to_onehot(y.view(-1), num_classes=num_classes)
+            indices = torch.max(y_pred, dim=1)[1].view(-1)
+            y_pred = to_onehot(indices, num_classes=num_classes)
 
         y_pred = y_pred.type(dtype)
         y = y.type(dtype)
-
         correct = y * y_pred
         actual_positives = y.sum(dim=0)
 
@@ -41,9 +40,6 @@ class Recall(_BasePrecisionRecall):
             true_positives = torch.zeros_like(actual_positives)
         else:
             true_positives = correct.sum(dim=0)
-        if self._true_positives is None:
-            self._true_positives = true_positives
-            self._positives = actual_positives
-        else:
-            self._true_positives += true_positives
-            self._positives += actual_positives
+
+        self._true_positives += true_positives
+        self._positives += actual_positives

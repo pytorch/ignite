@@ -22,6 +22,9 @@ class _BasePrecisionRecall(_BaseClassification):
             update_type = "binary"
             if not torch.equal(y, y**2):
                 raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
+            # TODO: Uncomment the following after 0.1.2 release
+            # if not torch.equal(y_pred, y_pred ** 2):
+            #     raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
         else:
             raise RuntimeError("Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation"
                                " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape))
@@ -68,7 +71,8 @@ class Precision(_BasePrecisionRecall):
         dtype = y_pred.type()
 
         if self._type == "binary":
-            y_pred = torch.round(y_pred)
+            y_pred = torch.round(y_pred).view(-1)
+            y = y.view(-1)
         elif self._type == "multiclass":
             num_classes = y_pred.size(1)
             y = to_onehot(y.view(-1), num_classes=num_classes)
