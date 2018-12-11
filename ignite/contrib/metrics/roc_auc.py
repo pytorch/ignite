@@ -1,14 +1,13 @@
 from functools import partial
-
-try:
-    from sklearn.metrics import roc_auc_score
-except ImportError:
-    raise RuntimeError("This contrib module requires sklearn to be installed")
-
 from ignite.metrics import EpochMetric
 
 
 def roc_auc_compute_fn(y_preds, y_targets, activation=None):
+    try:
+        from sklearn.metrics import roc_auc_score
+    except ImportError:
+        raise RuntimeError("This contrib module requires sklearn to be installed")
+
     y_true = y_targets.numpy()
     if activation is not None:
         y_preds = activation(y_preds)
