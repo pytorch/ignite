@@ -63,24 +63,22 @@ class _BaseClassification(Metric):
 
 class Accuracy(_BaseClassification):
     """
-    Calculates the accuracy.
+    Calculates the accuracy for binary and multiclass data
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
 
-    In binary case, when `y` has 0 or 1 values and `y_pred` is composed of real values (probabilities, logits), the
-    values of `y_pred` should be thresholded to 0, 1 values using `output_transform`:
-
-    .. code-block:: python
-
-        def thresholded_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.round(y_pred)
-            return y_pred, y
-
-        binary_accuracy = Accuracy(thresholded_output_transform)
-
+    In binary case, when `y` has 0 or 1 values, the elements of `y_pred` must be between 0 and 1.
     """
+    # TODO: Include the following into the docstring after 0.1.2 release
+    # .. code-block:: python
+    #
+    #     def thresholded_output_transform(output):
+    #         y_pred, y = output
+    #         y_pred = torch.round(y_pred)
+    #         return y_pred, y
+    #
+    #     binary_accuracy = Accuracy(thresholded_output_transform)
 
     def reset(self):
         self._num_correct = 0

@@ -53,17 +53,19 @@ class _BasePrecisionRecall(_BaseClassification):
 
 class Precision(_BasePrecisionRecall):
     """
-    Calculates precision.
-    - y_pred must be in the form of probabilities, use output_transform as needed.
+    Calculates precision for binary and multiclass data
     - `update` must receive output of the form `(y_pred, y)`.
-    - | For binary or multiclass cases, `y_pred` must be in the following shape (batch_size, num_categories, ...) or
-      | (batch_size, ...) and `y` must be in the following shape (batch_size, ...).
-    - In binary cases if a specific threshold probability is required, use output_transform.
-    For binary cases, if `average` is True, returns precision of positive class, assumed to be 1.
-    For multiclass cases, if `average` is True, returns the unweighted average across all classes.
-    Otherwise, returns a tensor with the precision for each class.
-    """
+    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
+    - `y` must be in the following shape (batch_size, ...)
 
+    In binary case, when `y` has 0 or 1 values, the elements of `y_pred` must be between 0 and 1. Precision is
+    computed over positive class, assumed to be 1.
+
+    Args:
+        average (bool, optional): if True, precision is computed as the unweighted average (across all classes
+            in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
+
+    """
     def update(self, output):
         y_pred, y = self._check_shape(output)
         self._check_type((y_pred, y))
