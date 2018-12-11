@@ -167,19 +167,12 @@ jobs:
       python: "3.5"
       env:
         - PYTORCH_PACKAGE=pytorch-nightly-cpu
-      if: branch = nightly
       # Use previously defined before_install
       before_install: *before_install
       install:
-        # Merge master into nightly
-        - git fetch origin master
-        - git merge FETCH_HEAD --no-edit
         # Copy "nightly" files
         - cp nightly/setup_nightly.py setup.py
         - cp -R nightly/conda.recipe .
-        # Push to nightly branch
-        - git remote rm origin && git remote add origin https://$GITHUB_TOKEN@github.com/${TRAVIS_REPO_SLUG}.git
-        - git push origin nightly
       script: true
       after_success: # Nothing to do
       before_deploy:
@@ -210,5 +203,3 @@ jobs:
         #  secure: "secured_password"
         skip_cleanup: true
         distributions: "sdist bdist_wheel"
-        on:
-          branch: nightly
