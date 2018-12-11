@@ -13,23 +13,23 @@ from torch.utils.data import DataLoader
 class TensorboardLogger(object):
     """
     TensorBoard handler to log metrics related to training, validation and model.
+
+    Args:
+        log_dir (str, optional): Path for logging the summary files.
+
     Examples:
         Create a TensorBoard summary that visualizes metrics related to training,
         validation, and model parameters, by simply attaching the handler to your engine.
+
         ..code-block:: python
             tbLogger = TensorboardLogger()
-            tbLogger.attach(engine=trainer,
-                            mode='iteration',
-                            model=model,
-                            input_shape=[1, 28, 28],
-                            write_graph=True,
-                            validation_evaluator=evaluator,
-                            use_metrics=True,
-                            histogram_freq=1,
-                            write_grads=True)
-    Note:
-        When adding tensorboard event handler to an engine, it is recommended that the evaluator
-        is run before the code block above. If custom functions are needed, use tbLogger.writer.add_*.
+
+            tbLogger.attach(
+                engine=trainer,
+                name="training",
+                plot_event=Events.ITERATION_COMPLETED,
+                output_transform=lambda x: x,
+            )
     """
 
     def __init__(
@@ -156,12 +156,18 @@ class TensorboardLogger(object):
         Attaches the TensorBoard event handler to an engine object.
         Args:
             engine (Engine): engine object.
-            mode (str): (Optional) iteration or epoch.
-            model (nn.Module): (Optional) model to train.
-            use_metrics (bool): (Optional) True, if metrics for engine and evaluator should be visualized.
-            state_keys (list): (Optional) list of string, state attributes to be visualized.
-            histogram_freq (int): (Optional) frequency histograms should be plotted.
-            write_grads (bool): (Optional) True, if gradients to model parameters should be visualized.
+            name (str): Name for the attached log.
+            plot_event (str, optional): Name of event to handle.
+            update_period (int, optional): Can be used to limit the number of plot updates.
+            metric_names (list, optional): list of the metrics names to plot.
+            output_transform (Callable, optional): a function to select what you want to plot from the engine's
+                output. This function may return either a dictionary with entries in the format of ``{name: value}``,
+                or a single scalar, which will be displayed with the default name `output`.
+            step_callback (Callable, optional): a function to select what to use as the x value (step) from the engine's
+                state. This function should return a single scalar.
+            model (nn.Module, optional): model to train.
+            histogram_freq (int, optional): frequency histograms should be plotted.
+            write_grads (bool, optional): True, if gradients to model parameters should be visualized.
         """
 
         if metric_names is not None and \
