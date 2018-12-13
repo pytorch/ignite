@@ -50,7 +50,7 @@ def check_dataset(args):
     if args.dataset in {'folder', 'mscoco'}:
         train_dataset = datasets.ImageFolder(args.dataroot, transform)
     elif args.dataset == 'test':
-        train_dataset = datasets.FakeData(size=1024, image_size=(3, 32, 32),
+        train_dataset = datasets.FakeData(size=args.batch_size, image_size=(3, 32, 32),
                                           num_classes=1, transform=transform)
     else:
         raise RuntimeError("Invalid dataset name: {}".format(args.dataset))
