@@ -15,11 +15,11 @@ from torchvision import transforms
 
 from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint
+from ignite.contrib.handlers import ProgressBar
 
 import utils
 from transformer_net import TransformerNet
 from vgg import Vgg16
-from handlers import Progbar
 
 from collections import OrderedDict
 
@@ -50,7 +50,7 @@ def check_dataset(args):
     if args.dataset in {'folder', 'mscoco'}:
         train_dataset = datasets.ImageFolder(args.dataroot, transform)
     elif args.dataset == 'test':
-        train_dataset = datasets.FakeData(size=args.batch_size, image_size=(3, 32, 32),
+        train_dataset = datasets.FakeData(size=1024, image_size=(3, 32, 32),
                                           num_classes=1, transform=transform)
     else:
         raise RuntimeError("Invalid dataset name: {}".format(args.dataset))
@@ -122,11 +122,11 @@ def train(args):
     checkpoint_handler = ModelCheckpoint(args.checkpoint_model_dir, 'checkpoint',
                                          save_interval=args.checkpoint_interval,
                                          n_saved=10, require_empty=False, create_dir=True)
-    progress_bar = Progbar(loader=train_loader, metrics=running_avgs)
+    pbar = ProgressBar()
+    pbar.attach(trainer, output_transform=lambda x: x)
 
     trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
                               to_save={'net': transformer})
-    trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=progress_bar)
     trainer.run(train_loader, max_epochs=args.epochs)
 
 
