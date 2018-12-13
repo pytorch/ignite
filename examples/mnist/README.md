@@ -12,6 +12,7 @@ MNIST example with training and validation monitoring using TensorboardX and Ten
 
 #### Requirements:
 
+- [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
 - [TensorboardX](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
 - Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
 
