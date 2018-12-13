@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from ignite.contrib.handlers import ProgressBar
-from ignite.engine import Engine
+from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy
 
 
@@ -130,4 +130,21 @@ def test_pbar_with_scalar_output(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     expected = u'Epoch [2/2]: [1/2]  50%|█████     , output=1.00e+00 [00:00<00:00]'
+    assert err[-1] == expected
+
+
+def test_pbar_with_tqdm_kwargs(capsys):
+    n_epochs = 10
+    loader = [1, 2, 3, 4, 5]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar(desc="My description: ")
+    pbar.attach(engine, output_transform=lambda x: x)
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = u'My description: [4/5]  80%|████████  , output=1.00e+00 [00:00<00:00]'.format()
     assert err[-1] == expected

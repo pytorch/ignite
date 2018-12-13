@@ -23,6 +23,7 @@ class ProgressBar:
               rate_inv, rate_inv_fmt, elapsed, remaining, desc, postfix.
             Note that a trailing ": " is automatically removed after {desc}
             if the latter is empty.
+        **tqdm_kwargs: kwargs passed to tqdm progress bar
 
     Examples:
 
@@ -62,16 +63,20 @@ class ProgressBar:
     """
 
     def __init__(self, persist=False,
-                 bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'):
+                 bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]',
+                 **tqdm_kwargs):
         self.pbar = None
         self.persist = persist
         self.bar_format = bar_format
+        self.tqdm_kwargs = tqdm_kwargs
 
     def _reset(self, engine):
         self.pbar = tqdm(
             total=len(engine.state.dataloader),
             leave=self.persist,
-            bar_format=self.bar_format)
+            bar_format=self.bar_format,
+            **self.tqdm_kwargs
+        )
 
     def _close(self, engine):
         self.pbar.close()
@@ -81,7 +86,8 @@ class ProgressBar:
         if self.pbar is None:
             self._reset(engine)
 
-        self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
+        if 'desc' not in self.tqdm_kwargs:
+            self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
 
         metrics = {}
         if metric_names is not None:
@@ -132,5 +138,5 @@ class ProgressBar:
             raise TypeError("output_transform should be a function, got {} instead"
                             .format(type(output_transform)))
 
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names, output_transform)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
