@@ -17,7 +17,7 @@ class GeometricMeanAbsoluteError(Metric):
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
 
-    __ https://arxiv.org/abs/1809.03006    
+    __ https://arxiv.org/abs/1809.03006
     """
 
     def reset(self):
