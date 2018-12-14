@@ -6,11 +6,15 @@ from ignite.metrics.metric import Metric
 class WaveHedgesDistance(Metric):
     r"""
     Calculates the Wave Hedges Distance.
-    It has been proposed in `Botchkarev 2018`__.
+
     :math:`\text{WHD} = \sum _j^n\frac{|A_j - P_j|}{max(A_j, P_j)}`
-    Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+    where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+
+    More details can be found in `Botchkarev 2018`__.
+
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
+
     __ https://arxiv.org/abs/1809.03006
     """
 

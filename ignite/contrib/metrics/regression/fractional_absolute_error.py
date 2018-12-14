@@ -7,11 +7,16 @@ from ignite.metrics.metric import Metric
 class FractionalAbsoluteError(Metric):
     r"""
     Calculates the Fractional Absolute Error.
-    It has been proposed in `Botchkarev 2018`__.
+
     :math:`\text{FAE} = \frac{1}{n}\sum _j^n\frac{2 * |A_j - P_j|}{|A_j| + |P_j|}`
-    Where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+
+    where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+
+    More details can be found in `Botchkarev 2018`__.
+
     - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape.
+
     __ https://arxiv.org/abs/1809.03006
     """
 
