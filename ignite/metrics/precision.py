@@ -14,8 +14,9 @@ class _BasePrecisionRecall(_BaseClassification):
         self._average = average
         if is_multilabel:
             if not self._average:
-                warnings.warn("average should be True for multilabel cases. Precision._average updated"
-                              " to True. Average is calculated across samples, instead of classes.", UserWarning)
+                warnings.warn("average should be True for multilabel cases. {}._average "
+                              "updated to True. Average is calculated across samples, "
+                              "instead of classes.".format(self.__class__.__name__), UserWarning)
                 self._average = True
             self.reset = self._reset_multilabel
             self._collect_positives = self._collect_positives_multilabel
