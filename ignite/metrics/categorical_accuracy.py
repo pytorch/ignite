@@ -11,4 +11,5 @@ class CategoricalAccuracy(Accuracy):
     def __init__(self, *args, **kwargs):
         super(CategoricalAccuracy, self).__init__(*args, **kwargs)
         warnings.warn("The use of ignite.metrics.CategoricalAccuracy is deprecated, it will be "
-                      "removed in 0.1.2. Please use ignite.metrics.Accuracy instead.")
+                      "removed in 0.2.0. Please use ignite.metrics.Accuracy instead.", DeprecationWarning)
+        super(Accuracy, self).__init__(*args, **kwargs)

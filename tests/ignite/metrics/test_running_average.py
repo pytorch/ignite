@@ -1,9 +1,10 @@
+from functools import partial
 
 import numpy as np
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.metrics import CategoricalAccuracy, RunningAverage
+from ignite.metrics import Accuracy, RunningAverage
 
 import pytest
 
@@ -16,7 +17,7 @@ def test_wrong_input_args():
         _ = RunningAverage(alpha=-1.0)
 
     with pytest.raises(ValueError):
-        _ = RunningAverage(CategoricalAccuracy(), output_transform=lambda x: x[0])
+        _ = RunningAverage(Accuracy(), output_transform=lambda x: x[0])
 
     with pytest.raises(ValueError):
         _ = RunningAverage()
@@ -40,7 +41,7 @@ def test_integration():
     trainer = Engine(update_fn)
     alpha = 0.98
 
-    acc_metric = RunningAverage(CategoricalAccuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
+    acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
     acc_metric.attach(trainer, 'running_avg_accuracy')
 
     avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
@@ -104,3 +105,43 @@ def test_integration():
     y_true_batch_values = iter(np.random.randint(0, n_classes, size=(n_iters, batch_size)))
     y_pred_batch_values = iter(np.random.rand(n_iters, batch_size, n_classes))
     trainer.run(data, max_epochs=1)
+
+
+def test_multiple_attach():
+    n_iters = 100
+    errD_values = iter(np.random.rand(n_iters, ))
+    errG_values = iter(np.random.rand(n_iters, ))
+    D_x_values = iter(np.random.rand(n_iters, ))
+    D_G_z1 = iter(np.random.rand(n_iters, ))
+    D_G_z2 = iter(np.random.rand(n_iters, ))
+
+    def update_fn(engine, batch):
+        return {
+            'errD': next(errD_values),
+            'errG': next(errG_values),
+            'D_x': next(D_x_values),
+            'D_G_z1': next(D_G_z1),
+            'D_G_z2': next(D_G_z2),
+        }
+
+    trainer = Engine(update_fn)
+    alpha = 0.98
+
+    # attach running average
+    monitoring_metrics = ['errD', 'errG', 'D_x', 'D_G_z1', 'D_G_z2']
+    for metric in monitoring_metrics:
+        foo = partial(lambda x, metric: x[metric], metric=metric)
+        RunningAverage(alpha=alpha, output_transform=foo).attach(trainer, metric)
+
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def check_values(engine):
+
+        values = []
+        for metric in monitoring_metrics:
+            values.append(engine.state.metrics[metric])
+
+        values = set(values)
+        assert len(values) == len(monitoring_metrics)
+
+    data = list(range(n_iters))
+    trainer.run(data)

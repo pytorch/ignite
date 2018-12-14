@@ -142,6 +142,26 @@ class Engine(object):
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s ", event_name)
 
+    def has_event_handler(self, handler, event_name=None):
+        """Check if the specified event has the specified handler.
+
+        Args:
+            handler (Callable): the callable event handler.
+            event_name: The event the handler attached to. Set this
+                to ``None`` to search all events.
+        """
+        if event_name is not None:
+            if event_name not in self._event_handlers:
+                return False
+            events = [event_name]
+        else:
+            events = self._event_handlers
+        for e in events:
+            for h, _, _ in self._event_handlers[e]:
+                if h == handler:
+                    return True
+        return False
+
     def _check_signature(self, fn, fn_description, *args, **kwargs):
         exception_msg = None
 

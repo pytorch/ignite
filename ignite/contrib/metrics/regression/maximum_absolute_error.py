@@ -4,11 +4,22 @@ import torch
 
 
 class MaximumAbsoluteError(Metric):
-    """
-    Calculates the maximum absolute error.
+    r"""
+    Calculates the Maximum Absolute Error:
+
+    :math:`\text{MaxAE} = \max_{j=1,n} \left( \lvert A_j-P_j \rvert \right)`,
+
+    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+
+    More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
+    - `y` and `y_pred` must be of same shape.
+
+    __ https://arxiv.org/abs/1809.03006
+
     """
+
     def reset(self):
         self._max_of_absolute_errors = -1
 

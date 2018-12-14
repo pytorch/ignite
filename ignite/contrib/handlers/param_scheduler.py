@@ -8,28 +8,37 @@ class ParamScheduler(object):
     training.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         save_history (bool, optional): whether to log the parameter values
             (default=False)
     """
     def __init__(self, optimizer, param_name, save_history=False):
-        self.optimizer = optimizer
+
+        if isinstance(optimizer, dict):
+            self.optimizer_param_groups = [optimizer]
+        else:
+            self.optimizer_param_groups = optimizer.param_groups
         self.param_name = param_name
         self.save_history = save_history
         self.event_index = 0
 
-    def __call__(self, engine):
+    def __call__(self, engine, name=None):
+
         value = self.get_param()
-        for param_group in self.optimizer.param_groups:
+
+        for param_group in self.optimizer_param_groups:
             param_group[self.param_name] = value
+
+        if name is None:
+            name = self.param_name
 
         if self.save_history:
             if not hasattr(engine.state, 'param_history'):
                 setattr(engine.state, 'param_history', {})
-            engine.state.param_history.setdefault(self.param_name, [])
-            values = [pg[self.param_name] for pg in self.optimizer.param_groups]
-            engine.state.param_history[self.param_name].append(values)
+            engine.state.param_history.setdefault(name, [])
+            values = [pg[self.param_name] for pg in self.optimizer_param_groups]
+            engine.state.param_history[name].append(values)
 
         self.event_index += 1
 
@@ -44,7 +53,7 @@ class CyclicalScheduler(ParamScheduler):
     cycle of some size.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
         end_value (float) : value at the middle of the cycle
@@ -77,13 +86,13 @@ class CyclicalScheduler(ParamScheduler):
         self.cycle_mult = cycle_mult
         self.cycle = 0
 
-    def __call__(self, engine):
+    def __call__(self, engine, name=None):
         if self.event_index != 0 and self.event_index % self.cycle_size == 0:
             self.event_index = 0
             self.cycle_size *= self.cycle_mult
             self.cycle += 1
 
-        return super(CyclicalScheduler, self).__call__(engine)
+        return super(CyclicalScheduler, self).__call__(engine, name)
 
 
 class LinearCyclicalScheduler(CyclicalScheduler):
@@ -91,7 +100,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     adjusts it back to 'start_value' for a half-cycle.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
         end_value (float) : value at the middle of the cycle
@@ -130,7 +139,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     wave (as suggested in [Smith17]_).
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
         end_value (float) : value at the end of the cycle
@@ -156,6 +165,24 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
         #
 
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+
+        optimizer = SGD(
+            [
+                {"params": model.base.parameters(), 'lr': 0.001),
+                {"params": model.fc.parameters(), 'lr': 0.01),
+            ]
+        )
+
+        scheduler1 = LinearCyclicalScheduler(optimizer.param_groups[0], 'lr', 1e-7, 1e-5, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler1, "lr (base)")
+
+        scheduler2 = CosineAnnealingScheduler(optimizer.param_groups[1], 'lr', 1e-5, 1e-3, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler2, "lr (fc)")
+
     .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
     """
@@ -177,7 +204,7 @@ class ConcatScheduler(ParamScheduler):
     switch to the next scheduler.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         schedulers_list (list): List of three tuple of the order (scheduler_cls,
             scheduler_kwds, duration).
@@ -232,6 +259,7 @@ class ConcatScheduler(ParamScheduler):
         self._schedulers_list = schedulers_list
         self._schedulers_index = 0
         self._next_scheduler_switch = 0
+        self.optimizer = optimizer
 
     def _next_scheduler(self):
         scheduler_cls, scheduler_kwds, self._next_scheduler_switch = \
@@ -249,10 +277,10 @@ class ConcatScheduler(ParamScheduler):
         self._scheduler = scheduler_cls(**kwds)
         self._schedulers_index = (self._schedulers_index + 1) % len(self._schedulers_list)
 
-    def __call__(self, engine):
+    def __call__(self, engine, name=None):
         if self._next_scheduler_switch is not None:
             self._next_scheduler_switch -= 1
             if self._next_scheduler_switch <= 0:
                 self._next_scheduler()
 
-        return self._scheduler(engine)
+        return self._scheduler(engine, name)
