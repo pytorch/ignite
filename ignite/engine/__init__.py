@@ -33,8 +33,11 @@ def create_supervised_trainer(model, optimizer, loss_fn,
     Returns:
         Engine: a trainer engine with supervised update function
     """
-    if device and hasattr(model, 'to'):
-        model.to(device)
+    if device:
+        if isinstance(model, torch.jit.ScriptModule):
+            raise RuntimeError("Changing the 'device' is not supported for traced modules.")
+        else:
+            model.to(device)
 
     def _update(engine, batch):
         model.train()
@@ -68,8 +71,11 @@ def create_supervised_evaluator(model, metrics={},
     Returns:
         Engine: an evaluator engine with supervised inference function
     """
-    if device and hasattr(model, 'to'):
-        model.to(device)
+    if device:
+        if isinstance(model, torch.jit.ScriptModule):
+            raise RuntimeError("Changing the 'device' is not supported for traced modules.")
+        else:
+            model.to(device)
 
     def _inference(engine, batch):
         model.eval()
