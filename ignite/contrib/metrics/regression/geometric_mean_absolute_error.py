@@ -8,7 +8,7 @@ class GeometricMeanAbsoluteError(Metric):
     r"""
     Calculates the Geometric Mean Absolute Error.
 
-    :math:`\text{GMAE} = \sqrt[n]{\prod_{j=1}^{n}{|A_j - P_j|}}`
+    :math:`\text{GMAE} = exp(\frac{1}{n}\sum_{j=1}^n\ln(|A_j - P_j|)`)
 
     where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
@@ -21,17 +21,17 @@ class GeometricMeanAbsoluteError(Metric):
     """
 
     def reset(self):
-        self._product_of_errors = 1.0
+        self._sum_of_errors = 0.0
         self._num_examples = 0
 
     def update(self, output):
         y_pred, y = output
-        errors = torch.abs(y.view_as(y_pred) - y_pred)
-        self._product_of_errors = self._product_of_errors * torch.prod(errors).item()
+        errors = torch.log(torch.abs(y.view_as(y_pred) - y_pred))
+        self._sum_of_errors += torch.sum(errors)
         self._num_examples += y.shape[0]
 
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('GeometricMeanAbsoluteError must have at'
                                      'least one example before it can be computed.')
-        return self._product_of_errors ** (1.0 / self._num_examples)
+        return torch.exp(self._sum_of_errors / self._num_examples).item()
