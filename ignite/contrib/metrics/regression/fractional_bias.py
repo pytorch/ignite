@@ -3,10 +3,10 @@ from __future__ import division
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric
+from ignite.contrib.metrics.regression._base import _BaseRegression
 
 
-class FractionalBias(Metric):
+class FractionalBias(_BaseRegression):
     r"""
     Calculates the Fractional Bias:
 
@@ -17,8 +17,7 @@ class FractionalBias(Metric):
     More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y` and `y_pred` must be of same shape.
-
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     __ https://arxiv.org/abs/1809.03006
 
@@ -27,7 +26,7 @@ class FractionalBias(Metric):
         self._sum_of_errors = 0.0
         self._num_examples = 0
 
-    def update(self, output):
+    def _update(self, output):
         y_pred, y = output
         errors = 2 * (y.view_as(y_pred) - y_pred) / (y_pred + y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()

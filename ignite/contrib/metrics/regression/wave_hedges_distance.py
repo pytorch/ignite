@@ -1,9 +1,9 @@
 from __future__ import division
 import torch
-from ignite.metrics.metric import Metric
+from ignite.contrib.metrics.regression._base import _BaseRegression
 
 
-class WaveHedgesDistance(Metric):
+class WaveHedgesDistance(_BaseRegression):
     r"""
     Calculates the Wave Hedges Distance.
 
@@ -13,7 +13,7 @@ class WaveHedgesDistance(Metric):
     More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y` and `y_pred` must be of same shape.
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     __ https://arxiv.org/abs/1809.03006
     """
@@ -21,7 +21,7 @@ class WaveHedgesDistance(Metric):
     def reset(self):
         self._sum_of_errors = 0.0
 
-    def update(self, output):
+    def _update(self, output):
         y_pred, y = output
         errors = torch.abs(y.view_as(y_pred) - y_pred) / torch.max(y_pred, y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
