@@ -1,8 +1,28 @@
-from ignite.exceptions import NotComputableError
-from ignite.contrib.metrics.regression import ManhattanDistance
 import torch
 import numpy as np
 import pytest
+
+from ignite.contrib.metrics.regression import ManhattanDistance
+
+
+def test_wrong_input_shapes():
+    m = ManhattanDistance()
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4, 1, 2),
+                  torch.rand(4, 1)))
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4, 1),
+                  torch.rand(4, 1, 2)))
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4, 1, 2),
+                  torch.rand(4,)))
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4,),
+                  torch.rand(4, 1, 2)))
 
 
 def test_mahattan_distance():
