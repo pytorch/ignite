@@ -1,6 +1,6 @@
 from __future__ import division
 import torch
-from ignite.metrics import EpochMetric
+from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
 
 
 def median_relative_absolute_error_compute_fn(y_pred, y):
@@ -8,7 +8,7 @@ def median_relative_absolute_error_compute_fn(y_pred, y):
     return torch.median(e).item()
 
 
-class MedianRelativeAbsoluteError(EpochMetric):
+class MedianRelativeAbsoluteError(_BaseRegressionEpoch):
     r"""
     Calculates the Median Relative Absolute Error:
 
@@ -19,12 +19,12 @@ class MedianRelativeAbsoluteError(EpochMetric):
     More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y` and `y_pred` must be of same shape.
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
 
     __ https://arxiv.org/abs/1809.03006
 
     """
     def __init__(self, output_transform=lambda x: x):
-        super(MedianRelativeAbsoluteError, self).__init__(median_absolute_percentage_error_compute_fn,
+        super(MedianRelativeAbsoluteError, self).__init__(median_relative_absolute_error_compute_fn,
                                                           output_transform)
