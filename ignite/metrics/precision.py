@@ -52,7 +52,7 @@ class _BasePrecisionRecall(_BaseClassification):
                                      " it can be computed".format(self.__class__.__name__))
 
         result = self._true_positives / (self._positives + self.eps)
-        #result[result != result] = 0.0
+        # result[result != result] = 0.0
         if self._average:
             return result.mean().item()
         else:
