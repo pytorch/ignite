@@ -39,15 +39,15 @@ class _BaseRegression(Metric):
 class _BaseRegressionEpoch(Metric):
     """Class for regression metrics that should be computed on the entire output history of a model.
     Model's output and targets are restricted to be of shape `(batch_size, 1) or (batch_size, )`. Output
-    datatype should be `float32`. Target datatype should be `long`.
+    datatype should be `float32`. Target datatype should be `float32`.
 
     .. warning::
 
         Current implementation stores all input data (output and target) in as tensors before computing a metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
 
-
     - `update` must receive output of the form `(y_pred, y)`.
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
