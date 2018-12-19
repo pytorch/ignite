@@ -37,6 +37,21 @@ use the `output_transform` argument to transform it:
         metric = Accuracy(output_transform=output_transform)
         metric.attach(engine, "accuracy")
 
+Metrics could be combined together to form a new metric through arithmetics,
+for example:
+
+    .. code-block:: python
+
+        precision = Precision(average=False)
+        recall = Recall(average=False)
+        F1 = precision * recall * 2 / (precision + recall)
+
+    .. note::  This example computes F1 for each class separately, rather than
+        the mean of F1 across class. To combine precision and recall to get
+        F1 or other F metrics, we have to be careful that `average=False`, i.e.
+        to use the unaveraged precision and recall, otherwise we will not be
+        computing F metrics.
+
 
 .. currentmodule:: ignite.metrics
 

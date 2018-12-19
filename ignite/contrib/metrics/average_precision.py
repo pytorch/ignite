@@ -1,14 +1,13 @@
 from functools import partial
-
-try:
-    from sklearn.metrics import average_precision_score
-except ImportError:
-    raise RuntimeError("This contrib module requires sklearn to be installed")
-
 from ignite.metrics import EpochMetric
 
 
 def average_precision_compute_fn(y_preds, y_targets, activation=None):
+    try:
+        from sklearn.metrics import average_precision_score
+    except ImportError:
+        raise RuntimeError("This contrib module requires sklearn to be installed")
+
     y_true = y_targets.numpy()
     if activation is not None:
         y_preds = activation(y_preds)

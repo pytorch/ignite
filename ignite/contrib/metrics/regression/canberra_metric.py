@@ -1,17 +1,15 @@
 from __future__ import division
-
 import torch
-
 from ignite.contrib.metrics.regression._base import _BaseRegression
 
 
-class ManhattanDistance(_BaseRegression):
+class CanberraMetric(_BaseRegression):
     r"""
-    Calculates the Manhattan Distance:
+    Calculates the Canberra Metric.
 
-    :math:`\text{MD} = \sum_{j=1}^n (A_j - P_j)`,
+    :math:`\text{CM} = \sum _j^n\frac{|A_j - P_j|}{A_j + P_j}`
 
-    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+    where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
     More details can be found in `Botchkarev 2018`__.
 
@@ -19,14 +17,14 @@ class ManhattanDistance(_BaseRegression):
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     __ https://arxiv.org/abs/1809.03006
-
     """
+
     def reset(self):
         self._sum_of_errors = 0.0
 
     def _update(self, output):
         y_pred, y = output
-        errors = y.view_as(y_pred) - y_pred
+        errors = torch.abs(y.view_as(y_pred) - y_pred) / (y_pred + y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
 
     def compute(self):
