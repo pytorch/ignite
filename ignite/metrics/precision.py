@@ -11,6 +11,7 @@ from ignite._utils import to_onehot
 class _BasePrecisionRecall(_BaseClassification):
 
     def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
+        self.eps = 1e-9
         self._average = average
         if is_multilabel:
             if not self._average:
@@ -50,8 +51,8 @@ class _BasePrecisionRecall(_BaseClassification):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed".format(self.__class__.__name__))
 
-        result = self._true_positives / self._positives
-        result[result != result] = 0.0
+        result = self._true_positives / (self._positives + self.eps)
+        #result[result != result] = 0.0
         if self._average:
             return result.mean().item()
         else:
