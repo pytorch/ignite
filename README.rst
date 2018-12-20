@@ -7,6 +7,8 @@ Ignite
 .. image:: https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/pytorch/ignite
 
+.. image:: https://pepy.tech/badge/pytorch-ignite
+    :target: https://pepy.tech/project/pytorch-ignite
 
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
