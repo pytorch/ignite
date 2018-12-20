@@ -11,7 +11,7 @@ from ignite._utils import to_onehot
 class _BasePrecisionRecall(_BaseClassification):
 
     def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
-        self.eps = 1e-8
+        self.eps = 1e-30
         self._average = average
         if is_multilabel:
             if not self._average:
