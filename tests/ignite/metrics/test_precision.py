@@ -101,7 +101,7 @@ def test_binary_input_NL():
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
         assert pr._type == 'binary'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
 
@@ -112,7 +112,7 @@ def test_binary_input_NL():
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
         assert pr._type == 'binary'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
 
@@ -132,7 +132,7 @@ def test_binary_input_NHW():
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
         assert pr._type == 'binary'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
 
@@ -143,7 +143,7 @@ def test_binary_input_NHW():
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
         assert pr._type == 'binary'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
 
@@ -178,7 +178,7 @@ def test_multiclass_input_N():
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert pr._type == 'multiclass'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
         with warnings.catch_warnings():
@@ -192,7 +192,7 @@ def test_multiclass_input_N():
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert pr._type == 'multiclass'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
         with warnings.catch_warnings():
@@ -207,7 +207,7 @@ def test_multiclass_input_N():
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert pr._type == 'multiclass'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
         with warnings.catch_warnings():
@@ -230,7 +230,7 @@ def test_multiclass_input_NL():
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert pr._type == 'multiclass'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
         with warnings.catch_warnings():
@@ -244,7 +244,7 @@ def test_multiclass_input_NL():
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert pr._type == 'multiclass'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
         with warnings.catch_warnings():
@@ -267,7 +267,7 @@ def test_multiclass_input_NHW():
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert pr._type == 'multiclass'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
         with warnings.catch_warnings():
@@ -281,7 +281,7 @@ def test_multiclass_input_NHW():
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert pr._type == 'multiclass'
-#         assert isinstance(pr.compute(), float if average else torch.Tensor)
+        assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
         sklearn_average_parameter = 'macro' if average else None
         with warnings.catch_warnings():
@@ -290,14 +290,6 @@ def test_multiclass_input_NHW():
 
     _test(average=True)
     _test(average=False)
-
-
-def transform_multilabel_output(y_pred, y):
-    if y_pred.ndimension() > 2:
-        num_classes = y_pred.size(1)
-        y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
-        y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
-    return y_pred, y
 
 
 def test_multilabel_wrong_inputs():
@@ -316,6 +308,14 @@ def test_multilabel_wrong_inputs():
         pr.update((torch.randint(0, 5, size=(10, 5, 6)), torch.rand(10)))
 
 
+def transform_multilabel_output(y_pred, y):
+    if y_pred.ndimension() > 2:
+        num_classes = y_pred.size(1)
+        y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+        y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+    return y_pred, y
+
+
 def test_multilabel_input_N():
     def _test(average):
         if average:
@@ -331,7 +331,7 @@ def test_multilabel_input_N():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-#         assert isinstance(pr.compute(), float)
+        assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -345,7 +345,7 @@ def test_multilabel_input_N():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-#         assert isinstance(pr.compute(), float)
+        assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -360,7 +360,7 @@ def test_multilabel_input_N():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-#         assert isinstance(pr.compute(), float)
+        assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -384,7 +384,7 @@ def test_multilabel_input_NL():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-#         assert isinstance(pr.compute(), float)
+        assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -398,7 +398,7 @@ def test_multilabel_input_NL():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-#         assert isinstance(pr.compute(), float)
+        assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -409,6 +409,7 @@ def test_multilabel_input_NL():
 
 
 def test_multilabel_input_NHW():
+
     def _test(average):
         if average:
             pr = Precision(average=average, is_multilabel=True)
@@ -423,7 +424,7 @@ def test_multilabel_input_NHW():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-#         assert isinstance(pr.compute(), float)
+        assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -437,7 +438,7 @@ def test_multilabel_input_NHW():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-#         assert isinstance(pr.compute(), float)
+        assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
