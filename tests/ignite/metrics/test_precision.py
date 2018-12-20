@@ -134,24 +134,6 @@ def test_binary_input_NL():
         pr_compute = pr.compute() if average else pr.compute().numpy()
         assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
 
-        # Batched Updates
-        pr.reset()
-        y_pred = torch.randint(0, 2, size=(100, 1, 8))
-        y = torch.randint(0, 2, size=(100, 8)).type(torch.LongTensor)
-
-        n_iters = 10
-        batch_size = y.shape[0] // n_iters
-        for i in range(n_iters):
-            idx = i * batch_size
-            pr.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert pr._type == 'binary'
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
-
     _test(average=True)
     _test(average=False)
 
@@ -176,24 +158,6 @@ def test_binary_input_NHW():
         y_pred = torch.randint(0, 2, size=(10, 1, 12, 10))
         y = torch.randint(0, 2, size=(10, 1, 12, 10)).type(torch.LongTensor)
         pr.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert pr._type == 'binary'
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
-
-        # Batched Updates
-        pr.reset()
-        y_pred = torch.randint(0, 2, size=(100, 4, 4))
-        y = torch.randint(0, 2, size=(100, 4, 4)).type(torch.LongTensor)
-
-        n_iters = 10
-        batch_size = y.shape[0] // n_iters
-        for i in range(n_iters):
-            idx = i * batch_size
-            pr.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
         assert pr._type == 'binary'
@@ -326,27 +290,6 @@ def test_multiclass_input_NL():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(pr_compute)
 
-        # Batched Updates
-        pr.reset()
-        y_pred = torch.rand(100, 3, 20)
-        y = torch.randint(0, 3, size=(100, 20)).type(torch.LongTensor)
-
-        n_iters = 10
-        batch_size = y.shape[0] // n_iters
-        for i in range(n_iters):
-            idx = i * batch_size
-            pr.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert pr._type == 'multiclass'
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        sklearn_average_parameter = 'macro' if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert precision_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(pr_compute)
-
     _test(average=True)
     _test(average=False)
 
@@ -376,27 +319,6 @@ def test_multiclass_input_NHW():
         pr.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
-        assert pr._type == 'multiclass'
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        sklearn_average_parameter = 'macro' if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert precision_score(np_y, np_y_pred, average=sklearn_average_parameter) == pytest.approx(pr_compute)
-
-        # Batched Updates
-        pr.reset()
-        y_pred = torch.rand(100, 3, 4, 4)
-        y = torch.randint(0, 3, size=(100, 4, 4)).type(torch.LongTensor)
-
-        n_iters = 10
-        batch_size = y.shape[0] // n_iters
-        for i in range(n_iters):
-            idx = i * batch_size
-            pr.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         assert pr._type == 'multiclass'
         assert isinstance(pr.compute(), float if average else torch.Tensor)
         pr_compute = pr.compute() if average else pr.compute().numpy()
@@ -542,26 +464,6 @@ def test_multilabel_input_NL():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
 
-        # Batched Updates
-        pr.reset()
-        y_pred = torch.randint(0, 2, size=(100, 6, 15))
-        y = torch.randint(0, 2, size=(100, 6, 15)).type(torch.LongTensor)
-
-        n_iters = 10
-        batch_size = y.shape[0] // n_iters
-        for i in range(n_iters):
-            idx = i * batch_size
-            pr.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
-        assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
-
     _test(average=True)
     _test(average=False)
 
@@ -595,26 +497,6 @@ def test_multilabel_input_NHW():
         y_pred, y = transform_multilabel_output(y_pred, y)
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
-        assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
-
-        # Batched Updates
-        pr.reset()
-        y_pred = torch.randint(0, 2, size=(100, 6, 8, 8))
-        y = torch.randint(0, 2, size=(100, 6, 8, 8)).type(torch.LongTensor)
-
-        n_iters = 10
-        batch_size = y.shape[0] // n_iters
-        for i in range(n_iters):
-            idx = i * batch_size
-            pr.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
         assert pr._type == 'multilabel'
         assert isinstance(pr.compute(), float)
         pr_compute = pr.compute()
