@@ -66,19 +66,20 @@ class _BaseClassification(Metric):
             self._type = update_type
         else:
             if self._type != update_type:
-                raise RuntimeError("update_type has changed from {} to {}.".format(self._type, update_type))
+                raise RuntimeError("Input data type has changed from {} to {}.".format(self._type, update_type))
 
 
 class Accuracy(_BaseClassification):
     """
     Calculates the accuracy for binary, multiclass and multilabel data
-    - `is_multilabel`, True for multilabel cases and False for binary or multiclass cases.
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) for multilabel cases.
+    - `is_multilabel`, True for multilabel cases and False for binary or multiclass cases.
 
-    In binary and multilabel cases, when `y` has 0 or 1 values, the elements of `y_pred` must be between 0 and 1.
+    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
+    predictions can be done as below:
 
     .. code-block:: python
 
@@ -106,10 +107,12 @@ class Accuracy(_BaseClassification):
             correct = torch.eq(indices, y).view(-1)
         elif self._type == "multilabel":
             if y_pred.ndimension() > 2:
+                # if y, y_pred shape is (N, C, ...) -> (N x ..., C)
                 num_classes = y_pred.size(1)
-                y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
-                y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
-            correct = torch.Tensor([torch.equal(true, pred) for true, pred in zip(y, y_pred.type_as(y))]).type_as(y)
+                last_dim = y_pred.ndimension()
+                y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
+                y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
+            correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]

@@ -269,12 +269,12 @@ def test_multiclass_input_NHW():
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
 
-def transform_multilabel_output(y_pred, y):
-    if y_pred.ndimension() > 2:
-        num_classes = y_pred.size(1)
-        y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
-        y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
-    return y_pred, y
+def to_numpy_multilabel(y):
+    # reshapes input array to (N x ..., C)
+    y = y.transpose(1, 0).numpy()
+    num_classes = y.shape[0]
+    y = y.reshape((num_classes, -1)).transpose(1, 0)
+    return y
 
 
 def test_multilabel_wrong_inputs():
@@ -295,30 +295,34 @@ def test_multilabel_wrong_inputs():
 
 def test_multilabel_input_N():
     # Multilabel input data of shape (N, C, ...) and (N, C, ...)
-    acc = Accuracy(is_multilabel=True)
 
-    y_pred = torch.randint(0, 2, size=(10, 4))
-    y = torch.randint(0, 2, size=(10, 4)).type(torch.LongTensor)
-    acc.update((y_pred, y))
-    y_pred, y = transform_multilabel_output(y_pred, y)
-    np_y_pred = y_pred.numpy()
-    np_y = y.numpy()
-    assert acc._type == 'multilabel'
-    assert isinstance(acc.compute(), float)
-    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+    def _test():
+        acc = Accuracy(is_multilabel=True)
+        y_pred = torch.randint(0, 2, size=(10, 4))
+        y = torch.randint(0, 2, size=(10, 4)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = y_pred.numpy()
+        np_y = y.numpy()
+        assert acc._type == 'multilabel'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
-    acc.reset()
-    y_pred = torch.randint(0, 2, size=(50, 7))
-    y = torch.randint(0, 2, size=(50, 7)).type(torch.LongTensor)
-    acc.update((y_pred, y))
-    y_pred, y = transform_multilabel_output(y_pred, y)
-    np_y_pred = y_pred.numpy()
-    np_y = y.numpy()
-    assert acc._type == 'multilabel'
-    assert isinstance(acc.compute(), float)
-    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+        acc.reset()
+        y_pred = torch.randint(0, 2, size=(50, 7)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(50, 7)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = y_pred.numpy()
+        np_y = y.numpy()
+        assert acc._type == 'multilabel'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
 
     # Batched Updates
+    acc = Accuracy(is_multilabel=True)
     acc.reset()
     y_pred = torch.randint(0, 2, size=(100, 4))
     y = torch.randint(0, 2, size=(100, 4)).type(torch.LongTensor)
@@ -329,7 +333,7 @@ def test_multilabel_input_N():
     for i in range(n_iters):
         idx = i * batch_size
         acc.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-    y_pred, y = transform_multilabel_output(y_pred, y)
+
     np_y = y.numpy()
     np_y_pred = y_pred.numpy()
     assert acc._type == 'multilabel'
@@ -339,25 +343,48 @@ def test_multilabel_input_N():
 
 def test_multilabel_input_NL():
     # Multilabel input data of shape (N, C, L, ...) and (N, C, L, ...)
+
+    def _test():
+        acc = Accuracy(is_multilabel=True)
+
+        y_pred = torch.randint(0, 2, size=(10, 4, 5))
+        y = torch.randint(0, 2, size=(10, 4, 5)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = to_numpy_multilabel(y_pred)  # (N, C, L, ...) -> (N * L * ..., C)
+        np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
+        assert acc._type == 'multilabel'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        acc.reset()
+        y_pred = torch.randint(0, 2, size=(4, 10, 8)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(4, 10, 8)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = to_numpy_multilabel(y_pred)  # (N, C, L, ...) -> (N * L * ..., C)
+        np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
+        assert acc._type == 'multilabel'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+    # Batched Updates
     acc = Accuracy(is_multilabel=True)
-
-    y_pred = torch.randint(0, 2, size=(10, 4, 5))
-    y = torch.randint(0, 2, size=(10, 4, 5)).type(torch.LongTensor)
-    acc.update((y_pred, y))
-    y_pred, y = transform_multilabel_output(y_pred, y)
-    np_y_pred = y_pred.numpy()
-    np_y = y.numpy()
-    assert acc._type == 'multilabel'
-    assert isinstance(acc.compute(), float)
-    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
-
     acc.reset()
-    y_pred = torch.randint(0, 2, size=(4, 10, 8))
-    y = torch.randint(0, 2, size=(4, 10, 8)).type(torch.LongTensor)
-    acc.update((y_pred, y))
-    y_pred, y = transform_multilabel_output(y_pred, y)
-    np_y_pred = y_pred.numpy()
-    np_y = y.numpy()
+    y_pred = torch.randint(0, 2, size=(100, 4, 5))
+    y = torch.randint(0, 2, size=(100, 4, 5)).type(torch.LongTensor)
+
+    n_iters = 10
+    batch_size = y.shape[0] // n_iters
+
+    for i in range(n_iters):
+        idx = i * batch_size
+        acc.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+
+    np_y_pred = to_numpy_multilabel(y_pred)  # (N, C, L, ...) -> (N * L * ..., C)
+    np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
     assert acc._type == 'multilabel'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
@@ -365,25 +392,48 @@ def test_multilabel_input_NL():
 
 def test_multilabel_input_NHW():
     # Multilabel input data of shape (N, C, H, W, ...) and (N, C, H, W, ...)
+
+    def _test():
+        acc = Accuracy(is_multilabel=True)
+
+        y_pred = torch.randint(0, 2, size=(4, 5, 12, 10))
+        y = torch.randint(0, 2, size=(4, 5, 12, 10)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = to_numpy_multilabel(y_pred)  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        np_y = to_numpy_multilabel(y)  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        assert acc._type == 'multilabel'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        acc.reset()
+        y_pred = torch.randint(0, 2, size=(4, 10, 12, 8)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(4, 10, 12, 8)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = to_numpy_multilabel(y_pred)  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        np_y = to_numpy_multilabel(y)  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        assert acc._type == 'multilabel'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+    # Batched Updates
     acc = Accuracy(is_multilabel=True)
-
-    y_pred = torch.randint(0, 2, size=(4, 5, 12, 10))
-    y = torch.randint(0, 2, size=(4, 5, 12, 10)).type(torch.LongTensor)
-    acc.update((y_pred, y))
-    y_pred, y = transform_multilabel_output(y_pred, y)
-    np_y_pred = y_pred.numpy()
-    np_y = y.numpy()
-    assert acc._type == 'multilabel'
-    assert isinstance(acc.compute(), float)
-    assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
-
     acc.reset()
-    y_pred = torch.randint(0, 2, size=(4, 10, 12, 8))
-    y = torch.randint(0, 2, size=(4, 10, 12, 8)).type(torch.LongTensor)
-    acc.update((y_pred, y))
-    y_pred, y = transform_multilabel_output(y_pred, y)
-    np_y_pred = y_pred.numpy()
-    np_y = y.numpy()
+    y_pred = torch.randint(0, 2, size=(100, 5, 12, 10))
+    y = torch.randint(0, 2, size=(100, 5, 12, 10)).type(torch.LongTensor)
+
+    n_iters = 10
+    batch_size = y.shape[0] // n_iters
+
+    for i in range(n_iters):
+        idx = i * batch_size
+        acc.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+
+    np_y_pred = to_numpy_multilabel(y_pred)  # (N, C, L, ...) -> (N * L * ..., C)
+    np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
     assert acc._type == 'multilabel'
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
