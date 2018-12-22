@@ -88,7 +88,6 @@ def test_binary_input_N():
 
     # Batched Updates
     acc = Accuracy()
-    acc.reset()
     y_pred = torch.randint(0, 2, size=(100,)).type(torch.LongTensor)
     y = torch.randint(0, 2, size=(100,)).type(torch.LongTensor)
 
@@ -136,7 +135,6 @@ def test_binary_input_NL():
 
     # Batched Updates
     acc = Accuracy()
-    acc.reset()
     y_pred = torch.randint(0, 2, size=(100, 8)).type(torch.LongTensor)
     y = torch.randint(0, 2, size=(100, 8)).type(torch.LongTensor)
 
@@ -184,7 +182,6 @@ def test_binary_input_NHW():
 
     # Batched Updates
     acc = Accuracy()
-    acc.reset()
     y_pred = torch.randint(0, 2, size=(100, 1, 8, 8)).type(torch.LongTensor)
     y = torch.randint(0, 2, size=(100, 8, 8)).type(torch.LongTensor)
 
@@ -262,7 +259,6 @@ def test_multiclass_input_N():
 
     # Batched Updates
     acc = Accuracy()
-    acc.reset()
     y_pred = torch.rand(100, 5)
     y = torch.randint(0, 5, size=(100,)).type(torch.LongTensor)
 
@@ -310,7 +306,6 @@ def test_multiclass_input_NL():
 
     # Batched Updates
     acc = Accuracy()
-    acc.reset()
     y_pred = torch.rand(100, 9, 7)
     y = torch.randint(0, 5, size=(100, 7)).type(torch.LongTensor)
 
@@ -358,7 +353,6 @@ def test_multiclass_input_NHW():
 
     # Batched Updates
     acc = Accuracy()
-    acc.reset()
     y_pred = torch.rand(100, 3, 8, 8)
     y = torch.randint(0, 5, size=(100, 8, 8)).type(torch.LongTensor)
 
@@ -430,7 +424,6 @@ def test_multilabel_input_N():
 
     # Batched Updates
     acc = Accuracy(is_multilabel=True)
-    acc.reset()
     y_pred = torch.randint(0, 2, size=(100, 4))
     y = torch.randint(0, 2, size=(100, 4)).type(torch.LongTensor)
 
@@ -479,7 +472,6 @@ def test_multilabel_input_NL():
 
     # Batched Updates
     acc = Accuracy(is_multilabel=True)
-    acc.reset()
     y_pred = torch.randint(0, 2, size=(100, 4, 5))
     y = torch.randint(0, 2, size=(100, 4, 5)).type(torch.LongTensor)
 
@@ -528,7 +520,6 @@ def test_multilabel_input_NHW():
 
     # Batched Updates
     acc = Accuracy(is_multilabel=True)
-    acc.reset()
     y_pred = torch.randint(0, 2, size=(100, 5, 12, 10))
     y = torch.randint(0, 2, size=(100, 5, 12, 10)).type(torch.LongTensor)
 
