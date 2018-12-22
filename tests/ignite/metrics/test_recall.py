@@ -375,20 +375,30 @@ def test_multilabel_wrong_inputs():
         pr.update((torch.randint(0, 5, size=(10, 5, 6)), torch.rand(10)))
 
 
+def test_multilabel_average_false():
+
+    with pytest.raises(RuntimeError):
+        Recall(average=False, is_multilabel=True)
+
+
+def to_numpy_multilabel(y):
+    # reshapes input array to (N x ..., C)
+    y = y.transpose(1, 0).numpy()
+    num_classes = y.shape[0]
+    y = y.reshape((num_classes, -1)).transpose(1, 0)
+    return y
+
+
 def test_multilabel_input_N():
-    def _test(average):
-        if average:
-            re = Recall(average=average, is_multilabel=True)
-        else:
-            with pytest.warns(UserWarning):
-                re = Recall(average=average, is_multilabel=True)
+
+    def _test():
+        re = Recall(average=True, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(20, 6))
         y = torch.randint(0, 2, size=(20, 6)).type(torch.LongTensor)
         re.update((y_pred, y))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -400,9 +410,8 @@ def test_multilabel_input_N():
         y_pred = torch.randint(0, 2, size=(10, 4))
         y = torch.randint(0, 2, size=(10, 4)).type(torch.LongTensor)
         re.update((y_pred, y))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -415,9 +424,8 @@ def test_multilabel_input_N():
         y_pred = torch.randint(0, 2, size=(50, 2))
         y = torch.randint(0, 2, size=(50, 2)).type(torch.LongTensor)
         re.update((y_pred, y))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -435,9 +443,8 @@ def test_multilabel_input_N():
         for i in range(n_iters):
             idx = i * batch_size
             re.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -445,24 +452,20 @@ def test_multilabel_input_N():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert recall_score(np_y, np_y_pred, average='samples') == pytest.approx(re_compute)
 
-    _test(average=True)
-    _test(average=False)
+    for _ in range(10):
+        _test()
 
 
 def test_multilabel_input_NL():
-    def _test(average):
-        if average:
-            re = Recall(average=average, is_multilabel=True)
-        else:
-            with pytest.warns(UserWarning):
-                re = Recall(average=average, is_multilabel=True)
+
+    def _test():
+        re = Recall(average=True, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 8))
         y = torch.randint(0, 2, size=(10, 5, 8)).type(torch.LongTensor)
         re.update((y_pred, y))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -474,9 +477,8 @@ def test_multilabel_input_NL():
         y_pred = torch.randint(0, 2, size=(15, 10, 8))
         y = torch.randint(0, 2, size=(15, 10, 8)).type(torch.LongTensor)
         re.update((y_pred, y))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -484,24 +486,20 @@ def test_multilabel_input_NL():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert recall_score(np_y, np_y_pred, average='samples') == pytest.approx(re_compute)
 
-    _test(average=True)
-    _test(average=False)
+    for _ in range(10):
+        _test()
 
 
 def test_multilabel_input_NHW():
-    def _test(average):
-        if average:
-            re = Recall(average=average, is_multilabel=True)
-        else:
-            with pytest.warns(UserWarning):
-                re = Recall(average=average, is_multilabel=True)
+
+    def _test():
+        re = Recall(average=True, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
         y = torch.randint(0, 2, size=(10, 5, 18, 16)).type(torch.LongTensor)
         re.update((y_pred, y))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -513,9 +511,8 @@ def test_multilabel_input_NHW():
         y_pred = torch.randint(0, 2, size=(10, 7, 20, 12))
         y = torch.randint(0, 2, size=(10, 7, 20, 12)).type(torch.LongTensor)
         re.update((y_pred, y))
-        y_pred, y = transform_multilabel_output(y_pred, y)
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
         assert re._type == 'multilabel'
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
@@ -523,5 +520,5 @@ def test_multilabel_input_NHW():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert recall_score(np_y, np_y_pred, average='samples') == pytest.approx(re_compute)
 
-    _test(average=True)
-    _test(average=False)
+    for _ in range(10):
+        _test()

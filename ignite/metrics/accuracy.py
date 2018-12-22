@@ -76,7 +76,6 @@ class Accuracy(_BaseClassification):
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) for multilabel cases.
-    - `is_multilabel`, True for multilabel cases and False for binary or multiclass cases.
 
     In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
     predictions can be done as below:
@@ -89,6 +88,11 @@ class Accuracy(_BaseClassification):
             return y_pred, y
 
         binary_accuracy = Accuracy(thresholded_output_transform)
+
+
+    Args:
+        is_multilabel (bool, optional) flag to use in multilabel case. By default, False.
+
     """
 
     def reset(self):

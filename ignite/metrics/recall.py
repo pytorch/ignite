@@ -1,4 +1,8 @@
+from __future__ import division
+import warnings
+
 import torch
+
 from ignite.metrics.precision import _BasePrecisionRecall
 from ignite._utils import to_onehot
 
@@ -9,18 +13,29 @@ class Recall(_BasePrecisionRecall):
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
-    In binary case, when `y` has 0 or 1 values, the elements of `y_pred` must be between 0 and 1. Recall is
-    computed over positive class, assumed to be 1.
+
+    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
+    predictions can be done as below:
+
+    .. code-block:: python
+
+        def thresholded_output_transform(output):
+            y_pred, y = output
+            y_pred = torch.round(y_pred)
+            return y_pred, y
+
+        binary_accuracy = Recall(output_transform=thresholded_output_transform)
+
     Args:
-        average (bool, optional): if True, recall is computed as the unweighted average (across all classes
-            in multiclass case), otherwise, returns a tensor with the recall (for each class in multiclass case).
+        average (bool, optional): if True, precision is computed as the unweighted average (across all classes
+            in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
+        is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
+            parameter should be True and the average is computed across samples, instead of classes.
     """
 
     def update(self, output):
         y_pred, y = self._check_shape(output)
         self._check_type((y_pred, y))
-
-        dtype = y_pred.type()
 
         if self._type == "binary":
             y_pred = y_pred.view(-1)
@@ -31,21 +46,23 @@ class Recall(_BasePrecisionRecall):
             indices = torch.max(y_pred, dim=1)[1].view(-1)
             y_pred = to_onehot(indices, num_classes=num_classes)
         elif self._type == "multilabel":
-            if y_pred.ndimension() > 2:
-                num_classes = y_pred.size(1)
-                y_pred = torch.transpose(y_pred, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
-                y = torch.transpose(y, 1, 0).contiguous().view(num_classes, -1).transpose(1, 0)
+            # if y, y_pred shape is (N, C, ...) -> (C, N x ...)
+            num_classes = y_pred.size(1)
+            y_pred = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
+            y = torch.transpose(y, 1, 0).reshape(num_classes, -1)
 
-        axis = 0 if not self._type == 'multilabel' else 1
-
-        y_pred = y_pred.type(dtype)
-        y = y.type(dtype)
+        y = y.type_as(y_pred)
         correct = y * y_pred
-        actual_positives = y.sum(dim=axis)
+        actual_positives = y.sum(dim=0)
 
         if correct.sum() == 0:
             true_positives = torch.zeros_like(actual_positives)
         else:
-            true_positives = correct.sum(dim=axis)
+            true_positives = correct.sum(dim=0)
 
-        self._collect_positives(true_positives, actual_positives)
+        if self._type == "multilabel":
+            true_positives = true_positives.type(torch.float) / (actual_positives.type(torch.float) + self.eps)
+            actual_positives = torch.ones_like(true_positives)
+
+        self._true_positives += true_positives
+        self._positives += actual_positives
