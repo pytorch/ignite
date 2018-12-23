@@ -590,7 +590,7 @@ def test_create_supervised_on_cpu():
     assert model.bias.item() == approx(0.0)
 
 
-def test_create_supervised_traced_on_cpu():
+ def test_create_supervised_evaluator_traced_on_cpu():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()
