@@ -91,7 +91,7 @@ def test_binary_input_N():
     y_pred = torch.randint(0, 2, size=(100,)).type(torch.LongTensor)
     y = torch.randint(0, 2, size=(100,)).type(torch.LongTensor)
 
-    n_iters = 10
+    n_iters = 16
     batch_size = y.shape[0] // n_iters
 
     for i in range(n_iters):
@@ -138,7 +138,7 @@ def test_binary_input_NL():
     y_pred = torch.randint(0, 2, size=(100, 8)).type(torch.LongTensor)
     y = torch.randint(0, 2, size=(100, 8)).type(torch.LongTensor)
 
-    n_iters = 10
+    n_iters = 16
     batch_size = y.shape[0] // n_iters
 
     for i in range(n_iters):
@@ -185,8 +185,8 @@ def test_binary_input_NHW():
     y_pred = torch.randint(0, 2, size=(100, 1, 8, 8)).type(torch.LongTensor)
     y = torch.randint(0, 2, size=(100, 8, 8)).type(torch.LongTensor)
 
-    n_iters = 10
-    batch_size = y.shape[0] // n_iters
+    batch_size = 16
+    n_iters = y.shape[0] // batch_size + 1
 
     for i in range(n_iters):
         idx = i * batch_size
@@ -262,8 +262,8 @@ def test_multiclass_input_N():
     y_pred = torch.rand(100, 5)
     y = torch.randint(0, 5, size=(100,)).type(torch.LongTensor)
 
-    n_iters = 10
-    batch_size = y.shape[0] // n_iters
+    batch_size = 16
+    n_iters = y.shape[0] // batch_size + 1
 
     for i in range(n_iters):
         idx = i * batch_size
@@ -309,8 +309,8 @@ def test_multiclass_input_NL():
     y_pred = torch.rand(100, 9, 7)
     y = torch.randint(0, 5, size=(100, 7)).type(torch.LongTensor)
 
-    n_iters = 10
-    batch_size = y.shape[0] // n_iters
+    batch_size = 16
+    n_iters = y.shape[0] // batch_size + 1
 
     for i in range(n_iters):
         idx = i * batch_size
@@ -356,8 +356,8 @@ def test_multiclass_input_NHW():
     y_pred = torch.rand(100, 3, 8, 8)
     y = torch.randint(0, 5, size=(100, 8, 8)).type(torch.LongTensor)
 
-    n_iters = 10
-    batch_size = y.shape[0] // n_iters
+    batch_size = 16
+    n_iters = y.shape[0] // batch_size + 1
 
     for i in range(n_iters):
         idx = i * batch_size
@@ -427,8 +427,8 @@ def test_multilabel_input_N():
     y_pred = torch.randint(0, 2, size=(100, 4))
     y = torch.randint(0, 2, size=(100, 4)).type(torch.LongTensor)
 
-    n_iters = 10
-    batch_size = y.shape[0] // n_iters
+    batch_size = 16
+    n_iters = y.shape[0] // batch_size + 1
 
     for i in range(n_iters):
         idx = i * batch_size
@@ -475,8 +475,8 @@ def test_multilabel_input_NL():
     y_pred = torch.randint(0, 2, size=(100, 4, 5))
     y = torch.randint(0, 2, size=(100, 4, 5)).type(torch.LongTensor)
 
-    n_iters = 10
-    batch_size = y.shape[0] // n_iters
+    batch_size = 16
+    n_iters = y.shape[0] // batch_size + 1
 
     for i in range(n_iters):
         idx = i * batch_size
@@ -523,8 +523,8 @@ def test_multilabel_input_NHW():
     y_pred = torch.randint(0, 2, size=(100, 5, 12, 10))
     y = torch.randint(0, 2, size=(100, 5, 12, 10)).type(torch.LongTensor)
 
-    n_iters = 10
-    batch_size = y.shape[0] // n_iters
+    batch_size = 16
+    n_iters = y.shape[0] // batch_size + 1
 
     for i in range(n_iters):
         idx = i * batch_size

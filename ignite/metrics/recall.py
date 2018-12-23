@@ -52,16 +52,18 @@ class Recall(_BasePrecisionRecall):
 
         y = y.type_as(y_pred)
         correct = y * y_pred
-        actual_positives = y.sum(dim=0)
+        actual_positives = y.sum(dim=0).type(torch.float64)
 
         if correct.sum() == 0:
             true_positives = torch.zeros_like(actual_positives)
         else:
             true_positives = correct.sum(dim=0)
 
+        true_positives = true_positives.type(torch.float64)
+
         if self._type == "multilabel":
-            true_positives = true_positives.type(torch.float) / (actual_positives.type(torch.float) + self.eps)
-            actual_positives = torch.ones_like(true_positives)
+            true_positives = torch.sum(true_positives / (actual_positives + self.eps))
+            actual_positives = len(actual_positives)
 
         self._true_positives += true_positives
         self._positives += actual_positives

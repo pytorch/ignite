@@ -22,11 +22,11 @@ class _BasePrecisionRecall(_BaseClassification):
         self._positives = 0
 
     def compute(self):
-        if not isinstance(self._positives, torch.Tensor):
+        if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed".format(self.__class__.__name__))
 
-        result = self._true_positives.type(torch.float) / (self._positives.type(torch.float) + self.eps)
+        result = self._true_positives / (self._positives + self.eps)
 
         if self._average:
             return result.mean().item()
@@ -80,16 +80,18 @@ class Precision(_BasePrecisionRecall):
 
         y = y.type_as(y_pred)
         correct = y * y_pred
-        all_positives = y_pred.sum(dim=0)
+        all_positives = y_pred.sum(dim=0).type(torch.float64)
 
         if correct.sum() == 0:
             true_positives = torch.zeros_like(all_positives)
         else:
             true_positives = correct.sum(dim=0)
 
+        true_positives = true_positives.type(torch.float64)
+
         if self._type == "multilabel":
-            true_positives = true_positives.type(torch.float) / (all_positives.type(torch.float) + self.eps)
-            all_positives = torch.ones_like(true_positives)
+            true_positives = torch.sum(true_positives / (all_positives + self.eps))
+            all_positives = len(all_positives)
 
         self._true_positives += true_positives
         self._positives += all_positives
