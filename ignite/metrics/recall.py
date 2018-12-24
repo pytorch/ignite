@@ -52,14 +52,16 @@ class Recall(_BasePrecisionRecall):
 
         y = y.type_as(y_pred)
         correct = y * y_pred
-        actual_positives = y.sum(dim=0).type(torch.float64)
+        actual_positives = y.sum(dim=0).type(torch.DoubleTensor)  # Convert from int cuda/cpu to double cpu
 
         if correct.sum() == 0:
             true_positives = torch.zeros_like(actual_positives)
         else:
             true_positives = correct.sum(dim=0)
 
-        true_positives = true_positives.type(torch.float64)
+        # Convert from int cuda/cpu to double cpu
+        # We need double precision for the division true_positives / actual_positives
+        true_positives = true_positives.type(torch.DoubleTensor)
 
         if self._type == "multilabel":
             true_positives = torch.sum(true_positives / (actual_positives + self.eps))
