@@ -92,7 +92,7 @@ def test_binary_input_N():
     y = torch.randint(0, 2, size=(100,)).type(torch.LongTensor)
 
     n_iters = 16
-    batch_size = y.shape[0] // n_iters
+    batch_size = y.shape[0] // n_iters + 1
 
     for i in range(n_iters):
         idx = i * batch_size
@@ -139,7 +139,7 @@ def test_binary_input_NL():
     y = torch.randint(0, 2, size=(100, 8)).type(torch.LongTensor)
 
     n_iters = 16
-    batch_size = y.shape[0] // n_iters
+    batch_size = y.shape[0] // n_iters + 1
 
     for i in range(n_iters):
         idx = i * batch_size
