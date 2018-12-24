@@ -235,7 +235,7 @@ def test_multiclass_input_N():
     def _test(average):
         re = Recall(average=average)
         y_pred = torch.rand(20, 6)
-        y = torch.randint(0, 5, size=(20,)).type(torch.LongTensor)
+        y = torch.randint(0, 6, size=(20,)).type(torch.LongTensor)
         re.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
