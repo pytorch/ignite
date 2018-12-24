@@ -303,7 +303,7 @@ def test_multiclass_input_NL():
         # Batched Updates
         acc.reset()
         y_pred = torch.rand(100, 9, 7)
-        y = torch.randint(0, 5, size=(100, 7)).type(torch.LongTensor)
+        y = torch.randint(0, 9, size=(100, 7)).type(torch.LongTensor)
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -350,7 +350,7 @@ def test_multiclass_input_NHW():
         # Batched Updates
         acc.reset()
         y_pred = torch.rand(100, 3, 8, 8)
-        y = torch.randint(0, 5, size=(100, 8, 8)).type(torch.LongTensor)
+        y = torch.randint(0, 3, size=(100, 8, 8)).type(torch.LongTensor)
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
