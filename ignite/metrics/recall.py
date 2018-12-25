@@ -25,6 +25,21 @@ class Recall(_BasePrecisionRecall):
 
         binary_accuracy = Recall(output_transform=thresholded_output_transform)
 
+    In multilabel cases, average parameter should be True. If the user is trying to metrics to calculate F1 for
+    example, average paramter should be False. This can be done as seen below:
+
+    .. warning::
+
+        If average is False, current implementation stores all input data (output and target) in as tensors before
+        computing a metric. This can potentially lead to a memory error if the input data is larger than available RAM.
+
+    .. code-block:: python
+
+        precision = Precision(average=False, is_multilabel=True)
+        recall = Recall(average=False, is_multilabel=True)
+        F1 = precision * recall * 2 / (precision + recall)
+        F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
+
     Args:
         average (bool, optional): if True, precision is computed as the unweighted average (across all classes
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
@@ -64,8 +79,12 @@ class Recall(_BasePrecisionRecall):
         true_positives = true_positives.type(torch.DoubleTensor)
 
         if self._type == "multilabel":
-            true_positives = torch.sum(true_positives / (actual_positives + self.eps))
-            actual_positives = len(actual_positives)
-
-        self._true_positives += true_positives
-        self._positives += actual_positives
+            if self._true_positives is None:
+                self._true_positives = true_positives
+                self._positives = actual_positives
+            else:
+                self._true_positives = torch.cat([self._true_positives, true_positives])
+                self._positives = torch.cat([self._positives, actual_positives])
+        else:
+            self._true_positives += true_positives
+            self._positives += actual_positives

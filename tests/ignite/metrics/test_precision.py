@@ -458,12 +458,6 @@ def test_multilabel_wrong_inputs():
         pr.update((torch.randint(0, 5, size=(10, 5, 6)), torch.rand(10)))
 
 
-def test_multilabel_average_false():
-
-    with pytest.raises(RuntimeError):
-        Precision(average=False, is_multilabel=True)
-
-
 def to_numpy_multilabel(y):
     # reshapes input array to (N x ..., C)
     y = y.transpose(1, 0).numpy()
@@ -474,8 +468,12 @@ def to_numpy_multilabel(y):
 
 def test_multilabel_input_NC():
 
-    def _test():
-        pr = Precision(average=True, is_multilabel=True)
+    def _test(average):
+        if average:
+            pr = Precision(average=average, is_multilabel=True)
+        else:
+            with pytest.warns(UserWarning):
+                pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(20, 5))
         y = torch.randint(0, 2, size=(20, 5)).type(torch.LongTensor)
@@ -483,8 +481,7 @@ def test_multilabel_input_NC():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
@@ -496,8 +493,7 @@ def test_multilabel_input_NC():
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
@@ -517,20 +513,24 @@ def test_multilabel_input_NC():
         np_y = y.numpy()
         np_y_pred = y_pred.numpy()
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
 
     for _ in range(5):
-        _test()
+        _test(average=True)
+        _test(average=False)
 
 
 def test_multilabel_input_NCL():
 
-    def _test():
-        pr = Precision(average=True, is_multilabel=True)
+    def _test(average):
+        if average:
+            pr = Precision(average=average, is_multilabel=True)
+        else:
+            with pytest.warns(UserWarning):
+                pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 10))
         y = torch.randint(0, 2, size=(10, 5, 10)).type(torch.LongTensor)
@@ -538,8 +538,7 @@ def test_multilabel_input_NCL():
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
@@ -551,8 +550,7 @@ def test_multilabel_input_NCL():
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
@@ -572,20 +570,24 @@ def test_multilabel_input_NCL():
         np_y = to_numpy_multilabel(y)
         np_y_pred = to_numpy_multilabel(y_pred)
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
 
     for _ in range(5):
-        _test()
+        _test(average=True)
+        _test(average=False)
 
 
 def test_multilabel_input_NCHW():
 
-    def _test():
-        pr = Precision(average=True, is_multilabel=True)
+    def _test(average):
+        if average:
+            pr = Precision(average=average, is_multilabel=True)
+        else:
+            with pytest.warns(UserWarning):
+                pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
         y = torch.randint(0, 2, size=(10, 5, 18, 16)).type(torch.LongTensor)
@@ -593,8 +595,7 @@ def test_multilabel_input_NCHW():
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
@@ -606,8 +607,7 @@ def test_multilabel_input_NCHW():
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
@@ -627,14 +627,14 @@ def test_multilabel_input_NCHW():
         np_y = to_numpy_multilabel(y)
         np_y_pred = to_numpy_multilabel(y_pred)
         assert pr._type == 'multilabel'
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        pr_compute = pr.compute() if average else pr.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average='samples') == pytest.approx(pr_compute)
 
     for _ in range(5):
-        _test()
+        _test(average=True)
+        _test(average=False)
 
 
 def test_incorrect_type():
