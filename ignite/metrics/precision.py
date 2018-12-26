@@ -16,19 +16,12 @@ class _BasePrecisionRecall(_BaseClassification):
             if not self._average:
                 warnings.warn("Average argument should be True for multilabel case. "
                               "Use False only if using MetricsLambda.")
-            self.reset = self._reset_multilabel
-        else:
-            self.reset = self._reset_multiclass
         super(_BasePrecisionRecall, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
         self.eps = 1e-20
 
-    def _reset_multilabel(self):
-        self._true_positives = None
-        self._positives = None
-
-    def _reset_multiclass(self):
-        self._true_positives = 0
-        self._positives = 0
+    def reset(self):
+        self._true_positives = torch.DoubleTensor(0) if self._is_multilabel else 0
+        self._positives = torch.DoubleTensor(0) if self._is_multilabel else 0
 
     def compute(self):
         if not isinstance(self._positives, torch.Tensor):
@@ -41,9 +34,6 @@ class _BasePrecisionRecall(_BaseClassification):
             return result.mean().item()
         else:
             return result
-
-    def reset(self):
-        pass
 
 
 class Precision(_BasePrecisionRecall):
@@ -118,12 +108,8 @@ class Precision(_BasePrecisionRecall):
         true_positives = true_positives.type(torch.DoubleTensor)
 
         if self._type == "multilabel":
-            if self._true_positives is None:
-                self._true_positives = true_positives
-                self._positives = all_positives
-            else:
-                self._true_positives = torch.cat([self._true_positives, true_positives])
-                self._positives = torch.cat([self._positives, all_positives])
+            self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)
+            self._positives = torch.cat([self._positives, all_positives], dim=0)
         else:
             self._true_positives += true_positives
             self._positives += all_positives

@@ -110,12 +110,11 @@ class Accuracy(_BaseClassification):
             indices = torch.max(y_pred, dim=1)[1]
             correct = torch.eq(indices, y).view(-1)
         elif self._type == "multilabel":
-            if y_pred.ndimension() > 2:
-                # if y, y_pred shape is (N, C, ...) -> (N x ..., C)
-                num_classes = y_pred.size(1)
-                last_dim = y_pred.ndimension()
-                y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
-                y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
+            # if y, y_pred shape is (N, C, ...) -> (N x ..., C)
+            num_classes = y_pred.size(1)
+            last_dim = y_pred.ndimension()
+            y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
+            y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
         self._num_correct += torch.sum(correct).item()
