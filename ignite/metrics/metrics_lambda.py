@@ -51,5 +51,5 @@ class MetricsLambda(Metric):
         # recursively attach all its dependencies
         for index, metric in enumerate(self.args):
             if isinstance(metric, Metric):
-                metric.attach(engine, name + '[{}]'.format(index))
+                metric.attach(engine, name + '|$^[{}]'.format(index))
         super(MetricsLambda, self).attach(engine, name)
