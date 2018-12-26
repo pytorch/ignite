@@ -13,7 +13,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegressionEpoch):
     r"""
     Calculates the Geometric Mean Relative Absolute Error:
 
-    :math:`\text{GMRAE} = TODO`,
+    :math:`\text{GMRAE} = exp(\frac{1}{n}\sum_{j=1}^n ln\frac{|A_j - P_j|}{|A_j - \overline{A}|})`
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
