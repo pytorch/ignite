@@ -1,10 +1,12 @@
 from __future__ import division
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Metric
+
 import torch
 
+from ignite.exceptions import NotComputableError
+from ignite.contrib.metrics.regression._base import _BaseRegression
 
-class MeanAbsoluteRelativeError(Metric):
+
+class MeanAbsoluteRelativeError(_BaseRegression):
     r"""
     Calculate Mean Absolute Relative Error:
 
@@ -15,6 +17,7 @@ class MeanAbsoluteRelativeError(Metric):
     More details can be found in the reference `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     __ https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
 
@@ -24,7 +27,7 @@ class MeanAbsoluteRelativeError(Metric):
         self._sum_of_absolute_relative_errors = 0.0
         self._num_samples = 0
 
-    def update(self, output):
+    def _update(self, output):
         y_pred, y = output
         if (y == 0).any():
             raise NotComputableError('The ground truth has 0')

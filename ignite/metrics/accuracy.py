@@ -72,6 +72,7 @@ class _BaseClassification(Metric):
 class Accuracy(_BaseClassification):
     """
     Calculates the accuracy for binary, multiclass and multilabel data
+
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
