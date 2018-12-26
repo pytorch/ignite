@@ -1,6 +1,6 @@
 from __future__ import division
 
-import numpy as np
+import math
 
 
 class ParamScheduler(object):
@@ -190,7 +190,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         """Method to get current optimizer's parameter value
         """
         cycle_progress = self.event_index / self.cycle_size
-        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - np.cos(np.pi * cycle_progress))
+        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
 class ConcatScheduler(ParamScheduler):

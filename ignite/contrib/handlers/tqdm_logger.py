@@ -1,3 +1,4 @@
+
 try:
     from tqdm import tqdm
 except ImportError:
@@ -6,7 +7,7 @@ except ImportError:
 from ignite.engine import Events
 
 
-class ProgressBar:
+class ProgressBar(object):
     """
     TQDM progress bar handler to log training progress and computed metrics.
 
