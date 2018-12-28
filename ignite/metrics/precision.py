@@ -1,5 +1,4 @@
 from __future__ import division
-import warnings
 
 import torch
 
@@ -12,10 +11,6 @@ class _BasePrecisionRecall(_BaseClassification):
 
     def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
         self._average = average
-        if is_multilabel:
-            if not self._average:
-                warnings.warn("Average argument should be True for multilabel case. "
-                              "Use False only if using MetricsLambda.")
         super(_BasePrecisionRecall, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
         self.eps = 1e-20
 
@@ -57,7 +52,7 @@ class Precision(_BasePrecisionRecall):
         binary_accuracy = Precision(output_transform=thresholded_output_transform)
 
     In multilabel cases, average parameter should be True. If the user is trying to metrics to calculate F1 for
-    example, average paramter should be False. This can be done as seen below:
+    example, average paramter should be False. This can be done as shown below:
 
     .. warning::
 
@@ -68,7 +63,7 @@ class Precision(_BasePrecisionRecall):
 
         precision = Precision(average=False, is_multilabel=True)
         recall = Recall(average=False, is_multilabel=True)
-        F1 = precision * recall * 2 / (precision + recall)
+        F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
 
     Args:

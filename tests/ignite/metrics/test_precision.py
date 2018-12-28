@@ -469,11 +469,7 @@ def to_numpy_multilabel(y):
 def test_multilabel_input_NC():
 
     def _test(average):
-        if average:
-            pr = Precision(average=average, is_multilabel=True)
-        else:
-            with pytest.warns(UserWarning):
-                pr = Precision(average=average, is_multilabel=True)
+        pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(20, 5))
         y = torch.randint(0, 2, size=(20, 5)).type(torch.LongTensor)
@@ -526,11 +522,7 @@ def test_multilabel_input_NC():
 def test_multilabel_input_NCL():
 
     def _test(average):
-        if average:
-            pr = Precision(average=average, is_multilabel=True)
-        else:
-            with pytest.warns(UserWarning):
-                pr = Precision(average=average, is_multilabel=True)
+        pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 10))
         y = torch.randint(0, 2, size=(10, 5, 10)).type(torch.LongTensor)
@@ -583,11 +575,7 @@ def test_multilabel_input_NCL():
 def test_multilabel_input_NCHW():
 
     def _test(average):
-        if average:
-            pr = Precision(average=average, is_multilabel=True)
-        else:
-            with pytest.warns(UserWarning):
-                pr = Precision(average=average, is_multilabel=True)
+        pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
         y = torch.randint(0, 2, size=(10, 5, 18, 16)).type(torch.LongTensor)

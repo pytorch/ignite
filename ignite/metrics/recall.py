@@ -27,7 +27,7 @@ class Recall(_BasePrecisionRecall):
         binary_accuracy = Recall(output_transform=thresholded_output_transform)
 
     In multilabel cases, average parameter should be True. If the user is trying to metrics to calculate F1 for
-    example, average paramter should be False. This can be done as seen below:
+    example, average paramter should be False. This can be done as shown below:
 
     .. warning::
 
@@ -38,7 +38,7 @@ class Recall(_BasePrecisionRecall):
 
         precision = Precision(average=False, is_multilabel=True)
         recall = Recall(average=False, is_multilabel=True)
-        F1 = precision * recall * 2 / (precision + recall)
+        F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
 
     Args:
