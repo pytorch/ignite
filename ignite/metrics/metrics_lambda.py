@@ -13,20 +13,25 @@ class MetricsLambda(Metric):
     resetted. When attach, all its dependencies would be automatically
     attached.
 
-    Arguments:
+    Args:
         f (callable): the function that defines the computation
         args (sequence): Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
 
-    Examples:
-        >>> precision = Precision(average=False)
-        >>> recall = Recall(average=False)
-        >>> def Fbeta(r, p, beta):
-        >>>     return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
-        >>> F1 = MetricsLambda(Fbeta, recall, precision, 1)
-        >>> F2 = MetricsLambda(Fbeta, recall, precision, 2)
-        >>> F3 = MetricsLambda(Fbeta, recall, precision, 3)
-        >>> F4 = MetricsLambda(Fbeta, recall, precision, 4)
+    Example:
+
+    .. code-block:: python
+
+        precision = Precision(average=False)
+        recall = Recall(average=False)
+
+        def Fbeta(r, p, beta):
+            return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r + 1e-20)).item()
+
+        F1 = MetricsLambda(Fbeta, recall, precision, 1)
+        F2 = MetricsLambda(Fbeta, recall, precision, 2)
+        F3 = MetricsLambda(Fbeta, recall, precision, 3)
+        F4 = MetricsLambda(Fbeta, recall, precision, 4)
     """
     def __init__(self, f, *args):
         self.function = f
