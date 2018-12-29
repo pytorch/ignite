@@ -56,4 +56,4 @@ class MetricsLambda(Metric):
                     engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
                 if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
                     engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
-            super(MetricsLambda, self).attach(engine, name)
+        super(MetricsLambda, self).attach(engine, name)
