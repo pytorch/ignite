@@ -1,4 +1,5 @@
 from ignite.metrics.metric import Metric
+from ignite.engine import Events
 
 
 class MetricsLambda(Metric):
@@ -45,11 +46,15 @@ class MetricsLambda(Metric):
 
     def compute(self):
         materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
+        print (materialized)
         return self.function(*materialized)
 
     def attach(self, engine, name):
         # recursively attach all its dependencies
         for index, metric in enumerate(self.args):
             if isinstance(metric, Metric):
-                metric.attach(engine, name + '|$^[{}]'.format(index))
-        super(MetricsLambda, self).attach(engine, name)
+                if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
+                    engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
+                if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
+                    engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
+            super(MetricsLambda, self).attach(engine, name)

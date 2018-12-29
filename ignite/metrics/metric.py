@@ -65,8 +65,7 @@ class Metric(with_metaclass(ABCMeta, object)):
         self.update(output)
 
     def completed(self, engine, name):
-        if '|$^' not in name:
-            engine.state.metrics[name] = self.compute()
+        engine.state.metrics[name] = self.compute()
 
     def attach(self, engine, name):
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
