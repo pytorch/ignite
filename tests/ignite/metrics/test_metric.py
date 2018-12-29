@@ -90,7 +90,6 @@ def test_arithmetics():
             self.list_ = output
 
         def compute(self):
-            print(self.index)
             return self.list_[self.index]
 
     m0 = ListGatherMetric(0)
@@ -110,6 +109,10 @@ def test_arithmetics():
     m2.update([1, 10, 100])
     assert m2_plus_2.compute() == 102
 
+    m2_plus_2 = 2 + m2
+    m2.update([1, 10, 100])
+    assert m2_plus_2.compute() == 102
+
     # __sub__
     m0_minus_m1 = m0 - m1
     m0.update([1, 10, 100])
@@ -123,6 +126,10 @@ def test_arithmetics():
     m2.update([1, 10, 100])
     assert m2_minus_2.compute() == 98
 
+    m2_minus_2 = 2 - m2
+    m2.update([1, 10, 100])
+    assert m2_minus_2.compute() == -98
+
     # __mul__
     m0_times_m1 = m0 * m1
     m0.update([1, 10, 100])
@@ -133,6 +140,10 @@ def test_arithmetics():
     assert m0_times_m1.compute() == 40
 
     m2_times_2 = m2 * 2
+    m2.update([1, 10, 100])
+    assert m2_times_2.compute() == 200
+
+    m2_times_2 = 2 * m2
     m2.update([1, 10, 100])
     assert m2_times_2.compute() == 200
 
@@ -148,6 +159,10 @@ def test_arithmetics():
     m2_pow_2 = m2 ** 2
     m2.update([1, 10, 100])
     assert m2_pow_2.compute() == 10000
+
+    m2_pow_2 = 0.99 ** m2
+    m2.update([1, 10, 100])
+    assert m2_pow_2.compute() == 0.3660323412732292
 
     # __mod__
     m0_mod_m1 = m0 % m1
@@ -176,6 +191,10 @@ def test_arithmetics():
         m2.update([1, 10, 100])
         assert m2_div_2.compute() == 50
 
+        m2_div_2 = 200 / m2
+        m2.update([1, 10, 100])
+        assert m2_div_2.compute() == 2
+
     # __truediv__
     m0_truediv_m1 = m0.__truediv__(m1)
     m0.update([1, 10, 100])
@@ -188,6 +207,10 @@ def test_arithmetics():
     m2_truediv_2 = m2.__truediv__(2)
     m2.update([1, 10, 100])
     assert m2_truediv_2.compute() == approx(50.0)
+
+    m2_truediv_2 = m2.__rtruediv__(200)
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(2.0)
 
     # __floordiv__
     m0_floordiv_m1 = m0 // m1
