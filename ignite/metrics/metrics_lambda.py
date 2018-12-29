@@ -46,7 +46,6 @@ class MetricsLambda(Metric):
 
     def compute(self):
         materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
-        print (materialized)
         return self.function(*materialized)
 
     def attach(self, engine, name):
