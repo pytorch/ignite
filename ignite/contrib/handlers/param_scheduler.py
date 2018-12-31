@@ -373,7 +373,6 @@ class ReduceLROnPlateau(ParamScheduler):
         eps (float): Minimal decay applied to lr. If the difference
             between new and old lr is smaller than eps, the update is
             ignored. Default: 1e-8.
-        metric (subclass of `ignite.metrics.metric`): The metric by which to measure plateau.
         save_history (bool, optional): whether to log the parameter values
             (default=False)
 
@@ -424,7 +423,7 @@ class ReduceLROnPlateau(ParamScheduler):
             if self.metric_name not in engine.state.metrics:
                 raise KeyError("metric {} not found in engine.state.metrics".format(self.metric_name))
 
-            metric = engine.state.metrics[name]
+            metric = engine.state.metrics[self.metric_name]
         else:
             metric = self.output_transform(engine.state.output)
 
