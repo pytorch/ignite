@@ -86,7 +86,7 @@ class ProgressBar:
         if self.pbar is None:
             self._reset(engine)
 
-        desc = "Epoch" if 'desc' not in self.tqdm_kwargs else self.tqdm_kwargs['desc']
+        desc = self.tqdm_kwargs.get("desc", "Epoch")
         self.pbar.set_description('{} [{}/{}]'.format(desc, engine.state.epoch, engine.state.max_epochs))
 
         metrics = {}
