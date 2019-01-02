@@ -1,9 +1,10 @@
-from ignite.metrics import Metric
-from ignite.exceptions import NotComputableError
 import torch
 
+from ignite.exceptions import NotComputableError
+from ignite.contrib.metrics.regression._base import _BaseRegression
 
-class MaximumAbsoluteError(Metric):
+
+class MaximumAbsoluteError(_BaseRegression):
     r"""
     Calculates the Maximum Absolute Error:
 
@@ -14,7 +15,7 @@ class MaximumAbsoluteError(Metric):
     More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y` and `y_pred` must be of same shape.
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     __ https://arxiv.org/abs/1809.03006
 
@@ -23,7 +24,7 @@ class MaximumAbsoluteError(Metric):
     def reset(self):
         self._max_of_absolute_errors = -1
 
-    def update(self, output):
+    def _update(self, output):
         y_pred, y = output
         mae = torch.abs(y_pred - y.view_as(y_pred)).max().item()
         if self._max_of_absolute_errors < mae:

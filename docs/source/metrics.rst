@@ -45,12 +45,12 @@ for example:
         precision = Precision(average=False)
         recall = Recall(average=False)
         F1 = precision * recall * 2 / (precision + recall)
+        F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
 
-    .. note::  This example computes F1 for each class separately, rather than
-        the mean of F1 across class. To combine precision and recall to get
-        F1 or other F metrics, we have to be careful that `average=False`, i.e.
-        to use the unaveraged precision and recall, otherwise we will not be
-        computing F metrics.
+    .. note::  This example computes the mean of F1 across classes. To combine 
+        precision and recall to get F1 or other F metrics, we have to be careful 
+        that `average=False`, i.e. to use the unaveraged precision and recall, 
+        otherwise we will not be computing F-beta metrics.
 
 
 .. currentmodule:: ignite.metrics

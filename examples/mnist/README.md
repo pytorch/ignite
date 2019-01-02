@@ -2,6 +2,14 @@
 
 ported from [pytorch-examples](https://github.com/pytorch/examples/tree/master/mnist)
 
+#### Requirements:
+
+- [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
+- [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
+
+#### Usage:
+
+Run the example:
 ```
 python mnist.py
 ```
@@ -12,6 +20,7 @@ MNIST example with training and validation monitoring using TensorboardX and Ten
 
 #### Requirements:
 
+- [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [TensorboardX](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
 - Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
 
@@ -33,6 +42,7 @@ MNIST example with training and validation monitoring using Visdom
 
 #### Requirements:
 
+- [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [Visdom](https://github.com/facebookresearch/visdom): `pip install visdom`
 
 #### Usage:

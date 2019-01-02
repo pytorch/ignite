@@ -12,6 +12,18 @@ class ProgressBar:
 
     Args:
         persist (bool, optional): set to ``True`` to persist the progress bar after completion (default = ``False``)
+        bar_format  (str, optional): Specify a custom bar string formatting. May impact performance.
+            [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
+            Set to ``None`` to use ``tqdm`` default bar formatting: '{l_bar}{bar}{r_bar}', where
+            l_bar='{desc}: {percentage:3.0f}%|' and
+            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '
+              '{rate_fmt}{postfix}]'
+            Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,
+              percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,
+              rate_inv, rate_inv_fmt, elapsed, remaining, desc, postfix.
+            Note that a trailing ": " is automatically removed after {desc}
+            if the latter is empty.
+        **tqdm_kwargs: kwargs passed to tqdm progress bar
 
     Examples:
 
@@ -50,15 +62,21 @@ class ProgressBar:
         ``pbar.log_message`` to guarantee the correct format of the stdout.
     """
 
-    def __init__(self, persist=False):
+    def __init__(self, persist=False,
+                 bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]',
+                 **tqdm_kwargs):
         self.pbar = None
         self.persist = persist
+        self.bar_format = bar_format
+        self.tqdm_kwargs = tqdm_kwargs
 
     def _reset(self, engine):
         self.pbar = tqdm(
             total=len(engine.state.dataloader),
             leave=self.persist,
-            bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]')
+            bar_format=self.bar_format,
+            **self.tqdm_kwargs
+        )
 
     def _close(self, engine):
         self.pbar.close()
@@ -68,7 +86,8 @@ class ProgressBar:
         if self.pbar is None:
             self._reset(engine)
 
-        self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
+        if 'desc' not in self.tqdm_kwargs:
+            self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
 
         metrics = {}
         if metric_names is not None:
@@ -119,5 +138,5 @@ class ProgressBar:
             raise TypeError("output_transform should be a function, got {} instead"
                             .format(type(output_transform)))
 
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names, output_transform)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._close)
