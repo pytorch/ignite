@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 try:
     from tqdm import tqdm
 except ImportError:
@@ -6,7 +7,7 @@ except ImportError:
 from ignite.engine import Events
 
 
-class ProgressBar:
+class ProgressBar(object):
     """
     TQDM progress bar handler to log training progress and computed metrics.
 
@@ -16,14 +17,12 @@ class ProgressBar:
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
             Set to ``None`` to use ``tqdm`` default bar formatting: '{l_bar}{bar}{r_bar}', where
             l_bar='{desc}: {percentage:3.0f}%|' and
-            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '
-              '{rate_fmt}{postfix}]'
-            Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,
-              percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,
-              rate_inv, rate_inv_fmt, elapsed, remaining, desc, postfix.
-            Note that a trailing ": " is automatically removed after {desc}
-            if the latter is empty.
-        **tqdm_kwargs: kwargs passed to tqdm progress bar
+            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'. For more details on the
+            formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
+        **tqdm_kwargs: kwargs passed to tqdm progress bar.
+            By default, progress bar description displays "Epoch [5/10]". If tqdm_kwargs defines
+            `desc`, e.g. "Predictions", than the description is "Predictions [5/7]" if number of epochs is more
+            than one otherwise it is simply "Predictions".
 
     Examples:
 
@@ -36,7 +35,11 @@ class ProgressBar:
             pbar = ProgressBar()
             pbar.attach(trainer)
 
-        Attach metrics that already have been computed at `ITERATION_COMPLETED` (such as `RunningAverage`)
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
+
+        Attach metrics that already have been computed at :attr:`ignite.engine.Events.ITERATION_COMPLETED`
+        (such as :class:`ignite.metrics.RunningAverage`)
 
         .. code-block:: python
 
@@ -47,6 +50,9 @@ class ProgressBar:
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
 
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
+
         Directly attach the engine's output
 
         .. code-block:: python
@@ -55,6 +61,9 @@ class ProgressBar:
 
             pbar = ProgressBar()
             pbar.attach(trainer, output_transform=lambda x: {'loss': x})
+
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
 
     Note:
         When adding attaching the progress bar to an engine, it is recommend that you replace
@@ -87,7 +96,9 @@ class ProgressBar:
             self._reset(engine)
 
         desc = self.tqdm_kwargs.get("desc", "Epoch")
-        self.pbar.set_description('{} [{}/{}]'.format(desc, engine.state.epoch, engine.state.max_epochs))
+        if engine.state.max_epochs > 1:
+            desc += " [{}/{}]".format(engine.state.epoch, engine.state.max_epochs)
+        self.pbar.set_description(desc)
 
         metrics = {}
         if metric_names is not None:
