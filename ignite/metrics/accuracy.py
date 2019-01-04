@@ -8,7 +8,8 @@ from ignite.exceptions import NotComputableError
 
 class _BaseClassification(Metric):
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+        self._is_multilabel = is_multilabel
         self._type = None
         super(_BaseClassification, self).__init__(output_transform=output_transform)
 
@@ -37,6 +38,9 @@ class _BaseClassification(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
+        if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
+                raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
+
         return y_pred, y
 
     def _check_type(self, output):
@@ -45,12 +49,16 @@ class _BaseClassification(Metric):
         if y.ndimension() + 1 == y_pred.ndimension():
             update_type = "multiclass"
         elif y.ndimension() == y_pred.ndimension():
-            update_type = "binary"
             if not torch.equal(y, y ** 2):
                 raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
-            # TODO: Uncomment the following after 0.1.2 release
-            # if not torch.equal(y_pred, y_pred ** 2):
-            #     raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
+
+            if not torch.equal(y_pred, y_pred ** 2):
+                raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
+
+            if self._is_multilabel:
+                update_type = "multilabel"
+            else:
+                update_type = "binary"
         else:
             raise RuntimeError("Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation"
                                " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape))
@@ -58,28 +66,35 @@ class _BaseClassification(Metric):
             self._type = update_type
         else:
             if self._type != update_type:
-                raise RuntimeError("update_type has changed from {} to {}.".format(self._type, update_type))
+                raise RuntimeError("Input data type has changed from {} to {}.".format(self._type, update_type))
 
 
 class Accuracy(_BaseClassification):
     """
-    Calculates the accuracy for binary and multiclass data
+    Calculates the accuracy for binary, multiclass and multilabel data
 
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
     - `y` must be in the following shape (batch_size, ...)
+    - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) for multilabel cases.
 
-    In binary case, when `y` has 0 or 1 values, the elements of `y_pred` must be between 0 and 1.
+    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
+    predictions can be done as below:
+
+    .. code-block:: python
+
+        def thresholded_output_transform(output):
+            y_pred, y = output
+            y_pred = torch.round(y_pred)
+            return y_pred, y
+
+        binary_accuracy = Accuracy(thresholded_output_transform)
+
+
+    Args:
+        is_multilabel (bool, optional) flag to use in multilabel case. By default, False.
+
     """
-    # TODO: Include the following into the docstring after 0.1.2 release
-    # .. code-block:: python
-    #
-    #     def thresholded_output_transform(output):
-    #         y_pred, y = output
-    #         y_pred = torch.round(y_pred)
-    #         return y_pred, y
-    #
-    #     binary_accuracy = Accuracy(thresholded_output_transform)
 
     def reset(self):
         self._num_correct = 0
@@ -91,11 +106,18 @@ class Accuracy(_BaseClassification):
         self._check_type((y_pred, y))
 
         if self._type == "binary":
-            indices = torch.round(y_pred).type(y.type())
+            correct = torch.eq(y_pred.type(y.type()), y).view(-1)
         elif self._type == "multiclass":
             indices = torch.max(y_pred, dim=1)[1]
+            correct = torch.eq(indices, y).view(-1)
+        elif self._type == "multilabel":
+            # if y, y_pred shape is (N, C, ...) -> (N x ..., C)
+            num_classes = y_pred.size(1)
+            last_dim = y_pred.ndimension()
+            y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
+            y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
+            correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
-        correct = torch.eq(indices, y).view(-1)
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
 
