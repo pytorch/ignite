@@ -7,6 +7,36 @@ from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, Cos
 from ignite.contrib.handlers.param_scheduler import ConcatScheduler
 
 
+def test_simulate_values():
+
+    def _test(scheduler_cls, **scheduler_kwargs):
+        tensor = torch.zeros([1], requires_grad=True)
+        optimizer = torch.optim.SGD([tensor], lr=0)
+
+        scheduler = scheduler_cls(optimizer, **scheduler_kwargs)
+        lrs = []
+
+        def save_lr(engine):
+            lrs.append(optimizer.param_groups[0]['lr'])
+
+        trainer = Engine(lambda engine, batch: None)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+        max_epochs = 2
+        data = [0] * 10
+        trainer.run(data, max_epochs=max_epochs)
+        simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+        assert lrs == pytest.approx([v for i, v in simulated_values])
+
+    _test(LinearCyclicalScheduler, param_name="lr", start_value=1.0, end_value=0.0, cycle_size=10)
+    _test(CosineAnnealingScheduler, param_name="lr", start_value=1.0, end_value=0.0, cycle_size=10)
+
+    scheduler_1_def = (LinearCyclicalScheduler, dict(start_value=0.1, end_value=0.5, cycle_size=30), 15)
+    scheduler_2_def = (CosineAnnealingScheduler, dict(start_value=0.5, end_value=0.01, cycle_size=30), None)
+
+    _test(ConcatScheduler, param_name="lr", schedulers_list=[scheduler_1_def, scheduler_2_def])
+
+
 def test_linear_scheduler():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)

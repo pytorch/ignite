@@ -1,6 +1,6 @@
 from __future__ import division
 
-import numpy as np
+import math
 
 
 class ParamScheduler(object):
@@ -13,6 +13,7 @@ class ParamScheduler(object):
         save_history (bool, optional): whether to log the parameter values
             (default=False)
     """
+
     def __init__(self, optimizer, param_name, save_history=False):
 
         if isinstance(optimizer, dict):
@@ -47,6 +48,42 @@ class ParamScheduler(object):
         """
         raise NotImplementedError()
 
+    @classmethod
+    def simulate_values(cls, num_events, **scheduler_kwargs):
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events (int): number of events during the simulation
+            **scheduler_kwargs : parameter scheduler configuration kwargs
+
+        Returns:
+            list of pairs: [event_index, value]
+
+        Examples:
+
+        .. code-block:: python
+
+            lr_values = np.array(LinearCyclicalScheduler.simulate_values(num_events=50, param_name='lr',
+                                                                         start_value=1e-1, end_value=1e-3,
+                                                                         cycle_size=10))
+
+            plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
+            plt.xlabel("events")
+            plt.ylabel("values")
+            plt.legend()
+
+        """
+        keys_to_remove = ['optimizer', 'save_history']
+        for key in keys_to_remove:
+            if key in scheduler_kwargs:
+                del scheduler_kwargs[key]
+        values = []
+        scheduler = cls(optimizer={}, save_history=False, **scheduler_kwargs)
+        for i in range(num_events):
+            scheduler(engine=None)
+            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+        return values
+
 
 class CyclicalScheduler(ParamScheduler):
     """An abstract class for updating an optimizer's parameter value over a
@@ -59,7 +96,11 @@ class CyclicalScheduler(ParamScheduler):
         end_value (float) : value at the middle of the cycle
         cycle_size (int) : length of cycle.
         cycle_mult (float, optional) : ratio by which to change the cycle_size
-            at the end of each cycle (default=1),
+            at the end of each cycle (default=1.0),
+        start_value_mult (float) : ratio by which to change the start value at the
+            end of each cycle (default=1.0)
+        end_value_mult (float) : ratio by which to change the end value at the
+            end of each cycle (default=1.0)
         save_history (bool, optional): whether to log the parameter values
             (default: False)
 
@@ -67,13 +108,16 @@ class CyclicalScheduler(ParamScheduler):
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
         usually be the number of batches in an epoch.
     """
+
     def __init__(self,
                  optimizer,
                  param_name,
                  start_value,
                  end_value,
                  cycle_size,
-                 cycle_mult=1,
+                 cycle_mult=1.0,
+                 start_value_mult=1.0,
+                 end_value_mult=1.0,
                  save_history=False):
         super(CyclicalScheduler, self).__init__(
             optimizer,
@@ -85,12 +129,16 @@ class CyclicalScheduler(ParamScheduler):
         self.cycle_size = cycle_size
         self.cycle_mult = cycle_mult
         self.cycle = 0
+        self.start_value_mult = start_value_mult
+        self.end_value_mult = end_value_mult
 
     def __call__(self, engine, name=None):
         if self.event_index != 0 and self.event_index % self.cycle_size == 0:
             self.event_index = 0
             self.cycle_size *= self.cycle_mult
             self.cycle += 1
+            self.start_value *= self.start_value_mult
+            self.end_value *= self.end_value_mult
 
         return super(CyclicalScheduler, self).__call__(engine, name)
 
@@ -127,6 +175,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         # over the course of 1 epoch
         #
     """
+
     def get_param(self):
         cycle_progress = self.event_index / self.cycle_size
         return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
@@ -186,11 +235,12 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
     """
+
     def get_param(self):
         """Method to get current optimizer's parameter value
         """
         cycle_progress = self.event_index / self.cycle_size
-        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - np.cos(np.pi * cycle_progress))
+        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
 class ConcatScheduler(ParamScheduler):
@@ -250,6 +300,7 @@ class ConcatScheduler(ParamScheduler):
         # The annealing cycles are repeated indefinitely.
         #
     """
+
     def __init__(self,
                  optimizer,
                  param_name,
