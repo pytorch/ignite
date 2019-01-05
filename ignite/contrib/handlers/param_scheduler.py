@@ -155,6 +155,10 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         cycle_size (int) : length of cycle.
         cycle_mult (float, optional) : ratio by which to change the cycle_size
             at the end of each cycle (default=1),
+        start_value_mult (float) : ratio by which to change the start value at the
+            end of each cycle (default=1.0)
+        end_value_mult (float) : ratio by which to change the end value at the
+            end of each cycle (default=1.0)
         save_history (bool, optional): whether to log the parameter values
             (default: False)
 
@@ -195,6 +199,10 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         cycle_size (int) : length of cycle.
         cycle_mult (float, optional) : ratio by which to change the cycle_size
             at the end of each cycle (default=1),
+        start_value_mult (float) : ratio by which to change the start value at the
+            end of each cycle (default=1.0)
+        end_value_mult (float) : ratio by which to change the end value at the
+            end of each cycle (default=1.0)
         save_history (bool, optional): whether to log the parameter values
             (default: False)
 
