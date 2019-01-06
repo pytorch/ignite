@@ -93,13 +93,13 @@ class CyclicalScheduler(ParamScheduler):
         optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
-        end_value (float) : value at the middle of the cycle
-        cycle_size (int) : length of cycle.
-        cycle_mult (float, optional) : ratio by which to change the cycle_size
+        end_value (float): value at the middle of the cycle
+        cycle_size (int): length of cycle.
+        cycle_mult (float, optional): ratio by which to change the cycle_size
             at the end of each cycle (default=1.0),
-        start_value_mult (float) : ratio by which to change the start value at the
+        start_value_mult (float, optional): ratio by which to change the start value at the
             end of each cycle (default=1.0)
-        end_value_mult (float) : ratio by which to change the end value at the
+        end_value_mult (float, optional): ratio by which to change the end value at the
             end of each cycle (default=1.0)
         save_history (bool, optional): whether to log the parameter values
             (default: False)
@@ -151,13 +151,13 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
-        end_value (float) : value at the middle of the cycle
-        cycle_size (int) : length of cycle.
-        cycle_mult (float, optional) : ratio by which to change the cycle_size
+        end_value (float): value at the middle of the cycle
+        cycle_size (int): length of cycle.
+        cycle_mult (float, optional): ratio by which to change the cycle_size
             at the end of each cycle (default=1),
-        start_value_mult (float) : ratio by which to change the start value at the
+        start_value_mult (float, optional): ratio by which to change the start value at the
             end of each cycle (default=1.0)
-        end_value_mult (float) : ratio by which to change the end value at the
+        end_value_mult (float, optional): ratio by which to change the end value at the
             end of each cycle (default=1.0)
         save_history (bool, optional): whether to log the parameter values
             (default: False)
@@ -195,13 +195,13 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
         start_value (float): value at start of cycle
-        end_value (float) : value at the end of the cycle
-        cycle_size (int) : length of cycle.
-        cycle_mult (float, optional) : ratio by which to change the cycle_size
+        end_value (float): value at the end of the cycle
+        cycle_size (int): length of cycle.
+        cycle_mult (float, optional): ratio by which to change the cycle_size
             at the end of each cycle (default=1),
-        start_value_mult (float) : ratio by which to change the start value at the
+        start_value_mult (float, optional): ratio by which to change the start value at the
             end of each cycle (default=1.0)
-        end_value_mult (float) : ratio by which to change the end value at the
+        end_value_mult (float, optional): ratio by which to change the end value at the
             end of each cycle (default=1.0)
         save_history (bool, optional): whether to log the parameter values
             (default: False)
@@ -264,7 +264,7 @@ class ConcatScheduler(ParamScheduler):
     Args:
         optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
         param_name (str): name of optimizer's parameter to update
-        schedulers_list (list): List of three tuple of the order (scheduler_cls,
+        schedulers_list (list): list of three tuple of the order (scheduler_cls,
             scheduler_kwds, duration).
         save_history (bool, optional): whether to log the parameter values
             (default: False)
