@@ -29,6 +29,10 @@ def test_simulate_values():
         simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
         assert lrs == pytest.approx([v for i, v in simulated_values])
 
+        simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs, save_history=True,
+                                                         **scheduler_kwargs)
+        assert lrs == pytest.approx([v for i, v in simulated_values])
+
     _test(LinearCyclicalScheduler, param_name="lr", start_value=1.0, end_value=0.0, cycle_size=10)
     _test(CosineAnnealingScheduler, param_name="lr", start_value=1.0, end_value=0.0, cycle_size=10)
 
@@ -102,6 +106,37 @@ def test_cosine_annealing_scheduler():
     ]))
 
 
+def test_concat_scheduler_asserts():
+
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
+    scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
+
+    with pytest.raises(ValueError):
+        ConcatScheduler(schedulers=[], durations=[])
+
+    with pytest.raises(ValueError):
+        ConcatScheduler(schedulers=[scheduler_1, ], durations=[10, ])
+
+    with pytest.raises(TypeError):
+        ConcatScheduler(schedulers=[scheduler_1, 12], durations=[10, ])
+
+    with pytest.raises(ValueError):
+        ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[10, 12])
+
+    with pytest.raises(ValueError):
+        ConcatScheduler(schedulers=[scheduler_1, scheduler_2, scheduler_2], durations=[15, 12])
+
+    with pytest.raises(ValueError):
+        ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations="abc")
+
+    with pytest.raises(ValueError):
+        ConcatScheduler.simulate_values(num_events=123, schedulers=[scheduler_1, scheduler_2],
+                                        durations=[15, ], param_names="abc")
+
+
 def test_concat_scheduler():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
@@ -169,6 +204,20 @@ def test_save_param_history():
 
 
 def test_lr_scheduler():
+
+    t1 = torch.zeros([1], requires_grad=True)
+    t2 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([
+        {"params": t1, 'lr': 0.1},
+        {"params": t2, 'lr': 0.1},
+    ])
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
+
+    with pytest.raises(ValueError):
+        LRScheduler(lr_scheduler)
+
+    with pytest.raises(ValueError):
+        LRScheduler.simulate_values(num_events=100, lr_scheduler=lr_scheduler)
 
     def _test(torch_lr_scheduler_cls, **kwargs):
 

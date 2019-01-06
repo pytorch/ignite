@@ -1,9 +1,13 @@
 from __future__ import division
 
+from abc import ABCMeta, abstractmethod
+from ignite._six import with_metaclass
+
+
 import math
 
 
-class ParamScheduler(object):
+class ParamScheduler(with_metaclass(ABCMeta, object)):
     """An abstract class for updating an optimizer's parameter value during
     training.
 
@@ -43,10 +47,11 @@ class ParamScheduler(object):
 
         self.event_index += 1
 
+    @abstractmethod
     def get_param(self):
         """Method to get current optimizer's parameter value
         """
-        raise NotImplementedError()
+        pass
 
     @classmethod
     def simulate_values(cls, num_events, **scheduler_kwargs):
@@ -284,18 +289,13 @@ class ConcatScheduler(ParamScheduler):
     def __init__(self, schedulers, durations, save_history=False):
 
         if not isinstance(schedulers, (list, tuple)) or len(schedulers) < 2:
-            raise TypeError("Argument schedulers should be list/tuple of more than one parameter schedulers")
+            raise ValueError("Argument schedulers should be list/tuple of more than one parameter schedulers")
 
         if not isinstance(durations, (list, tuple)) or sorted(list(durations)) != list(durations):
-            raise TypeError("Argument durations should be list/tuple of ordered integers")
+            raise ValueError("Argument durations should be list/tuple of ordered integers")
 
         if len(schedulers) != len(durations) + 1:
             raise ValueError("Incorrect number schedulers or duration values")
-
-        for i, scheduler in enumerate(schedulers):
-            if not isinstance(scheduler, ParamScheduler):
-                raise TypeError("Value at index {} of schedulers should be a parameter scheduler, "
-                                "but given {}".format(i, type(scheduler)))
 
         for i, scheduler in enumerate(schedulers):
             if not isinstance(scheduler, ParamScheduler):
@@ -323,30 +323,36 @@ class ConcatScheduler(ParamScheduler):
         if self._current_duration == 0:
             self._set_next_scheduler()
 
+    def get_param(self):
+        pass
+
     @classmethod
-    def simulate_values(cls, num_events, schedulers, durations, param_name=None):
+    def simulate_values(cls, num_events, schedulers, durations, param_names=None):
         """Method to simulate scheduled values during num_events events.
 
         Args:
             num_events (int): number of events during the simulation
             schedulers (list of ParamScheduler): list of parameter schedulers
             durations (list of int): list of number of events that lasts a parameter scheduler from schedulers
-            param_name (str, optional): parameter name to simulate values.
-                By default, the first scheduler parameter name is taken.
+            param_names (list or tuple of str, optional): parameter name or list of parameter names to simulate values.
+                By default, the first scheduler's parameter name is taken.
 
         Returns:
-            list of pairs: [event_index, value]
+            list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
 
         """
-        values = []
+        if param_names is not None and not isinstance(param_names, (tuple, list)):
+            raise ValueError("Argument param_names should be list or tuple of strings")
+        output = []
         scheduler = cls(schedulers, durations)
-        if param_name is None:
-            param_name = scheduler.param_name
+        if param_names is None:
+            param_names = [scheduler.param_name]
         optimizer_param_group = scheduler.optimizer_param_groups[0]
         for i in range(num_events):
             scheduler(engine=None)
-            values.append([i, optimizer_param_group[param_name]])
-        return values
+            values = [optimizer_param_group[param_name] for param_name in param_names]
+            output.append([i, ] + values)
+        return output
 
 
 class LRScheduler(ParamScheduler):
