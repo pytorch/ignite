@@ -1,10 +1,14 @@
 from __future__ import division
 
+from copy import deepcopy
+
+import math
+
 from abc import ABCMeta, abstractmethod
 from ignite._six import with_metaclass
 
-
-import math
+import torch
+from torch.optim.lr_scheduler import _LRScheduler
 
 
 class ParamScheduler(with_metaclass(ABCMeta, object)):
@@ -52,6 +56,23 @@ class ParamScheduler(with_metaclass(ABCMeta, object)):
         """Method to get current optimizer's parameter value
         """
         pass
+
+    # def state_dict(self):
+    #     """Returns the state of the parameter scheduler as a :class:`dict`.
+    #
+    #     It contains an entry for every variable in self.__dict__ which
+    #     is not the optimizer.
+    #     """
+    #     return {key: value for key, value in self.__dict__.items() if key != 'optimizer_param_groups'}
+    #
+    # def load_state_dict(self, state_dict):
+    #     """Loads the parameter schedulers state.
+    #
+    #     Arguments:
+    #         state_dict (dict): scheduler state. Should be an object returned
+    #             from a call to :meth:`state_dict`.
+    #     """
+    #     self.__dict__.update(state_dict)
 
     @classmethod
     def simulate_values(cls, num_events, **scheduler_kwargs):
@@ -289,10 +310,12 @@ class ConcatScheduler(ParamScheduler):
     def __init__(self, schedulers, durations, save_history=False):
 
         if not isinstance(schedulers, (list, tuple)) or len(schedulers) < 2:
-            raise ValueError("Argument schedulers should be list/tuple of more than one parameter schedulers")
+            raise ValueError("Argument schedulers should be list/tuple of more than one parameter schedulers, "
+                             "but given {}".format(schedulers))
 
         if not isinstance(durations, (list, tuple)) or sorted(list(durations)) != list(durations):
-            raise ValueError("Argument durations should be list/tuple of ordered integers")
+            raise ValueError("Argument durations should be list/tuple of ordered integers, "
+                             "but given {}".format(durations))
 
         if len(schedulers) != len(durations) + 1:
             raise ValueError("Incorrect number schedulers or duration values")
@@ -303,7 +326,7 @@ class ConcatScheduler(ParamScheduler):
                                 "but given {}".format(i, type(scheduler)))
 
         super(ConcatScheduler, self).__init__(optimizer={}, param_name="", save_history=save_history)
-        self.schedulers = schedulers
+        self.schedulers = list(schedulers)
         self.durations = list(durations) + [-1, ]
         self._current_scheduler = None
         self._current_duration = None
@@ -317,17 +340,17 @@ class ConcatScheduler(ParamScheduler):
         self.param_name = self._current_scheduler.param_name
 
     def __call__(self, engine, name=None):
-        self._current_scheduler(engine, name)
-        self._current_duration -= 1
-
         if self._current_duration == 0:
             self._set_next_scheduler()
+
+        self._current_scheduler(engine, name)
+        self._current_duration -= 1
 
     def get_param(self):
         pass
 
     @classmethod
-    def simulate_values(cls, num_events, schedulers, durations, param_names=None):
+    def simulate_values(cls, num_events, schedulers, durations, param_names=None, **kwargs):
         """Method to simulate scheduled values during num_events events.
 
         Args:
@@ -344,13 +367,22 @@ class ConcatScheduler(ParamScheduler):
         if param_names is not None and not isinstance(param_names, (tuple, list)):
             raise ValueError("Argument param_names should be list or tuple of strings")
         output = []
-        scheduler = cls(schedulers, durations)
+
+        # Need to copy schedulers otherwise unsafe
+        copy_schedulers = []
+        for s in schedulers:
+            if isinstance(s, LRScheduler):
+                s = LRScheduler(LRScheduler._copy_lr_scheduler(s.lr_scheduler))
+            else:
+                s = deepcopy(s)
+            copy_schedulers.append(s)
+
+        scheduler = cls(copy_schedulers, durations)
         if param_names is None:
             param_names = [scheduler.param_name]
-        optimizer_param_group = scheduler.optimizer_param_groups[0]
         for i in range(num_events):
             scheduler(engine=None)
-            values = [optimizer_param_group[param_name] for param_name in param_names]
+            values = [scheduler.optimizer_param_groups[0][param_name] for param_name in param_names]
             output.append([i, ] + values)
         return output
 
@@ -373,6 +405,10 @@ class LRScheduler(ParamScheduler):
     """
 
     def __init__(self, lr_scheduler, save_history=False, **kwds):
+
+        if not isinstance(lr_scheduler, _LRScheduler):
+            raise TypeError("Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler, "
+                            "but given {}".format(type(lr_scheduler)))
 
         if len(lr_scheduler.optimizer.param_groups) > 1:
             raise ValueError("Optimizer passed to lr_scheduler should have a single param group, "
@@ -397,3 +433,98 @@ class LRScheduler(ParamScheduler):
             raise ValueError("Optimizer passed to lr_scheduler should have a single param group, "
                              "but currently there are {} param groups".format(len(lr_list)))
         return lr_list[0]
+
+    @classmethod
+    def simulate_values(cls, num_events, lr_scheduler, **kwargs):
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events (int): number of events during the simulation
+            lr_scheduler (subclass of `torch.optim.lr_scheduler._LRScheduler`): lr_scheduler object to wrap.
+
+        Returns:
+            list of pairs: [event_index, value]
+
+        """
+        copy_lr_scheduler = LRScheduler._copy_lr_scheduler(lr_scheduler)
+        values = []
+        scheduler = cls(save_history=False, lr_scheduler=copy_lr_scheduler)
+        for i in range(num_events):
+            scheduler(engine=None)
+            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+
+        return values
+
+    @staticmethod
+    def _copy_lr_scheduler(lr_scheduler):
+        lr_scheduler_cls = lr_scheduler.__class__
+        optimizer_cls = lr_scheduler.optimizer.__class__
+        t = torch.zeros([1], requires_grad=True)
+        dummy_optimizer = optimizer_cls([t], lr=0.1)
+        dummy_optimizer.load_state_dict(lr_scheduler.optimizer.state_dict())
+        kwargs = lr_scheduler.state_dict()
+        del kwargs['base_lrs']
+        copy_lr_scheduler = lr_scheduler_cls(optimizer=dummy_optimizer, **kwargs)
+        copy_lr_scheduler.load_state_dict(lr_scheduler.state_dict())
+        return copy_lr_scheduler
+
+
+def create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value, warmup_end_value, warmup_duration,
+                                    save_history=False,
+                                    output_simulated_values=None):
+    """
+    Helper method to create a LR scheduler with a linear warm-up.
+
+    Args:
+        lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): LR scheduler after
+            the warm-up.
+        warmup_start_value (float): LR start value of the warm-up phase.
+        warmup_end_value (float): LR end value of the warm-up phase.
+        warmup_duration (int): warm-up phase duration, number of events.
+        save_history (bool, optional): whether to log the parameter values (default=False)
+        output_simulated_values (list or tuple, optional): optional output of simulated LR values.
+            If output_simulated_values is set to an empty list, after the execution it will be filled
+            by simulated LR values.
+
+    Returns:
+        ConcatScheduler: LR scheduler with linear warm-up.
+
+
+    .. code-block:: python
+
+        torch_lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.98)
+        lr_values = []
+        scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
+                                                    warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10,
+                                                    output_simulated_values=lr_values)
+        lr_values = np.array(lr_values)
+        # Plot simulated values
+        plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
+
+        # Attach to the trainer
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+    """
+    if not isinstance(lr_scheduler, (ParamScheduler, _LRScheduler)):
+        raise TypeError("Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler or "
+                        "ParamScheduler, but given {}".format(type(lr_scheduler)))
+
+    if isinstance(lr_scheduler, _LRScheduler):
+        lr_scheduler = LRScheduler(lr_scheduler)
+
+    dummy_optimizer = {}
+    warmup_scheduler = LinearCyclicalScheduler(dummy_optimizer, param_name="lr",
+                                               start_value=warmup_start_value,
+                                               end_value=warmup_end_value,
+                                               cycle_size=warmup_duration * 2)
+
+    warmup_scheduler.optimizer_param_groups = lr_scheduler.optimizer_param_groups
+
+    schedulers = [warmup_scheduler, lr_scheduler]
+    durations = [warmup_duration, ]
+    combined_scheduler = ConcatScheduler(schedulers, durations=durations,
+                                         save_history=save_history)
+    if output_simulated_values is not None:
+        output_simulated_values.extend(ConcatScheduler.simulate_values(num_events=warmup_duration * 20,
+                                                                       schedulers=schedulers, durations=durations))
+    return combined_scheduler
