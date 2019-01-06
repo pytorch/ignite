@@ -252,22 +252,14 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
 
 class ConcatScheduler(ParamScheduler):
-    """Concat a list of Schedulers.
+    """Concat a list of parameter schedulers.
 
-    The `ConcatScheduler` cycles through a list of schedulers (given by
-    `schedulers_list`). Each element in the list is a tuple whose first
-    element is the scheduler class, the second is the parameters used for
-    instantiating the scheduler, and the third is the duration of the
-    scheduler. If duration is `None` the `ConcatScheduler` will not
-    switch to the next scheduler.
+    The `ConcatScheduler` goes through a list of schedulers given by `schedulers`. Duration of each
+    scheduler is defined by `durations` list of integers.
 
     Args:
-        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
-        param_name (str): name of optimizer's parameter to update
-        schedulers_list (list): list of three tuple of the order (scheduler_cls,
-            scheduler_kwds, duration).
-        save_history (bool, optional): whether to log the parameter values
-            (default: False)
+        schedulers (list of ParamScheduler): list of parameter schedulers
+        durations (list of int): list of number of events that lasts a parameter scheduler from schedulers
 
     Examples:
 
@@ -277,31 +269,11 @@ class ConcatScheduler(ParamScheduler):
         from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
         from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
 
-        scheduler = ConcatScheduler(
-            optimizer,
-            "lr",
-            [
-                (
-                    LinearCyclicalScheduler,
-                    dict(
-                        start_value=0.1,
-                        end_value=0.5,
-                        cycle_size=60
-                    ),
-                    30
-                ),
-                (
-                    CosineAnnealingScheduler,
-                    dict(
-                        start_value=0.5,
-                        end_value=0.01,
-                        cycle_size=60
-                    ),
-                    None
-                ),
-            ],
-        )
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.1, end_value=0.5, cycle_size=60)
+        scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
+
+        combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[30, ])
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, combined_scheduler)
         #
         # Sets the Learning rate linearly from 0.1 to 0.5 over 30 iterations. Then
         # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
@@ -309,37 +281,113 @@ class ConcatScheduler(ParamScheduler):
         #
     """
 
-    def __init__(self,
-                 optimizer,
-                 param_name,
-                 schedulers_list,
-                 save_history=False):
-        super(ConcatScheduler, self).__init__(optimizer, param_name, save_history=save_history)
-        self._schedulers_list = schedulers_list
-        self._schedulers_index = 0
-        self._next_scheduler_switch = 0
-        self.optimizer = optimizer
+    def __init__(self, schedulers, durations, save_history=False):
 
-    def _next_scheduler(self):
-        scheduler_cls, scheduler_kwds, self._next_scheduler_switch = \
-            self._schedulers_list[self._schedulers_index]
+        if not isinstance(schedulers, (list, tuple)) or len(schedulers) < 2:
+            raise TypeError("Argument schedulers should be list/tuple of more than one parameter schedulers")
 
-        kwds = scheduler_kwds.copy()
-        kwds.update(
-            dict(
-                optimizer=self.optimizer,
-                param_name=self.param_name,
-                save_history=self.save_history
-            )
-        )
+        if not isinstance(durations, (list, tuple)) or sorted(list(durations)) != list(durations):
+            raise TypeError("Argument durations should be list/tuple of ordered integers")
 
-        self._scheduler = scheduler_cls(**kwds)
-        self._schedulers_index = (self._schedulers_index + 1) % len(self._schedulers_list)
+        if len(schedulers) != len(durations) + 1:
+            raise ValueError("Incorrect number schedulers or duration values")
+
+        for i, scheduler in enumerate(schedulers):
+            if not isinstance(scheduler, ParamScheduler):
+                raise TypeError("Value at index {} of schedulers should be a parameter scheduler, "
+                                "but given {}".format(i, type(scheduler)))
+
+        for i, scheduler in enumerate(schedulers):
+            if not isinstance(scheduler, ParamScheduler):
+                raise TypeError("Value at index {} of schedulers should be a parameter scheduler, "
+                                "but given {}".format(i, type(scheduler)))
+
+        super(ConcatScheduler, self).__init__(optimizer={}, param_name="", save_history=save_history)
+        self.schedulers = schedulers
+        self.durations = list(durations) + [-1, ]
+        self._current_scheduler = None
+        self._current_duration = None
+        self._set_next_scheduler()
+
+    def _set_next_scheduler(self):
+        self._current_scheduler = self.schedulers.pop(0)
+        self._current_scheduler.save_history = self.save_history
+        self._current_duration = self.durations.pop(0)
+        self.optimizer_param_groups = self._current_scheduler.optimizer_param_groups
+        self.param_name = self._current_scheduler.param_name
 
     def __call__(self, engine, name=None):
-        if self._next_scheduler_switch is not None:
-            self._next_scheduler_switch -= 1
-            if self._next_scheduler_switch <= 0:
-                self._next_scheduler()
+        self._current_scheduler(engine, name)
+        self._current_duration -= 1
 
-        return self._scheduler(engine, name)
+        if self._current_duration == 0:
+            self._set_next_scheduler()
+
+    @classmethod
+    def simulate_values(cls, num_events, schedulers, durations, param_name=None):
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events (int): number of events during the simulation
+            schedulers (list of ParamScheduler): list of parameter schedulers
+            durations (list of int): list of number of events that lasts a parameter scheduler from schedulers
+            param_name (str, optional): parameter name to simulate values.
+                By default, the first scheduler parameter name is taken.
+
+        Returns:
+            list of pairs: [event_index, value]
+
+        """
+        values = []
+        scheduler = cls(schedulers, durations)
+        if param_name is None:
+            param_name = scheduler.param_name
+        optimizer_param_group = scheduler.optimizer_param_groups[0]
+        for i in range(num_events):
+            scheduler(engine=None)
+            values.append([i, optimizer_param_group[param_name]])
+        return values
+
+
+class LRScheduler(ParamScheduler):
+    """A wrapper class to call `torch.optim.lr_scheduler` objects as `ignite` handlers.
+
+    Args:
+        lr_scheduler (subclass of `torch.optim.lr_scheduler._LRScheduler`): lr_scheduler object to wrap.
+        save_history (bool, optional): whether to log the parameter values (default=False)
+
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import LRScheduler
+        from torch.optim.lr_scheduler import StepLR
+
+        step_scheduler = StepLR(optimizer, step_size=3, gamma=0.1)
+        scheduler = LRScheduler(step_scheduler)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+    """
+
+    def __init__(self, lr_scheduler, save_history=False, **kwds):
+
+        if len(lr_scheduler.optimizer.param_groups) > 1:
+            raise ValueError("Optimizer passed to lr_scheduler should have a single param group, "
+                             "but currently there are {} param groups".format(len(lr_scheduler.optimizer.param_groups)))
+
+        self.lr_scheduler = lr_scheduler
+        super(LRScheduler, self).__init__(
+            optimizer=self.lr_scheduler.optimizer,
+            param_name='lr',
+            save_history=save_history
+        )
+
+    def __call__(self, engine, name=None):
+        self.lr_scheduler.last_epoch += 1
+        super(LRScheduler, self).__call__(engine, name)
+
+    def get_param(self):
+        """Method to get current optimizer's parameter value
+        """
+        lr_list = self.lr_scheduler.get_lr()
+        if len(lr_list) > 1:
+            raise ValueError("Optimizer passed to lr_scheduler should have a single param group, "
+                             "but currently there are {} param groups".format(len(lr_list)))
+        return lr_list[0]
