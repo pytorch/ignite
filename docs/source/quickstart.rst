@@ -20,7 +20,7 @@ Code
     trainer = create_supervised_trainer(model, optimizer, loss)
     evaluator = create_supervised_evaluator(model,
                                             metrics={
-                                                'accuracy': CategoricalAccuracy(),
+                                                'accuracy': Accuracy(),
                                                 'nll': Loss(loss)
                                             })
 
@@ -72,7 +72,7 @@ Here we are using helper methods :meth:`create_supervised_trainer` and :meth:`cr
     trainer = create_supervised_trainer(model, optimizer, loss)
     evaluator = create_supervised_evaluator(model,
                                             metrics={
-                                                'accuracy': CategoricalAccuracy(),
+                                                'accuracy': Accuracy(),
                                                 'nll': Loss(loss)
                                             })
 
@@ -116,11 +116,11 @@ argument `metrics`:
 .. code-block:: python
 
     metrics={
-        'accuracy': CategoricalAccuracy(),
+        'accuracy': Accuracy(),
         'nll': Loss(loss)
     }
 
-where we define two metrics: *categorical accuracy* and *loss* to compute on validation dataset. More information on
+where we define two metrics: *accuracy* and *loss* to compute on validation dataset. More information on
 metrics can be found at :doc:`metrics`.
 
 
