@@ -121,3 +121,33 @@ def test_integration():
     assert precision_true == approx(precision), "{} vs {}".format(precision_true, precision)
     assert recall_true == approx(recall), "{} vs {}".format(recall_true, recall)
     assert f1_true == approx(state.metrics['f1']), "{} vs {}".format(f1_true, state.metrics['f1'])
+
+
+def test_state_metrics():
+
+    y_pred = torch.randint(0, 2, size=(15, 10, 4)).float()
+    y = torch.randint(0, 2, size=(15, 10, 4)).long()
+
+    def update_fn(engine, batch):
+        y_pred, y = batch
+        return y_pred, y
+
+    evaluator = Engine(update_fn)
+
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+    F1 = precision * recall * 2 / (precision + recall + 1e-20)
+    F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
+
+    precision.attach(evaluator, "precision")
+    recall.attach(evaluator, "recall")
+    F1.attach(evaluator, "f1")
+
+    def data(y_pred, y):
+        for i in range(y_pred.shape[0]):
+            yield (y_pred[i], y[i])
+
+    d = data(y_pred, y)
+    state = evaluator.run(d, max_epochs=1)
+
+    assert set(state.metrics.keys()) == set(["precision", "recall", "f1"])
