@@ -23,10 +23,15 @@ import torch.nn.functional as F
 from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-from ignite.contrib.handlers import TensorboardLogger
+
+try:
+    from tensorboardX import SummaryWriter
+except ImportError:
+    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
+
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
-from ignite.metrics import RunningAverage
+from ignite.contrib.handlers import TensorboardLogger
 
 
 class Net(nn.Module):
@@ -59,9 +64,21 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
+def create_summary_writer(model, data_loader, log_dir):
+    writer = SummaryWriter(log_dir=log_dir)
+    data_loader_iter = iter(data_loader)
+    x, y = next(data_loader_iter)
+    try:
+        writer.add_graph(model, x)
+    except Exception as e:
+        print("Failed to save model graph: {}".format(e))
+    return writer
+
+
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, log_dir):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
+    writer = create_summary_writer(model, train_loader, log_dir)
     device = 'cpu'
 
     if torch.cuda.is_available():
@@ -69,26 +86,38 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
-    avg_output = RunningAverage(output_transform=lambda x: x)
-    avg_output.attach(trainer, 'loss')
-    evaluator = create_supervised_evaluator(model,
-                                            metrics={'accuracy': Accuracy(),
-                                                     'nll': Loss(F.nll_loss)},
-                                            device=device)
-    train_evaluator = validation_evaluator = evaluator
 
-    tbLogger = TensorboardLogger(log_dir=log_dir)
+    train_evaluator = create_supervised_evaluator(model,
+                                                  metrics={'accuracy': Accuracy(),
+                                                           'nll': Loss(F.nll_loss)},
+                                                  device=device)
+
+    validation_evaluator = create_supervised_evaluator(model,
+                                                       metrics={'accuracy': Accuracy(),
+                                                                'nll': Loss(F.nll_loss)},
+                                                       device=device)
+
+    tbLogger = TensorboardLogger(log_dir)
 
     tbLogger.attach(engine=trainer,
                     mode='iteration',
                     model=model,
-                    use_metrics=True,
+                    dataloader=train_loader,
+                    write_graph=True,
+                    use_output=True,
+                    output_transform=lambda x: {'loss': x},
+                    use_metrics=False,
+                    state_keys=None,
                     histogram_freq=1,
                     write_grads=True)
 
-    @trainer.on(Events.STARTED)
-    def write_graph(engine):
-        tbLogger.write_graph(model, train_loader)
+    tbLogger.attach_evaluator(engine=train_evaluator,
+                              mode='training-eval',
+                              use_metrics=True)
+
+    tbLogger.attach_evaluator(engine=validation_evaluator,
+                              mode='validation',
+                              use_metrics=True)
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
@@ -99,26 +128,26 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
-        train_evaluator.run(train_loader)
+        train_evaluator.run(train_loader, max_epochs=1)
         metrics = train_evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
         print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-        tbLogger.plot_metrics(train_evaluator, 'training', mode='epoch')
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
-        validation_evaluator.run(val_loader)
+        validation_evaluator.run(val_loader, max_epochs=1)
         metrics = validation_evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_nll = metrics['nll']
         print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(engine.state.epoch, avg_accuracy, avg_nll))
-        tbLogger.plot_metrics(train_evaluator, 'validation', mode='epoch')
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
+
+    writer.close()
 
 
 if __name__ == "__main__":
