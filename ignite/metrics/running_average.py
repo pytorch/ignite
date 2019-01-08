@@ -17,7 +17,7 @@ class RunningAverage(Metric):
     .. code-block:: python
 
         alpha = 0.98
-        acc_metric = RunningAverage(CategoricalAccuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
+        acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
         acc_metric.attach(trainer, 'running_avg_accuracy')
 
         avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
