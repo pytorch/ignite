@@ -1,6 +1,6 @@
 import pytest
 import torch
-from ignite._utils import convert_tensor, to_onehot
+from ignite.utils import convert_tensor, to_onehot
 
 
 def test_convert_tensor():
