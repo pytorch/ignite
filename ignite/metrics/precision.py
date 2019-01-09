@@ -67,15 +67,19 @@ class Precision(_BasePrecisionRecall):
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
 
     Args:
-        average (bool, optional): if True, precision is computed as the unweighted average (across all classes
-            in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
-        is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
-            parameter should be True and the average is computed across samples, instead of classes.
         output_transform (callable, optional): a callable that is used to transform the
             :class:`ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        average (bool, optional): if True, precision is computed as the unweighted average (across all classes
+            in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
+        is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
+            parameter should be True and the average is computed across samples, instead of classes.
     """
+
+    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
+        super(Precision, self).__init__(output_transform=output_transform,
+                                        average=average, is_multilabel=is_multilabel)
 
     def update(self, output):
         y_pred, y = self._check_shape(output)
