@@ -16,7 +16,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
 
     More details can be found in the reference `Botchkarev 2018`__.
 
-    - `update` must receive output of the form `(y_pred, y)`
+    - `update` must receive output of the form `(y_pred, y)`.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     __ https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
@@ -30,7 +30,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
     def _update(self, output):
         y_pred, y = output
         if (y == 0).any():
-            raise NotComputableError('The ground truth has 0')
+            raise NotComputableError('The ground truth has 0.')
         absolute_error = torch.abs(y_pred - y.view_as(y_pred)) / torch.abs(y.view_as(y_pred))
         self._sum_of_absolute_relative_errors += torch.sum(absolute_error).item()
         self._num_samples += y.size()[0]
@@ -38,5 +38,5 @@ class MeanAbsoluteRelativeError(_BaseRegression):
     def compute(self):
         if self._num_samples == 0:
             raise NotComputableError('MeanAbsoluteRelativeError must have at least'
-                                     'one sample before it can be computed')
+                                     'one sample before it can be computed.')
         return self._sum_of_absolute_relative_errors / self._num_samples

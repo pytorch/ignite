@@ -53,11 +53,11 @@ def create_supervised_tbptt_trainer(
     `tbtt_step` time steps.
 
     Args:
-        model (`torch.nn.Module`): the model to train
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
-        loss_fn (torch.nn loss function): the loss function to use
-        tbtt_step (int): the length of time chunks (last one may be smaller)
-        dim (int): axis representing the time dimension
+        model (`torch.nn.Module`): the model to train.
+        optimizer (`torch.optim.Optimizer`): the optimizer to use.
+        loss_fn (torch.nn loss function): the loss function to use.
+        tbtt_step (int): the length of time chunks (last one may be smaller).
+        dim (int): axis representing the time dimension.
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU,
@@ -67,7 +67,7 @@ def create_supervised_tbptt_trainer(
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
-        Engine: a trainer engine with supervised update function
+        Engine: a trainer engine with supervised update function.
 
     """
     if device:

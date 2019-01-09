@@ -8,10 +8,10 @@ class ParamScheduler(object):
     training.
 
     Args:
-        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
-        param_name (str): name of optimizer's parameter to update
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
         save_history (bool, optional): whether to log the parameter values
-            (default=False)
+            (default=False).
     """
     def __init__(self, optimizer, param_name, save_history=False):
 
@@ -53,15 +53,15 @@ class CyclicalScheduler(ParamScheduler):
     cycle of some size.
 
     Args:
-        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
-        param_name (str): name of optimizer's parameter to update
-        start_value (float): value at start of cycle
-        end_value (float) : value at the middle of the cycle
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
+        start_value (float): value at start of cycle.
+        end_value (float) : value at the middle of the cycle.
         cycle_size (int) : length of cycle.
         cycle_mult (float, optional) : ratio by which to change the cycle_size
-            at the end of each cycle (default=1),
+            at the end of each cycle (default=1).
         save_history (bool, optional): whether to log the parameter values
-            (default: False)
+            (default: False).
 
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
@@ -100,15 +100,15 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     adjusts it back to 'start_value' for a half-cycle.
 
     Args:
-        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
-        param_name (str): name of optimizer's parameter to update
-        start_value (float): value at start of cycle
-        end_value (float) : value at the middle of the cycle
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
+        start_value (float): value at start of cycle.
+        end_value (float) : value at the middle of the cycle.
         cycle_size (int) : length of cycle.
         cycle_mult (float, optional) : ratio by which to change the cycle_size
-            at the end of each cycle (default=1),
+            at the end of each cycle (default=1).
         save_history (bool, optional): whether to log the parameter values
-            (default: False)
+            (default: False).
 
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
@@ -139,15 +139,15 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     wave (as suggested in [Smith17]_).
 
     Args:
-        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
-        param_name (str): name of optimizer's parameter to update
-        start_value (float): value at start of cycle
-        end_value (float) : value at the end of the cycle
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
+        start_value (float): value at start of cycle.
+        end_value (float) : value at the end of the cycle.
         cycle_size (int) : length of cycle.
         cycle_mult (float, optional) : ratio by which to change the cycle_size
-            at the end of each cycle (default=1),
+            at the end of each cycle (default=1).
         save_history (bool, optional): whether to log the parameter values
-            (default: False)
+            (default: False).
 
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
@@ -204,12 +204,12 @@ class ConcatScheduler(ParamScheduler):
     switch to the next scheduler.
 
     Args:
-        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use
-        param_name (str): name of optimizer's parameter to update
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
         schedulers_list (list): List of three tuple of the order (scheduler_cls,
             scheduler_kwds, duration).
         save_history (bool, optional): whether to log the parameter values
-            (default: False)
+            (default: False).
 
     Examples:
 

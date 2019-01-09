@@ -9,8 +9,10 @@ class RunningAverage(Metric):
         src (Metric or None): input source: an instance of :class:`ignite.metrics.Metric` or None. The latter
             corresponds to `engine.state.output` which holds the output of process function.
         alpha (float, optional): running average decay factor, default 0.98
-        output_transform (Callable, optional): a function to use to transform the output if `src` is None and
-            corresponds the output of process function. Otherwise it should be None.
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
 
     Examples:
 

@@ -36,8 +36,8 @@ class Precision(_BasePrecisionRecall):
     Calculates precision for binary and multiclass data
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
-    - `y` must be in the following shape (batch_size, ...)
+    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
+    - `y` must be in the following shape (batch_size, ...).
 
     In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
     predictions can be done as below:
@@ -71,6 +71,10 @@ class Precision(_BasePrecisionRecall):
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
     """
 
     def update(self, output):

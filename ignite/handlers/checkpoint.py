@@ -9,21 +9,21 @@ class ModelCheckpoint(object):
 
     This handler accepts two arguments:
 
-        - an `ignite.engine.Engine` object
+        - an :meth:`ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
 
     See Notes and Examples for further details.
 
     Args:
         dirname (str):
-            Directory path where objects will be saved
+            Directory path where objects will be saved.
         filename_prefix (str):
             Prefix for the filenames to which objects will be saved. See Notes
             for more details.
         save_interval (int, optional):
             if not None, objects will be saved to disk every `save_interval` calls to the handler.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
-        score_function (Callable, optional):
+        score_function (callable, optional):
             if not None, it should be a function taking a single argument,
             an `ignite.engine.Engine` object,
             and return a score (`float`). Objects with highest scores will be retained.
@@ -39,7 +39,7 @@ class ModelCheckpoint(object):
             guaranteed to not be damaged (for example if exception occures during saving).
         require_empty (bool, optional):
             If True, will raise exception if there are any files starting with `filename_prefix`
-            in the directory 'dirname'
+            in the directory 'dirname'.
         create_dir (bool, optional):
             If True, will create directory 'dirname' if it doesnt exist.
         save_as_state_dict (bool, optional):
