@@ -20,9 +20,9 @@ class ProgressBar(object):
             r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'. For more details on the
             formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
         **tqdm_kwargs: kwargs passed to tqdm progress bar.
-            By default, progress bar description displays "Epoch [5/10]". If tqdm_kwargs defines
-            `desc`, e.g. "Predictions", than the description is "Predictions [5/7]" if number of epochs is more
-            than one otherwise it is simply "Predictions".
+            By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
+            number of epochs. If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
+            "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
 
     Examples:
 
