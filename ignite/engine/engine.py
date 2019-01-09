@@ -290,18 +290,19 @@ class Engine(object):
         else:
             raise e
 
-    def run(self, data, max_epochs=1):
+    def run(self, data, max_epochs=1, start_epoch=0):
         """Runs the process_function over the passed data.
 
         Args:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`)
             max_epochs (int, optional): max epochs to run for (default: 1)
+            start_epoch (int, optional): start epoch, useful in resuming models (default: 0)
 
         Returns:
             State: output state
         """
 
-        self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
+        self.state = State(dataloader=data, epoch=start_epoch, max_epochs=max_epochs, metrics={})
 
         try:
             self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))

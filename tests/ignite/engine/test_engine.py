@@ -416,9 +416,11 @@ def _create_mock_data_loader(epochs, batches_per_epoch):
 
 
 def test_iteration_events_are_fired():
+    start_epoch = 1
     max_epochs = 5
     num_batches = 3
-    data = _create_mock_data_loader(max_epochs, num_batches)
+    epochs = max_epochs - start_epoch
+    data = _create_mock_data_loader(epochs, num_batches)
 
     engine = Engine(MagicMock(return_value=1))
 
@@ -432,13 +434,13 @@ def test_iteration_events_are_fired():
     mock_manager.attach_mock(iteration_started, 'iteration_started')
     mock_manager.attach_mock(iteration_complete, 'iteration_complete')
 
-    engine.run(data, max_epochs=max_epochs)
+    engine.run(data, start_epoch=start_epoch, max_epochs=max_epochs)
 
-    assert iteration_started.call_count == num_batches * max_epochs
-    assert iteration_complete.call_count == num_batches * max_epochs
+    assert iteration_started.call_count == num_batches * epochs
+    assert iteration_complete.call_count == num_batches * epochs
 
     expected_calls = []
-    for i in range(max_epochs * num_batches):
+    for i in range(epochs * num_batches):
         expected_calls.append(call.iteration_started(engine))
         expected_calls.append(call.iteration_complete(engine))
 
