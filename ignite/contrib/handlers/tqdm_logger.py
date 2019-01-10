@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 try:
     from tqdm import tqdm
 except ImportError:
@@ -35,7 +35,11 @@ class ProgressBar(object):
             pbar = ProgressBar()
             pbar.attach(trainer)
 
-        Attach metrics that already have been computed at `ITERATION_COMPLETED` (such as `RunningAverage`)
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
+
+        Attach metrics that already have been computed at :attr:`ignite.engine.Events.ITERATION_COMPLETED`
+        (such as :class:`ignite.metrics.RunningAverage`)
 
         .. code-block:: python
 
@@ -46,6 +50,9 @@ class ProgressBar(object):
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
 
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
+
         Directly attach the engine's output
 
         .. code-block:: python
@@ -54,6 +61,9 @@ class ProgressBar(object):
 
             pbar = ProgressBar()
             pbar.attach(trainer, output_transform=lambda x: {'loss': x})
+
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
 
     Note:
         When adding attaching the progress bar to an engine, it is recommend that you replace
@@ -85,8 +95,10 @@ class ProgressBar(object):
         if self.pbar is None:
             self._reset(engine)
 
-        if 'desc' not in self.tqdm_kwargs:
-            self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
+        desc = self.tqdm_kwargs.get("desc", "Epoch")
+        if engine.state.max_epochs > 1:
+            desc += " [{}/{}]".format(engine.state.epoch, engine.state.max_epochs)
+        self.pbar.set_description(desc)
 
         metrics = {}
         if metric_names is not None:
