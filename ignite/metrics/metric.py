@@ -23,7 +23,7 @@ class Metric(with_metaclass(ABCMeta, object)):
     @abstractmethod
     def reset(self):
         """
-        Resets the metric to to it's initial state.
+        Resets the metric to it's initial state.
 
         This is called at the start of each epoch.
         """
