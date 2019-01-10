@@ -109,7 +109,7 @@ class Engine(object):
 
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
-            or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
@@ -194,7 +194,7 @@ class Engine(object):
 
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events` or
-            any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+                any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
