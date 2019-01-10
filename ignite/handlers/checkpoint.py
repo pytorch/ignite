@@ -9,7 +9,7 @@ class ModelCheckpoint(object):
 
     This handler accepts two arguments:
 
-        - an :meth:`ignite.engine.Engine` object
+        - an :meth:`~ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
 
     See Notes and Examples for further details.
@@ -46,7 +46,7 @@ class ModelCheckpoint(object):
             If True, will save only the `state_dict` of the objects specified, otherwise the whole object will be saved.
 
     Notes:
-          This handler expects two arguments: an `Engine` object and a `dict`
+          This handler expects two arguments: an :meth:`~ignite.engine.Engine` object and a `dict`
           mapping names to objects that should be saved.
 
           These names are used to specify filenames for saved objects.
@@ -100,7 +100,7 @@ class ModelCheckpoint(object):
 
         if score_function is None and score_name is not None:
             raise ValueError("If `score_name` is provided, then `score_function` "
-                             "should be also provided")
+                             "should be also provided.")
 
         if create_dir:
             if not os.path.exists(dirname):
@@ -141,7 +141,7 @@ class ModelCheckpoint(object):
             torch.save(obj, path)
         else:
             if not hasattr(obj, "state_dict") or not callable(obj.state_dict):
-                raise ValueError("Object should have `state_dict` method")
+                raise ValueError("Object should have `state_dict` method.")
             torch.save(obj.state_dict(), path)
 
     def __call__(self, engine, to_save):

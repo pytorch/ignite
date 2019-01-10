@@ -50,7 +50,7 @@ Explanation
 -----------
 
 Now let's break up the code and review it in details. In the first 4 lines we define our model, training and validation
-datasets (as :class:`torch.utils.data.DataLoader <https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_), optimizer and loss function:
+datasets (as `torch.utils.data.DataLoader<https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_), optimizer and loss function:
 
 .. code-block:: python
 
