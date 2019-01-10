@@ -11,7 +11,7 @@ IS_PYTHON2 = sys.version_info[0] < 3
 
 
 class Events(Enum):
-    """Events that are fired by the :class:`Engine` during execution."""
+    """Events that are fired by the :class:`~ignite.engine.Engine` during execution."""
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"
@@ -81,7 +81,7 @@ class Engine(object):
         This opens the door to make the :meth:`Engine.run` loop even more
         configurable.
 
-        By default, the events from :class:`Events` are registerd.
+        By default, the events from :class:`~ignite.engine.Events` are registerd.
 
         Args:
             *event_names: An object (ideally a string or int) to define the
@@ -209,12 +209,12 @@ class Engine(object):
         This method executes all handlers associated with the event
         `event_name`. Optional positional and keyword arguments can be used to
         pass arguments to **all** handlers added with this event. These
-        aguments updates arguments passed using :meth:`add_event_handler`.
+        aguments updates arguments passed using :meth:`~ignite.engine.Engine.add_event_handler`.
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-                events are from :class:`Events` or any `event_name` added by
-                :meth:`register_events`.
+                events are from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
             *event_args: optional args to be passed to all handlers.
             **event_kwargs: optional keyword args to be passed to all handlers.
 
@@ -230,9 +230,9 @@ class Engine(object):
 
         This method executes all handlers associated with the event
         `event_name`. This is the method used in :meth:`Engine.run` to call the
-        core events found in :class:`Events`.
+        core events found in :class:`~ignite.engine.Events`.
 
-        Custom events can be fired if they have been registerd before with
+        Custom events can be fired if they have been registered before with
         :meth:`Engine.register_events`. The engine `state` attribute should be used
         to exchange "dynamic" data among `process_function` and handlers.
 
@@ -242,8 +242,8 @@ class Engine(object):
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-                events are from :class:`Events` or any `event_name` added by
-                :meth:`register_events`.
+                events are from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
 
         """
         return self._fire_event(event_name)

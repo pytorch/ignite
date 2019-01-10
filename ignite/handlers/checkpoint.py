@@ -25,7 +25,7 @@ class ModelCheckpoint(object):
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_function (callable, optional):
             if not None, it should be a function taking a single argument,
-            an :class:`ignite.engine.Engine` object,
+            an :class:`~ignite.engine.Engine` object,
             and return a score (`float`). Objects with highest scores will be retained.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_name (str, optional):
@@ -46,7 +46,7 @@ class ModelCheckpoint(object):
             If True, will save only the `state_dict` of the objects specified, otherwise the whole object will be saved.
 
     Notes:
-          This handler expects two arguments: an :meth:`~ignite.engine.Engine` object and a `dict`
+          This handler expects two arguments: an :class:`~ignite.engine.Engine` object and a `dict`
           mapping names to objects that should be saved.
 
           These names are used to specify filenames for saved objects.

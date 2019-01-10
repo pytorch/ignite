@@ -15,7 +15,7 @@ class TerminateOnNan(object):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`ignite.engine.Engine`'s `process_function`'s output into a number or `torch.tensor`
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into a number or `torch.tensor`
             or collection of them. This can be useful if, for example, you have a multi-output model and
             you want to check one or multiple values of the output.
 

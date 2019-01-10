@@ -6,7 +6,7 @@ class RunningAverage(Metric):
     """Compute running average of a metric or the output of process function.
 
     Args:
-        src (Metric or None): input source: an instance of :class:`ignite.metrics.Metric` or None. The latter
+        src (Metric or None): input source: an instance of :class:`~ignite.metrics.Metric` or None. The latter
             corresponds to `engine.state.output` which holds the output of process function.
         alpha (float, optional): running average decay factor, default 0.98
         output_transform (callable, optional): a callable that is used to transform the

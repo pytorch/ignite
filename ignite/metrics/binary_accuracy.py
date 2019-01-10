@@ -6,7 +6,7 @@ from ignite.metrics.accuracy import Accuracy
 
 class BinaryAccuracy(Accuracy):
     """
-    Note: This metric is deprecated in favor of Accuracy.
+    Note: This metric is deprecated in favor of :class:`~ignite.metrics.Accuracy`.
     """
     def __init__(self, *args, **kwargs):
         warnings.warn("The use of ignite.metrics.BinaryAccuracy is deprecated, it will be "

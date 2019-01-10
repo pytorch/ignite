@@ -31,7 +31,7 @@ def create_supervised_trainer(model, optimizer, loss_fn,
             tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
-        :class:`~ignite.engine.Engine`: a trainer engine with supervised update function.
+        Engine: a trainer engine with supervised update function.
     """
     if device:
         model.to(device)
@@ -57,7 +57,7 @@ def create_supervised_evaluator(model, metrics={},
 
     Args:
         model (`torch.nn.Module`): the model to train.
-        metrics (dict of str - :class:`ignite.metrics.Metric`): a map of metric names to Metrics.
+        metrics (dict of str - :class:`~ignite.metrics.Metric`): a map of metric names to Metrics.
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
@@ -66,7 +66,7 @@ def create_supervised_evaluator(model, metrics={},
             tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
-        :class:`~ignite.engine.Engine`: an evaluator engine with supervised inference function.
+        Engine: an evaluator engine with supervised inference function.
     """
     if device:
         model.to(device)

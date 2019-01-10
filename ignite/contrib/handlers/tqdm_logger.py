@@ -38,8 +38,8 @@ class ProgressBar(object):
             # Progress bar will looks like
             # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
 
-        Attach metrics that already have been computed at :attr:`ignite.engine.Events.ITERATION_COMPLETED`
-        (such as :class:`ignite.metrics.RunningAverage`)
+        Attach metrics that already have been computed at :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
+        (such as :class:`~ignite.metrics.RunningAverage`)
 
         .. code-block:: python
 

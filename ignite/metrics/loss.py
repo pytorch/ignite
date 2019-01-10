@@ -13,7 +13,7 @@ class Loss(Metric):
             tensor, optionally other arguments, and returns the average loss
             over all observations in the batch.
         output_transform (callable): a callable that is used to transform the
-            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric.
             This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.

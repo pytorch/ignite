@@ -88,15 +88,15 @@ class Timer:
         """ Register callbacks to control the timer.
 
         Args:
-            engine (ignite.engine.Engine):
+            engine (Engine):
                 Engine that this timer will be attached to.
-            start (ignite.engine.Events):
+            start (Events):
                 Event which should start (reset) the timer.
-            pause (ignite.engine.Events):
+            pause (Events):
                 Event which should pause the timer.
-            resume (ignite.engine.Events, optional):
+            resume (Events, optional):
                 Event which should resume the timer.
-            step (ignite.engine.Events, optional):
+            step (Events, optional):
                 Event which should call the `step` method of the counter.
 
         Returns:
