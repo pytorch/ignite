@@ -23,4 +23,5 @@ metrics useful for regression tasks. Definitions of metrics are based on `Botchk
 
 .. automodule:: ignite.contrib.metrics.regression
    :members:
+   :undoc-members:
    :imported-members:
