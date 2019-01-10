@@ -14,7 +14,7 @@ class Timer:
             will be equal to total time measured, divided by the value of internal counter.
 
     Attributes:
-        total (float): total time elapsed when the Timer was running (in seconds)
+        total (float): total time elapsed when the Timer was running (in seconds).
         step_count (int): internal counter, usefull to measure average time, e.g. of processing a single batch.
             Incremented with the ``.step()`` method.
         running (bool): flag indicating if timer is measuring time.
@@ -50,7 +50,7 @@ class Timer:
         >>> t.value()
         0.2003182829997968
 
-        Measuring average time it takes to execute a single ``work()`` call
+        Measuring average time it takes to execute a single ``work()`` call:
 
         >>> t = Timer(average=True)
         >>> for _ in range(10):
@@ -63,7 +63,7 @@ class Timer:
         >>> t.value()
         0.10016545779653825
 
-        Using the Timer to measure average time it takes to process a single batch of examples
+        Using the Timer to measure average time it takes to process a single batch of examples:
 
         >>> from ignite.engine import Engine, Events
         >>> from ignite.handlers import Timer
@@ -88,16 +88,16 @@ class Timer:
         """ Register callbacks to control the timer.
 
         Args:
-            engine (ignite.engine.Engine):
-                Engine that this timer will be attached to
-            start (ignite.engine.Events):
-                Event which should start (reset) the timer
-            pause (ignite.engine.Events):
-                Event which should pause the timer
-            resume (ignite.engine.Events, optional):
-                Event which should resume the timer
-            step (ignite.engine.Events, optional):
-                Event which should call the `step` method of the counter
+            engine (Engine):
+                Engine that this timer will be attached to.
+            start (Events):
+                Event which should start (reset) the timer.
+            pause (Events):
+                Event which should pause the timer.
+            resume (Events, optional):
+                Event which should resume the timer.
+            step (Events, optional):
+                Event which should call the `step` method of the counter.
 
         Returns:
             self (Timer)

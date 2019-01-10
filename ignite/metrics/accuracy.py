@@ -27,7 +27,7 @@ class _BaseClassification(Metric):
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError("y must have shape of (batch_size, ...) and y_pred must have "
                              "shape of (batch_size, num_categories, ...) or (batch_size, ...), "
-                             "but given {} vs {}".format(y.shape, y_pred.shape))
+                             "but given {} vs {}.".format(y.shape, y_pred.shape))
 
         y_shape = y.shape
         y_pred_shape = y_pred.shape
@@ -60,7 +60,7 @@ class _BaseClassification(Metric):
             else:
                 update_type = "binary"
         else:
-            raise RuntimeError("Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation"
+            raise RuntimeError("Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation."
                                " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape))
         if self._type is None:
             self._type = update_type
@@ -71,11 +71,11 @@ class _BaseClassification(Metric):
 
 class Accuracy(_BaseClassification):
     """
-    Calculates the accuracy for binary, multiclass and multilabel data
+    Calculates the accuracy for binary, multiclass and multilabel data.
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
-    - `y` must be in the following shape (batch_size, ...)
+    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
+    - `y` must be in the following shape (batch_size, ...).
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) for multilabel cases.
 
     In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
@@ -92,9 +92,15 @@ class Accuracy(_BaseClassification):
 
 
     Args:
-        is_multilabel (bool, optional) flag to use in multilabel case. By default, False.
-
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+        is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
     """
+
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
 
     def reset(self):
         self._num_correct = 0
@@ -123,5 +129,5 @@ class Accuracy(_BaseClassification):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('Accuracy must have at least one example before it can be computed')
+            raise NotComputableError('Accuracy must have at least one example before it can be computed.')
         return self._num_correct / self._num_examples

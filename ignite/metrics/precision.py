@@ -21,7 +21,7 @@ class _BasePrecisionRecall(_BaseClassification):
     def compute(self):
         if not isinstance(self._positives, torch.Tensor):
             raise NotComputableError("{} must have at least one example before"
-                                     " it can be computed".format(self.__class__.__name__))
+                                     " it can be computed.".format(self.__class__.__name__))
 
         result = self._true_positives / (self._positives + self.eps)
 
@@ -33,11 +33,11 @@ class _BasePrecisionRecall(_BaseClassification):
 
 class Precision(_BasePrecisionRecall):
     """
-    Calculates precision for binary and multiclass data
+    Calculates precision for binary and multiclass data.
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...)
-    - `y` must be in the following shape (batch_size, ...)
+    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
+    - `y` must be in the following shape (batch_size, ...).
 
     In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
     predictions can be done as below:
@@ -67,11 +67,19 @@ class Precision(_BasePrecisionRecall):
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
 
     Args:
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
         average (bool, optional): if True, precision is computed as the unweighted average (across all classes
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
     """
+
+    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
+        super(Precision, self).__init__(output_transform=output_transform,
+                                        average=average, is_multilabel=is_multilabel)
 
     def update(self, output):
         y_pred, y = self._check_shape(output)

@@ -38,5 +38,5 @@ class MeanNormalizedBias(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanNormalizedBias must have at least one example before it can be computed')
+            raise NotComputableError('MeanNormalizedBias must have at least one example before it can be computed.')
         return self._sum_of_errors / self._num_examples

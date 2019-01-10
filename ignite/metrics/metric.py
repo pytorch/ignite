@@ -10,7 +10,7 @@ class Metric(with_metaclass(ABCMeta, object)):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
 
@@ -23,7 +23,7 @@ class Metric(with_metaclass(ABCMeta, object)):
     @abstractmethod
     def reset(self):
         """
-        Resets the metric to to it's initial state.
+        Resets the metric to it's initial state.
 
         This is called at the start of each epoch.
         """
@@ -37,7 +37,7 @@ class Metric(with_metaclass(ABCMeta, object)):
         This is called once for each batch.
 
         Args:
-            output: the is the output from the engine's process function
+            output: the is the output from the engine's process function.
         """
         pass
 
@@ -49,10 +49,10 @@ class Metric(with_metaclass(ABCMeta, object)):
         This is called at the end of each epoch.
 
         Returns:
-            Any: the actual quantity of interest
+            Any: the actual quantity of interest.
 
         Raises:
-            NotComputableError: raised when the metric cannot be computed
+            NotComputableError: raised when the metric cannot be computed.
         """
         pass
 

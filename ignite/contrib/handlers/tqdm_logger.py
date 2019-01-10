@@ -38,8 +38,8 @@ class ProgressBar(object):
             # Progress bar will looks like
             # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
 
-        Attach metrics that already have been computed at :attr:`ignite.engine.Events.ITERATION_COMPLETED`
-        (such as :class:`ignite.metrics.RunningAverage`)
+        Attach metrics that already have been computed at :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
+        (such as :class:`~ignite.metrics.RunningAverage`)
 
         .. code-block:: python
 
@@ -124,29 +124,29 @@ class ProgressBar(object):
     @staticmethod
     def log_message(message):
         """
-        Logs a message, preserving the progress bar correct output format
+        Logs a message, preserving the progress bar correct output format.
 
         Args:
-            message (str): string you wish to log
+            message (str): string you wish to log.
         """
         tqdm.write(message)
 
     def attach(self, engine, metric_names=None, output_transform=None):
         """
-        Attaches the progress bar to an engine object
+        Attaches the progress bar to an engine object.
 
         Args:
-            engine (Engine): engine object
+            engine (Engine): engine object.
             metric_names (list, optional): list of the metrics names to log as the bar progresses
-            output_transform (Callable, optional): a function to select what you want to print from the engine's
+            output_transform (callable, optional): a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
         """
         if metric_names is not None and not isinstance(metric_names, list):
-            raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
+            raise TypeError("metric_names should be a list, got {} instead.".format(type(metric_names)))
 
         if output_transform is not None and not callable(output_transform):
-            raise TypeError("output_transform should be a function, got {} instead"
+            raise TypeError("output_transform should be a function, got {} instead."
                             .format(type(output_transform)))
 
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names, output_transform)
