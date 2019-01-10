@@ -92,13 +92,15 @@ class Accuracy(_BaseClassification):
 
 
     Args:
-        is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
         output_transform (callable, optional): a callable that is used to transform the
             :class:`ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-
+        is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
     """
+
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
 
     def reset(self):
         self._num_correct = 0
