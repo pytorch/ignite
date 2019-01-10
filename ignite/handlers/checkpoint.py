@@ -7,9 +7,9 @@ import torch
 class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
-    This handler accepts two arguments:
+    This handler expects two arguments:
 
-        - an :meth:`~ignite.engine.Engine` object
+        - an :class:`~ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
 
     See Notes and Examples for further details.
@@ -25,7 +25,7 @@ class ModelCheckpoint(object):
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_function (callable, optional):
             if not None, it should be a function taking a single argument,
-            an `ignite.engine.Engine` object,
+            an :class:`ignite.engine.Engine` object,
             and return a score (`float`). Objects with highest scores will be retained.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_name (str, optional):
@@ -108,7 +108,7 @@ class ModelCheckpoint(object):
 
         # Ensure that dirname exists
         if not os.path.exists(dirname):
-            raise ValueError("Directory path '{}' is not found".format(dirname))
+            raise ValueError("Directory path '{}' is not found.".format(dirname))
 
         if require_empty:
             matched = [fname
@@ -118,7 +118,7 @@ class ModelCheckpoint(object):
             if len(matched) > 0:
                 raise ValueError("Files prefixed with {} are already present "
                                  "in the directory {}. If you want to use this "
-                                 "directory anyway, pass `require_empty=False`. "
+                                 "directory anyway, pass `require_empty=False`."
                                  "".format(filename_prefix, dirname))
 
     def _save(self, obj, path):

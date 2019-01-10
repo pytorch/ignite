@@ -21,10 +21,10 @@ class AveragePrecision(EpochMetric):
     sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score>`_ .
 
     Args:
-        activation (Callable, optional): optional function to apply on prediction tensors,
+        activation (callable, optional): optional function to apply on prediction tensors,
             e.g. `activation=torch.sigmoid` to transform logits.
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
 

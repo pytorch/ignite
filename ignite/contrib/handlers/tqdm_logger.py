@@ -12,19 +12,17 @@ class ProgressBar(object):
     TQDM progress bar handler to log training progress and computed metrics.
 
     Args:
-        persist (bool, optional): set to ``True`` to persist the progress bar after completion (default = ``False``).
+        persist (bool, optional): set to ``True`` to persist the progress bar after completion (default = ``False``)
         bar_format  (str, optional): Specify a custom bar string formatting. May impact performance.
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
             Set to ``None`` to use ``tqdm`` default bar formatting: '{l_bar}{bar}{r_bar}', where
             l_bar='{desc}: {percentage:3.0f}%|' and
-            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '
-              '{rate_fmt}{postfix}]'.
-            Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,
-              percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,
-              rate_inv, rate_inv_fmt, elapsed, remaining, desc, postfix.
-            Note that a trailing ": " is automatically removed after {desc}
-            if the latter is empty.
+            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'. For more details on the
+            formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
         **tqdm_kwargs: kwargs passed to tqdm progress bar.
+            By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
+            number of epochs. If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
+            "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
 
     Examples:
 
@@ -114,29 +112,29 @@ class ProgressBar(object):
     @staticmethod
     def log_message(message):
         """
-        Logs a message, preserving the progress bar correct output format
+        Logs a message, preserving the progress bar correct output format.
 
         Args:
-            message (str): string you wish to log
+            message (str): string you wish to log.
         """
         tqdm.write(message)
 
     def attach(self, engine, metric_names=None, output_transform=None):
         """
-        Attaches the progress bar to an engine object
+        Attaches the progress bar to an engine object.
 
         Args:
-            engine (Engine): engine object
+            engine (Engine): engine object.
             metric_names (list, optional): list of the metrics names to log as the bar progresses
-            output_transform (Callable, optional): a function to select what you want to print from the engine's
+            output_transform (callable, optional): a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
         """
         if metric_names is not None and not isinstance(metric_names, list):
-            raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
+            raise TypeError("metric_names should be a list, got {} instead.".format(type(metric_names)))
 
         if output_transform is not None and not callable(output_transform):
-            raise TypeError("output_transform should be a function, got {} instead"
+            raise TypeError("output_transform should be a function, got {} instead."
                             .format(type(output_transform)))
 
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names, output_transform)

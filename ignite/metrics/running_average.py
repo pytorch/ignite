@@ -10,7 +10,7 @@ class RunningAverage(Metric):
             corresponds to `engine.state.output` which holds the output of process function.
         alpha (float, optional): running average decay factor, default 0.98
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
 
@@ -34,13 +34,13 @@ class RunningAverage(Metric):
 
     def __init__(self, src=None, alpha=0.98, output_transform=None):
         if not (isinstance(src, Metric) or src is None):
-            raise TypeError("Argument src should be a Metric or None")
+            raise TypeError("Argument src should be a Metric or None.")
         if not (0.0 < alpha <= 1.0):
-            raise ValueError("Argument alpha should be a float between 0.0 and 1.0")
+            raise ValueError("Argument alpha should be a float between 0.0 and 1.0.")
 
         if isinstance(src, Metric):
             if output_transform is not None:
-                raise ValueError("Argument output_transform should be None if src is a Metric")
+                raise ValueError("Argument output_transform should be None if src is a Metric.")
             self.src = src
             self._get_src_value = self._get_metric_value
             self.iteration_completed = self._metric_iteration_completed

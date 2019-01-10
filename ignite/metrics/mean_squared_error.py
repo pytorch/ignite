@@ -24,5 +24,5 @@ class MeanSquaredError(Metric):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanSquaredError must have at least one example before it can be computed')
+            raise NotComputableError('MeanSquaredError must have at least one example before it can be computed.')
         return self._sum_of_squared_errors / self._num_examples

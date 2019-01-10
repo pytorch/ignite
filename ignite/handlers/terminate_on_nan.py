@@ -14,7 +14,7 @@ class TerminateOnNan(object):
     `[1.23, torch.tensor(...), torch.tensor(float('nan'))]` the handler will stop the training.
 
     Args:
-        output_transform (Callable, optional): a callable that is used to transform the
+        output_transform (callable, optional): a callable that is used to transform the
             :class:`ignite.engine.Engine`'s `process_function`'s output into a number or `torch.tensor`
             or collection of them. This can be useful if, for example, you have a multi-output model and
             you want to check one or multiple values of the output.
@@ -42,7 +42,7 @@ class TerminateOnNan(object):
                 x = torch.tensor(x)
 
             if isinstance(x, torch.Tensor) and not bool(torch.isfinite(x).all()):
-                raise RuntimeError("Infinite or NaN tensor found")
+                raise RuntimeError("Infinite or NaN tensor found.")
 
         try:
             apply_to_type(output, (numbers.Number, torch.Tensor), raise_error)

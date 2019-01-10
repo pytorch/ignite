@@ -21,7 +21,8 @@ Code
     evaluator = create_supervised_evaluator(model,
                                             metrics={
                                                 'accuracy': Accuracy(),
-                                                'nll': Loss(loss)})
+                                                'nll': Loss(loss)
+                                                })
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(trainer):
@@ -50,7 +51,7 @@ Explanation
 -----------
 
 Now let's break up the code and review it in details. In the first 4 lines we define our model, training and validation
-datasets (as `torch.utils.data.DataLoader<https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_), optimizer and loss function:
+datasets (as `torch.utils.data.DataLoader <https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_), optimizer and loss function:
 
 .. code-block:: python
 
@@ -59,7 +60,7 @@ datasets (as `torch.utils.data.DataLoader<https://pytorch.org/docs/stable/data.h
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
     loss = torch.nn.NLLLoss()
 
-Next we define trainer and evaluator engines. The main component of Ignite is the :class:`ignite.engine.Engine`, an abstraction over your
+Next we define trainer and evaluator engines. The main component of Ignite is the :class:`~ignite.engine.Engine`, an abstraction over your
 training loop. Getting started with the engine is easy, the constructor only requires one things:
 
 - `update_function`: a function which is passed the engine and a batch and it passes data through and updates your model
@@ -72,7 +73,8 @@ Here we are using helper methods :meth:`~ignite.engine.create_supervised_trainer
     evaluator = create_supervised_evaluator(model,
                                             metrics={
                                                 'accuracy': Accuracy(),
-                                                'nll': Loss(loss)})
+                                                'nll': Loss(loss)
+                                                })
 
 However, we could also define trainer and evaluator using :class:`~ignite.engine.Engine`. If we look into the code of
 :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`, we can observe a pattern:

@@ -63,7 +63,7 @@ def create_supervised_tbptt_trainer(
         non_blocking (bool, optional): if True and this copy is between CPU and GPU,
             the copy may occur asynchronously with respect to the host. For other cases,
             this argument has no effect.
-        prepare_batch (Callable, optional): function that receives `batch`, `device`,
+        prepare_batch (callable, optional): function that receives `batch`, `device`,
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
