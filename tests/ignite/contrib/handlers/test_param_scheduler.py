@@ -5,6 +5,7 @@ import torch
 from ignite.engine import Engine, Events
 from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, CosineAnnealingScheduler
 from ignite.contrib.handlers.param_scheduler import ConcatScheduler, LRScheduler, create_lr_scheduler_with_warmup
+from ignite.contrib.handlers.param_scheduler import _replicate_scheduler
 
 
 def test_linear_scheduler():
@@ -240,12 +241,12 @@ def test_lr_scheduler():
     _test(torch.optim.lr_scheduler.StepLR, step_size=5, gamma=0.5)
     _test(torch.optim.lr_scheduler.ExponentialLR, gamma=0.78)
 
-    # test _copy_lr_scheduler
+    # test _replicate_lr_scheduler
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0.1)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.78)
     init_lr_scheduler_state = dict(lr_scheduler.state_dict())
-    copy_lr_scheduler = LRScheduler._copy_lr_scheduler(lr_scheduler)
+    copy_lr_scheduler = LRScheduler._replicate_lr_scheduler(lr_scheduler)
     for _ in range(10):
         lr_scheduler.step()
 
@@ -330,26 +331,88 @@ def test_create_lr_scheduler_with_warmup():
     with pytest.raises(TypeError):
         create_lr_scheduler_with_warmup(12, warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10)
 
+    def _test(lr_scheduler, optimizer):
+        num_iterations = 10
+        max_epochs = 20
+
+        simulated_values = [None] * (num_iterations * max_epochs)
+        scheduler = create_lr_scheduler_with_warmup(lr_scheduler,
+                                                    warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10,
+                                                    output_simulated_values=simulated_values)
+
+        lrs = []
+        trainer = Engine(lambda engine, batch: None)
+
+        @trainer.on(Events.ITERATION_COMPLETED)
+        def save_lr(engine):
+            lrs.append(optimizer.param_groups[0]['lr'])
+
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+        data = [0] * num_iterations
+        trainer.run(data, max_epochs=max_epochs)
+
+        assert lrs == pytest.approx([v for i, v in simulated_values])
+
     t1 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([t1], lr=0.1)
     torch_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
-    simulated_values = []
-    scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
-                                                warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10,
-                                                output_simulated_values=simulated_values)
+    _test(torch_lr_scheduler, optimizer)
 
-    lrs = []
-    trainer = Engine(lambda engine, batch: None)
+    t1 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([t1], lr=0.1)
+    lr_scheduler = LinearCyclicalScheduler(optimizer=optimizer, param_name='lr',
+                                           start_value=1.0, end_value=0.0, cycle_size=10)
+    _test(lr_scheduler, optimizer)
 
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def save_lr(engine):
-        i = engine.state.iteration - 1
-        lrs.append(optimizer.param_groups[0]['lr'])
 
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
+    # Test with a complex scheduler
+    def _test(save_history):
+        tensor = torch.ones([1], requires_grad=True)
+        optimizer = torch.optim.SGD([tensor], lr=0.001)
 
-    data = [0] * 10
-    max_epochs = 20
-    trainer.run(data, max_epochs=max_epochs)
+        max_epochs = 25
+        lr_max_value = 0.4
+        num_iterations_per_epoch = 128
+        num_iterations = max_epochs * num_iterations_per_epoch
+        warmup_duration = 5 * num_iterations_per_epoch
+        cooldown_duration = 5 * num_iterations_per_epoch
 
-    assert lrs == pytest.approx([v for i, v in simulated_values])
+        scheduler_1 = LinearCyclicalScheduler(optimizer, "lr",
+                                              start_value=lr_max_value, end_value=lr_max_value,
+                                              cycle_size=(num_iterations - warmup_duration - cooldown_duration) * 2)
+
+        scheduler_2 = LinearCyclicalScheduler(optimizer, "lr",
+                                              start_value=lr_max_value, end_value=0.0,
+                                              cycle_size=cooldown_duration * 2)
+
+        lr_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2],
+                                       durations=[num_iterations - warmup_duration - cooldown_duration, ],
+                                       save_history=save_history)
+        lr_values = [None] * num_iterations
+        scheduler = create_lr_scheduler_with_warmup(
+            lr_scheduler,
+            warmup_start_value=0.08,
+            warmup_end_value=lr_max_value,
+            warmup_duration=warmup_duration,
+            save_history=save_history,
+            output_simulated_values=lr_values
+        )
+
+        lrs = []
+        trainer = Engine(lambda engine, batch: None)
+
+        @trainer.on(Events.ITERATION_COMPLETED)
+        def save_lr(engine):
+            lrs.append(optimizer.param_groups[0]['lr'])
+
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+        data = [0] * num_iterations_per_epoch
+        trainer.run(data, max_epochs=max_epochs)
+
+        assert lrs == pytest.approx([v for i, v in lr_values])
+
+    _test(save_history=False)
+    _test(save_history=True)
