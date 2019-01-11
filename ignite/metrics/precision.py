@@ -4,7 +4,7 @@ import torch
 
 from ignite.metrics.accuracy import _BaseClassification
 from ignite.exceptions import NotComputableError
-from ignite._utils import to_onehot
+from ignite.utils import to_onehot
 
 
 class _BasePrecisionRecall(_BaseClassification):

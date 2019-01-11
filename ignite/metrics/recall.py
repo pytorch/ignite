@@ -3,7 +3,7 @@ from __future__ import division
 import torch
 
 from ignite.metrics.precision import _BasePrecisionRecall
-from ignite._utils import to_onehot
+from ignite.utils import to_onehot
 
 
 class Recall(_BasePrecisionRecall):
