@@ -400,7 +400,7 @@ def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
         cooldown_duration = 5 * num_iterations_per_epoch
 
         scheduler_1 = LinearCyclicalScheduler(optimizer, "lr",
-                                              start_value=lr_max_value, end_value=lr_max_value,
+                                              start_value=lr_max_value, end_value=lr_max_value * 0.9,
                                               cycle_size=(num_iterations - warmup_duration - cooldown_duration) * 2)
 
         scheduler_2 = LinearCyclicalScheduler(optimizer, "lr",
@@ -409,7 +409,7 @@ def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
 
         lr_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2],
                                        durations=[num_iterations - warmup_duration - cooldown_duration, ],
-                                       save_history=save_history)
+                                       save_history=False)
         lr_values = [None] * num_iterations
         scheduler = create_lr_scheduler_with_warmup(
             lr_scheduler,
@@ -433,6 +433,10 @@ def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
         trainer.run(data, max_epochs=max_epochs)
 
         assert lrs == pytest.approx([v for i, v in lr_values])
+
+        if save_history:
+            param_history = trainer.state.param_history['lr']
+            assert lrs == pytest.approx([v[0] for v in param_history])
 
     _test(save_history=False)
     _test(save_history=True)

@@ -318,9 +318,10 @@ class ConcatScheduler(ParamScheduler):
                 raise TypeError("Value at index {} of schedulers should be a parameter scheduler, "
                                 "but given {}".format(i, type(scheduler)))
 
-        super(ConcatScheduler, self).__init__(optimizer={}, param_name="", save_history=save_history)
         self.schedulers = schedulers
         self.durations = durations
+        super(ConcatScheduler, self).__init__(optimizer={}, param_name="", save_history=save_history)
+
         self._schedulers = list(schedulers)
         self._durations = list(durations) + [-1, ]
         self._current_scheduler = None
@@ -329,7 +330,6 @@ class ConcatScheduler(ParamScheduler):
 
     def _set_next_scheduler(self):
         self._current_scheduler = self._schedulers.pop(0)
-        self._current_scheduler.save_history = self.save_history
         self._current_duration = self._durations.pop(0)
         self.param_name = self._current_scheduler.param_name
 
@@ -349,6 +349,15 @@ class ConcatScheduler(ParamScheduler):
     @optimizer_param_groups.setter
     def optimizer_param_groups(self, value):
         pass
+
+    @property
+    def save_history(self):
+        return self._current_scheduler.save_history
+
+    @save_history.setter
+    def save_history(self, value):
+        for s in self.schedulers:
+            s.save_history = value
 
     def get_param(self):
         pass
