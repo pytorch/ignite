@@ -142,7 +142,7 @@ class CyclicalScheduler(ParamScheduler):
         )
         self.start_value = start_value
         self.end_value = end_value
-        self.cycle_size = cycle_size
+        self.cycle_size = int(cycle_size)  # Ensure cycle_size is integer
         self.cycle_mult = cycle_mult
         self.cycle = 0
         self.start_value_mult = start_value_mult

@@ -5,7 +5,6 @@ import torch
 from ignite.engine import Engine, Events
 from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, CosineAnnealingScheduler
 from ignite.contrib.handlers.param_scheduler import ConcatScheduler, LRScheduler, create_lr_scheduler_with_warmup
-from ignite.contrib.handlers.param_scheduler import _replicate_scheduler
 
 
 def test_linear_scheduler():
@@ -51,6 +50,27 @@ def test_linear_scheduler():
         0.5, 0.4, 0.3, 0.2, 0.1,
         0.0, 0.1, 0.2, 0.3, 0.4,
         0.5, 0.6, 0.7, 0.8, 0.9,
+    ]))
+
+    # With float cycle_size
+    optimizer = torch.optim.SGD([tensor], lr=0)
+    scheduler = LinearCyclicalScheduler(optimizer, 'lr',
+                                        start_value=1.2, end_value=0.2,
+                                        cycle_size=10.00000012, cycle_mult=1.0)
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+
+    lrs = []
+    trainer.run([0] * 10, max_epochs=2)
+    assert lrs == list(map(pytest.approx, [
+        # Cycle 1
+        1.2, 1.0, 0.8, 0.6, 0.4,
+        0.2, 0.4, 0.6, 0.8, 1.0,
+        # Cycle 2
+        1.2, 1.0, 0.8, 0.6, 0.4,
+        0.2, 0.4, 0.6, 0.8, 1.0,
     ]))
 
 
