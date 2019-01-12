@@ -305,8 +305,9 @@ class ConcatScheduler(ParamScheduler):
             raise ValueError("Argument schedulers should be list/tuple of more than one parameter schedulers, "
                              "but given {}".format(schedulers))
 
-        if not isinstance(durations, (list, tuple)) or sorted(list(durations)) != list(durations):
-            raise ValueError("Argument durations should be list/tuple of ordered integers, "
+        if not isinstance(durations, (list, tuple)) or \
+                not all([isinstance(t, int) for t in durations]):
+            raise ValueError("Argument durations should be list/tuple of integers, "
                              "but given {}".format(durations))
 
         if len(schedulers) != len(durations) + 1:

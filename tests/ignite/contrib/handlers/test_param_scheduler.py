@@ -115,10 +115,10 @@ def test_concat_scheduler_asserts():
         ConcatScheduler(schedulers=[scheduler_1, 12], durations=[10, ])
 
     with pytest.raises(ValueError):
-        ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[10, 12])
+        ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[10, 5])
 
     with pytest.raises(ValueError):
-        ConcatScheduler(schedulers=[scheduler_1, scheduler_2, scheduler_2], durations=[15, 12])
+        ConcatScheduler(schedulers=[scheduler_1, scheduler_2, scheduler_2], durations=[15, 12.0])
 
     with pytest.raises(ValueError):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations="abc")
@@ -139,6 +139,12 @@ def test_concat_scheduler():
     concat_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2],
                                        durations=durations, save_history=True)
 
+    data = [0] * 10
+    max_epochs = 2
+    simulated_values = ConcatScheduler.simulate_values(num_events=len(data) * max_epochs,
+                                                       schedulers=[scheduler_1, scheduler_2],
+                                                       durations=durations)
+
     lrs = []
 
     def save_lr(engine):
@@ -147,8 +153,6 @@ def test_concat_scheduler():
     trainer = Engine(lambda engine, batch: None)
     trainer.add_event_handler(Events.ITERATION_STARTED, concat_scheduler)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
-    data = [0] * 10
-    max_epochs = 2
     trainer.run(data, max_epochs=max_epochs)
 
     assert lrs == list(map(pytest.approx, [
@@ -165,9 +169,50 @@ def test_concat_scheduler():
     # Unpack singleton lists
     assert [group[0] for group in state_lrs] == lrs
 
+    assert lrs == pytest.approx([v for i, v in simulated_values])
+
+
+def test_concat_scheduler_3_schedulers():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.5, cycle_size=20)
+    scheduler_2 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.5, end_value=0.45, cycle_size=10)
+    scheduler_3 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.5, end_value=0.0, cycle_size=20)
+    durations = [10, 5]
+
+    concat_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2, scheduler_3],
+                                       durations=durations, save_history=True)
+
+    data = [0] * 10
+    max_epochs = 2
     simulated_values = ConcatScheduler.simulate_values(num_events=len(data) * max_epochs,
-                                                       schedulers=[scheduler_1, scheduler_2],
+                                                       schedulers=[scheduler_1, scheduler_2, scheduler_3],
                                                        durations=durations)
+    lrs = []
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]['lr'])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, concat_scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+    trainer.run(data, max_epochs=max_epochs)
+
+    assert lrs == list(map(pytest.approx, [
+        # Cycle 1 of the first LinearCyclicalScheduler
+        1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55,
+        # Cycle 1 of the second LinearCyclicalScheduler
+        0.5, 0.49, 0.48, 0.47, 0.46,
+        # Cycle 1 of the third LinearCyclicalScheduler
+        0.5, 0.45, 0.4, 0.35, 0.3,
+    ]))
+
+    state_lrs = trainer.state.param_history['lr']
+    assert len(state_lrs) == len(lrs)
+    # Unpack singleton lists
+    assert [group[0] for group in state_lrs] == lrs
+
     assert lrs == pytest.approx([v for i, v in simulated_values])
 
 
@@ -413,7 +458,7 @@ def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
         lr_values = [None] * num_iterations
         scheduler = create_lr_scheduler_with_warmup(
             lr_scheduler,
-            warmup_start_value=0.08,
+            warmup_start_value=0.0,
             warmup_end_value=lr_max_value,
             warmup_duration=warmup_duration,
             save_history=save_history,
