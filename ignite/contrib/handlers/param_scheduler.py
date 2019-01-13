@@ -515,3 +515,69 @@ def create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value, warmup_end
         output_simulated_values.extend(ConcatScheduler.simulate_values(num_events=warmup_duration * 20,
                                                                        schedulers=schedulers, durations=durations))
     return combined_scheduler
+
+
+class PiecewiseLinear(ParamScheduler):
+    """
+    Piecewise linear parameter scheduler
+
+    Args:
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
+        values (list/tuple): list of values the parameter at the milestones
+        milestones (list/tuple of int): list of event indices. Must be increasing and contain integers.
+        save_history (bool, optional): whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    Returns:
+        PiecewiseLinear: piecewise linear scheduler
+
+
+    .. code-block:: python
+
+        scheduler = PiecewiseLinear(optimizer, "lr",
+                                    values=[0.5, 0.45, 0.3, 0.1, 0.1],
+                                    milestones=[10, 20, 21, 30, 40])
+        # Attach to the trainer
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+        #
+        # Sets the learning rate to 0.5 over the first 10 iterations, then decreases linearly from 0.5 to 0.45 between
+        # 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and LR decreases linearly
+        # from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until the end of the iterations.
+        #
+    """
+
+    def __init__(self, optimizer, param_name, values, milestones, save_history=False):
+        super(PiecewiseLinear, self).__init__(optimizer, param_name, save_history)
+
+        if not isinstance(values, (list, tuple)) or len(values) < 1:
+            raise ValueError("Argument values should be a list or tuple with at least one value, "
+                             "but given {}".format(type(values)))
+
+        if not isinstance(milestones, (list, tuple)) or not (sorted(milestones) == milestones):
+            raise ValueError("Argument milestones should be a list or tuple of integers with at least one value, "
+                             "but given {}".format(type(milestones)))
+
+        if len(values) != len(milestones):
+            raise ValueError("Size of values should be equal to the size of milestones, "
+                             "but given {} vs {}".format(len(values), len(milestones)))
+
+        self.values = values
+        self.milestones = milestones
+        self._index = 0
+
+    def _get_start_end(self):
+        if self.milestones[0] > self.event_index:
+            return self.event_index - 1, self.event_index, self.values[0], self.values[0]
+        elif self.milestones[-1] <= self.event_index:
+            return self.event_index, self.event_index + 1, self.values[-1], self.values[-1],
+        elif self.milestones[self._index] <= self.event_index < self.milestones[self._index + 1]:
+            return self.milestones[self._index], self.milestones[self._index + 1], \
+                self.values[self._index], self.values[self._index + 1]
+        else:
+            self._index += 1
+            return self._get_start_end()
+
+    def get_param(self):
+        start_index, end_index, start_value, end_value = self._get_start_end()
+        return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
