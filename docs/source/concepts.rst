@@ -103,11 +103,10 @@ State
 A state is introduced in :class:`~ignite.engine.Engine` to store the output of the `process_function`, current epoch,
 iteration and other helpful information. Each :class:`~ignite.engine.Engine` contains a :class:`~ignite.engine.State`, 
 which includes the following:
-* `engine.state.epoch`: Number of epochs the engine has completed. Initializated as 0. 
-* `engine.state.iteration`: Number of iterations the engine has completed. Initialized as 0. Note that it is not
-    reset at every epoch.
-* `engine.state.output`: The output of the `process_function` defined for the :class:`~ignite.engine.Engine`. See
-    examples below.
+
+- *`engine.state.epoch`: Number of epochs the engine has completed. Initializated as 0. 
+- *`engine.state.iteration`: Number of iterations the engine has completed. Initialized as 0.
+- *`engine.state.output`: The output of the `process_function` defined for the :class:`~ignite.engine.Engine`. See below.
 
 In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at 
 every iteration.
