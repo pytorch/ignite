@@ -140,8 +140,6 @@ In the code below, `engine.state.output` will be a list of loss, y_pred, y for t
 `engine.state.output`. Let's see how that is done:
 
 .. code-block:: python
-    # output_transform in Accuracy is needed to select y_pred and y from engine.state.output
-    # for metrics calculation.
 
     def update(engine, batch):
         x, y = batch
@@ -168,9 +166,6 @@ Similar to above, if the output of the `process_function` is a dictionary of los
 is how the user can use `output_transform` to get y_pred and y from `engine.state.output`. See below:
 
 .. code-block:: python
-    # engine.state.output will be a dictionary of loss, y_pred, y for the processed batch.
-    # output_transform in Accuracy is needed to select y_pred and y from engine.state.output
-    # for metrics calculation.
 
     def update(engine, batch):
         x, y = batch
