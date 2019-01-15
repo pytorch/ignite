@@ -130,8 +130,8 @@ every iteration.
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
 
-There are many ways of creating a `process_function`, this is why Ignite provides output_transform parameter for its 
-:class:`~ignite.metrics` and :class:`~ignite.handlers`. `output_transform` is a function used to transform `engine.state.output` for intended use. Below we'll see different types of `engine.state.output` and how to transform them.
+Since there is no restrictions on the output of `process_function`, Ignite provides `output_transform` argument for its
+:class:`~ignite.metrics` and :class:`~ignite.handlers`. Argument `output_transform` is a function used to transform `engine.state.output` for intended use. Below we'll see different types of `engine.state.output` and how to transform them.
 
 In the code below, `engine.state.output` will be a list of loss, y_pred, y for the processed batch. If we want to attach :class:`~ignite.metrics.Accuracy` to the engine, `output_transform` will be needed to get y_pred and y from
 `engine.state.output`. Let's see how that is done:
