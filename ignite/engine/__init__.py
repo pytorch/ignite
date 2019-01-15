@@ -30,6 +30,8 @@ def create_supervised_trainer(model, optimizer, loss_fn,
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
 
+    Note: `engine.state.output` for this engine is the loss of the processed batch.
+
     Returns:
         Engine: a trainer engine with supervised update function.
     """
@@ -64,6 +66,8 @@ def create_supervised_evaluator(model, metrics={},
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+
+    Note: `engine.state.output` for this engine is a tuple of `(batch_pred, batch_y)`.
 
     Returns:
         Engine: an evaluator engine with supervised inference function.
