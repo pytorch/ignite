@@ -15,7 +15,7 @@ except ImportError:
     raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss
+from ignite.metrics import CategoricalAccuracy, Loss
 
 
 class Net(nn.Module):
@@ -65,12 +65,14 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     if torch.cuda.is_available():
         device = 'cuda'
 
+    model = model.to(device)
+
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
-    evaluator = create_supervised_evaluator(model,
-                                            metrics={'accuracy': Accuracy(),
-                                                     'nll': Loss(F.nll_loss)},
-                                            device=device)
+    evaluator = create_supervised_evaluator(
+        model,
+        metrics={'accuracy': CategoricalAccuracy(), 'nll': Loss(F.nll_loss)},
+        device=device)
 
     train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss')
     train_avg_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Average Loss')
