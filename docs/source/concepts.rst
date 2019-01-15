@@ -130,10 +130,8 @@ every iteration.
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
 
-Ignite's :class:`~ignite.metrics` and :class:`~ignite.handlers` also use `engine.state.output`, it is important to read
-the docs before adding metrics and handlers to the engine. There are many ways of creating a `process_function`, this is 
-why Ignite provides output_transform for metrics and handlers. `output_transform` is a function used to transform
-`engine.state.output` for desired use. 
+There are many ways of creating a `process_function`, this is why Ignite provides output_transform parameter for its 
+:class:`~ignite.metrics` and :class:`~ignite.handlers`. `output_transform` is a function used to transform `engine.state.output` for intended use. Below we'll see different types of `engine.state.output` and how to transform them.
 
 In the code below, `engine.state.output` will be a list of loss, y_pred, y for the processed batch. If we want to attach :class:`~ignite.metrics.Accuracy` to the engine, `output_transform` will be needed to get y_pred and y from
 `engine.state.output`. Let's see how that is done:
@@ -161,8 +159,8 @@ In the code below, `engine.state.output` will be a list of loss, y_pred, y for t
     accuracy.attach('acc', accuracy)
     trainer.run(data, max_epochs=10)
 
-Similar to above, if the output of the `process_function` is a dictionary of loss, y_pred, y for the processed batch, this
-is how the user can use `output_transform` to get y_pred and y from `engine.state.output`. See below:
+Similar to above, but this time the output of the `process_function` is a dictionary of loss, y_pred, y for the processed
+batch, this is how the user can use `output_transform` to get y_pred and y from `engine.state.output`. See below:
 
 .. code-block:: python
 
