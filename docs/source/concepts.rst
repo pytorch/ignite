@@ -91,10 +91,10 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
 
 .. Note ::
 
-   User can also register custom events with :meth:`ignite.engine.Engine.register_events`, attach handlers and fire custom events
-   calling :meth:`ignite.engine.Engine.fire_event` in any handler or `process_function`.
+   User can also register custom events with :meth:`~ignite.engine.Engine.register_events`, attach handlers and fire custom events
+   calling :meth:`~ignite.engine.Engine.fire_event` in any handler or `process_function`.
 
-   See the source code of :class:`ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
+   See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
 
 
@@ -189,7 +189,7 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
 
 .. Note ::
 
-   A good practice is to use :class:`ignite.engine.State` also as a storage of user data created in update or handler functions.
+   A good practice is to use :class:`~ignite.engine.State` also as a storage of user data created in update or handler functions.
    For example, we would like to save `new_attribute` in the `state`:
 
    .. code-block:: python
