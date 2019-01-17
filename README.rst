@@ -22,7 +22,7 @@ Below we show a side-by-side comparison of using pure pytorch and using ignite t
 to train and validate your model with occasional checkpointing:
 
 .. image:: assets/ignite_vs_bare_pytorch.png
-    :target: https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png
+    :target: https://raw.githubusercontent.com/anmolsjoshi/ignite/readme_update/assets/ignite_vs_bare_pytorch.png
 
 As you can see, the code is more concise and readable with ignite. Furthermore, adding additional metrics, or
 things like early stopping is a breeze in ignite, but can start to rapidly increase the complexity of
