@@ -67,11 +67,11 @@ API documentation and an overview of the library can be found `here <https://pyt
 
 Structure
 =========
-- **ignite**: Core of the library, contains supervised trainer and evaluator, all of the classic machine learning metrics and a variety of handlers to ease the pain of training neural networks! 
+- **ignite**: Core of the library, contains an engnine for training and evaluating, all of the classic machine learning metrics and a variety of handlers to ease the pain of training and validation of neural networks! 
 
-- **ignite.contrib**: Contrib directory contains projects created by Ignite users. Projects vary from TBPTT engine, various Parameter Schedulers, Progress Bar and a metrics module containing over 10 Regression metrics (ignite.contrib.metrics.regression)! 
+**ignite.contrib**: Contrib directory contains additional modules contributed by Ignite users. Modules vary from TBPTT engine, various optimisation parameter schedulers, logging handlers and a metrics module containing many regression metrics (`ignite.contrib.metrics.regression <https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression>`_)! 
 
-Any code in **ignite.contrib** is not officially supported, and may change or be removed at any time without notice.
+The code in **ignite.contrib** is not fully maintained as the core part of the library. It may change or be removed at any time without notice.
 
 
 Examples
