@@ -71,7 +71,7 @@ Structure
 
 **ignite.contrib**: The Contrib directory contains additional modules contributed by Ignite users. Modules vary from TBPTT engine, various optimisation parameter schedulers, logging handlers and a metrics module containing many regression metrics (`ignite.contrib.metrics.regression <https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression>`_)! 
 
-The code in **ignite.contrib** is not fully maintained as the core part of the library. It may change or be removed at any time without notice.
+The code in **ignite.contrib** is not as fully maintained as the core part of the library. It may change or be removed at any time without notice.
 
 
 Examples
