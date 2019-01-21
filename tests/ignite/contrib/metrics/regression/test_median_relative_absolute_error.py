@@ -61,8 +61,8 @@ def test_median_relative_absolute_error_2():
     y = torch.from_numpy(np_y)
 
     m.reset()
-    n_iters = 15
-    batch_size = size // n_iters
+    batch_size = 16
+    n_iters = size // batch_size + 1
     for i in range(n_iters + 1):
         idx = i * batch_size
         m.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))

@@ -1,4 +1,5 @@
 import torch
+
 from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
 
 
@@ -11,14 +12,19 @@ class MedianAbsoluteError(_BaseRegressionEpoch):
     r"""
     Calculates the Median Absolute Error:
 
-    :math:`\text{MdAE} = \text{MD_{j=1,n}}{|A_j - P_j|}`,
+    :math:`\text{MdAE} = \text{MD}_{j=1,n} \left( |A_j - P_j| \right)`,
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
     More details can be found in `Botchkarev 2018`__.
 
     - `update` must receive output of the form `(y_pred, y)`.
-    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
+
+    .. warning::
+
+        Current implementation stores all input data (output and target) in as tensors before computing a metric.
+        This can potentially lead to a memory error if the input data is larger than available RAM.
 
 
     __ https://arxiv.org/abs/1809.03006

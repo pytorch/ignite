@@ -1,10 +1,11 @@
 from __future__ import division
+
 import torch
+
 from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
 
 
 def geometric_mean_relative_absolute_error_compute_fn(y_pred, y):
-    n = y_pred.shape[0]
     e = torch.log(torch.abs(y.view_as(y_pred) - y_pred) / torch.abs(y.view_as(y_pred) - torch.mean(y)))
     return torch.exp(torch.mean(e)).item()
 
@@ -13,7 +14,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegressionEpoch):
     r"""
     Calculates the Geometric Mean Relative Absolute Error:
 
-    :math:`\text{GMRAE} = exp(\frac{1}{n}\sum_{j=1}^n ln\frac{|A_j - P_j|}{|A_j - \overline{A}|})`
+    :math:`\text{GMRAE} = \exp(\frac{1}{n}\sum_{j=1}^n \ln\frac{|A_j - P_j|}{|A_j - \bar{A}|})`
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 

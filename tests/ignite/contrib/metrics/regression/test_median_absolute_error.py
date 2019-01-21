@@ -61,8 +61,8 @@ def test_median_absolute_error_2():
     y = torch.from_numpy(np_y)
 
     m.reset()
-    n_iters = 15
-    batch_size = size // n_iters
+    batch_size = 16
+    n_iters = size // batch_size + 1
     for i in range(n_iters):
         idx = i * batch_size
         m.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
@@ -95,4 +95,4 @@ def test_integration_median_absolute_error_with_output_transform():
     data = list(range(size // batch_size))
     median_absolute_error = engine.run(data, max_epochs=1).metrics['median_absolute_error']
 
-    assert np_median_absolute_error == pytest.approx(m.compute())
+    assert np_median_absolute_error == pytest.approx(median_absolute_error)
