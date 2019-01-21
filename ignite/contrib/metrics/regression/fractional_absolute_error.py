@@ -1,5 +1,7 @@
 from __future__ import division
+
 import torch
+
 from ignite.exceptions import NotComputableError
 from ignite.contrib.metrics.regression._base import _BaseRegression
 
@@ -8,7 +10,7 @@ class FractionalAbsoluteError(_BaseRegression):
     r"""
     Calculates the Fractional Absolute Error.
 
-    :math:`\text{FAE} = \frac{1}{n}\sum _j^n\frac{2 * |A_j - P_j|}{|A_j| + |P_j|}`
+    :math:`\text{FAE} = \frac{1}{n}\sum_{j=1}^n\frac{2 |A_j - P_j|}{|A_j| + |P_j|}`
 
     where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
