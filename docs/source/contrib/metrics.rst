@@ -7,14 +7,13 @@ Contribution module of metrics
 
 .. automodule:: ignite.contrib.metrics
    :members:
-   :undoc-members:
    :imported-members:
 
 
 Regression metrics
 ------------------
 
-Module `ignite.contrib.metrics.regression` provides implementations of
+Module :mod:`ignite.contrib.metrics.regression` provides implementations of
 metrics useful for regression tasks. Definitions of metrics are based on `Botchkarev 2018`_, page 30 "Appendix 2. Metrics mathematical definitions".
 
 .. _`Botchkarev 2018`:
@@ -23,5 +22,4 @@ metrics useful for regression tasks. Definitions of metrics are based on `Botchk
 
 .. automodule:: ignite.contrib.metrics.regression
    :members:
-   :undoc-members:
    :imported-members:

@@ -1,4 +1,5 @@
 from abc import abstractmethod
+
 from ignite.metrics import Metric
 
 
