@@ -72,8 +72,8 @@ def test_integration_ap_score_with_output_transform():
 
     engine = Engine(update_fn)
 
-    roc_auc_metric = AveragePrecision(output_transform=lambda x: (x[1], x[2]))
-    roc_auc_metric.attach(engine, 'ap')
+    ap_metric = AveragePrecision(output_transform=lambda x: (x[1], x[2]))
+    ap_metric.attach(engine, 'ap')
 
     data = list(range(size // batch_size))
     ap = engine.run(data, max_epochs=1).metrics['ap']
@@ -103,8 +103,8 @@ def test_integration_ap_score_with_activated_output_transform():
 
     engine = Engine(update_fn)
 
-    roc_auc_metric = AveragePrecision(output_transform=lambda x: (torch.softmax(x[1], dim=1), x[2]))
-    roc_auc_metric.attach(engine, 'ap')
+    ap_metric = AveragePrecision(output_transform=lambda x: (torch.softmax(x[1], dim=1), x[2]))
+    ap_metric.attach(engine, 'ap')
 
     data = list(range(size // batch_size))
     ap = engine.run(data, max_epochs=1).metrics['ap']
