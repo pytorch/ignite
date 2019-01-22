@@ -1,4 +1,3 @@
-from functools import partial
 from ignite.metrics import EpochMetric
 
 
