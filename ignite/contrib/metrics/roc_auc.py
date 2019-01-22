@@ -39,4 +39,4 @@ class ROC_AUC(EpochMetric):
 
     """
     def __init__(self, output_transform=lambda x: x):
-        super(ROC_AUC, self).__init__(partial(roc_auc_compute_fn), output_transform=output_transform)
+        super(ROC_AUC, self).__init__(roc_auc_compute_fn, output_transform=output_transform)
