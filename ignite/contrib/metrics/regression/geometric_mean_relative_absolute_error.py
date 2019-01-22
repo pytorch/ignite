@@ -2,15 +2,10 @@ from __future__ import division
 
 import torch
 
-from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
+from ignite.contrib.metrics.regression._base import _BaseRegression
 
 
-def geometric_mean_relative_absolute_error_compute_fn(y_pred, y):
-    e = torch.log(torch.abs(y.view_as(y_pred) - y_pred) / torch.abs(y.view_as(y_pred) - torch.mean(y)))
-    return torch.exp(torch.mean(e)).item()
-
-
-class GeometricMeanRelativeAbsoluteError(_BaseRegressionEpoch):
+class GeometricMeanRelativeAbsoluteError(_BaseRegression):
     r"""
     Calculates the Geometric Mean Relative Absolute Error:
 
@@ -27,6 +22,20 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegressionEpoch):
     __ https://arxiv.org/abs/1809.03006
 
     """
-    def __init__(self, output_transform=lambda x: x):
-        super(GeometricMeanRelativeAbsoluteError, self).__init__(geometric_mean_relative_absolute_error_compute_fn,
-                                                                 output_transform)
+    def reset(self):
+        self._sum_y = 0.0
+        self._num_examples = 0
+        self._sum_of_errors = 0.0
+
+    def _update(self, output):
+        y_pred, y = output
+        self._sum_y += y.sum()
+        self._num_examples += y.shape[0]
+        y_mean = self._sum_y / self._num_examples
+        self._sum_of_errors += torch.log(torch.abs(y.view_as(y_pred) - y_pred) / torch.abs(y.view_as(y_pred) - y_mean)).sum()
+
+    def compute(self):
+        if self._num_examples == 0:
+            raise NotComputableError('GeometricMeanRelativeAbsoluteError must have at least '
+                                     'one example before it can be computed.')
+        return torch.exp(torch.mean(self._sum_of_errors / self._num_examples)).item()

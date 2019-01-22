@@ -26,12 +26,6 @@ def test_wrong_input_shapes():
 
 
 def test_geometric_mean_relative_absolute_error():
-
-    # See https://github.com/torch/torch7/pull/182
-    # For even number of elements, PyTorch returns middle element
-    # NumPy returns average of middle elements
-    # Size of dataset will be odd for these tests
-
     size = 51
     np_y_pred = np.random.rand(size,)
     np_y = np.random.rand(size,)
@@ -54,7 +48,11 @@ def test_geometric_mean_relative_absolute_error_2():
     np_y_pred = np.random.rand(size, 1)
     np_y = np.random.rand(size, 1)
     np.random.shuffle(np_y)
-    np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+
+    np_y_sum = 0
+    num_examples = 0
+    num_sum_of_errors = 0
+    np_gmrae = 0
 
     m = GeometricMeanRelativeAbsoluteError()
     y_pred = torch.from_numpy(np_y_pred)
@@ -65,9 +63,17 @@ def test_geometric_mean_relative_absolute_error_2():
     batch_size = size // n_iters
     for i in range(n_iters + 1):
         idx = i * batch_size
+        np_y_i = np_y[idx: idx + batch_size]
+        np_y_pred_i = np_y_pred[idx: idx + batch_size]
+
+        np_y_sum += np_y_i.sum()
+        num_examples += np_y_i.shape[0]
+        np_mean = np_y_sum / num_examples
+
+        np_gmrae += np.log(np.abs(np_y_i - np_y_pred_i) / np.abs(np_y_i - np_mean)).sum()
         m.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
 
-    assert np_gmrae == pytest.approx(m.compute())
+    assert np.exp(np_gmrae / num_examples) == pytest.approx(m.compute())
 
 
 def test_integration_geometric_mean_relative_absolute_error_with_output_transform():
@@ -77,9 +83,24 @@ def test_integration_geometric_mean_relative_absolute_error_with_output_transfor
     np_y_pred = np.random.rand(size, 1)
     np_y = np.random.rand(size, 1)
     np.random.shuffle(np_y)
-    np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
 
-    batch_size = 15
+    np_y_sum = 0
+    num_examples = 0
+    num_sum_of_errors = 0
+    np_gmrae = 0
+
+    n_iters = 15
+    batch_size = size // n_iters
+    for i in range(n_iters + 1):
+        idx = i * batch_size
+        np_y_i = np_y[idx: idx + batch_size]
+        np_y_pred_i = np_y_pred[idx: idx + batch_size]
+
+        np_y_sum += np_y_i.sum()
+        num_examples += np_y_i.shape[0]
+        np_mean = np_y_sum / num_examples
+
+        np_gmrae += np.log(np.abs(np_y_i - np_y_pred_i) / np.abs(np_y_i - np_mean)).sum()
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
@@ -95,4 +116,4 @@ def test_integration_geometric_mean_relative_absolute_error_with_output_transfor
     data = list(range(size // batch_size))
     gmrae = engine.run(data, max_epochs=1).metrics['geometric_mean_relative_absolute_error']
 
-    assert np_gmrae == pytest.approx(gmrae)
+    assert np.exp(np_gmrae / num_examples) == pytest.approx(m.compute())
