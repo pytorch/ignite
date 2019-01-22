@@ -32,7 +32,9 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
         self._sum_y += y.sum()
         self._num_examples += y.shape[0]
         y_mean = self._sum_y / self._num_examples
-        self._sum_of_errors += torch.log(torch.abs(y.view_as(y_pred) - y_pred) / torch.abs(y.view_as(y_pred) - y_mean)).sum()
+        numerator = torch.abs(y.view_as(y_pred) - y_pred)
+        denominator = torch.abs(y.view_as(y_pred) - y_mean)
+        self._sum_of_errors += torch.log(numerator / denominator).sum()
 
     def compute(self):
         if self._num_examples == 0:
