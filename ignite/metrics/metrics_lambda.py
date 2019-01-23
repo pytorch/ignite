@@ -53,12 +53,18 @@ class MetricsLambda(Metric):
         materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
         return self.function(*materialized)
 
-    def attach(self, engine, name):
-        # recursively attach all its dependencies
+    def _internal_attach(self, engine):
         for index, metric in enumerate(self.args):
-            if isinstance(metric, Metric):
+            if isinstance(metric, MetricsLambda):
+                metric._internal_attach(engine)
+            elif isinstance(metric, Metric):
                 if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
                     engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
                 if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
                     engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
-        super(MetricsLambda, self).attach(engine, name)
+
+    def attach(self, engine, name):
+        # recursively attach all its dependencies
+        self._internal_attach(engine)
+        # attach only handler on EPOCH_COMPLETED
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
