@@ -1,11 +1,11 @@
 import torch
 
 from ignite.engine.engine import Engine, State, Events
-from ignite._utils import convert_tensor
+from ignite.utils import convert_tensor
 
 
 def _prepare_batch(batch, device=None, non_blocking=False):
-    """Prepare batch for training: pass to a device with options
+    """Prepare batch for training: pass to a device with options.
 
     """
     x, y = batch
@@ -17,21 +17,23 @@ def create_supervised_trainer(model, optimizer, loss_fn,
                               device=None, non_blocking=False,
                               prepare_batch=_prepare_batch):
     """
-    Factory function for creating a trainer for supervised models
+    Factory function for creating a trainer for supervised models.
 
     Args:
-        model (`torch.nn.Module`): the model to train
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
-        loss_fn (torch.nn loss function): the loss function to use
+        model (`torch.nn.Module`): the model to train.
+        optimizer (`torch.optim.Optimizer`): the optimizer to use.
+        loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (Callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
 
+    Note: `engine.state.output` for this engine is the loss of the processed batch.
+
     Returns:
-        Engine: a trainer engine with supervised update function
+        Engine: a trainer engine with supervised update function.
     """
     if device:
         model.to(device)
@@ -53,20 +55,22 @@ def create_supervised_evaluator(model, metrics={},
                                 device=None, non_blocking=False,
                                 prepare_batch=_prepare_batch):
     """
-    Factory function for creating an evaluator for supervised models
+    Factory function for creating an evaluator for supervised models.
 
     Args:
-        model (`torch.nn.Module`): the model to train
-        metrics (dict of str - :class:`ignite.metrics.Metric`): a map of metric names to Metrics
+        model (`torch.nn.Module`): the model to train.
+        metrics (dict of str - :class:`~ignite.metrics.Metric`): a map of metric names to Metrics.
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (Callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
 
+    Note: `engine.state.output` for this engine is a tuple of `(batch_pred, batch_y)`.
+
     Returns:
-        Engine: an evaluator engine with supervised inference function
+        Engine: an evaluator engine with supervised inference function.
     """
     if device:
         model.to(device)

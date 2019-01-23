@@ -1,5 +1,7 @@
 from __future__ import division
+
 import torch
+
 from ignite.exceptions import NotComputableError
 from ignite.contrib.metrics.regression._base import _BaseRegression
 
@@ -8,7 +10,7 @@ class GeometricMeanAbsoluteError(_BaseRegression):
     r"""
     Calculates the Geometric Mean Absolute Error.
 
-    :math:`\text{GMAE} = exp(\frac{1}{n}\sum_{j=1}^n\ln(|A_j - P_j|)`)
+    :math:`\text{GMAE} = \exp(\frac{1}{n}\sum_{j=1}^n\ln(|A_j - P_j|)`)
 
     where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
@@ -32,6 +34,6 @@ class GeometricMeanAbsoluteError(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('GeometricMeanAbsoluteError must have at'
+            raise NotComputableError('GeometricMeanAbsoluteError must have at '
                                      'least one example before it can be computed.')
         return torch.exp(self._sum_of_errors / self._num_examples).item()

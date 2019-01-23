@@ -32,5 +32,5 @@ class MaximumAbsoluteError(_BaseRegression):
 
     def compute(self):
         if self._max_of_absolute_errors < 0:
-            raise NotComputableError('MaximumAbsoluteError must have at least one example before it can be computed')
+            raise NotComputableError('MaximumAbsoluteError must have at least one example before it can be computed.')
         return self._max_of_absolute_errors

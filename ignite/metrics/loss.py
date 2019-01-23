@@ -13,7 +13,7 @@ class Loss(Metric):
             tensor, optionally other arguments, and returns the average loss
             over all observations in the batch.
         output_transform (callable): a callable that is used to transform the
-            :class:`ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric.
             This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
@@ -44,7 +44,7 @@ class Loss(Metric):
         average_loss = self._loss_fn(y_pred, y, **kwargs)
 
         if len(average_loss.shape) != 0:
-            raise ValueError('loss_fn did not return the average loss')
+            raise ValueError('loss_fn did not return the average loss.')
 
         N = self._batch_size(y)
         self._sum += average_loss.item() * N
@@ -53,5 +53,5 @@ class Loss(Metric):
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError(
-                'Loss must have at least one example before it can be computed')
+                'Loss must have at least one example before it can be computed.')
         return self._sum / self._num_examples

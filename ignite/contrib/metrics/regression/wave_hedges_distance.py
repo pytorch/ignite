@@ -1,5 +1,7 @@
 from __future__ import division
+
 import torch
+
 from ignite.contrib.metrics.regression._base import _BaseRegression
 
 
@@ -7,7 +9,7 @@ class WaveHedgesDistance(_BaseRegression):
     r"""
     Calculates the Wave Hedges Distance.
 
-    :math:`\text{WHD} = \sum _j^n\frac{|A_j - P_j|}{max(A_j, P_j)}`
+    :math:`\text{WHD} = \sum_{j=1}^n\frac{|A_j - P_j|}{max(A_j, P_j)}`,
     where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
     More details can be found in `Botchkarev 2018`__.

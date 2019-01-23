@@ -10,7 +10,7 @@ class FractionalBias(_BaseRegression):
     r"""
     Calculates the Fractional Bias:
 
-    :math:`\text{FB} = \frac{1}{n}\sum_{j=1}^n\frac{2 * (A_j - P_j)}{A_j + P_j}`,
+    :math:`\text{FB} = \frac{1}{n}\sum_{j=1}^n\frac{2 (A_j - P_j)}{A_j + P_j}`,
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
@@ -34,5 +34,5 @@ class FractionalBias(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('FractionalBias must have at least one example before it can be computed')
+            raise NotComputableError('FractionalBias must have at least one example before it can be computed.')
         return self._sum_of_errors / self._num_examples

@@ -11,7 +11,7 @@ IS_PYTHON2 = sys.version_info[0] < 3
 
 
 class Events(Enum):
-    """Events that are fired by the :class:`ignite.engine.Engine` during execution"""
+    """Events that are fired by the :class:`~ignite.engine.Engine` during execution."""
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"
@@ -22,7 +22,7 @@ class Events(Enum):
 
 
 class State(object):
-    """An object that is used to pass internal and user-defined state between event handlers"""
+    """An object that is used to pass internal and user-defined state between event handlers."""
     def __init__(self, **kwargs):
         self.iteration = 0
         self.output = None
@@ -35,8 +35,8 @@ class Engine(object):
     """Runs a given process_function over each batch of a dataset, emitting events as it goes.
 
     Args:
-        process_function (Callable): A function receiving a handle to the engine and the current batch
-            in each iteration, and returns data to be stored in the engine's state
+        process_function (callable): A function receiving a handle to the engine and the current batch
+            in each iteration, and returns data to be stored in the engine's state.
 
     Example usage:
 
@@ -70,7 +70,7 @@ class Engine(object):
         self.register_events(*Events)
 
         if self._process_function is None:
-            raise ValueError("Engine must be given a processing function in order to run")
+            raise ValueError("Engine must be given a processing function in order to run.")
 
         self._check_signature(process_function, 'process_function', None)
 
@@ -78,10 +78,10 @@ class Engine(object):
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
-        This opens the door to make the `Engine.run` loop even more
+        This opens the door to make the :meth:`~ignite.engine.Engine.run` loop even more
         configurable.
 
-        By default, the events from :class:`ignite.engines.Events` are registerd.
+        By default, the events from :class:`~ignite.engine.Events` are registerd.
 
         Args:
             *event_names: An object (ideally a string or int) to define the
@@ -105,20 +105,21 @@ class Engine(object):
             self._allowed_events.append(name)
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
-        """Add an event handler to be executed when the specified event is fired
+        """Add an event handler to be executed when the specified event is fired.
 
         Args:
-            event_name: An event to attach the handler to. Valid events are from
-                :class:`ignite.engine.Events` or any `event_name` added by :meth:`register_events`.
-            handler (Callable): the callable event handler that should be invoked
-            *args: optional args to be passed to `handler`
-            **kwargs: optional keyword args to be passed to `handler`
+            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            handler (callable): the callable event handler that should be invoked
+            *args: optional args to be passed to `handler`.
+            **kwargs: optional keyword args to be passed to `handler`.
 
         Notes:
-              The handler function's first argument will be `self`, the `Engine` object it was bound to.
+              The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
+              was bound to.
 
-              Note that other arguments can be passed to the handler in addition to the `*args` and `**kwargs`
-              passed here, for example during `Events.EXCEPTION_RAISED`.
+              Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
+              passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
         Example usage:
 
@@ -133,20 +134,20 @@ class Engine(object):
 
         """
         if event_name not in self._allowed_events:
-            self._logger.error("attempt to add event handler to an invalid event %s ", event_name)
-            raise ValueError("Event {} is not a valid event for this Engine".format(event_name))
+            self._logger.error("attempt to add event handler to an invalid event %s.", event_name)
+            raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
         self._check_signature(handler, 'handler', *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
-        self._logger.debug("added handler for event %s ", event_name)
+        self._logger.debug("added handler for event %s.", event_name)
 
     def has_event_handler(self, handler, event_name=None):
         """Check if the specified event has the specified handler.
 
         Args:
-            handler (Callable): the callable event handler.
+            handler (callable): the callable event handler.
             event_name: The event the handler attached to. Set this
                 to ``None`` to search all events.
         """
@@ -185,17 +186,17 @@ class Engine(object):
             passed_params = [self] + list(args) + list(kwargs)
             raise ValueError("Error adding {} '{}': "
                              "takes parameters {} but will be called with {} "
-                             "({})".format(
+                             "({}).".format(
                                  fn, fn_description, fn_params, passed_params, exception_msg))
 
     def on(self, event_name, *args, **kwargs):
-        """Decorator shortcut for add_event_handler
+        """Decorator shortcut for add_event_handler.
 
         Args:
-            event_name: An event to attach the handler to. Valid events are from
-                :class:`ignite.engine.Events` or any `event_name` added by :meth:`register_events`.
-            *args: optional args to be passed to `handler`
-            **kwargs: optional keyword args to be passed to `handler`
+            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events` or
+                any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            *args: optional args to be passed to `handler`.
+            **kwargs: optional keyword args to be passed to `handler`.
 
         """
         def decorator(f):
@@ -209,12 +210,12 @@ class Engine(object):
         This method executes all handlers associated with the event
         `event_name`. Optional positional and keyword arguments can be used to
         pass arguments to **all** handlers added with this event. These
-        aguments updates arguments passed using `add_event_handler`.
+        aguments updates arguments passed using :meth:`~ignite.engine.Engine.add_event_handler`.
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-                events are from :class:`ignite.engine.Events` or any `event_name` added by
-                :meth:`register_events`.
+                events are from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
             *event_args: optional args to be passed to all handlers.
             **event_kwargs: optional keyword args to be passed to all handlers.
 
@@ -229,11 +230,11 @@ class Engine(object):
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
-        `event_name`. This is the method used in `Engine.run` to call the
-        core events found in `ignite.engines.Events`.
+        `event_name`. This is the method used in :meth:`~ignite.engine.Engine.run` to call the
+        core events found in :class:`~ignite.engine.Events`.
 
-        Custom events can be fired if they have been registerd before with
-        `Engine.register_events`. The engine `state` attribute should be used
+        Custom events can be fired if they have been registered before with
+        :meth:`~ignite.engine.Engine.register_events`. The engine `state` attribute should be used
         to exchange "dynamic" data among `process_function` and handlers.
 
         This method is called automatically for core events. If no custom
@@ -242,23 +243,23 @@ class Engine(object):
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-                events are from :class:`ignite.engine.Events` or any `event_name` added by
-                :meth:`register_events`.
+                events are from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
 
         """
         return self._fire_event(event_name)
 
     def terminate(self):
-        """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration
+        """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration.
         """
-        self._logger.info("Terminate signaled. Engine will stop after current iteration is finished")
+        self._logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self):
-        """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration
+        """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
         """
         self._logger.info("Terminate current epoch is signaled. "
-                          "Current epoch iteration will stop after current iteration is finished")
+                          "Current epoch iteration will stop after current iteration is finished.")
         self.should_terminate_single_epoch = True
 
     def _run_once_on_dataset(self):
@@ -276,7 +277,7 @@ class Engine(object):
                     break
 
         except BaseException as e:
-            self._logger.error("Current run is terminating due to exception: %s", str(e))
+            self._logger.error("Current run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         time_taken = time.time() - start_time
@@ -294,17 +295,17 @@ class Engine(object):
         """Runs the process_function over the passed data.
 
         Args:
-            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`)
-            max_epochs (int, optional): max epochs to run for (default: 1)
+            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
+            max_epochs (int, optional): max epochs to run for (default: 1).
 
         Returns:
-            State: output state
+            State: output state.
         """
 
         self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
 
         try:
-            self._logger.info("Engine run starting with max_epochs={}".format(max_epochs))
+            self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
             start_time = time.time()
             self._fire_event(Events.STARTED)
             while self.state.epoch < max_epochs and not self.should_terminate:
@@ -322,7 +323,7 @@ class Engine(object):
             self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
-            self._logger.error("Engine run is terminating due to exception: %s", str(e))
+            self._logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         return self.state

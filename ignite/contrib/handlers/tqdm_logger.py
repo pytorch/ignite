@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 try:
     from tqdm import tqdm
 except ImportError:
@@ -6,7 +7,7 @@ except ImportError:
 from ignite.engine import Events
 
 
-class ProgressBar:
+class ProgressBar(object):
     """
     TQDM progress bar handler to log training progress and computed metrics.
 
@@ -16,14 +17,12 @@ class ProgressBar:
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
             Set to ``None`` to use ``tqdm`` default bar formatting: '{l_bar}{bar}{r_bar}', where
             l_bar='{desc}: {percentage:3.0f}%|' and
-            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '
-              '{rate_fmt}{postfix}]'
-            Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,
-              percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,
-              rate_inv, rate_inv_fmt, elapsed, remaining, desc, postfix.
-            Note that a trailing ": " is automatically removed after {desc}
-            if the latter is empty.
-        **tqdm_kwargs: kwargs passed to tqdm progress bar
+            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'. For more details on the
+            formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
+        **tqdm_kwargs: kwargs passed to tqdm progress bar.
+            By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
+            number of epochs. If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
+            "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
 
     Examples:
 
@@ -36,7 +35,11 @@ class ProgressBar:
             pbar = ProgressBar()
             pbar.attach(trainer)
 
-        Attach metrics that already have been computed at `ITERATION_COMPLETED` (such as `RunningAverage`)
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
+
+        Attach metrics that already have been computed at :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
+        (such as :class:`~ignite.metrics.RunningAverage`)
 
         .. code-block:: python
 
@@ -47,6 +50,9 @@ class ProgressBar:
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
 
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
+
         Directly attach the engine's output
 
         .. code-block:: python
@@ -55,6 +61,9 @@ class ProgressBar:
 
             pbar = ProgressBar()
             pbar.attach(trainer, output_transform=lambda x: {'loss': x})
+
+            # Progress bar will looks like
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
 
     Note:
         When adding attaching the progress bar to an engine, it is recommend that you replace
@@ -86,8 +95,10 @@ class ProgressBar:
         if self.pbar is None:
             self._reset(engine)
 
-        if 'desc' not in self.tqdm_kwargs:
-            self.pbar.set_description('Epoch [{}/{}]'.format(engine.state.epoch, engine.state.max_epochs))
+        desc = self.tqdm_kwargs.get("desc", "Epoch")
+        if engine.state.max_epochs > 1:
+            desc += " [{}/{}]".format(engine.state.epoch, engine.state.max_epochs)
+        self.pbar.set_description(desc)
 
         metrics = {}
         if metric_names is not None:
@@ -113,29 +124,29 @@ class ProgressBar:
     @staticmethod
     def log_message(message):
         """
-        Logs a message, preserving the progress bar correct output format
+        Logs a message, preserving the progress bar correct output format.
 
         Args:
-            message (str): string you wish to log
+            message (str): string you wish to log.
         """
         tqdm.write(message)
 
     def attach(self, engine, metric_names=None, output_transform=None):
         """
-        Attaches the progress bar to an engine object
+        Attaches the progress bar to an engine object.
 
         Args:
-            engine (Engine): engine object
+            engine (Engine): engine object.
             metric_names (list, optional): list of the metrics names to log as the bar progresses
-            output_transform (Callable, optional): a function to select what you want to print from the engine's
+            output_transform (callable, optional): a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
         """
         if metric_names is not None and not isinstance(metric_names, list):
-            raise TypeError("metric_names should be a list, got {} instead".format(type(metric_names)))
+            raise TypeError("metric_names should be a list, got {} instead.".format(type(metric_names)))
 
         if output_transform is not None and not callable(output_transform):
-            raise TypeError("output_transform should be a function, got {} instead"
+            raise TypeError("output_transform should be a function, got {} instead."
                             .format(type(output_transform)))
 
         engine.add_event_handler(Events.ITERATION_COMPLETED, self._update, metric_names, output_transform)

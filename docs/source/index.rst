@@ -59,6 +59,7 @@ You can clone the source from `github <https://github.com/pytorch/ignite>`_ and 
    handlers
    metrics
    exceptions
+   utils
 
 .. toctree::
    :maxdepth: 2
