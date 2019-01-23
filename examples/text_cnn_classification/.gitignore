@@ -1,3 +1,7 @@
+# torchtext data
+.data/
+.vector_cache/
+
 # Byte-compiled / optimized / DLL files
 *.pyc
 __pycache__/
