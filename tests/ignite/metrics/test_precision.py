@@ -643,3 +643,18 @@ def test_incorrect_type():
 
     _test(average=True)
     _test(average=False)
+
+
+def test_incorrect_y_classes():
+
+    def _test(average):
+        pr = Precision(average=average)
+
+        y_pred = torch.randint(0, 2, size=(10, 4)).float()
+        y = torch.randint(0, 5, size=(10, )).long()
+
+        with pytest.raises(ValueError):
+            pr.update((y_pred, y))
+
+    _test(average=True)
+    _test(average=False)
