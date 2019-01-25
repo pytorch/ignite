@@ -1,3 +1,5 @@
+import torch
+
 from ignite.metrics.metric import Metric
 from ignite.engine import Events
 
@@ -68,3 +70,31 @@ class MetricsLambda(Metric):
         self._internal_attach(engine)
         # attach only handler on EPOCH_COMPLETED
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
+
+    def mean(self):
+        """Helper operation to average the output metric
+
+        Example:
+
+        .. code-block:: python
+
+            precision = Precision(average=False)
+            recall = Recall(average=False)
+            f1 = (precision * recall * 2 / (precision + recall + 1e-20)).mean()
+
+        """
+        return MetricsLambda(lambda t: torch.mean(t).item(), self)
+
+    def sum(self):
+        """Helper operation to sum the output metric
+
+        Example:
+
+        .. code-block:: python
+
+            precision = Precision(average=False)
+            recall = Recall(average=False)
+            custom_metric = (precision + recall).sum()
+
+        """
+        return MetricsLambda(lambda t: torch.sum(t).item(), self)
