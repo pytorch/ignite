@@ -38,8 +38,9 @@ class Recall(_BasePrecisionRecall):
 
     .. warning::
 
-        If average is False, current implementation stores all input data (output and target) in as tensors before
-        computing a metric. This can potentially lead to a memory error if the input data is larger than available RAM.
+        In multilabel cases, if average is False, current implementation stores all input data (output and target) in
+        as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
+        than available RAM.
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
