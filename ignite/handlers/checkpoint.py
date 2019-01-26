@@ -81,7 +81,7 @@ class ModelCheckpoint(object):
                  n_saved=1,
                  atomic=True, require_empty=True,
                  create_dir=True,
-                 save_as_state_dict=False):
+                 save_as_state_dict=True):
 
         self._dirname = os.path.expanduser(dirname)
         self._fname_prefix = filename_prefix
