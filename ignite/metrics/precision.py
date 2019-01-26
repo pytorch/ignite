@@ -51,7 +51,7 @@ class Precision(_BasePrecisionRecall):
 
         binary_accuracy = Precision(output_transform=thresholded_output_transform)
 
-    In multilabel cases, average parameter should be True. If the user is trying to calculate F1 metric, for
+    In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
     example, average parameter should be False. This can be done as shown below:
 
     .. code-block:: python
