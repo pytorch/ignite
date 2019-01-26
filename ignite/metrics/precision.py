@@ -51,13 +51,8 @@ class Precision(_BasePrecisionRecall):
 
         binary_accuracy = Precision(output_transform=thresholded_output_transform)
 
-    In multilabel cases, average parameter should be True. If the user is trying to metrics to calculate F1 for
-    example, average paramter should be False. This can be done as shown below:
-
-    .. warning::
-
-        If average is False, current implementation stores all input data (output and target) in as tensors before
-        computing a metric. This can potentially lead to a memory error if the input data is larger than available RAM.
+    In multilabel cases, average parameter should be True. If the user is trying to calculate F1 metric, for
+    example, average parameter should be False. This can be done as shown below:
 
     .. code-block:: python
 
@@ -65,6 +60,12 @@ class Precision(_BasePrecisionRecall):
         recall = Recall(average=False, is_multilabel=True)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
+
+    .. warning::
+
+        In multilabel cases, if average is False, current implementation stores all input data (output and target) in
+        as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
+        than available RAM.
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
