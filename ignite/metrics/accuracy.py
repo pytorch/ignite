@@ -39,7 +39,7 @@ class _BaseClassification(Metric):
             raise ValueError("y and y_pred must have compatible shapes.")
 
         if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
-                raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
+            raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
 
         return y_pred, y
 
