@@ -518,6 +518,14 @@ def test_multilabel_input_NC():
         _test(average=True)
         _test(average=False)
 
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4))
+    y = torch.randint(0, 2, size=(10, 4)).type(torch.LongTensor)
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
+
 
 def test_multilabel_input_NCL():
 
@@ -571,6 +579,14 @@ def test_multilabel_input_NCL():
         _test(average=True)
         _test(average=False)
 
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20))
+    y = torch.randint(0, 2, size=(10, 4, 20)).type(torch.LongTensor)
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
+
 
 def test_multilabel_input_NCHW():
 
@@ -623,6 +639,14 @@ def test_multilabel_input_NCHW():
     for _ in range(5):
         _test(average=True)
         _test(average=False)
+
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
 
 
 def test_incorrect_type():
