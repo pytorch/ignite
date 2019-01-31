@@ -105,6 +105,7 @@ iteration and other helpful information. Each :class:`~ignite.engine.Engine` con
 which includes the following:
 
 - **engine.state.epoch**: Number of epochs the engine has completed. Initializated as 0. 
+- **engine.state.max_epochs**: Number of epochs to run for. Initializated as 1. 
 - **engine.state.iteration**: Number of iterations the engine has completed. Initialized as 0.
 - **engine.state.output**: The output of the `process_function` defined for the :class:`~ignite.engine.Engine`. See below.
 
@@ -156,7 +157,7 @@ In the code below, `engine.state.output` will be a list of loss, y_pred, y for t
         print ('Epoch {epoch}: train_loss = {loss}'.format(epoch=epoch, loss=loss))
 
     accuracy = Accuracy(output_transform=lambda x: [x[1], x[2]])
-    accuracy.attach('acc', accuracy)
+    accuracy.attach(trainer, 'acc')
     trainer.run(data, max_epochs=10)
 
 Similar to above, but this time the output of the `process_function` is a dictionary of loss, y_pred, y for the processed
@@ -184,7 +185,7 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
         print ('Epoch {epoch}: train_loss = {loss}'.format(epoch=epoch, loss=loss))
 
     accuracy = Accuracy(output_transform=lambda x: [x['y_pred'], x['y']])
-    accuracy.attach('acc', accuracy)
+    accuracy.attach(trainer, 'acc')
     trainer.run(data, max_epochs=10)
 
 .. Note ::
