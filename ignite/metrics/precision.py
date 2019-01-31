@@ -79,6 +79,9 @@ class Precision(_BasePrecisionRecall):
             y = y.view(-1)
         elif self._type == "multiclass":
             num_classes = y_pred.size(1)
+            if y.max() + 1 > num_classes:
+                raise ValueError("y_pred contains less classes than y. Number of predicted classes is {}"
+                                 " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1))
             y = to_onehot(y.view(-1), num_classes=num_classes)
             indices = torch.max(y_pred, dim=1)[1].view(-1)
             y_pred = to_onehot(indices, num_classes=num_classes)
