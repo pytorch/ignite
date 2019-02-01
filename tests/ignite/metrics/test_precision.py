@@ -17,6 +17,10 @@ def test_no_update():
     with pytest.raises(NotComputableError):
         precision.compute()
 
+    precision = Precision(is_multilabel=True, average=True)
+    with pytest.raises(NotComputableError):
+        precision.compute()
+
 
 def test_binary_wrong_inputs():
     pr = Precision()

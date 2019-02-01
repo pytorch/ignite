@@ -17,6 +17,10 @@ def test_no_update():
     with pytest.raises(NotComputableError):
         recall.compute()
 
+    recall = Recall(is_multilabel=True, average=True)
+    with pytest.raises(NotComputableError):
+        recall.compute()
+
 
 def test_binary_wrong_inputs():
     re = Recall()
