@@ -675,7 +675,7 @@ def test_incorrect_y_classes():
         re = Recall(average=average)
 
         y_pred = torch.randint(0, 2, size=(10, 4)).float()
-        y = torch.randint(0, 5, size=(10, )).long()
+        y = torch.randint(4, 5, size=(10,)).long()
 
         with pytest.raises(ValueError):
             re.update((y_pred, y))
