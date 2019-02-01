@@ -17,6 +17,10 @@ def test_no_update():
     with pytest.raises(NotComputableError):
         precision.compute()
 
+    precision = Precision(is_multilabel=True, average=True)
+    with pytest.raises(NotComputableError):
+        precision.compute()
+
 
 def test_binary_wrong_inputs():
     pr = Precision()
@@ -518,6 +522,14 @@ def test_multilabel_input_NC():
         _test(average=True)
         _test(average=False)
 
+    pr1 = Precision(is_multilabel=True, average=True)
+    pr2 = Precision(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    pr1.update((y_pred, y))
+    pr2.update((y_pred, y))
+    assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
+
 
 def test_multilabel_input_NCL():
 
@@ -570,6 +582,14 @@ def test_multilabel_input_NCL():
     for _ in range(5):
         _test(average=True)
         _test(average=False)
+
+    pr1 = Precision(is_multilabel=True, average=True)
+    pr2 = Precision(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    pr1.update((y_pred, y))
+    pr2.update((y_pred, y))
+    assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
 
 
 def test_multilabel_input_NCHW():
@@ -644,6 +664,14 @@ def test_incorrect_type():
     _test(average=True)
     _test(average=False)
 
+    pr1 = Precision(is_multilabel=True, average=True)
+    pr2 = Precision(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    pr1.update((y_pred, y))
+    pr2.update((y_pred, y))
+    assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
+
 
 def test_incorrect_y_classes():
 
@@ -651,7 +679,7 @@ def test_incorrect_y_classes():
         pr = Precision(average=average)
 
         y_pred = torch.randint(0, 2, size=(10, 4)).float()
-        y = torch.randint(0, 5, size=(10, )).long()
+        y = torch.randint(4, 5, size=(10,)).long()
 
         with pytest.raises(ValueError):
             pr.update((y_pred, y))
