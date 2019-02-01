@@ -8,18 +8,18 @@ import torch
 
 class ListGatherMetric(Metric):
 
-        def __init__(self, index):
-            super(ListGatherMetric, self).__init__()
-            self.index = index
+    def __init__(self, index):
+        super(ListGatherMetric, self).__init__()
+        self.index = index
 
-        def reset(self):
-            self.list_ = None
+    def reset(self):
+        self.list_ = None
 
-        def update(self, output):
-            self.list_ = output
+    def update(self, output):
+        self.list_ = output
 
-        def compute(self):
-            return self.list_[self.index]
+    def compute(self):
+        return self.list_[self.index]
 
 
 def test_metrics_lambda():

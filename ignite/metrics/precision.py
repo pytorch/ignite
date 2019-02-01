@@ -15,11 +15,11 @@ class _BasePrecisionRecall(_BaseClassification):
         self.eps = 1e-20
 
     def reset(self):
-        self._true_positives = torch.DoubleTensor(0) if self._is_multilabel else 0
-        self._positives = torch.DoubleTensor(0) if self._is_multilabel else 0
+        self._true_positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
+        self._positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
 
     def compute(self):
-        if not isinstance(self._positives, torch.Tensor):
+        if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed.".format(self.__class__.__name__))
 
@@ -34,28 +34,22 @@ class _BasePrecisionRecall(_BaseClassification):
 class Precision(_BasePrecisionRecall):
     """
     Calculates precision for binary and multiclass data.
-
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
-
     In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
     predictions can be done as below:
-
     .. code-block:: python
-
         def thresholded_output_transform(output):
             y_pred, y = output
             y_pred = torch.round(y_pred)
             return y_pred, y
-
         binary_accuracy = Precision(output_transform=thresholded_output_transform)
 
     In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
     example, average parameter should be False. This can be done as shown below:
 
     .. code-block:: python
-
         precision = Precision(average=False, is_multilabel=True)
         recall = Recall(average=False, is_multilabel=True)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
@@ -92,7 +86,7 @@ class Precision(_BasePrecisionRecall):
         elif self._type == "multiclass":
             num_classes = y_pred.size(1)
             if y.max() + 1 > num_classes:
-                raise ValueError("y_pred contains less classes than y. Number of classes in output is {}"
+                raise ValueError("y_pred contains less classes than y. Number of predicted classes is {}"
                                  " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1))
             y = to_onehot(y.view(-1), num_classes=num_classes)
             indices = torch.max(y_pred, dim=1)[1].view(-1)
@@ -116,8 +110,12 @@ class Precision(_BasePrecisionRecall):
         true_positives = true_positives.type(torch.DoubleTensor)
 
         if self._type == "multilabel":
-            self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)
-            self._positives = torch.cat([self._positives, all_positives], dim=0)
+            if not self._average:
+                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)
+                self._positives = torch.cat([self._positives, all_positives], dim=0)
+            else:
+                self._true_positives += torch.sum(true_positives / (all_positives + self.eps))
+                self._positives += len(all_positives)
         else:
             self._true_positives += true_positives
             self._positives += all_positives
