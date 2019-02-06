@@ -133,7 +133,7 @@ jobs:
         # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
         - conda install -y conda-build conda-verify anaconda-client
         - conda config --set anaconda_upload no
-        - conda build --quiet --no-test --output-folder conda_build conda.recipe
+        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe
         # Convert to other platforms: OSX, WIN
         - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
@@ -189,7 +189,7 @@ jobs:
         # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
         - conda install -y conda-build conda-verify anaconda-client
         - conda config --set anaconda_upload no
-        - conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
+        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
         # Convert to other platforms: OSX, WIN
         - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
