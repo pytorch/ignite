@@ -33,9 +33,10 @@ class MetricsLambda(Metric):
         F3 = MetricsLambda(Fbeta, recall, precision, 3)
         F4 = MetricsLambda(Fbeta, recall, precision, 4)
     """
-    def __init__(self, f, *args):
+    def __init__(self, f, *args, **kwargs):
         self.function = f
         self.args = args
+        self.kwargs = kwargs
         super(MetricsLambda, self).__init__()
 
     def reset(self):
@@ -51,7 +52,8 @@ class MetricsLambda(Metric):
 
     def compute(self):
         materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
-        return self.function(*materialized)
+        materialized_kwargs = {k: (v.compute() if isinstance(v, Metric) else v) for k, v in self.kwargs.items()}
+        return self.function(*materialized, **materialized_kwargs)
 
     def _internal_attach(self, engine):
         for index, metric in enumerate(self.args):

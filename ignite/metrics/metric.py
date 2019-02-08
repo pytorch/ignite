@@ -129,3 +129,13 @@ class Metric(with_metaclass(ABCMeta, object)):
     def __floordiv__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x // y, self, other)
+
+    def __getattr__(self, attr):
+        from ignite.metrics import MetricsLambda
+
+        def fn(x, *args, **kwargs):
+            return getattr(x, attr)(*args, **kwargs)
+
+        def wrapper(*args, **kwargs):
+            return MetricsLambda(fn, self, *args, **kwargs)
+        return wrapper
