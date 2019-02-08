@@ -41,16 +41,16 @@ def test_helper_ops():
 
     precision_1 = Precision(average=False)
     precision_2 = Precision(average=False)
-    mean_summed_precision1 = F.mean(precision_1 + precision_2).item()
-    mean_summed_precision2 = (precision_1 + precision_2).mean().item()
+    norm_summed_precision1 = F.norm(precision_1 + precision_2, p=10).item()
+    norm_summed_precision2 = (precision_1 + precision_2).norm(p=10).item()
 
-    def compute_true_mean_summed_precision(y_pred, y):
+    def compute_true_norm_summed_precision(y_pred, y):
         p1 = precision_score(y, y_pred, average=None)
         p2 = precision_score(y, y_pred, average=None)
-        return np.mean(p1 + p2)
+        return np.linalg.norm(p1 + p2, ord=10)
 
-    _test(mean_summed_precision1, "mean summed precision", compute_true_value_fn=compute_true_mean_summed_precision)
-    _test(mean_summed_precision2, "mean summed precision", compute_true_value_fn=compute_true_mean_summed_precision)
+    _test(norm_summed_precision1, "mean summed precision", compute_true_value_fn=compute_true_norm_summed_precision)
+    _test(norm_summed_precision2, "mean summed precision", compute_true_value_fn=compute_true_norm_summed_precision)
 
     precision = Precision(average=False)
     recall = Recall(average=False)
