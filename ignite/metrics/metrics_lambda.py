@@ -1,5 +1,6 @@
 from ignite.metrics.metric import Metric
 from ignite.engine import Events
+import itertools
 
 
 class MetricsLambda(Metric):
@@ -40,7 +41,7 @@ class MetricsLambda(Metric):
         super(MetricsLambda, self).__init__()
 
     def reset(self):
-        for i in self.args:
+        for i in itertools.chain(self.args, self.kwargs.values()):
             if isinstance(i, Metric):
                 i.reset()
 
@@ -56,7 +57,7 @@ class MetricsLambda(Metric):
         return self.function(*materialized, **materialized_kwargs)
 
     def _internal_attach(self, engine):
-        for index, metric in enumerate(self.args):
+        for index, metric in enumerate(itertools.chain(self.args, self.kwargs.values())):
             if isinstance(metric, MetricsLambda):
                 metric._internal_attach(engine)
             elif isinstance(metric, Metric):
