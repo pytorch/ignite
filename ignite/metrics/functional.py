@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite._pep562 import Pep562
 import sys
+import functools
 
 
 PY37 = sys.version_info >= (3, 7)
@@ -16,6 +17,7 @@ def __getattr__(attr):
     else:
         raise AttributeError('Unknown PyTorch operators')
 
+    @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         return MetricsLambda(fn, *args, **kwargs)
     return wrapper
