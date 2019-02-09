@@ -1,6 +1,11 @@
 import torch
 import torch.nn.functional as F
 from ignite.metrics.metrics_lambda import MetricsLambda
+from ignite._pep562 import Pep562
+import sys
+
+
+PY37 = sys.version_info >= (3, 7)
 
 
 def __getattr__(attr):
@@ -14,3 +19,7 @@ def __getattr__(attr):
     def wrapper(*args, **kwargs):
         return MetricsLambda(fn, *args, **kwargs)
     return wrapper
+
+
+if not PY37:
+    Pep562(__name__)
