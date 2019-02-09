@@ -258,7 +258,7 @@ def test_recursive_attachment():
         assert set(state.metrics.keys()) == set([metric_name, ])
         np_y_pred = y_pred.numpy().ravel()
         np_y = y.numpy().ravel()
-        assert state.metrics[metric_name].item() == approx(compute_true_value_fn(np_y_pred, np_y))
+        assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))
 
     precision_1 = Precision()
     precision_2 = Precision()
