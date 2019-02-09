@@ -41,8 +41,8 @@ def test_helper_ops():
 
     precision_1 = Precision(average=False)
     precision_2 = Precision(average=False)
-    norm_summed_precision1 = F.norm(precision_1 + precision_2, p=10).item()
-    norm_summed_precision2 = (precision_1 + precision_2).norm(p=10).item()
+    norm_summed_precision1 = F.norm(precision_1 + precision_2, p=10)
+    norm_summed_precision2 = (precision_1 + precision_2).norm(p=10)
 
     def compute_true_norm_summed_precision(y_pred, y):
         p1 = precision_score(y, y_pred, average=None)
@@ -54,8 +54,8 @@ def test_helper_ops():
 
     precision = Precision(average=False)
     recall = Recall(average=False)
-    sum_precision_recall1 = F.sum(precision + recall).item()
-    sum_precision_recall2 = (precision + recall).sum().item()
+    sum_precision_recall1 = F.sum(precision + recall)
+    sum_precision_recall2 = (precision + recall).sum()
 
     def compute_sum_precision_recall(y_pred, y):
         p = precision_score(y, y_pred, average=None)
@@ -67,8 +67,8 @@ def test_helper_ops():
 
     precision = Precision(average=False)
     recall = Recall(average=False)
-    f1_1 = (precision * recall * 2 / (precision + recall + 1e-20)).mean().item()
-    f1_2 = F.mean(precision * recall * 2 / (precision + recall + 1e-20)).item()
+    f1_1 = (precision * recall * 2 / (precision + recall + 1e-20)).mean()
+    f1_2 = F.mean(precision * recall * 2 / (precision + recall + 1e-20))
 
     def compute_f1(y_pred, y):
         f1 = f1_score(y, y_pred, average='macro')

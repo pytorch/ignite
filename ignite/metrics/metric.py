@@ -65,7 +65,10 @@ class Metric(with_metaclass(ABCMeta, object)):
         self.update(output)
 
     def completed(self, engine, name):
-        engine.state.metrics[name] = self.compute()
+        result = self.compute()
+        if torch.is_tensor(result) and len(result.shape) == 0:
+            result = result.item()
+        engine.state.metrics[name] = result
 
     def attach(self, engine, name):
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
