@@ -29,7 +29,7 @@ before_install: &before_install
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34 typing; fi
   # Test contrib dependencies
-  - pip install tqdm scikit-learn
+  - pip install tqdm==4.30.0 scikit-learn
 
 install:
   - python setup.py install
@@ -37,7 +37,7 @@ install:
   # Examples dependencies
   - pip install visdom torchvision tensorboardX
   - pip install gym==0.10.11
-  - pip install tqdm
+  - pip install tqdm==4.30.0
 
 script:
   - py.test --cov ignite --cov-report term-missing
