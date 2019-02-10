@@ -57,10 +57,6 @@ for example:
 
 .. autoclass:: Accuracy
 
-.. autoclass:: BinaryAccuracy
-
-.. autoclass:: CategoricalAccuracy
-
 .. autoclass:: Loss
 
 .. autoclass:: MeanAbsoluteError
