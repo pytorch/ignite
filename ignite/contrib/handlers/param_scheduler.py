@@ -189,7 +189,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
 
         scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
         #
         # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
         # over the course of 1 epoch
@@ -233,7 +233,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
 
         scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
         #
         # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
         #
@@ -251,10 +251,10 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         )
 
         scheduler1 = LinearCyclicalScheduler(optimizer.param_groups[0], 'lr', 1e-7, 1e-5, len(train_loader))
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler1, "lr (base)")
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1, "lr (base)")
 
         scheduler2 = CosineAnnealingScheduler(optimizer.param_groups[1], 'lr', 1e-5, 1e-3, len(train_loader))
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler2, "lr (fc)")
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2, "lr (fc)")
 
     .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
@@ -291,7 +291,7 @@ class ConcatScheduler(ParamScheduler):
         scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
 
         combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[30, ])
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, combined_scheduler)
+        trainer.add_event_handler(Events.ITERATION_STARTED, combined_scheduler)
         #
         # Sets the Learning rate linearly from 0.1 to 0.5 over 30 iterations. Then
         # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
@@ -409,7 +409,7 @@ class LRScheduler(ParamScheduler):
 
         step_scheduler = StepLR(optimizer, step_size=3, gamma=0.1)
         scheduler = LRScheduler(step_scheduler)
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
     """
 
     def __init__(self, lr_scheduler, save_history=False, **kwds):
