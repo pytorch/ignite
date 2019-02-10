@@ -60,9 +60,9 @@ script:
 
   # RL
   # 1) Actor-Critic
-  # - python examples/reinforcement_learning/actor_critic.py --max-episodes=2
+  - python examples/reinforcement_learning/actor_critic.py --max-episodes=2
   # 2) Reinforce
-  # - python examples/reinforcement_learning/reinforce.py --max-episodes=2
+  - python examples/reinforcement_learning/reinforce.py --max-episodes=2
 
   #fast-neural-style
   #train
