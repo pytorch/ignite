@@ -13,4 +13,3 @@ from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
 from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.metrics_lambda import MetricsLambda
-import ignite.metrics.functional

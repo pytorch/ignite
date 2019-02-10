@@ -45,11 +45,8 @@ for example:
 
     .. code-block:: python
 
-        import ignite.metrics.functional as F
         precision = Precision(average=False)
         recall = Recall(average=False)
-        F1 = F.mean(precision * recall * 2 / (precision + recall))
-        # or equivalently
         F1 = (precision * recall * 2 / (precision + recall)).mean()
 
     .. note::  This example computes the mean of F1 across classes. To combine
