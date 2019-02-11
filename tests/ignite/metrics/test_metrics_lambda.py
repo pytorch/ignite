@@ -31,8 +31,12 @@ def test_metrics_lambda():
         return data
 
     engine = Engine(process_function)
-    m0_plus_m1 = MetricsLambda(lambda x, y: x + y, m0, m1)
-    m2_plus_2 = MetricsLambda(lambda x, y: x + y, m2, 2)
+
+    def plus(this, other):
+        return this + other
+
+    m0_plus_m1 = MetricsLambda(plus, m0, other=m1)
+    m2_plus_2 = MetricsLambda(plus, m2, 2)
     m0_plus_m1.attach(engine, 'm0_plus_m1')
     m2_plus_2.attach(engine, 'm2_plus_2')
 
@@ -52,7 +56,10 @@ def test_metrics_lambda_reset():
     m1.update([1, 10, 100])
     m2.update([1, 10, 100])
 
-    m = MetricsLambda(lambda x, y, z, t: 1, m0, m1, m2, 0)
+    def fn(x, y, z, t):
+        return 1
+
+    m = MetricsLambda(fn, m0, m1, z=m2, t=0)
 
     # initiating a new instance of MetricsLambda must reset
     # its argument metrics
@@ -251,7 +258,7 @@ def test_recursive_attachment():
         assert set(state.metrics.keys()) == set([metric_name, ])
         np_y_pred = y_pred.numpy().ravel()
         np_y = y.numpy().ravel()
-        assert state.metrics[metric_name].item() == approx(compute_true_value_fn(np_y_pred, np_y))
+        assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))
 
     precision_1 = Precision()
     precision_2 = Precision()
