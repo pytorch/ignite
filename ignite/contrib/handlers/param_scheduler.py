@@ -7,6 +7,12 @@ import math
 from abc import ABCMeta, abstractmethod
 from ignite._six import with_metaclass
 
+try:
+    from collections.abc import Sequence
+except ImportError:  # Python 2.7 compatibility
+    from collections import Sequence
+
+
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
@@ -294,12 +300,12 @@ class ConcatScheduler(ParamScheduler):
 
     def __init__(self, schedulers, durations, save_history=False):
 
-        if not isinstance(schedulers, (list, tuple)) or len(schedulers) < 2:
-            raise ValueError("Argument schedulers should be list/tuple of more than one parameter schedulers, "
+        if not isinstance(schedulers, Sequence) or len(schedulers) < 2:
+            raise ValueError("Argument schedulers should be a sequence of more than one parameter schedulers, "
                              "but given {}".format(schedulers))
 
-        if not isinstance(durations, (list, tuple)) or sorted(list(durations)) != list(durations):
-            raise ValueError("Argument durations should be list/tuple of ordered integers, "
+        if not isinstance(durations, Sequence) or sorted(list(durations)) != list(durations):
+            raise ValueError("Argument durations should be sequence of ordered integers, "
                              "but given {}".format(durations))
 
         if len(schedulers) != len(durations) + 1:
@@ -349,7 +355,7 @@ class ConcatScheduler(ParamScheduler):
             list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
 
         """
-        if param_names is not None and not isinstance(param_names, (tuple, list)):
+        if param_names is not None and not isinstance(param_names, (list, tuple)):
             raise ValueError("Argument param_names should be list or tuple of strings")
         output = []
 
@@ -524,8 +530,8 @@ class PiecewiseLinear(ParamScheduler):
     Args:
         optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
         param_name (str): name of optimizer's parameter to update.
-        values (list/tuple): list of values the parameter at the milestones
-        milestones (list/tuple of int): list of event indices. Must be increasing and contain integers.
+        milestones_values (list of tuples (int, float)): list of tuples (event index, parameter value)
+            represents milestones and parameter. Milestones should be increasing integers.
         save_history (bool, optional): whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
@@ -536,8 +542,7 @@ class PiecewiseLinear(ParamScheduler):
     .. code-block:: python
 
         scheduler = PiecewiseLinear(optimizer, "lr",
-                                    values=[0.5, 0.45, 0.3, 0.1, 0.1],
-                                    milestones=[10, 20, 21, 30, 40])
+                                    milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)])
         # Attach to the trainer
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
         #
@@ -547,20 +552,25 @@ class PiecewiseLinear(ParamScheduler):
         #
     """
 
-    def __init__(self, optimizer, param_name, values, milestones, save_history=False):
+    def __init__(self, optimizer, param_name, milestones_values, save_history=False):
         super(PiecewiseLinear, self).__init__(optimizer, param_name, save_history)
 
-        if not isinstance(values, (list, tuple)) or len(values) < 1:
-            raise ValueError("Argument values should be a list or tuple with at least one value, "
-                             "but given {}".format(type(values)))
+        if not isinstance(milestones_values, Sequence) or len(milestones_values) < 1:
+            raise ValueError("Argument milestones_values should be a list or tuple with at least one value, "
+                             "but given {}".format(type(milestones_values)))
 
-        if not isinstance(milestones, (list, tuple)) or not (sorted(milestones) == milestones):
-            raise ValueError("Argument milestones should be a list or tuple of integers with at least one value, "
-                             "but given {}".format(type(milestones)))
-
-        if len(values) != len(milestones):
-            raise ValueError("Size of values should be equal to the size of milestones, "
-                             "but given {} vs {}".format(len(values), len(milestones)))
+        values = []
+        milestones = []
+        for pair in milestones_values:
+            if not isinstance(pair, Sequence) or len(pair) != 2:
+                raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
+            if not isinstance(pair[0], int):
+                raise ValueError("Value of a milestone should be integer, but given {}".format(type(pair[0])))
+            if len(milestones) > 0 and pair[0] < milestones[-1]:
+                raise ValueError("Milestones should be increasing integers, but given {} is smaller "
+                                 "than the previous milestone {}".format(pair[0], milestones[-1]))
+            milestones.append(pair[0])
+            values.append(pair[1])
 
         self.values = values
         self.milestones = milestones

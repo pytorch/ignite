@@ -259,16 +259,16 @@ def test_piecewiselinear_asserts():
     optimizer = torch.optim.SGD([tensor], lr=0)
 
     with pytest.raises(ValueError):
-        PiecewiseLinear(optimizer, "lr", values=[], milestones=[])
+        PiecewiseLinear(optimizer, "lr", milestones_values=[])
 
     with pytest.raises(ValueError):
-        PiecewiseLinear(optimizer, "lr", values=[0.5, ], milestones=[])
+        PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5,), ])
 
     with pytest.raises(ValueError):
-        PiecewiseLinear(optimizer, "lr", values=[0.5, 0.6], milestones=[10, ])
+        PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (0.6,)])
 
     with pytest.raises(ValueError):
-        PiecewiseLinear(optimizer, "lr", values=[0.5, 0.6], milestones=[10, 5])
+        PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (5, 0.6)])
 
 
 def test_piecewiselinear():
@@ -276,8 +276,11 @@ def test_piecewiselinear():
     optimizer = torch.optim.SGD([tensor], lr=0)
 
     scheduler = PiecewiseLinear(optimizer, 'lr',
-                                values=[0.5, 1.0, 0.0, 1.0, 0.5],
-                                milestones=[5, 15, 25, 35, 40])
+                                milestones_values=[(5, 0.5),
+                                                   (15, 1.0),
+                                                   (25, 0.0),
+                                                   (35, 1.0),
+                                                   (40, 0.5)])
     lrs = []
 
     def save_lr(engine):
@@ -373,7 +376,7 @@ def test_simulate_values():
     tensor = torch.ones([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0.001)
     _test(PiecewiseLinear, optimizer=optimizer, param_name="lr",
-          values=[0.5, 0.45, 0.3, 0.1, 0.1], milestones=[10, 20, 21, 30, 40])
+          milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)])
 
 
 def test_create_lr_scheduler_with_warmup():
