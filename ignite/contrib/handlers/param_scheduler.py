@@ -7,6 +7,12 @@ import math
 from abc import ABCMeta, abstractmethod
 from ignite._six import with_metaclass
 
+try:
+    from collections.abc import Sequence
+except ImportError:  # Python 2.7 compatibility
+    from collections import Sequence
+    from itertools import izip as zip
+
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
@@ -545,6 +551,47 @@ def create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value, warmup_end
         for i in range(num_events):
             output_simulated_values[i] = result[i]
     return combined_scheduler
+
+
+class ParamGroupScheduler(object):
+    """
+    Scheduler helper to group multiple schedulers into one.
+
+    Args:
+        schedulers (list/tuple of ParamScheduler): list/tuple of parameter schedulers.
+        names (list of str): list of names of schedulers.
+
+    .. code-block:: python
+
+        names = []
+        lr_schedulers = []
+        for i, param_group in enumerate(optimizer.param_groups):
+            names.append("param_group_{}".format(i))
+            lr_schedulers.append(get_lr_scheduler(param_group, param_group_scheduling_conf[i]))
+
+        scheduler = ParamGroupScheduler(schedulers=lr_schedulers, names=names)
+        # Attach single scheduler to the trainer
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+    """
+
+    def __init__(self, schedulers, names):
+        if not (isinstance(schedulers, Sequence) and all(isinstance(scheduler, ParamScheduler)
+                                                         for scheduler in schedulers)):
+            raise ValueError("Argument schedulers should be a list/tuple of parameter schedulers")
+
+        if not (isinstance(names, (list, tuple)) and all(isinstance(n, str) for n in names)):
+            raise ValueError("Argument names should be a list/tuple of parameter scheduler's names")
+
+        if len(names) != len(schedulers):
+            raise ValueError("{} should be equal {}".format(len(schedulers), len(names)))
+
+        self.schedulers = schedulers
+        self.names = names
+
+    def __call__(self, engine):
+        for scheduler, name in zip(self.schedulers, self.names):
+            scheduler(engine, name=name)
 
 
 def _replicate_scheduler(scheduler, save_history=False):
