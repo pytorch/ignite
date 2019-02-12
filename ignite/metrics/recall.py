@@ -3,7 +3,7 @@ from __future__ import division
 import torch
 
 from ignite.metrics.precision import _BasePrecisionRecall
-from ignite._utils import to_onehot
+from ignite.utils import to_onehot
 
 
 class Recall(_BasePrecisionRecall):
@@ -26,13 +26,8 @@ class Recall(_BasePrecisionRecall):
 
         binary_accuracy = Recall(output_transform=thresholded_output_transform)
 
-    In multilabel cases, average parameter should be True. If the user is trying to metrics to calculate F1 for
-    example, average paramter should be False. This can be done as shown below:
-
-    .. warning::
-
-        If average is False, current implementation stores all input data (output and target) in as tensors before
-        computing a metric. This can potentially lead to a memory error if the input data is larger than available RAM.
+    In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
+    example, average parameter should be False. This can be done as shown below:
 
     .. code-block:: python
 
@@ -40,6 +35,12 @@ class Recall(_BasePrecisionRecall):
         recall = Recall(average=False, is_multilabel=True)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
+
+    .. warning::
+
+        In multilabel cases, if average is False, current implementation stores all input data (output and target) in
+        as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
+        than available RAM.
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
@@ -65,6 +66,9 @@ class Recall(_BasePrecisionRecall):
             y = y.view(-1)
         elif self._type == "multiclass":
             num_classes = y_pred.size(1)
+            if y.max() + 1 > num_classes:
+                raise ValueError("y_pred contains less classes than y. Number of predicted classes is {}"
+                                 " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1))
             y = to_onehot(y.view(-1), num_classes=num_classes)
             indices = torch.max(y_pred, dim=1)[1].view(-1)
             y_pred = to_onehot(indices, num_classes=num_classes)
@@ -88,8 +92,12 @@ class Recall(_BasePrecisionRecall):
         true_positives = true_positives.type(torch.DoubleTensor)
 
         if self._type == "multilabel":
-            self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)
-            self._positives = torch.cat([self._positives, actual_positives], dim=0)
+            if not self._average:
+                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)
+                self._positives = torch.cat([self._positives, actual_positives], dim=0)
+            else:
+                self._true_positives += torch.sum(true_positives / (actual_positives + self.eps))
+                self._positives += len(actual_positives)
         else:
             self._true_positives += true_positives
             self._positives += actual_positives

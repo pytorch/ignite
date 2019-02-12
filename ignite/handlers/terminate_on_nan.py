@@ -3,7 +3,7 @@ import numbers
 
 import torch
 
-from ignite._utils import apply_to_type
+from ignite.utils import apply_to_type
 
 
 class TerminateOnNan(object):

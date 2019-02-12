@@ -17,6 +17,10 @@ def test_no_update():
     with pytest.raises(NotComputableError):
         recall.compute()
 
+    recall = Recall(is_multilabel=True, average=True)
+    with pytest.raises(NotComputableError):
+        recall.compute()
+
 
 def test_binary_wrong_inputs():
     re = Recall()
@@ -518,6 +522,14 @@ def test_multilabel_input_NC():
         _test(average=True)
         _test(average=False)
 
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4))
+    y = torch.randint(0, 2, size=(10, 4)).type(torch.LongTensor)
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
+
 
 def test_multilabel_input_NCL():
 
@@ -570,6 +582,14 @@ def test_multilabel_input_NCL():
     for _ in range(5):
         _test(average=True)
         _test(average=False)
+
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20))
+    y = torch.randint(0, 2, size=(10, 4, 20)).type(torch.LongTensor)
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
 
 
 def test_multilabel_input_NCHW():
@@ -624,6 +644,14 @@ def test_multilabel_input_NCHW():
         _test(average=True)
         _test(average=False)
 
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
+
 
 def test_incorrect_type():
     # Tests changing of type during training
@@ -639,6 +667,21 @@ def test_incorrect_type():
         y = torch.ones(4).type(torch.LongTensor)
 
         with pytest.raises(RuntimeError):
+            re.update((y_pred, y))
+
+    _test(average=True)
+    _test(average=False)
+
+
+def test_incorrect_y_classes():
+
+    def _test(average):
+        re = Recall(average=average)
+
+        y_pred = torch.randint(0, 2, size=(10, 4)).float()
+        y = torch.randint(4, 5, size=(10,)).long()
+
+        with pytest.raises(ValueError):
             re.update((y_pred, y))
 
     _test(average=True)

@@ -65,7 +65,10 @@ class Metric(with_metaclass(ABCMeta, object)):
         self.update(output)
 
     def completed(self, engine, name):
-        engine.state.metrics[name] = self.compute()
+        result = self.compute()
+        if torch.is_tensor(result) and len(result.shape) == 0:
+            result = result.item()
+        engine.state.metrics[name] = result
 
     def attach(self, engine, name):
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
@@ -129,3 +132,13 @@ class Metric(with_metaclass(ABCMeta, object)):
     def __floordiv__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x // y, self, other)
+
+    def __getattr__(self, attr):
+        from ignite.metrics import MetricsLambda
+
+        def fn(x, *args, **kwargs):
+            return getattr(x, attr)(*args, **kwargs)
+
+        def wrapper(*args, **kwargs):
+            return MetricsLambda(fn, self, *args, **kwargs)
+        return wrapper

@@ -4,7 +4,7 @@ from enum import Enum
 
 import torch
 
-from ignite._utils import apply_to_tensor
+from ignite.utils import apply_to_tensor
 from ignite.engine import Engine, _prepare_batch
 
 
