@@ -57,3 +57,25 @@ Run the example:
 python mnist_with_visdom.py
 ```
 
+# Distributed MNIST Example with Ignite
+
+ported from [Ignite-examples](https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py)
+
+#### Usage:
+
+Train MNIST by using three GPUs in two nodes.
+
+Run the example by GPU 0 in Node 1:
+```
+python mnist_dist.py --world_size 3 --rank 0 --gpu 0
+```
+
+Run the example by GPU 1 in Node 1:
+```
+python mnist_dist.py --world_size 3 --rank 1 --gpu 1
+```
+
+Run the example by GPU 0 in Node 2:
+```
+python mnist_dist.py --world_size 3 --rank 2 --gpu 0
+```
