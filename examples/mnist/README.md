@@ -59,7 +59,7 @@ python mnist_with_visdom.py
 
 # Distributed MNIST Example with Ignite
 
-ported from [Ignite-examples](https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py)
+ported from [mnist.py](https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py)
 
 #### Usage:
 
