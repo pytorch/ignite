@@ -5,13 +5,9 @@ from torch import nn
 import torch.nn.functional as F
 from torch.optim import SGD
 import torch.utils.data
-
-# === Added for distributed >>>
 import torch.distributed
 import torch.utils.data.distributed
 from torch.nn.parallel import DistributedDataParallel
-# >>> Added for distributed ===
-
 from torchvision import datasets, transforms
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
@@ -52,27 +48,21 @@ def get_data_loaders(train_batch_size, val_batch_size):
                                      transforms.Normalize((0.1307,), (0.3081,))
                                  ]))
 
-    # === Added for distributed >>>
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
         train_sampler = None
-    # >>> Added for distributed ===
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, sampler=train_sampler, batch_size=train_batch_size, shuffle=(train_sampler is None))
 
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=val_batch_size, shuffle=True)
 
-    # === Added for distributed >>>
     return train_loader, val_loader, train_sampler
-    # >>> Added for distributed ===
 
 
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
-    # === Added for distributed >>>
     train_loader, val_loader, train_sampler = get_data_loaders(train_batch_size, val_batch_size)
-    # >>> Added for distributed ===
     model = Net()
 
     if torch.cuda.is_available():
@@ -81,10 +71,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     else:
         device = "cpu"
 
-    # === Added for distributed >>>
     if args.distributed:
         model = DistributedDataParallel(model, [args.gpu])
-    # >>> Added for distributed ===
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
@@ -99,20 +87,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         desc=desc.format(0)
     )
 
-    # === Added for distributed >>>
     if args.distributed:
         @trainer.on(Events.EPOCH_STARTED)
         def set_epoch(engine):
             train_sampler.set_epoch(engine.state.epoch)
-    # >>> Added for distributed ===
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
-        # === Added for distributed >>>
+
         if args.distributed:
             train_sampler.set_epoch(iter + 1)
-        # >>> Added for distributed ===
 
         if iter % log_interval == 0:
             pbar.desc = desc.format(engine.state.output)
@@ -160,18 +145,14 @@ if __name__ == "__main__":
                         help="SGD momentum (default: 0.5)")
     parser.add_argument("--log_interval", type=int, default=10,
                         help="how many batches to wait before logging training status")
-
-    # === Added for distributed >>>
     parser.add_argument("--dist_method", default="file:///home/user/tmp.dat", type=str,
                         help="url or file path used to set up distributed training")
     parser.add_argument("--dist_backend", default="nccl", type=str, help="distributed backend")
     parser.add_argument("--world_size", default=1, type=int, help="Number of GPUs to use.")
     parser.add_argument("--rank", default=0, type=int, help="Used for multi-process training.")
     parser.add_argument("--gpu", default=0, type=int, help="GPU number to use.")
-    # >>> Added for distributed ===
     args = parser.parse_args()
 
-    # === Added for distributed >>>
     args.distributed = args.world_size > 1
 
     if args.distributed:
@@ -179,6 +160,5 @@ if __name__ == "__main__":
         torch.distributed.init_process_group(args.dist_backend,
                                              init_method=args.dist_method,
                                              world_size=args.world_size, rank=args.rank)
-    # >>> Added for distributed ===
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_interval)
