@@ -57,9 +57,7 @@ Run the example:
 python mnist_with_visdom.py
 ```
 
-# Distributed MNIST Example with Ignite
-
-ported from [mnist.py](https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py)
+## Distributed training
 
 #### Usage:
 
