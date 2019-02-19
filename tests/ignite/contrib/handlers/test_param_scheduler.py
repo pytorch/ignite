@@ -4,7 +4,8 @@ import torch
 
 from ignite.engine import Engine, Events
 from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, CosineAnnealingScheduler
-from ignite.contrib.handlers.param_scheduler import ConcatScheduler, LRScheduler, create_lr_scheduler_with_warmup
+from ignite.contrib.handlers.param_scheduler import ConcatScheduler, LRScheduler, \
+    create_lr_scheduler_with_warmup, PiecewiseLinear
 
 
 def test_linear_scheduler():
@@ -318,8 +319,55 @@ def test_lr_scheduler():
     assert copy_lr_scheduler.state_dict() == init_lr_scheduler_state
 
 
-def test_simulate_values():
+def test_piecewiselinear_asserts():
 
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    with pytest.raises(ValueError):
+        PiecewiseLinear(optimizer, "lr", milestones_values=[])
+
+    with pytest.raises(ValueError):
+        PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5,), ])
+
+    with pytest.raises(ValueError):
+        PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (0.6,)])
+
+    with pytest.raises(ValueError):
+        PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (5, 0.6)])
+
+
+def test_piecewiselinear():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    scheduler = PiecewiseLinear(optimizer, 'lr',
+                                milestones_values=[(5, 0.5),
+                                                   (15, 1.0),
+                                                   (25, 0.0),
+                                                   (35, 1.0),
+                                                   (40, 0.5)])
+    lrs = []
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]['lr'])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+    trainer.run([0] * 25, max_epochs=2)
+
+    assert lrs == list(map(pytest.approx, [
+        0.5, 0.5, 0.5, 0.5, 0.5,
+        0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
+        1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1,
+        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+        1.0, 0.9, 0.8, 0.7, 0.6,
+        0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5
+    ]))
+
+
+def test_simulate_values():
     def _test(scheduler_cls, **scheduler_kwargs):
 
         optimizer = None
@@ -390,9 +438,14 @@ def test_simulate_values():
     durations = [10, ]
     _test(ConcatScheduler, optimizer=optimizer, schedulers=[scheduler_1, scheduler_2], durations=durations)
 
+    # PiecewiseLinear
+    tensor = torch.ones([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0.001)
+    _test(PiecewiseLinear, optimizer=optimizer, param_name="lr",
+          milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)])
+
 
 def test_create_lr_scheduler_with_warmup():
-
     with pytest.raises(TypeError):
         create_lr_scheduler_with_warmup(12, warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10)
 
