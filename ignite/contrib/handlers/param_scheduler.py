@@ -3,6 +3,7 @@ from __future__ import division
 from copy import deepcopy
 
 import math
+import numbers
 
 from abc import ABCMeta, abstractmethod
 from ignite._six import with_metaclass
@@ -312,7 +313,7 @@ class ConcatScheduler(ParamScheduler):
                              "but given {}".format(schedulers))
 
         if not isinstance(durations, Sequence) or \
-                not all([isinstance(t, int) for t in durations]):
+                not all([isinstance(t, numbers.Integral) for t in durations]):
             raise ValueError("Argument durations should be list/tuple of integers, "
                              "but given {}".format(durations))
 
@@ -594,7 +595,7 @@ class PiecewiseLinear(ParamScheduler):
         for pair in milestones_values:
             if not isinstance(pair, Sequence) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
-            if not isinstance(pair[0], int):
+            if not isinstance(pair[0], numbers.Integral):
                 raise ValueError("Value of a milestone should be integer, but given {}".format(type(pair[0])))
             if len(milestones) > 0 and pair[0] < milestones[-1]:
                 raise ValueError("Milestones should be increasing integers, but given {} is smaller "
