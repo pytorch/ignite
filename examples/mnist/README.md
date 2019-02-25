@@ -63,17 +63,36 @@ python mnist_with_visdom.py
 
 Train MNIST by using three GPUs in two nodes.
 
-Run the example by GPU 0 in Node 1:
-```
-python mnist_dist.py --world_size 3 --rank 0 --gpu 0
-```
+* Single node, multiple GPUs (ex. a node has two GPUs):
 
-Run the example by GPU 1 in Node 1:
-```
-python mnist_dist.py --world_size 3 --rank 1 --gpu 1
-```
+  * Run the example by GPU-ID 0:
+  ```
+  python mnist_dist.py --world_size 2 --rank 0 --gpu 0
+  ```
 
-Run the example by GPU 0 in Node 2:
-```
-python mnist_dist.py --world_size 3 --rank 2 --gpu 0
-```
+  * Run the example by GPU-ID 1:
+  ```
+  python mnist_dist.py --world_size 2 --rank 1 --gpu 1
+  ```
+
+* Multiple nodes with multiple GPUs  (ex. two nodes have two GPUs, respectively):
+
+  * Run the example by GPU-ID 0 in the primary node:
+  ```
+  python mnist_dist.py --world_size 4 --rank 0 --gpu 0
+  ```
+
+  * Run the example by GPU-ID 0 in the primary node:
+  ```
+  python mnist_dist.py --world_size 4 --rank 1 --gpu 1
+  ```
+
+  * Run the example by GPU-ID 0 in the secondary node:
+  ```
+  python mnist_dist.py --world_size 4 --rank 2 --gpu 0
+  ```
+
+  * Run the example by GPU-ID 1 in the secondary node:
+  ```
+  python mnist_dist.py --world_size 4 --rank 3 --gpu 1
+  ```
