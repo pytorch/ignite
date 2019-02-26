@@ -76,22 +76,25 @@ Train MNIST by using three GPUs in two nodes.
 
 * Multiple nodes with multiple GPUs  (ex. two nodes have two GPUs, respectively):
 
-  * Run the example by GPU-ID 0 in the primary node:
+  On the **Node 0**: 
+  - open a terminal and run the example on the GPU 0 (process rank 0):
   ```
-  python mnist_dist.py --world_size 4 --rank 0 --gpu 0
-  ```
-
-  * Run the example by GPU-ID 0 in the primary node:
-  ```
-  python mnist_dist.py --world_size 4 --rank 1 --gpu 1
+  python mnist_dist.py --world_size 4 --rank 0 --gpu 0 --dist_method='tcp://IP_OF_NODE0:FREEPORT'
   ```
 
-  * Run the example by GPU-ID 0 in the secondary node:
+  - open another terminal and run the example on the GPU 1 (process rank 1):
   ```
-  python mnist_dist.py --world_size 4 --rank 2 --gpu 0
+  python mnist_dist.py --world_size 4 --rank 1 --gpu 1 --dist_method='tcp://IP_OF_NODE0:FREEPORT'
   ```
 
-  * Run the example by GPU-ID 1 in the secondary node:
+  On the **Node 1**: 
+  - open a terminal and  run the example on the GPU 0 (process rank 2):
   ```
-  python mnist_dist.py --world_size 4 --rank 3 --gpu 1
+  python mnist_dist.py --world_size 4 --rank 2 --gpu 0 --dist_method='tcp://IP_OF_NODE0:FREEPORT'
   ```
+
+  - open another terminal and run the example on the GPU 1 (process rank 3):
+  ```
+  python mnist_dist.py --world_size 4 --rank 3 --gpu 1 --dist_method='tcp://IP_OF_NODE0:FREEPORT'
+  ```
+
