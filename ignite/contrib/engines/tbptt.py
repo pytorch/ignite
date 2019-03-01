@@ -4,7 +4,7 @@ from enum import Enum
 
 import torch
 
-from ignite._utils import apply_to_tensor
+from ignite.utils import apply_to_tensor
 from ignite.engine import Engine, _prepare_batch
 
 
@@ -53,21 +53,21 @@ def create_supervised_tbptt_trainer(
     `tbtt_step` time steps.
 
     Args:
-        model (`torch.nn.Module`): the model to train
-        optimizer (`torch.optim.Optimizer`): the optimizer to use
-        loss_fn (torch.nn loss function): the loss function to use
-        tbtt_step (int): the length of time chunks (last one may be smaller)
-        dim (int): axis representing the time dimension
+        model (`torch.nn.Module`): the model to train.
+        optimizer (`torch.optim.Optimizer`): the optimizer to use.
+        loss_fn (torch.nn loss function): the loss function to use.
+        tbtt_step (int): the length of time chunks (last one may be smaller).
+        dim (int): axis representing the time dimension.
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU,
             the copy may occur asynchronously with respect to the host. For other cases,
             this argument has no effect.
-        prepare_batch (Callable, optional): function that receives `batch`, `device`,
+        prepare_batch (callable, optional): function that receives `batch`, `device`,
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
 
     Returns:
-        Engine: a trainer engine with supervised update function
+        Engine: a trainer engine with supervised update function.
 
     """
     if device:

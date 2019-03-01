@@ -37,29 +37,27 @@ use the `output_transform` argument to transform it:
         metric = Accuracy(output_transform=output_transform)
         metric.attach(engine, "accuracy")
 
-Metrics could be combined together to form a new metric through arithmetics,
+Metrics could be combined together to form new metrics. This could be done through arithmetics, such
+as ``metric1 + metric2``, use PyTorch operators, such as ``(metric1 + metric2).pow(2).mean()``,
+or use a lambda function, such as ``MetricsLambda(lambda a, b: torch.mean(a + b), metric1, metric2)``.
+
 for example:
 
     .. code-block:: python
 
         precision = Precision(average=False)
         recall = Recall(average=False)
-        F1 = precision * recall * 2 / (precision + recall)
+        F1 = (precision * recall * 2 / (precision + recall)).mean()
 
-    .. note::  This example computes F1 for each class separately, rather than
-        the mean of F1 across class. To combine precision and recall to get
-        F1 or other F metrics, we have to be careful that `average=False`, i.e.
-        to use the unaveraged precision and recall, otherwise we will not be
-        computing F metrics.
+    .. note::  This example computes the mean of F1 across classes. To combine
+        precision and recall to get F1 or other F metrics, we have to be careful
+        that `average=False`, i.e. to use the unaveraged precision and recall,
+        otherwise we will not be computing F-beta metrics.
 
 
 .. currentmodule:: ignite.metrics
 
 .. autoclass:: Accuracy
-
-.. autoclass:: BinaryAccuracy
-
-.. autoclass:: CategoricalAccuracy
 
 .. autoclass:: Loss
 

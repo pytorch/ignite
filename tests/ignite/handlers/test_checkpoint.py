@@ -58,7 +58,8 @@ def test_args_validation(dirname):
 
 
 def test_simple_recovery(dirname):
-    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, save_interval=1)
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, save_interval=1,
+                        save_as_state_dict=False)
     h(None, {'obj': 42})
 
     fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
@@ -70,7 +71,8 @@ def test_simple_recovery_from_existing_non_empty(dirname):
     with open(previous_fname, 'w') as f:
         f.write("test")
 
-    h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=False, save_interval=1)
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=False,
+                        save_interval=1, save_as_state_dict=False)
     h(None, {'obj': 42})
 
     fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
@@ -87,11 +89,12 @@ def test_atomic(dirname):
                             atomic=atomic,
                             create_dir=False,
                             require_empty=False,
-                            save_interval=1)
+                            save_interval=1,
+                            save_as_state_dict=False)
 
         try:
             h(None, {name: obj})
-        except:
+        except Exception:
             pass
 
         fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, name, 1))
@@ -105,7 +108,8 @@ def test_atomic(dirname):
 
 
 def test_last_k(dirname):
-    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2, save_interval=2)
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2,
+                        save_interval=2, save_as_state_dict=False)
     to_save = {'name': 42}
 
     for _ in range(8):
@@ -124,7 +128,8 @@ def test_best_k(dirname):
         return next(scores)
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False,
-                        n_saved=2, score_function=score_function)
+                        n_saved=2, score_function=score_function,
+                        save_as_state_dict=False)
 
     to_save = {'name': 42}
     for _ in range(4):
@@ -144,7 +149,8 @@ def test_best_k_with_suffix(dirname):
         return next(scores_iter)
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2,
-                        score_function=score_function, score_name="val_loss")
+                        score_function=score_function, score_name="val_loss",
+                        save_as_state_dict=False)
 
     to_save = {'name': 42}
     for _ in range(4):
@@ -164,7 +170,8 @@ def test_with_engine(dirname):
     name = 'model'
     engine = Engine(update_fn)
     handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False,
-                              n_saved=2, save_interval=1)
+                              n_saved=2, save_interval=1,
+                              save_as_state_dict=False)
 
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, {name: 42})
     engine.run([0], max_epochs=4)

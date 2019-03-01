@@ -4,16 +4,16 @@ from ignite.engine import Engine
 
 
 class EarlyStopping(object):
-    """EarlyStopping handler can be used to stop the training if no improvement after a given number of events
+    """EarlyStopping handler can be used to stop the training if no improvement after a given number of events.
 
     Args:
         patience (int):
-            Number of events to wait if no improvement and then stop the training
-        score_function (Callable):
-            It should be a function taking a single argument, an `ignite.engine.Engine` object,
+            Number of events to wait if no improvement and then stop the training.
+        score_function (callable):
+            It should be a function taking a single argument, an :class:`~ignite.engine.Engine` object,
             and return a score `float`. An improvement is considered if the score is higher.
         trainer (Engine):
-            trainer engine to stop the run if no improvement
+            trainer engine to stop the run if no improvement.
 
     Examples:
 
@@ -27,20 +27,20 @@ class EarlyStopping(object):
             return -val_loss
 
         handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
-        # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset)
+        # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
         evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
     def __init__(self, patience, score_function, trainer):
 
         if not callable(score_function):
-            raise TypeError("Argument score_function should be a function")
+            raise TypeError("Argument score_function should be a function.")
 
         if patience < 1:
-            raise ValueError("Argument patience should be positive integer")
+            raise ValueError("Argument patience should be positive integer.")
 
         if not isinstance(trainer, Engine):
-            raise TypeError("Argument trainer should be an instance of Engine")
+            raise TypeError("Argument trainer should be an instance of Engine.")
 
         self.score_function = score_function
         self.patience = patience

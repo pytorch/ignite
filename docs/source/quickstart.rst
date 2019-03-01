@@ -20,9 +20,9 @@ Code
     trainer = create_supervised_trainer(model, optimizer, loss)
     evaluator = create_supervised_evaluator(model,
                                             metrics={
-                                                'accuracy': CategoricalAccuracy(),
+                                                'accuracy': Accuracy(),
                                                 'nll': Loss(loss)
-                                            })
+                                                })
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(trainer):
@@ -51,33 +51,33 @@ Explanation
 -----------
 
 Now let's break up the code and review it in details. In the first 4 lines we define our model, training and validation
-datasets (as :class:`torch.utils.data.DataLoader`), optimizer and loss function:
+datasets (as `torch.utils.data.DataLoader <https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_), optimizer and loss function:
 
 .. code-block:: python
 
     model = Net()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8))
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
     loss = torch.nn.NLLLoss()
 
-Next we define trainer and evaluator engines. The main component of Ignite is the :class:`ignite.engine.Engine`, an abstraction over your
+Next we define trainer and evaluator engines. The main component of Ignite is the :class:`~ignite.engine.Engine`, an abstraction over your
 training loop. Getting started with the engine is easy, the constructor only requires one things:
 
 - `update_function`: a function which is passed the engine and a batch and it passes data through and updates your model
 
-Here we are using helper methods :meth:`create_supervised_trainer` and :meth:`create_supervised_evaluator`:
+Here we are using helper methods :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`:
 
 .. code-block:: python
 
     trainer = create_supervised_trainer(model, optimizer, loss)
     evaluator = create_supervised_evaluator(model,
                                             metrics={
-                                                'accuracy': CategoricalAccuracy(),
+                                                'accuracy': Accuracy(),
                                                 'nll': Loss(loss)
-                                            })
+                                                })
 
-However, we could also define trainer and evaluator using :class:`Engine`. If we look into the code of
-:meth:`create_supervised_trainer` and :meth:`create_supervised_evaluator`, we can observe a pattern:
+However, we could also define trainer and evaluator using :class:`~ignite.engine.Engine`. If we look into the code of
+:meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`, we can observe a pattern:
 
 .. code-block:: python
 
@@ -110,21 +110,21 @@ And update functions of the trainer and evaluator are simply:
             y_pred = model(x)
             return y_pred, y
 
-Note that the helper function :meth:`create_supervised_evaluator` to create an evaluator accepts an
+Note that the helper function :meth:`~ignite.engine.create_supervised_evaluator` to create an evaluator accepts an
 argument `metrics`:
 
 .. code-block:: python
 
     metrics={
-        'accuracy': CategoricalAccuracy(),
+        'accuracy': Accuracy(),
         'nll': Loss(loss)
     }
 
-where we define two metrics: *categorical accuracy* and *loss* to compute on validation dataset. More information on
+where we define two metrics: *accuracy* and *loss* to compute on validation dataset. More information on
 metrics can be found at :doc:`metrics`.
 
 
-The most interesting part of the code snippet is adding event handlers. :class:`Engine` allows to add handlers on
+The most interesting part of the code snippet is adding event handlers. :class:`~ignite.engine.Engine` allows to add handlers on
 various events that fired during the run. When an event is fired, attached handlers (functions) are executed. Thus, for
 logging purposes we added a function to be executed after every iteration:
 
@@ -166,7 +166,7 @@ complete event:
 
 .. Note ::
 
-   Function :meth:`add_event_handler` (as well as :meth:`on` decorator) also accepts optional `args`, `kwargs` to be passed
+   Function :meth:`~ignite.engine.Engine.add_event_handler` (as well as :meth:`~ignite.engine.Engine.on` decorator) also accepts optional `args`, `kwargs` to be passed
    to the handler. For example:
 
    .. code-block:: python

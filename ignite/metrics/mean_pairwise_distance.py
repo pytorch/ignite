@@ -30,5 +30,5 @@ class MeanPairwiseDistance(Metric):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanAbsoluteError must have at least one example before it can be computed')
+            raise NotComputableError('MeanAbsoluteError must have at least one example before it can be computed.')
         return self._sum_of_distances / self._num_examples

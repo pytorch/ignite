@@ -11,6 +11,26 @@ def test_zero_div():
         m.compute()
 
 
+def test_wrong_input_shapes():
+    m = MaximumAbsoluteError()
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4, 1, 2),
+                  torch.rand(4, 1)))
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4, 1),
+                  torch.rand(4, 1, 2)))
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4, 1, 2),
+                  torch.rand(4,)))
+
+    with pytest.raises(ValueError):
+        m.update((torch.rand(4,),
+                  torch.rand(4, 1, 2)))
+
+
 def test_maximum_absolute_error():
     a = np.random.randn(4)
     b = np.random.randn(4)

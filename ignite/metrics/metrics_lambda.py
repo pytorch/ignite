@@ -1,4 +1,6 @@
 from ignite.metrics.metric import Metric
+from ignite.engine import Events
+import itertools
 
 
 class MetricsLambda(Metric):
@@ -12,28 +14,34 @@ class MetricsLambda(Metric):
     resetted. When attach, all its dependencies would be automatically
     attached.
 
-    Arguments:
+    Args:
         f (callable): the function that defines the computation
         args (sequence): Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
 
-    Examples:
-        >>> precision = Precision(average=False)
-        >>> recall = Recall(average=False)
-        >>> def Fbeta(r, p, beta):
-        >>>     return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
-        >>> F1 = MetricsLambda(Fbeta, recall, precision, 1)
-        >>> F2 = MetricsLambda(Fbeta, recall, precision, 2)
-        >>> F3 = MetricsLambda(Fbeta, recall, precision, 3)
-        >>> F4 = MetricsLambda(Fbeta, recall, precision, 4)
+    Example:
+
+    .. code-block:: python
+
+        precision = Precision(average=False)
+        recall = Recall(average=False)
+
+        def Fbeta(r, p, beta):
+            return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r + 1e-20)).item()
+
+        F1 = MetricsLambda(Fbeta, recall, precision, 1)
+        F2 = MetricsLambda(Fbeta, recall, precision, 2)
+        F3 = MetricsLambda(Fbeta, recall, precision, 3)
+        F4 = MetricsLambda(Fbeta, recall, precision, 4)
     """
-    def __init__(self, f, *args):
+    def __init__(self, f, *args, **kwargs):
         self.function = f
         self.args = args
+        self.kwargs = kwargs
         super(MetricsLambda, self).__init__()
 
     def reset(self):
-        for i in self.args:
+        for i in itertools.chain(self.args, self.kwargs.values()):
             if isinstance(i, Metric):
                 i.reset()
 
@@ -45,11 +53,21 @@ class MetricsLambda(Metric):
 
     def compute(self):
         materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
-        return self.function(*materialized)
+        materialized_kwargs = {k: (v.compute() if isinstance(v, Metric) else v) for k, v in self.kwargs.items()}
+        return self.function(*materialized, **materialized_kwargs)
+
+    def _internal_attach(self, engine):
+        for index, metric in enumerate(itertools.chain(self.args, self.kwargs.values())):
+            if isinstance(metric, MetricsLambda):
+                metric._internal_attach(engine)
+            elif isinstance(metric, Metric):
+                if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
+                    engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
+                if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
+                    engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
 
     def attach(self, engine, name):
         # recursively attach all its dependencies
-        for index, metric in enumerate(self.args):
-            if isinstance(metric, Metric):
-                metric.attach(engine, name + '[{}]'.format(index))
-        super(MetricsLambda, self).attach(engine, name)
+        self._internal_attach(engine)
+        # attach only handler on EPOCH_COMPLETED
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)

@@ -90,7 +90,6 @@ def test_arithmetics():
             self.list_ = output
 
         def compute(self):
-            print(self.index)
             return self.list_[self.index]
 
     m0 = ListGatherMetric(0)
@@ -110,6 +109,10 @@ def test_arithmetics():
     m2.update([1, 10, 100])
     assert m2_plus_2.compute() == 102
 
+    m2_plus_2 = 2 + m2
+    m2.update([1, 10, 100])
+    assert m2_plus_2.compute() == 102
+
     # __sub__
     m0_minus_m1 = m0 - m1
     m0.update([1, 10, 100])
@@ -123,6 +126,10 @@ def test_arithmetics():
     m2.update([1, 10, 100])
     assert m2_minus_2.compute() == 98
 
+    m2_minus_2 = 2 - m2
+    m2.update([1, 10, 100])
+    assert m2_minus_2.compute() == -98
+
     # __mul__
     m0_times_m1 = m0 * m1
     m0.update([1, 10, 100])
@@ -133,6 +140,10 @@ def test_arithmetics():
     assert m0_times_m1.compute() == 40
 
     m2_times_2 = m2 * 2
+    m2.update([1, 10, 100])
+    assert m2_times_2.compute() == 200
+
+    m2_times_2 = 2 * m2
     m2.update([1, 10, 100])
     assert m2_times_2.compute() == 200
 
@@ -148,6 +159,10 @@ def test_arithmetics():
     m2_pow_2 = m2 ** 2
     m2.update([1, 10, 100])
     assert m2_pow_2.compute() == 10000
+
+    m2_pow_2 = 0.99 ** m2
+    m2.update([1, 10, 100])
+    assert m2_pow_2.compute() == 0.3660323412732292
 
     # __mod__
     m0_mod_m1 = m0 % m1
@@ -176,6 +191,10 @@ def test_arithmetics():
         m2.update([1, 10, 100])
         assert m2_div_2.compute() == 50
 
+        m2_div_2 = 200 / m2
+        m2.update([1, 10, 100])
+        assert m2_div_2.compute() == 2
+
     # __truediv__
     m0_truediv_m1 = m0.__truediv__(m1)
     m0.update([1, 10, 100])
@@ -188,6 +207,10 @@ def test_arithmetics():
     m2_truediv_2 = m2.__truediv__(2)
     m2.update([1, 10, 100])
     assert m2_truediv_2.compute() == approx(50.0)
+
+    m2_truediv_2 = m2.__rtruediv__(200)
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(2.0)
 
     # __floordiv__
     m0_floordiv_m1 = m0 // m1
@@ -300,3 +323,68 @@ def test_integration():
 def test_abstract_class():
     with raises(TypeError):
         Metric()
+
+
+def test_pytorch_operators():
+
+    def _test(composed_metric, metric_name, compute_true_value_fn):
+
+        metrics = {
+            metric_name: composed_metric,
+        }
+
+        y_pred = torch.rand(15, 10, 5).float()
+        y = torch.randint(0, 5, size=(15, 10)).long()
+
+        def update_fn(engine, batch):
+            y_pred, y = batch
+            return y_pred, y
+
+        validator = Engine(update_fn)
+
+        for name, metric in metrics.items():
+            metric.attach(validator, name)
+
+        def data(y_pred, y):
+            for i in range(y_pred.shape[0]):
+                yield (y_pred[i], y[i])
+
+        d = data(y_pred, y)
+        state = validator.run(d, max_epochs=1)
+
+        assert set(state.metrics.keys()) == set([metric_name, ])
+        np_y_pred = np.argmax(y_pred.numpy(), axis=-1).ravel()
+        np_y = y.numpy().ravel()
+        assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))
+
+    precision_1 = Precision(average=False)
+    precision_2 = Precision(average=False)
+    norm_summed_precision = (precision_1 + precision_2).norm(p=10)
+
+    def compute_true_norm_summed_precision(y_pred, y):
+        p1 = precision_score(y, y_pred, average=None)
+        p2 = precision_score(y, y_pred, average=None)
+        return np.linalg.norm(p1 + p2, ord=10)
+
+    _test(norm_summed_precision, "mean summed precision", compute_true_value_fn=compute_true_norm_summed_precision)
+
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+    sum_precision_recall = (precision + recall).sum()
+
+    def compute_sum_precision_recall(y_pred, y):
+        p = precision_score(y, y_pred, average=None)
+        r = recall_score(y, y_pred, average=None)
+        return np.sum(p + r)
+
+    _test(sum_precision_recall, "sum precision recall", compute_true_value_fn=compute_sum_precision_recall)
+
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+    f1 = (precision * recall * 2 / (precision + recall + 1e-20)).mean()
+
+    def compute_f1(y_pred, y):
+        f1 = f1_score(y, y_pred, average='macro')
+        return f1
+
+    _test(f1, "f1", compute_true_value_fn=compute_f1)

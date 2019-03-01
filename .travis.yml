@@ -27,17 +27,16 @@ before_install: &before_install
   - conda info -a
   - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION $PYTORCH_PACKAGE
   - source activate test-environment
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34 typing; fi
   # Test contrib dependencies
-  - pip install tqdm scikit-learn
+  - pip install tqdm==4.30.0 scikit-learn
 
 install:
   - python setup.py install
   - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
   - pip install visdom torchvision tensorboardX
-  - pip install gym
-  - pip install tqdm
+  - pip install gym==0.10.11
 
 script:
   - py.test --cov ignite --cov-report term-missing
@@ -133,7 +132,7 @@ jobs:
         # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
         - conda install -y conda-build conda-verify anaconda-client
         - conda config --set anaconda_upload no
-        - conda build --quiet --no-test --output-folder conda_build conda.recipe
+        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe
         # Convert to other platforms: OSX, WIN
         - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
@@ -189,7 +188,7 @@ jobs:
         # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
         - conda install -y conda-build conda-verify anaconda-client
         - conda config --set anaconda_upload no
-        - conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
+        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
         # Convert to other platforms: OSX, WIN
         - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/

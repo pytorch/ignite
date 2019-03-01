@@ -6,10 +6,10 @@ class RunningAverage(Metric):
     """Compute running average of a metric or the output of process function.
 
     Args:
-        src (Metric or None): input source: an instance of :class:`ignite.metrics.Metric` or None. The latter
+        src (Metric or None): input source: an instance of :class:`~ignite.metrics.Metric` or None. The latter
             corresponds to `engine.state.output` which holds the output of process function.
         alpha (float, optional): running average decay factor, default 0.98
-        output_transform (Callable, optional): a function to use to transform the output if `src` is None and
+        output_transform (callable, optional): a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
 
     Examples:
@@ -17,7 +17,7 @@ class RunningAverage(Metric):
     .. code-block:: python
 
         alpha = 0.98
-        acc_metric = RunningAverage(CategoricalAccuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
+        acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
         acc_metric.attach(trainer, 'running_avg_accuracy')
 
         avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
@@ -32,13 +32,13 @@ class RunningAverage(Metric):
 
     def __init__(self, src=None, alpha=0.98, output_transform=None):
         if not (isinstance(src, Metric) or src is None):
-            raise TypeError("Argument src should be a Metric or None")
+            raise TypeError("Argument src should be a Metric or None.")
         if not (0.0 < alpha <= 1.0):
-            raise ValueError("Argument alpha should be a float between 0.0 and 1.0")
+            raise ValueError("Argument alpha should be a float between 0.0 and 1.0.")
 
         if isinstance(src, Metric):
             if output_transform is not None:
-                raise ValueError("Argument output_transform should be None if src is a Metric")
+                raise ValueError("Argument output_transform should be None if src is a Metric.")
             self.src = src
             self._get_src_value = self._get_metric_value
             self.iteration_completed = self._metric_iteration_completed
