@@ -20,7 +20,7 @@ class CustomPeriodicEvent(object):
     .. code-block:: python
 
         from ignite.engine import Engine, Events
-        from ignite.handlers import CustomPeriodicEvent
+        from ignite.contrib.handlers import CustomPeriodicEvent
 
         # Let's define an event every 1000 iterations
         cpe1 = CustomPeriodicEvent(n_iterations=1000)
