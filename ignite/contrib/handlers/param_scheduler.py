@@ -307,11 +307,11 @@ class ConcatScheduler(ParamScheduler):
 
     def __init__(self, schedulers, durations, save_history=False):
 
-        if not isinstance(schedulers, (list, tuple)) or len(schedulers) < 2:
-            raise ValueError("Argument schedulers should be list/tuple of more than one parameter schedulers, "
+        if not isinstance(schedulers, Sequence) or len(schedulers) < 2:
+            raise ValueError("Argument schedulers should be a sequence of more than one parameter schedulers, "
                              "but given {}".format(schedulers))
 
-        if not isinstance(durations, (list, tuple)) or \
+        if not isinstance(durations, Sequence) or \
                 not all([isinstance(t, int) for t in durations]):
             raise ValueError("Argument durations should be list/tuple of integers, "
                              "but given {}".format(durations))
@@ -384,7 +384,7 @@ class ConcatScheduler(ParamScheduler):
             list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
 
         """
-        if param_names is not None and not isinstance(param_names, (tuple, list)):
+        if param_names is not None and not isinstance(param_names, (list, tuple)):
             raise ValueError("Argument param_names should be list or tuple of strings")
         output = []
 
@@ -592,6 +592,76 @@ class ParamGroupScheduler(object):
     def __call__(self, engine):
         for scheduler, name in zip(self.schedulers, self.names):
             scheduler(engine, name=name)
+
+
+class PiecewiseLinear(ParamScheduler):
+    """
+    Piecewise linear parameter scheduler
+
+    Args:
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
+        milestones_values (list of tuples (int, float)): list of tuples (event index, parameter value)
+            represents milestones and parameter. Milestones should be increasing integers.
+        save_history (bool, optional): whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    Returns:
+        PiecewiseLinear: piecewise linear scheduler
+
+
+    .. code-block:: python
+
+        scheduler = PiecewiseLinear(optimizer, "lr",
+                                    milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)])
+        # Attach to the trainer
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+        #
+        # Sets the learning rate to 0.5 over the first 10 iterations, then decreases linearly from 0.5 to 0.45 between
+        # 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and LR decreases linearly
+        # from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until the end of the iterations.
+        #
+    """
+
+    def __init__(self, optimizer, param_name, milestones_values, save_history=False):
+        super(PiecewiseLinear, self).__init__(optimizer, param_name, save_history)
+
+        if not isinstance(milestones_values, Sequence) or len(milestones_values) < 1:
+            raise ValueError("Argument milestones_values should be a list or tuple with at least one value, "
+                             "but given {}".format(type(milestones_values)))
+
+        values = []
+        milestones = []
+        for pair in milestones_values:
+            if not isinstance(pair, Sequence) or len(pair) != 2:
+                raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
+            if not isinstance(pair[0], int):
+                raise ValueError("Value of a milestone should be integer, but given {}".format(type(pair[0])))
+            if len(milestones) > 0 and pair[0] < milestones[-1]:
+                raise ValueError("Milestones should be increasing integers, but given {} is smaller "
+                                 "than the previous milestone {}".format(pair[0], milestones[-1]))
+            milestones.append(pair[0])
+            values.append(pair[1])
+
+        self.values = values
+        self.milestones = milestones
+        self._index = 0
+
+    def _get_start_end(self):
+        if self.milestones[0] > self.event_index:
+            return self.event_index - 1, self.event_index, self.values[0], self.values[0]
+        elif self.milestones[-1] <= self.event_index:
+            return self.event_index, self.event_index + 1, self.values[-1], self.values[-1],
+        elif self.milestones[self._index] <= self.event_index < self.milestones[self._index + 1]:
+            return self.milestones[self._index], self.milestones[self._index + 1], \
+                self.values[self._index], self.values[self._index + 1]
+        else:
+            self._index += 1
+            return self._get_start_end()
+
+    def get_param(self):
+        start_index, end_index, start_value, end_value = self._get_start_end()
+        return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
 
 def _replicate_scheduler(scheduler, save_history=False):
