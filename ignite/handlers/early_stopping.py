@@ -55,7 +55,7 @@ class EarlyStopping(object):
 
         if self.best_score is None:
             self.best_score = score
-        elif score < self.best_score:
+        elif score <= self.best_score:
             self.counter += 1
             self._logger.debug("EarlyStopping: %i / %i" % (self.counter, self.patience))
             if self.counter >= self.patience:
