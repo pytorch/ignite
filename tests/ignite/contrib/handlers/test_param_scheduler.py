@@ -1,5 +1,7 @@
 import pytest
 
+import numpy as np
+
 import torch
 
 from ignite.engine import Engine, Events
@@ -133,44 +135,51 @@ def test_concat_scheduler():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
-    scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
-    durations = [10, ]
+    def _test(duration_vals_as_np_int):
+        scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
+        scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
 
-    concat_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2],
-                                       durations=durations, save_history=True)
+        durations = [10, ]
+        if duration_vals_as_np_int:
+            durations = [np.int64(t) for t in durations]
 
-    data = [0] * 10
-    max_epochs = 2
-    simulated_values = ConcatScheduler.simulate_values(num_events=len(data) * max_epochs,
-                                                       schedulers=[scheduler_1, scheduler_2],
-                                                       durations=durations)
+        concat_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2],
+                                           durations=durations, save_history=True)
 
-    lrs = []
+        data = [0] * 10
+        max_epochs = 2
+        simulated_values = ConcatScheduler.simulate_values(num_events=len(data) * max_epochs,
+                                                           schedulers=[scheduler_1, scheduler_2],
+                                                           durations=durations)
 
-    def save_lr(engine):
-        lrs.append(optimizer.param_groups[0]['lr'])
+        lrs = []
 
-    trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.ITERATION_STARTED, concat_scheduler)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
-    trainer.run(data, max_epochs=max_epochs)
+        def save_lr(engine):
+            lrs.append(optimizer.param_groups[0]['lr'])
 
-    assert lrs == list(map(pytest.approx, [
-        # Cycle 1 of the LinearCyclicalScheduler
-        1.0, 0.8, 0.6, 0.4, 0.2,
-        0.0, 0.2, 0.4, 0.6, 0.8,
-        # Cycle 1 of the CosineAnnealingScheduler
-        0.0, 0.02447174185242318, 0.09549150281252627, 0.20610737385376332, 0.3454915028125263,
-        0.5, 0.6545084971874737, 0.7938926261462365, 0.9045084971874737, 0.9755282581475768,
-    ]))
+        trainer = Engine(lambda engine, batch: None)
+        trainer.add_event_handler(Events.ITERATION_STARTED, concat_scheduler)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+        trainer.run(data, max_epochs=max_epochs)
 
-    state_lrs = trainer.state.param_history['lr']
-    assert len(state_lrs) == len(lrs)
-    # Unpack singleton lists
-    assert [group[0] for group in state_lrs] == lrs
+        assert lrs == list(map(pytest.approx, [
+            # Cycle 1 of the LinearCyclicalScheduler
+            1.0, 0.8, 0.6, 0.4, 0.2,
+            0.0, 0.2, 0.4, 0.6, 0.8,
+            # Cycle 1 of the CosineAnnealingScheduler
+            0.0, 0.02447174185242318, 0.09549150281252627, 0.20610737385376332, 0.3454915028125263,
+            0.5, 0.6545084971874737, 0.7938926261462365, 0.9045084971874737, 0.9755282581475768,
+        ]))
 
-    assert lrs == pytest.approx([v for i, v in simulated_values])
+        state_lrs = trainer.state.param_history['lr']
+        assert len(state_lrs) == len(lrs)
+        # Unpack singleton lists
+        assert [group[0] for group in state_lrs] == lrs
+
+        assert lrs == pytest.approx([v for i, v in simulated_values])
+
+    _test(duration_vals_as_np_int=False)
+    _test(duration_vals_as_np_int=True)
 
 
 def test_concat_scheduler_3_schedulers():
@@ -338,33 +347,42 @@ def test_piecewiselinear_asserts():
 
 
 def test_piecewiselinear():
-    tensor = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler = PiecewiseLinear(optimizer, 'lr',
-                                milestones_values=[(5, 0.5),
-                                                   (15, 1.0),
-                                                   (25, 0.0),
-                                                   (35, 1.0),
-                                                   (40, 0.5)])
-    lrs = []
+    def _test(milestones_as_np_int):
+        tensor = torch.zeros([1], requires_grad=True)
+        optimizer = torch.optim.SGD([tensor], lr=0)
 
-    def save_lr(engine):
-        lrs.append(optimizer.param_groups[0]['lr'])
+        milestones_values = [(5, 0.5),
+                             (15, 1.0),
+                             (25, 0.0),
+                             (35, 1.0),
+                             (40, 0.5)]
+        if milestones_as_np_int:
+            milestones_values = [(np.int64(t), v) for t, v in milestones_values]
 
-    trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
-    trainer.run([0] * 25, max_epochs=2)
+        scheduler = PiecewiseLinear(optimizer, 'lr',
+                                    milestones_values=milestones_values)
+        lrs = []
 
-    assert lrs == list(map(pytest.approx, [
-        0.5, 0.5, 0.5, 0.5, 0.5,
-        0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
-        1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1,
-        0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
-        1.0, 0.9, 0.8, 0.7, 0.6,
-        0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5
-    ]))
+        def save_lr(engine):
+            lrs.append(optimizer.param_groups[0]['lr'])
+
+        trainer = Engine(lambda engine, batch: None)
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+        trainer.run([0] * 25, max_epochs=2)
+
+        assert lrs == list(map(pytest.approx, [
+            0.5, 0.5, 0.5, 0.5, 0.5,
+            0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
+            1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1,
+            0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+            1.0, 0.9, 0.8, 0.7, 0.6,
+            0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5
+        ]))
+
+    _test(milestones_as_np_int=True)
+    _test(milestones_as_np_int=False)
 
 
 def test_simulate_values():
