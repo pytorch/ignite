@@ -150,6 +150,38 @@ def test_has_event_handler():
     assert not engine.has_event_handler(m, Events.EPOCH_STARTED)
 
 
+def test_remove_event_handler():
+    engine = DummyEngine()
+
+    with pytest.raises(ValueError, match=r'Input event name'):
+        engine.remove_event_handler(lambda x: x, "an event")
+
+    def on_started(engine):
+        return 0
+
+    engine.add_event_handler(Events.STARTED, on_started)
+
+    with pytest.raises(ValueError, match=r'Input handler'):
+        engine.remove_event_handler(lambda x: x, Events.STARTED)
+
+    h1 = MagicMock()
+    h2 = MagicMock()
+    handlers = [h1, h2]
+    m = MagicMock()
+    for handler in handlers:
+        engine.add_event_handler(Events.EPOCH_STARTED, handler)
+    engine.add_event_handler(Events.EPOCH_COMPLETED, m)
+
+    assert len(engine._event_handlers[Events.EPOCH_STARTED]) == 2
+    engine.remove_event_handler(h1, Events.EPOCH_STARTED)
+    assert len(engine._event_handlers[Events.EPOCH_STARTED]) == 1
+    assert engine._event_handlers[Events.EPOCH_STARTED][0][0] == h2
+
+    assert len(engine._event_handlers[Events.EPOCH_COMPLETED]) == 1
+    engine.remove_event_handler(m, Events.EPOCH_COMPLETED)
+    assert len(engine._event_handlers[Events.EPOCH_COMPLETED]) == 0
+
+
 def test_args_and_kwargs_are_passed_to_event():
     engine = DummyEngine()
     kwargs = {'a': 'a', 'b': 'b'}
