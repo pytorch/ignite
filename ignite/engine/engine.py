@@ -163,6 +163,23 @@ class Engine(object):
                     return True
         return False
 
+    def remove_event_handler(self, handler, event_name):
+        """Remove event handler `handler` from registered handlers of the engine
+
+        Args:
+            handler (callable): the callable event handler that should be removed
+            event_name: The event the handler attached to.
+
+        """
+        if event_name not in self._event_handlers:
+            raise ValueError("Input event name '{}' does not exist".format(event_name))
+
+        new_event_handlers = [(h, args, kwargs) for h, args, kwargs in self._event_handlers[event_name]
+                              if h != handler]
+        if len(new_event_handlers) == len(self._event_handlers[event_name]):
+            raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
+        self._event_handlers[event_name] = new_event_handlers
+
     def _check_signature(self, fn, fn_description, *args, **kwargs):
         exception_msg = None
 
