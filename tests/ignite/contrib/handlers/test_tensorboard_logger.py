@@ -1,14 +1,13 @@
 import os
 import tempfile
 import shutil
+import math
 
 import pytest
 
-from mock import MagicMock, call
+from mock import MagicMock, call, ANY
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.tensorboard_logger import *
@@ -21,134 +20,359 @@ def dirname():
     shutil.rmtree(path)
 
 
-@pytest.mark.skipif("dev" in torch.__version__, reason="TensorboardX fails on Pytorch 1.0.0.dev20190301")
-def test_log_graph(dirname):
+def test_optimizer_params_handler_wrong_setup():
 
-    class Net(nn.Module):
-        def __init__(self):
-            super(Net, self).__init__()
-            self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-            self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-            self.conv2_drop = nn.Dropout2d()
-            self.fc1 = nn.Linear(320, 50)
-            self.fc2 = nn.Linear(50, 10)
+    with pytest.raises(TypeError):
+        optimizer_params_handler(optimizer=None)
 
-        def forward(self, x):
-            x = F.relu(F.max_pool2d(self.conv1(x), 2))
-            x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-            x = x.view(-1, 320)
-            x = F.relu(self.fc1(x))
-            x = F.dropout(x, training=self.training)
-            x = self.fc2(x)
-            return F.log_softmax(x, dim=-1)
+    optimizer = MagicMock(spec=torch.optim.Optimizer)
+    wrapper = optimizer_params_handler(optimizer=optimizer)
 
-    tb_logger = TensorboardLogger(log_dir=dirname)
-
-    model = Net()
-    x = torch.rand(2, 1, 28, 28)
-    tb_logger.log_graph(model, x)
-    tb_logger = None
-
-    files = [f for f in os.listdir(dirname)]
-    assert len(files) >= 1 and "events.out.tfevents" in files[0]
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'optimizer_params_handler' works only with TensorboardLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_attach(dirname):
+def test_optimizer_params():
 
-    n_epochs = 5
-    data = list(range(50))
+    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    wrapper = optimizer_params_handler(optimizer=optimizer, param_name="lr")
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 123
 
-    def _test(event, event_name, n_calls):
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.writer.add_scalar.assert_called_once_with("lr/group_0", 0.01, 123)
 
-        losses = torch.rand(n_epochs * len(data))
-        losses_iter = iter(losses)
 
-        def update_fn(engine, batch):
-            return next(losses_iter)
+def test_output_handler_with_wrong_logger_type():
 
-        trainer = Engine(update_fn)
+    wrapper = output_handler("tag", output_transform=lambda x: x)
 
-        tb_logger = TensorboardLogger(log_dir=dirname)
-
-        mock_log_handler = MagicMock()
-
-        tb_logger.attach(trainer,
-                         log_handler=mock_log_handler,
-                         event_name=event)
-
-        trainer.run(data, max_epochs=n_epochs)
-
-        mock_log_handler.assert_called_with(trainer, tb_logger.writer, event_name)
-        assert mock_log_handler.call_count == n_calls
-
-    _test(Events.ITERATION_STARTED, "iteration", len(data) * n_epochs)
-    _test(Events.ITERATION_COMPLETED, "iteration", len(data) * n_epochs)
-    _test(Events.EPOCH_STARTED, "epoch", n_epochs)
-    _test(Events.EPOCH_COMPLETED, "epoch", n_epochs)
-    _test(Events.STARTED, "epoch", 1)
-    _test(Events.COMPLETED, "epoch", 1)
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'output_handler' works only with TensorboardLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_output_handler_output_transform(dirname):
 
     wrapper = output_handler("tag", output_transform=lambda x: x)
-    mock_writer = MagicMock()
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.output = 12345
     mock_engine.state.iteration = 123
 
-    wrapper(mock_engine, mock_writer, state_attr="iteration")
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    mock_writer.add_scalar.assert_called_once_with("tag/output", 12345, 123)
+    mock_logger.writer.add_scalar.assert_called_once_with("tag/output", 12345, 123)
 
     wrapper = output_handler("another_tag", output_transform=lambda x: {"loss": x})
-    mock_writer = MagicMock()
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.output = 12345
-    mock_engine.state.iteration = 123
-
-    wrapper(mock_engine, mock_writer, state_attr="iteration")
-
-    mock_writer.add_scalar.assert_called_once_with("another_tag/loss", 12345, 123)
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.writer.add_scalar.assert_called_once_with("another_tag/loss", 12345, 123)
 
 
 def test_output_handler_metric_names(dirname):
 
     wrapper = output_handler("tag", metric_names=["a", "b"])
-    mock_writer = MagicMock()
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
     mock_engine.state.iteration = 5
 
-    wrapper(mock_engine, mock_writer, state_attr="iteration")
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_writer.add_scalar.call_count == 2
-    mock_writer.add_scalar.assert_has_calls([
+    assert mock_logger.writer.add_scalar.call_count == 2
+    mock_logger.writer.add_scalar.assert_has_calls([
         call("tag/a", 12.23, 5),
         call("tag/b", 23.45, 5),
+    ], any_order=True)
+
+    wrapper = output_handler("tag", metric_names=["a", ])
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state.iteration = 5
+
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.writer.add_scalar.call_count == 4
+    mock_logger.writer.add_scalar.assert_has_calls([
+        call("tag/a/0", 0.0, 5),
+        call("tag/a/1", 1.0, 5),
+        call("tag/a/2", 2.0, 5),
+        call("tag/a/3", 3.0, 5),
     ], any_order=True)
 
 
 def test_output_handler_both(dirname):
 
     wrapper = output_handler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
-    mock_writer = MagicMock()
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
     mock_engine.state.epoch = 5
     mock_engine.state.output = 12345
 
-    wrapper(mock_engine, mock_writer, state_attr="epoch")
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_writer.add_scalar.call_count == 3
-    mock_writer.add_scalar.assert_has_calls([
+    assert mock_logger.writer.add_scalar.call_count == 3
+    mock_logger.writer.add_scalar.assert_has_calls([
         call("tag/a", 12.23, 5),
         call("tag/b", 23.45, 5),
         call("tag/loss", 12345, 5)
     ], any_order=True)
+
+
+def test_weights_scalar_handler_wrong_setup():
+
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        weights_scalar_handler(None)
+
+    model = MagicMock(spec=torch.nn.Module)
+    with pytest.raises(TypeError, match="Argument reduction should be callable"):
+        weights_scalar_handler(model, reduction=123)
+
+    wrapper = weights_scalar_handler(model)
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'weights_scalar_handler' works only with TensorboardLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+
+def test_weights_scalar_handler():
+
+    class DummyModel(torch.nn.Module):
+
+        def __init__(self):
+            super(DummyModel, self).__init__()
+            self.fc1 = torch.nn.Linear(10, 10)
+            self.fc2 = torch.nn.Linear(12, 12)
+            self.fc1.weight.data.zero_()
+            self.fc1.bias.data.zero_()
+            self.fc2.weight.data.fill_(1.0)
+            self.fc2.bias.data.fill_(1.0)
+
+    model = DummyModel()
+
+    wrapper = weights_scalar_handler(model)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    assert mock_logger.writer.add_scalar.call_count == 4
+    mock_logger.writer.add_scalar.assert_has_calls([
+        call("weights_norm/fc1/weight", 0.0, 5),
+        call("weights_norm/fc1/bias", 0.0, 5),
+        call("weights_norm/fc2/weight", 12.0, 5),
+        call("weights_norm/fc2/bias", math.sqrt(12.0), 5),
+    ], any_order=True)
+
+
+def test_weights_hist_handler_wrong_setup():
+
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        weights_scalar_handler(None)
+
+    model = MagicMock(spec=torch.nn.Module)
+    wrapper = weights_hist_handler(model)
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'weights_hist_handler' works only with TensorboardLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+
+def test_weights_hist_handler():
+
+    class DummyModel(torch.nn.Module):
+
+        def __init__(self):
+            super(DummyModel, self).__init__()
+            self.fc1 = torch.nn.Linear(10, 10)
+            self.fc2 = torch.nn.Linear(12, 12)
+            self.fc1.weight.data.zero_()
+            self.fc1.bias.data.zero_()
+            self.fc2.weight.data.fill_(1.0)
+            self.fc2.bias.data.fill_(1.0)
+
+    model = DummyModel()
+
+    wrapper = weights_hist_handler(model)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    assert mock_logger.writer.add_histogram.call_count == 4
+    mock_logger.writer.add_histogram.assert_has_calls([
+        call(tag="weights/fc1/weight", values=ANY, global_step=5),
+        call(tag="weights/fc1/bias", values=ANY, global_step=5),
+        call(tag="weights/fc2/weight", values=ANY, global_step=5),
+        call(tag="weights/fc2/bias", values=ANY, global_step=5),
+    ], any_order=True)
+
+
+def test_grads_scalar_handler_wrong_setup():
+
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        weights_scalar_handler(None)
+
+    model = MagicMock(spec=torch.nn.Module)
+    with pytest.raises(TypeError, match="Argument reduction should be callable"):
+        weights_scalar_handler(model, reduction=123)
+
+    wrapper = weights_scalar_handler(model)
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'weights_scalar_handler' works only with TensorboardLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+
+def test_grads_scalar_handler():
+
+    class DummyModel(torch.nn.Module):
+
+        def __init__(self):
+            super(DummyModel, self).__init__()
+            self.fc1 = torch.nn.Linear(10, 10)
+            self.fc2 = torch.nn.Linear(12, 12)
+            self.fc1.weight.data.zero_()
+            self.fc1.bias.data.zero_()
+            self.fc2.weight.data.fill_(1.0)
+            self.fc2.bias.data.fill_(1.0)
+
+    model = DummyModel()
+
+    def norm(x):
+        return 0.0
+
+    wrapper = grads_scalar_handler(model, reduction=norm)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    assert mock_logger.writer.add_scalar.call_count == 4
+
+    # print(mock_logger.writer.add_scalar.mock_calls)
+    # assert False
+
+    mock_logger.writer.add_scalar.assert_has_calls([
+        call("grads_norm/fc1/weight", ANY, 5),
+        call("grads_norm/fc1/bias", ANY, 5),
+        call("grads_norm/fc2/weight", ANY, 5),
+        call("grads_norm/fc2/bias", ANY, 5),
+    ], any_order=True)
+
+
+def test_grads_hist_handler_wrong_setup():
+
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        weights_scalar_handler(None)
+
+    model = MagicMock(spec=torch.nn.Module)
+    wrapper = grads_hist_handler(model)
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'grads_hist_handler' works only with TensorboardLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+
+def test_grads_hist_handler():
+
+    class DummyModel(torch.nn.Module):
+
+        def __init__(self):
+            super(DummyModel, self).__init__()
+            self.fc1 = torch.nn.Linear(10, 10)
+            self.fc2 = torch.nn.Linear(12, 12)
+            self.fc1.weight.data.zero_()
+            self.fc1.bias.data.zero_()
+            self.fc2.weight.data.fill_(1.0)
+            self.fc2.bias.data.fill_(1.0)
+
+    model = DummyModel()
+
+    wrapper = grads_hist_handler(model)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+
+    model.fc1.weight.grad = torch.zeros_like(model.fc1.weight)
+    model.fc1.bias.grad = torch.zeros_like(model.fc1.bias)
+
+    model.fc2.weight.grad = torch.zeros_like(model.fc2.weight)
+    model.fc2.bias.grad = torch.zeros_like(model.fc2.bias)
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    assert mock_logger.writer.add_histogram.call_count == 4
+    mock_logger.writer.add_histogram.assert_has_calls([
+        call(tag="grads/fc1/weight", values=ANY, global_step=5),
+        call(tag="grads/fc1/bias", values=ANY, global_step=5),
+        call(tag="grads/fc2/weight", values=ANY, global_step=5),
+        call(tag="grads/fc2/bias", values=ANY, global_step=5),
+    ], any_order=True)
+
+
+def test_integration(dirname):
+
+    n_epochs = 5
+    data = list(range(50))
+
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
+
+    def update_fn(engine, batch):
+        return next(losses_iter)
+
+    trainer = Engine(update_fn)
+
+    tb_logger = TensorboardLogger(log_dir=dirname)
+
+    def dummy_handler(engine, logger, event_name):
+        global_step = engine.state.get_event_attrib_value(event_name)
+        logger.writer.add_scalar("test_value", global_step, global_step)
+
+    tb_logger.attach(trainer,
+                     log_handler=dummy_handler,
+                     event_name=Events.EPOCH_COMPLETED)
+
+    trainer.run(data, max_epochs=n_epochs)
+
+    # Check if event files are present
+    written_files = os.listdir(dirname)
+    written_files = [f for f in written_files if "tfevents" in f]
+    assert len(written_files) > 0

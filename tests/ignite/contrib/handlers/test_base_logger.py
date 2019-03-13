@@ -1,0 +1,152 @@
+import math
+import torch
+
+from ignite.engine import Engine, State, Events
+from ignite.contrib.handlers.base_logger import BaseLogger, _setup_output_handler_metrics, _check_output_handler_params
+from ignite.contrib.handlers import CustomPeriodicEvent
+
+import pytest
+
+from mock import MagicMock, call
+
+
+class DummyLogger(BaseLogger):
+
+    def _close(self):
+        pass
+
+
+def test__setup_output_handler_metrics():
+
+    engine = Engine(lambda engine, batch: None)
+    true_metrics = {"a": 0, "b": 1}
+    engine.state = State(metrics=true_metrics)
+    engine.state.output = 12345
+
+    # Only metric_names
+    metrics = _setup_output_handler_metrics(metric_names=['a', 'b'], output_transform=None,
+                                            engine=engine)
+    assert metrics == true_metrics
+
+    # Only metric_names with a warning
+    with pytest.warns(UserWarning):
+        metrics = _setup_output_handler_metrics(metric_names=['a', 'c'], output_transform=None,
+                                                engine=engine)
+    assert metrics == {"a": 0}
+
+    # Only output as "output"
+    metrics = _setup_output_handler_metrics(metric_names=None, output_transform=lambda x: x,
+                                            engine=engine)
+    assert metrics == {"output": engine.state.output}
+
+    # Only output as "loss"
+    metrics = _setup_output_handler_metrics(metric_names=None, output_transform=lambda x: {"loss": x},
+                                            engine=engine)
+    assert metrics == {"loss": engine.state.output}
+
+    # Metrics and output
+    metrics = _setup_output_handler_metrics(metric_names=['a', 'b'], output_transform=lambda x: {"loss": x},
+                                            engine=engine)
+    assert metrics == {"a": 0, "b": 1, "loss": engine.state.output}
+
+
+def test__check_output_handler_params():
+
+    with pytest.raises(TypeError, match="metric_names should be a list"):
+        _check_output_handler_params(metric_names="abc", output_transform=None)
+
+    with pytest.raises(TypeError, match="output_transform should be a function"):
+        _check_output_handler_params(metric_names=None, output_transform="abc")
+
+    with pytest.raises(ValueError, match="Either metric_names or output_transform should be defined"):
+        _check_output_handler_params(None, None)
+
+
+def test_attach():
+
+    n_epochs = 5
+    data = list(range(50))
+
+    def _test(event, n_calls):
+
+        losses = torch.rand(n_epochs * len(data))
+        losses_iter = iter(losses)
+
+        def update_fn(engine, batch):
+            return next(losses_iter)
+
+        trainer = Engine(update_fn)
+
+        logger = DummyLogger()
+
+        mock_log_handler = MagicMock()
+
+        logger.attach(trainer,
+                      log_handler=mock_log_handler,
+                      event_name=event)
+
+        trainer.run(data, max_epochs=n_epochs)
+
+        mock_log_handler.assert_called_with(trainer, logger, event)
+        assert mock_log_handler.call_count == n_calls
+
+    _test(Events.ITERATION_STARTED, len(data) * n_epochs)
+    _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
+    _test(Events.EPOCH_STARTED, n_epochs)
+    _test(Events.EPOCH_COMPLETED, n_epochs)
+    _test(Events.STARTED, 1)
+    _test(Events.COMPLETED, 1)
+
+
+def test_attach_on_custom_event():
+
+    n_epochs = 10
+    data = list(range(150))
+
+    def _test(event, n_calls, cpe):
+
+        losses = torch.rand(n_epochs * len(data))
+        losses_iter = iter(losses)
+
+        def update_fn(engine, batch):
+            return next(losses_iter)
+
+        trainer = Engine(update_fn)
+        cpe.attach(trainer)
+
+        logger = DummyLogger()
+
+        mock_log_handler = MagicMock()
+
+        logger.attach(trainer,
+                      log_handler=mock_log_handler,
+                      event_name=event)
+
+        trainer.run(data, max_epochs=n_epochs)
+
+        mock_log_handler.assert_called_with(trainer, logger, event)
+        assert mock_log_handler.call_count == n_calls
+
+    n_iterations = 10
+    cpe1 = CustomPeriodicEvent(n_iterations=n_iterations)
+    n = len(data) * n_epochs / n_iterations
+    nf = math.floor(n)
+    ns = nf + 1 if nf < n else nf
+    _test(cpe1.Events.ITERATIONS_10_STARTED, ns, cpe1)
+    _test(cpe1.Events.ITERATIONS_10_COMPLETED, nf, cpe1)
+
+    n_iterations = 15
+    cpe2 = CustomPeriodicEvent(n_iterations=n_iterations)
+    n = len(data) * n_epochs / n_iterations
+    nf = math.floor(n)
+    ns = nf + 1 if nf < n else nf
+    _test(cpe2.Events.ITERATIONS_15_STARTED, ns, cpe2)
+    _test(cpe2.Events.ITERATIONS_15_COMPLETED, nf, cpe2)
+
+    n_custom_epochs = 2
+    cpe3 = CustomPeriodicEvent(n_epochs=n_custom_epochs)
+    n = n_epochs / n_custom_epochs
+    nf = math.floor(n)
+    ns = nf + 1 if nf < n else nf
+    _test(cpe3.Events.EPOCHS_2_STARTED, ns, cpe3)
+    _test(cpe3.Events.EPOCHS_2_COMPLETED, nf, cpe3)

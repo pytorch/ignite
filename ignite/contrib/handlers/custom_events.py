@@ -1,5 +1,5 @@
 from enum import Enum
-from ignite.engine import Events
+from ignite.engine import Events, State
 
 
 class CustomPeriodicEvent(object):
@@ -77,6 +77,10 @@ class CustomPeriodicEvent(object):
             "{}_STARTED".format(event_name),
             "{}_COMPLETED".format(event_name)])
         ))
+        # Update State.event_to_attr
+        for e in self.Events:
+            State.event_to_attr[e] = self.custom_state_attr
+
         # Create aliases
         self._periodic_event_started = getattr(self.Events, "{}_STARTED".format(event_name))
         self._periodic_event_completed = getattr(self.Events, "{}_COMPLETED".format(event_name))
