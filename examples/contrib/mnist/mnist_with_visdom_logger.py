@@ -1,20 +1,20 @@
 """
- MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
+ MNIST example with training and validation monitoring using Visdom.
 
  Requirements:
-    TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
-    Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
+    Visdom (https://github.com/facebookresearch/visdom.git):
+    `pip install git+https://github.com/facebookresearch/visdom.git`
 
  Usage:
 
-    Start tensorboard:
+    Start visdom server:
     ```bash
-    tensorboard --logdir=/tmp/tensorboard_logs/
+    visdom
     ```
 
     Run the example:
     ```bash
-    python mnist_with_tensorboard_logger.py --log_dir=/tmp/tensorboard_logs
+    python mnist_with_visdom_logger.py
     ```
 """
 from __future__ import print_function
@@ -32,7 +32,7 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
-from ignite.contrib.handlers.tensorboard_logger import *
+from ignite.contrib.handlers.visdom_logger import *
 
 
 LOG_INTERVAL = 10
@@ -93,43 +93,43 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
         train_evaluator.run(train_loader)
         validation_evaluator.run(val_loader)
 
-    tb_logger = TensorboardLogger(log_dir=log_dir)
+    vd_logger = VisdomLogger(log_dir=log_dir)
 
-    tb_logger.attach(trainer,
+    vd_logger.attach(trainer,
                      log_handler=output_handler(tag="training", output_transform=lambda loss: {'loss': loss}),
                      event_name=Events.ITERATION_COMPLETED)
 
-    tb_logger.attach(train_evaluator,
+    vd_logger.attach(train_evaluator,
                      log_handler=output_handler(tag="training",
                                                 metric_names=["loss", "accuracy"],
                                                 another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
 
-    tb_logger.attach(validation_evaluator,
+    vd_logger.attach(validation_evaluator,
                      log_handler=output_handler(tag="validation",
                                                 metric_names=["loss", "accuracy"],
                                                 another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
-
-    tb_logger.attach(trainer,
-                     log_handler=optimizer_params_handler(optimizer),
-                     event_name=Events.ITERATION_COMPLETED)
-
-    tb_logger.attach(trainer,
-                     log_handler=weights_scalar_handler(model),
-                     event_name=Events.ITERATION_COMPLETED)
-
-    tb_logger.attach(trainer,
-                     log_handler=weights_hist_handler(model),
-                     event_name=Events.EPOCH_COMPLETED)
-
-    tb_logger.attach(trainer,
-                     log_handler=grads_scalar_handler(model),
-                     event_name=Events.ITERATION_COMPLETED)
-
-    tb_logger.attach(trainer,
-                     log_handler=grads_hist_handler(model),
-                     event_name=Events.EPOCH_COMPLETED)
+    #
+    # tb_logger.attach(trainer,
+    #                  log_handler=optimizer_params_handler(optimizer),
+    #                  event_name=Events.ITERATION_COMPLETED)
+    #
+    # tb_logger.attach(trainer,
+    #                  log_handler=weights_scalar_handler(model),
+    #                  event_name=Events.ITERATION_COMPLETED)
+    #
+    # tb_logger.attach(trainer,
+    #                  log_handler=weights_hist_handler(model),
+    #                  event_name=Events.EPOCH_COMPLETED)
+    #
+    # tb_logger.attach(trainer,
+    #                  log_handler=grads_scalar_handler(model),
+    #                  event_name=Events.ITERATION_COMPLETED)
+    #
+    # tb_logger.attach(trainer,
+    #                  log_handler=grads_hist_handler(model),
+    #                  event_name=Events.EPOCH_COMPLETED)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)

@@ -11,6 +11,28 @@ __all__ = ['TensorboardLogger', 'optimizer_params_handler', 'output_handler',
 
 
 def optimizer_params_handler(optimizer, param_name="lr"):
+    """Helper handler to log optimizer parameters
+
+    Examples:
+
+        ..code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
+            tb_logger.attach(trainer,
+                             log_handler=optimizer_params_handler(optimizer),
+                             event_name=Events.ITERATION_STARTED)
+
+
+    Args:
+        optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
+        param_name (str): parameter name
+
+    """
 
     if not isinstance(optimizer, torch.optim.Optimizer):
         raise TypeError("Argument optimizer should be of type torch.optim.Optimizer, "
@@ -32,6 +54,35 @@ def optimizer_params_handler(optimizer, param_name="lr"):
 
 
 def output_handler(tag, metric_names=None, output_transform=None, another_engine=None):
+    """Helper handler to log engine's output and/or metrics
+
+    Examples:
+
+        ..code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
+            # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
+            tb_logger.attach(evaluator,
+                             log_handler=output_handler(tag="validation",
+                                                        metric_names=["nll", "accuracy"],
+                                                        another_engine=trainer),
+                             event_name=Events.EPOCH_COMPLETED)
+
+    Args:
+        tag (str): common title for all produced plots. For example, 'training'
+        metric_names (list of str, optional): list of metric names to plot.
+        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+            For example, `output_transform = lambda output: output`
+            This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+            with corresponding keys.
+        another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
+            the trainer if this handler is attached to a evaluator and log proper trainer's epoch/iteration value.
+    """
 
     _check_output_handler_params(metric_names, output_transform)
 
@@ -190,11 +241,7 @@ class TensorboardLogger(BaseLogger):
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
             tb_logger.attach(trainer,
                              log_handler=optimizer_params_handler(optimizer),
-                             event_name=Events.ITERATION_COMPLETED)
-
-            # Log model's graph
-            x, _ = next(iter(train_loader))
-            tb_logger.log_graph(model, x.to(device))
+                             event_name=Events.ITERATION_STARTED)
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
             tb_logger.attach(trainer,
@@ -222,7 +269,8 @@ class TensorboardLogger(BaseLogger):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
-            raise RuntimeError("This contrib module requires tensorboardX to be installed.")
+            raise RuntimeError("This contrib module requires tensorboardX to be installed."
+                               "Please install it with command: \n pip install tensorboardX")
 
         self.writer = SummaryWriter(log_dir=log_dir)
 
