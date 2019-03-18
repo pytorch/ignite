@@ -33,9 +33,7 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.contrib.handlers.visdom_logger import *
-
-
-LOG_INTERVAL = 10
+from ignite.contrib.handlers import CustomPeriodicEvent
 
 
 class Net(nn.Module):
@@ -80,6 +78,9 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
 
+    cpe = CustomPeriodicEvent(n_iterations=100)
+    cpe.attach(trainer)
+
     metrics = {
         'accuracy': Accuracy(),
         'loss': Loss(criterion)
@@ -93,11 +94,11 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
         train_evaluator.run(train_loader)
         validation_evaluator.run(val_loader)
 
-    vd_logger = VisdomLogger(log_dir=log_dir)
+    vd_logger = VisdomLogger(env="mnist_training")
 
     vd_logger.attach(trainer,
-                     log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
-                     event_name=Events.ITERATION_COMPLETED)
+                     log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'batchloss': loss}),
+                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
 
     vd_logger.attach(train_evaluator,
                      log_handler=OutputHandler(tag="training",
@@ -110,15 +111,15 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
                                                metric_names=["loss", "accuracy"],
                                                another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
-    #
-    # tb_logger.attach(trainer,
-    #                  log_handler=optimizer_params_handler(optimizer),
-    #                  event_name=Events.ITERATION_COMPLETED)
-    #
-    # tb_logger.attach(trainer,
-    #                  log_handler=weights_scalar_handler(model),
-    #                  event_name=Events.ITERATION_COMPLETED)
-    #
+    
+    vd_logger.attach(trainer,
+                     log_handler=OptimizerParamsHandler(optimizer),
+                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
+    
+    vd_logger.attach(trainer,
+                     log_handler=WeightsScalarHandler(model),
+                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
+    
     # tb_logger.attach(trainer,
     #                  log_handler=weights_hist_handler(model),
     #                  event_name=Events.EPOCH_COMPLETED)
@@ -147,7 +148,7 @@ if __name__ == "__main__":
                         help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.5,
                         help='SGD momentum (default: 0.5)')
-    parser.add_argument("--log_dir", type=str, default="tensorboard_logs",
+    parser.add_argument("--log_dir", type=str, default="visdom_logs",
                         help="log directory for Tensorboard log output")
 
     args = parser.parse_args()

@@ -2,7 +2,7 @@ import math
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.contrib.handlers.base_logger import BaseLogger, _setup_output_handler_metrics, _check_output_handler_params
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.contrib.handlers import CustomPeriodicEvent
 
 import pytest
@@ -16,7 +16,28 @@ class DummyLogger(BaseLogger):
         pass
 
 
-def test__setup_output_handler_metrics():
+class DummyOutputHandler(BaseOutputHandler):
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+def test_base_output_handler_wrong_setup():
+
+    with pytest.raises(TypeError, match="metric_names should be a list"):
+        DummyOutputHandler("tag", metric_names="abc", output_transform=None)
+
+    with pytest.raises(TypeError, match="output_transform should be a function"):
+        DummyOutputHandler("tag", metric_names=None, output_transform="abc")
+
+    with pytest.raises(ValueError, match="Either metric_names or output_transform should be defined"):
+        DummyOutputHandler("tag", None, None)
+
+    with pytest.raises(TypeError, match="Argument another_engine should be of type Engine"):
+        DummyOutputHandler("tag", ["a", "b"], None, another_engine=123)
+
+
+def test_base_output_handler_setup_output_metrics():
 
     engine = Engine(lambda engine, batch: None)
     true_metrics = {"a": 0, "b": 1}
@@ -24,42 +45,30 @@ def test__setup_output_handler_metrics():
     engine.state.output = 12345
 
     # Only metric_names
-    metrics = _setup_output_handler_metrics(metric_names=['a', 'b'], output_transform=None,
-                                            engine=engine)
+    handler = DummyOutputHandler("tag", metric_names=['a', 'b'], output_transform=None)
+    metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == true_metrics
 
     # Only metric_names with a warning
+    handler = DummyOutputHandler("tag", metric_names=['a', 'c'], output_transform=None)
     with pytest.warns(UserWarning):
-        metrics = _setup_output_handler_metrics(metric_names=['a', 'c'], output_transform=None,
-                                                engine=engine)
+        metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == {"a": 0}
 
     # Only output as "output"
-    metrics = _setup_output_handler_metrics(metric_names=None, output_transform=lambda x: x,
-                                            engine=engine)
+    handler = DummyOutputHandler("tag", metric_names=None, output_transform=lambda x: x)
+    metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == {"output": engine.state.output}
 
     # Only output as "loss"
-    metrics = _setup_output_handler_metrics(metric_names=None, output_transform=lambda x: {"loss": x},
-                                            engine=engine)
+    handler = DummyOutputHandler("tag", metric_names=None, output_transform=lambda x: {"loss": x})
+    metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == {"loss": engine.state.output}
 
     # Metrics and output
-    metrics = _setup_output_handler_metrics(metric_names=['a', 'b'], output_transform=lambda x: {"loss": x},
-                                            engine=engine)
+    handler = DummyOutputHandler("tag", metric_names=['a', 'b'], output_transform=lambda x: {"loss": x})
+    metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == {"a": 0, "b": 1, "loss": engine.state.output}
-
-
-def test__check_output_handler_params():
-
-    with pytest.raises(TypeError, match="metric_names should be a list"):
-        _check_output_handler_params(metric_names="abc", output_transform=None)
-
-    with pytest.raises(TypeError, match="output_transform should be a function"):
-        _check_output_handler_params(metric_names=None, output_transform="abc")
-
-    with pytest.raises(ValueError, match="Either metric_names or output_transform should be defined"):
-        _check_output_handler_params(None, None)
 
 
 def test_attach():

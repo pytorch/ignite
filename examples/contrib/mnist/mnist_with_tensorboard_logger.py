@@ -96,7 +96,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     tb_logger = TensorboardLogger(log_dir=log_dir)
 
     tb_logger.attach(trainer,
-                     log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
+                     log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'batchloss': loss}),
                      event_name=Events.ITERATION_COMPLETED)
 
     tb_logger.attach(train_evaluator,
@@ -132,8 +132,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
                      event_name=Events.EPOCH_COMPLETED)
 
     # kick everything off
-    trainer.run(train_loader, max_epochs=epochs)
+    trainer.run(train_loader, max_epochs=epochs)    
+    print("End of the training")
 
+    tb_logger.close()
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -161,3 +163,4 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_dir)
+    print("Exit main")
