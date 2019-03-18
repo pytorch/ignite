@@ -4,14 +4,14 @@ import numbers
 import warnings
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, _check_output_handler_params, _setup_output_handler_metrics
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
+    BaseWeightsScalarHandler, BaseWeightsHistHandler
 
 
-__all__ = ['VisdomLogger', 'output_handler']
+__all__ = ['VisdomLogger', 'OutputHandler']
 
 
-def output_handler(tag, metric_names=None, output_transform=None, another_engine=None,
-                   env=None, show_legend=False):
+class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
     Examples:
@@ -26,9 +26,9 @@ def output_handler(tag, metric_names=None, output_transform=None, another_engine
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
             vd_logger.attach(evaluator,
-                             log_handler=output_handler(tag="validation",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
+                             log_handler=OutputHandler(tag="validation",
+                                                       metric_names=["nll", "accuracy"],
+                                                       another_engine=trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
     Args:
@@ -38,71 +38,79 @@ def output_handler(tag, metric_names=None, output_transform=None, another_engine
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
             with corresponding keys.
-        another_engine (Engine, optional): another engine to use to provide the value of event. Typically, user can
-            provide the trainer if this handler is attached to a evaluator and log proper trainer's epoch/iteration
-            value.
-        show_legend (bool, optional): ...
+        another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
+            the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
+            epoch/iteration value.
+        env (): visdom's environment passed to trace lines
+        show_legend (bool, optional): flag to show legend in the window
     """
 
-    _check_output_handler_params(metric_names, output_transform)
+    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None,
+                 env=None, show_legend=False):
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine)
 
-    # Create windows
-    windows = {}
+        self.windows = {}
+        self.env = env
+        self.show_legend = show_legend
 
-    def wrapper(engine, logger, event_name):
+    def __call__(self, engine, logger, event_name):
 
         if not isinstance(logger, VisdomLogger):
-            raise RuntimeError("Handler 'output_handler' works only with VisdomLogger")
+            raise RuntimeError("Handler 'OutputHandler' works only with VisdomLogger")
 
-        metrics = _setup_output_handler_metrics(metric_names, output_transform, engine)
+        metrics = self._setup_output_metrics(engine)
 
-        state = engine.state if another_engine is None else another_engine.state
+        state = engine.state if self.another_engine is None else self.another_engine.state
         global_step = state.get_event_attrib_value(event_name)
 
         for key, value in metrics.items():
 
-            if key not in windows:
-                windows[key] = {
-                    'win': None,
-                    'opts': {
-                        'title': "{}/{}".format(tag, key),
-                        'xlabel': str(event_name),
-                        'ylabel': key,
-                        'showlegend': show_legend
-                    }
-                }
-
-            ret = None
-            update = None if windows[key]['win'] is None else 'append'
+            values = []
+            keys = []
             if isinstance(value, numbers.Number):
-                ret = logger.vis.line(
-                    X=torch.Tensor([global_step]),
-                    Y=torch.Tensor([value]),
-                    env=env,
-                    win=windows[key]['win'],
-                    update=update,
-                    opts=windows[key]['opts'],
-                    name="{}/{}".format(tag, key),
-                )
+                values.append(value)
+                keys.append(key)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    ret = logger.vis.line(
-                        X=torch.Tensor([global_step]),
-                        Y=torch.Tensor([v]),
-                        env=env,
-                        win=windows[key]['win'],
-                        update=update,
-                        opts=windows[key]['opts'],
-                        name="{}/{}/{}".format(tag, key, i),
-                    )
+                values = value
+                keys = ["{}/{}".format(key, i) for i in range(len(value))]
             else:
                 warnings.warn("VisdomLogger output_handler can not log "
                               "metrics value type {}".format(type(value)))
 
-            if windows[key]['win'] is None:
-                windows[key]['win'] = ret
+            for k, v in zip(keys, values):
+                k = "{}/{}".format(self.tag, k)
+                if k not in self.windows:
+                    self.windows[k] = {
+                        'win': None,
+                        'opts': {
+                            'title': k,
+                            'xlabel': str(event_name),
+                            'ylabel': k,
+                            'showlegend': self.show_legend
+                        }
+                    }
 
-    return wrapper
+                update = None if self.windows[k]['win'] is None else 'append'
+                ret = logger.vis.line(
+                    X=[global_step, ],
+                    Y=[v, ],
+                    env=self.env,
+                    win=self.windows[k]['win'],
+                    update=update,
+                    opts=self.windows[k]['opts'],
+                    name=k,
+                )
+                if self.windows[k]['win'] is None:
+                    self.windows[k]['win'] = ret
+
+
+class OptimizerParamsHandler(BaseOptimizerParamsHandler):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        pass
 
 
 class VisdomLogger(BaseLogger):
@@ -123,23 +131,23 @@ class VisdomLogger(BaseLogger):
 
             # Attach the logger to the trainer to log training loss at each iteration
             vd_logger.attach(trainer,
-                             log_handler=output_handler(tag="training", output_transform=lambda loss: {'loss': loss}),
+                             log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
                              event_name=Events.ITERATION_COMPLETED)
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `train_evaluator`.
             vd_logger.attach(train_evaluator,
-                             log_handler=output_handler(tag="training",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
+                             log_handler=OutputHandler(tag="training",
+                                                       metric_names=["nll", "accuracy"],
+                                                       another_engine=trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `evaluator`.
             vd_logger.attach(evaluator,
-                             log_handler=output_handler(tag="validation",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
+                             log_handler=OutputHandler(tag="validation",
+                                                       metric_names=["nll", "accuracy"],
+                                                       another_engine=trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration

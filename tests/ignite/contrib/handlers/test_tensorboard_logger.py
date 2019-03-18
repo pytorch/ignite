@@ -23,21 +23,21 @@ def dirname():
 def test_optimizer_params_handler_wrong_setup():
 
     with pytest.raises(TypeError):
-        optimizer_params_handler(optimizer=None)
+        OptimizerParamsHandler(optimizer=None)
 
     optimizer = MagicMock(spec=torch.optim.Optimizer)
-    wrapper = optimizer_params_handler(optimizer=optimizer)
+    handler = OptimizerParamsHandler(optimizer=optimizer)
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'optimizer_params_handler' works only with TensorboardLogger"):
-        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with TensorboardLogger"):
+        handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_optimizer_params():
 
     optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
-    wrapper = optimizer_params_handler(optimizer=optimizer, param_name="lr")
+    wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
     mock_engine = MagicMock()
@@ -50,17 +50,17 @@ def test_optimizer_params():
 
 def test_output_handler_with_wrong_logger_type():
 
-    wrapper = output_handler("tag", output_transform=lambda x: x)
+    wrapper = OutputHandler("tag", output_transform=lambda x: x)
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'output_handler' works only with TensorboardLogger"):
+    with pytest.raises(RuntimeError, match="Handler 'OutputHandler' works only with TensorboardLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_output_handler_output_transform(dirname):
 
-    wrapper = output_handler("tag", output_transform=lambda x: x)
+    wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -73,7 +73,7 @@ def test_output_handler_output_transform(dirname):
 
     mock_logger.writer.add_scalar.assert_called_once_with("tag/output", 12345, 123)
 
-    wrapper = output_handler("another_tag", output_transform=lambda x: {"loss": x})
+    wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -83,7 +83,7 @@ def test_output_handler_output_transform(dirname):
 
 def test_output_handler_metric_names(dirname):
 
-    wrapper = output_handler("tag", metric_names=["a", "b"])
+    wrapper = OutputHandler("tag", metric_names=["a", "b"])
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -99,7 +99,7 @@ def test_output_handler_metric_names(dirname):
         call("tag/b", 23.45, 5),
     ], any_order=True)
 
-    wrapper = output_handler("tag", metric_names=["a", ])
+    wrapper = OutputHandler("tag", metric_names=["a", ])
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
@@ -121,7 +121,7 @@ def test_output_handler_metric_names(dirname):
 
 def test_output_handler_both(dirname):
 
-    wrapper = output_handler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
+    wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -143,16 +143,19 @@ def test_output_handler_both(dirname):
 def test_weights_scalar_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
-        weights_scalar_handler(None)
+        WeightsScalarHandler(None)
 
     model = MagicMock(spec=torch.nn.Module)
     with pytest.raises(TypeError, match="Argument reduction should be callable"):
-        weights_scalar_handler(model, reduction=123)
+        WeightsScalarHandler(model, reduction=123)
 
-    wrapper = weights_scalar_handler(model)
+    with pytest.raises(ValueError, match="Output of the reduction function should be a scalar"):
+        WeightsScalarHandler(model, reduction=lambda x: x)
+
+    wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'weights_scalar_handler' works only with TensorboardLogger"):
+    with pytest.raises(RuntimeError, match="Handler 'WeightsScalarHandler' works only with TensorboardLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -171,7 +174,7 @@ def test_weights_scalar_handler():
 
     model = DummyModel()
 
-    wrapper = weights_scalar_handler(model)
+    wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -193,13 +196,13 @@ def test_weights_scalar_handler():
 def test_weights_hist_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
-        weights_scalar_handler(None)
+        WeightsHistHandler(None)
 
     model = MagicMock(spec=torch.nn.Module)
-    wrapper = weights_hist_handler(model)
+    wrapper = WeightsHistHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'weights_hist_handler' works only with TensorboardLogger"):
+    with pytest.raises(RuntimeError, match="Handler 'WeightsHistHandler' works only with TensorboardLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -218,7 +221,7 @@ def test_weights_hist_handler():
 
     model = DummyModel()
 
-    wrapper = weights_hist_handler(model)
+    wrapper = WeightsHistHandler(model)
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -240,16 +243,16 @@ def test_weights_hist_handler():
 def test_grads_scalar_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
-        weights_scalar_handler(None)
+        GradsScalarHandler(None)
 
     model = MagicMock(spec=torch.nn.Module)
     with pytest.raises(TypeError, match="Argument reduction should be callable"):
-        weights_scalar_handler(model, reduction=123)
+        GradsScalarHandler(model, reduction=123)
 
-    wrapper = weights_scalar_handler(model)
+    wrapper = GradsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'weights_scalar_handler' works only with TensorboardLogger"):
+    with pytest.raises(RuntimeError, match="Handler 'GradsScalarHandler' works only with TensorboardLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -271,7 +274,7 @@ def test_grads_scalar_handler():
     def norm(x):
         return 0.0
 
-    wrapper = grads_scalar_handler(model, reduction=norm)
+    wrapper = GradsScalarHandler(model, reduction=norm)
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -282,9 +285,6 @@ def test_grads_scalar_handler():
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 4
-
-    # print(mock_logger.writer.add_scalar.mock_calls)
-    # assert False
 
     mock_logger.writer.add_scalar.assert_has_calls([
         call("grads_norm/fc1/weight", ANY, 5),
@@ -297,13 +297,13 @@ def test_grads_scalar_handler():
 def test_grads_hist_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
-        weights_scalar_handler(None)
+        GradsHistHandler(None)
 
     model = MagicMock(spec=torch.nn.Module)
-    wrapper = grads_hist_handler(model)
+    wrapper = GradsHistHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'grads_hist_handler' works only with TensorboardLogger"):
+    with pytest.raises(RuntimeError, match="Handler 'GradsHistHandler' works only with TensorboardLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -322,7 +322,7 @@ def test_grads_hist_handler():
 
     model = DummyModel()
 
-    wrapper = grads_hist_handler(model)
+    wrapper = GradsHistHandler(model)
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 

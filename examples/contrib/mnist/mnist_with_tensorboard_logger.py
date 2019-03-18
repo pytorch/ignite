@@ -96,39 +96,39 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     tb_logger = TensorboardLogger(log_dir=log_dir)
 
     tb_logger.attach(trainer,
-                     log_handler=output_handler(tag="training", output_transform=lambda loss: {'loss': loss}),
+                     log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
                      event_name=Events.ITERATION_COMPLETED)
 
     tb_logger.attach(train_evaluator,
-                     log_handler=output_handler(tag="training",
-                                                metric_names=["loss", "accuracy"],
-                                                another_engine=trainer),
+                     log_handler=OutputHandler(tag="training",
+                                               metric_names=["loss", "accuracy"],
+                                               another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
 
     tb_logger.attach(validation_evaluator,
-                     log_handler=output_handler(tag="validation",
-                                                metric_names=["loss", "accuracy"],
-                                                another_engine=trainer),
+                     log_handler=OutputHandler(tag="validation",
+                                               metric_names=["loss", "accuracy"],
+                                               another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
 
     tb_logger.attach(trainer,
-                     log_handler=optimizer_params_handler(optimizer),
+                     log_handler=OptimizerParamsHandler(optimizer),
                      event_name=Events.ITERATION_COMPLETED)
 
     tb_logger.attach(trainer,
-                     log_handler=weights_scalar_handler(model),
+                     log_handler=WeightsScalarHandler(model),
                      event_name=Events.ITERATION_COMPLETED)
 
     tb_logger.attach(trainer,
-                     log_handler=weights_hist_handler(model),
+                     log_handler=WeightsHistHandler(model),
                      event_name=Events.EPOCH_COMPLETED)
 
     tb_logger.attach(trainer,
-                     log_handler=grads_scalar_handler(model),
+                     log_handler=GradsScalarHandler(model),
                      event_name=Events.ITERATION_COMPLETED)
 
     tb_logger.attach(trainer,
-                     log_handler=grads_hist_handler(model),
+                     log_handler=GradsHistHandler(model),
                      event_name=Events.EPOCH_COMPLETED)
 
     # kick everything off

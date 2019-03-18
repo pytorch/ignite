@@ -3,57 +3,15 @@ import numbers
 import warnings
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, _check_output_handler_params, _setup_output_handler_metrics
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
+    BaseWeightsScalarHandler, BaseWeightsHistHandler
 
 
-__all__ = ['TensorboardLogger', 'optimizer_params_handler', 'output_handler',
-           'weights_scalar_handler', 'weights_hist_handler', 'grads_scalar_handler', 'grads_hist_handler']
+__all__ = ['TensorboardLogger', 'OptimizerParamsHandler', 'OutputHandler',
+           'WeightsScalarHandler', 'WeightsHistHandler', 'GradsScalarHandler', 'GradsHistHandler']
 
 
-def optimizer_params_handler(optimizer, param_name="lr"):
-    """Helper handler to log optimizer parameters
-
-    Examples:
-
-        ..code-block:: python
-
-            from ignite.contrib.handlers.tensorboard_logger import *
-
-            # Create a logger
-            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
-
-            # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            tb_logger.attach(trainer,
-                             log_handler=optimizer_params_handler(optimizer),
-                             event_name=Events.ITERATION_STARTED)
-
-
-    Args:
-        optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
-        param_name (str): parameter name
-
-    """
-
-    if not isinstance(optimizer, torch.optim.Optimizer):
-        raise TypeError("Argument optimizer should be of type torch.optim.Optimizer, "
-                        "but given {}".format(type(optimizer)))
-
-    def wrapper(engine, logger, event_name):
-
-        if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'optimizer_params_handler' works only with TensorboardLogger")
-
-        global_step = engine.state.get_event_attrib_value(event_name)
-        params = {"{}/group_{}".format(param_name, i): float(param_group[param_name])
-                  for i, param_group in enumerate(optimizer.param_groups)}
-
-        for k, v in params.items():
-            logger.writer.add_scalar(k, v, global_step)
-
-    return wrapper
-
-
-def output_handler(tag, metric_names=None, output_transform=None, another_engine=None):
+class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
     Examples:
@@ -68,9 +26,9 @@ def output_handler(tag, metric_names=None, output_transform=None, another_engine
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
             tb_logger.attach(evaluator,
-                             log_handler=output_handler(tag="validation",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
+                             log_handler=OutputHandler(tag="validation",
+                                                       metric_names=["nll", "accuracy"],
+                                                       another_engine=trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
     Args:
@@ -81,124 +39,220 @@ def output_handler(tag, metric_names=None, output_transform=None, another_engine
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
-            the trainer if this handler is attached to a evaluator and log proper trainer's epoch/iteration value.
+            the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
+            epoch/iteration value.
     """
+    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None):
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine)
 
-    _check_output_handler_params(metric_names, output_transform)
-
-    def wrapper(engine, logger, event_name):
+    def __call__(self, engine, logger, event_name):
 
         if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'output_handler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
 
-        metrics = _setup_output_handler_metrics(metric_names, output_transform, engine)
+        metrics = self._setup_output_metrics(engine)
 
-        state = engine.state if another_engine is None else another_engine.state
+        state = engine.state if self.another_engine is None else self.another_engine.state
         global_step = state.get_event_attrib_value(event_name)
 
         for key, value in metrics.items():
             if isinstance(value, numbers.Number):
-                logger.writer.add_scalar("{}/{}".format(tag, key), value, global_step)
+                logger.writer.add_scalar("{}/{}".format(self.tag, key), value, global_step)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    logger.writer.add_scalar("{}/{}/{}".format(tag, key, i), v.item(), global_step)
+                    logger.writer.add_scalar("{}/{}/{}".format(self.tag, key, i), v.item(), global_step)
             else:
                 warnings.warn("TensorboardLogger output_handler can not log "
                               "metrics value type {}".format(type(value)))
 
-    return wrapper
 
+class OptimizerParamsHandler(BaseOptimizerParamsHandler):
+    """Helper handler to log optimizer parameters
 
-def weights_scalar_handler(model, reduction=torch.norm):
+    Examples:
 
-    if not isinstance(model, torch.nn.Module):
-        raise TypeError("Argument model should be of type torch.nn.Module, "
-                        "but given {}".format(type(model)))
+        ..code-block:: python
 
-    if not callable(reduction):
-        raise TypeError("Argument reduction should be callable, "
-                        "but given {}".format(type(reduction)))
+            from ignite.contrib.handlers.tensorboard_logger import *
 
-    def wrapper(engine, logger, event_name):
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
+            # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
+            tb_logger.attach(trainer,
+                             log_handler=OptimizerParamsHandler(optimizer),
+                             event_name=Events.ITERATION_STARTED)
+
+    Args:
+        optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
+        param_name (str): parameter name
+    """
+
+    def __init__(self, optimizer, param_name="lr"):
+        super(OptimizerParamsHandler, self).__init__(optimizer, param_name)
+
+    def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'weights_scalar_handler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        for name, p in model.named_parameters():
+        params = {"{}/group_{}".format(self.param_name, i): float(param_group[self.param_name])
+                  for i, param_group in enumerate(self.optimizer.param_groups)}
+
+        for k, v in params.items():
+            logger.writer.add_scalar(k, v, global_step)
+
+
+class WeightsScalarHandler(BaseWeightsScalarHandler):
+    """Helper handler to log model's weights as scalars.
+    Handler iterates over named parameters of the model, applies reduction function to each parameter
+    produce a scalar and then logs the scalar.
+
+    Examples:
+
+        ..code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Attach the logger to the trainer to log model's weights norm after each iteration
+            tb_logger.attach(trainer,
+                             log_handler=WeightsScalarHandler(model, reduction=torch.norm),
+                             event_name=Events.ITERATION_COMPLETED)
+
+    Args:
+        model (torch.nn.Module): model to log weights
+        reduction (callable): function to reduce parameters into scalar
+
+    """
+    def __init__(self, model, reduction=torch.norm):
+        super(WeightsScalarHandler, self).__init__(model, reduction)
+
+    def __call__(self, engine, logger, event_name):
+
+        if not isinstance(logger, TensorboardLogger):
+            raise RuntimeError("Handler 'WeightsScalarHandler' works only with TensorboardLogger")
+
+        global_step = engine.state.get_event_attrib_value(event_name)
+        for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
-            logger.writer.add_scalar("weights_{}/{}".format(reduction.__name__, name),
-                                     reduction(p.data),
+            logger.writer.add_scalar("weights_{}/{}".format(self.reduction.__name__, name),
+                                     self.reduction(p.data),
                                      global_step)
 
-    return wrapper
 
+class WeightsHistHandler(BaseWeightsHistHandler):
+    """Helper handler to log model's weights as histograms.
 
-def weights_hist_handler(model):
+    Examples:
 
-    if not isinstance(model, torch.nn.Module):
-        raise TypeError("Argument model should be of type torch.nn.Module, "
-                        "but given {}".format(type(model)))
+        ..code-block:: python
 
-    def wrapper(engine, logger, event_name):
+            from ignite.contrib.handlers.tensorboard_logger import *
 
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Attach the logger to the trainer to log model's weights norm after each iteration
+            tb_logger.attach(trainer,
+                             log_handler=WeightsHistHandler(model),
+                             event_name=Events.ITERATION_COMPLETED)
+
+    Args:
+        model (torch.nn.Module): model to log weights
+
+    """
+
+    def __init__(self, model):
+        super(WeightsHistHandler, self).__init__(model)
+
+    def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'weights_hist_handler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        for name, p in model.named_parameters():
+        for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
             logger.writer.add_histogram(tag="weights/{}".format(name),
                                         values=p.data.detach().cpu().numpy(),
                                         global_step=global_step)
 
-    return wrapper
 
+class GradsScalarHandler(BaseWeightsScalarHandler):
+    """Helper handler to log model's gradients as scalars.
+    Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
+    produce a scalar and then logs the scalar.
 
-def grads_scalar_handler(model, reduction=torch.norm):
+    Examples:
 
-    if not isinstance(model, torch.nn.Module):
-        raise TypeError("Argument model should be of type torch.nn.Module, "
-                        "but given {}".format(type(model)))
+        ..code-block:: python
 
-    if not callable(reduction):
-        raise TypeError("Argument reduction should be callable, "
-                        "but given {}".format(type(reduction)))
+            from ignite.contrib.handlers.tensorboard_logger import *
 
-    def wrapper(engine, logger, event_name):
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
+            # Attach the logger to the trainer to log model's weights norm after each iteration
+            tb_logger.attach(trainer,
+                             log_handler=GradsScalarHandler(model, reduction=torch.norm),
+                             event_name=Events.ITERATION_COMPLETED)
+
+    Args:
+        model (torch.nn.Module): model to log weights
+        reduction (callable): function to reduce parameters into scalar
+
+    """
+    def __init__(self, model, reduction=torch.norm):
+        super(GradsScalarHandler, self).__init__(model, reduction)
+
+    def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'grads_scalar_handler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'GradsScalarHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        for name, p in model.named_parameters():
+        for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
-            logger.writer.add_scalar("grads_{}/{}".format(reduction.__name__, name),
-                                     reduction(p.grad),
+            logger.writer.add_scalar("grads_{}/{}".format(self.reduction.__name__, name),
+                                     self.reduction(p.grad),
                                      global_step)
 
-    return wrapper
 
+class GradsHistHandler(BaseWeightsHistHandler):
+    """Helper handler to log model's gradients as histograms.
 
-def grads_hist_handler(model):
+    Examples:
 
-    if not isinstance(model, torch.nn.Module):
-        raise TypeError("Argument model should be of type torch.nn.Module, "
-                        "but given {}".format(type(model)))
+        ..code-block:: python
 
-    def wrapper(engine, logger, event_name):
+            from ignite.contrib.handlers.tensorboard_logger import *
 
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Attach the logger to the trainer to log model's weights norm after each iteration
+            tb_logger.attach(trainer,
+                             log_handler=GradsHistHandler(model),
+                             event_name=Events.ITERATION_COMPLETED)
+
+    Args:
+        model (torch.nn.Module): model to log weights
+
+    """
+    def __init__(self, model):
+        super(GradsHistHandler, self).__init__(model)
+
+    def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'grads_hist_handler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'GradsHistHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        for name, p in model.named_parameters():
+        for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
             logger.writer.add_histogram(tag="grads/{}".format(name),
                                         values=p.grad.detach().cpu().numpy(),
                                         global_step=global_step)
-
-    return wrapper
 
 
 class TensorboardLogger(BaseLogger):
@@ -219,48 +273,48 @@ class TensorboardLogger(BaseLogger):
 
             # Attach the logger to the trainer to log training loss at each iteration
             tb_logger.attach(trainer,
-                             log_handler=output_handler(tag="training", output_transform=lambda loss: {'loss': loss}),
+                             log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
                              event_name=Events.ITERATION_COMPLETED)
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `train_evaluator`.
             tb_logger.attach(train_evaluator,
-                             log_handler=output_handler(tag="training",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
+                             log_handler=OutputHandler(tag="training",
+                                                       metric_names=["nll", "accuracy"],
+                                                       another_engine=trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `evaluator`.
             tb_logger.attach(evaluator,
-                             log_handler=output_handler(tag="validation",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
+                             log_handler=OutputHandler(tag="validation",
+                                                       metric_names=["nll", "accuracy"],
+                                                       another_engine=trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
             tb_logger.attach(trainer,
-                             log_handler=optimizer_params_handler(optimizer),
+                             log_handler=OptimizerParamsHandler(optimizer),
                              event_name=Events.ITERATION_STARTED)
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
             tb_logger.attach(trainer,
-                             log_handler=weights_scalar_handler(model),
+                             log_handler=WeightsScalarHandler(model),
                              event_name=Events.ITERATION_COMPLETED)
 
             # Attach the logger to the trainer to log model's weights as a histogram after each epoch
             tb_logger.attach(trainer,
-                             log_handler=weights_hist_handler(model),
+                             log_handler=WeightsHistHandler(model),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the trainer to log model's gradients norm after each iteration
             tb_logger.attach(trainer,
-                             log_handler=grads_scalar_handler(model),
+                             log_handler=GradsScalarHandler(model),
                              event_name=Events.ITERATION_COMPLETED)
 
             # Attach the logger to the trainer to log model's gradients as a histogram after each epoch
             tb_logger.attach(trainer,
-                             log_handler=grads_hist_handler(model),
+                             log_handler=GradsHistHandler(model),
                              event_name=Events.EPOCH_COMPLETED)
 
     """
@@ -276,3 +330,226 @@ class TensorboardLogger(BaseLogger):
 
     def _close(self):
         self.writer.close()
+
+
+# def optimizer_params_handler(optimizer, param_name="lr"):
+#     """Helper handler to log optimizer parameters
+#
+#     Examples:
+#
+#         ..code-block:: python
+#
+#             from ignite.contrib.handlers.tensorboard_logger import *
+#
+#             # Create a logger
+#             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+#
+#             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
+#             tb_logger.attach(trainer,
+#                              log_handler=optimizer_params_handler(optimizer),
+#                              event_name=Events.ITERATION_STARTED)
+#
+#
+#     Args:
+#         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
+#         param_name (str): parameter name
+#
+#     """
+#
+#     if not isinstance(optimizer, torch.optim.Optimizer):
+#         raise TypeError("Argument optimizer should be of type torch.optim.Optimizer, "
+#                         "but given {}".format(type(optimizer)))
+#
+#     def wrapper(engine, logger, event_name):
+#
+#         if not isinstance(logger, TensorboardLogger):
+#             raise RuntimeError("Handler 'optimizer_params_handler' works only with TensorboardLogger")
+#
+#         global_step = engine.state.get_event_attrib_value(event_name)
+#         params = {"{}/group_{}".format(param_name, i): float(param_group[param_name])
+#                   for i, param_group in enumerate(optimizer.param_groups)}
+#
+#         for k, v in params.items():
+#             logger.writer.add_scalar(k, v, global_step)
+#
+#     return wrapper
+#
+#
+# def output_handler(tag, metric_names=None, output_transform=None, another_engine=None):
+#     """Helper handler to log engine's output and/or metrics
+#
+#     Examples:
+#
+#         ..code-block:: python
+#
+#             from ignite.contrib.handlers.tensorboard_logger import *
+#
+#             # Create a logger
+#             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+#
+#             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
+#             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
+#             tb_logger.attach(evaluator,
+#                              log_handler=output_handler(tag="validation",
+#                                                         metric_names=["nll", "accuracy"],
+#                                                         another_engine=trainer),
+#                              event_name=Events.EPOCH_COMPLETED)
+#
+#     Args:
+#         tag (str): common title for all produced plots. For example, 'training'
+#         metric_names (list of str, optional): list of metric names to plot.
+#         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+#             For example, `output_transform = lambda output: output`
+#             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+#             with corresponding keys.
+#         another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
+#             the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
+#             epoch/iteration value.
+#     """
+#
+#     _check_output_handler_params(metric_names, output_transform)
+#
+#     def wrapper(engine, logger, event_name):
+#
+#         if not isinstance(logger, TensorboardLogger):
+#             raise RuntimeError("Handler 'output_handler' works only with TensorboardLogger")
+#
+#         metrics = _setup_output_handler_metrics(metric_names, output_transform, engine)
+#
+#         state = engine.state if another_engine is None else another_engine.state
+#         global_step = state.get_event_attrib_value(event_name)
+#
+#         for key, value in metrics.items():
+#             if isinstance(value, numbers.Number):
+#                 logger.writer.add_scalar("{}/{}".format(tag, key), value, global_step)
+#             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+#                 for i, v in enumerate(value):
+#                     logger.writer.add_scalar("{}/{}/{}".format(tag, key, i), v.item(), global_step)
+#             else:
+#                 warnings.warn("TensorboardLogger output_handler can not log "
+#                               "metrics value type {}".format(type(value)))
+#
+#     return wrapper
+#
+#
+# def weights_scalar_handler(model, reduction=torch.norm):
+#     """Helper handler to log model's weights as scalars.
+#     Handler iterates over named parameters of the model, applies reduction function to each parameter
+#     produce a scalar and then logs the scalar.
+#
+#     Examples:
+#
+#         ..code-block:: python
+#
+#             from ignite.contrib.handlers.tensorboard_logger import *
+#
+#             # Create a logger
+#             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+#
+#             # Attach the logger to the trainer to log model's weights norm after each iteration
+#             tb_logger.attach(trainer,
+#                              log_handler=weights_scalar_handler(model, reduction=torch.norm),
+#                              event_name=Events.ITERATION_COMPLETED)
+#
+#     Args:
+#         model (torch.nn.Module): model
+#         reduction (callable): function to reduce parameters into scalar
+#
+#     """
+#
+#     if not isinstance(model, torch.nn.Module):
+#         raise TypeError("Argument model should be of type torch.nn.Module, "
+#                         "but given {}".format(type(model)))
+#
+#     if not callable(reduction):
+#         raise TypeError("Argument reduction should be callable, "
+#                         "but given {}".format(type(reduction)))
+#
+#     def _is_0D_tensor(t):
+#         return isinstance(t, torch.Tensor) and t.ndimension() == 0
+#
+#     # Test reduction function on a random tensor
+#     o = reduction(torch.rand(4, 2))
+#     if not (isinstance(o, numbers.Number) or _is_0D_tensor(o)):
+#         raise ValueError("Output of the reduction function should be a scalar, but got {}".format(type(o)))
+#
+#     def wrapper(engine, logger, event_name):
+#
+#         if not isinstance(logger, TensorboardLogger):
+#             raise RuntimeError("Handler 'weights_scalar_handler' works only with TensorboardLogger")
+#
+#         global_step = engine.state.get_event_attrib_value(event_name)
+#         for name, p in model.named_parameters():
+#             name = name.replace('.', '/')
+#             logger.writer.add_scalar("weights_{}/{}".format(reduction.__name__, name),
+#                                      reduction(p.data),
+#                                      global_step)
+#
+#     return wrapper
+#
+#
+# def weights_hist_handler(model):
+#
+#     if not isinstance(model, torch.nn.Module):
+#         raise TypeError("Argument model should be of type torch.nn.Module, "
+#                         "but given {}".format(type(model)))
+#
+#     def wrapper(engine, logger, event_name):
+#
+#         if not isinstance(logger, TensorboardLogger):
+#             raise RuntimeError("Handler 'weights_hist_handler' works only with TensorboardLogger")
+#
+#         global_step = engine.state.get_event_attrib_value(event_name)
+#         for name, p in model.named_parameters():
+#             name = name.replace('.', '/')
+#             logger.writer.add_histogram(tag="weights/{}".format(name),
+#                                         values=p.data.detach().cpu().numpy(),
+#                                         global_step=global_step)
+#
+#     return wrapper
+#
+#
+# def grads_scalar_handler(model, reduction=torch.norm):
+#
+#     if not isinstance(model, torch.nn.Module):
+#         raise TypeError("Argument model should be of type torch.nn.Module, "
+#                         "but given {}".format(type(model)))
+#
+#     if not callable(reduction):
+#         raise TypeError("Argument reduction should be callable, "
+#                         "but given {}".format(type(reduction)))
+#
+#     def wrapper(engine, logger, event_name):
+#
+#         if not isinstance(logger, TensorboardLogger):
+#             raise RuntimeError("Handler 'grads_scalar_handler' works only with TensorboardLogger")
+#
+#         global_step = engine.state.get_event_attrib_value(event_name)
+#         for name, p in model.named_parameters():
+#             name = name.replace('.', '/')
+#             logger.writer.add_scalar("grads_{}/{}".format(reduction.__name__, name),
+#                                      reduction(p.grad),
+#                                      global_step)
+#
+#     return wrapper
+#
+#
+# def grads_hist_handler(model):
+#
+#     if not isinstance(model, torch.nn.Module):
+#         raise TypeError("Argument model should be of type torch.nn.Module, "
+#                         "but given {}".format(type(model)))
+#
+#     def wrapper(engine, logger, event_name):
+#
+#         if not isinstance(logger, TensorboardLogger):
+#             raise RuntimeError("Handler 'grads_hist_handler' works only with TensorboardLogger")
+#
+#         global_step = engine.state.get_event_attrib_value(event_name)
+#         for name, p in model.named_parameters():
+#             name = name.replace('.', '/')
+#             logger.writer.add_histogram(tag="grads/{}".format(name),
+#                                         values=p.grad.detach().cpu().numpy(),
+#                                         global_step=global_step)
+#
+#     return wrapper
