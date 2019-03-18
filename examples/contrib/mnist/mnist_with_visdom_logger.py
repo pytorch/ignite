@@ -111,26 +111,18 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
                                                metric_names=["loss", "accuracy"],
                                                another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
-    
+
     vd_logger.attach(trainer,
                      log_handler=OptimizerParamsHandler(optimizer),
                      event_name=cpe.Events.ITERATIONS_100_COMPLETED)
-    
+
     vd_logger.attach(trainer,
                      log_handler=WeightsScalarHandler(model),
                      event_name=cpe.Events.ITERATIONS_100_COMPLETED)
-    
-    # tb_logger.attach(trainer,
-    #                  log_handler=weights_hist_handler(model),
-    #                  event_name=Events.EPOCH_COMPLETED)
-    #
-    # tb_logger.attach(trainer,
-    #                  log_handler=grads_scalar_handler(model),
-    #                  event_name=Events.ITERATION_COMPLETED)
-    #
-    # tb_logger.attach(trainer,
-    #                  log_handler=grads_hist_handler(model),
-    #                  event_name=Events.EPOCH_COMPLETED)
+
+    vd_logger.attach(trainer,
+                     log_handler=GradsScalarHandler(model),
+                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)

@@ -8,7 +8,8 @@ from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsH
     BaseWeightsScalarHandler, BaseWeightsHistHandler
 
 
-__all__ = ['VisdomLogger', 'OutputHandler', 'OptimizerParamsHandler', 'WeightsScalarHandler']
+__all__ = ['VisdomLogger', 'OutputHandler', 'OptimizerParamsHandler',
+           'WeightsScalarHandler', 'GradsScalarHandler']
 
 
 class _BaseVisDrawer(object):
@@ -73,12 +74,11 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
             the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
             epoch/iteration value.
-        env (str, optional): visdom's environment to plot to
         show_legend (bool, optional): flag to show legend in the window
     """
 
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None,
-                 env=None, show_legend=False):
+                 show_legend=False):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -133,17 +133,16 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
-        env (str, optional): visdom's environment to plot to
         show_legend (bool, optional): flag to show legend in the window
     """
 
-    def __init__(self, optimizer, param_name="lr", env=None, show_legend=False):
+    def __init__(self, optimizer, param_name="lr", show_legend=False):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, VisdomLogger):
-            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         params = {"{}/group_{}".format(self.param_name, i): float(param_group[self.param_name])
@@ -177,23 +176,65 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        env (str, optional): visdom's environment to plot to
         show_legend (bool, optional): flag to show legend in the window
     """
-    def __init__(self, model, reduction=torch.norm, env=None, show_legend=False):
+    def __init__(self, model, reduction=torch.norm, show_legend=False):
         super(WeightsScalarHandler, self).__init__(model, reduction)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
 
         if not isinstance(logger, VisdomLogger):
-            raise RuntimeError("Handler 'WeightsScalarHandler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'WeightsScalarHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
             k = "weights_{}/{}".format(self.reduction.__name__, name)
-            v = self.reduction(p.data).item()
+            v = float(self.reduction(p.data))
+            self.add_scalar(logger, k, v, event_name, global_step)
+
+        logger._save()
+
+
+class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
+    """Helper handler to log model's gradients as scalars.
+    Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
+    produce a scalar and then logs the scalar.
+
+    Examples:
+
+        ..code-block:: python
+
+            from ignite.contrib.handlers.visdom_logger import *
+
+            # Create a logger
+            vd_logger = VisdomLogger(log_dir="experiments/tb_logs")
+
+            # Attach the logger to the trainer to log model's weights norm after each iteration
+            vd_logger.attach(trainer,
+                             log_handler=GradsScalarHandler(model, reduction=torch.norm),
+                             event_name=Events.ITERATION_COMPLETED)
+
+    Args:
+        model (torch.nn.Module): model to log weights
+        reduction (callable): function to reduce parameters into scalar
+        show_legend (bool, optional): flag to show legend in the window
+
+    """
+    def __init__(self, model, reduction=torch.norm, show_legend=False):
+        super(GradsScalarHandler, self).__init__(model, reduction)
+        _BaseVisDrawer.__init__(self, show_legend=show_legend)
+
+    def __call__(self, engine, logger, event_name):
+        if not isinstance(logger, VisdomLogger):
+            raise RuntimeError("Handler 'GradsScalarHandler' works only with VisdomLogger")
+
+        global_step = engine.state.get_event_attrib_value(event_name)
+        for name, p in self.model.named_parameters():
+            name = name.replace('.', '/')
+            k = "grads_{}/{}".format(self.reduction.__name__, name)
+            v = float(self.reduction(p.grad))
             self.add_scalar(logger, k, v, event_name, global_step)
 
         logger._save()
@@ -204,8 +245,12 @@ class VisdomLogger(BaseLogger):
     VisdomLogger handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
     Args:
-        log_dir (str): path to the directory where to log all plotting and updating events.
-            See Visdom's `log_to_filename` parameter.
+        server (str, optional): visdom server URL. It can be also specified by environment variable `VISDOM_SERVER_URL`
+        port (int, optional): visdom server's port. It can be also specified by environment variable `VISDOM_PORT`
+        **kwargs:
+
+    Notes:
+        We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
 
     Examples:
 
@@ -214,7 +259,7 @@ class VisdomLogger(BaseLogger):
             from ignite.contrib.handlers.visdom_logger import *
 
             # Create a logger
-            vd_logger = VisdomLogger(log_dir="experiments/vd_logs")
+            vd_logger = VisdomLogger()
 
             # Attach the logger to the trainer to log training loss at each iteration
             vd_logger.attach(trainer,
@@ -247,24 +292,14 @@ class VisdomLogger(BaseLogger):
                              log_handler=weights_scalar_handler(model),
                              event_name=Events.ITERATION_COMPLETED)
 
-            # Attach the logger to the trainer to log model's weights as a histogram after each epoch
-            vd_logger.attach(trainer,
-                             log_handler=weights_hist_handler(model),
-                             event_name=Events.EPOCH_COMPLETED)
-
             # Attach the logger to the trainer to log model's gradients norm after each iteration
             vd_logger.attach(trainer,
                              log_handler=grads_scalar_handler(model),
                              event_name=Events.ITERATION_COMPLETED)
 
-            # Attach the logger to the trainer to log model's gradients as a histogram after each epoch
-            vd_logger.attach(trainer,
-                             log_handler=grads_hist_handler(model),
-                             event_name=Events.EPOCH_COMPLETED)
-
     """
 
-    def __init__(self, log_dir=None, server=None, port=None, **kwargs):
+    def __init__(self, server=None, port=None, **kwargs):
         try:
             import visdom
         except ImportError:
@@ -277,21 +312,17 @@ class VisdomLogger(BaseLogger):
         if port is None:
             port = os.environ.get("VISDOM_PORT", 8097)
 
-        username = os.environ.get("VISDOM_USERNAME", None)
-        password = os.environ.get("VISDOM_PASSWORD", None)
+        if "username" not in kwargs:
+            username = os.environ.get("VISDOM_USERNAME", None)
+            kwargs["username"] = username
 
-        log_to_filename = None
-        if log_dir is not None:
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir, exist_ok=True)
-            log_to_filename = os.path.join(log_dir, "logging_{}.visdom".format(id(self)))
+        if "password" not in kwargs:
+            password = os.environ.get("VISDOM_PASSWORD", None)
+            kwargs["password"] = password
 
         self.vis = visdom.Visdom(
             server=server,
             port=port,
-            log_to_filename=log_to_filename,
-            username=username,
-            password=password,
             **kwargs
         )
 

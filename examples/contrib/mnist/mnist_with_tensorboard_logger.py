@@ -132,10 +132,9 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
                      event_name=Events.EPOCH_COMPLETED)
 
     # kick everything off
-    trainer.run(train_loader, max_epochs=epochs)    
-    print("End of the training")
-
+    trainer.run(train_loader, max_epochs=epochs)
     tb_logger.close()
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -163,4 +162,3 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_dir)
-    print("Exit main")

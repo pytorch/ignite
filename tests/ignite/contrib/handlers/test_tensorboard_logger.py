@@ -118,6 +118,23 @@ def test_output_handler_metric_names(dirname):
         call("tag/a/3", 3.0, 5),
     ], any_order=True)
 
+    wrapper = OutputHandler("tag", metric_names=["a", "c"])
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 55.56, "c": "Some text"})
+    mock_engine.state.iteration = 7
+
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    with pytest.warns(UserWarning):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.writer.add_scalar.call_count == 1
+    mock_logger.writer.add_scalar.assert_has_calls([
+        call("tag/a", 55.56, 7),
+    ], any_order=True)
+
 
 def test_output_handler_both(dirname):
 
@@ -371,6 +388,7 @@ def test_integration(dirname):
                      event_name=Events.EPOCH_COMPLETED)
 
     trainer.run(data, max_epochs=n_epochs)
+    tb_logger.close()
 
     # Check if event files are present
     written_files = os.listdir(dirname)
