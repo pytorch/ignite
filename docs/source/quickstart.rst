@@ -63,9 +63,9 @@ datasets (as `torch.utils.data.DataLoader <https://pytorch.org/docs/stable/data.
 Next we define trainer and evaluator engines. The main component of Ignite is the :class:`~ignite.engine.Engine`, an abstraction over your
 training loop. Getting started with the engine is easy, the constructor only requires one things:
 
-- `update_function`: a function which is passed the engine and a batch and it passes data through and updates your model
+- `update_function`: a function that receives the engine and a batch and have a role to update your model.
 
-Here we are using helper methods :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`:
+In the above example we are using helper methods :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`:
 
 .. code-block:: python
 
@@ -76,8 +76,8 @@ Here we are using helper methods :meth:`~ignite.engine.create_supervised_trainer
                                                 'nll': Loss(loss)
                                                 })
 
-However, we could also define trainer and evaluator using :class:`~ignite.engine.Engine`. If we look into the code of
-:meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`, we can observe a pattern:
+However, we could also define trainer and evaluator using :class:`~ignite.engine.Engine`. If we take a look into the source code of
+:meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`, we can observe the following pattern:
 
 .. code-block:: python
 
