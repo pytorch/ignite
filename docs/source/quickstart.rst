@@ -65,7 +65,7 @@ training loop. Getting started with the engine is easy, the constructor only req
 
 - `update_function`: a function that receives the engine and a batch and have a role to update your model.
 
-In the above examlpe we are using helper methods :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`:
+In the above example we are using helper methods :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`:
 
 .. code-block:: python
 
