@@ -42,6 +42,8 @@ def apply_to_type(input_, input_type, func):
 
 
 def to_onehot(indices, num_classes):
-    """Convert a tensor of indices to a tensor of one-hot indicators."""
-    onehot = torch.zeros(indices.size(0), num_classes, device=indices.device)
+    """Convert a tensor of indices of any shape `(N, ...)` to a
+    tensor of one-hot indicators of shape `(N, num_classes, ...)`.
+    """
+    onehot = torch.zeros(indices.shape[0], num_classes, *indices.shape[1:], device=indices.device)
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
