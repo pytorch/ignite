@@ -563,11 +563,17 @@ class ParamGroupScheduler(object):
 
     .. code-block:: python
 
-        names = []
-        lr_schedulers = []
-        for i, param_group in enumerate(optimizer.param_groups):
-            names.append("param_group_{}".format(i))
-            lr_schedulers.append(get_lr_scheduler(param_group, param_group_scheduling_conf[i]))
+        optimizer = SGD(
+            [
+                {"params": model.base.parameters(), 'lr': 0.001),
+                {"params": model.fc.parameters(), 'lr': 0.01),
+            ]
+        )
+
+        scheduler1 = LinearCyclicalScheduler(optimizer.param_groups[0], 'lr', 1e-7, 1e-5, len(train_loader))
+        scheduler2 = CosineAnnealingScheduler(optimizer.param_groups[1], 'lr', 1e-5, 1e-3, len(train_loader))
+        lr_schedulers = [scheduler1, scheduler2]
+        names = ["lr (base)", "lr (fc)"]
 
         scheduler = ParamGroupScheduler(schedulers=lr_schedulers, names=names)
         # Attach single scheduler to the trainer
