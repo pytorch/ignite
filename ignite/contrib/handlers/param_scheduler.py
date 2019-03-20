@@ -12,7 +12,7 @@ try:
     from collections.abc import Sequence
 except ImportError:  # Python 2.7 compatibility
     from collections import Sequence
-
+    from itertools import izip as zip
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -552,6 +552,53 @@ def create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value, warmup_end
         for i in range(num_events):
             output_simulated_values[i] = result[i]
     return combined_scheduler
+
+
+class ParamGroupScheduler(object):
+    """
+    Scheduler helper to group multiple schedulers into one.
+
+    Args:
+        schedulers (list/tuple of ParamScheduler): list/tuple of parameter schedulers.
+        names (list of str): list of names of schedulers.
+
+    .. code-block:: python
+
+        optimizer = SGD(
+            [
+                {"params": model.base.parameters(), 'lr': 0.001),
+                {"params": model.fc.parameters(), 'lr': 0.01),
+            ]
+        )
+
+        scheduler1 = LinearCyclicalScheduler(optimizer.param_groups[0], 'lr', 1e-7, 1e-5, len(train_loader))
+        scheduler2 = CosineAnnealingScheduler(optimizer.param_groups[1], 'lr', 1e-5, 1e-3, len(train_loader))
+        lr_schedulers = [scheduler1, scheduler2]
+        names = ["lr (base)", "lr (fc)"]
+
+        scheduler = ParamGroupScheduler(schedulers=lr_schedulers, names=names)
+        # Attach single scheduler to the trainer
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+    """
+
+    def __init__(self, schedulers, names):
+        if not (isinstance(schedulers, Sequence) and all(isinstance(scheduler, ParamScheduler)
+                                                         for scheduler in schedulers)):
+            raise ValueError("Argument schedulers should be a list/tuple of parameter schedulers")
+
+        if not (isinstance(names, (list, tuple)) and all(isinstance(n, str) for n in names)):
+            raise ValueError("Argument names should be a list/tuple of parameter scheduler's names")
+
+        if len(names) != len(schedulers):
+            raise ValueError("{} should be equal {}".format(len(schedulers), len(names)))
+
+        self.schedulers = schedulers
+        self.names = names
+
+    def __call__(self, engine):
+        for scheduler, name in zip(self.schedulers, self.names):
+            scheduler(engine, name=name)
 
 
 class PiecewiseLinear(ParamScheduler):
