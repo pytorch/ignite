@@ -208,6 +208,69 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
 
 
+class ExponentialAnnealingScheduler(CyclicalScheduler):
+    """Anneals 'start_value' to 'end_value' over each cycle.
+
+    Exponentially anneal following what Fast.ai uses for their learning rate scheduler.
+
+    Args:
+        optimizer (`torch.optim.Optimizer` or dict): the optimizer or parameters group to use.
+        param_name (str): name of optimizer's parameter to update.
+        start_value (float): value at start of cycle.
+        end_value (float): value at the end of the cycle.
+        cycle_size (int): length of cycle.
+        cycle_mult (float, optional): ratio by which to change the cycle_size
+            at the end of each cycle (default=1).
+        start_value_mult (float, optional): ratio by which to change the start value at the
+            end of each cycle (default=1.0).
+        end_value_mult (float, optional): ratio by which to change the end value at the
+            end of each cycle (default=1.0).
+        save_history (bool, optional): whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    Note:
+        If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
+        usually be the number of batches in an epoch.
+
+    Examples:
+
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+
+        scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+        #
+        # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
+        #
+
+    .. code-block:: python
+
+        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+
+        optimizer = SGD(
+            [
+                {"params": model.base.parameters(), 'lr': 0.001),
+                {"params": model.fc.parameters(), 'lr': 0.01),
+            ]
+        )
+
+        scheduler1 = LinearCyclicalScheduler(optimizer.param_groups[0], 'lr', 1e-7, 1e-5, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1, "lr (base)")
+
+        scheduler2 = ExponentialAnnealingScheduler(optimizer.param_groups[1], 'lr', 1e-5, 1e-3, len(train_loader))
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2, "lr (fc)")
+
+    """
+
+    def get_param(self):
+        """Method to get current optimizer's parameter value
+        """
+        cycle_progress = self.event_index / self.cycle_size
+        return self.start_value * (self.end_value / self.start_value) ** cycle_progress
+
+
 class CosineAnnealingScheduler(CyclicalScheduler):
     """Anneals 'start_value' to 'end_value' over each cycle.
 
