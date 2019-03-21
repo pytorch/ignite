@@ -39,3 +39,18 @@ def test_to_onehot():
     actual = to_onehot(indices, 4)
     expected = torch.eye(4)
     assert actual.equal(expected)
+
+    y = torch.randint(0, 21, size=(1000,))
+    y_ohe = to_onehot(y, num_classes=21)
+    y2 = torch.argmax(y_ohe, dim=1)
+    assert y.equal(y2)
+
+    y = torch.randint(0, 21, size=(4, 250, 255))
+    y_ohe = to_onehot(y, num_classes=21)
+    y2 = torch.argmax(y_ohe, dim=1)
+    assert y.equal(y2)
+
+    y = torch.randint(0, 21, size=(4, 150, 155, 4, 6))
+    y_ohe = to_onehot(y, num_classes=21)
+    y2 = torch.argmax(y_ohe, dim=1)
+    assert y.equal(y2)
