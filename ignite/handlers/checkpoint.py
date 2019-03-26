@@ -7,23 +7,25 @@ import torch
 class ModelCheckpoint(object):
     """ ModelCheckpoint handler can be used to periodically save objects to disk.
 
-    This handler accepts two arguments:
-        - an `ignite.engines.Engine` object
+    This handler expects two arguments:
+
+        - an :class:`~ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
-            See Notes and Examples for further details.
+
+    See Notes and Examples for further details.
 
     Args:
         dirname (str):
-            Directory path where objects will be saved
+            Directory path where objects will be saved.
         filename_prefix (str):
             Prefix for the filenames to which objects will be saved. See Notes
             for more details.
         save_interval (int, optional):
             if not None, objects will be saved to disk every `save_interval` calls to the handler.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
-        score_function (Callable, optional):
+        score_function (callable, optional):
             if not None, it should be a function taking a single argument,
-            an `ignite.engines.Engine` object,
+            an :class:`~ignite.engine.Engine` object,
             and return a score (`float`). Objects with highest scores will be retained.
             Exactly one of (`save_interval`, `score_function`) arguments must be provided.
         score_name (str, optional):
@@ -37,12 +39,14 @@ class ModelCheckpoint(object):
             guaranteed to not be damaged (for example if exception occures during saving).
         require_empty (bool, optional):
             If True, will raise exception if there are any files starting with `filename_prefix`
-            in the directory 'dirname'
+            in the directory 'dirname'.
         create_dir (bool, optional):
             If True, will create directory 'dirname' if it doesnt exist.
+        save_as_state_dict (bool, optional):
+            If True, will save only the `state_dict` of the objects specified, otherwise the whole object will be saved.
 
     Notes:
-          This handler expects two arguments: an `Engine` object and a `dict`
+          This handler expects two arguments: an :class:`~ignite.engine.Engine` object and a `dict`
           mapping names to objects that should be saved.
 
           These names are used to specify filenames for saved objects.
@@ -60,7 +64,7 @@ class ModelCheckpoint(object):
 
     Examples:
         >>> import os
-        >>> from ignite.engines import Engine, Events
+        >>> from ignite.engine import Engine, Events
         >>> from ignite.handlers import ModelCheckpoint
         >>> from torch import nn
         >>> trainer = Engine(lambda batch: None)
@@ -76,9 +80,10 @@ class ModelCheckpoint(object):
                  save_interval=None, score_function=None, score_name=None,
                  n_saved=1,
                  atomic=True, require_empty=True,
-                 create_dir=True):
+                 create_dir=True,
+                 save_as_state_dict=True):
 
-        self._dirname = dirname
+        self._dirname = os.path.expanduser(dirname)
         self._fname_prefix = filename_prefix
         self._n_saved = n_saved
         self._save_interval = save_interval
@@ -87,6 +92,7 @@ class ModelCheckpoint(object):
         self._atomic = atomic
         self._saved = []  # list of tuples (priority, saved_objects)
         self._iteration = 0
+        self._save_as_state_dict = save_as_state_dict
 
         if not (save_interval is None) ^ (score_function is None):
             raise ValueError("Exactly one of `save_interval`, or `score_function` "
@@ -94,7 +100,7 @@ class ModelCheckpoint(object):
 
         if score_function is None and score_name is not None:
             raise ValueError("If `score_name` is provided, then `score_function` "
-                             "should be also provided")
+                             "should be also provided.")
 
         if create_dir:
             if not os.path.exists(dirname):
@@ -102,7 +108,7 @@ class ModelCheckpoint(object):
 
         # Ensure that dirname exists
         if not os.path.exists(dirname):
-            raise ValueError("Directory path '{}' is not found".format(dirname))
+            raise ValueError("Directory path '{}' is not found.".format(dirname))
 
         if require_empty:
             matched = [fname
@@ -112,27 +118,31 @@ class ModelCheckpoint(object):
             if len(matched) > 0:
                 raise ValueError("Files prefixed with {} are already present "
                                  "in the directory {}. If you want to use this "
-                                 "directory anyway, pass `require_empty=False`. "
+                                 "directory anyway, pass `require_empty=False`."
                                  "".format(filename_prefix, dirname))
 
     def _save(self, obj, path):
         if not self._atomic:
-            torch.save(obj, path)
-
+            self._internal_save(obj, path)
         else:
             tmp = tempfile.NamedTemporaryFile(delete=False, dir=self._dirname)
-
             try:
-                torch.save(obj, tmp.file)
-
+                self._internal_save(obj, tmp.file)
             except BaseException:
                 tmp.close()
                 os.remove(tmp.name)
                 raise
-
             else:
                 tmp.close()
                 os.rename(tmp.name, path)
+
+    def _internal_save(self, obj, path):
+        if not self._save_as_state_dict:
+            torch.save(obj, path)
+        else:
+            if not hasattr(obj, "state_dict") or not callable(obj.state_dict):
+                raise ValueError("Object should have `state_dict` method.")
+            torch.save(obj.state_dict(), path)
 
     def __call__(self, engine, to_save):
         if len(to_save) == 0:

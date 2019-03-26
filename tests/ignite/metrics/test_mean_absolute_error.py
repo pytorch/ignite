@@ -16,10 +16,12 @@ def test_compute():
     y_pred = torch.Tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
     mae.update((y_pred, y))
+    assert isinstance(mae.compute(), float)
     assert mae.compute() == 2.0
 
     mae.reset()
     y_pred = torch.Tensor([[3.0], [-3.0]])
     y = torch.zeros(2)
     mae.update((y_pred, y))
+    assert isinstance(mae.compute(), float)
     assert mae.compute() == 3.0

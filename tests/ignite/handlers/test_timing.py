@@ -1,6 +1,6 @@
 import time
 
-from ignite.engines import Engine, Events
+from ignite.engine import Engine, Events
 from ignite.handlers import Timer
 
 

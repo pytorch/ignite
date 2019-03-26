@@ -16,10 +16,12 @@ def test_compute():
     y_pred = torch.Tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
     rmse.update((y_pred, y))
+    assert isinstance(rmse.compute(), float)
     assert rmse.compute() == 2.0
 
     rmse.reset()
     y_pred = torch.Tensor([[3.0], [-3.0]])
     y = torch.zeros(2)
     rmse.update((y_pred, y))
+    assert isinstance(rmse.compute(), float)
     assert rmse.compute() == 3.0
