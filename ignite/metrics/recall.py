@@ -24,7 +24,7 @@ class Recall(_BasePrecisionRecall):
             y_pred = torch.round(y_pred)
             return y_pred, y
 
-        binary_accuracy = Recall(output_transform=thresholded_output_transform)
+        recall = Recall(output_transform=thresholded_output_transform)
 
     In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
     example, average parameter should be False. This can be done as shown below:

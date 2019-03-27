@@ -34,22 +34,28 @@ class _BasePrecisionRecall(_BaseClassification):
 class Precision(_BasePrecisionRecall):
     """
     Calculates precision for binary and multiclass data.
+
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
+
     In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
     predictions can be done as below:
+
     .. code-block:: python
+
         def thresholded_output_transform(output):
             y_pred, y = output
             y_pred = torch.round(y_pred)
             return y_pred, y
-        binary_accuracy = Precision(output_transform=thresholded_output_transform)
+
+        precision = Precision(output_transform=thresholded_output_transform)
 
     In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
     example, average parameter should be False. This can be done as shown below:
 
     .. code-block:: python
+
         precision = Precision(average=False, is_multilabel=True)
         recall = Recall(average=False, is_multilabel=True)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
