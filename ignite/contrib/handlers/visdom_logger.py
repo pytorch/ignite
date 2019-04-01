@@ -227,7 +227,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             from ignite.contrib.handlers.visdom_logger import *
 
             # Create a logger
-            vd_logger = VisdomLogger(log_dir="experiments/tb_logs")
+            vd_logger = VisdomLogger()
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
             vd_logger.attach(trainer,
@@ -264,15 +264,19 @@ class VisdomLogger(BaseLogger):
     VisdomLogger handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
     This class requires `visdom <https://github.com/facebookresearch/visdom/>`_ package to be installed:
-    `pip install git+https://github.com/facebookresearch/visdom.git`.
+
+    .. code-block:: bash
+
+        pip install git+https://github.com/facebookresearch/visdom.git
 
     Args:
         server (str, optional): visdom server URL. It can be also specified by environment variable `VISDOM_SERVER_URL`
         port (int, optional): visdom server's port. It can be also specified by environment variable `VISDOM_PORT`
         num_workers (int, optional): number of workers to use in `concurrent.futures.ThreadPoolExecutor` to post data to
             visdom server. Default, `num_workers=1`. If `num_workers=0` and logger uses the main thread. If using
-            Python 2.7 and `num_workers>0` the package `futures` should be installed: `pip install futures`.
-        **kwargs: kwargs to pass into `visdom.Visdom`
+            Python 2.7 and `num_workers>0` the package `futures` should be installed: `pip install futures`
+        **kwargs: kwargs to pass into
+            `visdom.Visdom <https://github.com/facebookresearch/visdom#visdom-arguments-python-only>`_.
 
     Notes:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
@@ -341,6 +345,9 @@ class VisdomLogger(BaseLogger):
                                "pip install git+https://github.com/facebookresearch/visdom.git")
 
         if num_workers > 0:
+            # If visdom is installed, one of its dependencies `tornado`
+            # requires also `futures` to be installed.
+            # Let's check anyway if we can import it.
             try:
                 import concurrent.futures
             except ImportError:

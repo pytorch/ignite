@@ -542,3 +542,5 @@ def test_integration_with_executor(visdom_server):
     x_vals, y_vals = data['x'], data['y']
     assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
     assert all([y == y_true for y, y_true in zip(y_vals, losses)])
+
+    vd_logger.close()

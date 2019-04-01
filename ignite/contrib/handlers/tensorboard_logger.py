@@ -261,7 +261,10 @@ class TensorboardLogger(BaseLogger):
     TensorBoard handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
     This class requires `tensorboardX <https://github.com/lanpa/tensorboardX>`_ package to be installed:
-    `pip install tensorboardX`.
+
+    .. code-block:: bash
+
+        pip install tensorboardX
 
 
     Args:

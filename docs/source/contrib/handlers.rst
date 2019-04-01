@@ -3,12 +3,38 @@ ignite.contrib.handlers
 
 Contribution module of handlers
 
-.. currentmodule:: ignite.contrib.handlers
 
-.. automodule:: ignite.contrib.handlers
+custom_events
+-------------
+
+.. automodule:: ignite.contrib.handlers.custom_events
    :members:
-   :undoc-members:
-   :imported-members:
+
+param_scheduler
+---------------
+
+.. automodule:: ignite.contrib.handlers.param_scheduler
+   :members:
+
+tensorboard_logger
+------------------
+
+.. automodule:: ignite.contrib.handlers.tensorboard_logger
+   :members:
+   :inherited-members:
+
+visdom_logger
+-------------
+
+.. automodule:: ignite.contrib.handlers.visdom_logger
+   :members:
+   :inherited-members:
+
+tqdm_logger
+-----------
+
+.. automodule:: ignite.contrib.handlers.tqdm_logger
+   :members:
 
 
 More on parameter scheduling
