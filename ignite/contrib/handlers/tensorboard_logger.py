@@ -16,7 +16,7 @@ class OutputHandler(BaseOutputHandler):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
@@ -56,7 +56,8 @@ class OutputHandler(BaseOutputHandler):
         global_step = state.get_event_attrib_value(event_name)
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
+            if isinstance(value, numbers.Number) or \
+                    isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 logger.writer.add_scalar("{}/{}".format(self.tag, key), value, global_step)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
@@ -71,7 +72,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
@@ -110,7 +111,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
@@ -148,7 +149,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
@@ -187,7 +188,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
@@ -224,7 +225,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
@@ -259,12 +260,16 @@ class TensorboardLogger(BaseLogger):
     """
     TensorBoard handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
+    This class requires `tensorboardX <https://github.com/lanpa/tensorboardX>`_ package to be installed:
+    `pip install tensorboardX`.
+
+
     Args:
         log_dir (str): path to the directory where to log.
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
 

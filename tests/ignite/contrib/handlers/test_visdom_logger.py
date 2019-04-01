@@ -1,16 +1,14 @@
-import os
 import tempfile
 import shutil
-import math
 
+import torch
 import pytest
 
 from mock import MagicMock, call, ANY
 
-import torch
-
 from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.visdom_logger import *
+from ignite.contrib.handlers.visdom_logger import _DummyExecutor, _BaseVisDrawer
 
 
 @pytest.fixture
@@ -18,6 +16,23 @@ def dirname():
     path = tempfile.mkdtemp()
     yield path
     shutil.rmtree(path)
+
+
+@pytest.fixture
+def visdom_server():
+
+    import time
+    import subprocess
+
+    from visdom.server import download_scripts
+    download_scripts()
+
+    hostname = "localhost"
+    port = 8098
+    p = subprocess.Popen("visdom --hostname {} -port {}".format(hostname, port), shell=True)
+    time.sleep(5)
+    yield (hostname, port)
+    p.terminate()
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -40,6 +55,7 @@ def test_optimizer_params():
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.iteration = 123
@@ -73,6 +89,7 @@ def test_output_handler_output_transform(dirname):
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -94,6 +111,7 @@ def test_output_handler_output_transform(dirname):
     wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
@@ -113,6 +131,7 @@ def test_output_handler_metric_names(dirname):
     wrapper = OutputHandler("tag", metric_names=["a", "b"])
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -143,6 +162,7 @@ def test_output_handler_metric_names(dirname):
 
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
@@ -177,6 +197,7 @@ def test_output_handler_metric_names(dirname):
 
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     with pytest.warns(UserWarning):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
@@ -197,6 +218,7 @@ def test_output_handler_both(dirname):
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -284,6 +306,7 @@ def test_weights_scalar_handler():
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -331,6 +354,7 @@ def test_weights_scalar_handler_custom_reduction():
     wrapper = WeightsScalarHandler(model, reduction=norm, show_legend=True)
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -394,6 +418,7 @@ def test_grads_scalar_handler():
     wrapper = GradsScalarHandler(model, reduction=norm)
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -421,7 +446,99 @@ def test_grads_scalar_handler():
     ], any_order=True)
 
 
-def test_intergration_no_server():
+def test_integration_no_server():
 
     with pytest.raises(RuntimeError, match="Failed to connect to Visdom server"):
         VisdomLogger()
+
+
+def test_logger_init_hostname_port(visdom_server):
+    # Explicit hostname, port
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+    assert "main" in vd_logger.vis.get_env_list()
+
+
+def test_logger_init_env_vars(visdom_server):
+    # As env vars
+    import os
+    os.environ['VISDOM_SERVER_URL'] = visdom_server[0]
+    os.environ['VISDOM_PORT'] = str(visdom_server[1])
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+    assert "main" in vd_logger.vis.get_env_list()
+
+
+def _parse_content(content):
+    import json
+    return json.loads(content)
+
+
+def test_integration_no_executor(visdom_server):
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+
+    # close all windows in 'main' environment
+    vd_logger.vis.close()
+
+    n_epochs = 3
+    data = list(range(10))
+
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
+
+    def update_fn(engine, batch):
+        return next(losses_iter)
+
+    trainer = Engine(update_fn)
+    output_handler = OutputHandler(tag="training", output_transform=lambda x: {'loss': x})
+    vd_logger.attach(trainer,
+                     log_handler=output_handler,
+                     event_name=Events.ITERATION_COMPLETED)
+
+    trainer.run(data, max_epochs=n_epochs)
+
+    assert len(output_handler.windows) == 1
+    assert "training/loss" in output_handler.windows
+    win_name = output_handler.windows['training/loss']['win']
+    data = vd_logger.vis.get_window_data(win=win_name)
+    data = _parse_content(data)
+    assert "content" in data and "data" in data["content"]
+    data = data["content"]["data"][0]
+    assert "x" in data and "y" in data
+    x_vals, y_vals = data['x'], data['y']
+    assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+    assert all([y == y_true for y, y_true in zip(y_vals, losses)])
+
+
+def test_integration_with_executor(visdom_server):
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1)
+
+    # close all windows in 'main' environment
+    vd_logger.vis.close()
+
+    n_epochs = 5
+    data = list(range(50))
+
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
+
+    def update_fn(engine, batch):
+        return next(losses_iter)
+
+    trainer = Engine(update_fn)
+    output_handler = OutputHandler(tag="training", output_transform=lambda x: {'loss': x})
+    vd_logger.attach(trainer,
+                     log_handler=output_handler,
+                     event_name=Events.ITERATION_COMPLETED)
+
+    trainer.run(data, max_epochs=n_epochs)
+
+    assert len(output_handler.windows) == 1
+    assert "training/loss" in output_handler.windows
+    win_name = output_handler.windows['training/loss']['win']
+    data = vd_logger.vis.get_window_data(win=win_name)
+    data = _parse_content(data)
+    assert "content" in data and "data" in data["content"]
+    data = data["content"]["data"][0]
+    assert "x" in data and "y" in data
+    x_vals, y_vals = data['x'], data['y']
+    assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+    assert all([y == y_true for y, y_true in zip(y_vals, losses)])

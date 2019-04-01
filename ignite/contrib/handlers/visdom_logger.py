@@ -5,10 +5,10 @@ import warnings
 import torch
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
-    BaseWeightsScalarHandler, BaseWeightsHistHandler
+    BaseWeightsScalarHandler
 
 
-__all__ = ['VisdomLogger', 'OutputHandler', 'OptimizerParamsHandler',
+__all__ = ['VisdomLogger', 'OptimizerParamsHandler', 'OutputHandler',
            'WeightsScalarHandler', 'GradsScalarHandler']
 
 
@@ -19,6 +19,19 @@ class _BaseVisDrawer(object):
         self.show_legend = show_legend
 
     def add_scalar(self, logger, k, v, event_name, global_step):
+        """
+        Helper method to log a scalar with VisdomLogger.
+
+        Args:
+            logger (VisdomLogger): visdom logger
+            k (str): scalar name which is used to set window title and y-axis label
+            v (int or float): scalar value, y-axis value
+            event_name: Event name which is used to setup x-axis label. Valid events are from
+                :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
+            global_step (int): global step, x-axis value
+
+        """
         if k not in self.windows:
             self.windows[k] = {
                 'win': None,
@@ -31,17 +44,20 @@ class _BaseVisDrawer(object):
             }
 
         update = None if self.windows[k]['win'] is None else 'append'
-        ret = logger.vis.line(
-            X=[global_step, ],
-            Y=[v, ],
-            env=logger.vis.env,
-            win=self.windows[k]['win'],
-            update=update,
-            opts=self.windows[k]['opts'],
-            name=k,
-        )
+
+        kwargs = {
+            "X": [global_step, ],
+            "Y": [v, ],
+            "env": logger.vis.env,
+            "win": self.windows[k]['win'],
+            "update": update,
+            "opts": self.windows[k]['opts'],
+            "name": k
+        }
+
+        future = logger.executor.submit(logger.vis.line, **kwargs)
         if self.windows[k]['win'] is None:
-            self.windows[k]['win'] = ret
+            self.windows[k]['win'] = future.result()
 
 
 class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
@@ -49,12 +65,12 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
 
             # Create a logger
-            vd_logger = VisdomLogger(log_dir="experiments/vd_logs")
+            vd_logger = VisdomLogger()
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
@@ -96,7 +112,8 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
             values = []
             keys = []
-            if isinstance(value, numbers.Number):
+            if isinstance(value, numbers.Number) or \
+                    isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 values.append(value)
                 keys.append(key)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
@@ -118,7 +135,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
 
@@ -161,7 +178,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
 
@@ -178,6 +195,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         reduction (callable): function to reduce parameters into scalar
         show_legend (bool, optional): flag to show legend in the window
     """
+
     def __init__(self, model, reduction=torch.norm, show_legend=False):
         super(WeightsScalarHandler, self).__init__(model, reduction)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
@@ -204,7 +222,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
 
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
 
@@ -222,6 +240,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         show_legend (bool, optional): flag to show legend in the window
 
     """
+
     def __init__(self, model, reduction=torch.norm, show_legend=False):
         super(GradsScalarHandler, self).__init__(model, reduction)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
@@ -244,17 +263,31 @@ class VisdomLogger(BaseLogger):
     """
     VisdomLogger handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
+    This class requires `visdom <https://github.com/facebookresearch/visdom/>`_ package to be installed:
+    `pip install git+https://github.com/facebookresearch/visdom.git`.
+
     Args:
         server (str, optional): visdom server URL. It can be also specified by environment variable `VISDOM_SERVER_URL`
         port (int, optional): visdom server's port. It can be also specified by environment variable `VISDOM_PORT`
-        **kwargs:
+        num_workers (int, optional): number of workers to use in `concurrent.futures.ThreadPoolExecutor` to post data to
+            visdom server. Default, `num_workers=1`. If `num_workers=0` and logger uses the main thread. If using
+            Python 2.7 and `num_workers>0` the package `futures` should be installed: `pip install futures`.
+        **kwargs: kwargs to pass into `visdom.Visdom`
 
     Notes:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
 
+
+    .. warning::
+
+        Frequent logging, e.g. when logger is attached to `Events.ITERATION_COMPLETED`, can slow down the run if the
+        main thread is used to send the data to visdom server (`num_workers=0`). To avoid this situation we can either
+        log less frequently or set `num_workers=1`.
+
+
     Examples:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
 
@@ -296,21 +329,30 @@ class VisdomLogger(BaseLogger):
             vd_logger.attach(trainer,
                              log_handler=grads_scalar_handler(model),
                              event_name=Events.ITERATION_COMPLETED)
-
+            vd_logger.close()
     """
 
-    def __init__(self, server=None, port=None, **kwargs):
+    def __init__(self, server=None, port=None, num_workers=1, **kwargs):
         try:
             import visdom
         except ImportError:
-            raise RuntimeError("This contrib module requires visdom."
+            raise RuntimeError("This contrib module requires visdom package."
                                "Please install it with command:\n"
                                "pip install git+https://github.com/facebookresearch/visdom.git")
+
+        if num_workers > 0:
+            try:
+                import concurrent.futures
+            except ImportError:
+                raise RuntimeError("This contrib module requires concurrent.futures module"
+                                   "Please install it with command:\n"
+                                   "pip install futures")
+
         if server is None:
-            server = os.environ.get("VISDOM_SERVER_URL", 'http://localhost')
+            server = os.environ.get("VISDOM_SERVER_URL", 'localhost')
 
         if port is None:
-            port = os.environ.get("VISDOM_PORT", 8097)
+            port = int(os.environ.get("VISDOM_PORT", 8097))
 
         if "username" not in kwargs:
             username = os.environ.get("VISDOM_USERNAME", None)
@@ -330,5 +372,34 @@ class VisdomLogger(BaseLogger):
             raise RuntimeError("Failed to connect to Visdom server at {}. "
                                "Did you run python -m visdom.server ?".format(server))
 
+        self.executor = _DummyExecutor()
+        if num_workers > 0:
+            from concurrent.futures import ThreadPoolExecutor
+            self.executor = ThreadPoolExecutor(max_workers=num_workers)
+
     def _save(self):
         self.vis.save([self.vis.env])
+
+    def close(self):
+        self.vis = None
+        self.executor.shutdown()
+
+
+class _DummyExecutor:
+
+    class _DummyFuture:
+
+        def __init__(self, result):
+            self._output = result
+
+        def result(self):
+            return self._output
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def submit(self, fn, **kwargs):
+        return _DummyExecutor._DummyFuture(fn(**kwargs))
+
+    def shutdown(self, *args, **kwargs):
+        pass
