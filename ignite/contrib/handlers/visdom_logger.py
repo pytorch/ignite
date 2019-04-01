@@ -333,7 +333,27 @@ class VisdomLogger(BaseLogger):
             vd_logger.attach(trainer,
                              log_handler=grads_scalar_handler(model),
                              event_name=Events.ITERATION_COMPLETED)
+
+            # We need to close the logger with we are done
             vd_logger.close()
+
+        It is also possible to use the logger as context manager:
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.visdom_logger import *
+
+            with VisdomLogger() as vd_logger:
+
+                trainer = Engine(update_fn)
+                # Attach the logger to the trainer to log training loss at each iteration
+                vd_logger.attach(trainer,
+                                 log_handler=OutputHandler(tag="training",
+                                                           output_transform=lambda loss: {'loss': loss}),
+                                 event_name=Events.ITERATION_COMPLETED)
+
+
+
     """
 
     def __init__(self, server=None, port=None, num_workers=1, **kwargs):

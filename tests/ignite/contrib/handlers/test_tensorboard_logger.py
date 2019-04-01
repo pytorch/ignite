@@ -394,3 +394,34 @@ def test_integration(dirname):
     written_files = os.listdir(dirname)
     written_files = [f for f in written_files if "tfevents" in f]
     assert len(written_files) > 0
+
+
+def test_integration_as_context_manager(dirname):
+
+    n_epochs = 5
+    data = list(range(50))
+
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
+
+    def update_fn(engine, batch):
+        return next(losses_iter)
+
+    with TensorboardLogger(log_dir=dirname) as tb_logger:
+
+        trainer = Engine(update_fn)
+
+        def dummy_handler(engine, logger, event_name):
+            global_step = engine.state.get_event_attrib_value(event_name)
+            logger.writer.add_scalar("test_value", global_step, global_step)
+
+        tb_logger.attach(trainer,
+                         log_handler=dummy_handler,
+                         event_name=Events.EPOCH_COMPLETED)
+
+        trainer.run(data, max_epochs=n_epochs)
+
+    # Check if event files are present
+    written_files = os.listdir(dirname)
+    written_files = [f for f in written_files if "tfevents" in f]
+    assert len(written_files) > 0

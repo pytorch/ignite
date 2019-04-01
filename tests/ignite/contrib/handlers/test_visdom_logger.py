@@ -544,3 +544,40 @@ def test_integration_with_executor(visdom_server):
     assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
     vd_logger.close()
+
+
+def test_integration_with_executor_as_context_manager(visdom_server):
+
+    n_epochs = 5
+    data = list(range(50))
+
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
+
+    def update_fn(engine, batch):
+        return next(losses_iter)
+
+    with VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1) as vd_logger:
+
+        # close all windows in 'main' environment
+        vd_logger.vis.close()
+
+        trainer = Engine(update_fn)
+        output_handler = OutputHandler(tag="training", output_transform=lambda x: {'loss': x})
+        vd_logger.attach(trainer,
+                         log_handler=output_handler,
+                         event_name=Events.ITERATION_COMPLETED)
+
+        trainer.run(data, max_epochs=n_epochs)
+
+        assert len(output_handler.windows) == 1
+        assert "training/loss" in output_handler.windows
+        win_name = output_handler.windows['training/loss']['win']
+        data = vd_logger.vis.get_window_data(win=win_name)
+        data = _parse_content(data)
+        assert "content" in data and "data" in data["content"]
+        data = data["content"]["data"][0]
+        assert "x" in data and "y" in data
+        x_vals, y_vals = data['x'], data['y']
+        assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+        assert all([y == y_true for y, y_true in zip(y_vals, losses)])

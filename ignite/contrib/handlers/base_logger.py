@@ -28,6 +28,15 @@ class BaseLogger(object):
 
         engine.add_event_handler(event_name, log_handler, self, event_name)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def close(self):
+        pass
+
 
 class BaseHandler(with_metaclass(ABCMeta, object)):
 

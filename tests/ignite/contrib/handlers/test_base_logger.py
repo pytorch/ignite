@@ -11,9 +11,7 @@ from mock import MagicMock, call
 
 
 class DummyLogger(BaseLogger):
-
-    def _close(self):
-        pass
+    pass
 
 
 class DummyOutputHandler(BaseOutputHandler):
@@ -159,3 +157,53 @@ def test_attach_on_custom_event():
     ns = nf + 1 if nf < n else nf
     _test(cpe3.Events.EPOCHS_2_STARTED, ns, cpe3)
     _test(cpe3.Events.EPOCHS_2_COMPLETED, nf, cpe3)
+
+
+def test_as_context_manager():
+
+    n_epochs = 5
+    data = list(range(50))
+
+    class _DummyLogger(BaseLogger):
+
+        def __init__(self, writer):
+            self.writer = writer
+
+        def close(self):
+            self.writer.close()
+
+    def _test(event, n_calls):
+        global close_counter
+        close_counter = 0
+
+        losses = torch.rand(n_epochs * len(data))
+        losses_iter = iter(losses)
+
+        def update_fn(engine, batch):
+            return next(losses_iter)
+
+        writer = MagicMock()
+        writer.close = MagicMock()
+
+        with _DummyLogger(writer) as logger:
+            assert isinstance(logger, _DummyLogger)
+
+            trainer = Engine(update_fn)
+            mock_log_handler = MagicMock()
+
+            logger.attach(trainer,
+                          log_handler=mock_log_handler,
+                          event_name=event)
+
+            trainer.run(data, max_epochs=n_epochs)
+            mock_log_handler.assert_called_with(trainer, logger, event)
+            assert mock_log_handler.call_count == n_calls
+
+        writer.close.assert_called_once_with()
+
+    _test(Events.ITERATION_STARTED, len(data) * n_epochs)
+    _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
+    _test(Events.EPOCH_STARTED, n_epochs)
+    _test(Events.EPOCH_COMPLETED, n_epochs)
+    _test(Events.STARTED, 1)
+    _test(Events.COMPLETED, 1)

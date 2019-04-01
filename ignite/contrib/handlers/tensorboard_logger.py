@@ -325,7 +325,24 @@ class TensorboardLogger(BaseLogger):
                              log_handler=GradsHistHandler(model),
                              event_name=Events.EPOCH_COMPLETED)
 
+            # We need to close the logger with we are done
             tb_logger.close()
+
+        It is also possible to use the logger as context manager:
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            with TensorboardLogger(log_dir="experiments/tb_logs") as tb_logger:
+
+                trainer = Engine(update_fn)
+                # Attach the logger to the trainer to log training loss at each iteration
+                tb_logger.attach(trainer,
+                                 log_handler=OutputHandler(tag="training",
+                                                           output_transform=lambda loss: {'loss': loss}),
+                                 event_name=Events.ITERATION_COMPLETED)
+
     """
 
     def __init__(self, log_dir):
