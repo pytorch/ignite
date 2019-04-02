@@ -33,6 +33,9 @@ For example, model trainer for a supervised task:
     trainer = Engine(update_model)
     trainer.run(data, max_epochs=100)
 
+
+.. events-and-handlers:
+
 Events and Handlers
 -------------------
 
@@ -97,6 +100,15 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
    See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
 
+
+Timeline and events
+```````````````````
+
+Below the events and some typical handlers are displayed on a timeline for a training loop with evaluation after every
+epoch:
+
+.. image:: _static/img/concepts/timeline_and_events.png
+   :target: _static/img/concepts/timeline_and_events.png
 
 State
 -----
