@@ -33,9 +33,6 @@ For example, model trainer for a supervised task:
     trainer = Engine(update_model)
     trainer.run(data, max_epochs=100)
 
-
-.. events-and-handlers:
-
 Events and Handlers
 -------------------
 
