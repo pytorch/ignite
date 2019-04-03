@@ -3,71 +3,43 @@ try:
 except ImportError:
     raise RuntimeError("This contrib module requires nvidia-dali to be installed")
 
-from ignite.engine import Engine
+from typing import Sequence
+
+from ignite.engine import Engine, Events
 
 import torch
-from torch.nn.parallel import gather, parallel_apply, replicate
+from torch.nn.parallel import gather, parallel_apply
 
 
 def _prepare_batch(batch,
-                   device_ids=None,
+                   device=None,
                    output_map=('data', 'label')):
-    outputs = [(b[o] for o in output_map) for b in batch]
-    return zip(*outputs)
+    outputs = [[b[o] for o in output_map] for b in batch]
+    return tuple(zip(*outputs))
 
 
-def create_supervised_dali_evaluator(model,
-                                     metrics,
-                                     device_ids=None,
-                                     output_map=["data", "label"],
-                                     output_device=-1,
-                                     prepare_batch=_prepare_batch):
-
-    replicas = model.cuda()
-    if device_ids:
-        replicas = replicate(model, device_ids)
-
-    def _inference(engine, batch):
-        for r in replicas:
-            r.eval()
-        x, y = prepare_batch(batch,
-                             device_ids=device_ids,
-                             output_map=output_map)
-        y_pred = parallel_apply(replicas[:len(x)], x)
-        y_pred = gather(y_pred, output_device, 0)
-        if y[0].device.type == 'cpu':
-            y = torch.cat(y)
-        else:
-            y = gather(y, output_device, 0)
-        return y_pred, y
-
-    engine = Engine(_inference)
-
-    for name, metric in metrics.items():
-        metric.attach(engine, name)
-
-    return engine
-
-
-def create_supervised_dali_trainer(model,
+def create_supervised_dali_trainer(models,
                                    optimizer,
                                    loss_fn,
-                                   device_ids=None,
+                                   device=None,
                                    output_map=["data", "label"],
                                    output_device=-1,
                                    prepare_batch=_prepare_batch):
 
-    replicas = model.cuda()
-    if device_ids:
-        replicas = replicate(model, device_ids)
+    if not isinstance(models, Sequence):
+        models = [models]
 
-    def _update(engine, batch):
-        for r in replicas:
+    def _update(engine, batch, models=models):
+
+        for r in models:
             r.train()
+
         x, y = prepare_batch(batch,
-                             device_ids=device_ids,
+                             device=device,
                              output_map=output_map)
-        y_pred = parallel_apply(replicas[:len(x)], x)
+        indexes = [xx.device.index for xx in x]
+        models = [models[i] for i in indexes]
+        y_pred = parallel_apply(models, x)
         y_pred = gather(y_pred, output_device, 0)
         if y[0].device.type == 'cpu':
             y = torch.cat(y)
@@ -78,26 +50,67 @@ def create_supervised_dali_trainer(model,
         optimizer.step()
         return loss.item()
 
-    return Engine(_update)
+    engine = Engine(_update)
+    return engine
 
-def create_unsupervised_dali_evaluator(model,
-                                       device_ids=None,
+
+def create_supervised_dali_evaluator(models,
+                                     metrics,
+                                     device=None,
+                                     output_map=["data", "label"],
+                                     output_device=-1,
+                                     prepare_batch=_prepare_batch):
+
+    if not isinstance(models, Sequence):
+        models = [models]
+
+    def _inference(engine, batch, models=models):
+        for r in models:
+            r.eval()
+
+        with torch.no_grad():
+            x, y = prepare_batch(batch,
+                                 device,
+                                 output_map=output_map)
+            indexes = [xx.device.index for xx in x]
+            models = [models[i] for i in indexes]
+            y_pred = parallel_apply(models, x)
+            y_pred = gather(y_pred, output_device, 0)
+            if y[0].device.type == 'cpu':
+                y = torch.cat(y)
+            else:
+                y = gather(y, output_device, 0)
+            return y_pred, y
+
+    engine = Engine(_inference)
+
+    for name, metric in metrics.items():
+        metric.attach(engine, name)
+
+    return engine
+
+
+def create_unsupervised_dali_evaluator(models,
+                                       device=None,
                                        output_map=["data"],
                                        output_device=-1,
                                        prepare_batch=_prepare_batch):
 
-    replicas = model.cuda()
-    if device_ids:
-        replicas = replicate(model, device_ids)
+    if not isinstance(models, Sequence):
+        models = [models]
 
-    def _inference(engine, batch):
-        for r in replicas:
+    def _inference(engine, batch, models=models):
+        for r in models:
             r.eval()
-        x = prepare_batch(batch,
-                          device_ids=device_ids,
-                          output_map=output_map)
-        y_pred = parallel_apply(replicas[:len(x)], x)
-        y_pred = gather(y_pred, output_device, 0)
-        return y_pred
+
+        with torch.no_grad():
+            x = prepare_batch(batch,
+                              device=device,
+                              output_map=output_map)
+            indexes = [xx.device.index for xx in x]
+            models = [models[i] for i in indexes]
+            y_pred = parallel_apply(models, x)
+            y_pred = gather(y_pred, output_device, 0)
+            return y_pred
 
     return Engine(_inference)
