@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from itertools import chain, repeat
 from math import ceil
 from random import sample
+import inspect
 
 import numpy as np
 
@@ -11,7 +12,7 @@ from torch.optim import SGD
 import torch.nn.functional as F
 from torch.nn.parallel import replicate
 
-from torchvision.models import resnet18
+import torchvision.models
 from torchvision.datasets import ImageFolder
 
 from nvidia.dali import pipeline, ops, types
@@ -25,6 +26,9 @@ from ignite.contrib.engines import (create_supervised_dali_trainer,
                                     create_supervised_dali_evaluator)
 
 
+MODELS = dict(inspect.getmembers(torchvision.models, inspect.isfunction))
+
+
 def read_from_paths(paths, dtype=np.uint8):
     """
     Read the bytes from a path
@@ -35,18 +39,53 @@ def read_from_paths(paths, dtype=np.uint8):
         yield img
 
 
-def finetune_model(model, out_features, freeze=True):
+def finetune_model(model, out_features, finetune=True):
     """
     Replace last linear layer with a new one
     """
-    in_features = model.fc.in_features
-    if freeze:
+
+    name = model.__class__.__name__
+
+    # https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
+    if name == 'ResNet':
+        in_features = model.fc.in_features
+        model.fc = nn.Linear(in_features, out_features)
+        # nn.init.xavier_uniform_(model.fc.weight)
+    elif name == 'Alexnet':
+        model.classifier[6] = nn.Linear(512, out_features)
+    elif name == 'VGG':
+        model.classifier[6] = nn.Linear(4096, out_features)
+    elif name == 'Squeezenet':
+        model.classifier[1] = nn.Conv2d(512,
+                                        out_features,
+                                        kernel_size=(1,1),
+                                        stride=(1,1))
+    elif name == 'Densenet':
+        model.classifier = nn.Linear(1024, out_features)
+    elif name == 'Inception3':
+        model.AuxLogits.fc = nn.Linear(768, out_features)
+        model.fc = nn.Linear(2048, out_features)
+    else:
+        raise Exception("Invalid model name {}".format(name))
+
+    if not finetune:
         for param in model.parameters():
             param.requires_grad = False
 
-    model.fc = nn.Linear(in_features, out_features)
-    nn.init.xavier_uniform_(model.fc.weight)
     return model
+
+
+def make_model(name, n_categories,pretrained=True, finetune=True):
+    model = MODELS[name](pretrained=pretrained)
+    input_size = 224
+    name = model.__class__.__name__
+
+    if name == 'Inception3':
+        input_size = 229
+
+    if finetune:
+        model = finetune_model(model, n_categories, finetune)
+    return model, input_size
 
 
 def trainval_split(samples, val_ratio):
@@ -80,7 +119,7 @@ class SamplesPipeline(pipeline.Pipeline):
     def __init__(self,
                  samples,
                  batch_size,
-                 crop=224,
+                 input_size=224,
                  output_type=types.FLOAT,
                  device_id=0,
                  num_threads=multiprocessing.cpu_count(),
@@ -100,10 +139,10 @@ class SamplesPipeline(pipeline.Pipeline):
         mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
         std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
 
-        self.resize = ops.Resize(device='gpu', resize_x=crop, resize_y=crop)
+        self.resize = ops.Resize(device='gpu', resize_x=input_size, resize_y=input_size)
         self.np = ops.NormalizePermute(device='gpu',
-                                       height=crop,
-                                       width=crop,
+                                       height=input_size,
+                                       width=input_size,
                                        mean=mean,
                                        std=std,
                                        image_type=types.RGB,
@@ -148,7 +187,7 @@ class SamplesPipeline(pipeline.Pipeline):
 
 
 def make_pipelines(samples,
-                   crop,
+                   input_size,
                    batch_size,
                    num_gpus,
                    output_type=types.FLOAT):
@@ -156,12 +195,13 @@ def make_pipelines(samples,
     pipelines = []
     samples = tuple(samples)
     for i in range(num_gpus):
-        pipe = SamplesPipeline(samples[i::num_gpus], batch_size, crop, output_type, i)
+        pipe = SamplesPipeline(samples[i::num_gpus], batch_size, input_size, output_type, i)
         pipelines.append(pipe)
     return pipelines
 
 
-def run(root,
+def run(model_name,
+        root,
         train_batch_size,
         val_batch_size,
         epochs,
@@ -169,19 +209,26 @@ def run(root,
         momentum,
         num_gpus,
         val_ratio,
-        crop):
+        finetune,
+        pretrained):
 
     if num_gpus is None:
         num_gpus = torch.cuda.device_count()
+
 
     if val_batch_size is None:
         val_batch_size = train_batch_size
 
     dataset = ImageFolder(root)
     mapping = dataset.class_to_idx
-    train_samples, val_samples = trainval_split(dataset.samples, val_ratio)
 
-    train_pipelines = make_pipelines(train_samples, crop, train_batch_size, num_gpus)
+    model, input_size = make_model(model_name,
+                                   len(mapping.keys()),
+                                   finetune=finetune,
+                                   pretrained=pretrained)
+
+    train_samples, val_samples = trainval_split(dataset.samples, val_ratio)
+    train_pipelines = make_pipelines(train_samples, input_size, train_batch_size, num_gpus)
     train_loader = DALILoader(
         train_pipelines,
         output_map=['data', 'label'],
@@ -190,9 +237,6 @@ def run(root,
         auto_reset=True,
         iter_size=train_batch_size * num_gpus
     )
-
-    model = resnet18(pretrained=True)
-    model = finetune_model(model, len(mapping.keys()), freeze=True)
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
 
@@ -235,7 +279,10 @@ def run(root,
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
         val_size = val_batch_size * num_gpus
-        val_pipelines = make_pipelines(val_samples, crop, val_batch_size, num_gpus)
+        val_pipelines = make_pipelines(val_samples,
+                                       input_size,
+                                       val_batch_size,
+                                       num_gpus)
         val_loader = DALILoader(
             val_pipelines,
             output_map=['data', 'label'],
@@ -262,6 +309,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('--root', type=str,
                         help='Path to the root of the dataset')
+    names = '|'.join(MODELS.keys())
+    parser.add_argument('--model', type=str, default='resnet18',
+                        help='Name of the model in {}'.format(names))
     parser.add_argument('--batch_size', type=int, default=64,
                         help='input batch size for training (default: 64)')
     parser.add_argument('--val_batch_size', type=int, default=None,
@@ -276,12 +326,15 @@ if __name__ == "__main__":
                         help='Number of gpus to use')
     parser.add_argument('--val_ratio', type=float, default=.3,
                         help='ratio of images to use for validation')
-    parser.add_argument('--crop_size', type=int, default=224,
-                        help='ratio of images to use for validation')
+    parser.add_argument('--finetune', type=bool, default=True,
+                        help='Finetune model')
+    parser.add_argument('--pretrained', type=bool, default=True,
+                        help='Use pretrained model')
 
     args = parser.parse_args()
 
     run(
+        args.model,
         args.root,
         args.batch_size,
         args.val_batch_size,
@@ -290,5 +343,6 @@ if __name__ == "__main__":
         args.momentum,
         args.num_gpus,
         args.val_ratio,
-        args.crop_size
+        args.finetune,
+        args.pretrained,
     )
