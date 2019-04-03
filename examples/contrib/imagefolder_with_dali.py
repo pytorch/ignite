@@ -1,5 +1,4 @@
 from argparse import ArgumentParser
-from os import path
 from itertools import chain, repeat
 from math import ceil
 from random import sample
@@ -50,7 +49,7 @@ def finetune_model(model, out_features, freeze=True):
     return model
 
 
-def trainval_split(samples):
+def trainval_split(samples, val_ratio):
     samples = set(samples)
     val_samples = set(sample(samples, int(len(samples)*val_ratio)))
     train_samples = samples - val_samples
@@ -97,6 +96,7 @@ class SamplesPipeline(pipeline.Pipeline):
         self.input_jpegs = ops.ExternalSource()
         self.input_labels = ops.ExternalSource()
         self.decode = ops.nvJPEGDecoder(device="mixed", output_type=types.RGB)
+        # Values from imagenet preprocessing
         mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
         std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
 
@@ -161,7 +161,7 @@ def make_pipelines(samples,
     return pipelines
 
 
-def run(file_root,
+def run(root,
         train_batch_size,
         val_batch_size,
         epochs,
@@ -177,11 +177,11 @@ def run(file_root,
     if val_batch_size is None:
         val_batch_size = train_batch_size
 
-    dataset = ImageFolder(file_root)
+    dataset = ImageFolder(root)
     mapping = dataset.class_to_idx
+    train_samples, val_samples = trainval_split(dataset.samples, val_ratio)
 
     train_pipelines = make_pipelines(train_samples, crop, train_batch_size, num_gpus)
-
     train_loader = DALILoader(
         train_pipelines,
         output_map=['data', 'label'],
@@ -196,6 +196,7 @@ def run(file_root,
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
 
+    # Models must be copy to each gpus manually in order to work with dali
     train_ids = [p.device_id for p in train_pipelines]
     models = replicate(model.cuda(), train_ids)
 
@@ -225,10 +226,10 @@ def run(file_root,
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['loss']
+        avg_loss = metrics['loss']
         pbar.log_message(
             "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            .format(engine.state.epoch, avg_accuracy, avg_nll)
+            .format(engine.state.epoch, avg_accuracy, avg_loss)
         )
 
     @trainer.on(Events.EPOCH_COMPLETED)
@@ -247,10 +248,10 @@ def run(file_root,
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['loss']
+        avg_loss = metrics['loss']
         pbar.log_message(
             "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            .format(engine.state.epoch, avg_accuracy, avg_nll))
+            .format(engine.state.epoch, avg_accuracy, avg_loss))
 
         pbar.n = pbar.last_print_n = 0
 
@@ -259,7 +260,7 @@ def run(file_root,
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument('--file_root', type=str,
+    parser.add_argument('--root', type=str,
                         help='Path to the root of the dataset')
     parser.add_argument('--batch_size', type=int, default=64,
                         help='input batch size for training (default: 64)')
@@ -281,7 +282,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(
-        args.file_root,
+        args.root,
         args.batch_size,
         args.val_batch_size,
         args.epochs,

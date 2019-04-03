@@ -5,10 +5,10 @@ except ImportError:
 
 from typing import Sequence
 
-from ignite.engine import Engine, Events
-
 import torch
 from torch.nn.parallel import gather, parallel_apply
+
+from ignite.engine import Engine
 
 
 def _prepare_batch(batch,
@@ -16,6 +16,21 @@ def _prepare_batch(batch,
                    output_map=('data', 'label')):
     outputs = [[b[o] for o in output_map] for b in batch]
     return tuple(zip(*outputs))
+
+
+def _apply_and_gather(models, x, y=None, output_device=-1):
+    indexes = [xx.device.index for xx in x]
+    models = [models[i] for i in indexes]
+    y_pred = parallel_apply(models, x)
+    y_pred = gather(y_pred, output_device, 0)
+    if y is None:
+        return y_pred
+    if y[0].device.type == 'cpu':
+        y = torch.cat(y)
+    else:
+        y = gather(y, output_device, 0)
+
+    return y_pred, y
 
 
 def create_supervised_dali_trainer(models,
@@ -37,14 +52,7 @@ def create_supervised_dali_trainer(models,
         x, y = prepare_batch(batch,
                              device=device,
                              output_map=output_map)
-        indexes = [xx.device.index for xx in x]
-        models = [models[i] for i in indexes]
-        y_pred = parallel_apply(models, x)
-        y_pred = gather(y_pred, output_device, 0)
-        if y[0].device.type == 'cpu':
-            y = torch.cat(y)
-        else:
-            y = gather(y, output_device, 0)
+        y_pred, y = _apply_and_gather(models, x, y, output_device)
         loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
@@ -72,14 +80,7 @@ def create_supervised_dali_evaluator(models,
             x, y = prepare_batch(batch,
                                  device,
                                  output_map=output_map)
-            indexes = [xx.device.index for xx in x]
-            models = [models[i] for i in indexes]
-            y_pred = parallel_apply(models, x)
-            y_pred = gather(y_pred, output_device, 0)
-            if y[0].device.type == 'cpu':
-                y = torch.cat(y)
-            else:
-                y = gather(y, output_device, 0)
+            y_pred, y = _apply_and_gather(models, x, y, output_device)
             return y_pred, y
 
     engine = Engine(_inference)
@@ -107,10 +108,7 @@ def create_unsupervised_dali_evaluator(models,
             x = prepare_batch(batch,
                               device=device,
                               output_map=output_map)
-            indexes = [xx.device.index for xx in x]
-            models = [models[i] for i in indexes]
-            y_pred = parallel_apply(models, x)
-            y_pred = gather(y_pred, output_device, 0)
+            y_pred = _apply_and_gather(models, x, output_device)
             return y_pred
 
     return Engine(_inference)
