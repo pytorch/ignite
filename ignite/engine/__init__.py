@@ -31,7 +31,7 @@ def create_supervised_trainer(model, optimizer, loss_fn,
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
-            to be assigned to engine's state.output after each iteration. Default is returning loss.item(). If you
+            to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`. If you
             are going to attach metrics to trainer, you should pass
             'output_transform = lambda x, y, y_pred, loss: (y_pred, y,)'
 
