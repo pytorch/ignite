@@ -16,7 +16,7 @@ def _prepare_batch(batch, device=None, non_blocking=False):
 def create_supervised_trainer(model, optimizer, loss_fn,
                               device=None, non_blocking=False,
                               prepare_batch=_prepare_batch,
-                              output_transform = lambda x, y, y_pred, loss: loss.item() ):
+                              output_transform=lambda x, y, y_pred, loss: loss.item()):
     """
     Factory function for creating a trainer for supervised models.
 
@@ -59,7 +59,7 @@ def create_supervised_trainer(model, optimizer, loss_fn,
 def create_supervised_evaluator(model, metrics={},
                                 device=None, non_blocking=False,
                                 prepare_batch=_prepare_batch,
-                                output_transform = lambda x, y, y_pred: (y_pred, y,) ):
+                                output_transform=lambda x, y, y_pred: (y_pred, y,)):
     """
     Factory function for creating an evaluator for supervised models.
 
