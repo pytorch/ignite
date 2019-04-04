@@ -97,7 +97,7 @@ jobs:
       script:
         - sphinx-versioning --use-master-conf build --whitelist-branches master docs/source docs/build/html
         # Create .nojekyll file to serve correctly _static and friends
-        - touch build/html/.nojekyll
+        - touch docs/build/html/.nojekyll
       after_success: # Nothing to do
 
       # Deploy built docs when PR is merged to master
