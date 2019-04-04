@@ -31,9 +31,7 @@ def create_supervised_trainer(model, optimizer, loss_fn,
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
-            to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`. If you
-            are going to attach metrics to trainer, you should pass
-            'output_transform = lambda x, y, y_pred, loss: (y_pred, y,)'
+            to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
     Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
         of the processed batch by default.
@@ -74,7 +72,8 @@ def create_supervised_evaluator(model, metrics={},
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred' and returns value
-            to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)`.
+            to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` with fits
+            output expected by metrics. If you change it you should use `output_transform` in metrcis.
 
     Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
