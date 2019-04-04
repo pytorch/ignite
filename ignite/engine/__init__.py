@@ -76,6 +76,7 @@ def create_supervised_evaluator(model, metrics={},
         model.to(device)
 
     def _inference(engine, batch):
+        engine.state.output = None
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
