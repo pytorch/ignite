@@ -6,6 +6,7 @@ import torch
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy
+from ignite.contrib.handlers import CustomPeriodicEvent
 
 
 def update_fn(engine, batch):
@@ -65,7 +66,7 @@ def test_pbar_with_metric():
     pbar = ProgressBar()
     pbar.attach(trainer, ['avg_accuracy'])
 
-    with pytest.raises(KeyError):
+    with pytest.warns(UserWarning):
         trainer.run(data=data, max_epochs=1)
 
 
@@ -148,3 +149,40 @@ def test_pbar_with_tqdm_kwargs(capsys):
     err = list(filter(None, err))
     expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1.00e+00 [00:00<00:00]'.format()
     assert err[-1] == expected
+
+
+def test_pbar_for_validation(capsys):
+    loader = [1, 2, 3, 4, 5]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar(desc="Validation")
+    pbar.attach(engine)
+    engine.run(loader, max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = u'Validation: [4/5]  80%|████████   [00:00<00:00]'
+    assert err[-1] == expected
+
+
+def test_pbar_on_epochs(capsys):
+
+    n_epochs = 10
+    loader = [1, 2, 3, 4, 5]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine, event_name=Events.EPOCH_STARTED, closing_event_name=Events.COMPLETED)
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch: [9/10]  90%|█████████  [00:00<00:00]'
+    assert actual == expected
+
+# TODO: Need tests with custom events
