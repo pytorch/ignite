@@ -73,7 +73,7 @@ def create_supervised_evaluator(model, metrics={},
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` with fits
-            output expected by metrics. If you change it you should use `output_transform` in metrcis.
+            output expected by metrics. If you change it you should use `output_transform` in metrics.
 
     Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
