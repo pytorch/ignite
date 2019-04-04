@@ -35,7 +35,8 @@ def create_supervised_trainer(model, optimizer, loss_fn,
             are going to attach metrics to trainer, you should pass
             'output_transform = lambda x, y, y_pred, loss: (y_pred, y,)'
 
-    Note: `engine.state.output` for this engine is the loss of the processed batch.
+    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
+        of the processed batch by default.
 
     Returns:
         Engine: a trainer engine with supervised update function.
@@ -75,7 +76,8 @@ def create_supervised_evaluator(model, metrics={},
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning '(y_pred, y,)'
 
-    Note: `engine.state.output` for this engine is a tuple of `(batch_pred, batch_y)`.
+    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
+        a tuple of `(batch_pred, batch_y)` by default.
 
     Returns:
         Engine: an evaluator engine with supervised inference function.
