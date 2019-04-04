@@ -39,12 +39,15 @@ def read_from_paths(paths, dtype=np.uint8):
         yield img
 
 
-def finetune_model(model, out_features, finetune=True):
+def finetune_model(model, out_features, requires_grad=False):
     """
     Replace last linear layer with a new one
     """
 
     name = model.__class__.__name__
+
+    for param in model.parameters():
+        param.requires_grad = requires_grad
 
     # https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
     if name == 'ResNet':
@@ -68,14 +71,11 @@ def finetune_model(model, out_features, finetune=True):
     else:
         raise Exception("Invalid model name {}".format(name))
 
-    if not finetune:
-        for param in model.parameters():
-            param.requires_grad = False
 
     return model
 
 
-def make_model(name, n_categories,pretrained=True, finetune=True):
+def make_model(name, n_categories, pretrained=True, requires_grad=False):
     model = MODELS[name](pretrained=pretrained)
     input_size = 224
     name = model.__class__.__name__
@@ -83,8 +83,7 @@ def make_model(name, n_categories,pretrained=True, finetune=True):
     if name == 'Inception3':
         input_size = 229
 
-    if finetune:
-        model = finetune_model(model, n_categories, finetune)
+    model = finetune_model(model, n_categories, requires_grad)
     return model, input_size
 
 
@@ -209,12 +208,11 @@ def run(model_name,
         momentum,
         num_gpus,
         val_ratio,
-        finetune,
+        requires_grad,
         pretrained):
 
     if num_gpus is None:
         num_gpus = torch.cuda.device_count()
-
 
     if val_batch_size is None:
         val_batch_size = train_batch_size
@@ -223,8 +221,8 @@ def run(model_name,
     mapping = dataset.class_to_idx
 
     model, input_size = make_model(model_name,
-                                   len(mapping.keys()),
-                                   finetune=finetune,
+                                   len(mapping),
+                                   requires_grad=requires_grad,
                                    pretrained=pretrained)
 
     train_samples, val_samples = trainval_split(dataset.samples, val_ratio)
@@ -326,7 +324,7 @@ if __name__ == "__main__":
                         help='Number of gpus to use')
     parser.add_argument('--val_ratio', type=float, default=.3,
                         help='ratio of images to use for validation')
-    parser.add_argument('--finetune', type=bool, default=True,
+    parser.add_argument('--requires_grad', type=bool, default=False,
                         help='Finetune model')
     parser.add_argument('--pretrained', type=bool, default=True,
                         help='Use pretrained model')
@@ -343,6 +341,6 @@ if __name__ == "__main__":
         args.momentum,
         args.num_gpus,
         args.val_ratio,
-        args.finetune,
+        args.requires_grad,
         args.pretrained,
     )
