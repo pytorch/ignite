@@ -72,7 +72,7 @@ def create_supervised_evaluator(model, metrics={},
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred' and returns value
-            to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` with fits
+            to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
     Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
