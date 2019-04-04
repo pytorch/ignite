@@ -60,7 +60,7 @@ def finetune_model(model, out_features, finetune=True):
                                         out_features,
                                         kernel_size=(1,1),
                                         stride=(1,1))
-    elif name == 'Densenet':
+    elif name == 'DenseNet':
         model.classifier = nn.Linear(1024, out_features)
     elif name == 'Inception3':
         model.AuxLogits.fc = nn.Linear(768, out_features)
