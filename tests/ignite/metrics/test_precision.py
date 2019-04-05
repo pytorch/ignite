@@ -231,6 +231,30 @@ def test_multiclass_wrong_inputs():
         # incompatible shapes
         pr.update((torch.rand(10), torch.randint(0, 5, size=(10, 5, 6)).type(torch.LongTensor)))
 
+    pr = Precision(average=True)
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        pr.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        pr.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+
+    pr = Precision(average=False)
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        pr.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        pr.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+
 
 def test_multiclass_input_N():
     # Multiclass input data of shape (N, ) and (N, C)
@@ -461,6 +485,11 @@ def test_multilabel_wrong_inputs():
         # incompatible y
         pr.update((torch.randint(0, 5, size=(10, 5, 6)), torch.rand(10)))
 
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        pr.update((torch.randint(0, 2, size=(20, 5)), torch.randint(0, 2, size=(20, 5)).type(torch.LongTensor)))
+        pr.update((torch.randint(0, 2, size=(20, 6)), torch.randint(0, 2, size=(20, 6)).type(torch.LongTensor)))
+
 
 def to_numpy_multilabel(y):
     # reshapes input array to (N x ..., C)
@@ -643,6 +672,14 @@ def test_multilabel_input_NCHW():
     for _ in range(5):
         _test(average=True)
         _test(average=False)
+
+    pr1 = Precision(is_multilabel=True, average=True)
+    pr2 = Precision(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    pr1.update((y_pred, y))
+    pr2.update((y_pred, y))
+    assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
 
 
 def test_incorrect_type():
