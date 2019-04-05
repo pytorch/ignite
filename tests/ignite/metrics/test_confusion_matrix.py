@@ -1,10 +1,12 @@
 import torch
 
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
+from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall
+
 
 import pytest
 
@@ -41,6 +43,9 @@ def test_multiclass_wrong_inputs():
         # incompatible shapes
         cm.update((torch.rand(4, 10, 12, 14),
                    torch.randint(0, 10, size=(4, 5, 6)).type(torch.LongTensor)))
+
+    with pytest.raises(ValueError, match=r"Argument average can None or one of"):
+        ConfusionMatrix(num_classes=10, average="abc")
 
 
 def test_multiclass_input_N():
@@ -202,13 +207,13 @@ def get_y_true_y_pred():
 
 def compute_th_y_true_y_logits(y_true, y_pred):
     # Create torch.tensor from numpy
-    th_y_true = torch.from_numpy(y_true).reshape(1, 30, 30)
+    th_y_true = torch.from_numpy(y_true).unsqueeze(0)
     # Create logits torch.tensor:
-    y_probas = np.ones((3, 30, 30)) * -10
-    y_probas[0, (y_pred == 0)] = 720
-    y_probas[1, (y_pred == 1)] = 720
-    y_probas[2, (y_pred == 2)] = 768
-    th_y_logits = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
+    num_classes = max(np.max(y_true), np.max(y_pred)) + 1
+    y_probas = np.ones((num_classes, ) + y_true.shape) * -10
+    for i in range(num_classes):
+        y_probas[i, (y_pred == i)] = 720
+    th_y_logits = torch.from_numpy(y_probas).unsqueeze(0)
     return th_y_true, th_y_logits
 
 
@@ -355,3 +360,110 @@ def test_miou():
         res = iou_metric.compute().numpy()
         true_res_ = np.mean(true_res[:ignore_index] + true_res[ignore_index + 1:])
         assert res == true_res_, "{}: {} vs {}".format(ignore_index, res, true_res_)
+
+
+def test_cm_accuracy():
+
+    y_true, y_pred = get_y_true_y_pred()
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+
+    true_acc = accuracy_score(y_true.reshape(-1), y_pred.reshape(-1))
+
+    cm = ConfusionMatrix(num_classes=3)
+    acc_metric = cmAccuracy(cm)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = acc_metric.compute().numpy()
+
+    assert pytest.approx(res) == true_acc
+
+
+def test_cm_precision():
+
+    y_true, y_pred = np.random.randint(0, 10, size=(1000,)), np.random.randint(0, 10, size=(1000,))
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+
+    true_pr = precision_score(y_true.reshape(-1), y_pred.reshape(-1), average='macro')
+
+    cm = ConfusionMatrix(num_classes=10)
+    pr_metric = cmPrecision(cm, average=True)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = pr_metric.compute().numpy()
+
+    assert pytest.approx(res) == true_pr
+
+    true_pr = precision_score(y_true.reshape(-1), y_pred.reshape(-1), average=None)
+    cm = ConfusionMatrix(num_classes=10)
+    pr_metric = cmPrecision(cm, average=False)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = pr_metric.compute().numpy()
+
+    assert np.all(res == true_pr)
+
+
+def test_cm_recall():
+
+    y_true, y_pred = np.random.randint(0, 10, size=(1000,)), np.random.randint(0, 10, size=(1000,))
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+
+    true_re = recall_score(y_true.reshape(-1), y_pred.reshape(-1), average='macro')
+
+    cm = ConfusionMatrix(num_classes=10)
+    re_metric = cmRecall(cm, average=True)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = re_metric.compute().numpy()
+
+    assert pytest.approx(res) == true_re
+
+    true_re = recall_score(y_true.reshape(-1), y_pred.reshape(-1), average=None)
+    cm = ConfusionMatrix(num_classes=10)
+    re_metric = cmRecall(cm, average=False)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = re_metric.compute().numpy()
+
+    assert np.all(res == true_re)
+
+
+def test_cm_with_average():
+    num_classes = 4
+    y_pred = torch.rand(10, num_classes)
+    y = torch.randint(0, num_classes, size=(10,)).type(torch.LongTensor)
+    np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+    np_y = y.numpy().ravel()
+
+    cm = ConfusionMatrix(num_classes=num_classes, average='samples')
+    cm.update((y_pred, y))
+    true_res = confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) * 1.0 / len(np_y)
+    res = cm.compute().numpy()
+    np.testing.assert_almost_equal(true_res, res)
+
+    cm = ConfusionMatrix(num_classes=num_classes, average='recall')
+    cm.update((y_pred, y))
+    true_re = recall_score(np_y, np_y_pred, average=None)
+    res = cm.compute().numpy().diagonal()
+    np.testing.assert_almost_equal(true_re, res)
+
+    cm = ConfusionMatrix(num_classes=num_classes, average='precision')
+    cm.update((y_pred, y))
+    true_pr = precision_score(np_y, np_y_pred, average=None)
+    res = cm.compute().numpy().diagonal()
+    np.testing.assert_almost_equal(true_pr, res)

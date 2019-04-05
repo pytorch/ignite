@@ -18,16 +18,24 @@ class ConfusionMatrix(Metric):
 
     Args:
         num_classes (int): number of classes. In case of images, num_classes should also count the background index 0.
+        average (str, optional): confusion matrix values averaging schema: None, "samples", "recall", "precision".
+            Default is None. If `average="samples"` then confusion matrix values are normalized by the number of seen
+            samples. If `average="recall"` then confusion matrix values are normalized such that diagonal values
+            represent class recalls. If `average="precision"` then confusion matrix values are normalized such that
+            diagonal values represent class precisions.
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
     """
 
-    def __init__(self, num_classes, average_samples=False, output_transform=lambda x: x):
+    def __init__(self, num_classes, average=None, output_transform=lambda x: x):
+        if average is not None and average not in ("samples", "recall", "precision"):
+            raise ValueError("Argument average can None or one of ['samples', 'recall', 'precision']")
+
         self.num_classes = num_classes
         self._num_examples = 0
-        self.average_samples = average_samples
+        self.average = average
         self.confusion_matrix = None
         super(ConfusionMatrix, self).__init__(output_transform=output_transform)
 
@@ -84,8 +92,13 @@ class ConfusionMatrix(Metric):
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('Confusion matrix must have at least one example before it can be computed.')
-        if self.average_samples:
-            return self.confusion_matrix / self._num_examples
+        if self.average:
+            if self.average == "samples":
+                return self.confusion_matrix / self._num_examples
+            elif self.average == "recall":
+                return self.confusion_matrix / (self.confusion_matrix.sum(dim=1) + 1e-15)
+            elif self.average == "precision":
+                return self.confusion_matrix / (self.confusion_matrix.sum(dim=0) + 1e-15)
         return self.confusion_matrix.cpu()
 
 
@@ -138,19 +151,51 @@ def mIoU(cm, ignore_index=None):
     return IoU(cm=cm, ignore_index=ignore_index).mean()
 
 
-# def cmAccuracy(cm):
-#     # Increase floating point precision
-#     cm = cm.type(torch.float64)
-#     return cm.diag().sum() / (cm.sum() + 1e-15)
-#
-#
-# def cmPrecision(cm):
-#     # Increase floating point precision
-#     cm = cm.type(torch.float64)
-#     return cm.diag() / (cm.sum(dim=0).mean() + 1e-15)
-#
-#
-# def cmRecall(cm):
-#     # Increase floating point precision
-#     cm = cm.type(torch.float64)
-#     return cm.diag() / (cm.sum(dim=1).mean() + 1e-15)
+def cmAccuracy(cm):
+    """
+    Calculates accuracy using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    Args:
+        cm (ConfusionMatrix): instance of confusion matrix metric
+
+    Returns:
+        MetricsLambda
+    """
+    # Increase floating point precision
+    cm = cm.type(torch.float64)
+    return cm.diag().sum() / (cm.sum() + 1e-15)
+
+
+def cmPrecision(cm, average=True):
+    """
+    Calculates precision using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    Args:
+        cm (ConfusionMatrix): instance of confusion matrix metric
+        average (bool, optional): if True metric value is averaged over all classes
+    Returns:
+        MetricsLambda
+    """
+
+    # Increase floating point precision
+    cm = cm.type(torch.float64)
+    precision = cm.diag() / (cm.sum(dim=0) + 1e-15)
+    if average:
+        return precision.mean()
+    return precision
+
+
+def cmRecall(cm, average=True):
+    """
+    Calculates recall using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    Args:
+        cm (ConfusionMatrix): instance of confusion matrix metric
+        average (bool, optional): if True metric value is averaged over all classes
+    Returns:
+        MetricsLambda
+    """
+
+    # Increase floating point precision
+    cm = cm.type(torch.float64)
+    recall = cm.diag() / (cm.sum(dim=1) + 1e-15)
+    if average:
+        return recall.mean()
+    return recall
