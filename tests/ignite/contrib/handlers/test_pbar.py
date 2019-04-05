@@ -185,4 +185,33 @@ def test_pbar_on_epochs(capsys):
     expected = u'Epoch: [9/10]  90%|█████████  [00:00<00:00]'
     assert actual == expected
 
-# TODO: Need tests with custom events
+
+def test_pbar_wrong_events_order():
+
+    engine = Engine(update_fn)
+    pbar = ProgressBar()
+
+    with pytest.raises(ValueError, match="should be called before closing event"):
+        pbar.attach(engine, event_name=Events.COMPLETED, closing_event_name=Events.COMPLETED)
+
+    with pytest.raises(ValueError, match="should be called before closing event"):
+        pbar.attach(engine, event_name=Events.COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
+
+    with pytest.raises(ValueError, match="should be called before closing event"):
+        pbar.attach(engine, event_name=Events.COMPLETED, closing_event_name=Events.ITERATION_COMPLETED)
+
+    with pytest.raises(ValueError, match="should be called before closing event"):
+        pbar.attach(engine, event_name=Events.EPOCH_COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
+
+    with pytest.raises(ValueError, match="should be called before closing event"):
+        pbar.attach(engine, event_name=Events.ITERATION_COMPLETED, closing_event_name=Events.ITERATION_STARTED)
+
+
+def test_pbar_on_custom_events(capsys):
+
+    engine = Engine(update_fn)
+    pbar = ProgressBar()
+    cpe = CustomPeriodicEvent(n_iterations=15)
+
+    with pytest.raises(ValueError, match=r"Logging and closing events should be only ignite.engine.Events"):
+        pbar.attach(engine, event_name=cpe.Events.ITERATIONS_15_COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)

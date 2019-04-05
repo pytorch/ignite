@@ -78,6 +78,15 @@ class ProgressBar(BaseLogger):
         ``pbar.log_message`` to guarantee the correct format of the stdout.
     """
 
+    events_order = [
+        Events.STARTED,
+        Events.EPOCH_STARTED,
+        Events.ITERATION_STARTED,
+        Events.ITERATION_COMPLETED,
+        Events.EPOCH_COMPLETED,
+        Events.COMPLETED
+    ]
+
     def __init__(self, persist=False,
                  bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]',
                  **tqdm_kwargs):
@@ -97,6 +106,12 @@ class ProgressBar(BaseLogger):
     def _close(self, engine):
         self.pbar.close()
         self.pbar = None
+
+    @staticmethod
+    def _compare_lt(event1, event2):
+        i1 = ProgressBar.events_order.index(event1)
+        i2 = ProgressBar.events_order.index(event2)
+        return i1 < i2
 
     @staticmethod
     def log_message(message):
@@ -121,16 +136,19 @@ class ProgressBar(BaseLogger):
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
             event_name: event's name on which the progress bar advances. Valid events are from
-                :class:`~ignite.engine.Events` or any `event_name` added by
-                :meth:`~ignite.engine.Engine.register_events`.
+                :class:`~ignite.engine.Events`.
             closing_event_name: event's name on which the progress bar is closed. Valid events are from
-                :class:`~ignite.engine.Events` or any `event_name` added by
-                :meth:`~ignite.engine.Engine.register_events`.
+                :class:`~ignite.engine.Events`.
         """
         desc = self.tqdm_kwargs.get("desc", "Epoch")
 
-        # TODO:
-        # Check event_name < closing_event_name, otherwise does not make sense
+        if not (event_name in Events and closing_event_name in Events):
+            raise ValueError("Logging and closing events should be only ignite.engine.Events")
+
+        if not self._compare_lt(event_name, closing_event_name):
+            raise ValueError("Logging event {} should be called before closing event {}"
+                             .format(event_name, closing_event_name))
+
         log_handler = _OutputHandler(desc, metric_names, output_transform,
                                      event_name=event_name,
                                      closing_event_name=closing_event_name)
