@@ -425,3 +425,21 @@ def test_integration_as_context_manager(dirname):
     written_files = os.listdir(dirname)
     written_files = [f for f in written_files if "tfevents" in f]
     assert len(written_files) > 0
+
+
+@pytest.fixture
+def no_site_packages():
+    import sys
+    tensorboardX_module = sys.modules['tensorboardX']
+    del sys.modules['tensorboardX']
+    prev_path = list(sys.path)
+    sys.path = [p for p in sys.path if "site-packages" not in p]
+    yield "no_site_packages"
+    sys.path = prev_path
+    sys.modules['tensorboardX'] = tensorboardX_module
+
+
+def test_no_tensorboardX(dirname, no_site_packages):
+
+    with pytest.raises(RuntimeError, match=r"This contrib module requires tensorboardX to be installed"):
+        TensorboardLogger(log_dir=dirname)

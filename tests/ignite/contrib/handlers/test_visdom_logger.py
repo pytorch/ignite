@@ -581,3 +581,21 @@ def test_integration_with_executor_as_context_manager(visdom_server):
         x_vals, y_vals = data['x'], data['y']
         assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
         assert all([y == y_true for y, y_true in zip(y_vals, losses)])
+
+
+@pytest.fixture
+def no_site_packages():
+    import sys
+    plx_module = sys.modules['visdom']
+    del sys.modules['visdom']
+    prev_path = list(sys.path)
+    sys.path = [p for p in sys.path if "site-packages" not in p]
+    yield "no_site_packages"
+    sys.path = prev_path
+    sys.modules['visdom'] = plx_module
+
+
+def test_no_visdom(no_site_packages):
+
+    with pytest.raises(RuntimeError, match=r"This contrib module requires visdom package"):
+        VisdomLogger()
