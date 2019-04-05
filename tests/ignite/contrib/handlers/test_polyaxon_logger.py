@@ -49,21 +49,23 @@ def test_output_handler_output_transform():
 
 def test_output_handler_metric_names():
 
-    wrapper = OutputHandler("tag", metric_names=["a", "b"])
+    wrapper = OutputHandler("tag", metric_names=["a", "b", "c"])
     mock_logger = MagicMock(spec=PolyaxonLogger)
     mock_logger.log_metrics = MagicMock()
 
     mock_engine = MagicMock()
-    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45, "c": torch.tensor(10.0)})
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.log_metrics.call_count == 2
-    mock_logger.log_metrics.assert_has_calls([
-        call(step=5, **{"{}/{}".format("tag", "a"): 12.23}),
-        call(step=5, **{"{}/{}".format("tag", "b"): 23.45}),
-    ], any_order=True)
+    assert mock_logger.log_metrics.call_count == 1
+    mock_logger.log_metrics.assert_called_once_with(
+        step=5,
+        **{"tag/a": 12.23,
+           "tag/b": 23.45,
+           "tag/c": 10.0}
+    )
 
     wrapper = OutputHandler("tag", metric_names=["a", ])
 
@@ -76,12 +78,13 @@ def test_output_handler_metric_names():
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.log_metrics.call_count == 4
+    assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_has_calls([
-        call(step=5, **{"tag/a/0": 0.0}),
-        call(step=5, **{"tag/a/1": 1.0}),
-        call(step=5, **{"tag/a/2": 2.0}),
-        call(step=5, **{"tag/a/3": 3.0}),
+        call(step=5,
+             **{"tag/a/0": 0.0,
+                "tag/a/1": 1.0,
+                "tag/a/2": 2.0,
+                "tag/a/3": 3.0}),
     ], any_order=True)
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
@@ -115,12 +118,13 @@ def test_output_handler_both():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.log_metrics.call_count == 3
-    mock_logger.log_metrics.assert_has_calls([
-        call(step=5, **{"tag/a": 12.23}),
-        call(step=5, **{"tag/b": 23.45}),
-        call(step=5, **{"tag/loss": 12345}),
-    ], any_order=True)
+    assert mock_logger.log_metrics.call_count == 1
+    mock_logger.log_metrics.assert_called_once_with(
+        step=5,
+        **{"tag/a": 12.23,
+           "tag/b": 23.45,
+           "tag/loss": 12345}
+    )
 
 
 def test_integration():

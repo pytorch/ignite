@@ -53,17 +53,19 @@ class OutputHandler(BaseOutputHandler):
         state = engine.state if self.another_engine is None else self.another_engine.state
         global_step = state.get_event_attrib_value(event_name)
 
+        rendered_metrics = {"step": global_step}
         for key, value in metrics.items():
             if isinstance(value, numbers.Number):
-                logger.log_metrics(step=global_step, **{"{}/{}".format(self.tag, key): value})
+                rendered_metrics["{}/{}".format(self.tag, key)] = value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.log_metrics(step=global_step, **{"{}/{}".format(self.tag, key): value.item()})
+                rendered_metrics["{}/{}".format(self.tag, key)] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    logger.log_metrics(step=global_step, **{"{}/{}/{}".format(self.tag, key, i): v.item()})
+                    rendered_metrics["{}/{}/{}".format(self.tag, key, i)] = v.item()
             else:
                 warnings.warn("PolyaxonLogger output_handler can not log "
                               "metrics value type {}".format(type(value)))
+        logger.log_metrics(**rendered_metrics)
 
 
 class PolyaxonLogger(BaseLogger):
