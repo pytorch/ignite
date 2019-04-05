@@ -3,7 +3,7 @@ import numbers
 import warnings
 
 try:
-    from tqdm import tqdm
+    from tqdm.autonotebook import tqdm
 except ImportError:
     raise RuntimeError("This contrib module requires tqdm to be installed")
 
