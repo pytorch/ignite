@@ -51,9 +51,9 @@ flexibility to the user to allow for this:
         """
         Events based on Backpropagation
         """
-        BACKPROPAGATION_STARTED = 'backpropagation_started'
-        BACKPROPAGATION_ENDED = 'backpropagation_ended'
-        OPTIMIZER_STEP_END = 'optimizer_step_end'
+        BACKWARD_BEGIN = 'backpropagation_started'
+        BACKWARD_END = 'backpropagation_ended'
+        STEP_END = 'optimizer_step_end'
 
 
     def update(engine, batch):
@@ -62,19 +62,19 @@ flexibility to the user to allow for this:
         x, y = process_batch(batch)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
-        engine.fire_event(BackpropagationEvents.BACKPROPOGATION_STARTED)
+        engine.fire_event(BackpropagationEvents.BACKWARD_BEGIN)
         loss.backward()
-        engine.fire_event(BackpropagationEvents.BACKPROPOGATION_ENDED)
+        engine.fire_event(BackpropagationEvents.BACKWARD_END)
         optimizer.step()
-        engine.fire_event(BackpropagationEvents.OPTIMIZER_STEP_END)
+        engine.fire_event(BackpropagationEvents.STEP_END)
         
         return loss.item()
 
     trainer = Engine(update)
     trainer.register_events(*BackpropagationEvents)
 
-    @trainer.on(BackpropagationEvents.BACKPROPAGATION_STARTED)
-    def function_after_backprop(engine):
+    @trainer.on(BackpropagationEvents.BACKWARD_BEGIN)
+    def function_before_backprop(engine):
         # insert custom function here
 
 
