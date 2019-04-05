@@ -194,9 +194,6 @@ class _OutputHandler(BaseOutputHandler):
 
     def __call__(self, engine, logger, event_name):
 
-        if not isinstance(logger, ProgressBar):
-            raise RuntimeError("Handler '_OutputHandler' works only with ProgressBar")
-
         if logger.pbar is None:
             logger._reset(pbar_total=self.get_max_number_events(self.event_name, engine))
 
@@ -209,20 +206,20 @@ class _OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics(engine)
 
+        rendered_metrics = {}
         for key, value in metrics.items():
             if isinstance(value, numbers.Number) or \
                     isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                metrics[key] = "{:.2e}".format(value)
+                rendered_metrics[key] = "{:.2e}".format(value)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                del metrics[key]
                 for i, v in enumerate(value):
                     k = "{}_{}".format(key, i)
-                    metrics[k] = "{:.2e}".format(value)
+                    rendered_metrics[k] = "{:.2e}".format(v)
             else:
                 warnings.warn("ProgressBar can not log "
                               "metrics value type {}".format(type(value)))
 
-        if metrics:
-            logger.pbar.set_postfix(**metrics)
+        if rendered_metrics:
+            logger.pbar.set_postfix(**rendered_metrics)
 
         logger.pbar.update()

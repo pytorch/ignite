@@ -34,6 +34,18 @@ def test_pbar(capsys):
     assert err[-1] == expected
 
 
+def test_pbar_log_message(capsys):
+
+    ProgressBar.log_message("test")
+
+    captured = capsys.readouterr()
+    out = captured.out.split('\r')
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    expected = u'test'
+    assert out[-1] == expected
+
+
 def test_attach_fail_with_string():
     engine = Engine(update_fn)
     pbar = ProgressBar()
@@ -165,6 +177,40 @@ def test_pbar_for_validation(capsys):
     err = list(filter(None, err))
     expected = u'Validation: [4/5]  80%|████████   [00:00<00:00]'
     assert err[-1] == expected
+
+
+def test_pbar_output_tensor(capsys):
+    loader = [1, 2, 3, 4, 5]
+
+    def update_fn(engine, batch):
+        return torch.Tensor([batch, 0])
+
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar(desc="Output tensor")
+    pbar.attach(engine, output_transform=lambda x: x)
+    engine.run(loader, max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = u'Output tensor: [4/5]  80%|████████  , output_0=5.00e+00, output_1=0.00e+00 [00:00<00:00]'
+    assert err[-1] == expected
+
+
+def test_pbar_output_warning(capsys):
+    loader = [1, 2, 3, 4, 5]
+
+    def update_fn(engine, batch):
+        return batch, "abc"
+
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar(desc="Output tensor")
+    pbar.attach(engine, output_transform=lambda x: x)
+    with pytest.warns(UserWarning):
+        engine.run(loader, max_epochs=1)
 
 
 def test_pbar_on_epochs(capsys):
