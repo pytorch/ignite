@@ -11,12 +11,15 @@ class _BasePrecisionRecall(_BaseClassification):
 
     def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
         self._average = average
-        super(_BasePrecisionRecall, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
+        self._true_positives = None
+        self._positives = None
         self.eps = 1e-20
+        super(_BasePrecisionRecall, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
 
     def reset(self):
         self._true_positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
         self._positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
+        super(_BasePrecisionRecall, self).reset()
 
     def compute(self):
         if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
@@ -95,7 +98,7 @@ class Precision(_BasePrecisionRecall):
                 raise ValueError("y_pred contains less classes than y. Number of predicted classes is {}"
                                  " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1))
             y = to_onehot(y.view(-1), num_classes=num_classes)
-            indices = torch.max(y_pred, dim=1)[1].view(-1)
+            indices = torch.argmax(y_pred, dim=1).view(-1)
             y_pred = to_onehot(indices, num_classes=num_classes)
         elif self._type == "multilabel":
             # if y, y_pred shape is (N, C, ...) -> (C, N x ...)
