@@ -77,7 +77,7 @@ flexibility to the user to allow for this:
         # insert custom function here
 
 
-More detailed implementation can be found in `TBPTT Trainer<contrib/engines.html#ignite.contrib.engines.create_supervised_tbptt_trainer>`_.
+More detailed implementation can be found in `TBPTT Trainer <_modules/ignite/contrib/engines/tbptt.html#create_supervised_tbptt_trainer>`_.
 
 
 Creating Custom Events based on Iteration and Epoch
