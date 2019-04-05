@@ -47,12 +47,13 @@ flexibility to the user to allow for this:
 
 .. code-block:: python
 
-    class BackpropogationEvents(Enum):
+    class BackpropagationEvents(Enum):
         """
-        Events based on Backpropogation
+        Events based on Backpropagation
         """
-        BACKPROPOGATION_STARTED = 'backpropogation_started'
-        BACKPROPOGATION_ENDED = 'backpropogation_ended'
+        BACKPROPAGATION_STARTED = 'backpropagation_started'
+        BACKPROPAGATION_ENDED = 'backpropagation_ended'
+        OPTIMIZER_STEP_END = 'optimizer_step_end'
 
 
     def update(engine, batch):
@@ -61,16 +62,18 @@ flexibility to the user to allow for this:
         x, y = process_batch(batch)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
-        engine.fire_event(BackpropogationEvents.BACKPROPOGATION_STARTED)
+        engine.fire_event(BackpropagationEvents.BACKPROPOGATION_STARTED)
         loss.backward()
+        engine.fire_event(BackpropagationEvents.BACKPROPOGATION_ENDED)
         optimizer.step()
-        engine.fire_event(BackpropogationEvents.BACKPROPOGATION_ENDED)
+        engine.fire_event(BackpropagationEvents.OPTIMIZER_STEP_END)
+        
         return loss.item()
 
     trainer = Engine(update)
-    trainer.register_events(*BackpropogationEvents)
+    trainer.register_events(*BackpropagationEvents)
 
-    @trainer.on(BackpropogationEvents.BACKPROPOGATION_STARTED)
+    @trainer.on(BackpropagationEvents.BACKPROPAGATION_STARTED)
     def function_after_backprop(engine):
         # insert custom function here
 
