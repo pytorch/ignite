@@ -39,6 +39,52 @@ As a consequence, the following code is correct too:
 More details `Events and Handlers <concepts.html#events-and-handlers>`_.
 
 
+Creating Custom Events based on Forward/Backward Pass
+-----------------------------------------------------
+
+There are cases where the user might want to add events based on the loss calculation and backward pass. Ignite provides
+flexibility to the user to allow for this:
+
+.. code-block:: python
+
+    class BackpropogationEvents(Enum):
+        """
+        Events based on Backpropogation
+        """
+        BACKPROPOGATION_STARTED = 'backpropogation_started'
+        BACKPROPOGATION_ENDED = 'backpropogation_ended'
+
+
+    def update(engine, batch):
+        model.train()
+        opitmizer.zero_grad()
+        x, y = process_batch(batch)
+        y_pred = model(x)
+        loss = loss_fn(y_pred, y)
+        engine.fire_event(BackpropogationEvents.BACKPROPOGATION_STARTED)
+        loss.backward()
+        optimizer.step()
+        engine.fire_event(BackpropogationEvents.BACKPROPOGATION_ENDED)
+        return loss.item()
+
+    trainer = Engine(update)
+    trainer.register_events(*BackpropogationEvents)
+
+    @trainer.on(BackpropogationEvents.BACKPROPOGATION_STARTED)
+    def function_after_backprop(engine):
+        # insert custom function here
+
+
+More detailed implementation can be found in `TBPTT Trainer<contrib/engines.html#ignite.contrib.engines.create_supervised_tbptt_trainer>`_.
+
+
+Creating Custom Events based on Iteration and Epoch
+---------------------------------------------------
+
+Another type of custom event could be based on number of iteration and epochs. Ignite has :attr:`~ignite.contrib.handlers.custom_events.CustomPeriodicEvent`, which allows the user to
+define events based on number of elapsed iterations/epochs.
+
+
 Gradients accumulation
 ----------------------
 
