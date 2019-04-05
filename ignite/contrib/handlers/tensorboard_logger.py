@@ -349,7 +349,7 @@ class TensorboardLogger(BaseLogger):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
-            raise RuntimeError("This contrib module requires tensorboardX to be installed."
+            raise RuntimeError("This contrib module requires tensorboardX to be installed. "
                                "Please install it with command: \n pip install tensorboardX")
 
         self.writer = SummaryWriter(log_dir=log_dir)

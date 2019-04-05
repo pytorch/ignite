@@ -360,7 +360,7 @@ class VisdomLogger(BaseLogger):
         try:
             import visdom
         except ImportError:
-            raise RuntimeError("This contrib module requires visdom package."
+            raise RuntimeError("This contrib module requires visdom package. "
                                "Please install it with command:\n"
                                "pip install git+https://github.com/facebookresearch/visdom.git")
 
