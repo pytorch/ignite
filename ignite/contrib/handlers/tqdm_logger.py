@@ -2,11 +2,6 @@
 import numbers
 import warnings
 
-try:
-    from tqdm.autonotebook import tqdm
-except ImportError:
-    raise RuntimeError("This contrib module requires tqdm to be installed")
-
 import torch
 
 from ignite.engine import Events
@@ -90,13 +85,21 @@ class ProgressBar(BaseLogger):
     def __init__(self, persist=False,
                  bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]',
                  **tqdm_kwargs):
+
+        try:
+            from tqdm.autonotebook import tqdm
+        except ImportError:
+            raise RuntimeError("This contrib module requires tqdm to be installed. "
+                               "Please install it with command: \n pip install tqdm")
+
+        self.pbar_cls = tqdm
         self.pbar = None
         self.persist = persist
         self.bar_format = bar_format
         self.tqdm_kwargs = tqdm_kwargs
 
     def _reset(self, pbar_total):
-        self.pbar = tqdm(
+        self.pbar = self.pbar_cls(
             total=pbar_total,
             leave=self.persist,
             bar_format=self.bar_format,
@@ -121,6 +124,7 @@ class ProgressBar(BaseLogger):
         Args:
             message (str): string you wish to log.
         """
+        from tqdm import tqdm
         tqdm.write(message)
 
     def attach(self, engine, metric_names=None, output_transform=None,
