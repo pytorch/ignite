@@ -53,7 +53,7 @@ flexibility to the user to allow for this:
         """
         BACKWARD_BEGIN = 'backpropagation_started'
         BACKWARD_END = 'backpropagation_ended'
-        STEP_END = 'optimizer_step_end'
+        OPTIMIZER_STEP_ENDED = 'optimizer_step_ended'
 
 
     def update(engine, batch):
@@ -66,7 +66,7 @@ flexibility to the user to allow for this:
         loss.backward()
         engine.fire_event(BackpropagationEvents.BACKWARD_END)
         optimizer.step()
-        engine.fire_event(BackpropagationEvents.STEP_END)
+        engine.fire_event(BackpropagationEvents.OPTIMIZER_STEP_ENDED)
         
         return loss.item()
 
