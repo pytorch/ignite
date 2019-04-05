@@ -86,7 +86,7 @@ class ConfusionMatrix(Metric):
         if self.confusion_matrix.type() != y_ohe_t.type():
             self.confusion_matrix = self.confusion_matrix.type_as(y_ohe_t)
 
-        self.confusion_matrix += (y_ohe_t @ y_pred_ohe).float()
+        self.confusion_matrix += torch.matmul(y_ohe_t, y_pred_ohe).float()
         self._num_examples += y_pred.shape[0]
 
     def compute(self):
