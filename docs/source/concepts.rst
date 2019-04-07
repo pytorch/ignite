@@ -98,6 +98,15 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
    custom events.
 
 
+Timeline and events
+```````````````````
+
+Below the events and some typical handlers are displayed on a timeline for a training loop with evaluation after every
+epoch:
+
+.. image:: _static/img/concepts/timeline_and_events.png
+   :target: _static/img/concepts/timeline_and_events.png
+
 State
 -----
 A state is introduced in :class:`~ignite.engine.Engine` to store the output of the `process_function`, current epoch,
