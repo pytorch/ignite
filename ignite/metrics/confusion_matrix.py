@@ -112,6 +112,18 @@ def IoU(cm, ignore_index=None):
     Returns:
         MetricsLambda
 
+    Examples:
+
+    .. code-block:: python
+
+        train_evaluator = ...
+
+        cm = ConfusionMatrix(num_classes=num_classes)
+        IoU(cm, ignore_index=0).attach(train_evaluator, 'IoU')
+
+        state = train_evaluator.run(train_dataset)
+        # state.metrics['IoU'] -> tensor of shape (num_classes - 1, )
+
     """
     if not isinstance(cm, ConfusionMatrix):
         raise TypeError("Argument cm should be instance of ConfusionMatrix, but given {}".format(type(cm)))
@@ -147,6 +159,20 @@ def mIoU(cm, ignore_index=None):
 
     Returns:
         MetricsLambda
+
+    Examples:
+
+    .. code-block:: python
+
+        train_evaluator = ...
+
+        cm = ConfusionMatrix(num_classes=num_classes)
+        mIoU(cm, ignore_index=0).attach(train_evaluator, 'mean IoU')
+
+        state = train_evaluator.run(train_dataset)
+        # state.metrics['mean IoU'] -> scalar
+
+
     """
     return IoU(cm=cm, ignore_index=ignore_index).mean()
 
