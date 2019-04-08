@@ -71,6 +71,13 @@ class ProgressBar(BaseLogger):
         When adding attaching the progress bar to an engine, it is recommend that you replace
         every print operation in the engine's handlers triggered every iteration with
         ``pbar.log_message`` to guarantee the correct format of the stdout.
+
+    Note:
+        When using inside jupyter notebook, `ProgressBar` automatically uses `tqdm_notebook`. For correct rendering,
+        please install `ipywidgets <https://ipywidgets.readthedocs.io/en/stable/user_install.html#installation>`_.
+        Due to `tqdm notebook bugs <https://github.com/tqdm/tqdm/issues/594>`_, bar format may be needed to be set
+        to an empty string value.
+
     """
 
     events_order = [
