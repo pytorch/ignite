@@ -83,3 +83,9 @@ for example:
 .. autoclass:: RunningAverage
 
 .. autoclass:: MetricsLambda
+
+.. autoclass:: ConfusionMatrix
+
+.. autofunction:: IoU
+
+.. autofunction:: mIoU
