@@ -37,7 +37,7 @@ tqdm_logger
    :members:
 
 polyaxon_logger
--------------
+---------------
 
 .. automodule:: ignite.contrib.handlers.polyaxon_logger
    :members:
