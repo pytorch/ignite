@@ -29,7 +29,7 @@ before_install: &before_install
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install tqdm==4.30.0 scikit-learn tensorboardX visdom
+  - pip install tqdm scikit-learn tensorboardX visdom
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install futures; fi
