@@ -36,6 +36,13 @@ tqdm_logger
 .. automodule:: ignite.contrib.handlers.tqdm_logger
    :members:
 
+polyaxon_logger
+---------------
+
+.. automodule:: ignite.contrib.handlers.polyaxon_logger
+   :members:
+   :inherited-members:
+
 
 More on parameter scheduling
 ----------------------------
