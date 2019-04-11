@@ -33,6 +33,46 @@ from ignite.metrics import Metric
 
 MODELS = dict(inspect.getmembers(torchvision.models, inspect.isfunction))
 
+def iter_setup(samples):
+    """
+    Return a (Sequence[np.ndarray], Sequence[np.ndarray])
+    """
+    paths, labels = zip(*samples)
+    def read_path(p):
+        with open(p, 'rb') as src:
+            return np.frombuffer(src.read(), dtype=np.uint8)
+
+    def read_label(l):
+        return np.array([l], dtype=np.uint8)
+
+    jpegs = [read_path(p) for p in paths]
+    targets = [read_label(l) for l in labels]
+    return jpegs, targets
+
+
+def make_samples(root, local_rank, world_size, val_ratio):
+    dataset = ImageFolder(root)
+    mapping = dataset.class_to_idx
+
+    sample_by_category = defaultdict(list)
+
+    for v, k in dataset.samples:
+        sample_by_category[k].append((str(v), k))
+
+    def gen_samples(sample_by_category):
+        for v in sample_by_category.values():
+            yield v[local_rank::world_size]
+
+    samples = tuple(chain.from_iterable(gen_samples(sample_by_category)))
+    train, val = trainval_split(samples, 1-val_ratio)
+    return train, val, len(sample_by_category.keys())
+
+def prepare_batch(batch, device, output_map):
+    x = batch[0]['data']
+    y = batch[0]['label']
+    y = y.squeeze().long().to('cuda')
+    return x, y
+
 
 def finetune_model(model, out_features, requires_grad=False):
     """
@@ -150,15 +190,14 @@ def run(model_name,
                                          world_size=world_size,
                                          rank=local_rank)
     world_size = torch.distributed.get_world_size()
-
-    dataset = ImageFolder(root)
-    mapping = dataset.class_to_idx
-
+    train_samples, val_samples, n_categories = make_samples(root,
+                                                            local_rank,
+                                                            world_size,
+                                                            val_ratio)
     model, input_size = make_model(model_name,
-                                   len(mapping),
+                                   n_categories,
                                    requires_grad=requires_grad,
                                    pretrained=pretrained)
-
     torch.cuda.set_device(device_id)
     model.to('cuda')
     model = DDP(model, device_ids=[device_id], output_device=device_id)
@@ -169,19 +208,6 @@ def run(model_name,
     loss = Loss(lambda y_pred, y: reduce_tensor(loss_fn(y_pred, y), world_size))
     # Can't be used in a distributed as it is. Must write a class DistributedMetrics
     # accuracy = Accuracy(output_transform=lambda x, y: ())
-
-    sample_by_category = defaultdict(list)
-
-    for v, k in dataset.samples:
-        sample_by_category[k].append((str(v), k))
-
-    def gen_samples(sample_by_category):
-        for v in sample_by_category.values():
-            yield v[local_rank::world_size]
-
-    samples = tuple(chain.from_iterable(gen_samples(sample_by_category)))
-    train_samples, val_samples = trainval_split(samples, 1-val_ratio)
-
     # Values from imagenet preprocessing
     mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
     std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
@@ -196,26 +222,8 @@ def run(model_name,
                                 std=std)
     ])
 
-    def iter_setup(samples):
-        """
-        Return a (Sequence[np.ndarray], Sequence[np.ndarray])
-        """
-        paths, labels = zip(*samples)
-        def read_path(p):
-            with open(p, 'rb') as src:
-                return np.frombuffer(src.read(), dtype=np.uint8)
-
-        def read_label(l):
-            return np.array([l], dtype=np.uint8)
-
-        jpegs = [read_path(p) for p in paths]
-        targets = [read_label(l) for l in labels]
-        return jpegs, targets
-    reader = None
-
     pipe = TransformPipeline(batch_size=train_batch_size,
                              samples=train_samples,
-                             reader=reader,
                              num_threads=8,
                              device_id=device_id,
                              transform=transform,
@@ -226,12 +234,6 @@ def run(model_name,
                               ['data', 'label'],
                               auto_reset=True,
                               stop_at_epoch=True)
-
-    def prepare_batch(batch, device, output_map):
-        x = batch[0]['data']
-        y = batch[0]['label']
-        y = y.squeeze().long().to('cuda')
-        return x, y
 
     trainer = create_supervised_dali_trainer(model,
                                              optimizer,
@@ -279,7 +281,6 @@ def run(model_name,
         pipe = TransformPipeline(
             batch_size=val_batch_size,
             samples=val_samples,
-            reader=reader,
             num_threads=8,
             device_id=device_id,
             transform=transform,
