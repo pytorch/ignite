@@ -55,7 +55,7 @@ def create_supervised_trainer(model, optimizer, loss_fn,
     return Engine(_update)
 
 
-def create_supervised_evaluator(model, metrics={},
+def create_supervised_evaluator(model, metrics=None,
                                 device=None, non_blocking=False,
                                 prepare_batch=_prepare_batch,
                                 output_transform=lambda x, y, y_pred: (y_pred, y,)):
@@ -81,6 +81,8 @@ def create_supervised_evaluator(model, metrics={},
     Returns:
         Engine: an evaluator engine with supervised inference function.
     """
+    metrics = metrics or {}
+
     if device:
         model.to(device)
 
