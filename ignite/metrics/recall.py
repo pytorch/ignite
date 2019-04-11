@@ -24,7 +24,7 @@ class Recall(_BasePrecisionRecall):
             y_pred = torch.round(y_pred)
             return y_pred, y
 
-        binary_accuracy = Recall(output_transform=thresholded_output_transform)
+        recall = Recall(output_transform=thresholded_output_transform)
 
     In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
     example, average parameter should be False. This can be done as shown below:
@@ -70,7 +70,7 @@ class Recall(_BasePrecisionRecall):
                 raise ValueError("y_pred contains less classes than y. Number of predicted classes is {}"
                                  " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1))
             y = to_onehot(y.view(-1), num_classes=num_classes)
-            indices = torch.max(y_pred, dim=1)[1].view(-1)
+            indices = torch.argmax(y_pred, dim=1).view(-1)
             y_pred = to_onehot(indices, num_classes=num_classes)
         elif self._type == "multilabel":
             # if y, y_pred shape is (N, C, ...) -> (C, N x ...)

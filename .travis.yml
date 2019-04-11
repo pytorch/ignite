@@ -27,15 +27,18 @@ before_install: &before_install
   - conda info -a
   - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION $PYTORCH_PACKAGE
   - source activate test-environment
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34 typing; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install tqdm==4.30.0 scikit-learn
+  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client
+  # Futures should be already installed via visdom -> tornado -> futures
+  # Let's reinstall it anyway to be sure
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install futures; fi
 
 install:
   - python setup.py install
   - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
-  - pip install visdom torchvision tensorboardX
+  - pip install torchvision
   - pip install gym==0.10.11
 
 script:
@@ -89,13 +92,12 @@ jobs:
 
       install:
         - pip install -r docs/requirements.txt
-        # `pip install .` vs `python setup.py install` : 1st works better to produce _module/ignite with source links
-        - pip install .
+        - pip install git+https://github.com/anmolsjoshi/sphinxcontrib-versioning.git
 
       script:
-        - cd docs && make html
+        - sphinx-versioning --use-master-conf build --greatest-tag --whitelist-branches master docs/source docs/build/html
         # Create .nojekyll file to serve correctly _static and friends
-        - touch build/html/.nojekyll
+        - touch docs/build/html/.nojekyll
       after_success: # Nothing to do
 
       # Deploy built docs when PR is merged to master

@@ -142,3 +142,7 @@ class Metric(with_metaclass(ABCMeta, object)):
         def wrapper(*args, **kwargs):
             return MetricsLambda(fn, self, *args, **kwargs)
         return wrapper
+
+    def __getitem__(self, index):
+        from ignite.metrics import MetricsLambda
+        return MetricsLambda(lambda x: x[index], self)

@@ -23,12 +23,27 @@ class Events(Enum):
 
 class State(object):
     """An object that is used to pass internal and user-defined state between event handlers."""
+
+    event_to_attr = {
+        Events.ITERATION_STARTED: "iteration",
+        Events.ITERATION_COMPLETED: "iteration",
+        Events.EPOCH_STARTED: "epoch",
+        Events.EPOCH_COMPLETED: "epoch",
+        Events.STARTED: "epoch",
+        Events.COMPLETED: "epoch"
+    }
+
     def __init__(self, **kwargs):
         self.iteration = 0
         self.output = None
         self.batch = None
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    def get_event_attrib_value(self, event_name):
+        if event_name not in State.event_to_attr:
+            raise RuntimeError("Unknown event name '{}'".format(event_name))
+        return getattr(self, State.event_to_attr[event_name])
 
 
 class Engine(object):

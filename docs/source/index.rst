@@ -50,6 +50,7 @@ You can clone the source from `github <https://github.com/pytorch/ignite>`_ and 
    concepts
    quickstart
    examples
+   faq
 
 .. toctree::
    :maxdepth: 2

@@ -1,12 +1,12 @@
 import sys
-from ignite.metrics import Metric, Precision, Recall
+from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
 from ignite.engine import Engine, State
 import torch
 from mock import MagicMock
 
 from pytest import approx, raises
 import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
 
 def test_no_transform():
@@ -388,3 +388,60 @@ def test_pytorch_operators():
         return f1
 
     _test(f1, "f1", compute_true_value_fn=compute_f1)
+
+
+def test_indexing_metric():
+    def _test(ignite_metric, sklearn_metic, sklearn_args, index, num_classes=5):
+        y_pred = torch.rand(15, 10, num_classes).float()
+        y = torch.randint(0, num_classes, size=(15, 10)).long()
+
+        def update_fn(engine, batch):
+            y_pred, y = batch
+            return y_pred, y
+
+        metrics = {'metric': ignite_metric[index],
+                   'metric_wo_index': ignite_metric}
+
+        validator = Engine(update_fn)
+
+        for name, metric in metrics.items():
+            metric.attach(validator, name)
+
+        def data(y_pred, y):
+            for i in range(y_pred.shape[0]):
+                yield (y_pred[i], y[i])
+
+        d = data(y_pred, y)
+        state = validator.run(d, max_epochs=1)
+
+        sklearn_output = sklearn_metic(y.view(-1).numpy(),
+                                       y_pred.view(-1, num_classes).argmax(dim=1).numpy(),
+                                       **sklearn_args)
+
+        assert (state.metrics['metric_wo_index'][index] == state.metrics['metric']).all()
+        assert (np.allclose(state.metrics['metric'].numpy(), sklearn_output))
+
+    num_classes = 5
+
+    labels = list(range(0, num_classes, 2))
+    _test(Precision(), precision_score, {'labels': labels, 'average': None}, index=labels)
+    labels = list(range(num_classes - 1, 0, -2))
+    _test(Precision(), precision_score, {'labels': labels, 'average': None}, index=labels)
+    labels = [1]
+    _test(Precision(), precision_score, {'labels': labels, 'average': None}, index=labels)
+
+    labels = list(range(0, num_classes, 2))
+    _test(Recall(), recall_score, {'labels': labels, 'average': None}, index=labels)
+    labels = list(range(num_classes - 1, 0, -2))
+    _test(Recall(), recall_score, {'labels': labels, 'average': None}, index=labels)
+    labels = [1]
+    _test(Recall(), recall_score, {'labels': labels, 'average': None}, index=labels)
+
+    # np.ix_ is used to allow for a 2D slice of a matrix. This is required to get accurate result from
+    # ConfusionMatrix. ConfusionMatrix must be sliced the same row-wise and column-wise.
+    labels = list(range(0, num_classes, 2))
+    _test(ConfusionMatrix(num_classes), confusion_matrix, {'labels': labels}, index=np.ix_(labels, labels))
+    labels = list(range(num_classes - 1, 0, -2))
+    _test(ConfusionMatrix(num_classes), confusion_matrix, {'labels': labels}, index=np.ix_(labels, labels))
+    labels = [1]
+    _test(ConfusionMatrix(num_classes), confusion_matrix, {'labels': labels}, index=np.ix_(labels, labels))
