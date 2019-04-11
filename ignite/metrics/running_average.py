@@ -11,6 +11,8 @@ class RunningAverage(Metric):
         alpha (float, optional): running average decay factor, default 0.98
         output_transform (callable, optional): a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
+        epoch_bound (boolean, optional): whether the running average should be reset after each epoch (defaults
+            to True).
 
     Examples:
 
@@ -30,7 +32,7 @@ class RunningAverage(Metric):
 
     """
 
-    def __init__(self, src=None, alpha=0.98, output_transform=None):
+    def __init__(self, src=None, alpha=0.98, output_transform=None, epoch_bound=True):
         if not (isinstance(src, Metric) or src is None):
             raise TypeError("Argument src should be a Metric or None.")
         if not (0.0 < alpha <= 1.0):
@@ -50,6 +52,7 @@ class RunningAverage(Metric):
             self.update = self._output_update
 
         self.alpha = alpha
+        self.epoch_bound = epoch_bound
         super(RunningAverage, self).__init__(output_transform=output_transform)
 
     def reset(self):
@@ -67,8 +70,9 @@ class RunningAverage(Metric):
         return self._value
 
     def attach(self, engine, name):
-        # restart average every epoch
-        engine.add_event_handler(Events.EPOCH_STARTED, self.started)
+        if self.epoch_bound:
+            # restart average every epoch
+            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         # compute metric
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
         # apply running average
