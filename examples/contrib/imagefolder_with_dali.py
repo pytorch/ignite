@@ -43,6 +43,7 @@ def iter_setup(samples):
             return np.frombuffer(src.read(), dtype=np.uint8)
 
     def read_label(l):
+        #WARNING: Becareful not using [] here result in a silent quit of the script
         return np.array([l], dtype=np.uint8)
 
     jpegs = [read_path(p) for p in paths]
@@ -307,7 +308,6 @@ def run(model_name,
                 "Validation Results - Epoch: {} Avg loss: {:.2f}"
                 .format(engine.state.epoch, avg_loss)
             )
-
 
     trainer.run(train_loader, max_epochs=epochs)
 
