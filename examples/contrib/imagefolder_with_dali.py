@@ -206,24 +206,25 @@ def run(model_name,
                                 std=std)
     ])
 
-    # def iter_setup(samples=samples):
-    #     """
-    #     Return a (Sequence[np.ndarray], Sequence[np.ndarray])
-    #     """
-    #     paths, labels = zip(*samples)
-    #     def read_path(p):
-    #         with open(p, 'rb') as src:
-    #             return np.frombuffer(src.read(), dtype=np.uint8)
+    reader = (ops.ExternalSource()(), ops.ExternalSource()())
+    def iter_setup(samples=samples):
+        """
+        Return a (Sequence[np.ndarray], Sequence[np.ndarray])
+        """
+        paths, labels = zip(*samples)
+        def read_path(p):
+            with open(p, 'rb') as src:
+                return np.frombuffer(src.read(), dtype=np.uint8)
 
-    #     def read_label(l):
-    #         return np.array(l, dtype=np.uint8)
+        def read_label(l):
+            return np.array(l, dtype=np.uint8)
 
-    #     return list(map(read_path, paths)), list(map(read_label, labels))
+        return list(map(read_path, paths)), list(map(read_label, labels))
 
-    reader = ops.FileReader(file_root=root,
-                            shard_id=local_rank,
-                            num_shards=world_size,
-                            random_shuffle=True)
+    # reader = ops.FileReader(file_root=root,
+    #                         shard_id=local_rank,
+    #                         num_shards=world_size,
+    #                         random_shuffle=True)
     iter_setup = None
     pipe = TransformPipeline(reader,
                              batch_size=train_batch_size,
