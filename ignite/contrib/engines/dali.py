@@ -4,11 +4,47 @@ except ImportError:
     raise RuntimeError("This contrib module requires nvidia-dali to be installed")
 
 from typing import Sequence
+from itertools import repeat, chain
+from random import sample
+
+import numpy as np
 
 import torch
+import torch.distributed as dist
 from torch.nn.parallel import gather, parallel_apply
 
 from ignite.engine import Engine
+
+
+def _setup_jpegs(inputs):
+    """
+    Read the bytes from a path
+    """
+    def gen(inputs):
+        for p in inputs:
+            with open(p, 'rb') as src:
+                img = np.frombuffer(src.read(), dtype=np.uint8)
+                yield img
+
+    return list(gen(inputs))
+
+
+def _setup_targets(targets, dtype=np.uint8):
+    def gen(targets):
+        for t in targets:
+            """
+            `Pipeline.feed_input` seems to only accept `list[np.ndarray]` as argument not list[int]
+            """
+            yield np.array(t, dtype=dtype)
+
+    return list(gen(targets))
+
+
+def reduce_tensor(tensor, world_size):
+    rt = tensor.clone()
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
+    rt /= world_size
+    return rt
 
 
 def _prepare_batch(batch,
@@ -18,70 +54,208 @@ def _prepare_batch(batch,
     return tuple(zip(*outputs))
 
 
-def _apply_and_gather(models, x, y=None, output_device=-1):
-    indexes = [xx.device.index for xx in x]
-    models = [models[i] for i in indexes]
-    y_pred = parallel_apply(models, x)
-    y_pred = gather(y_pred, output_device, 0)
-    if y is None:
-        return y_pred
-    if y[0].device.type == 'cpu':
-        y = torch.cat(y)
-    else:
-        y = gather(y, output_device, 0)
+class ComposeOps(object):
+    """
+    Composes several `ops` together
+    """
 
-    return y_pred, y
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, img):
+        for t in self.transforms:
+            img = t(img)
+        return img
 
 
-def create_supervised_dali_trainer(models,
+class TransformPipeline(pipeline.Pipeline):
+    """
+    Pipeline for coco with data augrmentation
+    """
+    def __init__(self,
+                 reader,
+                 batch_size,
+                 num_threads,
+                 device_id,
+                 size=0,
+                 transform=None,
+                 target_transform=None,
+                 iter_setup=None):
+        super().__init__(batch_size,
+                         num_threads,
+                         device_id,
+                         seed=-1)
+        self.reader = reader
+        self.decode = ops.nvJPEGDecoder(device="mixed", output_type=types.RGB)
+        self.transform = transform
+        self.target_transform=target_transform
+        self._iter_setup = iter_setup
+        self.size = size
+
+    def define_graph(self):
+        self.jpegs, self.labels = self.reader()
+        outputs = self.decode(self.jpegs)
+        targets = self.labels
+        if self.transform:
+            outputs = self.transform(outputs)
+        if self.target_transform:
+            targets = self.target_transform(targets)
+        return outputs, targets
+
+    def __len__(self):
+        keys = list(self.epoch_size().keys())
+        if len(keys) > 0:
+            size = sum(self.epoch_size(k) for k in keys)
+        else:
+            size = self.size
+        return size
+
+        def iter_setup(self):
+            if self.iter_setup:
+                jpegs, labels = self._iter_setup()
+                self.feed_input(self.jpegs, jpegs)
+                self.feed_input(self.labels, labels)
+
+
+# class TransformPipeline(pipeline.Pipeline):
+#     """
+#     Very basic pipeline for image classification. Take as input the couple a sequence of `(path, category)`
+#     """
+#     def __init__(self,
+#                  samples,
+#                  batch_size,
+#                  device_id,
+#                  num_threads=4,
+#                  randomize=True):
+#         super().__init__(batch_size,
+#                          num_threads,
+#                          device_id,
+#                          seed=-1,
+#                          set_affinity=True)
+
+#         self.randomize = randomize
+#         self.samples = samples
+#         if randomize:
+#             self.samples = sample(self.samples, k=len(self.samples))
+#         self.input_jpegs = ops.ExternalSource()
+#         self.inputs_targets = ops.ExternalSource()
+#         self.decode = ops.nvJPEGDecoder(device="mixed", output_type=types.RGB)
+#         self.slice = slice(0, self.batch_size)
+#         # Callables called to prepare to `self.feed_input`
+
+#         mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
+#         std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
+#         input_size = 224
+#         self.rrc = ops.RandomResizedCrop(device='gpu', size=(input_size, input_size))
+#         self.cn = ops.CropMirrorNormalize(device="gpu",
+#                                           output_dtype=types.FLOAT,
+#                                           output_layout=types.NCHW,
+#                                           crop=(input_size, input_size),
+#                                           image_type=types.RGB,
+#                                           mean=mean,
+#                                           std=std)
+
+#     def define_graph(self):
+#         """
+#          Overwrite this method for your needs
+#         """
+#         self.jpegs = self.input_jpegs()
+#         images = self.decode(self.jpegs)
+#         if self.transform:
+#             images = self.transform(images)
+#         if self.inputs_targets:
+#             self.targets = self.inputs_targets()
+#             targets = self.targets
+#             if self.target_transform:
+#                 targets = self.target_transform(targets)
+#             return images, targets
+#         return images
+
+#     def define_graph(self):
+#         self.jpegs = self.input_jpegs()
+#         self.targets = self.inputs_targets()
+#         images = self.decode(self.jpegs)
+#         cropped = self.rrc(images)
+#         outputs = self.cn(cropped)
+#         return outputs, self.targets
+
+#     def iter_setup(self):
+#         """
+#          Overwrite this method for your needs. Do not forget to update the `self.slice` member
+#         """
+#         sl = self.slice
+#         samples = self.samples[sl]
+#         diff = self.batch_size - len(samples)
+#         if diff > 0:
+#             """
+#             Complete the last batch with the last sample because all batches must
+#             have the same size
+#             """
+#             s = self.samples[-1]
+#             samples = chain.from_iterable([samples, repeat(s, diff)])
+
+#         inputs, targets = zip(*samples)
+#         inputs = _setup_jpegs(inputs)
+#         targets = _setup_targets(targets)
+
+#         self.feed_input(self.jpegs, inputs)
+#         self.feed_input(self.targets, targets)
+#         self.slice = slice(sl.stop, sl.stop+self.batch_size, sl.step)
+
+#     def reset(self):
+#         super().reset()
+#         if self.randomize:
+#             self.samples = sample(self.samples, k=len(self))
+#         self.slice = slice(0, self.batch_size)
+
+#     def __len__(self):
+#         return len(self.samples)
+
+
+def create_supervised_dali_trainer(model,
                                    optimizer,
                                    loss_fn,
+                                   world_size,
                                    device=None,
-                                   output_map=["data", "label"],
-                                   output_device=-1,
-                                   prepare_batch=_prepare_batch):
+                                   output_map=('data', 'label'),
+                                   prepare_batch=_prepare_batch,
+                                   output_transform=lambda x, y, y_pred, loss: loss.item()):
 
-    if not isinstance(models, Sequence):
-        models = [models]
+    def _update(engine, batch):
 
-    def _update(engine, batch, models=models):
-
-        for r in models:
-            r.train()
-
+        model.train()
+        optimizer.zero_grad()
         x, y = prepare_batch(batch,
                              device=device,
                              output_map=output_map)
-        y_pred, y = _apply_and_gather(models, x, y, output_device)
+        y_pred = model(x)
         loss = loss_fn(y_pred, y)
-        loss.backward()
+        reduced_loss = reduce_tensor(loss, world_size)
+        reduced_loss.backward()
         optimizer.step()
-        return loss.item()
+        return output_transform(x, y, y_pred, reduced_loss)
 
     engine = Engine(_update)
     return engine
 
 
-def create_supervised_dali_evaluator(models,
+def create_supervised_dali_evaluator(model,
                                      metrics,
+                                     world_size,
                                      device=None,
-                                     output_map=["data", "label"],
-                                     output_device=-1,
-                                     prepare_batch=_prepare_batch):
+                                     output_map=('data', 'label'),
+                                     prepare_batch=_prepare_batch,
+                                     output_transform=lambda x, y, y_pred: (y_pred, y)):
 
-    if not isinstance(models, Sequence):
-        models = [models]
-
-    def _inference(engine, batch, models=models):
-        for r in models:
-            r.eval()
+    def _inference(engine, batch):
+        model.eval()
 
         with torch.no_grad():
             x, y = prepare_batch(batch,
                                  device,
                                  output_map=output_map)
-            y_pred, y = _apply_and_gather(models, x, y, output_device)
-            return y_pred, y
+            y_pred = model(x)
+            return output_transform(x, y, y_pred)
 
     engine = Engine(_inference)
 
@@ -89,26 +263,3 @@ def create_supervised_dali_evaluator(models,
         metric.attach(engine, name)
 
     return engine
-
-
-def create_unsupervised_dali_evaluator(models,
-                                       device=None,
-                                       output_map=["data"],
-                                       output_device=-1,
-                                       prepare_batch=_prepare_batch):
-
-    if not isinstance(models, Sequence):
-        models = [models]
-
-    def _inference(engine, batch, models=models):
-        for r in models:
-            r.eval()
-
-        with torch.no_grad():
-            x = prepare_batch(batch,
-                              device=device,
-                              output_map=output_map)
-            y_pred = _apply_and_gather(models, x, output_device)
-            return y_pred
-
-    return Engine(_inference)

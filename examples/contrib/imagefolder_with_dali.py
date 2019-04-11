@@ -1,8 +1,13 @@
+import os
+import inspect
 from argparse import ArgumentParser
 from itertools import chain, repeat
 from math import ceil
 from random import sample
-import inspect
+from collections import defaultdict
+from itertools import repeat, chain
+from typing import Sequence
+from pathlib import Path
 
 import numpy as np
 
@@ -10,20 +15,20 @@ import torch
 from torch import nn, multiprocessing
 from torch.optim import SGD
 import torch.nn.functional as F
-from torch.nn.parallel import replicate
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 import torchvision.models
 from torchvision.datasets import ImageFolder
 
 from nvidia.dali import pipeline, ops, types
-from nvidia.dali.plugin.pytorch import DALIGenericIterator
+from nvidia.dali.plugin.pytorch import DALIClassificationIterator, DALIGenericIterator
 
 from ignite.engine import Events
 from ignite.metrics import Loss, RunningAverage, Accuracy
 
 from ignite.contrib.handlers import ProgressBar
-from ignite.contrib.engines import (create_supervised_dali_trainer,
-                                    create_supervised_dali_evaluator)
+from ignite.contrib.engines import create_supervised_dali_trainer, create_supervised_dali_evaluator, reduce_tensor, ComposeOps, TransformPipeline
+from ignite.metrics import Metric
 
 
 MODELS = dict(inspect.getmembers(torchvision.models, inspect.isfunction))
@@ -53,7 +58,6 @@ def finetune_model(model, out_features, requires_grad=False):
     if name == 'ResNet':
         in_features = model.fc.in_features
         model.fc = nn.Linear(in_features, out_features)
-        # nn.init.xavier_uniform_(model.fc.weight)
     elif name == 'Alexnet':
         model.classifier[6] = nn.Linear(512, out_features)
     elif name == 'VGG':
@@ -71,7 +75,6 @@ def finetune_model(model, out_features, requires_grad=False):
     else:
         raise Exception("Invalid model name {}".format(name))
 
-
     return model
 
 
@@ -87,11 +90,31 @@ def make_model(name, n_categories, pretrained=True, requires_grad=False):
     return model, input_size
 
 
-def trainval_split(samples, val_ratio):
-    samples = set(samples)
-    val_samples = set(sample(samples, int(len(samples)*val_ratio)))
-    train_samples = samples - val_samples
-    return train_samples, val_samples
+def trainval_split(samples, train_ratio):
+
+    sample_by_category = defaultdict(list)
+    for v, k in samples:
+        sample_by_category[k].append((v, k))
+
+    def split(values, train_ratio=train_ratio):
+        train_values = set(sample(values, int(len(values)*train_ratio)))
+        val_values = set(values) - set(train_values)
+        return tuple(train_values), tuple(val_values)
+
+    train_samples, val_samples = zip(*(split(v) for  v in sample_by_category.values()))
+
+    return tuple(chain.from_iterable(train_samples)), tuple(chain.from_iterable(val_samples))
+
+
+def _pipelines_sizes(pipes):
+    for p in pipes:
+        p.build()
+        keys = list(p.epoch_size().keys())
+        if len(keys) > 0:
+            for k in keys:
+                yield p.epoch_size(k)
+        else:
+            yield len(p)
 
 
 class DALILoader(DALIGenericIterator):
@@ -103,100 +126,16 @@ class DALILoader(DALIGenericIterator):
     def __init__(self,
                  pipelines,
                  output_map,
-                 size,
                  auto_reset=False,
-                 stop_at_epoch=False,
-                 iter_size=1):
+                 stop_at_epoch=False):
+        if not isinstance(pipelines, Sequence):
+            pipelines = [pipelines]
+        size = sum(_pipelines_sizes(pipelines))
         super().__init__(pipelines, output_map, size, auto_reset, stop_at_epoch)
-        self.iter_size = iter_size
+        self.batch_size = pipelines[0].batch_size
 
     def __len__(self):
-        return int(ceil(self._size / self.iter_size))
-
-
-class SamplesPipeline(pipeline.Pipeline):
-    def __init__(self,
-                 samples,
-                 batch_size,
-                 input_size=224,
-                 output_type=types.FLOAT,
-                 device_id=0,
-                 num_threads=multiprocessing.cpu_count(),
-                 randomize=True):
-        super().__init__(batch_size,
-                         num_threads,
-                         device_id,
-                         seed=15)
-        self.randomize = randomize
-        if randomize:
-            samples = sample(samples, k=len(samples))
-        self.samples = samples
-        self.input_jpegs = ops.ExternalSource()
-        self.input_labels = ops.ExternalSource()
-        self.decode = ops.nvJPEGDecoder(device="mixed", output_type=types.RGB)
-        # Values from imagenet preprocessing
-        mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
-        std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
-
-        self.resize = ops.Resize(device='gpu', resize_x=input_size, resize_y=input_size)
-        self.np = ops.NormalizePermute(device='gpu',
-                                       height=input_size,
-                                       width=input_size,
-                                       mean=mean,
-                                       std=std,
-                                       image_type=types.RGB,
-                                       output_dtype=output_type)
-        self.slice = slice(0, self.batch_size)
-
-    def define_graph(self):
-        self.jpegs = self.input_jpegs()
-        self.labels = self.input_labels()
-        images = self.decode(self.jpegs)
-        resized = self.resize(images)
-        outputs = self.np(resized)
-        return outputs, self.labels
-
-    def iter_setup(self):
-        sl = self.slice
-        samples = self.samples[sl]
-        diff = self.batch_size - len(samples)
-        if diff > 0:
-            """
-            Complete the last batch with the last sample because all batches must
-            have the same size
-            """
-            s = self.samples[-1]
-            samples = chain.from_iterable([samples, repeat(s, diff)])
-        paths, categories = zip(*samples)
-        inputs = list(read_from_paths(paths))
-        # `Pipeline.feed_input` seems to only accept `list[np.ndarray]` as input
-        categories = [np.array([c], dtype=np.uint8) for c in categories]
-
-        self.feed_input(self.jpegs, inputs)
-        self.feed_input(self.labels, categories)
-        self.slice = slice(sl.stop, sl.stop+self.batch_size, sl.step)
-
-    def reset(self):
-        super().reset()
-        self.samples = sample(self.samples, k=len(self.samples))
-        self.slice = slice(0, self.batch_size)
-
-    def __len__(self):
-        return len(self.samples)
-
-
-def make_pipelines(samples,
-                   input_size,
-                   batch_size,
-                   num_gpus,
-                   output_type=types.FLOAT):
-
-    pipelines = []
-    samples = tuple(samples)
-    for i in range(num_gpus):
-        pipe = SamplesPipeline(samples[i::num_gpus], batch_size, input_size, output_type, i)
-        pipelines.append(pipe)
-    return pipelines
+        return int(ceil(self._size /self.batch_size ))
 
 
 def run(model_name,
@@ -206,16 +145,21 @@ def run(model_name,
         epochs,
         lr,
         momentum,
-        num_gpus,
         val_ratio,
         requires_grad,
-        pretrained):
+        pretrained,
+        local_rank):
 
-    if num_gpus is None:
-        num_gpus = torch.cuda.device_count()
+    world_size = int(os.environ.get('WORLD_SIZE', 1))
 
-    if val_batch_size is None:
-        val_batch_size = train_batch_size
+    device_id = local_rank % torch.cuda.device_count()
+
+    torch.cuda.set_device(device_id)
+    torch.distributed.init_process_group(backend='nccl',
+                                         init_method='env://',
+                                         world_size=world_size,
+                                         rank=local_rank)
+    world_size = torch.distributed.get_world_size()
 
     dataset = ImageFolder(root)
     mapping = dataset.class_to_idx
@@ -225,80 +169,180 @@ def run(model_name,
                                    requires_grad=requires_grad,
                                    pretrained=pretrained)
 
-    train_samples, val_samples = trainval_split(dataset.samples, val_ratio)
-    train_pipelines = make_pipelines(train_samples, input_size, train_batch_size, num_gpus)
-    train_loader = DALILoader(
-        train_pipelines,
-        output_map=['data', 'label'],
-        size=sum(len(t) for t in train_pipelines),
-        stop_at_epoch=True,
-        auto_reset=True,
-        iter_size=train_batch_size * num_gpus
-    )
+    torch.cuda.set_device(device_id)
+    model.to('cuda')
+    model = DDP(model, device_ids=[device_id], output_device=device_id)
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
 
-    # Models must be copy to each gpus manually in order to work with dali
-    train_ids = [p.device_id for p in train_pipelines]
-    models = replicate(model.cuda(), train_ids)
+    loss_fn = F.cross_entropy
+    loss = Loss(lambda y_pred, y: reduce_tensor(loss_fn(y_pred, y), world_size))
+    # Can't be used in a distributed as it is. Must write a class DistributedMetrics
+    # accuracy = Accuracy(output_transform=lambda x, y: ())
 
-    def loss_fn(inputs, targets):
-        return F.cross_entropy(inputs, targets.view(-1).long())
-    loss = Loss(loss_fn)
-    accuracy = Accuracy(output_transform=lambda x: (x[0], x[1].view(-1).long()))
+    sample_by_category = defaultdict(list)
 
-    trainer = create_supervised_dali_trainer(models,
+    for v, k in dataset.samples:
+        sample_by_category[k].append((str(v), k))
+
+    def gen_samples(sample_by_category):
+        for v in sample_by_category.values():
+            yield v[local_rank::world_size]
+
+    samples = tuple(chain.from_iterable(gen_samples(sample_by_category)))
+    train_samples, val_samples = trainval_split(samples, 1-val_ratio)
+
+    # Values from imagenet preprocessing
+    mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
+    std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
+    transform = ComposeOps([
+        ops.RandomResizedCrop(device='gpu', size=(input_size, input_size)),
+        ops.CropMirrorNormalize(device="gpu",
+                                output_dtype=types.FLOAT,
+                                output_layout=types.NCHW,
+                                crop=(input_size, input_size),
+                                image_type=types.RGB,
+                                mean=mean,
+                                std=std)
+    ])
+
+    # def iter_setup(samples=samples):
+    #     """
+    #     Return a (Sequence[np.ndarray], Sequence[np.ndarray])
+    #     """
+    #     paths, labels = zip(*samples)
+    #     def read_path(p):
+    #         with open(p, 'rb') as src:
+    #             return np.frombuffer(src.read(), dtype=np.uint8)
+
+    #     def read_label(l):
+    #         return np.array(l, dtype=np.uint8)
+
+    #     return list(map(read_path, paths)), list(map(read_label, labels))
+
+    reader = ops.FileReader(file_root=root,
+                            shard_id=local_rank,
+                            num_shards=world_size,
+                            random_shuffle=True)
+    iter_setup = None
+    pipe = TransformPipeline(reader,
+                             batch_size=train_batch_size,
+                             num_threads=8,
+                             device_id=device_id,
+                             transform=transform,
+                             size=len(samples),
+                             iter_setup=iter_setup)
+
+    train_loader = DALILoader(pipe,
+                              ['data', 'label'],
+                              auto_reset=True,
+                              stop_at_epoch=True)
+
+    def prepare_batch(batch, device, output_map):
+        x = batch[0]['data']
+        y = batch[0]['label']
+        y = y.squeeze().long().to('cuda')
+        return x, y
+
+    trainer = create_supervised_dali_trainer(model,
                                              optimizer,
                                              loss_fn,
-                                             device=None)
-    evaluator = create_supervised_dali_evaluator(models,
+                                             device=None,
+                                             prepare_batch=prepare_batch,
+                                             world_size=world_size)
+    evaluator = create_supervised_dali_evaluator(model,
                                                  metrics={
                                                      'loss': loss,
-                                                     'accuracy': accuracy,
+                                                     # 'accuracy': accuracy,
                                                  },
-                                                 device=None)
+                                                 device=None,
+                                                 world_size=world_size,
+                                                 prepare_batch=prepare_batch)
 
-    RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
+    if local_rank == 0:
+        RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
+        pbar = ProgressBar(persist=True)
+        pbar.attach(trainer, ['loss'])
 
-    pbar = ProgressBar(persist=True)
-    pbar.attach(trainer, ['loss'])
+    if val_batch_size is None:
+        val_batch_size = train_batch_size
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(train_loader)
-        metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_loss = metrics['loss']
-        pbar.log_message(
-            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            .format(engine.state.epoch, avg_accuracy, avg_loss)
-        )
+        # avg_accuracy = metrics['accuracy']
+        if local_rank == 0:
+            metrics = evaluator.state.metrics
+            # accumulated loss is shared between all processes but the number of samples is not the same per process so the average loss is slightly diferrent between the process but it converge to the same limit
+            avg_loss = metrics['loss']
+            # pbar.log_message(
+            #     "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+            #     .format(engine.state.epoch, avg_accuracy, avg_loss)
+            # )
+            pbar.log_message(
+                "Training Results - Epoch: {} Avg loss: {:.2f}"
+                .format(engine.state.epoch, avg_loss)
+            )
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(engine):
-        val_size = val_batch_size * num_gpus
-        val_pipelines = make_pipelines(val_samples,
-                                       input_size,
-                                       val_batch_size,
-                                       num_gpus)
+    def log_val_results(engine):
+
+        pipe = TransformPipeline(reader,
+                                 batch_size=train_batch_size,
+                                 num_threads=8,
+                                 device_id=device_id,
+                                 transform=transform,
+                                 size=len(samples),
+                                 iter_setup=iter_setup)
+
         val_loader = DALILoader(
-            val_pipelines,
-            output_map=['data', 'label'],
-            size=sum(len(v) for v in val_pipelines),
+            pipe,
+            ['data', 'label'],
             auto_reset=True,
-            stop_at_epoch=True,
-            iter_size=val_size
+            stop_at_epoch=True
         )
 
         evaluator.run(val_loader)
-        metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_loss = metrics['loss']
-        pbar.log_message(
-            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            .format(engine.state.epoch, avg_accuracy, avg_loss))
+        if local_rank == 0:
+            metrics = evaluator.state.metrics
+            # avg_accuracy = metrics['accuracy']
+            avg_loss = metrics['loss']
+            # pbar.log_message(
+            #     "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+            #     .format(engine.state.epoch, avg_accuracy, avg_loss)
+            # )
+            pbar.log_message(
+                "Validation Results - Epoch: {} Avg loss: {:.2f}"
+                .format(engine.state.epoch, avg_loss)
+            )
 
-        pbar.n = pbar.last_print_n = 0
+
+
+    # @trainer.on(Events.EPOCH_COMPLETED)
+    # def log_validation_results(engine):
+    #     val_size = val_batch_size * num_gpus
+    #     val_pipelines = make_pipelines(val_samples,
+    #                                    input_size,
+    #                                    val_batch_size,
+    #                                    num_gpus)
+    #     val_loader = DALILoader(
+    #         val_pipelines,
+    #         output_map=['data', 'label'],
+    #         size=sum(len(v) for v in val_pipelines),
+    #         stop_at_epoch=True,
+    #         iter_size=val_size,
+    #         auto_reset=True
+    #     )
+
+    #     evaluator.run(val_loader)
+    #     metrics = evaluator.state.metrics
+    #     avg_accuracy = metrics['accuracy']
+    #     avg_loss = metrics['loss']
+    #     pbar.log_message(
+    #         "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+    #         .format(engine.state.epoch, avg_accuracy, avg_loss))
+
+        # pbar.n = pbar.last_print_n = 0
 
     trainer.run(train_loader, max_epochs=epochs)
 
@@ -309,7 +353,7 @@ if __name__ == "__main__":
                         help='Path to the root of the dataset')
     names = '|'.join(MODELS.keys())
     parser.add_argument('--model', type=str, default='resnet18',
-                        help='Name of the model in {}'.format(names))
+                        help='Name of the model in <{}>'.format(names))
     parser.add_argument('--batch_size', type=int, default=64,
                         help='input batch size for training (default: 64)')
     parser.add_argument('--val_batch_size', type=int, default=None,
@@ -320,14 +364,14 @@ if __name__ == "__main__":
                         help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.5,
                         help='SGD momentum (default: 0.5)')
-    parser.add_argument('--num_gpus', type=int, default=None,
-                        help='Number of gpus to use')
     parser.add_argument('--val_ratio', type=float, default=.3,
                         help='ratio of images to use for validation')
     parser.add_argument('--requires_grad', type=bool, default=False,
                         help='Finetune model')
     parser.add_argument('--pretrained', type=bool, default=True,
                         help='Use pretrained model')
+    parser.add_argument('--local_rank', type=int, default=0,
+                        help='Local rank')
 
     args = parser.parse_args()
 
@@ -339,8 +383,8 @@ if __name__ == "__main__":
         args.epochs,
         args.lr,
         args.momentum,
-        args.num_gpus,
         args.val_ratio,
         args.requires_grad,
         args.pretrained,
+        args.local_rank,
     )
