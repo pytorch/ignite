@@ -206,7 +206,7 @@ def run(model_name,
                 return np.frombuffer(src.read(), dtype=np.uint8)
 
         def read_label(l):
-            return np.array(l, dtype=np.uint8)
+            return np.array([l], dtype=np.uint8)
 
         jpegs = [read_path(p) for p in paths]
         targets = [read_label(l) for l in labels]
@@ -307,33 +307,6 @@ def run(model_name,
                 .format(engine.state.epoch, avg_loss)
             )
 
-
-
-    # @trainer.on(Events.EPOCH_COMPLETED)
-    # def log_validation_results(engine):
-    #     val_size = val_batch_size * num_gpus
-    #     val_pipelines = make_pipelines(val_samples,
-    #                                    input_size,
-    #                                    val_batch_size,
-    #                                    num_gpus)
-    #     val_loader = DALILoader(
-    #         val_pipelines,
-    #         output_map=['data', 'label'],
-    #         size=sum(len(v) for v in val_pipelines),
-    #         stop_at_epoch=True,
-    #         iter_size=val_size,
-    #         auto_reset=True
-    #     )
-
-    #     evaluator.run(val_loader)
-    #     metrics = evaluator.state.metrics
-    #     avg_accuracy = metrics['accuracy']
-    #     avg_loss = metrics['loss']
-    #     pbar.log_message(
-    #         "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-    #         .format(engine.state.epoch, avg_accuracy, avg_loss))
-
-        # pbar.n = pbar.last_print_n = 0
 
     trainer.run(train_loader, max_epochs=epochs)
 

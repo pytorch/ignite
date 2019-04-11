@@ -140,11 +140,7 @@ class TransformPipeline(pipeline.Pipeline):
                 s = self.samples[-1]
                 samples = chain.from_iterable([samples, repeat(s, diff)])
 
-            # jpegs, labels = self._iter_setup(samples)
-            # print(np.array(labels).sum())
-            inputs, targets = zip(*samples)
-            jpegs =  read_jpegs(inputs)
-            labels = read_targets(targets)
+            jpegs, labels = self._iter_setup(samples)
             self.feed_input(self.jpegs, jpegs)
             self.feed_input(self.labels, labels)
             self.slice = slice(sl.stop, sl.stop+self.batch_size, sl.step)
@@ -152,101 +148,6 @@ class TransformPipeline(pipeline.Pipeline):
     def reset(self):
         if self._iter_setup:
             self.slice = slice(0, self.batch_size)
-
-
-# class TransformPipeline(pipeline.Pipeline):
-#     """
-#     Very basic pipeline for image classification. Take as input the couple a sequence of `(path, category)`
-#     """
-#     def __init__(self,
-#                  samples,
-#                  batch_size,
-#                  device_id,
-#                  num_threads=4,
-#                  randomize=True):
-#         super().__init__(batch_size,
-#                          num_threads,
-#                          device_id,
-#                          seed=-1,
-#                          set_affinity=True)
-
-#         self.randomize = randomize
-#         self.samples = samples
-#         if randomize:
-#             self.samples = sample(self.samples, k=len(self.samples))
-#         self.input_jpegs = ops.ExternalSource()
-#         self.inputs_targets = ops.ExternalSource()
-#         self.decode = ops.nvJPEGDecoder(device="mixed", output_type=types.RGB)
-#         self.slice = slice(0, self.batch_size)
-#         # Callables called to prepare to `self.feed_input`
-
-#         mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
-#         std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
-#         input_size = 224
-#         self.rrc = ops.RandomResizedCrop(device='gpu', size=(input_size, input_size))
-#         self.cn = ops.CropMirrorNormalize(device="gpu",
-#                                           output_dtype=types.FLOAT,
-#                                           output_layout=types.NCHW,
-#                                           crop=(input_size, input_size),
-#                                           image_type=types.RGB,
-#                                           mean=mean,
-#                                           std=std)
-
-#     def define_graph(self):
-#         """
-#          Overwrite this method for your needs
-#         """
-#         self.jpegs = self.input_jpegs()
-#         images = self.decode(self.jpegs)
-#         if self.transform:
-#             images = self.transform(images)
-#         if self.inputs_targets:
-#             self.targets = self.inputs_targets()
-#             targets = self.targets
-#             if self.target_transform:
-#                 targets = self.target_transform(targets)
-#             return images, targets
-#         return images
-
-#     def define_graph(self):
-#         self.jpegs = self.input_jpegs()
-#         self.targets = self.inputs_targets()
-#         images = self.decode(self.jpegs)
-#         cropped = self.rrc(images)
-#         outputs = self.cn(cropped)
-#         return outputs, self.targets
-
-#     def iter_setup(self):
-#         """
-#          Overwrite this method for your needs. Do not forget to update the `self.slice` member
-#         """
-#         sl = self.slice
-#         samples = self.samples[sl]
-#         diff = self.batch_size - len(samples)
-#         if diff > 0:
-#             """
-#             Complete the last batch with the last sample because all batches must
-#             have the same size
-#             """
-#             s = self.samples[-1]
-#             samples = chain.from_iterable([samples, repeat(s, diff)])
-
-#         inputs, targets = zip(*samples)
-#         inputs = _setup_jpegs(inputs)
-#         targets = _setup_targets(targets)
-
-#         self.feed_input(self.jpegs, inputs)
-#         self.feed_input(self.targets, targets)
-#         self.slice = slice(sl.stop, sl.stop+self.batch_size, sl.step)
-
-#     def reset(self):
-#         super().reset()
-#         if self.randomize:
-#             self.samples = sample(self.samples, k=len(self))
-#         self.slice = slice(0, self.batch_size)
-
-#     def __len__(self):
-#         return len(self.samples)
 
 
 def create_supervised_dali_trainer(model,
