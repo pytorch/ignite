@@ -34,16 +34,6 @@ from ignite.metrics import Metric
 MODELS = dict(inspect.getmembers(torchvision.models, inspect.isfunction))
 
 
-def read_from_paths(paths, dtype=np.uint8):
-    """
-    Read the bytes from a path
-    """
-    for p in paths:
-        with open(p, 'rb') as src:
-            img = np.frombuffer(src.read(), dtype=dtype)
-        yield img
-
-
 def finetune_model(model, out_features, requires_grad=False):
     """
     Replace last linear layer with a new one
@@ -206,8 +196,7 @@ def run(model_name,
                                 std=std)
     ])
 
-    reader = (ops.ExternalSource()(), ops.ExternalSource()())
-    def iter_setup(samples=samples):
+    def iter_setup(samples):
         """
         Return a (Sequence[np.ndarray], Sequence[np.ndarray])
         """
@@ -219,19 +208,18 @@ def run(model_name,
         def read_label(l):
             return np.array(l, dtype=np.uint8)
 
-        return list(map(read_path, paths)), list(map(read_label, labels))
+        jpegs = [read_path(p) for p in paths]
+        targets = [read_label(l) for l in labels]
+        return jpegs, targets
+    reader = None
 
-    # reader = ops.FileReader(file_root=root,
-    #                         shard_id=local_rank,
-    #                         num_shards=world_size,
-    #                         random_shuffle=True)
-    iter_setup = None
-    pipe = TransformPipeline(reader,
-                             batch_size=train_batch_size,
+    pipe = TransformPipeline(batch_size=train_batch_size,
+                             samples=train_samples,
+                             reader=reader,
                              num_threads=8,
                              device_id=device_id,
                              transform=transform,
-                             size=len(samples),
+                             size=len(train_samples),
                              iter_setup=iter_setup)
 
     train_loader = DALILoader(pipe,
@@ -288,13 +276,15 @@ def run(model_name,
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_val_results(engine):
 
-        pipe = TransformPipeline(reader,
-                                 batch_size=train_batch_size,
-                                 num_threads=8,
-                                 device_id=device_id,
-                                 transform=transform,
-                                 size=len(samples),
-                                 iter_setup=iter_setup)
+        pipe = TransformPipeline(
+            batch_size=val_batch_size,
+            samples=val_samples,
+            reader=reader,
+            num_threads=8,
+            device_id=device_id,
+            transform=transform,
+            size=len(val_samples),
+            iter_setup=iter_setup)
 
         val_loader = DALILoader(
             pipe,

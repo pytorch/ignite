@@ -16,7 +16,7 @@ from torch.nn.parallel import gather, parallel_apply
 from ignite.engine import Engine
 
 
-def _setup_jpegs(inputs):
+def read_jpegs(inputs):
     """
     Read the bytes from a path
     """
@@ -29,13 +29,13 @@ def _setup_jpegs(inputs):
     return list(gen(inputs))
 
 
-def _setup_targets(targets, dtype=np.uint8):
+def read_targets(targets, dtype=np.uint8):
     def gen(targets):
         for t in targets:
             """
             `Pipeline.feed_input` seems to only accept `list[np.ndarray]` as argument not list[int]
             """
-            yield np.array(t, dtype=dtype)
+            yield np.array([t], dtype=dtype)
 
     return list(gen(targets))
 
@@ -73,14 +73,16 @@ class TransformPipeline(pipeline.Pipeline):
     Pipeline for coco with data augrmentation
     """
     def __init__(self,
-                 reader,
                  batch_size,
                  num_threads,
                  device_id,
                  size=0,
                  transform=None,
                  target_transform=None,
-                 iter_setup=None):
+                 iter_setup=None,
+                 reader=None,
+                 samples=None,
+                 randomize=True):
         super().__init__(batch_size,
                          num_threads,
                          device_id,
@@ -91,9 +93,24 @@ class TransformPipeline(pipeline.Pipeline):
         self.target_transform=target_transform
         self._iter_setup = iter_setup
         self.size = size
+        self._jpegs = ops.ExternalSource()
+        self._labels = ops.ExternalSource()
+        self.randomize = randomize
+        if randomize and samples:
+            samples = sample(samples, len(samples))
+        self.samples = samples
+        self.slice = slice(0, batch_size)
+
 
     def define_graph(self):
-        self.jpegs, self.labels = self.reader()
+        if self.reader is None:
+            """
+            Default case, jpegs and labels are feed by `ops.ExternalSource`
+            """
+            self.jpegs = self._jpegs()
+            self.labels = self._labels()
+        else:
+            self.jpegs, self.labels = self.reader()
         outputs = self.decode(self.jpegs)
         targets = self.labels
         if self.transform:
@@ -110,11 +127,31 @@ class TransformPipeline(pipeline.Pipeline):
             size = self.size
         return size
 
-        def iter_setup(self):
-            if self.iter_setup:
-                jpegs, labels = self._iter_setup()
-                self.feed_input(self.jpegs, jpegs)
-                self.feed_input(self.labels, labels)
+    def iter_setup(self):
+        if self._iter_setup:
+            sl = self.slice
+            samples = self.samples[sl]
+            diff = self.batch_size - len(samples)
+            if diff > 0:
+                """
+                Complete the last batch with the last sample because all batches must
+                have the same size
+                """
+                s = self.samples[-1]
+                samples = chain.from_iterable([samples, repeat(s, diff)])
+
+            # jpegs, labels = self._iter_setup(samples)
+            # print(np.array(labels).sum())
+            inputs, targets = zip(*samples)
+            jpegs =  read_jpegs(inputs)
+            labels = read_targets(targets)
+            self.feed_input(self.jpegs, jpegs)
+            self.feed_input(self.labels, labels)
+            self.slice = slice(sl.stop, sl.stop+self.batch_size, sl.step)
+
+    def reset(self):
+        if self._iter_setup:
+            self.slice = slice(0, self.batch_size)
 
 
 # class TransformPipeline(pipeline.Pipeline):
