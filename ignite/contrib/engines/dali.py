@@ -102,10 +102,10 @@ class TransformPipeline(pipeline.Pipeline):
             samples = self.samples[sl]
             diff = self.batch_size - len(samples)
             if diff > 0:
-                """
-                Complete the last batch with the last sample because all batches must
-                have the same size
-                """
+                """a `Pipeline` expect a list of `batch_size` elements but at the end of
+                an epoch this size is not guaranted so we repeat the last element.
+                However the `Pipeline` return `Pipeline.size` elements even if `Pipeline.size`
+                is not a multiple of `batch_size`"""
                 s = self.samples[-1]
                 samples = chain.from_iterable([samples, repeat(s, diff)])
 

@@ -9,7 +9,6 @@ from itertools import chain, repeat
 from math import ceil
 from random import sample
 from typing import Sequence
-from functools import partial
 
 import numpy as np
 import torch
@@ -33,17 +32,10 @@ from ignite.metrics import Accuracy, Loss, RunningAverage
 MODELS = dict(inspect.getmembers(torchvision.models, inspect.isfunction))
 
 
-def iter_setup(samples, batch_size):
+def iter_setup(samples):
     """
     Return a (Sequence[np.ndarray], Sequence[np.ndarray])
     """
-    diff = batch_size - len(samples)
-    if diff > 0:
-        """a `Pipeline` expect a list of `batch_size` elements but at the end of
-        an epoch this size is not guaranted so we repeat the last element.
-        However the `Pipeline` return `Pipeline.size` elements even if `Pipeline.size`
-        is not a multiple of `batch_size`"""
-        samples = chain.from_iterable((samples, repeat(samples[-1], diff)))
 
     paths, labels = zip(*samples)
 
@@ -237,7 +229,7 @@ def run(
         device_id=device_id,
         transform=transform,
         size=len(train_samples),
-        iter_setup=partial(iter_setup, batch_size=train_batch_size),
+        iter_setup=iter_setup,
     )
 
     train_loader = DALILoader(
@@ -301,7 +293,7 @@ def run(
             device_id=device_id,
             transform=transform,
             size=len(val_samples),
-            iter_setup=partial(iter_setup, batch_size=val_batch_size),
+            iter_setup=iter_setup,
         )
 
         val_loader = DALILoader(
