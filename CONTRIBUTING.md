@@ -10,8 +10,25 @@ into two categories:
     - Pick an issue and comment on the task that you want to work on this feature.
     - If you need more context on a particular issue, please ask and we shall provide.
 
-Once you finish implementing a feature or bugfix, please send a Pull Request to
-https://github.com/pytorch/ignite
+Once you finish implementing a feature or bugfix, please run lint checking and tests:
+
+#### Run lint checking
+```bash
+flake8 ignite/ tests/
+```
+
+#### Run tests:
+```bash
+pytest tests/
+```
+or tests with coverage (assuming installed `pytest-cov`):
+```bash
+py.test --cov ignite --cov-report term-missing
+```
+
+#### Send a PR
+If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
+
 
 If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
