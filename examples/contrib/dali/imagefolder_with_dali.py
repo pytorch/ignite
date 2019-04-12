@@ -69,7 +69,7 @@ def make_samples(root, local_rank, world_size, val_ratio):
     return train, val, len(sample_by_category.keys())
 
 
-def prepare_batch(batch, device, output_map):
+def prepare_batch(batch, output_map):
     x = batch[0]["data"]
     y = batch[0]["label"]
     y = y.squeeze().long().to("cuda")
@@ -239,7 +239,6 @@ def run(
         model,
         optimizer,
         loss_fn,
-        device=None,
         prepare_batch=prepare_batch,
         world_size=world_size,
     )
@@ -249,7 +248,6 @@ def run(
             "loss": dist_loss,
             'accuracy': dist_accuracy,
         },
-        device=None,
         world_size=world_size,
         prepare_batch=prepare_batch,
     )
