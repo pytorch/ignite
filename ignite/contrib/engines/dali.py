@@ -19,7 +19,7 @@ def reduce_tensor(tensor, world_size):
     return rt
 
 
-def _prepare_batch(batch, device=None, output_map=("data", "label")):
+def _prepare_batch(batch, output_map=("data", "label")):
     outputs = [[b[o] for o in output_map] for b in batch]
     return tuple(zip(*outputs))
 
@@ -124,7 +124,6 @@ def create_supervised_dali_trainer(
     optimizer,
     loss_fn,
     world_size,
-    device=None,
     output_map=("data", "label"),
     prepare_batch=_prepare_batch,
     output_transform=lambda x, y, y_pred, loss: loss.item(),
@@ -133,7 +132,7 @@ def create_supervised_dali_trainer(
 
         model.train()
         optimizer.zero_grad()
-        x, y = prepare_batch(batch, device=device, output_map=output_map)
+        x, y = prepare_batch(batch, output_map=output_map)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         reduced_loss = reduce_tensor(loss, world_size)
@@ -149,7 +148,6 @@ def create_supervised_dali_evaluator(
     model,
     metrics,
     world_size,
-    device=None,
     output_map=("data", "label"),
     prepare_batch=_prepare_batch,
     output_transform=lambda x, y, y_pred: (y_pred, y),
@@ -158,7 +156,7 @@ def create_supervised_dali_evaluator(
         model.eval()
 
         with torch.no_grad():
-            x, y = prepare_batch(batch, device, output_map=output_map)
+            x, y = prepare_batch(batch, output_map=output_map)
             y_pred = model(x)
             return output_transform(x, y, y_pred)
 
