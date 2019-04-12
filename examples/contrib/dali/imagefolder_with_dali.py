@@ -271,10 +271,6 @@ def run(
             """
             avg_loss = metrics["loss"]
             avg_accuracy = metrics['accuracy']
-            # pbar.log_message(
-            #     "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            #     .format(engine.state.epoch, avg_accuracy, avg_loss)
-            # )
             pbar.log_message(
                 "Training Results - Epoch: {} Avg loss: {:.2f} Avg accuracy: {:.2f}".format(
                     engine.state.epoch, avg_loss, avg_accuracy
