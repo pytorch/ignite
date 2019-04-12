@@ -58,6 +58,7 @@ class TransformPipeline(pipeline.Pipeline):
     ):
         super().__init__(batch_size, num_threads, device_id, seed=-1)
         self.reader = reader
+        # TODO: Take into account the cpu case
         self.decode = ops.nvJPEGDecoder(device="mixed", output_type=types.RGB)
         self.transform = transform
         self.target_transform = target_transform
