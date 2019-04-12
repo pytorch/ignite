@@ -336,7 +336,7 @@ if __name__ == "__main__":
         "--val_batch_size",
         type=int,
         default=None,
-        help="input batch size for validation (default: 1000)",
+        help="input batch size for validation (default: train_batch_size)",
     )
     parser.add_argument(
         "--epochs", type=int, default=10, help="number of epochs to train (default: 10)"
@@ -354,12 +354,12 @@ if __name__ == "__main__":
         help="ratio of images to use for validation",
     )
     parser.add_argument(
-        "--requires_grad", type=bool, default=False, help="Finetune model"
+        "--requires_grad", type=bool, default=False, help="Update or not layers weights during finetuning"
     )
     parser.add_argument(
         "--pretrained", type=bool, default=True, help="Use pretrained model"
     )
-    parser.add_argument("--local_rank", type=int, default=0, help="Local rank")
+    parser.add_argument("--local_rank", type=int, default=0, help="Argument set by torch.distributed.launch")
 
     args = parser.parse_args()
 
