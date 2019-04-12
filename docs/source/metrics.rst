@@ -41,7 +41,7 @@ Metrics could be combined together to form new metrics. This could be done throu
 as ``metric1 + metric2``, use PyTorch operators, such as ``(metric1 + metric2).pow(2).mean()``,
 or use a lambda function, such as ``MetricsLambda(lambda a, b: torch.mean(a + b), metric1, metric2)``.
 
-for example:
+For example:
 
     .. code-block:: python
 
@@ -53,6 +53,16 @@ for example:
         precision and recall to get F1 or other F metrics, we have to be careful
         that `average=False`, i.e. to use the unaveraged precision and recall,
         otherwise we will not be computing F-beta metrics.
+
+Metrics also support indexing operation (if metric's result is a vector/matrix/tensor). For example, this can be useful to compute mean metric (e.g. precision, recall or IoU) ignoring the background:
+
+    .. code-block:: python
+
+        cm = ConfusionMatrix(num_classes=10)
+        iou_metric = IoU(cm)
+        iou_no_bg_metric = iou_metric[:9]  # We assume that the background index is 9
+        mean_iou_no_bg_metric = iou_no_bg_metric.mean()
+        # mean_iou_no_bg_metric.compute() -> tensor(0.12345)
 
 
 .. currentmodule:: ignite.metrics
@@ -83,3 +93,9 @@ for example:
 .. autoclass:: RunningAverage
 
 .. autoclass:: MetricsLambda
+
+.. autoclass:: ConfusionMatrix
+
+.. autofunction:: IoU
+
+.. autofunction:: mIoU

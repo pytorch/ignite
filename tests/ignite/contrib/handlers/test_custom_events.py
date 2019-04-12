@@ -1,3 +1,4 @@
+import math
 import pytest
 
 from ignite.engine import Engine
@@ -60,32 +61,50 @@ def test_new_events():
 
 def test_integration_iterations():
 
-    def update(*args, **kwargs):
-        pass
+    def _test(n_iterations, max_epochs, n_iters_per_epoch):
 
-    engine = Engine(update)
+        def update(*args, **kwargs):
+            pass
 
-    n_iterations = 3
-    cpe = CustomPeriodicEvent(n_iterations=n_iterations)
-    cpe.attach(engine)
-    data = list(range(16))
+        engine = Engine(update)
 
-    custom_period = [1]
+        cpe = CustomPeriodicEvent(n_iterations=n_iterations)
+        cpe.attach(engine)
+        data = list(range(n_iters_per_epoch))
 
-    @engine.on(cpe.Events.ITERATIONS_3_STARTED)
-    def on_my_epoch_started(engine):
-        assert (engine.state.iteration - 1) % n_iterations == 0
-        assert engine.state.iterations_3 == custom_period[0]
+        custom_period = [0]
+        n_calls_iter_started = [0]
+        n_calls_iter_completed = [0]
 
-    @engine.on(cpe.Events.ITERATIONS_3_COMPLETED)
-    def on_my_epoch_ended(engine):
-        assert engine.state.iteration % n_iterations == 0
-        assert engine.state.iterations_3 == custom_period[0]
-        custom_period[0] += 1
+        event_started = getattr(cpe.Events, "ITERATIONS_{}_STARTED".format(n_iterations))
+        @engine.on(event_started)
+        def on_my_event_started(engine):
+            assert (engine.state.iteration - 1) % n_iterations == 0
+            custom_period[0] += 1
+            custom_iter = getattr(engine.state, "iterations_{}".format(n_iterations))
+            assert custom_iter == custom_period[0]
+            n_calls_iter_started[0] += 1
 
-    engine.run(data, max_epochs=2)
+        event_completed = getattr(cpe.Events, "ITERATIONS_{}_COMPLETED".format(n_iterations))
+        @engine.on(event_completed)
+        def on_my_event_ended(engine):
+            assert engine.state.iteration % n_iterations == 0
+            custom_iter = getattr(engine.state, "iterations_{}".format(n_iterations))
+            assert custom_iter == custom_period[0]
+            n_calls_iter_completed[0] += 1
 
-    assert custom_period[0] == 11
+        engine.run(data, max_epochs=max_epochs)
+
+        n = len(data) * max_epochs / n_iterations
+        nf = math.floor(n)
+        assert custom_period[0] == n_calls_iter_started[0]
+        assert n_calls_iter_started[0] == nf + 1 if nf < n else nf
+        assert n_calls_iter_completed[0] == nf
+
+    _test(3, 5, 16)
+    _test(4, 5, 16)
+    _test(5, 5, 16)
+    _test(300, 50, 1000)
 
 
 def test_integration_epochs():

@@ -232,6 +232,30 @@ def test_multiclass_wrong_inputs():
         # incompatible shapes
         re.update((torch.rand(10), torch.randint(0, 5, size=(10, 5, 6)).type(torch.LongTensor)))
 
+    re = Recall(average=True)
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        re.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+        re.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        re.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+        re.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+
+    re = Recall(average=False)
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        re.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+        re.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        re.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+        re.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+
 
 def test_multiclass_input_N():
     # Multiclass input data of shape (N, ) and (N, C)
@@ -242,7 +266,7 @@ def test_multiclass_input_N():
         y = torch.randint(0, 6, size=(20,)).type(torch.LongTensor)
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -258,7 +282,7 @@ def test_multiclass_input_N():
         y = torch.randint(0, 4, size=(10, 1)).type(torch.LongTensor)
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -275,7 +299,7 @@ def test_multiclass_input_N():
         y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -300,7 +324,7 @@ def test_multiclass_input_N():
 
         num_classes = y_pred.shape[1]
         np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
@@ -325,7 +349,7 @@ def test_multiclass_input_NL():
         y = torch.randint(0, 5, size=(10, 8)).type(torch.LongTensor)
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -340,7 +364,7 @@ def test_multiclass_input_NL():
         y = torch.randint(0, 10, size=(15, 8)).type(torch.LongTensor)
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -365,7 +389,7 @@ def test_multiclass_input_NL():
 
         num_classes = y_pred.shape[1]
         np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
@@ -390,7 +414,7 @@ def test_multiclass_input_NHW():
         y = torch.randint(0, 5, size=(10, 18, 16)).type(torch.LongTensor)
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -406,7 +430,7 @@ def test_multiclass_input_NHW():
         y = torch.randint(0, 7, size=(10, 20, 12)).type(torch.LongTensor)
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -419,8 +443,8 @@ def test_multiclass_input_NHW():
 
         # Batched Updates
         re.reset()
-        y_pred = torch.rand(100, 8, 12, 14)
-        y = torch.randint(0, 8, size=(100, 12, 14)).type(torch.LongTensor)
+        y_pred = torch.rand(100, 10, 12, 14)
+        y = torch.randint(0, 10, size=(100, 12, 14)).type(torch.LongTensor)
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -431,7 +455,7 @@ def test_multiclass_input_NHW():
 
         num_classes = y_pred.shape[1]
         np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         assert re._type == 'multiclass'
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
@@ -447,19 +471,24 @@ def test_multiclass_input_NHW():
 
 
 def test_multilabel_wrong_inputs():
-    pr = Recall(average=True, is_multilabel=True)
+    re = Recall(average=True, is_multilabel=True)
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
+        re.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
 
     with pytest.raises(ValueError):
         # incompatible y_pred
-        pr.update((torch.rand(10, 5), torch.randint(0, 2, size=(10, 5)).type(torch.LongTensor)))
+        re.update((torch.rand(10, 5), torch.randint(0, 2, size=(10, 5)).type(torch.LongTensor)))
 
     with pytest.raises(ValueError):
         # incompatible y
-        pr.update((torch.randint(0, 5, size=(10, 5, 6)), torch.rand(10)))
+        re.update((torch.randint(0, 5, size=(10, 5, 6)), torch.rand(10)))
+
+    with pytest.raises(ValueError):
+        # incompatible shapes between two updates
+        re.update((torch.randint(0, 2, size=(20, 5)), torch.randint(0, 2, size=(20, 5)).type(torch.LongTensor)))
+        re.update((torch.randint(0, 2, size=(20, 6)), torch.randint(0, 2, size=(20, 6)).type(torch.LongTensor)))
 
 
 def to_numpy_multilabel(y):
@@ -671,6 +700,14 @@ def test_incorrect_type():
 
     _test(average=True)
     _test(average=False)
+
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
 
 
 def test_incorrect_y_classes():
