@@ -49,6 +49,6 @@ optional arguments:
   --pretrained PRETRAINED
                         Use pretrained model
   --local_rank LOCAL_RANK
-                        Local rank
+                        Argument set by torch.distributed.launch
 
 ```
