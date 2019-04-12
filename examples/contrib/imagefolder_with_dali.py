@@ -9,6 +9,7 @@ from itertools import chain, repeat
 from math import ceil
 from random import sample
 from typing import Sequence
+from functools import partial
 
 import numpy as np
 import torch
@@ -236,7 +237,7 @@ def run(
         device_id=device_id,
         transform=transform,
         size=len(train_samples),
-        iter_setup=iter_setup,
+        iter_setup=partial(iter_setup, batch_size=train_batch_size),
     )
 
     train_loader = DALILoader(
@@ -300,7 +301,7 @@ def run(
             device_id=device_id,
             transform=transform,
             size=len(val_samples),
-            iter_setup=iter_setup,
+            iter_setup=partial(iter_setup, batch_size=val_batch_size),
         )
 
         val_loader = DALILoader(
