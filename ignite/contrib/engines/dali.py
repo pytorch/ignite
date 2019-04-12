@@ -3,41 +3,13 @@ try:
 except ImportError:
     raise RuntimeError("This contrib module requires nvidia-dali to be installed")
 
-from typing import Sequence
-from itertools import repeat, chain
+from itertools import chain, repeat
 from random import sample
-
-import numpy as np
 
 import torch
 import torch.distributed as dist
-from torch.nn.parallel import gather, parallel_apply
 
 from ignite.engine import Engine
-
-
-def read_jpegs(inputs):
-    """
-    Read the bytes from a path
-    """
-    def gen(inputs):
-        for p in inputs:
-            with open(p, 'rb') as src:
-                img = np.frombuffer(src.read(), dtype=np.uint8)
-                yield img
-
-    return list(gen(inputs))
-
-
-def read_targets(targets, dtype=np.uint8):
-    def gen(targets):
-        for t in targets:
-            """
-            `Pipeline.feed_input` seems to only accept `list[np.ndarray]` as argument not list[int]
-            """
-            yield np.array([t], dtype=dtype)
-
-    return list(gen(targets))
 
 
 def reduce_tensor(tensor, world_size):
@@ -47,9 +19,7 @@ def reduce_tensor(tensor, world_size):
     return rt
 
 
-def _prepare_batch(batch,
-                   device=None,
-                   output_map=('data', 'label')):
+def _prepare_batch(batch, device=None, output_map=("data", "label")):
     outputs = [[b[o] for o in output_map] for b in batch]
     return tuple(zip(*outputs))
 
@@ -72,25 +42,25 @@ class TransformPipeline(pipeline.Pipeline):
     """
     Pipeline for coco with data augrmentation
     """
-    def __init__(self,
-                 batch_size,
-                 num_threads,
-                 device_id,
-                 size=0,
-                 transform=None,
-                 target_transform=None,
-                 iter_setup=None,
-                 reader=None,
-                 samples=None,
-                 randomize=True):
-        super().__init__(batch_size,
-                         num_threads,
-                         device_id,
-                         seed=-1)
+
+    def __init__(
+        self,
+        batch_size,
+        num_threads,
+        device_id,
+        size=0,
+        transform=None,
+        target_transform=None,
+        iter_setup=None,
+        reader=None,
+        samples=None,
+        randomize=True,
+    ):
+        super().__init__(batch_size, num_threads, device_id, seed=-1)
         self.reader = reader
         self.decode = ops.nvJPEGDecoder(device="mixed", output_type=types.RGB)
         self.transform = transform
-        self.target_transform=target_transform
+        self.target_transform = target_transform
         self._iter_setup = iter_setup
         self.size = size
         self._jpegs = ops.ExternalSource()
@@ -100,7 +70,6 @@ class TransformPipeline(pipeline.Pipeline):
             samples = sample(samples, len(samples))
         self.samples = samples
         self.slice = slice(0, batch_size)
-
 
     def define_graph(self):
         if self.reader is None:
@@ -143,29 +112,28 @@ class TransformPipeline(pipeline.Pipeline):
             jpegs, labels = self._iter_setup(samples)
             self.feed_input(self.jpegs, jpegs)
             self.feed_input(self.labels, labels)
-            self.slice = slice(sl.stop, sl.stop+self.batch_size, sl.step)
+            self.slice = slice(sl.stop, sl.stop + self.batch_size, sl.step)
 
     def reset(self):
         if self._iter_setup:
             self.slice = slice(0, self.batch_size)
 
 
-def create_supervised_dali_trainer(model,
-                                   optimizer,
-                                   loss_fn,
-                                   world_size,
-                                   device=None,
-                                   output_map=('data', 'label'),
-                                   prepare_batch=_prepare_batch,
-                                   output_transform=lambda x, y, y_pred, loss: loss.item()):
-
+def create_supervised_dali_trainer(
+    model,
+    optimizer,
+    loss_fn,
+    world_size,
+    device=None,
+    output_map=("data", "label"),
+    prepare_batch=_prepare_batch,
+    output_transform=lambda x, y, y_pred, loss: loss.item(),
+):
     def _update(engine, batch):
 
         model.train()
         optimizer.zero_grad()
-        x, y = prepare_batch(batch,
-                             device=device,
-                             output_map=output_map)
+        x, y = prepare_batch(batch, device=device, output_map=output_map)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         reduced_loss = reduce_tensor(loss, world_size)
@@ -177,21 +145,20 @@ def create_supervised_dali_trainer(model,
     return engine
 
 
-def create_supervised_dali_evaluator(model,
-                                     metrics,
-                                     world_size,
-                                     device=None,
-                                     output_map=('data', 'label'),
-                                     prepare_batch=_prepare_batch,
-                                     output_transform=lambda x, y, y_pred: (y_pred, y)):
-
+def create_supervised_dali_evaluator(
+    model,
+    metrics,
+    world_size,
+    device=None,
+    output_map=("data", "label"),
+    prepare_batch=_prepare_batch,
+    output_transform=lambda x, y, y_pred: (y_pred, y),
+):
     def _inference(engine, batch):
         model.eval()
 
         with torch.no_grad():
-            x, y = prepare_batch(batch,
-                                 device,
-                                 output_map=output_map)
+            x, y = prepare_batch(batch, device, output_map=output_map)
             y_pred = model(x)
             return output_transform(x, y, y_pred)
 

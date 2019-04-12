@@ -1,41 +1,33 @@
 """
 Exemple of distributed script to train a model using DALI engine
 """
+import inspect
+import os
 from argparse import ArgumentParser
+from collections import defaultdict
 from itertools import chain, repeat
 from math import ceil
 from random import sample
-import inspect
-import os
-from collections import defaultdict
 from typing import Sequence
 
 import numpy as np
-
 import torch
-from torch import nn
-from torch.optim import SGD
 import torch.nn.functional as F
-from torch.nn.parallel import DistributedDataParallel as DDP
-
 import torchvision.models
-from torchvision.datasets import ImageFolder
-
 from nvidia.dali import ops, types
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
+from torch import nn
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import SGD
+from torchvision.datasets import ImageFolder
 
-from ignite.engine import Events
-from ignite.metrics import Loss, RunningAverage, Accuracy
-
+from ignite.contrib.engines import (ComposeOps, TransformPipeline,
+                                    create_supervised_dali_evaluator,
+                                    create_supervised_dali_trainer,
+                                    reduce_tensor)
 from ignite.contrib.handlers import ProgressBar
-from ignite.contrib.engines import (
-    create_supervised_dali_trainer,
-    create_supervised_dali_evaluator,
-    reduce_tensor,
-    ComposeOps,
-    TransformPipeline,
-)
-
+from ignite.engine import Events
+from ignite.metrics import Accuracy, Loss, RunningAverage
 
 MODELS = dict(inspect.getmembers(torchvision.models, inspect.isfunction))
 
