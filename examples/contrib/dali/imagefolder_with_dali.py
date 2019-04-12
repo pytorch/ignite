@@ -23,8 +23,7 @@ from torchvision.datasets import ImageFolder
 
 from ignite.contrib.engines import (ComposeOps, TransformPipeline,
                                     create_supervised_dali_evaluator,
-                                    create_supervised_dali_trainer,
-                                    reduce_tensor)
+                                    create_supervised_dali_trainer)
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.metrics.distributed_metric import DistributedMetric
 from ignite.engine import Events
@@ -202,10 +201,9 @@ def run(
     model = DDP(model, device_ids=[device_id], output_device=device_id)
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     loss_fn = F.cross_entropy
-    loss = Loss(lambda y_pred, y: reduce_tensor(loss_fn(y_pred, y), world_size))
-    # Can't be used in a distributed as it is. Must write a class DistributedMetrics
     accuracy = Accuracy(output_transform=lambda x, y: ())
     dist_accuracy = DistributedMetric(accuracy, world_size)
+    dist_loss = DistributedMetric(Loss(loss_fn), world_size)
     # Values from imagenet preprocessing
     mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
     std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
@@ -248,7 +246,7 @@ def run(
     evaluator = create_supervised_dali_evaluator(
         model,
         metrics={
-            "loss": loss,
+            "loss": dist_loss,
             'accuracy': dist_accuracy,
         },
         device=None,
