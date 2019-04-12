@@ -5,7 +5,7 @@ import inspect
 import os
 from argparse import ArgumentParser
 from collections import defaultdict
-from itertools import chain, repeat
+from itertools import chain
 from math import ceil
 from random import sample
 from typing import Sequence
@@ -26,6 +26,7 @@ from ignite.contrib.engines import (ComposeOps, TransformPipeline,
                                     create_supervised_dali_trainer,
                                     reduce_tensor)
 from ignite.contrib.handlers import ProgressBar
+from ignite.contrib.metrics.distributed_metric import DistributedMetric
 from ignite.engine import Events
 from ignite.metrics import Accuracy, Loss, RunningAverage
 
@@ -186,7 +187,7 @@ def run(
     device_id = local_rank % torch.cuda.device_count()
     torch.cuda.set_device(device_id)
     torch.distributed.init_process_group(
-        backend="nccl", init_method="env://", world_size=world_size, rank=local_rank
+        backend="gloo", init_method="env://", world_size=world_size, rank=local_rank
     )
     world_size = torch.distributed.get_world_size()
     train_samples, val_samples, n_categories = make_samples(
@@ -203,7 +204,8 @@ def run(
     loss_fn = F.cross_entropy
     loss = Loss(lambda y_pred, y: reduce_tensor(loss_fn(y_pred, y), world_size))
     # Can't be used in a distributed as it is. Must write a class DistributedMetrics
-    # accuracy = Accuracy(output_transform=lambda x, y: ())
+    accuracy = Accuracy(output_transform=lambda x, y: ())
+    dist_accuracy = DistributedMetric(accuracy, world_size)
     # Values from imagenet preprocessing
     mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
     std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
@@ -247,7 +249,7 @@ def run(
         model,
         metrics={
             "loss": loss,
-            # 'accuracy': accuracy,
+            'accuracy': dist_accuracy,
         },
         device=None,
         world_size=world_size,
@@ -265,7 +267,6 @@ def run(
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(train_loader)
-        # avg_accuracy = metrics['accuracy']
         if local_rank == 0:
             metrics = evaluator.state.metrics
             """ accumulated loss is shared between all processes but the number of
@@ -273,13 +274,14 @@ def run(
             diferrent between the process but it converge to the same limit
             """
             avg_loss = metrics["loss"]
+            avg_accuracy = metrics['accuracy']
             # pbar.log_message(
             #     "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
             #     .format(engine.state.epoch, avg_accuracy, avg_loss)
             # )
             pbar.log_message(
-                "Training Results - Epoch: {} Avg loss: {:.2f}".format(
-                    engine.state.epoch, avg_loss
+                "Training Results - Epoch: {} Avg loss: {:.2f} Avg accuracy: {:.2f}".format(
+                    engine.state.epoch, avg_loss, avg_accuracy
                 )
             )
 
@@ -303,15 +305,11 @@ def run(
         evaluator.run(val_loader)
         if local_rank == 0:
             metrics = evaluator.state.metrics
-            # avg_accuracy = metrics['accuracy']
+            avg_accuracy = metrics['accuracy']
             avg_loss = metrics["loss"]
-            # pbar.log_message(
-            #     "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            #     .format(engine.state.epoch, avg_accuracy, avg_loss)
-            # )
             pbar.log_message(
-                "Validation Results - Epoch: {} Avg loss: {:.2f}".format(
-                    engine.state.epoch, avg_loss
+                "Validation Results - Epoch: {} Avg loss: {:.2f} Avg accuracy: {:.2f}".format(
+                    engine.state.epoch, avg_loss, avg_accuracy
                 )
             )
 
