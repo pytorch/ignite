@@ -10,7 +10,12 @@ into two categories:
     - Pick an issue and comment on the task that you want to work on this feature.
     - If you need more context on a particular issue, please ask and we shall provide.
 
-Once you finish implementing a feature or bugfix, please run lint checking and tests:
+In both cases, you will also need to code some tests to ensure the correct behaviour. We are using 
+`pytest` to write our tests:
+  - naming convention for files `test_*.py`, e.g. `test_precision.py`
+  - naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
+
+Once you finish implementing a feature or bugfix and tests, please run lint checking and tests:
 
 #### Run lint checking
 ```bash
