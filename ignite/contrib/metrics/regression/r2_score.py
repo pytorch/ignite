@@ -6,7 +6,7 @@ from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
 
 
 def r2_score_compute_fn(y_pred, y):
-    e = torch.sum((y - y_pred) ** 2)/torch.sum((y - y.mean()) ** 2)
+    e = torch.sum((y - y_pred) ** 2) / torch.sum((y - y.mean()) ** 2)
     return 1 - e.item()
 
 
