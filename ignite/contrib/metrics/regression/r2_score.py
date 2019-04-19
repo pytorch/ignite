@@ -14,7 +14,7 @@ class R2Score(_BaseRegressionEpoch):
     r"""
     Calculates the R-Squared:
 
-    :math:`\text{R_sq} = 1 - \frac{sum_{j=1}^n{(A_j - P_j)^2}}{sum_{j=1}^n{(A_j - \bar{A})^2}}`,
+    :math:`R^2 = 1 - \frac{\sum_{j=1}^n{(A_j - P_j)^2}}{\sum_{j=1}^n{(A_j - \bar{A})^2}}`,
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
