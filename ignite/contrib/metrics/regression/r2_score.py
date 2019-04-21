@@ -2,30 +2,36 @@ from __future__ import division
 
 import torch
 
-from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
+from ignite.exceptions import NotComputableError
+from ignite.contrib.metrics.regression._base import _BaseRegression
 
 
-def r2_score_compute_fn(y_pred, y):
-    e = torch.sum((y - y_pred) ** 2) / torch.sum((y - y.mean()) ** 2)
-    return 1 - e.item()
-
-
-class R2Score(_BaseRegressionEpoch):
+class R2Score(_BaseRegression):
     r"""
-    Calculates the R-Squared:
+        Calculates the R-Squared:
 
-    :math:`R^2 = 1 - \frac{\sum_{j=1}^n{(A_j - P_j)^2}}{\sum_{j=1}^n{(A_j - \bar{A})^2}}`,
+        :math:`R^2 = 1 - \frac{\sum_{j=1}^n{(A_j - P_j)^2}}{\sum_{j=1}^n{(A_j - \bar{A})^2}}`,
 
-    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+        where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
-    - `update` must receive output of the form `(y_pred, y)`.
-    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
-
-    .. warning::
-
-        Current implementation stores all input data (output and target) in as tensors before computing a metric.
-        This can potentially lead to a memory error if the input data is larger than available RAM.
-
+        - `update` must receive output of the form `(y_pred, y)`.
+        - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
     """
-    def __init__(self, output_transform=lambda x: x):
-        super(R2Score, self).__init__(r2_score_compute_fn, output_transform)
+    def reset(self):
+        self._num_examples = 0
+        self._sum_of_errors = 0
+        self._y_sq_sum = 0
+        self._y_sum = 0
+
+    def _update(self, output):
+        y_pred, y = output
+        self._num_examples += y.shape[0]
+        self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).item()
+
+        self._y_sum += torch.sum(y).item()
+        self._y_sq_sum += torch.sum(torch.pow(y, 2)).item()
+
+    def compute(self):
+        if self._num_examples == 0:
+            raise NotComputableError('R2Score must have at least one example before it can be computed.')
+        return 1 - self._sum_of_errors / (self._y_sq_sum - (self._y_sum ** 2) / self._num_examples)
