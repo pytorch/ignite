@@ -7,12 +7,13 @@ from ignite.contrib.metrics.regression._base import _BaseRegression
 
 
 class R2Score(_BaseRegression):
-    r"""
+    """
         Calculates the R-Squared:
 
         :math:`R^2 = 1 - \frac{\sum_{j=1}^n{(A_j - P_j)^2}}{\sum_{j=1}^n{(A_j - \bar{A})^2}}`,
 
-        where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+        where :math:`A_j` is the ground truth, :math:`P_j` is the predicted value and
+        :math:`\bar{A}` is the mean of the ground truth.
 
         - `update` must receive output of the form `(y_pred, y)`.
         - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
