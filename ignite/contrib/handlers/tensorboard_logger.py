@@ -87,17 +87,22 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
+        tag (str, optional): common title for all produced plots. For example, 'generator'
     """
 
-    def __init__(self, optimizer, param_name="lr"):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name)
+    def __init__(self, optimizer, param_name="lr", tag=None):
+        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OptimizerParamsHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        params = {"{}/group_{}".format(self.param_name, i): float(param_group[self.param_name])
+        if self.tag:
+            tag_prefix = "{}/".format(self.tag)
+        else:
+            tag_prefix = ""
+        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
                   for i, param_group in enumerate(self.optimizer.param_groups)}
 
         for k, v in params.items():
