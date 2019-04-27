@@ -98,10 +98,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             raise RuntimeError("Handler 'OptimizerParamsHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        if self.tag:
-            tag_prefix = "{}/".format(self.tag)
-        else:
-            tag_prefix = ""
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
                   for i, param_group in enumerate(self.optimizer.param_groups)}
 
