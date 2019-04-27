@@ -34,6 +34,7 @@ Complete list of metrics:
     - :class:`~ignite.contrib.metrics.regression.MedianAbsoluteError`
     - :class:`~ignite.contrib.metrics.regression.MedianAbsolutePercentageError`
     - :class:`~ignite.contrib.metrics.regression.MedianRelativeAbsoluteError`
+    - :class:`~ignite.contrib.metrics.regression.R2Score`
     - :class:`~ignite.contrib.metrics.regression.WaveHedgesDistance`
 
 
@@ -64,5 +65,7 @@ Complete list of metrics:
 .. autoclass:: MedianAbsolutePercentageError
 
 .. autoclass:: MedianRelativeAbsoluteError
+
+.. autoclass:: R2Score
 
 .. autoclass:: WaveHedgesDistance
