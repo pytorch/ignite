@@ -117,7 +117,7 @@ class CyclicalScheduler(ParamScheduler):
         param_name (str): name of optimizer's parameter to update.
         start_value (float): value at start of cycle.
         end_value (float): value at the middle of the cycle.
-        cycle_size (int): length of cycle, value should be larger than 1.
+        cycle_size (int): length of cycle, value should be larger than 2.
         cycle_mult (float, optional): ratio by which to change the cycle_size.
             at the end of each cycle (default=1.0).
         start_value_mult (float, optional): ratio by which to change the start value at the
