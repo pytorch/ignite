@@ -12,3 +12,4 @@ from ignite.contrib.metrics.regression.median_absolute_error import MedianAbsolu
 from ignite.contrib.metrics.regression.median_relative_absolute_error import MedianRelativeAbsoluteError
 from ignite.contrib.metrics.regression.median_absolute_percentage_error import MedianAbsolutePercentageError
 from ignite.contrib.metrics.regression.geometric_mean_relative_absolute_error import GeometricMeanRelativeAbsoluteError
+from ignite.contrib.metrics.regression.r2_score import R2Score

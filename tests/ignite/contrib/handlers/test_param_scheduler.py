@@ -11,6 +11,13 @@ from ignite.contrib.handlers.param_scheduler import ParamGroupScheduler, Piecewi
 
 
 def test_linear_scheduler():
+
+    with pytest.raises(ValueError):
+        LinearCyclicalScheduler({}, 'lr', 1, 0, cycle_size=0)
+
+    with pytest.raises(ValueError):
+        LinearCyclicalScheduler({}, 'lr', 1, 0, cycle_size=1)
+
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
@@ -74,6 +81,27 @@ def test_linear_scheduler():
         # Cycle 2
         1.2, 1.0, 0.8, 0.6, 0.4,
         0.2, 0.4, 0.6, 0.8, 1.0,
+    ]))
+
+
+def test_linear_scheduler_cycle_size_two():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1, 0, cycle_size=2)
+    lrs = []
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]['lr'])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+    trainer.run([0] * 10, max_epochs=2)
+
+    assert lrs == list(map(pytest.approx, [
+        1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+        1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0
     ]))
 
 
@@ -182,6 +210,51 @@ def test_concat_scheduler():
     _test(duration_vals_as_np_int=True)
 
 
+def test_concat_scheduler_two_linear():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.0, end_value=0.1, cycle_size=2)
+    scheduler_2 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.2, end_value=1.0, cycle_size=2)
+
+    durations = [5, ]
+    concat_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2],
+                                       durations=durations, save_history=True)
+
+    assert concat_scheduler.get_param() == 0.0
+
+    data = [0] * 10
+    max_epochs = 2
+    simulated_values = ConcatScheduler.simulate_values(num_events=len(data) * max_epochs,
+                                                       schedulers=[scheduler_1, scheduler_2],
+                                                       durations=durations)
+
+    lrs = []
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]['lr'])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, concat_scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+    trainer.run(data, max_epochs=max_epochs)
+
+    assert lrs == list(map(pytest.approx, [
+        # first LinearCyclicalScheduler
+        0.0, 0.1, 0.0, 0.1, 0.0,
+        # second LinearCyclicalScheduler
+        0.2, 1.0, 0.2, 1.0, 0.2, 1.0, 0.2, 1.0,
+        0.2, 1.0, 0.2, 1.0, 0.2, 1.0, 0.2,
+    ]))
+
+    state_lrs = trainer.state.param_history['lr']
+    assert len(state_lrs) == len(lrs)
+    # Unpack singleton lists
+    assert [group[0] for group in state_lrs] == lrs
+
+    assert lrs == pytest.approx([v for i, v in simulated_values])
+
+
 def test_concat_scheduler_3_schedulers():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
@@ -274,8 +347,8 @@ def test_lr_scheduler():
     def _test(torch_lr_scheduler_cls, **kwargs):
 
         tensor = torch.zeros([1], requires_grad=True)
-        optimizer1 = torch.optim.SGD([tensor], lr=0.1)
-        optimizer2 = torch.optim.SGD([tensor], lr=0.1)
+        optimizer1 = torch.optim.SGD([tensor], lr=0.01)
+        optimizer2 = torch.optim.SGD([tensor], lr=0.01)
 
         torch_lr_scheduler1 = torch_lr_scheduler_cls(optimizer=optimizer1, **kwargs)
         torch_lr_scheduler2 = torch_lr_scheduler_cls(optimizer=optimizer2, **kwargs)
@@ -306,7 +379,7 @@ def test_lr_scheduler():
 
         assert lrs_true == pytest.approx(lrs)
 
-        optimizer3 = torch.optim.SGD([tensor], lr=0.1)
+        optimizer3 = torch.optim.SGD([tensor], lr=0.01)
         torch_lr_scheduler3 = torch_lr_scheduler_cls(optimizer=optimizer3, **kwargs)
 
         simulated_values = LRScheduler.simulate_values(num_events=len(data) * max_epochs,
@@ -318,7 +391,7 @@ def test_lr_scheduler():
 
     # test _replicate_lr_scheduler
     tensor = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([tensor], lr=0.1)
+    optimizer = torch.optim.SGD([tensor], lr=0.01)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.78)
     init_lr_scheduler_state = dict(lr_scheduler.state_dict())
     copy_lr_scheduler = LRScheduler._replicate_lr_scheduler(lr_scheduler)
@@ -326,6 +399,9 @@ def test_lr_scheduler():
         lr_scheduler.step()
 
     assert copy_lr_scheduler.state_dict() == init_lr_scheduler_state
+
+    with pytest.raises(TypeError):
+        LRScheduler._replicate_lr_scheduler(12)
 
 
 def test_piecewiselinear_asserts():
@@ -491,12 +567,12 @@ def test_create_lr_scheduler_with_warmup():
         assert lrs == pytest.approx([v for i, v in simulated_values])
 
     t1 = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([t1], lr=0.1)
+    optimizer = torch.optim.SGD([t1], lr=0.2)
     torch_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
     _test(torch_lr_scheduler, optimizer)
 
     t1 = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([t1], lr=0.1)
+    optimizer = torch.optim.SGD([t1], lr=0.2)
     lr_scheduler = LinearCyclicalScheduler(optimizer=optimizer, param_name='lr',
                                            start_value=1.0, end_value=0.0, cycle_size=10)
     _test(lr_scheduler, optimizer)
