@@ -280,7 +280,7 @@ class VisdomLogger(BaseLogger):
         **kwargs: kwargs to pass into
             `visdom.Visdom <https://github.com/facebookresearch/visdom#visdom-arguments-python-only>`_.
 
-    Notes:
+    Note:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
 
 

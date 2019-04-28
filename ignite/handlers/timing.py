@@ -19,8 +19,8 @@ class Timer:
             Incremented with the ``.step()`` method.
         running (bool): flag indicating if timer is measuring time.
 
-    Notes:
-        When using ``Timer(average=True)`` do not forget to call ``timer.step()`` everytime an event occurs. See
+    Note:
+        When using ``Timer(average=True)`` do not forget to call ``timer.step()`` every time an event occurs. See
         the examples below.
 
     Examples:

@@ -129,7 +129,7 @@ class Engine(object):
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
-        Notes:
+        Note:
               The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
               was bound to.
 
