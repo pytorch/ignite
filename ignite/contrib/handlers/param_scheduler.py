@@ -117,7 +117,7 @@ class CyclicalScheduler(ParamScheduler):
         param_name (str): name of optimizer's parameter to update.
         start_value (float): value at start of cycle.
         end_value (float): value at the middle of the cycle.
-        cycle_size (int): length of cycle.
+        cycle_size (int): length of cycle, value should be larger than 1.
         cycle_mult (float, optional): ratio by which to change the cycle_size.
             at the end of each cycle (default=1.0).
         start_value_mult (float, optional): ratio by which to change the start value at the
@@ -154,6 +154,10 @@ class CyclicalScheduler(ParamScheduler):
         self.cycle = 0
         self.start_value_mult = start_value_mult
         self.end_value_mult = end_value_mult
+
+        if self.cycle_size < 2:
+            raise ValueError("Argument cycle_size should be positive and larger than 1, "
+                             "but given {}".format(cycle_size))
 
     def __call__(self, engine, name=None):
         if self.event_index != 0 and self.event_index % self.cycle_size == 0:
@@ -304,6 +308,7 @@ class ConcatScheduler(ParamScheduler):
         # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
         # The annealing cycles are repeated indefinitely.
         #
+
     """
 
     def __init__(self, schedulers, durations, save_history=False):
@@ -368,7 +373,7 @@ class ConcatScheduler(ParamScheduler):
             s.save_history = value
 
     def get_param(self):
-        pass
+        return self._current_scheduler.get_param()
 
     @classmethod
     def simulate_values(cls, num_events, schedulers, durations, param_names=None, **kwargs):
@@ -390,7 +395,9 @@ class ConcatScheduler(ParamScheduler):
         output = []
 
         # Need to copy all schedulers otherwise unsafe
-        copy_schedulers = [_replicate_scheduler(s) for s in schedulers]
+        # Need to setup properly the copies of optimizer otherwise incorrect simulation values for pytorch >= 1.1.0
+        opt_copy_map = {id(s.optimizer_param_groups): deepcopy(s.optimizer_param_groups) for s in schedulers}
+        copy_schedulers = [_replicate_scheduler(s, opt_copy_map) for s in schedulers]
         scheduler = cls(copy_schedulers, durations, save_history=False)
         if param_names is None:
             param_names = [scheduler.param_name]
@@ -474,12 +481,16 @@ class LRScheduler(ParamScheduler):
         return values
 
     @staticmethod
-    def _replicate_lr_scheduler(lr_scheduler):
+    def _replicate_lr_scheduler(lr_scheduler, new_optimizer_param_groups=None):
+        if not isinstance(lr_scheduler, _LRScheduler):
+            raise TypeError("lr_scheduler should inherit of _LRScheduler")
         lr_scheduler_cls = lr_scheduler.__class__
         optimizer_cls = lr_scheduler.optimizer.__class__
         t = torch.zeros([1], requires_grad=True)
         dummy_optimizer = optimizer_cls([t], lr=0.1)
         dummy_optimizer.load_state_dict(lr_scheduler.optimizer.state_dict())
+        if new_optimizer_param_groups is not None:
+            dummy_optimizer.param_groups = new_optimizer_param_groups
         kwargs = lr_scheduler.state_dict()
         del kwargs['base_lrs']
         copy_lr_scheduler = lr_scheduler_cls(optimizer=dummy_optimizer, **kwargs)
@@ -671,13 +682,17 @@ class PiecewiseLinear(ParamScheduler):
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
 
-def _replicate_scheduler(scheduler, save_history=False):
+def _replicate_scheduler(scheduler, opt_copy_map, save_history=False):
     if isinstance(scheduler, LRScheduler):
-        return LRScheduler(LRScheduler._replicate_lr_scheduler(scheduler.lr_scheduler), save_history=save_history)
+        opt_param_groups = opt_copy_map[id(scheduler.optimizer_param_groups)]
+        return LRScheduler(LRScheduler._replicate_lr_scheduler(scheduler.lr_scheduler, opt_param_groups),
+                           save_history=save_history)
     elif isinstance(scheduler, ConcatScheduler):
-        copy_schedulers = [_replicate_scheduler(s, save_history=save_history) for s in scheduler.schedulers]
+        copy_schedulers = [_replicate_scheduler(s, opt_copy_map, save_history=save_history)
+                           for s in scheduler.schedulers]
         return ConcatScheduler(copy_schedulers, durations=scheduler.durations, save_history=save_history)
     else:
         new_scheduler = deepcopy(scheduler)
+        new_scheduler.optimizer_param_groups = opt_copy_map[id(scheduler.optimizer_param_groups)]
         new_scheduler.save_history = save_history
         return new_scheduler
