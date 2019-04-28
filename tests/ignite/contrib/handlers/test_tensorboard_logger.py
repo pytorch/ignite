@@ -47,6 +47,13 @@ def test_optimizer_params():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
     mock_logger.writer.add_scalar.assert_called_once_with("lr/group_0", 0.01, 123)
 
+    wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.writer.add_scalar.assert_called_once_with("generator/lr/group_0", 0.01, 123)
+
 
 def test_output_handler_with_wrong_logger_type():
 
