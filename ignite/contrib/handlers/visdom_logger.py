@@ -150,11 +150,12 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
+        tag (str, optional): common title for all produced plots. For example, 'generator'
         show_legend (bool, optional): flag to show legend in the window
     """
 
-    def __init__(self, optimizer, param_name="lr", show_legend=False):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name)
+    def __init__(self, optimizer, param_name="lr", tag=None, show_legend=False):
+        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
@@ -162,7 +163,8 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
             raise RuntimeError("Handler 'OptimizerParamsHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        params = {"{}/group_{}".format(self.param_name, i): float(param_group[self.param_name])
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
                   for i, param_group in enumerate(self.optimizer.param_groups)}
 
         for k, v in params.items():
@@ -278,7 +280,7 @@ class VisdomLogger(BaseLogger):
         **kwargs: kwargs to pass into
             `visdom.Visdom <https://github.com/facebookresearch/visdom#visdom-arguments-python-only>`_.
 
-    Notes:
+    Note:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
 
 

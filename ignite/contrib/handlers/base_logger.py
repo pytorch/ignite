@@ -50,13 +50,14 @@ class BaseOptimizerParamsHandler(BaseHandler):
     Base handler for logging optimizer parameters
     """
 
-    def __init__(self, optimizer, param_name="lr"):
+    def __init__(self, optimizer, param_name="lr", tag=None):
         if not isinstance(optimizer, torch.optim.Optimizer):
             raise TypeError("Argument optimizer should be of type torch.optim.Optimizer, "
                             "but given {}".format(type(optimizer)))
 
         self.optimizer = optimizer
         self.param_name = param_name
+        self.tag = tag
 
 
 class BaseOutputHandler(BaseHandler):

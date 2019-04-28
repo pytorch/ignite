@@ -45,7 +45,7 @@ class ModelCheckpoint(object):
         save_as_state_dict (bool, optional):
             If True, will save only the `state_dict` of the objects specified, otherwise the whole object will be saved.
 
-    Notes:
+    Note:
           This handler expects two arguments: an :class:`~ignite.engine.Engine` object and a `dict`
           mapping names to objects that should be saved.
 
