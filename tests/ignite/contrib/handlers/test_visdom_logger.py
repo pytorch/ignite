@@ -73,6 +73,23 @@ def test_optimizer_params():
         name="lr/group_0"
     )
 
+    wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr", tag="generator")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 1 and "generator/lr/group_0" in wrapper.windows
+    assert wrapper.windows["generator/lr/group_0"]['win'] is not None
+
+    mock_logger.vis.line.assert_called_once_with(
+        X=[123, ], Y=[0.01, ], env=mock_logger.vis.env,
+        win=None, update=None,
+        opts=wrapper.windows['generator/lr/group_0']['opts'],
+        name="generator/lr/group_0"
+    )
+
 
 def test_output_handler_with_wrong_logger_type():
 
