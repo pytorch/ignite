@@ -113,7 +113,9 @@ class ProgressBar(BaseLogger):
             **self.tqdm_kwargs
         )
 
-    def _close(self, engine):
+    def _close(self, engine, log_handler, event_name):
+        if not self.pbar:
+            self.pbar = log_handler(engine, self, event_name)
         self.pbar.close()
         self.pbar = None
 
@@ -164,7 +166,7 @@ class ProgressBar(BaseLogger):
                                      event_name=event_name,
                                      closing_event_name=closing_event_name)
         super(ProgressBar, self).attach(engine, log_handler, event_name)
-        engine.add_event_handler(closing_event_name, self._close)
+        engine.add_event_handler(closing_event_name, self._close, log_handler, event_name)
 
 
 class _OutputHandler(BaseOutputHandler):
@@ -234,3 +236,4 @@ class _OutputHandler(BaseOutputHandler):
             logger.pbar.set_postfix(**rendered_metrics)
 
         logger.pbar.update()
+        return logger.pbar
