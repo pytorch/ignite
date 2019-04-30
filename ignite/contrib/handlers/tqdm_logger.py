@@ -115,7 +115,7 @@ class ProgressBar(BaseLogger):
 
     def _close(self, engine, log_handler, event_name):
         if not self.pbar:
-            self.pbar = log_handler(engine, self, event_name)
+            self.pbar = log_handler(engine, self, event_name, close=True)
         self.pbar.close()
         self.pbar = None
 
@@ -205,7 +205,7 @@ class _OutputHandler(BaseOutputHandler):
             return engine.state.max_epochs
         return 1
 
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine, logger, event_name, close=False):
 
         if logger.pbar is None:
             logger._reset(pbar_total=self.get_max_number_events(self.event_name, engine))
@@ -236,4 +236,5 @@ class _OutputHandler(BaseOutputHandler):
             logger.pbar.set_postfix(**rendered_metrics)
 
         logger.pbar.update()
-        return logger.pbar
+        if close:
+            return logger.pbar
