@@ -359,7 +359,7 @@ def test_lr_scheduler():
 
         trainer = Engine(lambda engine, batch: None)
 
-        @trainer.on(Events.ITERATION_STARTED)
+        @trainer.on(Events.ITERATION_COMPLETED)
         def torch_lr_scheduler_step(engine):
             torch_lr_scheduler2.step()
 
