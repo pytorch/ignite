@@ -7,6 +7,7 @@ from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy
 from ignite.contrib.handlers import CustomPeriodicEvent
+from ignite.handlers import TerminateOnNan
 
 
 def update_fn(engine, batch):
@@ -261,3 +262,31 @@ def test_pbar_on_custom_events(capsys):
 
     with pytest.raises(ValueError, match=r"Logging and closing events should be only ignite.engine.Events"):
         pbar.attach(engine, event_name=cpe.Events.ITERATIONS_15_COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
+
+
+def test_pbar_with_nan_input():
+    def update(engine, batch):
+        x = batch
+        return x.item()
+
+    def create_engine():
+        engine = Engine(update)
+        pbar = ProgressBar()
+
+        engine.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
+        pbar.attach(engine, event_name=Events.EPOCH_COMPLETED, closing_event_name=Events.COMPLETED)
+        return engine
+
+    data = torch.from_numpy(np.array([np.nan] * 25))
+    engine = create_engine()
+    engine.run(data)
+    assert engine.should_terminate
+    assert engine.state.iteration == 1
+    assert engine.state.epoch == 1
+
+    data = torch.from_numpy(np.array([1] * 1000 + [np.nan] * 25))
+    engine = create_engine()
+    engine.run(data)
+    assert engine.should_terminate
+    assert engine.state.iteration == 1001
+    assert engine.state.epoch == 1
