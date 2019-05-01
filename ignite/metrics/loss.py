@@ -26,7 +26,7 @@ class Loss(Metric):
     """
 
     def __init__(self, loss_fn, output_transform=lambda x: x,
-                 batch_size=lambda x: x.shape[0]):
+                 batch_size=lambda x: len(x)):
         super(Loss, self).__init__(output_transform)
         self._loss_fn = loss_fn
         self._batch_size = batch_size
