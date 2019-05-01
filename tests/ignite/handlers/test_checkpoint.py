@@ -292,13 +292,13 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
 
     def update_fn(engine, batch):
-        lr_scheduler.step()
         x = torch.rand((4, 1))
         optim.zero_grad()
         y = model(x)
         loss = y.pow(2.0).sum()
         loss.backward()
         optim.step()
+        lr_scheduler.step()
 
     engine = Engine(update_fn)
     handler = ModelCheckpoint(
