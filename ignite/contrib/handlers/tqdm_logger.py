@@ -114,7 +114,8 @@ class ProgressBar(BaseLogger):
         )
 
     def _close(self, engine):
-        self.pbar.close()
+        if self.pbar:
+            self.pbar.close()
         self.pbar = None
 
     @staticmethod
