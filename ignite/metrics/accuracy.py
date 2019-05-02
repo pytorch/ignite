@@ -8,11 +8,15 @@ from ignite.exceptions import NotComputableError
 
 class _BaseClassification(Metric):
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, labelwise=False):
         self._is_multilabel = is_multilabel
+        self._labelwise = labelwise
         self._type = None
         self._num_classes = None
         super(_BaseClassification, self).__init__(output_transform=output_transform)
+        if labelwise and not is_multilabel:
+            raise ValueError("labelwise=True is only appropriate for multi-label classificiation, "
+                             "i.e. is_multilabel=True")
 
     def reset(self):
         self._type = None
@@ -109,16 +113,20 @@ class Accuracy(_BaseClassification):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
+        labelwise (bool, optional): flag to use if accuracy should be returned for each label in multilabel cases.
+            By default, False.
     """
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, labelwise=False):
         self._num_correct = None
         self._num_examples = None
-        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
+        self._num_correct_labelwise = None
+        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, labelwise=labelwise)
 
     def reset(self):
         self._num_correct = 0
         self._num_examples = 0
+        self._num_correct_labelwise = None
         super(Accuracy, self).reset()
 
     def update(self, output):
@@ -137,12 +145,22 @@ class Accuracy(_BaseClassification):
             last_dim = y_pred.ndimension()
             y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
-            correct = torch.all(y == y_pred.type_as(y), dim=-1)
+            correct = torch.all(y == y_pred.type_as(y), dim=-1) # Sample-wise
+
 
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
+        if self._labelwise:
+            if self._num_correct_labelwise is not None:
+                self._num_correct_labelwise = torch.add(self._num_correct_labelwise, torch.sum(y == y_pred.type_as(y), dim=0))
+            else:
+                self._num_correct_labelwise = torch.sum(y == y_pred.type_as(y), dim=0)
+
 
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('Accuracy must have at least one example before it can be computed.')
-        return self._num_correct / self._num_examples
+        if not self._labelwise:
+            return self._num_correct / self._num_examples
+        else:
+            return self._num_correct_labelwise.type(torch.float) / self._num_examples
