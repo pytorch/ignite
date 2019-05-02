@@ -121,7 +121,9 @@ class Accuracy(_BaseClassification):
         self._num_correct = None
         self._num_examples = None
         self._num_correct_labelwise = None
-        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, labelwise=labelwise)
+        super(Accuracy, self).__init__(output_transform=output_transform,
+                                       is_multilabel=is_multilabel,
+                                       labelwise=labelwise)
 
     def reset(self):
         self._num_correct = 0
@@ -145,17 +147,17 @@ class Accuracy(_BaseClassification):
             last_dim = y_pred.ndimension()
             y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
-            correct = torch.all(y == y_pred.type_as(y), dim=-1) # Sample-wise
-
+            correct = torch.all(y == y_pred.type_as(y), dim=-1)  # Sample-wise
 
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
         if self._labelwise:
             if self._num_correct_labelwise is not None:
-                self._num_correct_labelwise = torch.add(self._num_correct_labelwise, torch.sum(y == y_pred.type_as(y), dim=0))
+                self._num_correct_labelwise = torch.add(self._num_correct_labelwise,
+                                                        torch.sum(y == y_pred.type_as(y),
+                                                                  dim=0))
             else:
                 self._num_correct_labelwise = torch.sum(y == y_pred.type_as(y), dim=0)
-
 
     def compute(self):
         if self._num_examples == 0:
