@@ -5,7 +5,6 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score
 
-
 torch.manual_seed(12)
 
 
@@ -74,7 +73,7 @@ def test_binary_input_N():
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
         acc.reset()
-        y_pred = torch.randint(0, 2, size=(10, )).type(torch.LongTensor)
+        y_pred = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
         y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
         acc.update((y_pred, y))
         np_y = y.numpy().ravel()
@@ -446,7 +445,7 @@ def test_multilabel_input_N():
         np_y = y.numpy()
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn multi-label acc analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
         acc.reset()
         y_pred = torch.randint(0, 2, size=(50, 7)).type(torch.LongTensor)
@@ -456,7 +455,7 @@ def test_multilabel_input_N():
         np_y = y.numpy()
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn multi-label acc analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
         # labelspecific Batched Updates
         acc.reset()
@@ -474,7 +473,7 @@ def test_multilabel_input_N():
         np_y_pred = y_pred.numpy()
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn multi-label acc analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(10):
@@ -534,7 +533,7 @@ def test_multilabel_input_NL():
         np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
         acc.reset()
         y_pred = torch.randint(0, 2, size=(4, 10, 8)).type(torch.LongTensor)
@@ -544,7 +543,7 @@ def test_multilabel_input_NL():
         np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
         # labelspecific Batched Updates
         acc.reset()
@@ -562,7 +561,7 @@ def test_multilabel_input_NL():
         np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(10):
@@ -622,7 +621,7 @@ def test_multilabel_input_NHW():
         np_y = to_numpy_multilabel(y)  # (N, C, H, W, ...) -> (N * H * W ..., C)
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
         acc.reset()
         y_pred = torch.randint(0, 2, size=(4, 10, 12, 8)).type(torch.LongTensor)
@@ -632,7 +631,7 @@ def test_multilabel_input_NHW():
         np_y = to_numpy_multilabel(y)  # (N, C, H, W, ...) -> (N * H * W ..., C)
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
         # labelspecific Batched Updates
         acc.reset()
@@ -650,7 +649,7 @@ def test_multilabel_input_NHW():
         np_y = to_numpy_multilabel(y)  # (N, C, L, ...) -> (N * L ..., C)
         assert acc._type == 'multilabel'
         assert isinstance(acc.compute(), torch.Tensor)
-        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy()) # no sklearn analogy
+        assert np.mean(np_y == np_y_pred, axis=0) == pytest.approx(acc.compute().numpy())  # no sklearn analogy
 
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(10):
