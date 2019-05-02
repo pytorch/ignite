@@ -6,7 +6,7 @@ import math
 import numpy as np
 import pytest
 
-from mock import MagicMock, call, ANY, Mock
+from mock import MagicMock, call, ANY
 
 import torch
 
