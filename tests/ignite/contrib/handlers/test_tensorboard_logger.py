@@ -3,9 +3,10 @@ import tempfile
 import shutil
 import math
 
+import numpy as np
 import pytest
 
-from mock import MagicMock, call, ANY
+from mock import MagicMock, call, ANY, Mock
 
 import torch
 
@@ -183,20 +184,9 @@ def test_weights_scalar_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_weights_scalar_handler():
+def test_weights_scalar_handler(dummy_model_factory):
 
-    class DummyModel(torch.nn.Module):
-
-        def __init__(self):
-            super(DummyModel, self).__init__()
-            self.fc1 = torch.nn.Linear(10, 10)
-            self.fc2 = torch.nn.Linear(12, 12)
-            self.fc1.weight.data.zero_()
-            self.fc1.bias.data.zero_()
-            self.fc2.weight.data.fill_(1.0)
-            self.fc2.bias.data.fill_(1.0)
-
-    model = DummyModel()
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -217,6 +207,34 @@ def test_weights_scalar_handler():
     ], any_order=True)
 
 
+def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
+
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
+
+    wrapper = WeightsScalarHandler(model)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    mock_logger.writer.add_scalar.assert_has_calls([
+        call("weights_norm/fc2/weight", 12.0, 5),
+        call("weights_norm/fc2/bias", math.sqrt(12.0), 5),
+    ], any_order=True)
+
+    with pytest.raises(AssertionError):
+        mock_logger.writer.add_scalar.assert_has_calls([
+            call("weights_norm/fc1/weight", 12.0, 5),
+            call("weights_norm/fc1/bias", math.sqrt(12.0), 5),
+        ], any_order=True)
+
+    assert mock_logger.writer.add_scalar.call_count == 2
+
+
 def test_weights_hist_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
@@ -230,20 +248,9 @@ def test_weights_hist_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_weights_hist_handler():
+def test_weights_hist_handler(dummy_model_factory):
 
-    class DummyModel(torch.nn.Module):
-
-        def __init__(self):
-            super(DummyModel, self).__init__()
-            self.fc1 = torch.nn.Linear(10, 10)
-            self.fc2 = torch.nn.Linear(12, 12)
-            self.fc1.weight.data.zero_()
-            self.fc1.bias.data.zero_()
-            self.fc2.weight.data.fill_(1.0)
-            self.fc2.bias.data.fill_(1.0)
-
-    model = DummyModel()
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     wrapper = WeightsHistHandler(model)
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -264,6 +271,33 @@ def test_weights_hist_handler():
     ], any_order=True)
 
 
+def test_weights_hist_handler_frozen_layers(dummy_model_factory):
+
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
+
+    wrapper = WeightsHistHandler(model)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    mock_logger.writer.add_histogram.assert_has_calls([
+        call(tag="weights/fc2/weight", values=ANY, global_step=5),
+        call(tag="weights/fc2/bias", values=ANY, global_step=5),
+    ], any_order=True)
+
+    with pytest.raises(AssertionError):
+        mock_logger.writer.add_histogram.assert_has_calls([
+            call(tag="weights/fc1/weight", values=ANY, global_step=5),
+            call(tag="weights/fc1/bias", values=ANY, global_step=5),
+        ], any_order=True)
+    assert mock_logger.writer.add_histogram.call_count == 2
+
+
 def test_grads_scalar_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
@@ -280,35 +314,19 @@ def test_grads_scalar_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_grads_scalar_handler():
+def test_grads_scalar_handler(dummy_model_factory, norm_mock):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    class DummyModel(torch.nn.Module):
-
-        def __init__(self):
-            super(DummyModel, self).__init__()
-            self.fc1 = torch.nn.Linear(10, 10)
-            self.fc2 = torch.nn.Linear(12, 12)
-            self.fc1.weight.data.zero_()
-            self.fc1.bias.data.zero_()
-            self.fc2.weight.data.fill_(1.0)
-            self.fc2.bias.data.fill_(1.0)
-
-    model = DummyModel()
-
-    def norm(x):
-        return 0.0
-
-    wrapper = GradsScalarHandler(model, reduction=norm)
+    wrapper = GradsScalarHandler(model, reduction=norm_mock)
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
+    norm_mock.reset_mock()
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-
-    assert mock_logger.writer.add_scalar.call_count == 4
 
     mock_logger.writer.add_scalar.assert_has_calls([
         call("grads_norm/fc1/weight", ANY, 5),
@@ -316,6 +334,36 @@ def test_grads_scalar_handler():
         call("grads_norm/fc2/weight", ANY, 5),
         call("grads_norm/fc2/bias", ANY, 5),
     ], any_order=True)
+    assert mock_logger.writer.add_scalar.call_count == 4
+    assert norm_mock.call_count == 4
+
+
+def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
+
+    wrapper = GradsScalarHandler(model, reduction=norm_mock)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    norm_mock.reset_mock()
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    mock_logger.writer.add_scalar.assert_has_calls([
+        call("grads_norm/fc2/weight", ANY, 5),
+        call("grads_norm/fc2/bias", ANY, 5),
+    ], any_order=True)
+
+    with pytest.raises(AssertionError):
+        mock_logger.writer.add_scalar.assert_has_calls([
+            call("grads_norm/fc1/weight", ANY, 5),
+            call("grads_norm/fc1/bias", ANY, 5),
+        ], any_order=True)
+    assert mock_logger.writer.add_scalar.call_count == 2
+    assert norm_mock.call_count == 2
 
 
 def test_grads_hist_handler_wrong_setup():
@@ -331,20 +379,8 @@ def test_grads_hist_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_grads_hist_handler():
-
-    class DummyModel(torch.nn.Module):
-
-        def __init__(self):
-            super(DummyModel, self).__init__()
-            self.fc1 = torch.nn.Linear(10, 10)
-            self.fc2 = torch.nn.Linear(12, 12)
-            self.fc1.weight.data.zero_()
-            self.fc1.bias.data.zero_()
-            self.fc2.weight.data.fill_(1.0)
-            self.fc2.bias.data.fill_(1.0)
-
-    model = DummyModel()
+def test_grads_hist_handler(dummy_model_factory):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     wrapper = GradsHistHandler(model)
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -353,12 +389,6 @@ def test_grads_hist_handler():
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
-
-    model.fc1.weight.grad = torch.zeros_like(model.fc1.weight)
-    model.fc1.bias.grad = torch.zeros_like(model.fc1.bias)
-
-    model.fc2.weight.grad = torch.zeros_like(model.fc2.weight)
-    model.fc2.bias.grad = torch.zeros_like(model.fc2.bias)
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
@@ -369,6 +399,32 @@ def test_grads_hist_handler():
         call(tag="grads/fc2/weight", values=ANY, global_step=5),
         call(tag="grads/fc2/bias", values=ANY, global_step=5),
     ], any_order=True)
+
+
+def test_grads_hist_frozen_layers(dummy_model_factory):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
+
+    wrapper = GradsHistHandler(model)
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    assert mock_logger.writer.add_histogram.call_count == 2
+    mock_logger.writer.add_histogram.assert_has_calls([
+        call(tag="grads/fc2/weight", values=ANY, global_step=5),
+        call(tag="grads/fc2/bias", values=ANY, global_step=5),
+    ], any_order=True)
+
+    with pytest.raises(AssertionError):
+        mock_logger.writer.add_histogram.assert_has_calls([
+            call(tag="grads/fc1/weight", values=ANY, global_step=5),
+            call(tag="grads/fc1/bias", values=ANY, global_step=5),
+        ], any_order=True)
 
 
 def test_integration(dirname):

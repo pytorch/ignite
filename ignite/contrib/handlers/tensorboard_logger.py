@@ -140,6 +140,9 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         for name, p in self.model.named_parameters():
+            if p.grad is None:
+                continue
+
             name = name.replace('.', '/')
             logger.writer.add_scalar("weights_{}/{}".format(self.reduction.__name__, name),
                                      self.reduction(p.data),
@@ -177,6 +180,9 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         for name, p in self.model.named_parameters():
+            if p.grad is None:
+                continue
+
             name = name.replace('.', '/')
             logger.writer.add_histogram(tag="weights/{}".format(name),
                                         values=p.data.detach().cpu().numpy(),
@@ -216,6 +222,9 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         for name, p in self.model.named_parameters():
+            if p.grad is None:
+                continue
+
             name = name.replace('.', '/')
             logger.writer.add_scalar("grads_{}/{}".format(self.reduction.__name__, name),
                                      self.reduction(p.grad),
@@ -252,6 +261,9 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         for name, p in self.model.named_parameters():
+            if p.grad is None:
+                continue
+
             name = name.replace('.', '/')
             logger.writer.add_histogram(tag="grads/{}".format(name),
                                         values=p.grad.detach().cpu().numpy(),
