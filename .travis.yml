@@ -38,7 +38,7 @@ install:
   - python setup.py install
   - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
-  - pip install torchvision
+  - pip install torchvision matplotlib pandas
   - pip install gym==0.10.11
 
 script:
