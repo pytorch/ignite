@@ -77,7 +77,7 @@ class ConfusionMatrix(Metric):
             y_ohe = to_onehot(y.reshape(-1), self.num_classes)
             y_ohe_t = y_ohe.transpose(0, 1).float()
         else:
-            y_ohe_t = y.transpose(1, -1).reshape(y.shape[1], -1).float()
+            y_ohe_t = y.transpose(0, 1).reshape(y.shape[1], -1).float()
 
         indices = torch.argmax(y_pred, dim=1)
         y_pred_ohe = to_onehot(indices.reshape(-1), self.num_classes)
