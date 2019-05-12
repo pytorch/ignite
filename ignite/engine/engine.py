@@ -91,7 +91,7 @@ class Engine(object):
 
         self._check_signature(process_function, 'process_function', None)
 
-    def register_events(self, *event_names, event_to_attr=None):
+    def register_events(self, *event_names, **kwargs):
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -118,6 +118,7 @@ class Engine(object):
             engine = Engine(process_function)
             engine.register_events(*Custom_Events)
         """
+        event_to_attr = kwargs.get('event_to_attr', None)
         if event_to_attr:
             if not isinstance(event_to_attr, dict):
                 raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
