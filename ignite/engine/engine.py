@@ -103,7 +103,7 @@ class Engine(object):
         Args:
             *event_names: An object (ideally a string or int) to define the
                 name of the event being supported.
-            event_to_attr (dict/object): A dictionary or object to map an event to a state attribute.
+            event_to_attr (dict): A dictionary to map an event to a state attribute.
 
         Example usage:
 
@@ -117,6 +117,25 @@ class Engine(object):
 
             engine = Engine(process_function)
             engine.register_events(*Custom_Events)
+
+
+        Example with State Attribute:
+
+        .. code-block:: python
+
+            from enum import Enum
+
+            class TBPTT_Events(Enum):
+                TIME_ITERATION_STARTED = "time_iteration_started"
+                TIME_ITERATION_COMPLETED = "time_iteration_completed"
+
+            TBPTT_event_to_attr = {TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
+                                   TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration'}
+
+            engine = Engine(process_function)
+            engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
+            engine.run(data)
+            # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         event_to_attr = kwargs.get('event_to_attr', None)
         if event_to_attr:
