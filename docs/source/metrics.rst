@@ -99,3 +99,9 @@ Metrics also support indexing operation (if metric's result is a vector/matrix/t
 .. autofunction:: IoU
 
 .. autofunction:: mIoU
+
+.. autoclass:: VariableAccumulation
+
+.. autoclass:: Average
+
+.. autoclass:: GeometricAverage
