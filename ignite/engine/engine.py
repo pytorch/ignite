@@ -130,7 +130,7 @@ class Engine(object):
                 TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
             TBPTT_event_to_attr = {TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
-                                   TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration'}
+                                   TBPTT_Events.TIME_ITERATION_COMPLETED: 'time_iteration'}
 
             engine = Engine(process_function)
             engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
@@ -363,6 +363,7 @@ class Engine(object):
         """
 
         self.state = State(dataloader=data, max_epochs=max_epochs, metrics={})
+        self.should_terminate = self.should_terminate_single_epoch = False
 
         try:
             self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))

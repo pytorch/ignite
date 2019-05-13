@@ -713,3 +713,22 @@ def test_create_supervised_with_metrics():
 
     state = evaluator.run(data)
     assert state.metrics['mse'] == 12.5
+
+
+def test_reset_should_terminate():
+
+    def update_fn(engine, batch):
+        pass
+
+    engine = Engine(update_fn)
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def terminate_on_iteration_10(engine):
+        if engine.state.iteration == 10:
+            engine.terminate()
+
+    engine.run([0] * 20)
+    assert engine.state.iteration == 10
+
+    engine.run([0] * 20)
+    assert engine.state.iteration == 10
