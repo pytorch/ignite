@@ -231,6 +231,43 @@ def test_custom_events():
     assert handle.called
 
 
+def test_custom_events_with_event_to_attr():
+    class Custom_Events(Enum):
+        TEST_EVENT = "test_event"
+
+    custom_event_to_attr = {Custom_Events.TEST_EVENT: 'test_event'}
+
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0)
+    engine.register_events(*Custom_Events, event_to_attr=custom_event_to_attr)
+
+    # Handle is never called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert hasattr(engine.state, 'test_event')
+    assert engine.state.test_event == 0
+
+    # Advanced engine
+    def process_func(engine, batch):
+        engine.fire_event(Custom_Events.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*Custom_Events, event_to_attr=custom_event_to_attr)
+
+    def handle(engine):
+        engine.state.test_event += 1
+
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(25))
+    assert engine.state.test_event == 25
+
+    custom_event_to_attr = 'a'
+    engine = Engine(lambda engine, batch: 0)
+    with pytest.raises(ValueError):
+        engine.register_events(*Custom_Events, event_to_attr=custom_event_to_attr)
+
+
 def test_on_decorator_raises_with_invalid_event():
     engine = DummyEngine()
     with pytest.raises(ValueError):

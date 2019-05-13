@@ -34,11 +34,13 @@ class State(object):
     }
 
     def __init__(self, **kwargs):
-        self.iteration = 0
         self.output = None
         self.batch = None
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        for value in self.event_to_attr.values():
+            setattr(self, value, 0)
 
     def get_event_attrib_value(self, event_name):
         if event_name not in State.event_to_attr:
@@ -89,18 +91,19 @@ class Engine(object):
 
         self._check_signature(process_function, 'process_function', None)
 
-    def register_events(self, *event_names):
+    def register_events(self, *event_names, **kwargs):
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
         This opens the door to make the :meth:`~ignite.engine.Engine.run` loop even more
         configurable.
 
-        By default, the events from :class:`~ignite.engine.Events` are registerd.
+        By default, the events from :class:`~ignite.engine.Events` are registered.
 
         Args:
             *event_names: An object (ideally a string or int) to define the
                 name of the event being supported.
+            event_to_attr (dict): A dictionary to map an event to a state attribute.
 
         Example usage:
 
@@ -115,9 +118,34 @@ class Engine(object):
             engine = Engine(process_function)
             engine.register_events(*Custom_Events)
 
+
+        Example with State Attribute:
+
+        .. code-block:: python
+
+            from enum import Enum
+
+            class TBPTT_Events(Enum):
+                TIME_ITERATION_STARTED = "time_iteration_started"
+                TIME_ITERATION_COMPLETED = "time_iteration_completed"
+
+            TBPTT_event_to_attr = {TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
+                                   TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration'}
+
+            engine = Engine(process_function)
+            engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
+            engine.run(data)
+            # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
+        event_to_attr = kwargs.get('event_to_attr', None)
+        if event_to_attr:
+            if not isinstance(event_to_attr, dict):
+                raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
+
         for name in event_names:
             self._allowed_events.append(name)
+            if event_to_attr:
+                State.event_to_attr[name] = event_to_attr[name]
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
@@ -334,7 +362,7 @@ class Engine(object):
             State: output state.
         """
 
-        self.state = State(dataloader=data, epoch=0, max_epochs=max_epochs, metrics={})
+        self.state = State(dataloader=data, max_epochs=max_epochs, metrics={})
 
         try:
             self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
