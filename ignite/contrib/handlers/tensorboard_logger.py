@@ -15,7 +15,6 @@ class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
@@ -24,11 +23,46 @@ class OutputHandler(BaseOutputHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
+            # each epoch.
+
+            def global_step_transform(*args, **kwargs):
+                return trainer.state.epoch
+
             tb_logger.attach(evaluator,
                              log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       another_engine=trainer),
+                                                       metric_names=["nll", "accuracy"]),
+                                                       global_step_transform=global_step_transform)
+                             event_name=Events.EPOCH_COMPLETED)
+
+        Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
+        ..code-block:: python
+
+            from ignite.contrib.handlers import CustomPeriodicEvent
+
+            cpe = CustomPeriodicEvent(n_iterations=500)
+            cpe.attach(trainer)
+
+            @trainer.on(cpe.Events.ITERATIONS_500_COMPLETED)
+            def evaluate(engine):
+                evaluator.run(validation_set, max_epochs=1)
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            def global_step_transform(*args, **kwargs):
+                return trainer.state.iteration
+
+            # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
+            # every 500 iterations. Since evaluator engine does not have CustomPeriodicEvent attached to it, we
+            # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
+            # evaluator metrics are plotted on Tensorboard.
+
+
+            tb_logger.attach(evaluator,
+                             log_handler=OutputHandler(tag="validation",
+                                                       metrics=["nll", "accuracy"],
+                                                       global_step_transform=global_step_transform),
                              event_name=Events.EPOCH_COMPLETED)
 
     Args:
@@ -38,12 +72,22 @@ class OutputHandler(BaseOutputHandler):
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
             with corresponding keys.
-        another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
-            the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
-            epoch/iteration value.
-    """
-    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine)
+        global_step_transform (callable, optional): global step transform function to output a desired global step.
+            Output of function should be an integer. Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step.
+        """
+    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None):
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform)
+
+        if global_step_transform is not None and not callable(global_step_transform):
+            raise TypeError("global_step_transform should be a function, got {} instead."
+                            .format(type(global_step_transform)))
+
+        if global_step_transform is None:
+            def global_step_transform(engine, event_name):
+                return engine.state.get_event_attrib_value(event_name)
+
+        self.global_step_transform = global_step_transform
 
     def __call__(self, engine, logger, event_name):
 
@@ -52,8 +96,11 @@ class OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics(engine)
 
-        state = engine.state if self.another_engine is None else self.another_engine.state
-        global_step = state.get_event_attrib_value(event_name)
+        global_step = self.global_step_transform(engine, event_name)
+
+        if not isinstance(global_step, int):
+            raise TypeError("global_step must be int, got {}."
+                            " Please check the output of global_step_transform.".format(type(global_step)))
 
         for key, value in metrics.items():
             if isinstance(value, numbers.Number) or \
@@ -366,7 +413,7 @@ class TensorboardLogger(BaseLogger):
             raise RuntimeError("This contrib module requires tensorboardX to be installed. "
                                "Please install it with command: \n pip install tensorboardX")
 
-        self.writer = SummaryWriter(log_dir=log_dir)
+        self.writer = SummaryWriter(logdir=log_dir)
 
     def close(self):
         self.writer.close()
