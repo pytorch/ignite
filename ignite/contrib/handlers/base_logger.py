@@ -65,7 +65,7 @@ class BaseOutputHandler(BaseHandler):
     Helper handler to log engine's output and/or metrics
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None):
+    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
 
         if metric_names is not None and not isinstance(metric_names, list):
             raise TypeError("metric_names should be a list, got {} instead.".format(type(metric_names)))
@@ -76,6 +76,11 @@ class BaseOutputHandler(BaseHandler):
 
         if output_transform is None and metric_names is None:
             raise ValueError("Either metric_names or output_transform should be defined")
+
+        if another_engine is not None:
+            if not isinstance(another_engine, Engine):
+                raise TypeError("Argument another_engine should be of type Engine, "
+                                "but given {}".format(type(another_engine)))
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError("global_step_transform should be a function, got {} instead."
@@ -88,6 +93,7 @@ class BaseOutputHandler(BaseHandler):
         self.tag = tag
         self.metric_names = metric_names
         self.output_transform = output_transform
+        self.another_engine = another_engine
         self.global_step_transform = global_step_transform
 
     def _setup_output_metrics(self, engine):

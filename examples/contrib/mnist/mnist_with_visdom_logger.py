@@ -94,9 +94,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
         train_evaluator.run(train_loader)
         validation_evaluator.run(val_loader)
 
-    def global_step_transform(*args, **kwargs):
-        return trainer.state.epoch
-
     vd_logger = VisdomLogger(env="mnist_training")
 
     vd_logger.attach(trainer,
@@ -106,13 +103,13 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     vd_logger.attach(train_evaluator,
                      log_handler=OutputHandler(tag="training",
                                                metric_names=["loss", "accuracy"],
-                                               global_step_transform=global_step_transform),
+                                               another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
 
     vd_logger.attach(validation_evaluator,
                      log_handler=OutputHandler(tag="validation",
                                                metric_names=["loss", "accuracy"],
-                                               global_step_transform=global_step_transform),
+                                               another_engine=trainer),
                      event_name=Events.EPOCH_COMPLETED)
 
     vd_logger.attach(trainer,

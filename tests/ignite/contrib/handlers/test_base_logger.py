@@ -31,6 +31,9 @@ def test_base_output_handler_wrong_setup():
     with pytest.raises(ValueError, match="Either metric_names or output_transform should be defined"):
         DummyOutputHandler("tag", None, None)
 
+    with pytest.raises(TypeError, match="Argument another_engine should be of type Engine"):
+        DummyOutputHandler("tag", ["a", "b"], None, another_engine=123)
+
     with pytest.raises(TypeError, match="global_step_transform should be a function"):
         DummyOutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
 

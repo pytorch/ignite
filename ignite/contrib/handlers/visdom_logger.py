@@ -118,15 +118,18 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
             with corresponding keys.
+        another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
+            the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
+            epoch/iteration value.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
             Output of function should be an integer. Default is None, global_step based on attached engine. If provided,
             uses function output as global_step.
         show_legend (bool, optional): flag to show legend in the window
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None,
+    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None,
                  show_legend=False):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
@@ -136,6 +139,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         metrics = self._setup_output_metrics(engine)
 
+        engine = engine if self.another_engine is None else self.another_engine
         global_step = self.global_step_transform(engine, event_name)
         if not isinstance(global_step, int):
             raise TypeError("global_step must be int, got {}."
