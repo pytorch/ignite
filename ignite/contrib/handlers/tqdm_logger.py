@@ -192,7 +192,8 @@ class _OutputHandler(BaseOutputHandler):
         if metric_names is None and output_transform is None:
             # This helps to avoid 'Either metric_names or output_transform should be defined' of BaseOutputHandler
             metric_names = []
-        super(_OutputHandler, self).__init__(description, metric_names, output_transform, another_engine=None)
+        super(_OutputHandler, self).__init__(description, metric_names, output_transform,
+                                             another_engine=None, global_step_transform=None)
         self.event_name = event_name
         self.closing_event_name = closing_event_name
 

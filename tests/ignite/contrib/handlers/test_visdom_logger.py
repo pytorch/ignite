@@ -286,6 +286,49 @@ def test_output_handler_both(dirname):
     ], any_order=True)
 
 
+def test_output_handler_with_wrong_global_step_transform_output():
+    def global_step_transform(*args, **kwargs):
+        return 'a'
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    with pytest.raises(TypeError, match="global_step must be int"):
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+
+def test_output_handler_with_global_step_transform():
+    def global_step_transform(*args, **kwargs):
+        return 10
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.vis.line.call_count == 1
+    assert len(wrapper.windows) == 1 and "tag/loss" in wrapper.windows
+    assert wrapper.windows["tag/loss"]['win'] is not None
+
+    mock_logger.vis.line.assert_has_calls([
+        call(X=[10, ], Y=[12345, ], env=mock_logger.vis.env,
+             win=None, update=None,
+             opts=wrapper.windows['tag/loss']['opts'], name="tag/loss")])
+
+
 def test_weights_scalar_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):

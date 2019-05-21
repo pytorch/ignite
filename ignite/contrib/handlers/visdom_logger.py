@@ -80,6 +80,37 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                                                        another_engine=trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
+        Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
+        ..code-block:: python
+
+            from ignite.contrib.handlers import CustomPeriodicEvent
+
+            cpe = CustomPeriodicEvent(n_iterations=500)
+            cpe.attach(trainer)
+
+            @trainer.on(cpe.Events.ITERATIONS_500_COMPLETED)
+            def evaluate(engine):
+                evaluator.run(validation_set, max_epochs=1)
+
+            from ignite.contrib.handlers.visdom_logger import *
+
+            vd_logger = VisdomLogger()
+
+            def global_step_transform(*args, **kwargs):
+                return trainer.state.iteration
+
+            # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
+            # every 500 iterations. Since evaluator engine does not have CustomPeriodicEvent attached to it, we
+            # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
+            # evaluator metrics are plotted on Visdom.
+
+
+            vd_logger.attach(evaluator,
+                             log_handler=OutputHandler(tag="validation",
+                                                       metrics=["nll", "accuracy"],
+                                                       global_step_transform=global_step_transform),
+                             event_name=Events.EPOCH_COMPLETED)
+
     Args:
         tag (str): common title for all produced plots. For example, 'training'
         metric_names (list of str, optional): list of metric names to plot.
@@ -90,12 +121,15 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
             the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
             epoch/iteration value.
+        global_step_transform (callable, optional): global step transform function to output a desired global step.
+            Output of function should be an integer. Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step.
         show_legend (bool, optional): flag to show legend in the window
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None,
+    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None,
                  show_legend=False):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine)
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
@@ -105,8 +139,11 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         metrics = self._setup_output_metrics(engine)
 
-        state = engine.state if self.another_engine is None else self.another_engine.state
-        global_step = state.get_event_attrib_value(event_name)
+        engine = engine if self.another_engine is None else self.another_engine
+        global_step = self.global_step_transform(engine, event_name)
+        if not isinstance(global_step, int):
+            raise TypeError("global_step must be int, got {}."
+                            " Please check the output of global_step_transform.".format(type(global_step)))
 
         for key, value in metrics.items():
 
