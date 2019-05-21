@@ -35,7 +35,6 @@ def test_base_output_handler_wrong_setup():
         DummyOutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
 
 
-
 def test_base_output_handler_setup_output_metrics():
 
     engine = Engine(lambda engine, batch: None)
