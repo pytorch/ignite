@@ -31,7 +31,7 @@ class OutputHandler(BaseOutputHandler):
 
         Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
 
-        ..code-block:: python
+        .. code-block:: python
 
             from ignite.contrib.handlers import CustomPeriodicEvent
 
