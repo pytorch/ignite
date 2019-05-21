@@ -31,6 +31,10 @@ def test_base_output_handler_wrong_setup():
     with pytest.raises(ValueError, match="Either metric_names or output_transform should be defined"):
         DummyOutputHandler("tag", None, None)
 
+    with pytest.raises(TypeError, match="global_step_transform should be a function"):
+        DummyOutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
+
+
 
 def test_base_output_handler_setup_output_metrics():
 

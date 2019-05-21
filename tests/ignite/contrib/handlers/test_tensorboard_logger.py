@@ -165,11 +165,6 @@ def test_output_handler_both(dirname):
     ], any_order=True)
 
 
-def test_output_handler_wrong_global_step_transform():
-    with pytest.raises(TypeError, match="global_step_transform should be a function"):
-        OutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
-
-
 def test_output_handler_with_wrong_global_step_transform_output():
     def global_step_transform(*args, **kwargs):
         return 'a'
@@ -187,9 +182,9 @@ def test_output_handler_with_wrong_global_step_transform_output():
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
 
-def test_output_handler_with_global_step_transform(dirname):
+def test_output_handler_with_global_step_transform():
     def global_step_transform(*args, **kwargs):
-        return 1
+        return 10
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -202,7 +197,7 @@ def test_output_handler_with_global_step_transform(dirname):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     assert mock_logger.writer.add_scalar.call_count == 1
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss", 12345, 1)])
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss", 12345, 10)])
 
 
 def test_weights_scalar_handler_wrong_setup():

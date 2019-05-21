@@ -77,17 +77,7 @@ class OutputHandler(BaseOutputHandler):
             uses function output as global_step.
         """
     def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform)
-
-        if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError("global_step_transform should be a function, got {} instead."
-                            .format(type(global_step_transform)))
-
-        if global_step_transform is None:
-            def global_step_transform(engine, event_name):
-                return engine.state.get_event_attrib_value(event_name)
-
-        self.global_step_transform = global_step_transform
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine, logger, event_name):
 

@@ -127,6 +127,40 @@ def test_output_handler_both():
     )
 
 
+def test_output_handler_with_wrong_global_step_transform_output():
+    def global_step_transform(*args, **kwargs):
+        return 'a'
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=PolyaxonLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    with pytest.raises(TypeError, match="global_step must be int"):
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+
+def test_output_handler_with_global_step_transform():
+    def global_step_transform(*args, **kwargs):
+        return 10
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=PolyaxonLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    mock_logger.log_metrics.assert_called_once_with(step=10, **{"tag/loss": 12345})
+
+
 def test_integration():
 
     n_epochs = 5
