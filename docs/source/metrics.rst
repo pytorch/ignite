@@ -72,14 +72,14 @@ Complete list of metrics:
     - :class:`~ignite.metrics.ConfusionMatrix`
     - :class:`~ignite.metrics.EpochMetric`
     - :class:`~ignite.metrics.GeometricAverage`
-    - :function:`~ignite.metrics.IoU`
+    - :meth:`~ignite.metrics.IoU`
     - :class:`~ignite.metrics.Loss`
     - :class:`~ignite.metrics.MeanAbsoluteError`
     - :class:`~ignite.metrics.MeanPairwiseDistance`
     - :class:`~ignite.metrics.MeanSquaredError`
     - :class:`~ignite.metrics.Metric`
     - :class:`~ignite.metrics.MetricsLambda`
-    - :function:`~ignite.metrics.mIoU`
+    - :meth:`~ignite.metrics.mIoU`
     - :class:`~ignite.metrics.Precision`
     - :class:`~ignite.metrics.Recall`
     - :class:`~ignite.metrics.RootMeanSquaredError`
