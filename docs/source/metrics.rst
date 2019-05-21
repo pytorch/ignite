@@ -65,6 +65,29 @@ Metrics also support indexing operation (if metric's result is a vector/matrix/t
         # mean_iou_no_bg_metric.compute() -> tensor(0.12345)
 
 
+Complete list of metrics:
+
+    - :class:`~ignite.metrics.Accuracy`
+    - :class:`~ignite.metrics.Average`
+    - :class:`~ignite.metrics.ConfusionMatrix`
+    - :class:`~ignite.metrics.EpochMetric`
+    - :class:`~ignite.metrics.GeometricAverage`
+    - :meth:`~ignite.metrics.IoU`
+    - :class:`~ignite.metrics.Loss`
+    - :class:`~ignite.metrics.MeanAbsoluteError`
+    - :class:`~ignite.metrics.MeanPairwiseDistance`
+    - :class:`~ignite.metrics.MeanSquaredError`
+    - :class:`~ignite.metrics.Metric`
+    - :class:`~ignite.metrics.MetricsLambda`
+    - :meth:`~ignite.metrics.mIoU`
+    - :class:`~ignite.metrics.Precision`
+    - :class:`~ignite.metrics.Recall`
+    - :class:`~ignite.metrics.RootMeanSquaredError`
+    - :class:`~ignite.metrics.RunningAverage`
+    - :class:`~ignite.metrics.TopKCategoricalAccuracy`
+    - :class:`~ignite.metrics.VariableAccumulation`
+
+
 .. currentmodule:: ignite.metrics
 
 .. autoclass:: Accuracy
