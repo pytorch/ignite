@@ -38,6 +38,16 @@ def test_base_output_handler_wrong_setup():
         DummyOutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
 
 
+def test_base_output_handler_with_another_engine():
+    engine = Engine(lambda engine, batch: None)
+    true_metrics = {"a": 0, "b": 1}
+    engine.state = State(metrics=true_metrics)
+    engine.state.output = 12345
+
+    with pytest.warns(DeprecationWarning, match="Use of another_engine is deprecated"):
+        handler = DummyOutputHandler("tag", metric_names=['a', 'b'], output_transform=None, another_engine=engine)
+
+
 def test_base_output_handler_setup_output_metrics():
 
     engine = Engine(lambda engine, batch: None)
