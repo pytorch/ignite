@@ -405,7 +405,17 @@ class TensorboardLogger(BaseLogger):
             raise RuntimeError("This contrib module requires tensorboardX to be installed. "
                                "Please install it with command: \n pip install tensorboardX")
 
-        self.writer = SummaryWriter(logdir=log_dir)
+        try:
+            self.writer = SummaryWriter(logdir=log_dir)
+        except TypeError:
+            from pkg_resources import get_distribution
+            version = get_distribution('tensorboardX').version
+            if version < '1.7':
+                warnings.warn('tensorboardX version {} is outdated, please upgrade'.format(version),
+                              DeprecationWarning)
+                self.writer = SummaryWriter(log_dir=log_dir)
+            else:
+                raise
 
     def close(self):
         self.writer.close()
