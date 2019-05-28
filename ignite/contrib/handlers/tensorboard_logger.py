@@ -410,13 +410,11 @@ class TensorboardLogger(BaseLogger):
         except TypeError as err:
             if "type object got multiple values for keyword argument 'logdir'" == str(err):
                 self.writer = SummaryWriter(log_dir=log_dir)
-                from pkg_resources import get_distribution
-                version = get_distribution('tensorboardX').version
-                warnings.warn('tensorboardX version {} will not be supported '
-                              'after ignite 0.3.0; please upgrade'.format(version),
+                warnings.warn('tensorboardX version < 1.7 will not be supported '
+                              'after ignite 0.3.0; please upgrade',
                               DeprecationWarning)
             else:
-                raise
+                raise err
 
     def close(self):
         self.writer.close()
