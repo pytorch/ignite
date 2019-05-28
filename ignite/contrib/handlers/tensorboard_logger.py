@@ -411,7 +411,8 @@ class TensorboardLogger(BaseLogger):
             from pkg_resources import get_distribution
             version = get_distribution('tensorboardX').version
             if version < '1.7':
-                warnings.warn('tensorboardX version {} is outdated, please upgrade'.format(version),
+                warnings.warn('tensorboardX version {} will not be supported '
+                              'after ignite 0.3.0; please upgrade'.format(version),
                               DeprecationWarning)
                 self.writer = SummaryWriter(log_dir=log_dir)
             else:
