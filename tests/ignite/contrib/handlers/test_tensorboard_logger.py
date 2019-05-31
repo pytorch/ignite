@@ -3,10 +3,9 @@ import tempfile
 import shutil
 import math
 
-import numpy as np
 import pytest
 
-from mock import MagicMock, call, ANY
+from mock import MagicMock, call, ANY, Mock
 
 import torch
 
@@ -541,3 +540,40 @@ def test_no_tensorboardX(dirname, no_site_packages):
 
     with pytest.raises(RuntimeError, match=r"This contrib module requires tensorboardX to be installed"):
         TensorboardLogger(log_dir=dirname)
+
+
+@pytest.fixture
+def mock_tb_module():
+    import sys
+    import types
+
+    module_name = 'tensorboardX'
+    tb_module = types.ModuleType(module_name)
+    prev_tb_module = sys.modules[module_name]
+    sys.modules[module_name] = tb_module
+
+    yield tb_module
+    sys.modules[module_name] = prev_tb_module
+
+
+def test_init_tb1p6(mock_tb_module):
+
+    def side_effect_v1p6(*args, **kwargs):
+        if 'logdir' in kwargs:
+            raise TypeError("type object got multiple values for keyword argument 'logdir'")
+
+    mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect_v1p6)
+
+    with pytest.warns(DeprecationWarning, match=r'tensorboardX version < 1.7 will not be supported'):
+        TensorboardLogger(log_dir=None)
+
+
+def test_init_typeerror_exception(mock_tb_module):
+
+    def side_effect(*args, **kwargs):
+        raise TypeError("a problem")
+
+    mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect)
+
+    with pytest.raises(TypeError, match=r'a problem'):
+        TensorboardLogger(log_dir=None)

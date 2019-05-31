@@ -405,7 +405,16 @@ class TensorboardLogger(BaseLogger):
             raise RuntimeError("This contrib module requires tensorboardX to be installed. "
                                "Please install it with command: \n pip install tensorboardX")
 
-        self.writer = SummaryWriter(logdir=log_dir)
+        try:
+            self.writer = SummaryWriter(logdir=log_dir)
+        except TypeError as err:
+            if "type object got multiple values for keyword argument 'logdir'" == str(err):
+                self.writer = SummaryWriter(log_dir=log_dir)
+                warnings.warn('tensorboardX version < 1.7 will not be supported '
+                              'after ignite 0.3.0; please upgrade',
+                              DeprecationWarning)
+            else:
+                raise err
 
     def close(self):
         self.writer.close()
