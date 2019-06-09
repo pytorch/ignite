@@ -14,3 +14,4 @@ Notebooks:
 - `Text Classification using Convolutional Neural Networks <https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb>`_
 - `Variational Auto Encoders <https://github.com/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb>`_
 - `Training Cycle-GAN on Horses to Zebras <https://github.com/pytorch/ignite/blob/master/examples/notebooks/CycleGAN.ipynb>`_
+- `Finetunning EfficientNet-B0 on CIFAR100 <https://github.com/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetunning.ipynb>`_
