@@ -15,3 +15,4 @@ Notebooks:
 - `Variational Auto Encoders <https://github.com/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb>`_
 - `Training Cycle-GAN on Horses to Zebras <https://github.com/pytorch/ignite/blob/master/examples/notebooks/CycleGAN.ipynb>`_
 - `Finetuning EfficientNet-B0 on CIFAR100 <https://github.com/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb>`_
+- `Convolutional Neural Networks for Classifying Fashion-MNIST Dataset <https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb>`_
