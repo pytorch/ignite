@@ -539,8 +539,10 @@ def create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value, warmup_end
         raise TypeError("Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler or "
                         "ParamScheduler, but given {}".format(type(lr_scheduler)))
 
+    duration_extension = 0
     if isinstance(lr_scheduler, _LRScheduler):
         lr_scheduler = LRScheduler(lr_scheduler)
+        duration_extension = 1
 
     dummy_optimizer = {}
     warmup_scheduler = LinearCyclicalScheduler(dummy_optimizer, param_name="lr",
@@ -551,7 +553,7 @@ def create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value, warmup_end
     warmup_scheduler.optimizer_param_groups = lr_scheduler.optimizer_param_groups
 
     schedulers = [warmup_scheduler, lr_scheduler]
-    durations = [warmup_duration, ]
+    durations = [warmup_duration + duration_extension, ]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations,
                                          save_history=save_history)
     if output_simulated_values is not None:

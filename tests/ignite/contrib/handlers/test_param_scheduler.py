@@ -543,13 +543,18 @@ def test_create_lr_scheduler_with_warmup():
     with pytest.raises(TypeError):
         create_lr_scheduler_with_warmup(12, warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10)
 
-    def _test(lr_scheduler, optimizer):
+    def _test(lr_scheduler, optimizer, warmup_end_value_to_check=None):
         num_iterations = 10
         max_epochs = 20
 
+        warmup_duration = 10
+        warmup_end_value = 0.1
+
         simulated_values = [None] * (num_iterations * max_epochs)
         scheduler = create_lr_scheduler_with_warmup(lr_scheduler,
-                                                    warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10,
+                                                    warmup_start_value=0.0,
+                                                    warmup_end_value=warmup_end_value,
+                                                    warmup_duration=warmup_duration,
                                                     output_simulated_values=simulated_values)
 
         lrs = []
@@ -566,6 +571,10 @@ def test_create_lr_scheduler_with_warmup():
 
         assert lrs == pytest.approx([v for i, v in simulated_values])
 
+        if warmup_end_value_to_check is None:
+            warmup_end_value_to_check = warmup_end_value
+        assert lrs[warmup_duration] == warmup_end_value_to_check
+
     t1 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([t1], lr=0.2)
     torch_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
@@ -575,7 +584,7 @@ def test_create_lr_scheduler_with_warmup():
     optimizer = torch.optim.SGD([t1], lr=0.2)
     lr_scheduler = LinearCyclicalScheduler(optimizer=optimizer, param_name='lr',
                                            start_value=1.0, end_value=0.0, cycle_size=10)
-    _test(lr_scheduler, optimizer)
+    _test(lr_scheduler, optimizer, 1.0)
 
 
 def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
