@@ -78,7 +78,7 @@ after_success:
 jobs:
   include:
     - stage: Lint check
-      python: "3.5"
+      python: "3.6"
       before_install: # Nothing to do
       install: pip install flake8
       script: flake8
@@ -86,7 +86,7 @@ jobs:
 
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
     - stage: Docs
-      python: "3.5"
+      python: "3.6"
       if: branch != nightly
       # Use previously defined before_install
       before_install: *before_install
@@ -112,7 +112,7 @@ jobs:
           branch: master
 
     - stage: Deploy
-      python: "3.5"
+      python: "3.6"
       env:
         - PYTORCH_PACKAGE=pytorch-cpu
       if: tag IS present
@@ -166,7 +166,7 @@ jobs:
           tags: true
 
     - stage: Nightly
-      python: "3.5"
+      python: "3.6"
       env:
         - PYTORCH_PACKAGE=pytorch-nightly-cpu
       if: branch = nightly
