@@ -8,8 +8,12 @@ from ignite.exceptions import NotComputableError
 
 class _BaseClassification(Metric):
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, labelwise=False):
+        if labelwise and not is_multilabel:
+            raise ValueError("labelwise is only applicable for multilabel cases. If labelise=True, is_multilabel=True.")
+
         self._is_multilabel = is_multilabel
+        self._labelwise = labelwise
         self._type = None
         self._num_classes = None
         super(_BaseClassification, self).__init__(output_transform=output_transform)
@@ -109,12 +113,15 @@ class Accuracy(_BaseClassification):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
+        labelwise (bool, optional): flag to use in labelwise case, only used with multilabel=True. By default, False.
     """
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, labelwise=False):
         self._num_correct = None
         self._num_examples = None
-        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
+        super(Accuracy, self).__init__(output_transform=output_transform,
+                                       is_multilabel=is_multilabel,
+                                       labelwise=labelwise)
 
     def reset(self):
         self._num_correct = 0
@@ -128,19 +135,28 @@ class Accuracy(_BaseClassification):
 
         if self._type == "binary":
             correct = torch.eq(y_pred.type(y.type()), y).view(-1)
+            num_examples = correct.shape[0]
         elif self._type == "multiclass":
             indices = torch.argmax(y_pred, dim=1)
             correct = torch.eq(indices, y).view(-1)
+            num_examples = correct.shape[0]
         elif self._type == "multilabel":
             # if y, y_pred shape is (N, C, ...) -> (N x ..., C)
             num_classes = y_pred.size(1)
             last_dim = y_pred.ndimension()
             y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
-            correct = torch.all(y == y_pred.type_as(y), dim=-1)
-
-        self._num_correct += torch.sum(correct).item()
-        self._num_examples += correct.shape[0]
+            if not self._labelwise:
+                correct = torch.all(y == y_pred.type_as(y), dim=-1)
+                num_examples = correct.shape[0]
+            else:
+                correct = torch.sum(y == y_pred.type_as(y), dim=0).type(torch.DoubleTensor)
+                num_examples = y.shape[0]
+        self._num_examples += num_examples
+        if not self._labelwise:
+            self._num_correct += torch.sum(correct).item()
+        else:
+            self._num_correct += correct
 
     def compute(self):
         if self._num_examples == 0:
