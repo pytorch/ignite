@@ -28,6 +28,11 @@ def test__check_shape():
     assert y_pred.shape == (10, 5, 6)
     assert y.shape == (10, 5, 6)
 
+    y_pred, y = acc._check_shape((torch.randint(0, 2, size=(10, 5, 1)).type(torch.LongTensor),
+                                  torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)))
+    assert y_pred.shape == (10, 5)
+    assert y.shape == (10,)
+
 
 def test_binary_wrong_inputs():
     acc = Accuracy()
@@ -225,6 +230,16 @@ def test_multiclass_input_N():
 
         y_pred = torch.rand(10, 4)
         y = torch.randint(0, 4, size=(10,)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y = y.numpy().ravel()
+        assert acc._type == 'multiclass'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        acc.reset()
+        y_pred = torch.rand(10, 4, 1)
+        y = torch.randint(0, 4, size=(10, 1)).type(torch.LongTensor)
         acc.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
