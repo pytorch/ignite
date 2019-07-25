@@ -20,22 +20,8 @@ class _BaseClassification(Metric):
 
     def _check_shape(self, output):
         y_pred, y = output
-
-        if y.ndimension() > 1 and y.shape[1] == 1:
-            # (N, 1, ...) -> (N, ...)
-            y = y.squeeze(dim=1)
-
-        if y.ndimension() > 1 and y.shape[-1] == 1:
-            # (N, ..., 1) -> (N, ...)
-            y = y.squeeze(dim=-1)
-
-        if y_pred.ndimension() > 1 and y_pred.shape[1] == 1:
-            # (N, 1, ...) -> (N, ...)
-            y_pred = y_pred.squeeze(dim=1)
-
-        if y_pred.ndimension() > 1 and y_pred.shape[-1] == 1:
-            # (N, 1, ...) -> (N, ...)
-            y_pred = y_pred.squeeze(dim=-1)
+        y_pred = y_pred.squeeze()
+        y = y.squeeze()
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError("y must have shape of (batch_size, ...) and y_pred must have "
