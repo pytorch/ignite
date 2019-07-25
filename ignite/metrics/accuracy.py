@@ -19,9 +19,13 @@ class _BaseClassification(Metric):
         self._num_classes = None
 
     def _process_shape(self, y):
-        squeeze_dims = [i for i in range(len(y.shape)) if y.shape[i] == 1 and i != 0]
-        for dim in reversed(squeeze_dims):
-            y = y.squeeze(dim=dim)
+        # squeeze_dims = [i for i in range(len(y.shape)) if y.shape[i] == 1 and i != 0]
+        # for dim in reversed(squeeze_dims):
+        #     y = y.squeeze(dim=dim)
+        if y.shape[0] == 1:
+            y = y.squeeze().unsqueeze(dim=0)
+        else:
+            y = y.squeeze()
         return y
 
     def _check_shape(self, output):
