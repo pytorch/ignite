@@ -18,10 +18,17 @@ class _BaseClassification(Metric):
         self._type = None
         self._num_classes = None
 
+    def _process_shape(self, y):
+        squeeze_dims = [i for i in range(len(y.shape)) if y.shape[i] == 1 and i != 0]
+        for dim in reversed(squeeze_dims):
+            y = y.squeeze(dim=dim)
+        return y
+
     def _check_shape(self, output):
         y_pred, y = output
-        y_pred = y_pred.squeeze()
-        y = y.squeeze()
+
+        y_pred = self._process_shape(y_pred)
+        y = self._process_shape(y)
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError("y must have shape of (batch_size, ...) and y_pred must have "

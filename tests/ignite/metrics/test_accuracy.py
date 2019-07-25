@@ -14,6 +14,20 @@ def test_no_update():
         acc.compute()
 
 
+def test__process_shape():
+    acc = Accuracy()
+
+    y_pred, y = acc._check_shape((torch.randint(0, 2, size=(10, 1, 5, 1, 6)).type(torch.LongTensor),
+                                  torch.randint(0, 2, size=(10, 5, 1, 1, 6)).type(torch.LongTensor)))
+    assert y_pred.shape == (10, 5, 6)
+    assert y.shape == (10, 5, 6)
+
+    y_pred, y = acc._check_shape((torch.randint(0, 2, size=(1, 5, 6)).type(torch.LongTensor),
+                                  torch.randint(0, 2, size=(1, 1, 5, 6)).type(torch.LongTensor)))
+    assert y_pred.shape == (1, 5, 6)
+    assert y.shape == (1, 5, 6)
+
+
 def test__check_shape():
     acc = Accuracy()
 
