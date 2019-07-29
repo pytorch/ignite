@@ -18,21 +18,8 @@ class _BaseClassification(Metric):
         self._type = None
         self._num_classes = None
 
-    def _process_shape(self, y):
-        # squeeze_dims = [i for i in range(len(y.shape)) if y.shape[i] == 1 and i != 0]
-        # for dim in reversed(squeeze_dims):
-        #     y = y.squeeze(dim=dim)
-        if y.shape[0] == 1:
-            y = y.squeeze().unsqueeze(dim=0)
-        else:
-            y = y.squeeze()
-        return y
-
     def _check_shape(self, output):
         y_pred, y = output
-
-        y_pred = self._process_shape(y_pred)
-        y = self._process_shape(y)
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError("y must have shape of (batch_size, ...) and y_pred must have "
@@ -50,8 +37,6 @@ class _BaseClassification(Metric):
 
         if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
             raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
-
-        return y_pred, y
 
     def _check_type(self, output):
         y_pred, y = output
@@ -127,8 +112,8 @@ class Accuracy(_BaseClassification):
         super(Accuracy, self).reset()
 
     def update(self, output):
-
-        y_pred, y = self._check_shape(output)
+        y_pred, y = output
+        self._check_shape((y_pred, y))
         self._check_type((y_pred, y))
 
         if self._type == "binary":
