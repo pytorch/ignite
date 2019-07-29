@@ -29,6 +29,7 @@ def test__check_shape():
         acc._check_shape((torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor),
                           torch.randint(0, 2, size=(10, 5)).type(torch.LongTensor)))
 
+
 def test_binary_wrong_inputs():
     acc = Accuracy()
 
