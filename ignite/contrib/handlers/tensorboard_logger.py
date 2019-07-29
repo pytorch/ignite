@@ -65,7 +65,8 @@ class OutputHandler(BaseOutputHandler):
 
     Args:
         tag (str): common title for all produced plots. For example, 'training'
-        metric_names (list of str, optional): list of metric names to plot.
+        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+            metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
