@@ -104,6 +104,25 @@ def test_output_handler_metric_names():
         call(step=7, **{"tag/a": 55.56})
     ], any_order=True)
 
+    # all metrics
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=PolyaxonLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45, "c": torch.tensor(10.0)})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.log_metrics.call_count == 1
+    mock_logger.log_metrics.assert_called_once_with(
+        step=5,
+        **{"tag/a": 12.23,
+           "tag/b": 23.45,
+           "tag/c": 10.0}
+    )
+
 
 def test_output_handler_both():
 
