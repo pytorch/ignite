@@ -126,7 +126,7 @@ class Accuracy(_BaseClassification):
         self._check_type((y_pred, y))
 
         if self._type == "binary":
-            correct = torch.eq(y_pred.view(-1).type(y.type()), y.view(-1))
+            correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
         elif self._type == "multiclass":
             indices = torch.argmax(y_pred, dim=1)
             correct = torch.eq(indices, y).view(-1)
