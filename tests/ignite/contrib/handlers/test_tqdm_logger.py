@@ -5,7 +5,7 @@ import torch
 
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
-from ignite.metrics import Accuracy
+from ignite.metrics import RunningAverage
 from ignite.contrib.handlers import CustomPeriodicEvent
 from ignite.handlers import TerminateOnNan
 
@@ -55,32 +55,63 @@ def test_attach_fail_with_string():
         pbar.attach(engine, 'a')
 
 
-def test_pbar_with_metric():
+def test_pbar_with_metric(capsys):
 
-    n_iters = 20
-    batch_size = 10
-    n_classes = 2
+    n_iters = 2
     data = list(range(n_iters))
-    y_true_batch_values = iter(np.random.randint(0, n_classes, size=(n_iters, batch_size)))
-    y_pred_batch_values = iter(np.random.rand(n_iters, batch_size, n_classes))
     loss_values = iter(range(n_iters))
 
     def step(engine, batch):
         loss_value = next(loss_values)
-        y_true_batch = next(y_true_batch_values)
-        y_pred_batch = next(y_pred_batch_values)
-        return loss_value, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return loss_value
 
     trainer = Engine(step)
 
-    accuracy = Accuracy(output_transform=lambda x: (x[1], x[2]))
-    accuracy.attach(trainer, "avg_accuracy")
+    RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
     pbar = ProgressBar()
-    pbar.attach(trainer, ['avg_accuracy'])
+    pbar.attach(trainer, metric_names=['batchloss', ])
 
-    with pytest.warns(UserWarning):
-        trainer.run(data=data, max_epochs=1)
+    trainer.run(data=data, max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch: [1/2]  50%|█████     , batchloss=5.00e-01 [00:00<00:00]'
+    assert actual == expected
+
+
+def test_pbar_with_all_metric(capsys):
+
+    n_iters = 2
+    data = list(range(n_iters))
+    loss_values = iter(range(n_iters))
+    another_loss_values = iter(range(1, n_iters + 1))
+
+    def step(engine, batch):
+        loss_value = next(loss_values)
+        another_loss_value = next(another_loss_values)
+        return loss_value, another_loss_value
+
+    trainer = Engine(step)
+
+    RunningAverage(alpha=0.5, output_transform=lambda x: x[0]).attach(trainer, "batchloss")
+    RunningAverage(alpha=0.5, output_transform=lambda x: x[1]).attach(trainer, "another batchloss")
+
+    pbar = ProgressBar()
+    pbar.attach(trainer, metric_names="all")
+
+    trainer.run(data=data, max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch: [1/2]  50%|█████     , another batchloss=1.50e+00, batchloss=5.00e-01 [00:00<00:00]'
+    assert actual == expected
 
 
 def test_pbar_no_metric_names(capsys):
