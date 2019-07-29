@@ -67,8 +67,10 @@ class BaseOutputHandler(BaseHandler):
 
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
 
-        if metric_names is not None and not isinstance(metric_names, list):
-            raise TypeError("metric_names should be a list, got {} instead.".format(type(metric_names)))
+        if metric_names is not None:
+            if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
+                raise TypeError("metric_names should be either a list or equal 'all', "
+                                "got {} instead.".format(type(metric_names)))
 
         if output_transform is not None and not callable(output_transform):
             raise TypeError("output_transform should be a function, got {} instead."
@@ -103,12 +105,15 @@ class BaseOutputHandler(BaseHandler):
         """
         metrics = {}
         if self.metric_names is not None:
-            for name in self.metric_names:
-                if name not in engine.state.metrics:
-                    warnings.warn("Provided metric name '{}' is missing "
-                                  "in engine's state metrics: {}".format(name, list(engine.state.metrics.keys())))
-                    continue
-                metrics[name] = engine.state.metrics[name]
+            if isinstance(self.metric_names, str) and self.metric_names == "all":
+                metrics = engine.state.metrics
+            else:
+                for name in self.metric_names:
+                    if name not in engine.state.metrics:
+                        warnings.warn("Provided metric name '{}' is missing "
+                                      "in engine's state metrics: {}".format(name, list(engine.state.metrics.keys())))
+                        continue
+                    metrics[name] = engine.state.metrics[name]
 
         if self.output_transform is not None:
             output_dict = self.output_transform(engine.state.output)
