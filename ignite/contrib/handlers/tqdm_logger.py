@@ -228,6 +228,8 @@ class _OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     k = "{}_{}".format(key, i)
                     rendered_metrics[k] = "{:.2e}".format(v)
+            elif isinstance(value, str):
+                rendered_metrics[key] = value
             else:
                 warnings.warn("ProgressBar can not log "
                               "metrics value type {}".format(type(value)))
