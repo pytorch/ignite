@@ -152,6 +152,9 @@ class ProgressBar(BaseLogger):
                 :class:`~ignite.engine.Events`.
             closing_event_name: event's name on which the progress bar is closed. Valid events are from
                 :class:`~ignite.engine.Events`.
+
+        Note: accepted output value types are numbers, 0d and 1d torch tensors and strings
+
         """
         desc = self.tqdm_kwargs.get("desc", "Epoch")
 
@@ -230,6 +233,8 @@ class _OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     k = "{}_{}".format(key, i)
                     rendered_metrics[k] = "{:.2e}".format(v)
+            elif isinstance(value, str):
+                rendered_metrics[key] = value
             else:
                 warnings.warn("ProgressBar can not log "
                               "metrics value type {}".format(type(value)))
