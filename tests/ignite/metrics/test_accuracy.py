@@ -17,16 +17,17 @@ def test_no_update():
 def test__check_shape():
     acc = Accuracy()
 
-    # Check squeezed dimensions
-    y_pred, y = acc._check_shape((torch.randint(0, 2, size=(10, 1, 5, 6)).type(torch.LongTensor),
-                                  torch.randint(0, 2, size=(10, 5, 6)).type(torch.LongTensor)))
-    assert y_pred.shape == (10, 5, 6)
-    assert y.shape == (10, 5, 6)
+    with pytest.raises(ValueError):
+        acc._check_shape((torch.randint(0, 2, size=(10, 1, 5, 12)).type(torch.LongTensor),
+                          torch.randint(0, 2, size=(10, 5, 6)).type(torch.LongTensor)))
 
-    y_pred, y = acc._check_shape((torch.randint(0, 2, size=(10, 5, 6)).type(torch.LongTensor),
-                                  torch.randint(0, 2, size=(10, 1, 5, 6)).type(torch.LongTensor)))
-    assert y_pred.shape == (10, 5, 6)
-    assert y.shape == (10, 5, 6)
+    with pytest.raises(ValueError):
+        acc._check_shape((torch.randint(0, 2, size=(10, 1, 6)).type(torch.LongTensor),
+                          torch.randint(0, 2, size=(10, 5, 6)).type(torch.LongTensor)))
+
+    with pytest.raises(ValueError):
+        acc._check_shape((torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor),
+                          torch.randint(0, 2, size=(10, 5)).type(torch.LongTensor)))
 
 
 def test_binary_wrong_inputs():
@@ -39,7 +40,7 @@ def test_binary_wrong_inputs():
 
     with pytest.raises(ValueError):
         # y_pred values are not thresholded to 0, 1 values
-        acc.update((torch.rand(10, 1),
+        acc.update((torch.rand(10,),
                     torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
 
     with pytest.raises(ValueError):
@@ -63,17 +64,7 @@ def test_binary_input_N():
     def _test():
         acc = Accuracy()
 
-        y_pred = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
-        y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
-        acc.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert acc._type == 'binary'
-        assert isinstance(acc.compute(), float)
-        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
-
-        acc.reset()
-        y_pred = torch.randint(0, 2, size=(10, )).type(torch.LongTensor)
+        y_pred = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
         y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
         acc.update((y_pred, y))
         np_y = y.numpy().ravel()
@@ -178,6 +169,53 @@ def test_binary_input_NHW():
 
         # Batched Updates
         acc.reset()
+        y_pred = torch.randint(0, 2, size=(100, 8, 8)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100, 8, 8)).type(torch.LongTensor)
+
+        batch_size = 16
+        n_iters = y.shape[0] // batch_size + 1
+
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
+        assert acc._type == 'binary'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+
+def test_binary_as_multiclass_input():
+    # Binary accuracy on input of shape (N, 1, ...)
+    def _test():
+        acc = Accuracy()
+
+        y_pred = torch.randint(0, 2, size=(4, 1)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(4,)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
+        assert acc._type == 'binary'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        acc.reset()
+        y_pred = torch.randint(0, 2, size=(4, 1, 12)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(4, 12)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
+        assert acc._type == 'binary'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        # Batched Updates
+        acc.reset()
         y_pred = torch.randint(0, 2, size=(100, 1, 8, 8)).type(torch.LongTensor)
         y = torch.randint(0, 2, size=(100, 8, 8)).type(torch.LongTensor)
 
@@ -233,8 +271,28 @@ def test_multiclass_input_N():
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
         acc.reset()
+        y_pred = torch.rand(10, 10, 1)
+        y = torch.randint(0, 18, size=(10, 1)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y = y.numpy().ravel()
+        assert acc._type == 'multiclass'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        acc.reset()
+        y_pred = torch.rand(10, 18)
+        y = torch.randint(0, 18, size=(10,)).type(torch.LongTensor)
+        acc.update((y_pred, y))
+        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y = y.numpy().ravel()
+        assert acc._type == 'multiclass'
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        acc.reset()
         y_pred = torch.rand(4, 10)
-        y = torch.randint(0, 10, size=(4, 1)).type(torch.LongTensor)
+        y = torch.randint(0, 10, size=(4,)).type(torch.LongTensor)
         acc.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -245,7 +303,7 @@ def test_multiclass_input_N():
         # 2-classes
         acc.reset()
         y_pred = torch.rand(4, 2)
-        y = torch.randint(0, 2, size=(4, 1)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(4,)).type(torch.LongTensor)
         acc.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()

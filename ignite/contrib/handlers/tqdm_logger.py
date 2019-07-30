@@ -143,7 +143,8 @@ class ProgressBar(BaseLogger):
 
         Args:
             engine (Engine): engine object.
-            metric_names (list, optional): list of the metrics names to log as the bar progresses
+            metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+                metrics.
             output_transform (callable, optional): a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
@@ -173,7 +174,8 @@ class _OutputHandler(BaseOutputHandler):
 
     Args:
         description (str): progress bar description.
-        metric_names (list of str, optional): list of metric names to plot.
+        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+            metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
