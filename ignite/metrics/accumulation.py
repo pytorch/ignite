@@ -2,6 +2,7 @@ import numbers
 import torch
 
 from ignite.metrics import Metric
+from ignite.metrics.metric import sync_all_reduce
 from ignite.exceptions import NotComputableError
 
 
@@ -27,20 +28,22 @@ class VariableAccumulation(Metric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        device (str of torch.device): device specification in case of distributed computation usage. 
+            In most of the cases, it should defined as "cuda:local_rank".
 
     """
 
-    def __init__(self, op, output_transform=lambda x: x):
+    def __init__(self, op, output_transform=lambda x: x, device=None):
         if not callable(op):
             raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
         self.accumulator = None
         self.num_examples = None
         self._op = op
-        super(VariableAccumulation, self).__init__(output_transform=output_transform)
+        super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self):
-        self.accumulator = torch.tensor(0.0, dtype=torch.float64)
-        self.num_examples = torch.tensor(0.0, dtype=torch.float64)
+        self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self.num_examples = torch.tensor(0.0, dtype=torch.long, device=self._device)
         super(VariableAccumulation, self).reset()
 
     def _check_output_type(self, output):
@@ -55,7 +58,8 @@ class VariableAccumulation(Metric):
             self.num_examples += output.shape[0] if len(output.shape) > 1 else 1
         else:
             self.num_examples += 1
-
+    
+    @sync_all_reduce('accumulator', 'num_examples')
     def compute(self):
         return [self.accumulator, self.num_examples]
 
@@ -91,15 +95,18 @@ class Average(VariableAccumulation):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        device (str of torch.device): device specification in case of distributed computation usage. 
+            In most of the cases, it should defined as "cuda:local_rank".
 
     """
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform=lambda x: x, device=None):
 
         def _mean_op(a, x):
             return a + x
 
-        super(Average, self).__init__(op=_mean_op, output_transform=output_transform)
+        super(Average, self).__init__(op=_mean_op, output_transform=output_transform, device=device)
 
+    @sync_all_reduce('accumulator', 'num_examples')
     def compute(self):
         if self.num_examples < 1:
             raise NotComputableError("{} must have at least one example before"
@@ -127,17 +134,20 @@ class GeometricAverage(VariableAccumulation):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        device (str of torch.device): device specification in case of distributed computation usage. 
+            In most of the cases, it should defined as "cuda:local_rank".
 
     """
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform=lambda x: x, device=None):
 
         def _geom_op(a, x):
             if not isinstance(x, torch.Tensor):
                 x = torch.tensor(x)
             return a + torch.log(x)
 
-        super(GeometricAverage, self).__init__(op=_geom_op, output_transform=output_transform)
+        super(GeometricAverage, self).__init__(op=_geom_op, output_transform=output_transform, device=device)
 
+    @sync_all_reduce('accumulator', 'num_examples')        
     def compute(self):
         if self.num_examples < 1:
             raise NotComputableError("{} must have at least one example before"
