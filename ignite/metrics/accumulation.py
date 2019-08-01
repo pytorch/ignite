@@ -1,10 +1,10 @@
 import numbers
-import torch
 
 from ignite.metrics import Metric
-from ignite.metrics.metric import sync_all_reduce
+from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
 from ignite.exceptions import NotComputableError
 
+import torch
 
 class VariableAccumulation(Metric):
     """Single variable accumulator helper to compute (arithmetic, geometric, harmonic) average of a single variable.
@@ -41,6 +41,7 @@ class VariableAccumulation(Metric):
         self._op = op
         super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
 
+    @reinit_is_reduced
     def reset(self):
         self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self.num_examples = torch.tensor(0.0, dtype=torch.long, device=self._device)
@@ -50,6 +51,7 @@ class VariableAccumulation(Metric):
         if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
             raise TypeError("Output should be a number or torch.Tensor, but given {}".format(type(output)))
 
+    @reinit_is_reduced
     def update(self, output):
         self._check_output_type(output)
 

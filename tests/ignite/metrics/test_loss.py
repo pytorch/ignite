@@ -16,13 +16,13 @@ def test_zero_div():
 def test_compute():
     loss = Loss(nll_loss)
 
-    y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
-    y = torch.LongTensor([2, 2])
+    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+    y = torch.tensor([2, 2]).long()
     loss.update((y_pred, y))
     assert_almost_equal(loss.compute(), 1.1512925625)
 
-    y_pred = torch.Tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log()
-    y = torch.LongTensor([2, 0, 2])
+    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log()
+    y = torch.tensor([2, 0, 2]).long()
     loss.update((y_pred, y))
     assert_almost_equal(loss.compute(), 1.1253643036)  # average
 
@@ -30,13 +30,13 @@ def test_compute():
 def test_compute_on_criterion():
     loss = Loss(nn.NLLLoss())
 
-    y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
-    y = torch.LongTensor([2, 2])
+    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+    y = torch.tensor([2, 2]).long()
     loss.update((y_pred, y))
     assert_almost_equal(loss.compute(), 1.1512925625)
 
-    y_pred = torch.Tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log()
-    y = torch.LongTensor([2, 0, 2])
+    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log()
+    y = torch.tensor([2, 0, 2]).long()
     loss.update((y_pred, y))
     assert_almost_equal(loss.compute(), 1.1253643036)  # average
 
@@ -44,8 +44,8 @@ def test_compute_on_criterion():
 def test_non_averaging_loss():
     loss = Loss(nn.NLLLoss(reduction='none'))
 
-    y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
-    y = torch.LongTensor([2, 2])
+    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+    y = torch.tensor([2, 2]).long()
     with pytest.raises(ValueError):
         loss.update((y_pred, y))
 
@@ -53,19 +53,62 @@ def test_non_averaging_loss():
 def test_kwargs_loss():
     loss = Loss(nll_loss)
 
-    y_pred = torch.Tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
-    y = torch.LongTensor([2, 2])
-    loss.update((y_pred, y, {"weight": torch.Tensor([0, 0, 0])}))
+    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+    y = torch.tensor([2, 2]).long()
+    loss.update((y_pred, y, {"weight": torch.tensor([0, 0, 0])}))
     assert_almost_equal(loss.compute(), 0)
-
 
 def test_reset():
     loss = Loss(nll_loss)
 
-    y_pred = torch.Tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2]]).log()
-    y = torch.LongTensor([2, 0])
+    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2]]).log()
+    y = torch.tensor([2, 0]).long()
     loss.update((y_pred, y))
     loss.compute()
     loss.reset()
     with pytest.raises(NotComputableError):
         loss.compute()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if no GPU")
+def test_distrib_compute_on_criterion(local_rank, distributed_context_single_node):
+
+    import torch.distributed as dist
+
+    device = "cuda:{}".format(local_rank)
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+        
+    criterion = nn.NLLLoss()
+    loss = Loss(criterion, device=device)
+
+    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
+    y = torch.tensor([2, 2], device=device).long()
+    loss.update((y_pred, y))
+    n = loss._num_examples
+    assert n == len(y)
+    res = loss.compute()
+    assert n * dist.get_world_size() == loss._num_examples
+
+    y_pred = _gather(y_pred)
+    y = _gather(y)    
+    true_loss_value = criterion(y_pred, y)    
+    assert_almost_equal(res, true_loss_value.item())
+    
+    loss.reset()
+    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
+    y = torch.tensor([2, 0, 2], device=device).long()
+    loss.update((y_pred, y))
+    n = loss._num_examples
+    res = loss.compute()
+    assert n * dist.get_world_size() == loss._num_examples
+
+    y_pred = _gather(y_pred)
+    y = _gather(y)    
+    true_loss_value = criterion(y_pred, y)    
+    assert_almost_equal(res, true_loss_value.item())

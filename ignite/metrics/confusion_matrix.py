@@ -4,6 +4,7 @@ import torch
 
 from ignite.metrics import Metric, MetricsLambda
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
 from ignite.utils import to_onehot
 
 
@@ -27,9 +28,12 @@ class ConfusionMatrix(Metric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        device (str of torch.device): device specification in case of distributed computation usage.
+            In most of the cases, it should defined as "cuda:local_rank".
+
     """
 
-    def __init__(self, num_classes, average=None, output_transform=lambda x: x):
+    def __init__(self, num_classes, average=None, output_transform=lambda x: x, device=None):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of ['samples', 'recall', 'precision']")
 
@@ -37,10 +41,13 @@ class ConfusionMatrix(Metric):
         self._num_examples = 0
         self.average = average
         self.confusion_matrix = None
-        super(ConfusionMatrix, self).__init__(output_transform=output_transform)
+        super(ConfusionMatrix, self).__init__(output_transform=output_transform, device=device)
 
+    @reinit_is_reduced
     def reset(self):
-        self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes, dtype=torch.float)
+        self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes, 
+                                            dtype=torch.float, 
+                                            device=self._device)
         self._num_examples = 0
 
     def _check_shape(self, output):
@@ -70,25 +77,25 @@ class ConfusionMatrix(Metric):
 
         return y_pred, y
 
+    @reinit_is_reduced 
     def update(self, output):
         y_pred, y = self._check_shape(output)
 
         if y_pred.shape != y.shape:
             y_ohe = to_onehot(y.reshape(-1), self.num_classes)
-            y_ohe_t = y_ohe.transpose(0, 1).float()
+            y_ohe_t = y_ohe.transpose(0, 1)
         else:
-            y_ohe_t = y.transpose(0, 1).reshape(y.shape[1], -1).float()
+            y_ohe_t = y.transpose(0, 1).reshape(y.shape[1], -1)
+        y_ohe_t = y_ohe_t.to(self.confusion_matrix)
 
         indices = torch.argmax(y_pred, dim=1)
         y_pred_ohe = to_onehot(indices.reshape(-1), self.num_classes)
-        y_pred_ohe = y_pred_ohe.float()
-
-        if self.confusion_matrix.type() != y_ohe_t.type():
-            self.confusion_matrix = self.confusion_matrix.to(y_ohe_t)
+        y_pred_ohe = y_pred_ohe.to(self.confusion_matrix)
 
         self.confusion_matrix += torch.matmul(y_ohe_t, y_pred_ohe)
         self._num_examples += y_pred.shape[0]
 
+    @sync_all_reduce('confusion_matrix', '_num_examples')
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('Confusion matrix must have at least one example before it can be computed.')

@@ -153,21 +153,28 @@ def test_distrib_variable_accumulation(local_rank, distributed_context_single_no
     for y in y_true:
         mean_var.update(y)
 
-    a, n = mean_var.compute()
-
     dist.all_reduce(y_true)
+    a, n = mean_var.compute()
     assert a.item() == pytest.approx(y_true.sum().item())
     assert n == len(y_true) * dist.get_world_size()
-
+    # check if call compute twice
+    a, n = mean_var.compute()
+    assert a.item() == pytest.approx(y_true.sum().item())
+    assert n == len(y_true) * dist.get_world_size()
+    
     mean_var = VariableAccumulation(lambda a, x: a + x, device=device)
     y_true = torch.rand(50, 10, device="cuda:{}".format(local_rank))
 
     for y in y_true:
         mean_var.update(y)
 
+    dist.all_reduce(y_true)        
     a, n = mean_var.compute()
-
-    dist.all_reduce(y_true)
+    np.testing.assert_almost_equal(a.cpu().numpy(), 
+                                   y_true.sum(dim=0).cpu().numpy(), 
+                                   decimal=5)
+    assert n == len(y_true) * dist.get_world_size()
+    a, n = mean_var.compute()
     np.testing.assert_almost_equal(a.cpu().numpy(), 
                                    y_true.sum(dim=0).cpu().numpy(), 
                                    decimal=5)

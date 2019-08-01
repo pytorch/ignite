@@ -539,3 +539,6 @@ def test_distrib_sync_all_reduce_decorator(local_rank, distributed_context_singl
     m = DummyMetric(device="cuda:{}".format(local_rank))
     m.update(None)
     m.compute()
+    # check if can call compute twise without all reduce 
+    m.compute()
+

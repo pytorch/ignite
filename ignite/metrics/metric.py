@@ -37,6 +37,7 @@ class Metric(with_metaclass(ABCMeta, object)):
                                  "In most of the cases, it should defined as 'cuda:local_rank'.")
             device = torch.device(device)
         self._device = device
+        self._is_reduced = False
         self.reset()
 
     @abstractmethod
@@ -85,8 +86,6 @@ class Metric(with_metaclass(ABCMeta, object)):
             tensor = torch.tensor(tensor, device=self._device)
             tensor_to_number = True
 
-        # synchronize and all reduce
-
         if isinstance(tensor, torch.Tensor):
             # check if the tensor is at specified device
             if tensor.device != self._device:
@@ -94,9 +93,10 @@ class Metric(with_metaclass(ABCMeta, object)):
         else:
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
+        # synchronize and reduce
         torch.distributed.barrier()
         torch.distributed.all_reduce(tensor)
-
+        
         if tensor_to_number:
             return tensor.item()
         return tensor
@@ -195,7 +195,7 @@ class Metric(with_metaclass(ABCMeta, object)):
 
 def sync_all_reduce(*attrs):
 
-    def wraper(func):
+    def wrapper(func):
 
         @wraps(func)
         def another_wrapper(self, *args, **kwargs):
@@ -203,13 +203,25 @@ def sync_all_reduce(*attrs):
                 raise RuntimeError("Decorator sync_all_reduce should be used on "
                                    "ignite.metric.Metric class methods only")
 
-            if len(attrs) > 0:
+            if len(attrs) > 0 and not self._is_reduced:
                 for attr in attrs:
                     t = getattr(self, attr, None)
                     if t is not None:
                         t = self._sync_all_reduce(t)
+                        self._is_reduced = True
                         setattr(self, attr, t)
 
             return func(self, *args, **kwargs)
         return another_wrapper
-    return wraper
+    return wrapper
+
+
+def reinit_is_reduced(func):
+    
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):        
+        func(self, *args, **kwargs)
+        self._is_reduced = False
+        
+    return wrapper
+

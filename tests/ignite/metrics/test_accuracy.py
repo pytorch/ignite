@@ -551,3 +551,96 @@ def test_incorrect_type():
 
     with pytest.raises(RuntimeError):
         acc.update((y_pred, y))
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if no GPU")
+def test_distrib_multilabel_input_NHW(local_rank, distributed_context_single_node):
+    # Multilabel input data of shape (N, C, H, W, ...) and (N, C, H, W, ...)
+
+    import torch.distributed as dist
+
+    device = "cuda:{}".format(local_rank)
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+    
+    def _test():
+        acc = Accuracy(is_multilabel=True, device=device)
+        
+        torch.manual_seed(10 + local_rank)
+        y_pred = torch.randint(0, 2, size=(4, 5, 12, 10), device=device).long()
+        y = torch.randint(0, 2, size=(4, 5, 12, 10), device=device).long()
+        acc.update((y_pred, y))
+        
+        # gather y_pred, y
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+
+        np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        assert acc._type == 'multilabel'
+        n = acc._num_examples
+        res = acc.compute()
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+
+        acc.reset()
+        torch.manual_seed(10 + local_rank)        
+        y_pred = torch.randint(0, 2, size=(4, 10, 12, 8), device=device).long()
+        y = torch.randint(0, 2, size=(4, 10, 12, 8), device=device).long()
+        acc.update((y_pred, y))
+        
+        # gather y_pred, y
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+
+        np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        
+        assert acc._type == 'multilabel'
+        n = acc._num_examples
+        res = acc.compute()        
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+        # check that result is not changed
+        res = acc.compute()        
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+
+        # Batched Updates
+        acc.reset()
+        torch.manual_seed(10 + local_rank)        
+        y_pred = torch.randint(0, 2, size=(100, 5, 12, 10), device=device).long()
+        y = torch.randint(0, 2, size=(100, 5, 12, 10), device=device).long()
+
+        batch_size = 16
+        n_iters = y.shape[0] // batch_size + 1
+
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+
+        # gather y_pred, y
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+            
+        np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, L, ...) -> (N * L * ..., C)
+        np_y = to_numpy_multilabel(y.cpu())  # (N, C, L, ...) -> (N * L ..., C)
+
+        assert acc._type == 'multilabel'
+        n = acc._num_examples
+        res = acc.compute()
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
