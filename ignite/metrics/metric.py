@@ -22,7 +22,7 @@ class Metric(with_metaclass(ABCMeta, object)):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device): device specification in case of distributed computation usage. 
+        device (str of torch.device): device specification in case of distributed computation usage.
             In most of the cases, it should defined as "cuda:local_rank".
 
     """
@@ -74,17 +74,17 @@ class Metric(with_metaclass(ABCMeta, object)):
             NotComputableError: raised when the metric cannot be computed.
         """
         pass
-    
+
     def _sync_all_reduce(self, tensor):
         if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
             # Nothing to reduce
             return tensor
-        
+
         tensor_to_number = False
         if isinstance(tensor, numbers.Number):
             tensor = torch.tensor(tensor, device=self._device)
             tensor_to_number = True
-        
+
         # synchronize and all reduce
 
         if isinstance(tensor, torch.Tensor):
@@ -93,13 +93,13 @@ class Metric(with_metaclass(ABCMeta, object)):
                 tensor = tensor.to(self._device)
         else:
             raise TypeError("Unhandled input type {}".format(type(tensor)))
-        
+
         torch.distributed.barrier()
         torch.distributed.all_reduce(tensor)
 
         if tensor_to_number:
             return tensor.item()
-        return tensor        
+        return tensor
 
     def started(self, engine):
         self.reset()
@@ -210,6 +210,6 @@ def sync_all_reduce(*attrs):
                         t = self._sync_all_reduce(t)
                         setattr(self, attr, t)
 
-            return func(self, *args, **kwargs)    
-        return another_wrapper    
+            return func(self, *args, **kwargs)
+        return another_wrapper
     return wraper

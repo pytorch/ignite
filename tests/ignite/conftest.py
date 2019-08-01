@@ -12,18 +12,19 @@ def local_rank(worker_id):
 
 @pytest.fixture()
 def distributed_context_single_node(local_rank):
-    # import os
-    # os.environ["WORLD_SIZE"] = "{}".format(torch.cuda.device_count())
-    # os.environ["RANK"] = "{}".format(local_rank)
+    import os
+    if "WORLD_SIZE" not in os.environ:
+        os.environ["WORLD_SIZE"] = "{}".format(torch.cuda.device_count())
 
     dist_info = {
         "backend": "nccl",
-        "world_size": torch.cuda.device_count(),
+        "world_size": int(os.environ["WORLD_SIZE"]),
         "rank": local_rank,
         "init_method": "tcp://localhost:2222"
     }
 
     g = dist.init_process_group(**dist_info)
+    torch.cuda.device(local_rank)
 
     yield g
 

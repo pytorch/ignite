@@ -28,7 +28,7 @@ class VariableAccumulation(Metric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device): device specification in case of distributed computation usage. 
+        device (str of torch.device): device specification in case of distributed computation usage.
             In most of the cases, it should defined as "cuda:local_rank".
 
     """
@@ -53,12 +53,17 @@ class VariableAccumulation(Metric):
     def update(self, output):
         self._check_output_type(output)
 
+        if self._device is not None:
+            # Put output to the metric's device
+            if isinstance(output, torch.Tensor) and (output.device != self._device):
+                output = output.to(self._device)
+
         self.accumulator = self._op(self.accumulator, output)
         if hasattr(output, 'shape'):
             self.num_examples += output.shape[0] if len(output.shape) > 1 else 1
         else:
             self.num_examples += 1
-    
+
     @sync_all_reduce('accumulator', 'num_examples')
     def compute(self):
         return [self.accumulator, self.num_examples]
@@ -95,10 +100,11 @@ class Average(VariableAccumulation):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device): device specification in case of distributed computation usage. 
+        device (str of torch.device): device specification in case of distributed computation usage.
             In most of the cases, it should defined as "cuda:local_rank".
 
     """
+
     def __init__(self, output_transform=lambda x: x, device=None):
 
         def _mean_op(a, x):
@@ -134,10 +140,11 @@ class GeometricAverage(VariableAccumulation):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device): device specification in case of distributed computation usage. 
+        device (str of torch.device): device specification in case of distributed computation usage.
             In most of the cases, it should defined as "cuda:local_rank".
 
     """
+
     def __init__(self, output_transform=lambda x: x, device=None):
 
         def _geom_op(a, x):
@@ -147,7 +154,7 @@ class GeometricAverage(VariableAccumulation):
 
         super(GeometricAverage, self).__init__(op=_geom_op, output_transform=output_transform, device=device)
 
-    @sync_all_reduce('accumulator', 'num_examples')        
+    @sync_all_reduce('accumulator', 'num_examples')
     def compute(self):
         if self.num_examples < 1:
             raise NotComputableError("{} must have at least one example before"
