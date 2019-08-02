@@ -1,6 +1,7 @@
+import itertools
+
 from ignite.metrics.metric import Metric
 from ignite.engine import Events
-import itertools
 
 
 class MetricsLambda(Metric):

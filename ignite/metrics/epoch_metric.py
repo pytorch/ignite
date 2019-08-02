@@ -15,6 +15,9 @@ class EpochMetric(Metric):
         Current implementation stores all input data (output and target) in as tensors before computing a metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
 
+    .. warning::
+
+        Current implementation does not work with distributed computations
 
     - `update` must receive output of the form `(y_pred, y)`.
 
@@ -61,8 +64,8 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        y_pred = y_pred.type_as(self._predictions)
-        y = y.type_as(self._targets)
+        y_pred = y_pred.to(self._predictions)
+        y = y.to(self._targets)
 
         self._predictions = torch.cat([self._predictions, y_pred], dim=0)
         self._targets = torch.cat([self._targets, y], dim=0)
@@ -76,4 +79,5 @@ class EpochMetric(Metric):
                               RuntimeWarning)
 
     def compute(self):
+        # We need gather
         return self.compute_fn(self._predictions, self._targets)
