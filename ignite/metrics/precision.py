@@ -1,5 +1,7 @@
 from __future__ import division
 
+import warnings
+
 import torch
 
 from ignite.metrics.accuracy import _BaseClassification
@@ -11,6 +13,12 @@ from ignite.metrics.metric import reinit_is_reduced
 class _BasePrecisionRecall(_BaseClassification):
 
     def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            if (not average) and is_multilabel:
+                raise warnings.warn("Precision/Recall metrics do not work in distributed setting when average=False "
+                                    "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
+                                    "corresponds to the local rank's (single GPU) result.")
+
         self._average = average
         self._true_positives = None
         self._positives = None
@@ -30,7 +38,10 @@ class _BasePrecisionRecall(_BaseClassification):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed.".format(self.__class__.__name__))
 
-        # !!! Need to adapt to distributed !!!
+        if self._average:
+            self._true_positives = self._sync_all_reduce(self._true_positives)
+            self._positives = self._sync_all_reduce(self._positives)
+
         result = self._true_positives / (self._positives + self.eps)
 
         if self._average:
