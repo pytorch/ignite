@@ -4,9 +4,10 @@ In this example, we show how to use *Ignite* to train a neural network on 1 or m
 log learning rate, training/validation metrics.
 
 Configurations:
-[x] single GPU
-[x] multi GPUs on a single node
-[ ] multi GPUs on multiple nodes
+
+* [x] single GPU
+* [x] multi GPUs on a single node
+* [ ] multi GPUs on multiple nodes
 
 ## Requirements:
 

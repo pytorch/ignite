@@ -86,6 +86,12 @@ class Precision(_BasePrecisionRecall):
         as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
         than available RAM.
 
+    .. warning::
+
+        In multilabel cases, if average is False, current implementation does not work with distributed computations.
+        Results are not reduced across the GPUs. Computed result corresponds to the local rank's (single GPU) result.
+
+
     Args:
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the

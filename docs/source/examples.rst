@@ -8,6 +8,8 @@ to display how it helps to write compact and full-featured training loops in a f
 - `DCGAN <https://github.com/pytorch/ignite/tree/master/examples/gan>`_
 - `Reinforcement Learning <https://github.com/pytorch/ignite/tree/master/examples/reinforcement_learning>`_
 - `Fast Neural Style <https://github.com/pytorch/ignite/tree/master/examples/fast_neural_style>`_
+- `Distributed Cifar10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10>`_
+
 
 Notebooks:
 
