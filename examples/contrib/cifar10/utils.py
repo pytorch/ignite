@@ -1,4 +1,5 @@
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 from torchvision import models
 from torchvision import datasets
@@ -17,7 +18,7 @@ def set_seed(seed):
     np.random.seed(seed)
 
 
-def get_train_test_loaders(path, batch_size, num_workers, pin_memory=True):
+def get_train_test_loaders(path, batch_size, num_workers, distributed=False, pin_memory=True):
 
     train_transform = Compose([
         Pad(4),
@@ -35,10 +36,17 @@ def get_train_test_loaders(path, batch_size, num_workers, pin_memory=True):
     train_ds = datasets.CIFAR10(root=path, train=True, download=True, transform=train_transform)
     test_ds = datasets.CIFAR10(root=path, train=False, download=False, transform=test_transform)
 
-    train_labelled_loader = DataLoader(train_ds, batch_size=batch_size,
+    train_sampler = None
+    test_sampler = None
+    if distributed:
+        train_sampler = DistributedSampler(train_ds)
+        test_sampler = DistributedSampler(test_ds)
+
+    train_labelled_loader = DataLoader(train_ds, batch_size=batch_size, sampler=train_sampler,
                                        num_workers=num_workers, pin_memory=pin_memory, drop_last=True)
 
-    test_loader = DataLoader(test_ds, batch_size=batch_size * 2, num_workers=num_workers, pin_memory=pin_memory)
+    test_loader = DataLoader(test_ds, batch_size=batch_size * 2, sampler=test_sampler,
+                             num_workers=num_workers, pin_memory=pin_memory)
 
     return train_labelled_loader, test_loader
 

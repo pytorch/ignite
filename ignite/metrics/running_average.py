@@ -53,7 +53,7 @@ class RunningAverage(Metric):
 
         self.alpha = alpha
         self.epoch_bound = epoch_bound
-        super(RunningAverage, self).__init__(output_transform=output_transform)
+        super(RunningAverage, self).__init__(output_transform=output_transform, device='cpu')
 
     def reset(self):
         self._value = None

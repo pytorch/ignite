@@ -6,45 +6,45 @@ from functools import partial
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import torch.nn.parallel
 import torch.distributed as dist
-import torch.multiprocessing as mp
 
 import ignite
 from ignite.engine import Events, Engine, create_supervised_evaluator
 from ignite.metrics import Accuracy, RunningAverage, Loss
+from ignite.handlers import ModelCheckpoint
 from ignite.utils import convert_tensor
 
 from ignite.contrib.handlers import TensorboardLogger, ProgressBar
 from ignite.contrib.handlers.tensorboard_logger import OutputHandler as tbOutputHandler, \
     OptimizerParamsHandler as tbOptimizerParamsHandler
 
-from ignite.contrib.handlers import create_lr_scheduler_with_warmup
+from ignite.contrib.handlers import PiecewiseLinear
 
 from utils import set_seed, get_train_test_loaders, get_model
 
 
 def run(output_path, config):
     device = "cuda"
-    batch_size = config['batch_size']
+
+    # Rescale batch_size and
+    ngpus_per_node = torch.cuda.device_count()
+    batch_size = config['batch_size'] // ngpus_per_node
+    num_workers = int((config['num_workers'] + ngpus_per_node - 1) / ngpus_per_node)
+
     local_rank = config['local_rank']
 
     distributed = backend is not None
-    train_sampler = None
-
     if distributed:
-        train_sampler = 'distributed'
         torch.cuda.device(config['local_rank'])
         device = "cuda:{}".format(config['local_rank'])
-        print("local rank={}: device={}".format(config['local_rank'], device))
 
     train_labelled_loader, test_loader = \
         get_train_test_loaders(path=config['data_path'],
                                batch_size=batch_size,
-                               train_sampler=train_sampler,
-                               num_workers=config['num_workers'])
+                               distributed=distributed,
+                               num_workers=num_workers)
 
     model = get_model(config['model'])
     model = model.to(device)
@@ -62,19 +62,13 @@ def run(output_path, config):
     criterion = nn.CrossEntropyLoss().to(device)
 
     le = len(train_labelled_loader)
-    num_train_steps = le * config['num_epochs']
-
-    lr = config['learning_rate']
-    eta_min = lr * config['min_lr_ratio']
-    num_warmup_steps = config['num_warmup_steps']
-
-    lr_scheduler = CosineAnnealingLR(optimizer, eta_min=eta_min, T_max=num_train_steps - num_warmup_steps)
-
-    if num_warmup_steps > 0:
-        lr_scheduler = create_lr_scheduler_with_warmup(lr_scheduler,
-                                                       warmup_start_value=0.0,
-                                                       warmup_end_value=lr * (1.0 + 1.0 / num_warmup_steps),
-                                                       warmup_duration=num_warmup_steps)
+    milestones_values = [
+        (0, 0.0),
+        (le * config['num_warmup_epochs'], config['learning_rate']),
+        (le * config['num_epochs'], 0.0)
+    ]
+    lr_scheduler = PiecewiseLinear(optimizer, param_name="lr",
+                                   milestones_values=milestones_values)
 
     def _prepare_batch(batch, device, non_blocking):
         x, y = batch
@@ -106,6 +100,13 @@ def run(output_path, config):
         trainer.add_event_handler(Events.ITERATION_STARTED, lambda engine: lr_scheduler.step())
 
     if local_rank == 0:
+
+        checkpoint_handler = ModelCheckpoint(dirname=output_path,
+                                             filename_prefix="checkpoint",
+                                             save_interval=1000)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED,
+                                  checkpoint_handler,
+                                  {'model': model, 'optimizer': optimizer})
         metric_names = [
             'batch loss',
         ]
@@ -132,8 +133,8 @@ def run(output_path, config):
                          event_name=Events.ITERATION_STARTED)
 
     metrics = {
-        "accuracy": Accuracy(),
-        "loss": Loss(criterion)
+        "accuracy": Accuracy(device=device if distributed else None),
+        "loss": Loss(criterion, device=device if distributed else None)
     }
 
     evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
@@ -163,6 +164,20 @@ def run(output_path, config):
                                                      another_engine=trainer),
                          event_name=Events.COMPLETED)
 
+        # Store the best model
+        def default_score_fn(engine):
+            score = engine.state.metrics['accuracy']
+            return score
+
+        score_function = default_score_fn if not hasattr(config, "score_function") else config.score_function
+
+        best_model_handler = ModelCheckpoint(dirname=output_path,
+                                             filename_prefix="best",
+                                             n_saved=3,
+                                             score_name="val_accuracy",
+                                             score_function=score_function)
+        evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
+
     trainer.run(train_labelled_loader, max_epochs=config['num_epochs'])
 
 
@@ -184,8 +199,8 @@ if __name__ == "__main__":
     assert torch.cuda.is_available()
     torch.backends.cudnn.benchmark = True
 
-    batch_size = 128
-    num_epochs = 100
+    batch_size = 512
+    num_epochs = 24
     config = {
         "data_path": ".",
         "output_path": "output",
@@ -199,9 +214,8 @@ if __name__ == "__main__":
 
         "num_epochs": num_epochs,
 
-        "learning_rate": 0.03,
-        "min_lr_ratio": 0.004,
-        "num_warmup_steps": 0,
+        "learning_rate": 0.04,
+        "num_warmup_epochs": 4,
 
         # distributed settings
         "dist_url": "env://",
@@ -210,6 +224,8 @@ if __name__ == "__main__":
 
     if args.local_rank is not None:
         config['local_rank'] = args.local_rank
+    else:
+        config['local_rank'] = 0
 
     # Override config:
     if args.params is not None:
@@ -218,6 +234,9 @@ if __name__ == "__main__":
             if "/" not in value:
                 value = eval(value)
             config[key] = value
+
+    backend = config['dist_backend']
+    distributed = backend is not None
 
     output_path = None
     if config['local_rank'] == 0:
@@ -234,19 +253,24 @@ if __name__ == "__main__":
 
         from datetime import datetime
 
-        output_path = Path(config['output_path']) / "{}".format(datetime.now().strftime("%Y%m%d-%H%M%S"))
+        now = datetime.now().strftime("%Y%m%d-%H%M%S")
+        gpu_conf = "-single-gpu"
+        if distributed:
+            gpu_conf = "-distributed-{}-gpus".format(torch.cuda.device_count())
+
+        output_path = Path(config['output_path']) / "{}{}".format(now, gpu_conf)
         if not output_path.exists():
             output_path.mkdir(parents=True)
         output_path = output_path.as_posix()
         print("Output path: {}".format(output_path))
 
+    if distributed:
+        dist.init_process_group(backend, init_method=config['dist_url'])
+
     try:
-        backend = config['dist_backend']
-        distributed = backend is not None
-        if distributed:
-            dist.init_process_group(backend, init_method=config['dist_url'])
-
         run(output_path, config)
-
     except KeyboardInterrupt:
+        print("Catched KeyboardInterrupt -> exit")
+
+    if distributed:
         dist.destroy_process_group()

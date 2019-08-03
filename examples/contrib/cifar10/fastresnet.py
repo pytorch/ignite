@@ -55,7 +55,9 @@ def conv_bn_elu(in_channels, out_channels, conv_kwargs, bn_kwargs, alpha=1.0):
 
 
 class Flatten(nn.Module):
-    def forward(self, x): return x.view(x.size(0), x.size(1))
+
+    def forward(self, x):
+        return x.view(x.size(0), x.size(1))
 
 
 class FastResnet(nn.Module):

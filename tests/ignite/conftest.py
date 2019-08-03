@@ -15,14 +15,15 @@ def local_rank(worker_id):
 @pytest.fixture()
 def distributed_context_single_node(local_rank):
 
-
-
     import os
     if "WORLD_SIZE" not in os.environ:
         os.environ["WORLD_SIZE"] = "{}".format(torch.cuda.device_count())
 
+    if "BACKEND" not in os.environ:
+        os.environ["BACKEND"] = "nccl"
+
     dist_info = {
-        "backend": "nccl",
+        "backend": os.environ["BACKEND"],
         "world_size": int(os.environ["WORLD_SIZE"]),
         "rank": local_rank,
         "init_method": "tcp://localhost:2222"
