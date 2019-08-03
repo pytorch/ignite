@@ -22,7 +22,7 @@ class DummyOutputHandler(BaseOutputHandler):
 
 def test_base_output_handler_wrong_setup():
 
-    with pytest.raises(TypeError, match="metric_names should be a list"):
+    with pytest.raises(TypeError, match="metric_names should be either a list or equal 'all'"):
         DummyOutputHandler("tag", metric_names="abc", output_transform=None)
 
     with pytest.raises(TypeError, match="output_transform should be a function"):
@@ -80,6 +80,11 @@ def test_base_output_handler_setup_output_metrics():
     handler = DummyOutputHandler("tag", metric_names=['a', 'b'], output_transform=lambda x: {"loss": x})
     metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == {"a": 0, "b": 1, "loss": engine.state.output}
+
+    # All metrics
+    handler = DummyOutputHandler("tag", metric_names="all", output_transform=None)
+    metrics = handler._setup_output_metrics(engine=engine)
+    assert metrics == true_metrics
 
 
 def test_attach():

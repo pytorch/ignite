@@ -56,7 +56,7 @@ def test_binary_input_N():
 
     def _test(average):
         re = Recall(average=average)
-        y_pred = torch.randint(0, 2, size=(10, 1))
+        y_pred = torch.randint(0, 2, size=(10,))
         y = torch.randint(0, 2, size=(10,)).long()
         re.update((y_pred, y))
         np_y = y.numpy().ravel()
@@ -144,7 +144,7 @@ def test_binary_input_NL():
         # Batched Updates
         re.reset()
         y_pred = torch.randint(0, 2, size=(100, 5))
-        y = torch.randint(0, 2, size=(100, 1, 5)).long()
+        y = torch.randint(0, 2, size=(100, 5)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -192,11 +192,10 @@ def test_binary_input_NHW():
         re_compute = re.compute() if average else re.compute().numpy()
         assert recall_score(np_y, np_y_pred, average='binary') == pytest.approx(re_compute)
 
-        re = Recall(average=average)
         # Batched Updates
         re.reset()
         y_pred = torch.randint(0, 2, size=(100, 12, 10))
-        y = torch.randint(0, 2, size=(100, 1, 12, 10)).long()
+        y = torch.randint(0, 2, size=(100, 12, 10)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -279,7 +278,7 @@ def test_multiclass_input_N():
 
         re.reset()
         y_pred = torch.rand(10, 4)
-        y = torch.randint(0, 4, size=(10, 1)).long()
+        y = torch.randint(0, 4, size=(10,)).long()
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -296,7 +295,7 @@ def test_multiclass_input_N():
         # 2-classes
         re.reset()
         y_pred = torch.rand(10, 2)
-        y = torch.randint(0, 2, size=(10, 1)).long()
+        y = torch.randint(0, 2, size=(10,)).long()
         re.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -692,7 +691,7 @@ def test_incorrect_type():
         y = torch.ones(4).long()
         re.update((y_pred, y))
 
-        y_pred = torch.zeros(4, 1)
+        y_pred = torch.zeros(4,)
         y = torch.ones(4).long()
 
         with pytest.raises(RuntimeError):

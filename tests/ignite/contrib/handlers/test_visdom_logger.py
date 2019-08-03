@@ -229,6 +229,33 @@ def test_output_handler_metric_names(dirname):
              opts=wrapper.windows['tag/a']['opts'], name="tag/a"),
     ], any_order=True)
 
+    # all metrics
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 2 and \
+        "tag/a" in wrapper.windows and "tag/b" in wrapper.windows
+    assert wrapper.windows["tag/a"]['win'] is not None
+    assert wrapper.windows["tag/b"]['win'] is not None
+
+    assert mock_logger.vis.line.call_count == 2
+    mock_logger.vis.line.assert_has_calls([
+        call(X=[5, ], Y=[12.23, ], env=mock_logger.vis.env,
+             win=None, update=None,
+             opts=wrapper.windows['tag/a']['opts'], name="tag/a"),
+        call(X=[5, ], Y=[23.45, ], env=mock_logger.vis.env,
+             win=None, update=None,
+             opts=wrapper.windows['tag/b']['opts'], name="tag/b"),
+    ], any_order=True)
+
 
 def test_output_handler_both(dirname):
 

@@ -580,8 +580,8 @@ def test_cm_recall():
 
 def test_cm_with_average():
     num_classes = 5
-    y_pred = torch.rand(20, num_classes)
-    y = torch.randint(0, num_classes, size=(20,)).long()
+    y_pred = torch.rand(40, num_classes)
+    y = torch.randint(0, num_classes, size=(40,)).long()
     np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
     np_y = y.numpy().ravel()
 

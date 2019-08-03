@@ -63,7 +63,8 @@ class Recall(_BasePrecisionRecall):
 
     @reinit_is_reduced
     def update(self, output):
-        y_pred, y = self._check_shape(output)
+        y_pred, y = output
+        self._check_shape(output)
         self._check_type((y_pred, y))
 
         if self._type == "binary":
