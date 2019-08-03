@@ -118,8 +118,8 @@ class Accuracy(_BaseClassification):
     def __init__(self, output_transform=lambda x: x, is_multilabel=False, device=None):
         self._num_correct = None
         self._num_examples = None
-        super(Accuracy, self).__init__(output_transform=output_transform, 
-                                       is_multilabel=is_multilabel, 
+        super(Accuracy, self).__init__(output_transform=output_transform,
+                                       is_multilabel=is_multilabel,
                                        device=device)
 
     @reinit_is_reduced

@@ -6,6 +6,7 @@ from ignite.exceptions import NotComputableError
 
 import torch
 
+
 class VariableAccumulation(Metric):
     """Single variable accumulator helper to compute (arithmetic, geometric, harmonic) average of a single variable.
 

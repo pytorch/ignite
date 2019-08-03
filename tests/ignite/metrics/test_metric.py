@@ -459,17 +459,6 @@ class DummyMetric(Metric):
         pass
 
 
-@pytest.mark.distributed
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if no GPU")
-def test_distrib_no_device_metric(distributed_context_single_node):
-
-    import torch.distributed as dist
-    assert dist.is_available() and dist.is_initialized()
-
-    with pytest.raises(ValueError, match=r"Please provide the device for distributed computation."):
-        DummyMetric()
-
-
 def test__sync_all_reduce():
     m = DummyMetric()
     res = m._sync_all_reduce(10)
@@ -477,68 +466,81 @@ def test__sync_all_reduce():
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if no GPU")
-def test_distrib__sync_all_reduce(local_rank, distributed_context_single_node):
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib(local_rank, distributed_context_single_node):
 
-    import torch.distributed as dist
-    assert dist.is_available() and dist.is_initialized()
+    def test_distrib_no_device_metric():
+        import torch.distributed as dist
+        assert dist.is_available() and dist.is_initialized()
 
-    # This test should be the first in the list, otherwise stucked
-    m = DummyMetric(device="cuda:{}".format(local_rank))
-    t = torch.tensor(10, device="cuda:1")
-    res = m._sync_all_reduce(t)
-    assert res.item() == 10 * dist.get_world_size()
+        with pytest.raises(ValueError, match=r"Please provide the device for distributed computation."):
+            DummyMetric()
 
-    m = DummyMetric(device="cuda:{}".format(local_rank))
-    res = m._sync_all_reduce(10)
-    assert res == 10 * dist.get_world_size()
+    test_distrib_no_device_metric()
 
-    m = DummyMetric(device="cuda:{}".format(local_rank))
-    t = torch.tensor(10, device="cuda:{}".format(local_rank))
-    res = m._sync_all_reduce(t)
-    assert res.item() == 10 * dist.get_world_size()
+    def test_distrib__sync_all_reduce():
+        import torch.distributed as dist
+        assert dist.is_available() and dist.is_initialized()
 
-    m = DummyMetric(device="cuda:{}".format(local_rank))
-    with pytest.raises(TypeError, match=r"Unhandled input type"):
-        m._sync_all_reduce("abc")
+        # # This test should be the first in the list, otherwise stucked
+        # # The following test aimed to check the transfer from another cuda device to the default one
+        # # However, this test sometimes gets stucked
+        # m = DummyMetric(device="cuda:{}".format(local_rank))
+        # t = torch.tensor(10, device="cuda:1")
+        # res = m._sync_all_reduce(t)
+        # assert res.item() == 10 * dist.get_world_size()
 
+        device = "cuda:{}".format(local_rank)
 
-@pytest.mark.distributed
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if no GPU")
-def test_distrib_sync_all_reduce_decorator(local_rank, distributed_context_single_node):
+        m = DummyMetric(device=device)
+        res = m._sync_all_reduce(10)
+        assert res == 10 * dist.get_world_size()
 
-    import torch.distributed as dist
+        m = DummyMetric(device=device)
+        t = torch.tensor(10, device=device)
+        res = m._sync_all_reduce(t)
+        assert res.item() == 10 * dist.get_world_size()
 
-    from ignite.metrics.metric import sync_all_reduce
+        m = DummyMetric(device=device)
+        with pytest.raises(TypeError, match=r"Unhandled input type"):
+            m._sync_all_reduce("abc")
 
-    class DummyMetric(Metric):
+    test_distrib__sync_all_reduce()
 
-        def reset(self):
-            self.a = torch.tensor([0, 1, 2, 3], device=self._device, requires_grad=False)
-            self.a_nocomp = self.a.clone().to('cpu')
-            self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
-            self.b_nocomp = self.b.clone().to("cpu")
-            self.c = 0.0
-            self.c_nocomp = self.c
-            self.n = 0
-            self.n_nocomp = self.n
+    def test_distrib_sync_all_reduce_decorator():
 
-        @sync_all_reduce("a", "b", "c", "n")
-        def compute(self):
-            assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
-            assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
-            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
-            assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+        import torch.distributed as dist
+        from ignite.metrics.metric import sync_all_reduce
 
-        def update(self, output):
-            self.n += 1
-            self.c += 1.23456
-            self.a += 10.0
-            self.b -= 5.0
+        class DummyMetric(Metric):
 
-    m = DummyMetric(device="cuda:{}".format(local_rank))
-    m.update(None)
-    m.compute()
-    # check if can call compute twise without all reduce 
-    m.compute()
+            def reset(self):
+                self.a = torch.tensor([0, 1, 2, 3], device=self._device, requires_grad=False)
+                self.a_nocomp = self.a.clone().to('cpu')
+                self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
+                self.b_nocomp = self.b.clone().to("cpu")
+                self.c = 0.0
+                self.c_nocomp = self.c
+                self.n = 0
+                self.n_nocomp = self.n
 
+            @sync_all_reduce("a", "b", "c", "n")
+            def compute(self):
+                assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
+                assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
+                assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
+                assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+
+            def update(self, output):
+                self.n += 1
+                self.c += 1.23456
+                self.a += 10.0
+                self.b -= 5.0
+
+        m = DummyMetric(device="cuda:{}".format(local_rank))
+        m.update(None)
+        m.compute()
+        # check if can call compute twise without all reduce
+        m.compute()
+
+    test_distrib_sync_all_reduce_decorator()

@@ -15,9 +15,9 @@ class _BasePrecisionRecall(_BaseClassification):
     def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             if (not average) and is_multilabel:
-                raise warnings.warn("Precision/Recall metrics do not work in distributed setting when average=False "
-                                    "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
-                                    "corresponds to the local rank's (single GPU) result.")
+                warnings.warn("Precision/Recall metrics do not work in distributed setting when average=False "
+                              "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
+                              "corresponds to the local rank's (single GPU) result.", RuntimeWarning)
 
         self._average = average
         self._true_positives = None
@@ -38,7 +38,7 @@ class _BasePrecisionRecall(_BaseClassification):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed.".format(self.__class__.__name__))
 
-        if self._average:
+        if not (self._type == "multilabel" and not self._average):
             self._true_positives = self._sync_all_reduce(self._true_positives)
             self._positives = self._sync_all_reduce(self._positives)
 

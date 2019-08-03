@@ -36,14 +36,12 @@ class EpochMetric(Metric):
     def __init__(self, compute_fn, output_transform=lambda x: x):
 
         if torch.distributed.is_available() and torch.distributed.is_initialized():
-            raise warnings.warn("EpochMetric class does not work in distributed setting. "
-                                "Metric's results are not reduced across the GPUs. Computed result "
-                                "corresponds to the local rank's (single GPU) result.")
+            warnings.warn("EpochMetric class does not work in distributed setting.", RuntimeWarning)
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
-        super(EpochMetric, self).__init__(output_transform=output_transform)
+        super(EpochMetric, self).__init__(output_transform=output_transform, device='cpu')
         self.compute_fn = compute_fn
 
     def reset(self):

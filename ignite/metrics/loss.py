@@ -34,12 +34,12 @@ class Loss(Metric):
         self._loss_fn = loss_fn
         self._batch_size = batch_size
 
-    @reinit_is_reduced        
+    @reinit_is_reduced
     def reset(self):
         self._sum = 0
         self._num_examples = 0
 
-    @reinit_is_reduced        
+    @reinit_is_reduced
     def update(self, output):
         if len(output) == 2:
             y_pred, y = output
@@ -54,7 +54,7 @@ class Loss(Metric):
         N = self._batch_size(y)
         self._sum += average_loss.item() * N
         self._num_examples += N
-    
+
     @sync_all_reduce("_sum", "_num_examples")
     def compute(self):
         if self._num_examples == 0:

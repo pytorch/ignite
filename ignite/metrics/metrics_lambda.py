@@ -39,7 +39,7 @@ class MetricsLambda(Metric):
         self.function = f
         self.args = args
         self.kwargs = kwargs
-        super(MetricsLambda, self).__init__()
+        super(MetricsLambda, self).__init__(device='cpu')
 
     def reset(self):
         for i in itertools.chain(self.args, self.kwargs.values()):

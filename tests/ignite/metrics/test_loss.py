@@ -55,8 +55,9 @@ def test_kwargs_loss():
 
     y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
     y = torch.tensor([2, 2]).long()
-    loss.update((y_pred, y, {"weight": torch.tensor([0, 0, 0])}))
+    loss.update((y_pred, y, {"weight": torch.tensor([0, 0, 0], dtype=torch.float)}))
     assert_almost_equal(loss.compute(), 0)
+
 
 def test_reset():
     loss = Loss(nll_loss)
@@ -71,44 +72,47 @@ def test_reset():
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if no GPU")
-def test_distrib_compute_on_criterion(local_rank, distributed_context_single_node):
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib(local_rank, distributed_context_single_node):
 
-    import torch.distributed as dist
+    def test_distrib_compute_on_criterion():
+        import torch.distributed as dist
 
-    device = "cuda:{}".format(local_rank)
+        device = "cuda:{}".format(local_rank)
 
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
-        
-    criterion = nn.NLLLoss()
-    loss = Loss(criterion, device=device)
+        def _gather(y):
+            output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+            dist.all_gather(output, y)
+            y = torch.cat(output, dim=0)
+            return y
 
-    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
-    y = torch.tensor([2, 2], device=device).long()
-    loss.update((y_pred, y))
-    n = loss._num_examples
-    assert n == len(y)
-    res = loss.compute()
-    assert n * dist.get_world_size() == loss._num_examples
+        criterion = nn.NLLLoss().to(device)
+        loss = Loss(criterion, device=device)
 
-    y_pred = _gather(y_pred)
-    y = _gather(y)    
-    true_loss_value = criterion(y_pred, y)    
-    assert_almost_equal(res, true_loss_value.item())
-    
-    loss.reset()
-    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
-    y = torch.tensor([2, 0, 2], device=device).long()
-    loss.update((y_pred, y))
-    n = loss._num_examples
-    res = loss.compute()
-    assert n * dist.get_world_size() == loss._num_examples
+        y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
+        y = torch.tensor([2, 2], device=device).long()
+        loss.update((y_pred, y))
+        n = loss._num_examples
+        assert n == len(y)
+        res = loss.compute()
+        assert n * dist.get_world_size() == loss._num_examples
 
-    y_pred = _gather(y_pred)
-    y = _gather(y)    
-    true_loss_value = criterion(y_pred, y)    
-    assert_almost_equal(res, true_loss_value.item())
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+        true_loss_value = criterion(y_pred, y)
+        assert_almost_equal(res, true_loss_value.item())
+
+        loss.reset()
+        y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
+        y = torch.tensor([2, 0, 2], device=device).long()
+        loss.update((y_pred, y))
+        n = loss._num_examples
+        res = loss.compute()
+        assert n * dist.get_world_size() == loss._num_examples
+
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+        true_loss_value = criterion(y_pred, y)
+        assert_almost_equal(res, true_loss_value.item())
+
+    test_distrib_compute_on_criterion()

@@ -13,8 +13,8 @@ class TopKCategoricalAccuracy(Metric):
 
     - `update` must receive output of the form `(y_pred, y)`.
     """
-    def __init__(self, k=5, output_transform=lambda x: x):
-        super(TopKCategoricalAccuracy, self).__init__(output_transform)
+    def __init__(self, k=5, output_transform=lambda x: x, device=None):
+        super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device)
         self._k = k
 
     @reinit_is_reduced

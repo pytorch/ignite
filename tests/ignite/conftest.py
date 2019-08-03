@@ -7,11 +7,16 @@ import torch.distributed as dist
 @pytest.fixture()
 def local_rank(worker_id):
     """ use a different account in each xdist worker """
-    return int(worker_id.replace("gw", ""))
+    if "gw" in worker_id:
+        return int(worker_id.replace("gw", ""))
+    return worker_id
 
 
 @pytest.fixture()
 def distributed_context_single_node(local_rank):
+
+
+
     import os
     if "WORLD_SIZE" not in os.environ:
         os.environ["WORLD_SIZE"] = "{}".format(torch.cuda.device_count())

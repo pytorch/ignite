@@ -45,8 +45,8 @@ class ConfusionMatrix(Metric):
 
     @reinit_is_reduced
     def reset(self):
-        self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes, 
-                                            dtype=torch.float, 
+        self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes,
+                                            dtype=torch.float,
                                             device=self._device)
         self._num_examples = 0
 
@@ -77,7 +77,7 @@ class ConfusionMatrix(Metric):
 
         return y_pred, y
 
-    @reinit_is_reduced 
+    @reinit_is_reduced
     def update(self, output):
         y_pred, y = self._check_shape(output)
 

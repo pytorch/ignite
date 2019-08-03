@@ -96,7 +96,7 @@ class Metric(with_metaclass(ABCMeta, object)):
         # synchronize and reduce
         torch.distributed.barrier()
         torch.distributed.all_reduce(tensor)
-        
+
         if tensor_to_number:
             return tensor.item()
         return tensor
@@ -217,11 +217,10 @@ def sync_all_reduce(*attrs):
 
 
 def reinit_is_reduced(func):
-    
+
     @wraps(func)
-    def wrapper(self, *args, **kwargs):        
+    def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)
         self._is_reduced = False
-        
-    return wrapper
 
+    return wrapper

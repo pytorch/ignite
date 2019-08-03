@@ -43,7 +43,7 @@ install:
   - pip install gym==0.10.11
 
 script:
-  - py.test --cov ignite --cov-report term-missing
+  - CUDA_VISIBLE_DEVICES="" py.test --tx 4*popen//python=python$TRAVIS_PYTHON_VERSION --cov ignite --cov-report term-missing -vvv tests/
 
   # Smoke tests for the examples
   # Mnist
@@ -73,7 +73,6 @@ script:
 
   # tests for distributed ops
   # As no GPUs on travis -> all tests will be skipped
-  - pip install pytest-xdist
   # 2 is the number of processes <-> number of available GPUs
   - export WORLD_SIZE=2
   - pytest --dist=each --tx $WORLD_SIZE*popen//python=python$TRAVIS_PYTHON_VERSION tests -m distributed -vvv
