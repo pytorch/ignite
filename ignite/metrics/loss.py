@@ -23,8 +23,10 @@ class Loss(Metric):
             keywords arguments.
         batch_size (callable): a callable taking a target tensor that returns the
             first dimension size (usually the batch size).
-        device (str of torch.device): device specification in case of distributed computation usage.
-            In most of the cases, it should defined as "cuda:local_rank".
+        device (str of torch.device, optional): device specification in case of distributed computation usage.
+            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+            initialized and available, device is set to `cuda`.
 
     """
 

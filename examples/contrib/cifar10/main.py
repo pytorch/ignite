@@ -37,8 +37,8 @@ def run(output_path, config):
 
     distributed = backend is not None
     if distributed:
-        torch.cuda.device(config['local_rank'])
-        device = "cuda:{}".format(config['local_rank'])
+        torch.cuda.set_device(config['local_rank'])
+        device = "cuda"
 
     train_labelled_loader, test_loader = \
         get_train_test_loaders(path=config['data_path'],

@@ -469,26 +469,9 @@ def test__sync_all_reduce():
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib(local_rank, distributed_context_single_node):
 
-    def test_distrib_no_device_metric():
-        import torch.distributed as dist
-        assert dist.is_available() and dist.is_initialized()
-
-        with pytest.raises(ValueError, match=r"Please provide the device for distributed computation."):
-            DummyMetric()
-
-    test_distrib_no_device_metric()
-
     def test_distrib__sync_all_reduce():
         import torch.distributed as dist
         assert dist.is_available() and dist.is_initialized()
-
-        # # This test should be the first in the list, otherwise stucked
-        # # The following test aimed to check the transfer from another cuda device to the default one
-        # # However, this test sometimes gets stucked
-        # m = DummyMetric(device="cuda:{}".format(local_rank))
-        # t = torch.tensor(10, device="cuda:1")
-        # res = m._sync_all_reduce(t)
-        # assert res.item() == 10 * dist.get_world_size()
 
         device = "cuda:{}".format(local_rank)
 
