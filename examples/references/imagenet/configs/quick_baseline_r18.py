@@ -15,7 +15,7 @@ train_crop_size = 224
 val_crop_size = int(train_crop_size / 0.7)
 
 batch_size = 320  # batch size per local rank
-num_workers = 4   # num_workers per local rank
+num_workers = 10   # num_workers per local rank
 
 
 # ##############################
