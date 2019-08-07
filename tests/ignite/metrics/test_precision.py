@@ -806,8 +806,13 @@ def test_distrib(local_rank, distributed_context_single_node):
 
             assert "pr" in engine.state.metrics
             res = engine.state.metrics['pr']
+            res2 = pr.compute()
             if isinstance(res, torch.Tensor):
                 res = res.cpu().numpy()
+                res2 = res2.cpu().numpy()
+                assert (res == res2).all()
+            else:
+                assert res == res2
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -828,7 +833,9 @@ def test_distrib(local_rank, distributed_context_single_node):
         y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
         y = torch.randint(0, 2, size=(10, 5, 18, 16)).long()
         pr.update((y_pred, y))
-        pr_compute = pr.compute()
-        assert len(pr_compute) == 10 * 18 * 16
+        pr_compute1 = pr.compute()
+        pr_compute2 = pr.compute()
+        assert len(pr_compute1) == 10 * 18 * 16
+        assert (pr_compute1 == pr_compute2).all()
 
     test_distrib_itegration_multilabel()

@@ -41,6 +41,7 @@ class _BasePrecisionRecall(_BaseClassification):
         if not (self._type == "multilabel" and not self._average):
             self._true_positives = self._sync_all_reduce(self._true_positives)
             self._positives = self._sync_all_reduce(self._positives)
+            self._is_reduced = True
 
         result = self._true_positives / (self._positives + self.eps)
 

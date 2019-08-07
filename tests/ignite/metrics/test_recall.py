@@ -806,8 +806,13 @@ def test_distrib(local_rank, distributed_context_single_node):
 
             assert "re" in engine.state.metrics
             res = engine.state.metrics['re']
+            res2 = re.compute()
             if isinstance(res, torch.Tensor):
                 res = res.cpu().numpy()
+                res2 = res2.cpu().numpy()
+                assert (res == res2).all()
+            else:
+                assert res == res2
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=UndefinedMetricWarning)
@@ -815,7 +820,7 @@ def test_distrib(local_rank, distributed_context_single_node):
                                         to_numpy_multilabel(y_preds),
                                         average='samples' if average else None)
 
-            assert pytest.approx(res) == true_res
+            assert pytest.approx(res) == true_res            
 
         for _ in range(5):
             _test(average=True, n_epochs=1)
@@ -828,7 +833,9 @@ def test_distrib(local_rank, distributed_context_single_node):
         y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
         y = torch.randint(0, 2, size=(10, 5, 18, 16)).long()
         re.update((y_pred, y))
-        re_compute = re.compute()
-        assert len(re_compute) == 10 * 18 * 16
+        re_compute1 = re.compute()
+        re_compute2 = re.compute()
+        assert len(re_compute1) == 10 * 18 * 16
+        assert (re_compute1 == re_compute2).all()
 
     test_distrib_itegration_multilabel()
