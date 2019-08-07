@@ -820,7 +820,7 @@ def test_distrib(local_rank, distributed_context_single_node):
                                         to_numpy_multilabel(y_preds),
                                         average='samples' if average else None)
 
-            assert pytest.approx(res) == true_res            
+            assert pytest.approx(res) == true_res
 
         for _ in range(5):
             _test(average=True, n_epochs=1)
