@@ -155,6 +155,8 @@ class MLflowLogger(BaseLogger):
 
         pip install mlflow
 
+    Args:
+        tracking_uri (str): MLflow tracking uri. See MLflow docs for more details
 
     Examples:
 
@@ -194,12 +196,19 @@ class MLflowLogger(BaseLogger):
                                  event_name=Events.EPOCH_COMPLETED)
     """
 
-    def __init__(self):
+    def __init__(self, tracking_uri=None):
         try:
             import mlflow
         except ImportError:
             raise RuntimeError("This contrib module requires mlflow to be installed. "
                                "Please install it with command: \n pip install mlflow")
+
+        if tracking_uri is not None:
+            mlflow.set_tracking_uri(tracking_uri)
+
+        self.active_run = mlflow.active_run()
+        if self.active_run is None:
+            self.active_run = mlflow.start_run()
 
     def __getattr__(self, attr):
 
@@ -208,3 +217,7 @@ class MLflowLogger(BaseLogger):
         def wrapper(*args, **kwargs):
             return getattr(mlflow, attr)(*args, **kwargs)
         return wrapper
+
+    def close(self):
+        import mlflow
+        mlflow.end_run()
