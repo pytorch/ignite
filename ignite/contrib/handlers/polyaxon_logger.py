@@ -3,10 +3,10 @@ import numbers
 import warnings
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler
 
 
-__all__ = ['PolyaxonLogger', 'OutputHandler']
+__all__ = ['PolyaxonLogger', 'OutputHandler', 'OptimizerParamsHandler']
 
 
 class OutputHandler(BaseOutputHandler):
@@ -104,7 +104,46 @@ class OutputHandler(BaseOutputHandler):
             else:
                 warnings.warn("PolyaxonLogger output_handler can not log "
                               "metrics value type {}".format(type(value)))
+
         logger.log_metrics(**rendered_metrics)
+
+
+class OptimizerParamsHandler(BaseOptimizerParamsHandler):
+    """Helper handler to log optimizer parameters
+
+    Examples:
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.polyaxon_logger import *
+
+            # Create a logger
+            plx_logger = PolyaxonLogger()
+
+            # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
+            plx_logger.attach(trainer,
+                              log_handler=OptimizerParamsHandler(optimizer),
+                              event_name=Events.ITERATION_STARTED)
+
+    Args:
+        optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
+        param_name (str): parameter name
+        tag (str, optional): common title for all produced plots. For example, 'generator'
+    """
+
+    def __init__(self, optimizer, param_name="lr", tag=None):
+        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+
+    def __call__(self, engine, logger, event_name):
+        if not isinstance(logger, PolyaxonLogger):
+            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with PolyaxonLogger")
+
+        global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+                  for i, param_group in enumerate(self.optimizer.param_groups)}
+        params['step'] = global_step
+        logger.log_metrics(**params)
 
 
 class PolyaxonLogger(BaseLogger):

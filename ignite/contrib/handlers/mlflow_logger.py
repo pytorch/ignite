@@ -62,7 +62,8 @@ class OutputHandler(BaseOutputHandler):
 
     Args:
         tag (str): common title for all produced plots. For example, 'training'
-        metric_names (list of str, optional): list of metric names to plot.
+        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+            metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
@@ -113,15 +114,17 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
         .. code-block:: python
 
-            from ignite.contrib.handlers.tensorboard_logger import *
+            from ignite.contrib.handlers.mlflow_logger import *
 
             # Create a logger
-            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+            mlflow_logger = MLflowLogger()
+            # Optionally, user can specify tracking_uri with corresponds to MLFLOW_TRACKING_URI
+            # mlflow_logger = MLflowLogger(tracking_uri="uri")
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            tb_logger.attach(trainer,
-                             log_handler=OptimizerParamsHandler(optimizer),
-                             event_name=Events.ITERATION_STARTED)
+            mlflow_logger.attach(trainer,
+                                 log_handler=OptimizerParamsHandler(optimizer),
+                                 event_name=Events.ITERATION_STARTED)
 
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log

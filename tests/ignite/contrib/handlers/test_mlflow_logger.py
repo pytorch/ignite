@@ -156,6 +156,41 @@ def test_output_handler_with_global_step_transform():
     mock_logger.log_metrics.assert_called_once_with({"tag loss": 12345}, step=10)
 
 
+def test_optimizer_params_handler_wrong_setup():
+
+    with pytest.raises(TypeError):
+        OptimizerParamsHandler(optimizer=None)
+
+    optimizer = MagicMock(spec=torch.optim.Optimizer)
+    handler = OptimizerParamsHandler(optimizer=optimizer)
+
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with MLflowLogger"):
+        handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+
+def test_optimizer_params():
+
+    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
+    mock_logger = MagicMock(spec=MLflowLogger)
+    mock_logger.log_metrics = MagicMock()
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 123
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.log_metrics.assert_called_once_with({"lr group_0": 0.01}, step=123)
+
+    wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
+    mock_logger = MagicMock(spec=MLflowLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.log_metrics.assert_called_once_with({"generator lr group_0": 0.01}, step=123)
+
+
 def test_integration(dirname):
 
     n_epochs = 5
