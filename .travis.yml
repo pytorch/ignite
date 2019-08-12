@@ -5,8 +5,8 @@ python:
   - "3.6"
 
 env:
-  - PYTORCH_PACKAGE=pytorch-cpu
-  - PYTORCH_PACKAGE=pytorch-nightly-cpu
+  - PYTORCH_CHANNEL=pytorch
+  - PYTORCH_CHANNEL=pytorch-nightly
 
 stages:
   - Lint check
@@ -25,7 +25,7 @@ before_install: &before_install
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION $PYTORCH_PACKAGE
+  - conda create -q -n test-environment pytorch cpuonly python=$TRAVIS_PYTHON_VERSION $PYTORCH_CHANNEL
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
@@ -39,7 +39,7 @@ install:
   - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
   - pip install matplotlib pandas
-  - conda install torchvision-cpu -c pytorch
+  - conda install torchvision -c $PYTORCH_CHANNEL
   - pip install gym==0.10.11
 
 script:
