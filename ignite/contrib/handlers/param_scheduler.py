@@ -492,7 +492,8 @@ class LRScheduler(ParamScheduler):
         if new_optimizer_param_groups is not None:
             dummy_optimizer.param_groups = new_optimizer_param_groups
         kwargs = lr_scheduler.state_dict()
-        del kwargs['base_lrs']
+        for k in ['base_lrs', '_step_count']:
+            del kwargs[k]
         copy_lr_scheduler = lr_scheduler_cls(optimizer=dummy_optimizer, **kwargs)
         copy_lr_scheduler.load_state_dict(lr_scheduler.state_dict())
         return copy_lr_scheduler
