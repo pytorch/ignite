@@ -8,6 +8,12 @@ env:
   - PYTORCH_CHANNEL=pytorch
   - PYTORCH_CHANNEL=pytorch-nightly
 
+cache:
+  directories:
+    - $HOME/miniconda
+before_cache:
+  - rm -f $HOME/miniconda
+
 stages:
   - Lint check
   - Test
@@ -15,7 +21,7 @@ stages:
   - Deploy
   - Nightly
 
-before_install: &before_install
+before_install:
   - sudo apt-get update
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -89,7 +95,7 @@ jobs:
       python: "3.6"
       if: branch != nightly
       # Use previously defined before_install
-      before_install: *before_install
+      # before_install: *before_install
 
       install:
         - pip install -r docs/requirements.txt
@@ -118,7 +124,7 @@ jobs:
       if: tag IS present
 
       # Use previously defined before_install
-      before_install: *before_install
+      # before_install: *before_install
 
       install:
         - python setup.py install
@@ -171,7 +177,7 @@ jobs:
         - PYTORCH_PACKAGE=pytorch-nightly-cpu
       if: branch = nightly
       # Use previously defined before_install
-      before_install: *before_install
+      # before_install: *before_install
       install:
         # Merge master into nightly
         - git fetch origin master
