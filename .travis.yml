@@ -114,7 +114,7 @@ jobs:
     - stage: Deploy
       python: "3.6"
       env:
-        - PYTORCH_PACKAGE=pytorch-cpu
+        - PYTORCH_CHANNEL=pytorch
       if: tag IS present
 
       # Use previously defined before_install
@@ -168,7 +168,7 @@ jobs:
     - stage: Nightly
       python: "3.6"
       env:
-        - PYTORCH_PACKAGE=pytorch-nightly-cpu
+        - PYTORCH_CHANNEL=pytorch-nightly
       if: branch = nightly
       # Use previously defined before_install
       before_install: *before_install
