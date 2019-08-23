@@ -152,7 +152,7 @@ class MLflowLogger(BaseLogger):
     `MLflow <https://mlflow.org>`_ tracking client handler to log parameters and metrics during the training
     and validation.
 
-    This class requires `mlflow <https://github.com/mlflow/mlflow/>`_ package to be installed:
+    This class requires `mlflow package <https://github.com/mlflow/mlflow/>`_ to be installed:
 
     .. code-block:: bash
 
