@@ -23,7 +23,7 @@ tensorboard_logger
    :members:
    :inherited-members:
 
-See `mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
+See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
 and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
 
 
@@ -34,7 +34,7 @@ visdom_logger
    :members:
    :inherited-members:
 
-See `mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_
+See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_
 for detailed usage.
 
 
