@@ -130,6 +130,81 @@ def test_adding_multiple_event_handlers():
         handler.assert_called_once_with(engine)
 
 
+def test_event_removable_handle():
+
+    # Removable handle removes event from engine.
+    engine = DummyEngine()
+    handler = MagicMock()
+
+    removable_handle = engine.add_event_handler(Events.STARTED, handler)
+    assert engine.has_event_handler(handler, Events.STARTED)
+
+    engine.run(1)
+    handler.assert_called_once_with(engine)
+
+    removable_handle.remove()
+    assert not engine.has_event_handler(handler, Events.STARTED)
+
+    # Second engine pass does not fire handle again.
+    engine.run(1)
+    handler.assert_called_once_with(engine)
+
+    # Removable handle can be used as a context manager
+    handler = MagicMock()
+
+    with engine.add_event_handler(Events.STARTED, handler):
+        assert engine.has_event_handler(handler, Events.STARTED)
+        engine.run(1)
+
+    assert not engine.has_event_handler(handler, Events.STARTED)
+    handler.assert_called_once_with(engine)
+
+    engine.run(1)
+    handler.assert_called_once_with(engine)
+
+    # Removeable handle only effects a single event registration
+    handler = MagicMock()
+
+    with engine.add_event_handler(Events.STARTED, handler):
+        with engine.add_event_handler(Events.COMPLETED, handler):
+            assert engine.has_event_handler(handler, Events.STARTED)
+            assert engine.has_event_handler(handler, Events.COMPLETED)
+        assert engine.has_event_handler(handler, Events.STARTED)
+        assert not engine.has_event_handler(handler, Events.COMPLETED)
+    assert not engine.has_event_handler(handler, Events.STARTED)
+    assert not engine.has_event_handler(handler, Events.COMPLETED)
+
+    # Removeable handle is re-enter and re-exitable
+
+    handler = MagicMock()
+
+    remove = engine.add_event_handler(Events.STARTED, handler)
+
+    with remove:
+        with remove:
+            assert engine.has_event_handler(handler, Events.STARTED)
+        assert not engine.has_event_handler(handler, Events.STARTED)
+    assert not engine.has_event_handler(handler, Events.STARTED)
+
+    # Removeable handle is a weakref, does not keep engine or event alive
+    def _add_in_closure():
+        _engine = DummyEngine()
+
+        def _handler(_):
+            pass
+
+        _handle = _engine.add_event_handler(Events.STARTED, _handler)
+        assert _handle.engine() is _engine
+        assert _handle.handler() is _handler
+
+        return _handle
+
+    removable_handle = _add_in_closure()
+
+    assert removable_handle.engine() is None
+    assert removable_handle.handler() is None
+
+
 def test_has_event_handler():
     engine = DummyEngine()
     handlers = [MagicMock(), MagicMock()]
