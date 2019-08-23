@@ -4,6 +4,7 @@ import sys
 import time
 from collections import defaultdict
 from enum import Enum
+import weakref
 
 from ignite._utils import _to_hours_mins_secs
 
@@ -46,6 +47,56 @@ class State(object):
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
+
+
+class RemovableEventHandle(object):
+    """A weakref handle to remove a registered event.
+
+    A handle that may be used to remove a registered event handler via the
+    remove method or with-statement.
+
+    Args:
+        event_name: Registered event name.
+        handler: Registered event handler, stored as weakref.
+        engine: Target engine, stored as weakref.
+
+    Example usage:
+
+    .. code-block:: python
+
+        engine = Engine()
+
+        def print_epoch(engine):
+            print("Epoch: {}".format(engine.state.epoch))
+
+        with engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch):
+            # print_epoch handler registered for a single run
+            engine.run(data)
+
+        # print_epoch handler is now unregistered
+    """
+
+    def __init__(self, event_name, handler, engine):
+        self.event_name = event_name
+        self.handler = weakref.ref(handler)
+        self.engine = weakref.ref(engine)
+
+    def remove(self):
+        """Remove handler from engine."""
+        handler = self.handler()
+        engine = self.engine()
+
+        if handler is None or engine is None:
+            return
+
+        if engine.has_event_handler(handler, self.event_name):
+            engine.remove_event_handler(handler, self.event_name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, tb):
+        self.remove()
 
 
 class Engine(object):
@@ -164,6 +215,9 @@ class Engine(object):
               Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
               passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
+        Returns:
+            :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handler.
+
         Example usage:
 
         .. code-block:: python
@@ -185,6 +239,8 @@ class Engine(object):
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s.", event_name)
+
+        return RemovableEventHandle(event_name, handler, self)
 
     def has_event_handler(self, handler, event_name=None):
         """Check if the specified event has the specified handler.
