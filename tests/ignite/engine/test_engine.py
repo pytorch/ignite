@@ -1,5 +1,6 @@
 from __future__ import division
 from enum import Enum
+import gc
 
 import pytest
 from mock import call, MagicMock, Mock
@@ -200,6 +201,10 @@ def test_event_removable_handle():
         return _handle
 
     removable_handle = _add_in_closure()
+
+    # gc.collect, resolving reference cycles in engine/state
+    # required to ensure object deletion in python2
+    gc.collect()
 
     assert removable_handle.engine() is None
     assert removable_handle.handler() is None
