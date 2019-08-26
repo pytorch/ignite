@@ -53,7 +53,9 @@ class RemovableEventHandle(object):
     """A weakref handle to remove a registered event.
 
     A handle that may be used to remove a registered event handler via the
-    remove method or with-statement.
+    remove method, with-statement, or context manager protocol. Returned from
+    :meth:`~ignite.engine.Engine.add_event_handler`.
+
 
     Args:
         event_name: Registered event name.

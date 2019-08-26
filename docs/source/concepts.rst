@@ -88,6 +88,33 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
+Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandler`
+reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
+
+.. code-block:: python
+
+    model = ...
+    train_loader, validation_loader, test_loader = ...
+
+    trainer = create_supervised_trainer(model, optimizer, loss)
+    evaluator = create_supervised_evaluator(model, metrics={'acc': Accuracy()})
+
+    def log_metrics(engine, title):
+        print("Epoch: {} - {} accuracy: {:.2f}"
+               .format(trainer.state.epoch, title, engine.state.metrics['acc']))
+
+    @trainer.on(Events.EPOCH_COMPLETED):
+    def evaluate(trainer):
+        with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "train"):
+            evaluator.run(train_loader)
+
+        with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "validation"):
+            evaluator.run(validation_loader)
+
+        with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "test"):
+            evaluator.run(test_loader)
+
+    trainer.run(train_loader, max_epochs=100)
 
 .. Note ::
 
