@@ -1,5 +1,7 @@
-from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events, Engine, _prepare_batch
-from ignite.metrics import Loss, Metric
+# coding: utf-8
+
+from ignite.engine import create_supervised_trainer, Events, Engine, _prepare_batch
+from ignite.metrics import Metric
 from ignite.contrib.handlers import LRScheduler
 from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
@@ -10,19 +12,19 @@ import copy
 def create_lr_finder(model, optimizer, loss_fn, end_lr=10, step_mode="exp", smooth_f=0.05, diverge_th=5,
                      device=None, non_blocking=False, prepare_batch=_prepare_batch,
                      output_transform=lambda x, y, y_pred, loss: loss.item()):
-    """
-    Factory function for creating a learning rate finder for supervised models.
-    fastai/lr_find: https://github.com/fastai/fastai
+    """Factory function for creating a learning rate finder for supervised models.
+
+    based on fastai/lr_find: https://github.com/fastai/fastai
 
     Args:
         model (`torch.nn.Module`): the model to train.
         optimizer (`torch.optim.Optimizer`): the optimizer to use, the defined optimizer learning rate is assumed to be
             the lower boundary of the range test.
         loss_fn (torch.nn loss function): the loss function to use.
-        end_lr (float):
-        step_mode (str):
-        smooth_f (float):
-        diverge_th (float):
+        end_lr (float): the upper bound of the range test
+        step_mode (str): "exp" or "linear", which way should the lr be increased from optimizer's initial lr to end_lr
+        smooth_f (float): loss smoothing factor in range [0, 1), 0 for no smoothing
+        diverge_th (float): Used for stopping the search when `current loss > diverge_th * best_loss`
         device (str, optional): device type specification (default: None).
             Applies to both model and batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
@@ -85,11 +87,19 @@ def create_lr_finder(model, optimizer, loss_fn, end_lr=10, step_mode="exp", smoo
             engine.terminate()
     lr_finder_engine.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: _loss_diverged(engine, loss_and_lr))
 
+    def _warning(engine):
+        if not engine.should_terminate:
+            raise Warning("Loss didn't diverge by the end of the run, try running for more epochs or increasing end_lr")
+
+    lr_finder_engine.add_event_handler(Events.COMPLETED, _warning)
+
     return lr_finder_engine
 
 
 class LossAndLR(Metric):
-
+    """
+    metric used for aggregating the loss and lr during the run of the lr finder
+    """
     def __init__(self, engine: Engine, smooth_f, output_transform=lambda x: x):
         super().__init__(output_transform)
         self.history = {"lr": [], "loss": []}
