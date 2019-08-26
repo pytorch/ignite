@@ -103,7 +103,7 @@ reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can 
         print("Epoch: {} - {} accuracy: {:.2f}"
                .format(trainer.state.epoch, title, engine.state.metrics['acc']))
 
-    @trainer.on(Events.EPOCH_COMPLETED):
+    @trainer.on(Events.EPOCH_COMPLETED)
     def evaluate(trainer):
         with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "train"):
             evaluator.run(train_loader)
