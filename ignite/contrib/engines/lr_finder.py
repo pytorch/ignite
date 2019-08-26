@@ -40,6 +40,16 @@ def create_lr_finder(model, optimizer, loss_fn, end_lr=10, step_mode="exp", smoo
 
     Returns:
         Engine: a lr finder engine with supervised update function.
+
+    Examples:
+        >>> lr_finder = create_lr_finder(model, optimizer, loss_fn)
+        >>> lr_finder.run(dataloader, 5)
+        >>>
+        >>> lr_results = lr_finder.state.metrics["lr_vs_loss"]
+        >>> lr_suggestion = lr_results['suggestion']
+        >>> plt.plot(lr_results["lr"], lr_results["loss"])
+        >>> plt.xscale("log")
+        >>> plt.show()
     """
 
     if smooth_f < 0 or smooth_f >= 1:
