@@ -44,7 +44,7 @@ def create_lr_finder(model, optimizer, loss_fn, end_lr=10, step_mode="exp", smoo
     Examples:
         >>> lr_finder = create_lr_finder(model, optimizer, loss_fn)
         >>> lr_finder.run(dataloader, 5)
-        >>> lr_results = lr_finder.state.metrics["lr_vs_loss"]
+        >>> lr_results = lr_finder.state.metrics["lr_results"]
         >>> lr_suggestion = lr_results['suggestion']
         >>> plt.plot(lr_results["lr"], lr_results["loss"])
         >>> plt.xscale("log")
@@ -88,7 +88,7 @@ def create_lr_finder(model, optimizer, loss_fn, end_lr=10, step_mode="exp", smoo
     # log the loss at the end of every train iteration
 
     loss_and_lr = LossAndLR(lr_finder_engine, smooth_f=smooth_f)
-    loss_and_lr.attach(lr_finder_engine, name="lr_vs_loss")
+    loss_and_lr.attach(lr_finder_engine, name="lr_results")
 
     # Check if the loss has diverged. if it has, stop the trainer
     def _loss_diverged(engine: Engine, loss_metric: LossAndLR):
