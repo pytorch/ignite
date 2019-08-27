@@ -144,18 +144,20 @@ class LRFinder(object):
         if not engine.has_event_handler(self._reset):
             engine.add_event_handler(Events.COMPLETED, self._reset)
 
+        return self
+
     def detach(self):
         if self._engine:
             engine = self._engine()
             self._engine = None
-            engine.remove_event_handler(self._run, Events.STARTED)
-            engine.remove_event_handler(self._warning, Events.COMPLETED)
-            engine.remove_event_handler(self._reset, Events.COMPLETED)
+            if engine.has_event_handler(self._run, Events.STARTED):
+                engine.remove_event_handler(self._run, Events.STARTED)
+            if engine.has_event_handler(self._warning, Events.COMPLETED):
+                engine.remove_event_handler(self._warning, Events.COMPLETED)
+            if engine.has_event_handler(self._reset, Events.COMPLETED):
+                engine.remove_event_handler(self._reset, Events.COMPLETED)
         else:
             warnings.warn("This LRFinder isn't attached, this action has no effect")
-
-    def __del__(self):
-        self.detach()
 
     def get_results(self):
         """
@@ -213,6 +215,12 @@ class LRFinder(object):
         grads = [loss[i] - loss[i - 1] for i in range(1, len(loss))]
         min_grad_idx = np.argmin(grads) + 1
         return self._history["lr"][int(min_grad_idx)]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, val, tb):
+        self.detach()
 
 
 class AlreadyAttachedError(Exception):
