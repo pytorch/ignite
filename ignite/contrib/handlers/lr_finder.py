@@ -56,31 +56,31 @@ class LRFinder(object):
         if step_mode not in ["exp", "linear"]:
             raise ValueError("expected one of (exp, linear), got {}".format(step_mode))
 
-        self.model = model
-        self.optimizer = optimizer
-        self.output_transform = output_transform
-        self.end_lr = end_lr
-        self.step_mode = step_mode
-        self.smooth_f = smooth_f
-        self.diverge_th = diverge_th
-        self.memory_cache = memory_cache
-        self.cache_dir = cache_dir
+        self._model = model
+        self._optimizer = optimizer
+        self._output_transform = output_transform
+        self._end_lr = end_lr
+        self._step_mode = step_mode
+        self._smooth_f = smooth_f
+        self._diverge_th = diverge_th
+        self._memory_cache = memory_cache
+        self._cache_dir = cache_dir
 
         self._engine = None
-        self.history = None
-        self.best_loss = None
+        self._history = None
+        self._best_loss = None
         self._lr_schedule = None
 
-        self.logger = logging.getLogger(__name__)
-        self.logger.addHandler(logging.NullHandler())
+        self._logger = logging.getLogger(__name__)
+        self._logger.addHandler(logging.NullHandler())
 
     def _run(self, engine):
-        engine.state.state_cache = _StateCacher(self.memory_cache, cache_dir=self.cache_dir)
-        engine.state.state_cache.store("model", self.model.state_dict())
-        engine.state.state_cache.store("optimizer", self.optimizer.state_dict())
+        engine.state.state_cache = _StateCacher(self._memory_cache, cache_dir=self._cache_dir)
+        engine.state.state_cache.store("model", self._model.state_dict())
+        engine.state.state_cache.store("optimizer", self._optimizer.state_dict())
 
-        self.history = {"lr": [], "loss": []}
-        self.best_loss = None
+        self._history = {"lr": [], "loss": []}
+        self._best_loss = None
 
         # attach loss and lr logging
         if not engine.has_event_handler(self._log_lr_and_loss):
@@ -88,21 +88,21 @@ class LRFinder(object):
 
         # attach LRScheduler to engine. can be done only after engine.run was called because of num_iter
         num_iter = engine.state.max_epochs * len(engine.state.dataloader)
-        self.logger.debug("Running LR finder for {} iterations".format(num_iter))
+        self._logger.debug("Running LR finder for {} iterations".format(num_iter))
         # Initialize the proper learning rate policy
-        if self.step_mode.lower() == "exp":
-            self._lr_schedule = LRScheduler(ExponentialLR(self.optimizer, self.end_lr, num_iter))
+        if self._step_mode.lower() == "exp":
+            self._lr_schedule = LRScheduler(ExponentialLR(self._optimizer, self._end_lr, num_iter))
         else:
-            self._lr_schedule = LRScheduler(LinearLR(self.optimizer, self.end_lr, num_iter))
+            self._lr_schedule = LRScheduler(LinearLR(self._optimizer, self._end_lr, num_iter))
         if not engine.has_event_handler(self._lr_schedule):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
     # Reset model and optimizer, delete state cache and remove handlers
     def _reset(self, engine):
-        self.model.load_state_dict(engine.state.state_cache.retrieve("model"))
-        self.optimizer.load_state_dict(engine.state.state_cache.retrieve("optimizer"))
+        self._model.load_state_dict(engine.state.state_cache.retrieve("model"))
+        self._optimizer.load_state_dict(engine.state.state_cache.retrieve("optimizer"))
         del engine.state.state_cache
-        self.logger.debug("Completed LR finder run, resets model & optimizer")
+        self._logger.debug("Completed LR finder run, resets model & optimizer")
 
         # Clean up; remove event handlers added during run
         engine.remove_event_handler(self._lr_schedule, Events.ITERATION_COMPLETED)
@@ -110,26 +110,28 @@ class LRFinder(object):
 
     def _log_lr_and_loss(self, engine):
         output = engine.state.output
-        loss = self.output_transform(output)
+        loss = self._output_transform(output)
         lr = self._lr_schedule.lr_scheduler.get_lr()[0]
-        self.history["lr"].append(lr)
+        self._history["lr"].append(lr)
         if engine.state.iteration == 1:
-            self.best_loss = loss
+            self._best_loss = loss
         else:
-            if self.smooth_f > 0:
-                loss = self.smooth_f * loss + (1 - self.smooth_f) * self.history["loss"][-1]
-            if loss < self.best_loss:
-                self.best_loss = loss
-        self.history["loss"].append(loss)
+            if self._smooth_f > 0:
+                loss = self._smooth_f * loss + (1 - self._smooth_f) * self._history["loss"][-1]
+            if loss < self._best_loss:
+                self._best_loss = loss
+        self._history["loss"].append(loss)
 
         # Check if the loss has diverged; if it has, stop the trainer
-        if self.history["loss"][-1] > self.diverge_th * self.best_loss:
+        if self._history["loss"][-1] > self._diverge_th * self._best_loss:
             engine.terminate()
-            self.logger.info("Stopping early, the loss has diverged")
+            self._logger.info("Stopping early, the loss has diverged")
 
-    def _warning(self, engine):
+    @staticmethod
+    def _warning(engine):
         if not engine.should_terminate:
-            warnings.warn("Run completed without loss diverging, increase end_lr or look at lr_finder.plot()")
+            warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
+                          " at lr_finder.plot()")
 
     def attach(self, engine: Engine):
         if self._engine:
@@ -159,7 +161,7 @@ class LRFinder(object):
         """
         Returns: dictionary with loss and lr logs fromm the previous run
         """
-        return self.history
+        return self._history
 
     def plot(self, skip_start=10, skip_end=5, log_lr=True):
         """Plots the learning rate range test.
@@ -183,8 +185,8 @@ class LRFinder(object):
         try:
             import matplotlib.pyplot as plt
 
-            lrs = self.history["lr"]
-            losses = self.history["loss"]
+            lrs = self._history["lr"]
+            losses = self._history["loss"]
             if skip_end == 0:
                 lrs = lrs[skip_start:]
                 losses = losses[skip_start:]
@@ -201,16 +203,16 @@ class LRFinder(object):
             plt.show()
 
         except ModuleNotFoundError:
-            self.logger.warning("matplotlib not found, can't plot result")
+            self._logger.warning("matplotlib not found, can't plot result")
 
     def lr_suggestion(self):
         """
         Returns: learning rate at the minimum numerical gradient
         """
-        loss = self.history["loss"]
+        loss = self._history["loss"]
         grads = [loss[i] - loss[i - 1] for i in range(1, len(loss))]
         min_grad_idx = np.argmin(grads) + 1
-        return self.history["lr"][int(min_grad_idx)]
+        return self._history["lr"][int(min_grad_idx)]
 
 
 class AlreadyAttachedError(Exception):
