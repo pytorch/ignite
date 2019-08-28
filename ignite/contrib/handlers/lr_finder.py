@@ -26,9 +26,12 @@ class LRFinder(object):
         optimizer (`torch.optim.Optimizer`): the optimizer to use, the defined
         optimizer learning rate is assumed to be the lower boundary of the range
         test.
+        num_iter (int): number of iterations for lr schedule between base lr
+            and end_lr
         output_transform (callable, optional): function that transform the
             engine's state.output after each iteration. It must return the loss
-            of that iteration
+            of that iteration.
+        end_lr (float): upper bound for lr search.
         step_mode (str): "exp" or "linear", which way should the lr be increased
             from optimizer's initial lr to end_lr
         smooth_f (float): loss smoothing factor in range [0, 1)
@@ -41,6 +44,47 @@ class LRFinder(object):
             specified, system-wide temporary directory is used. Notice that this
              parameter will be ignored if `memory_cache` is True.
 
+    Examples:
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers import LRFinder
+
+            # Create a lr_finder
+            lr_finder = LRFinder(model, optimizer)
+
+            # Attach the lr_finder to the trainer
+            lr_finder.attach(trainer)
+
+            # Run trainer
+            trainer.run(dataloader)
+
+            # Detach lr_finder
+            lr_finder.detach()
+
+            # Get lr_finder results
+            lr_finder.get_results()
+
+            # Plot lr_finder results (requires matplotlib)
+            lr_finder.plot()
+
+            # get lr_finder suggestion for lr
+            lr_finder.lr_suggestion()
+
+        It is recommended to use the lr_finder.attach as context manager:
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers import LRFinder
+
+            lr_finder = LRFinder(model, optimizer)
+
+            with lr_finder.attach(trainer):
+                trainer.run(dataloader)
+
+            lr_finder.plot()
+
+
     References:
         Cyclical Learning Rates for Training Neural Networks:
         https://arxiv.org/abs/1506.01186
@@ -48,8 +92,8 @@ class LRFinder(object):
         fastai/lr_find: https://github.com/fastai/fastai
     """
 
-    def __init__(self, model, optimizer, output_transform=lambda output: output, end_lr=10, step_mode="exp",
-                 smooth_f=0.05, diverge_th=5, memory_cache=True, cache_dir=None):
+    def __init__(self, model, optimizer, num_iter=100, output_transform=lambda output: output, end_lr=10,
+                 step_mode="exp", smooth_f=0.05, diverge_th=5, memory_cache=True, cache_dir=None):
 
         if smooth_f < 0 or smooth_f >= 1:
             raise ValueError("smooth_f is outside the range [0, 1]")
@@ -61,6 +105,7 @@ class LRFinder(object):
         self._model = model
         self._optimizer = optimizer
         self._output_transform = output_transform
+        self.num_iter = num_iter
         self._end_lr = end_lr
         self._step_mode = step_mode
         self._smooth_f = smooth_f
@@ -69,6 +114,7 @@ class LRFinder(object):
         self._cache_dir = cache_dir
 
         self._engine = None
+        self._diverge_flag = False
         self._history = None
         self._best_loss = None
         self._lr_schedule = None
@@ -83,21 +129,28 @@ class LRFinder(object):
 
         self._history = {"lr": [], "loss": []}
         self._best_loss = None
+        self._diverge_flag = False
 
         # attach loss and lr logging
         if not engine.has_event_handler(self._log_lr_and_loss):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self._log_lr_and_loss)
 
         # attach LRScheduler to engine. can be done only after engine.run was called because of num_iter
-        num_iter = engine.state.max_epochs * len(engine.state.dataloader)
-        self._logger.debug("Running LR finder for {} iterations".format(num_iter))
+        required_epochs = self.num_iter / len(engine.state.dataloader)
+        if engine.state.max_epochs < required_epochs:
+            engine.state.max_epochs = int(np.ceil(required_epochs))
+
+        self._logger.debug("Running LR finder for {} iterations".format(self.num_iter))
         # Initialize the proper learning rate policy
         if self._step_mode.lower() == "exp":
-            self._lr_schedule = LRScheduler(_ExponentialLR(self._optimizer, self._end_lr, num_iter))
+            self._lr_schedule = LRScheduler(_ExponentialLR(self._optimizer, self._end_lr, self.num_iter))
         else:
-            self._lr_schedule = LRScheduler(_LinearLR(self._optimizer, self._end_lr, num_iter))
+            self._lr_schedule = LRScheduler(_LinearLR(self._optimizer, self._end_lr, self.num_iter))
         if not engine.has_event_handler(self._lr_schedule):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, self.num_iter)
+
+        if not engine.has_event_handler(self._reached_num_iterations):
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations)
 
     # Reset model and optimizer, delete state cache and remove handlers
     def _reset(self, engine):
@@ -109,6 +162,7 @@ class LRFinder(object):
         # Clean up; remove event handlers added during run
         engine.remove_event_handler(self._lr_schedule, Events.ITERATION_COMPLETED)
         engine.remove_event_handler(self._log_lr_and_loss, Events.ITERATION_COMPLETED)
+        engine.remove_event_handler(self._reached_num_iterations, Events.ITERATION_COMPLETED)
 
     def _log_lr_and_loss(self, engine):
         output = engine.state.output
@@ -127,11 +181,15 @@ class LRFinder(object):
         # Check if the loss has diverged; if it has, stop the trainer
         if self._history["loss"][-1] > self._diverge_th * self._best_loss:
             engine.terminate()
+            self._diverge_flag = True
             self._logger.info("Stopping early, the loss has diverged")
 
-    @staticmethod
-    def _warning(engine):
-        if not engine.should_terminate:
+    def _reached_num_iterations(self, engine):
+        if engine.state.iteration >= self.num_iter:
+            engine.terminate()
+
+    def _warning(self, engine):
+        if not self._diverge_flag:
             warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
                           " at lr_finder.plot()")
 
