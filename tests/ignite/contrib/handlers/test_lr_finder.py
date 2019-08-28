@@ -148,7 +148,7 @@ def test_lr_policy(model, optimizer, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine):
         dummy_engine.run(dataloader)
     lr = lr_finder.get_results()["lr"]
-    assert all([lr[i-1] < lr[i] for i in range(1, len(lr))])
+    assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
 
     lr_finder = LRFinder(model, optimizer, step_mode="exp")
     with lr_finder.attach(dummy_engine):
