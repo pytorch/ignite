@@ -93,9 +93,9 @@ class LRFinder(object):
         self._logger.debug("Running LR finder for {} iterations".format(num_iter))
         # Initialize the proper learning rate policy
         if self._step_mode.lower() == "exp":
-            self._lr_schedule = LRScheduler(ExponentialLR(self._optimizer, self._end_lr, num_iter))
+            self._lr_schedule = LRScheduler(_ExponentialLR(self._optimizer, self._end_lr, num_iter))
         else:
-            self._lr_schedule = LRScheduler(LinearLR(self._optimizer, self._end_lr, num_iter))
+            self._lr_schedule = LRScheduler(_LinearLR(self._optimizer, self._end_lr, num_iter))
         if not engine.has_event_handler(self._lr_schedule):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
@@ -136,6 +136,19 @@ class LRFinder(object):
                           " at lr_finder.plot()")
 
     def attach(self, engine: Engine):
+        """
+        Attaches lr_finder to engine.
+        It is recommended to use `with lr_finder.attach(engine)` instead of
+        explicitly detaching using `lr_finder.detach()`
+        Args:
+            engine: lr_finder is attached to this engine
+
+        Notes:
+            lr_finder cannot be attached to more than one engine at a time
+
+        Returns:
+            self
+        """
         if self._engine:
             raise AlreadyAttachedError("This LRFinder is already attached. create a new one or use lr_finder.detach()")
         self._engine = weakref.ref(engine)
@@ -149,6 +162,9 @@ class LRFinder(object):
         return self
 
     def detach(self):
+        """
+        Detaches lr_finder from engine.
+        """
         if self._engine:
             engine = self._engine()
             self._engine = None
@@ -231,7 +247,7 @@ class AlreadyAttachedError(Exception):
     """
 
 
-class LinearLR(_LRScheduler):
+class _LinearLR(_LRScheduler):
     """Linearly increases the learning rate between two boundaries over a number of
     iterations.
 
@@ -248,7 +264,7 @@ class LinearLR(_LRScheduler):
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(LinearLR, self).__init__(optimizer, last_epoch)
+        super(_LinearLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
@@ -256,7 +272,7 @@ class LinearLR(_LRScheduler):
         return [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
 
 
-class ExponentialLR(_LRScheduler):
+class _ExponentialLR(_LRScheduler):
     """Exponentially increases the learning rate between two boundaries over a number of
     iterations.
 
@@ -273,7 +289,7 @@ class ExponentialLR(_LRScheduler):
     def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(ExponentialLR, self).__init__(optimizer, last_epoch)
+        super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
