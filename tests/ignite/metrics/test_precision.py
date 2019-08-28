@@ -32,7 +32,7 @@ def test_binary_wrong_inputs():
 
     with pytest.raises(ValueError):
         # y_pred values are not thresholded to 0, 1 values
-        pr.update((torch.rand(10, 1),
+        pr.update((torch.rand(10,),
                    torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
 
     with pytest.raises(ValueError):
@@ -56,7 +56,7 @@ def test_binary_input_N():
 
     def _test(average):
         pr = Precision(average=average)
-        y_pred = torch.randint(0, 2, size=(10, 1))
+        y_pred = torch.randint(0, 2, size=(10,))
         y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
@@ -67,7 +67,7 @@ def test_binary_input_N():
         assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
 
         pr.reset()
-        y_pred = torch.randint(0, 2, size=(10, ))
+        y_pred = torch.randint(0, 2, size=(10,))
         y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
@@ -142,7 +142,7 @@ def test_binary_input_NL():
 
         # Batched Updates
         pr.reset()
-        y_pred = torch.randint(0, 2, size=(100, 5))
+        y_pred = torch.randint(0, 2, size=(100, 1, 5))
         y = torch.randint(0, 2, size=(100, 1, 5)).type(torch.LongTensor)
 
         batch_size = 16
@@ -191,11 +191,10 @@ def test_binary_input_NHW():
         pr_compute = pr.compute() if average else pr.compute().numpy()
         assert precision_score(np_y, np_y_pred, average='binary') == pytest.approx(pr_compute)
 
-        pr = Precision(average=average)
         # Batched Updates
         pr.reset()
         y_pred = torch.randint(0, 2, size=(100, 12, 10))
-        y = torch.randint(0, 2, size=(100, 1, 12, 10)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100, 12, 10)).type(torch.LongTensor)
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -278,7 +277,7 @@ def test_multiclass_input_N():
 
         pr.reset()
         y_pred = torch.rand(10, 4)
-        y = torch.randint(0, 4, size=(10, 1)).type(torch.LongTensor)
+        y = torch.randint(0, 4, size=(10,)).type(torch.LongTensor)
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -295,7 +294,7 @@ def test_multiclass_input_N():
         # 2-classes
         pr.reset()
         y_pred = torch.rand(10, 2)
-        y = torch.randint(0, 2, size=(10, 1)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()

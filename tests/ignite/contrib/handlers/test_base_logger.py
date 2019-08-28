@@ -22,7 +22,7 @@ class DummyOutputHandler(BaseOutputHandler):
 
 def test_base_output_handler_wrong_setup():
 
-    with pytest.raises(TypeError, match="metric_names should be a list"):
+    with pytest.raises(TypeError, match="metric_names should be either a list or equal 'all'"):
         DummyOutputHandler("tag", metric_names="abc", output_transform=None)
 
     with pytest.raises(TypeError, match="output_transform should be a function"):
@@ -33,6 +33,19 @@ def test_base_output_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument another_engine should be of type Engine"):
         DummyOutputHandler("tag", ["a", "b"], None, another_engine=123)
+
+    with pytest.raises(TypeError, match="global_step_transform should be a function"):
+        DummyOutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
+
+
+def test_base_output_handler_with_another_engine():
+    engine = Engine(lambda engine, batch: None)
+    true_metrics = {"a": 0, "b": 1}
+    engine.state = State(metrics=true_metrics)
+    engine.state.output = 12345
+
+    with pytest.warns(DeprecationWarning, match="Use of another_engine is deprecated"):
+        handler = DummyOutputHandler("tag", metric_names=['a', 'b'], output_transform=None, another_engine=engine)
 
 
 def test_base_output_handler_setup_output_metrics():
@@ -67,6 +80,11 @@ def test_base_output_handler_setup_output_metrics():
     handler = DummyOutputHandler("tag", metric_names=['a', 'b'], output_transform=lambda x: {"loss": x})
     metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == {"a": 0, "b": 1, "loss": engine.state.output}
+
+    # All metrics
+    handler = DummyOutputHandler("tag", metric_names="all", output_transform=None)
+    metrics = handler._setup_output_metrics(engine=engine)
+    assert metrics == true_metrics
 
 
 def test_attach():

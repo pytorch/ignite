@@ -10,8 +10,32 @@ into two categories:
     - Pick an issue and comment on the task that you want to work on this feature.
     - If you need more context on a particular issue, please ask and we shall provide.
 
-Once you finish implementing a feature or bugfix, please send a Pull Request to
-https://github.com/pytorch/ignite
+In both cases, you will also need to code some tests to ensure the correct behaviour. We are using 
+`pytest` to write our tests:
+  - naming convention for files `test_*.py`, e.g. `test_precision.py`
+  - naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
+
+New code should be compatible with Python 2.7 and Python 3.X versions. Once you finish implementing a feature or bugfix and tests, please run lint checking and tests:
+
+#### Run lint checking
+```bash
+flake8 ignite/ tests/
+```
+
+#### Run tests:
+```bash
+pytest tests/
+```
+or tests with coverage (assuming installed `pytest-cov`):
+```bash
+py.test --cov ignite --cov-report term-missing
+```
+
+We suggest to run test on Python 3.X, however be aware that our CI system is testing on Python 2.7 and Python 3.6. 
+
+#### Send a PR
+If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
+
 
 If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request

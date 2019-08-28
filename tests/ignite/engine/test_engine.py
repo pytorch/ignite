@@ -1,5 +1,6 @@
 from __future__ import division
 from enum import Enum
+import gc
 
 import pytest
 from mock import call, MagicMock, Mock
@@ -130,6 +131,85 @@ def test_adding_multiple_event_handlers():
         handler.assert_called_once_with(engine)
 
 
+def test_event_removable_handle():
+
+    # Removable handle removes event from engine.
+    engine = DummyEngine()
+    handler = MagicMock()
+
+    removable_handle = engine.add_event_handler(Events.STARTED, handler)
+    assert engine.has_event_handler(handler, Events.STARTED)
+
+    engine.run(1)
+    handler.assert_called_once_with(engine)
+
+    removable_handle.remove()
+    assert not engine.has_event_handler(handler, Events.STARTED)
+
+    # Second engine pass does not fire handle again.
+    engine.run(1)
+    handler.assert_called_once_with(engine)
+
+    # Removable handle can be used as a context manager
+    handler = MagicMock()
+
+    with engine.add_event_handler(Events.STARTED, handler):
+        assert engine.has_event_handler(handler, Events.STARTED)
+        engine.run(1)
+
+    assert not engine.has_event_handler(handler, Events.STARTED)
+    handler.assert_called_once_with(engine)
+
+    engine.run(1)
+    handler.assert_called_once_with(engine)
+
+    # Removeable handle only effects a single event registration
+    handler = MagicMock()
+
+    with engine.add_event_handler(Events.STARTED, handler):
+        with engine.add_event_handler(Events.COMPLETED, handler):
+            assert engine.has_event_handler(handler, Events.STARTED)
+            assert engine.has_event_handler(handler, Events.COMPLETED)
+        assert engine.has_event_handler(handler, Events.STARTED)
+        assert not engine.has_event_handler(handler, Events.COMPLETED)
+    assert not engine.has_event_handler(handler, Events.STARTED)
+    assert not engine.has_event_handler(handler, Events.COMPLETED)
+
+    # Removeable handle is re-enter and re-exitable
+
+    handler = MagicMock()
+
+    remove = engine.add_event_handler(Events.STARTED, handler)
+
+    with remove:
+        with remove:
+            assert engine.has_event_handler(handler, Events.STARTED)
+        assert not engine.has_event_handler(handler, Events.STARTED)
+    assert not engine.has_event_handler(handler, Events.STARTED)
+
+    # Removeable handle is a weakref, does not keep engine or event alive
+    def _add_in_closure():
+        _engine = DummyEngine()
+
+        def _handler(_):
+            pass
+
+        _handle = _engine.add_event_handler(Events.STARTED, _handler)
+        assert _handle.engine() is _engine
+        assert _handle.handler() is _handler
+
+        return _handle
+
+    removable_handle = _add_in_closure()
+
+    # gc.collect, resolving reference cycles in engine/state
+    # required to ensure object deletion in python2
+    gc.collect()
+
+    assert removable_handle.engine() is None
+    assert removable_handle.handler() is None
+
+
 def test_has_event_handler():
     engine = DummyEngine()
     handlers = [MagicMock(), MagicMock()]
@@ -229,6 +309,43 @@ def test_custom_events():
     engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
     engine.run(range(1))
     assert handle.called
+
+
+def test_custom_events_with_event_to_attr():
+    class Custom_Events(Enum):
+        TEST_EVENT = "test_event"
+
+    custom_event_to_attr = {Custom_Events.TEST_EVENT: 'test_event'}
+
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0)
+    engine.register_events(*Custom_Events, event_to_attr=custom_event_to_attr)
+
+    # Handle is never called
+    handle = MagicMock()
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert hasattr(engine.state, 'test_event')
+    assert engine.state.test_event == 0
+
+    # Advanced engine
+    def process_func(engine, batch):
+        engine.fire_event(Custom_Events.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*Custom_Events, event_to_attr=custom_event_to_attr)
+
+    def handle(engine):
+        engine.state.test_event += 1
+
+    engine.add_event_handler(Custom_Events.TEST_EVENT, handle)
+    engine.run(range(25))
+    assert engine.state.test_event == 25
+
+    custom_event_to_attr = 'a'
+    engine = Engine(lambda engine, batch: 0)
+    with pytest.raises(ValueError):
+        engine.register_events(*Custom_Events, event_to_attr=custom_event_to_attr)
 
 
 def test_on_decorator_raises_with_invalid_event():
@@ -524,34 +641,25 @@ def test_create_supervised_trainer_traced_with_cpu():
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    class DummyContext(object):
-        def __enter__(self):
-            return None
-
-        def __exit__(self, exc_type, exc_value, traceback):
-            return False
-
     example_input = torch.randn(1, 1)
     traced_model = torch.jit.trace(model, example_input)
 
     optimizer = SGD(traced_model.parameters(), 0.1)
-    ctx = DummyContext() if 'dev' in torch.__version__ else pytest.raises(RuntimeError)
 
-    with ctx:
-        trainer = create_supervised_trainer(traced_model, optimizer, mse_loss, device='cpu')
+    trainer = create_supervised_trainer(traced_model, optimizer, mse_loss, device='cpu')
 
-        x = torch.FloatTensor([[1.0], [2.0]])
-        y = torch.FloatTensor([[3.0], [5.0]])
-        data = [(x, y)]
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
 
-        assert traced_model.weight.data[0, 0].item() == approx(0.0)
-        assert traced_model.bias.item() == approx(0.0)
+    assert traced_model.weight.data[0, 0].item() == approx(0.0)
+    assert traced_model.bias.item() == approx(0.0)
 
-        state = trainer.run(data)
+    state = trainer.run(data)
 
-        assert state.output == approx(17.0)
-        assert traced_model.weight.data[0, 0].item() == approx(1.3)
-        assert traced_model.bias.item() == approx(0.8)
+    assert state.output == approx(17.0)
+    assert traced_model.weight.data[0, 0].item() == approx(1.3)
+    assert traced_model.bias.item() == approx(0.8)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -627,35 +735,25 @@ def test_create_supervised_evaluator_traced_on_cpu():
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    class DummyContext(object):
-        def __enter__(self):
-            return None
-
-        def __exit__(self, exc_type, exc_value, traceback):
-            return False
-
-    ctx = DummyContext() if 'dev' in torch.__version__ else pytest.raises(RuntimeError)
-
     example_input = torch.randn(1, 1)
     traced_model = torch.jit.trace(model, example_input)
 
-    with ctx:
-        evaluator = create_supervised_evaluator(traced_model, device='cpu')
+    evaluator = create_supervised_evaluator(traced_model, device='cpu')
 
-        x = torch.FloatTensor([[1.0], [2.0]])
-        y = torch.FloatTensor([[3.0], [5.0]])
-        data = [(x, y)]
+    x = torch.FloatTensor([[1.0], [2.0]])
+    y = torch.FloatTensor([[3.0], [5.0]])
+    data = [(x, y)]
 
-        state = evaluator.run(data)
-        y_pred, y = state.output
+    state = evaluator.run(data)
+    y_pred, y = state.output
 
-        assert y_pred[0, 0].item() == approx(0.0)
-        assert y_pred[1, 0].item() == approx(0.0)
-        assert y[0, 0].item() == approx(3.0)
-        assert y[1, 0].item() == approx(5.0)
+    assert y_pred[0, 0].item() == approx(0.0)
+    assert y_pred[1, 0].item() == approx(0.0)
+    assert y[0, 0].item() == approx(3.0)
+    assert y[1, 0].item() == approx(5.0)
 
-        assert traced_model.weight.data[0, 0].item() == approx(0.0)
-        assert traced_model.bias.item() == approx(0.0)
+    assert traced_model.weight.data[0, 0].item() == approx(0.0)
+    assert traced_model.bias.item() == approx(0.0)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -695,3 +793,22 @@ def test_create_supervised_with_metrics():
 
     state = evaluator.run(data)
     assert state.metrics['mse'] == 12.5
+
+
+def test_reset_should_terminate():
+
+    def update_fn(engine, batch):
+        pass
+
+    engine = Engine(update_fn)
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def terminate_on_iteration_10(engine):
+        if engine.state.iteration == 10:
+            engine.terminate()
+
+    engine.run([0] * 20)
+    assert engine.state.iteration == 10
+
+    engine.run([0] * 20)
+    assert engine.state.iteration == 10

@@ -100,9 +100,6 @@ do this, the most simple is the following:
     def update_fn(engine, batch):
         model.train()
 
-        if engine.state.iteration % accumulation_steps == 0:
-            optimizer.zero_grad()
-
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
         loss = criterion(y_pred, y) / accumulation_steps
@@ -110,6 +107,7 @@ do this, the most simple is the following:
 
         if engine.state.iteration % accumulation_steps == 0:
             optimizer.step()
+            optimizer.zero_grad()
 
         return loss.item()
 

@@ -5,8 +5,8 @@ python:
   - "3.6"
 
 env:
-  - PYTORCH_PACKAGE=pytorch-cpu
-  - PYTORCH_PACKAGE=pytorch-nightly-cpu
+  - PYTORCH_CHANNEL=pytorch
+  - PYTORCH_CHANNEL=pytorch-nightly
 
 stages:
   - Lint check
@@ -25,11 +25,11 @@ before_install: &before_install
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION $PYTORCH_PACKAGE
+  - conda create -q -n test-environment pytorch cpuonly torchvision python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client
+  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install futures; fi
@@ -38,7 +38,7 @@ install:
   - python setup.py install
   - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
-  - pip install torchvision
+  - pip install matplotlib pandas
   - pip install gym==0.10.11
 
 script:
@@ -68,6 +68,7 @@ script:
 
   #fast-neural-style
   #train
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then mkdir -p /home/travis/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O/home/travis/.cache/torch/checkpoints/vgg16-397923af.pth; fi
   - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
 
 after_success:
@@ -77,7 +78,7 @@ after_success:
 jobs:
   include:
     - stage: Lint check
-      python: "3.5"
+      python: "3.6"
       before_install: # Nothing to do
       install: pip install flake8
       script: flake8
@@ -85,7 +86,7 @@ jobs:
 
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
     - stage: Docs
-      python: "3.5"
+      python: "3.6"
       if: branch != nightly
       # Use previously defined before_install
       before_install: *before_install
@@ -111,9 +112,9 @@ jobs:
           branch: master
 
     - stage: Deploy
-      python: "3.5"
+      python: "3.6"
       env:
-        - PYTORCH_PACKAGE=pytorch-cpu
+        - PYTORCH_CHANNEL=pytorch
       if: tag IS present
 
       # Use previously defined before_install
@@ -165,9 +166,9 @@ jobs:
           tags: true
 
     - stage: Nightly
-      python: "3.5"
+      python: "3.6"
       env:
-        - PYTORCH_PACKAGE=pytorch-nightly-cpu
+        - PYTORCH_CHANNEL=pytorch-nightly
       if: branch = nightly
       # Use previously defined before_install
       before_install: *before_install

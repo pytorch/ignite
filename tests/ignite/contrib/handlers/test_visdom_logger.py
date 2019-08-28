@@ -73,6 +73,23 @@ def test_optimizer_params():
         name="lr/group_0"
     )
 
+    wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr", tag="generator")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 1 and "generator/lr/group_0" in wrapper.windows
+    assert wrapper.windows["generator/lr/group_0"]['win'] is not None
+
+    mock_logger.vis.line.assert_called_once_with(
+        X=[123, ], Y=[0.01, ], env=mock_logger.vis.env,
+        win=None, update=None,
+        opts=wrapper.windows['generator/lr/group_0']['opts'],
+        name="generator/lr/group_0"
+    )
+
 
 def test_output_handler_with_wrong_logger_type():
 
@@ -212,6 +229,33 @@ def test_output_handler_metric_names(dirname):
              opts=wrapper.windows['tag/a']['opts'], name="tag/a"),
     ], any_order=True)
 
+    # all metrics
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 2 and \
+        "tag/a" in wrapper.windows and "tag/b" in wrapper.windows
+    assert wrapper.windows["tag/a"]['win'] is not None
+    assert wrapper.windows["tag/b"]['win'] is not None
+
+    assert mock_logger.vis.line.call_count == 2
+    mock_logger.vis.line.assert_has_calls([
+        call(X=[5, ], Y=[12.23, ], env=mock_logger.vis.env,
+             win=None, update=None,
+             opts=wrapper.windows['tag/a']['opts'], name="tag/a"),
+        call(X=[5, ], Y=[23.45, ], env=mock_logger.vis.env,
+             win=None, update=None,
+             opts=wrapper.windows['tag/b']['opts'], name="tag/b"),
+    ], any_order=True)
+
 
 def test_output_handler_both(dirname):
 
@@ -267,6 +311,49 @@ def test_output_handler_both(dirname):
              win=wrapper.windows["tag/loss"]['win'], update='append',
              opts=wrapper.windows['tag/loss']['opts'], name="tag/loss"),
     ], any_order=True)
+
+
+def test_output_handler_with_wrong_global_step_transform_output():
+    def global_step_transform(*args, **kwargs):
+        return 'a'
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    with pytest.raises(TypeError, match="global_step must be int"):
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+
+def test_output_handler_with_global_step_transform():
+    def global_step_transform(*args, **kwargs):
+        return 10
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.vis.line.call_count == 1
+    assert len(wrapper.windows) == 1 and "tag/loss" in wrapper.windows
+    assert wrapper.windows["tag/loss"]['win'] is not None
+
+    mock_logger.vis.line.assert_has_calls([
+        call(X=[10, ], Y=[12345, ], env=mock_logger.vis.env,
+             win=None, update=None,
+             opts=wrapper.windows['tag/loss']['opts'], name="tag/loss")])
 
 
 def test_weights_scalar_handler_wrong_setup():

@@ -325,8 +325,9 @@ def main(dataset, dataroot,
     def print_logs(engine):
         if (engine.state.iteration - 1) % PRINT_FREQ == 0:
             fname = os.path.join(output_dir, LOGS_FNAME)
-            columns = engine.state.metrics.keys()
-            values = [str(round(value, 5)) for value in engine.state.metrics.values()]
+            columns = ["iteration", ] + list(engine.state.metrics.keys())
+            values = [str(engine.state.iteration), ] + \
+                     [str(round(value, 5)) for value in engine.state.metrics.values()]
 
             with open(fname, 'a') as f:
                 if f.tell() == 0:
@@ -388,9 +389,8 @@ def main(dataset, dataroot,
             warnings.warn('Loss plots will not be generated -- pandas or matplotlib not found')
 
         else:
-            df = pd.read_csv(os.path.join(output_dir, LOGS_FNAME), delimiter='\t')
-            x = np.arange(1, engine.state.iteration + 1, PRINT_FREQ)
-            _ = df.plot(x=x, subplots=True, figsize=(20, 20))
+            df = pd.read_csv(os.path.join(output_dir, LOGS_FNAME), delimiter='\t', index_col='iteration')
+            _ = df.plot(subplots=True, figsize=(20, 20))
             _ = plt.xlabel('Iteration number')
             fig = plt.gcf()
             path = os.path.join(output_dir, PLOT_FNAME)

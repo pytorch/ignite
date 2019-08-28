@@ -6,7 +6,7 @@ import torch
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler
 
 
-__all__ = ['PolyaxonLogger', 'OutputHandler', 'OptimizerParamsHandler']
+__all__ = ['MLflowLogger', 'OutputHandler', 'OptimizerParamsHandler']
 
 
 class OutputHandler(BaseOutputHandler):
@@ -16,18 +16,18 @@ class OutputHandler(BaseOutputHandler):
 
         .. code-block:: python
 
-            from ignite.contrib.handlers.polyaxon_logger import *
+            from ignite.contrib.handlers.mlflow_logger import *
 
             # Create a logger
-            plx_logger = PolyaxonLogger()
+            mlflow_logger = MLflowLogger()
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
-            plx_logger.attach(evaluator,
-                              log_handler=OutputHandler(tag="validation",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
-                              event_name=Events.EPOCH_COMPLETED)
+            mlflow_logger.attach(evaluator,
+                                 log_handler=OutputHandler(tag="validation",
+                                                           metric_names=["nll", "accuracy"],
+                                                           another_engine=trainer),
+                                 event_name=Events.EPOCH_COMPLETED)
 
         Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
 
@@ -42,9 +42,9 @@ class OutputHandler(BaseOutputHandler):
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
 
-            from ignite.contrib.handlers.polyaxon_logger import *
+            from ignite.contrib.handlers.mlflow_logger import *
 
-            plx_logger = PolyaxonLogger()
+            mlflow_logger = MLflowLogger()
 
             def global_step_transform(*args, **kwargs):
                 return trainer.state.iteration
@@ -52,14 +52,13 @@ class OutputHandler(BaseOutputHandler):
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # every 500 iterations. Since evaluator engine does not have CustomPeriodicEvent attached to it, we
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
-            # evaluator metrics are plotted on Polyaxon.
+            # evaluator metrics are plotted on MLflow.
 
-
-            plx_logger.attach(evaluator,
-                              log_handler=OutputHandler(tag="validation",
-                                                        metrics=["nll", "accuracy"],
-                                                        global_step_transform=global_step_transform),
-                              event_name=Events.EPOCH_COMPLETED)
+            mlflow_logger.attach(evaluator,
+                                log_handler=OutputHandler(tag="validation",
+                                                          metrics=["nll", "accuracy"],
+                                                          global_step_transform=global_step_transform),
+                                event_name=Events.EPOCH_COMPLETED)
 
     Args:
         tag (str): common title for all produced plots. For example, 'training'
@@ -81,8 +80,8 @@ class OutputHandler(BaseOutputHandler):
 
     def __call__(self, engine, logger, event_name):
 
-        if not isinstance(logger, PolyaxonLogger):
-            raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
+        if not isinstance(logger, MLflowLogger):
+            raise RuntimeError("Handler 'OutputHandler' works only with MLflowLogger")
 
         metrics = self._setup_output_metrics(engine)
 
@@ -92,20 +91,20 @@ class OutputHandler(BaseOutputHandler):
             raise TypeError("global_step must be int, got {}."
                             " Please check the output of global_step_transform.".format(type(global_step)))
 
-        rendered_metrics = {"step": global_step}
+        rendered_metrics = {}
         for key, value in metrics.items():
             if isinstance(value, numbers.Number):
-                rendered_metrics["{}/{}".format(self.tag, key)] = value
+                rendered_metrics["{} {}".format(self.tag, key)] = value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics["{}/{}".format(self.tag, key)] = value.item()
+                rendered_metrics["{} {}".format(self.tag, key)] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    rendered_metrics["{}/{}/{}".format(self.tag, key, i)] = v.item()
+                    rendered_metrics["{} {} {}".format(self.tag, key, i)] = v.item()
             else:
-                warnings.warn("PolyaxonLogger output_handler can not log "
+                warnings.warn("MLflowLogger output_handler can not log "
                               "metrics value type {}".format(type(value)))
 
-        logger.log_metrics(**rendered_metrics)
+        logger.log_metrics(rendered_metrics, step=global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -115,15 +114,17 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
         .. code-block:: python
 
-            from ignite.contrib.handlers.polyaxon_logger import *
+            from ignite.contrib.handlers.mlflow_logger import *
 
             # Create a logger
-            plx_logger = PolyaxonLogger()
+            mlflow_logger = MLflowLogger()
+            # Optionally, user can specify tracking_uri with corresponds to MLFLOW_TRACKING_URI
+            # mlflow_logger = MLflowLogger(tracking_uri="uri")
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            plx_logger.attach(trainer,
-                              log_handler=OptimizerParamsHandler(optimizer),
-                              event_name=Events.ITERATION_STARTED)
+            mlflow_logger.attach(trainer,
+                                 log_handler=OptimizerParamsHandler(optimizer),
+                                 event_name=Events.ITERATION_STARTED)
 
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
@@ -135,40 +136,42 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine, logger, event_name):
-        if not isinstance(logger, PolyaxonLogger):
-            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with PolyaxonLogger")
+        if not isinstance(logger, MLflowLogger):
+            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with MLflowLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
-        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+        tag_prefix = "{} ".format(self.tag) if self.tag else ""
+        params = {"{}{} group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
                   for i, param_group in enumerate(self.optimizer.param_groups)}
-        params['step'] = global_step
-        logger.log_metrics(**params)
+
+        logger.log_metrics(params, step=global_step)
 
 
-class PolyaxonLogger(BaseLogger):
+class MLflowLogger(BaseLogger):
     """
-    `Polyaxon <https://polyaxon.com/>`_ tracking client handler to log parameters and metrics during the training
+    `MLflow <https://mlflow.org>`_ tracking client handler to log parameters and metrics during the training
     and validation.
 
-    This class requires `polyaxon-client <https://github.com/polyaxon/polyaxon-client/>`_ package to be installed:
+    This class requires `mlflow package <https://github.com/mlflow/mlflow/>`_ to be installed:
 
     .. code-block:: bash
 
-        pip install polyaxon-client
+        pip install mlflow
 
+    Args:
+        tracking_uri (str): MLflow tracking uri. See MLflow docs for more details
 
     Examples:
 
         .. code-block:: python
 
-            from ignite.contrib.handlers.polyaxon_logger import *
+            from ignite.contrib.handlers.mlflow_logger import *
 
             # Create a logger
-            plx_logger = PolyaxonLogger()
+            mlflow_logger = MLflowLogger()
 
             # Log experiment parameters:
-            plx_logger.log_params(**{
+            mlflow_logger.log_params(**{
                 "seed": seed,
                 "batch_size": batch_size,
                 "model": model.__class__.__name__,
@@ -181,31 +184,43 @@ class PolyaxonLogger(BaseLogger):
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `train_evaluator`.
-            plx_logger.attach(train_evaluator,
-                              log_handler=OutputHandler(tag="training",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
-                              event_name=Events.EPOCH_COMPLETED)
+            mlflow_logger.attach(train_evaluator,
+                                 log_handler=OutputHandler(tag="training",
+                                                           metric_names=["nll", "accuracy"],
+                                                           another_engine=trainer),
+                                 event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
-            plx_logger.attach(evaluator,
-                              log_handler=OutputHandler(tag="validation",
-                                                        metric_names=["nll", "accuracy"],
-                                                        another_engine=trainer),
-                              event_name=Events.EPOCH_COMPLETED)
+            mlflow_logger.attach(evaluator,
+                                 log_handler=OutputHandler(tag="validation",
+                                                           metric_names=["nll", "accuracy"],
+                                                           another_engine=trainer),
+                                 event_name=Events.EPOCH_COMPLETED)
     """
 
-    def __init__(self):
+    def __init__(self, tracking_uri=None):
         try:
-            from polyaxon_client.tracking import Experiment
+            import mlflow
         except ImportError:
-            raise RuntimeError("This contrib module requires polyaxon-client to be installed. "
-                               "Please install it with command: \n pip install polyaxon-client")
+            raise RuntimeError("This contrib module requires mlflow to be installed. "
+                               "Please install it with command: \n pip install mlflow")
 
-        self.experiment = Experiment()
+        if tracking_uri is not None:
+            mlflow.set_tracking_uri(tracking_uri)
+
+        self.active_run = mlflow.active_run()
+        if self.active_run is None:
+            self.active_run = mlflow.start_run()
 
     def __getattr__(self, attr):
+
+        import mlflow
+
         def wrapper(*args, **kwargs):
-            return getattr(self.experiment, attr)(*args, **kwargs)
+            return getattr(mlflow, attr)(*args, **kwargs)
         return wrapper
+
+    def close(self):
+        import mlflow
+        mlflow.end_run()
