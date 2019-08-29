@@ -9,4 +9,4 @@ from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger
 from ignite.contrib.handlers.visdom_logger import VisdomLogger
 from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger
 from ignite.contrib.handlers.mlflow_logger import MLflowLogger
-from ignite.contrib.handlers.lr_finder import LRFinder
+from ignite.contrib.handlers.lr_finder import FastaiLRFinder

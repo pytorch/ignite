@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import nn
 import numpy as np
-from ignite.contrib.handlers import LRFinder
+from ignite.contrib.handlers import FastaiLRFinder
 from ignite.contrib.handlers.lr_finder import AlreadyAttachedError, NotEnoughIterationWarning
 from torch.optim import SGD
 from ignite.engine import create_supervised_trainer, Events
@@ -32,7 +32,7 @@ def optimizer(model):
 
 @pytest.fixture()
 def lr_finder(model, optimizer):
-    yield LRFinder(model, optimizer)
+    yield FastaiLRFinder(model, optimizer)
 
 
 @pytest.fixture()
@@ -71,7 +71,7 @@ def test_detach_warns(dummy_engine, lr_finder):
 
 
 def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloader):
-    lr_finder = LRFinder(model, optimizer)
+    lr_finder = FastaiLRFinder(model, optimizer)
 
     init_optimizer = copy.deepcopy(optimizer.state_dict())
     if isinstance(model, list):
@@ -102,7 +102,7 @@ def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloa
 
 def test_in_dir_model_optimizer_reset(tmpdir, model, optimizer, dummy_engine, dataloader):
     tmpdir_num_files = len(os.listdir(tmpdir))
-    lr_finder = LRFinder(model, optimizer, memory_cache=False)
+    lr_finder = FastaiLRFinder(model, optimizer, memory_cache=False)
 
     init_optimizer = copy.deepcopy(optimizer.state_dict())
     init_model = copy.deepcopy(model.state_dict())
@@ -133,13 +133,13 @@ def test_in_dir_model_optimizer_reset(tmpdir, model, optimizer, dummy_engine, da
 
 
 def test_lr_policy(model, optimizer, dummy_engine, dataloader):
-    lr_finder = LRFinder(model, optimizer, step_mode="linear")
+    lr_finder = FastaiLRFinder(model, optimizer, step_mode="linear")
     with lr_finder.attach(dummy_engine):
         dummy_engine.run(dataloader)
     lr = lr_finder.get_results()["lr"]
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
 
-    lr_finder = LRFinder(model, optimizer, step_mode="exp")
+    lr_finder = FastaiLRFinder(model, optimizer, step_mode="exp")
     with lr_finder.attach(dummy_engine):
         dummy_engine.run(dataloader)
     lr = lr_finder.get_results()["lr"]
@@ -157,20 +157,20 @@ def assert_output_sizes(lr_finder, dummy_engine, dataloader, num_epochs):
 
 
 def test_num_iter_is_none(model, optimizer, dummy_engine, dataloader):
-    lr_finder = LRFinder(model, optimizer, diverge_th=np.inf)
+    lr_finder = FastaiLRFinder(model, optimizer, diverge_th=np.inf)
     for i in range(1, 5):
         assert_output_sizes(lr_finder, dummy_engine, dataloader, i)
         assert dummy_engine.state.iteration == i * len(dataloader)
 
 
 def test_num_iter_is_enough(model, optimizer, dummy_engine, dataloader):
-    lr_finder = LRFinder(model, optimizer, num_iter=50, diverge_th=np.inf)
+    lr_finder = FastaiLRFinder(model, optimizer, num_iter=50, diverge_th=np.inf)
     assert_output_sizes(lr_finder, dummy_engine, dataloader, 1)
     assert dummy_engine.state.iteration == 50
 
 
 def test_num_iter_is_not_enough(model, optimizer, dummy_engine, dataloader):
-    lr_finder = LRFinder(model, optimizer, num_iter=150, diverge_th=np.inf)
+    lr_finder = FastaiLRFinder(model, optimizer, num_iter=150, diverge_th=np.inf)
     with pytest.warns(NotEnoughIterationWarning):
         assert_output_sizes(lr_finder, dummy_engine, dataloader, 1)
     assert dummy_engine.state.iteration == len(dataloader)

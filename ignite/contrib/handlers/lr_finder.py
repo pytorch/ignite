@@ -12,7 +12,7 @@ import weakref
 import warnings
 
 
-class LRFinder(object):
+class FastaiLRFinder(object):
     """
     Learning rate finder handler for supervised trainers.
 
