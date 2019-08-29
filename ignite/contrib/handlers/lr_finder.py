@@ -190,9 +190,9 @@ class FastaiLRFinder(object):
 
         # Check if the loss has diverged; if it has, stop the trainer
         if self._history["loss"][-1] > self._diverge_th * self._best_loss:
-            engine.terminate()
             self._diverge_flag = True
             self._logger.info("Stopping early, the loss has diverged")
+            engine.terminate()
 
     def _reached_num_iterations(self, engine, num_iter):
         if engine.state.iteration >= num_iter:
@@ -201,7 +201,7 @@ class FastaiLRFinder(object):
     def _warning(self, engine):
         if not self._diverge_flag:
             warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
-                          " at lr_finder.plot()")
+                          " at lr_finder.plot()", NotDivergedWarning)
 
     def attach(self, engine: Engine):
         """
@@ -319,6 +319,12 @@ class NotEnoughIterationWarning(Warning):
     """
     Warning class to raise when engine run has les iterations than what is
     specified in th elr_finder.
+    """
+
+
+class NotDivergedWarning(Warning):
+    """
+    Warning class to raise when loss doesn't diverge during lr_finder search.
     """
 
 

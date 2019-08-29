@@ -3,7 +3,7 @@ import torch
 from torch import nn
 import numpy as np
 from ignite.contrib.handlers import FastaiLRFinder
-from ignite.contrib.handlers.lr_finder import AlreadyAttachedError, NotEnoughIterationWarning
+from ignite.contrib.handlers.lr_finder import AlreadyAttachedError, NotEnoughIterationWarning, NotDivergedWarning
 from torch.optim import SGD
 from ignite.engine import create_supervised_trainer, Events
 import copy
@@ -174,3 +174,14 @@ def test_num_iter_is_not_enough(model, optimizer, dummy_engine, dataloader):
     with pytest.warns(NotEnoughIterationWarning):
         assert_output_sizes(lr_finder, dummy_engine, dataloader, 1)
     assert dummy_engine.state.iteration == len(dataloader)
+
+
+def test_detach_terminates(model, optimizer, dummy_engine, dataloader):
+    lr_finder = FastaiLRFinder(model, optimizer, end_lr=100, diverge_th=2)
+    with lr_finder.attach(dummy_engine):
+        with pytest.warns(None) as record:
+            dummy_engine.run(dataloader)
+            assert len(record) == 0
+
+    dummy_engine.run(dataloader, max_epochs=3)
+    assert dummy_engine.state.epoch == 3
