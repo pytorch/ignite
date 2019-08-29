@@ -14,3 +14,7 @@ ignite.engine
    :undoc-members:
 
 .. autoclass:: State
+
+.. autoclass:: RemovableEventHandler
+   :members:
+   :undoc-members:
