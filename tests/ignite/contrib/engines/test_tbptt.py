@@ -139,5 +139,5 @@ def test_create_supervised_tbptt_trainer_with_cpu():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_tbptt_trainer_with_gpu():
+def test_create_supervised_tbptt_trainer_on_cuda():
     _test_create_supervised_tbptt_trainer("cuda")
