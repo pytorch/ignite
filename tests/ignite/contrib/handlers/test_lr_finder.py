@@ -1,8 +1,9 @@
 import pytest
 import torch
 from torch import nn
+import numpy as np
 from ignite.contrib.handlers import LRFinder
-from ignite.contrib.handlers.lr_finder import AlreadyAttachedError
+from ignite.contrib.handlers.lr_finder import AlreadyAttachedError, NotEnoughIterationWarning
 from torch.optim import SGD
 from ignite.engine import create_supervised_trainer, Events
 import copy
@@ -69,26 +70,14 @@ def test_detach_warns(dummy_engine, lr_finder):
         lr_finder.detach()
 
 
-def test_lr_finder_output(lr_finder, dummy_engine, dataloader):
-
-    def assert_output_sizes(num_epochs):
-        with lr_finder.attach(dummy_engine):
-            dummy_engine.run(dataloader, max_epochs=num_epochs)
-
-        iteration = dummy_engine.state.iteration
-        lr_finder_results = lr_finder.get_results()
-        lr, loss = lr_finder_results["lr"], lr_finder_results["loss"]
-        assert len(lr) == len(loss) == iteration
-
-    for i in range(1, 5):
-        assert_output_sizes(i)
-
-
 def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloader):
     lr_finder = LRFinder(model, optimizer)
 
     init_optimizer = copy.deepcopy(optimizer.state_dict())
-    init_model = copy.deepcopy(model.state_dict())
+    if isinstance(model, list):
+        pass
+    else:
+        init_model = copy.deepcopy(model.state_dict())
 
     @dummy_engine.on(Events.EPOCH_COMPLETED)
     def compare_states(engine):
@@ -155,3 +144,33 @@ def test_lr_policy(model, optimizer, dummy_engine, dataloader):
         dummy_engine.run(dataloader)
     lr = lr_finder.get_results()["lr"]
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
+
+
+def assert_output_sizes(lr_finder, dummy_engine, dataloader, num_epochs):
+    with lr_finder.attach(dummy_engine):
+        dummy_engine.run(dataloader, max_epochs=num_epochs)
+
+    iteration = dummy_engine.state.iteration
+    lr_finder_results = lr_finder.get_results()
+    lr, loss = lr_finder_results["lr"], lr_finder_results["loss"]
+    assert len(lr) == len(loss) == iteration
+
+
+def test_num_iter_is_none(model, optimizer, dummy_engine, dataloader):
+    lr_finder = LRFinder(model, optimizer, diverge_th=np.inf)
+    for i in range(1, 5):
+        assert_output_sizes(lr_finder, dummy_engine, dataloader, i)
+        assert dummy_engine.state.iteration == i * len(dataloader)
+
+
+def test_num_iter_is_enough(model, optimizer, dummy_engine, dataloader):
+    lr_finder = LRFinder(model, optimizer, num_iter=50, diverge_th=np.inf)
+    assert_output_sizes(lr_finder, dummy_engine, dataloader, 1)
+    assert dummy_engine.state.iteration == 50
+
+
+def test_num_iter_is_not_enough(model, optimizer, dummy_engine, dataloader):
+    lr_finder = LRFinder(model, optimizer, num_iter=150, diverge_th=np.inf)
+    with pytest.warns(NotEnoughIterationWarning):
+        assert_output_sizes(lr_finder, dummy_engine, dataloader, 1)
+    assert dummy_engine.state.iteration == len(dataloader)

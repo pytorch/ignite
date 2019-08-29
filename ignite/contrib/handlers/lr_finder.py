@@ -27,7 +27,8 @@ class LRFinder(object):
         optimizer learning rate is assumed to be the lower boundary of the range
         test.
         num_iter (int): number of iterations for lr schedule between base lr
-            and end_lr
+            and end_lr. If `None` it will run for
+            `len(dataloader) * trainer.state.max_epochs`
         output_transform (callable, optional): function that transform the
             engine's state.output after each iteration. It must return the loss
             of that iteration.
@@ -92,7 +93,7 @@ class LRFinder(object):
         fastai/lr_find: https://github.com/fastai/fastai
     """
 
-    def __init__(self, model, optimizer, num_iter=100, output_transform=lambda output: output, end_lr=10,
+    def __init__(self, model, optimizer, num_iter=None, output_transform=lambda output: output, end_lr=10,
                  step_mode="exp", smooth_f=0.05, diverge_th=5, memory_cache=True, cache_dir=None):
 
         if smooth_f < 0 or smooth_f >= 1:
@@ -101,6 +102,8 @@ class LRFinder(object):
             raise ValueError("diverge_th should be larger than 1")
         if step_mode not in ["exp", "linear"]:
             raise ValueError("expected one of (exp, linear), got {}".format(step_mode))
+        if isinstance(num_iter, int) and num_iter <= 0:
+            raise ValueError("if provided, num_iter should be a poitive int, got {}".format(num_iter))
 
         self._model = model
         self._optimizer = optimizer
@@ -135,22 +138,29 @@ class LRFinder(object):
         if not engine.has_event_handler(self._log_lr_and_loss):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self._log_lr_and_loss)
 
-        # attach LRScheduler to engine. can be done only after engine.run was called because of num_iter
-        required_epochs = self.num_iter / len(engine.state.dataloader)
-        if engine.state.max_epochs < required_epochs:
-            engine.state.max_epochs = int(np.ceil(required_epochs))
+        # attach LRScheduler to engine.
+        if self.num_iter is None:
+            num_iter = len(engine.state.dataloader) * engine.state.max_epochs
+        else:
+            dataloader_len = len(engine.state.dataloader)
+            required_epochs = np.ceil(self.num_iter / dataloader_len)
+            if engine.state.max_epochs < required_epochs:
+                warnings.warn("to reach the desired num_iter {} with current dataloader length {}, you mudt run "
+                              "trainer for {} epochs".format(self.num_iter, dataloader_len, required_epochs),
+                              NotEnoughIterationWarning)
+            num_iter = self.num_iter
 
-        self._logger.debug("Running LR finder for {} iterations".format(self.num_iter))
+        self._logger.debug("Running LR finder for {} iterations".format(num_iter))
         # Initialize the proper learning rate policy
         if self._step_mode.lower() == "exp":
-            self._lr_schedule = LRScheduler(_ExponentialLR(self._optimizer, self._end_lr, self.num_iter))
+            self._lr_schedule = LRScheduler(_ExponentialLR(self._optimizer, self._end_lr, num_iter))
         else:
-            self._lr_schedule = LRScheduler(_LinearLR(self._optimizer, self._end_lr, self.num_iter))
+            self._lr_schedule = LRScheduler(_LinearLR(self._optimizer, self._end_lr, num_iter))
         if not engine.has_event_handler(self._lr_schedule):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, self.num_iter)
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
         if not engine.has_event_handler(self._reached_num_iterations):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations)
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
 
     # Reset model and optimizer, delete state cache and remove handlers
     def _reset(self, engine):
@@ -184,8 +194,8 @@ class LRFinder(object):
             self._diverge_flag = True
             self._logger.info("Stopping early, the loss has diverged")
 
-    def _reached_num_iterations(self, engine):
-        if engine.state.iteration >= self.num_iter:
+    def _reached_num_iterations(self, engine, num_iter):
+        if engine.state.iteration >= num_iter:
             engine.terminate()
 
     def _warning(self, engine):
@@ -302,6 +312,13 @@ class LRFinder(object):
 class AlreadyAttachedError(Exception):
     """
     Exception class to raise if trying to attach an already attached LRFinder.
+    """
+
+
+class NotEnoughIterationWarning(Warning):
+    """
+    Warning class to raise when engine run has les iterations than what is
+    specified in th elr_finder.
     """
 
 
