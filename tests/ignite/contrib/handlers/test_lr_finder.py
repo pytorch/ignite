@@ -71,13 +71,10 @@ def test_detach_warns(dummy_engine, lr_finder):
 
 
 def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloader):
-    lr_finder = FastaiLRFinder(model, optimizer)
+    lr_finder = FastaiLRFinder(model, optimizer, diverge_th=np.inf)
 
     init_optimizer = copy.deepcopy(optimizer.state_dict())
-    if isinstance(model, list):
-        pass
-    else:
-        init_model = copy.deepcopy(model.state_dict())
+    init_model = copy.deepcopy(model.state_dict())
 
     @dummy_engine.on(Events.EPOCH_COMPLETED)
     def compare_states(engine):
@@ -102,7 +99,7 @@ def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloa
 
 def test_in_dir_model_optimizer_reset(tmpdir, model, optimizer, dummy_engine, dataloader):
     tmpdir_num_files = len(os.listdir(tmpdir))
-    lr_finder = FastaiLRFinder(model, optimizer, memory_cache=False)
+    lr_finder = FastaiLRFinder(model, optimizer, memory_cache=False, cache_dir=tmpdir, diverge_th=np.inf)
 
     init_optimizer = copy.deepcopy(optimizer.state_dict())
     init_model = copy.deepcopy(model.state_dict())
@@ -166,7 +163,8 @@ def test_num_iter_is_none(model, optimizer, dummy_engine, dataloader):
 def test_num_iter_is_enough(model, optimizer, dummy_engine, dataloader):
     lr_finder = FastaiLRFinder(model, optimizer, num_iter=50, diverge_th=np.inf)
     assert_output_sizes(lr_finder, dummy_engine, dataloader, 1)
-    assert dummy_engine.state.iteration == 50
+    # -1 because it terminates when state.iteration > num_iter
+    assert dummy_engine.state.iteration - 1 == 50
 
 
 def test_num_iter_is_not_enough(model, optimizer, dummy_engine, dataloader):
@@ -185,3 +183,10 @@ def test_detach_terminates(model, optimizer, dummy_engine, dataloader):
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
+
+
+def test_lr_suggestion(lr_finder, dummy_engine, dataloader):
+    with lr_finder.attach(dummy_engine):
+        dummy_engine.run(dataloader)
+
+    assert 1e-4 <= lr_finder.lr_suggestion() <= 10

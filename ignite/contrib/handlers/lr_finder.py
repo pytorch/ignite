@@ -134,10 +134,6 @@ class FastaiLRFinder(object):
         self._best_loss = None
         self._diverge_flag = False
 
-        # attach loss and lr logging
-        if not engine.has_event_handler(self._log_lr_and_loss):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self._log_lr_and_loss)
-
         # attach LRScheduler to engine.
         if self.num_iter is None:
             num_iter = len(engine.state.dataloader) * engine.state.max_epochs
@@ -150,6 +146,13 @@ class FastaiLRFinder(object):
                               NotEnoughIterationWarning)
             num_iter = self.num_iter
 
+        if not engine.has_event_handler(self._reached_num_iterations):
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
+
+        # attach loss and lr logging
+        if not engine.has_event_handler(self._log_lr_and_loss):
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self._log_lr_and_loss)
+
         self._logger.debug("Running LR finder for {} iterations".format(num_iter))
         # Initialize the proper learning rate policy
         if self._step_mode.lower() == "exp":
@@ -158,9 +161,6 @@ class FastaiLRFinder(object):
             self._lr_schedule = LRScheduler(_LinearLR(self._optimizer, self._end_lr, num_iter))
         if not engine.has_event_handler(self._lr_schedule):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
-
-        if not engine.has_event_handler(self._reached_num_iterations):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
 
     # Reset model and optimizer, delete state cache and remove handlers
     def _reset(self, engine):
@@ -195,7 +195,7 @@ class FastaiLRFinder(object):
             engine.terminate()
 
     def _reached_num_iterations(self, engine, num_iter):
-        if engine.state.iteration >= num_iter:
+        if engine.state.iteration > num_iter:
             engine.terminate()
 
     def _warning(self, engine):
