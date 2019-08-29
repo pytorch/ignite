@@ -203,7 +203,7 @@ class FastaiLRFinder(object):
             warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
                           " at lr_finder.plot()", NotDivergedWarning)
 
-    def attach(self, engine: Engine):
+    def attach(self, engine):
         """
         Attaches lr_finder to engine.
         It is recommended to use `with lr_finder.attach(engine)` instead of
