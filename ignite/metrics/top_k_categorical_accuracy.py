@@ -4,6 +4,7 @@ import torch
 
 from ignite.metrics.metric import Metric
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
 
 
 class TopKCategoricalAccuracy(Metric):
@@ -12,14 +13,16 @@ class TopKCategoricalAccuracy(Metric):
 
     - `update` must receive output of the form `(y_pred, y)`.
     """
-    def __init__(self, k=5, output_transform=lambda x: x):
-        super(TopKCategoricalAccuracy, self).__init__(output_transform)
+    def __init__(self, k=5, output_transform=lambda x: x, device=None):
+        super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device)
         self._k = k
 
+    @reinit_is_reduced
     def reset(self):
         self._num_correct = 0
         self._num_examples = 0
 
+    @reinit_is_reduced
     def update(self, output):
         y_pred, y = output
         sorted_indices = torch.topk(y_pred, self._k, dim=1)[1]
@@ -28,6 +31,7 @@ class TopKCategoricalAccuracy(Metric):
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
 
+    @sync_all_reduce("_num_correct", "_num_examples")
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError("TopKCategoricalAccuracy must have at"

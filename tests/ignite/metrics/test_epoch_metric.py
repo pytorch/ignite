@@ -1,5 +1,7 @@
-from ignite.metrics import EpochMetric
 import torch
+
+from ignite.metrics import EpochMetric
+
 import pytest
 
 
@@ -111,3 +113,33 @@ def test_bad_compute_fn():
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     with pytest.warns(RuntimeWarning):
         em.update(output1)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib(local_rank, distributed_context_single_node):
+
+    def test_warning():
+
+        def compute_fn(y_preds, y_targets):
+            return 0.0
+
+        with pytest.warns(RuntimeWarning, match="EpochMetric class does not work in distributed setting."):
+            EpochMetric(compute_fn)
+
+    test_warning()
+
+    # Perform some ops otherwise, next tests fail
+    import torch.distributed as dist
+
+    device = "cuda:{}".format(local_rank)
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+
+    y = torch.rand(10, 12, device=device)
+    y = _gather(y)
+    assert isinstance(y, torch.Tensor)
