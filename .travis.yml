@@ -164,6 +164,7 @@ jobs:
 
     - stage: Nightly
       python: "3.6"
+      if: env(TRAVIS_EVENT_TYPE) = cron
       env:
         - PYTORCH_CHANNEL=pytorch-nightly
       # Use previously defined before_install
