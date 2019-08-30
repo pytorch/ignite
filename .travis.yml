@@ -9,11 +9,11 @@ env:
   - PYTORCH_CHANNEL=pytorch-nightly
 
 stages:
+  - Nightly
   - Lint check
   - Test
   - Docs
   - Deploy
-  - Nightly
 
 before_install: &before_install
   - sudo apt-get update
@@ -200,4 +200,4 @@ jobs:
         skip_cleanup: true
         distributions: "sdist bdist_wheel"
         on:
-          branch: nightly
+          branch: master
