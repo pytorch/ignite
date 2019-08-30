@@ -1,6 +1,4 @@
 import os
-import tempfile
-import shutil
 import math
 
 import pytest
@@ -11,13 +9,6 @@ import torch
 
 from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.tensorboard_logger import *
-
-
-@pytest.fixture
-def dirname():
-    path = tempfile.mkdtemp()
-    yield path
-    shutil.rmtree(path)
 
 
 def test_optimizer_params_handler_wrong_setup():

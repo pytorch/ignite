@@ -4,6 +4,7 @@ from ignite.engine import Engine, State
 import torch
 from mock import MagicMock
 
+import pytest
 from pytest import approx, raises
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
@@ -445,3 +446,84 @@ def test_indexing_metric():
     _test(ConfusionMatrix(num_classes), confusion_matrix, {'labels': labels}, index=np.ix_(labels, labels))
     labels = [1]
     _test(ConfusionMatrix(num_classes), confusion_matrix, {'labels': labels}, index=np.ix_(labels, labels))
+
+
+class DummyMetric(Metric):
+    def reset(self):
+        pass
+
+    def compute(self):
+        pass
+
+    def update(self, output):
+        pass
+
+
+def test__sync_all_reduce():
+    m = DummyMetric()
+    res = m._sync_all_reduce(10)
+    assert res == 10
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib(local_rank, distributed_context_single_node):
+
+    def test_distrib__sync_all_reduce():
+        import torch.distributed as dist
+        assert dist.is_available() and dist.is_initialized()
+
+        device = "cuda:{}".format(local_rank)
+
+        m = DummyMetric(device=device)
+        res = m._sync_all_reduce(10)
+        assert res == 10 * dist.get_world_size()
+
+        m = DummyMetric(device=device)
+        t = torch.tensor(10, device=device)
+        res = m._sync_all_reduce(t)
+        assert res.item() == 10 * dist.get_world_size()
+
+        m = DummyMetric(device=device)
+        with pytest.raises(TypeError, match=r"Unhandled input type"):
+            m._sync_all_reduce("abc")
+
+    test_distrib__sync_all_reduce()
+
+    def test_distrib_sync_all_reduce_decorator():
+
+        import torch.distributed as dist
+        from ignite.metrics.metric import sync_all_reduce
+
+        class DummyMetric(Metric):
+
+            def reset(self):
+                self.a = torch.tensor([0, 1, 2, 3], device=self._device, requires_grad=False)
+                self.a_nocomp = self.a.clone().to('cpu')
+                self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
+                self.b_nocomp = self.b.clone().to("cpu")
+                self.c = 0.0
+                self.c_nocomp = self.c
+                self.n = 0
+                self.n_nocomp = self.n
+
+            @sync_all_reduce("a", "b", "c", "n")
+            def compute(self):
+                assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
+                assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
+                assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
+                assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+
+            def update(self, output):
+                self.n += 1
+                self.c += 1.23456
+                self.a += 10.0
+                self.b -= 5.0
+
+        m = DummyMetric(device="cuda:{}".format(local_rank))
+        m.update(None)
+        m.compute()
+        # check if can call compute twise without all reduce
+        m.compute()
+
+    test_distrib_sync_all_reduce_decorator()

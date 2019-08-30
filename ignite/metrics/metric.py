@@ -1,7 +1,16 @@
+import numbers
 from abc import ABCMeta, abstractmethod
+from functools import wraps
+
+try:
+    from collections.abc import Sequence
+except ImportError:  # Python 2.7 compatibility
+    from collections import Sequence
+
+import torch
+
 from ignite._six import with_metaclass
 from ignite.engine import Events
-import torch
 
 
 class Metric(with_metaclass(ABCMeta, object)):
@@ -13,11 +22,23 @@ class Metric(with_metaclass(ABCMeta, object)):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        device (str of torch.device, optional): device specification in case of distributed computation usage.
+            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+            initialized and available, device is set to `cuda`.
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform=lambda x: x, device=None):
         self._output_transform = output_transform
+
+        # Check device if distributed is initialized:
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            if device is None:
+                device = "cuda"
+            device = torch.device(device)
+        self._device = device
+        self._is_reduced = False
         self.reset()
 
     @abstractmethod
@@ -55,6 +76,31 @@ class Metric(with_metaclass(ABCMeta, object)):
             NotComputableError: raised when the metric cannot be computed.
         """
         pass
+
+    def _sync_all_reduce(self, tensor):
+        if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
+            # Nothing to reduce
+            return tensor
+
+        tensor_to_number = False
+        if isinstance(tensor, numbers.Number):
+            tensor = torch.tensor(tensor, device=self._device)
+            tensor_to_number = True
+
+        if isinstance(tensor, torch.Tensor):
+            # check if the tensor is at specified device
+            if tensor.device != self._device:
+                tensor = tensor.to(self._device)
+        else:
+            raise TypeError("Unhandled input type {}".format(type(tensor)))
+
+        # synchronize and reduce
+        torch.distributed.barrier()
+        torch.distributed.all_reduce(tensor)
+
+        if tensor_to_number:
+            return tensor.item()
+        return tensor
 
     def started(self, engine):
         self.reset()
@@ -146,3 +192,36 @@ class Metric(with_metaclass(ABCMeta, object)):
     def __getitem__(self, index):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x: x[index], self)
+
+
+def sync_all_reduce(*attrs):
+
+    def wrapper(func):
+
+        @wraps(func)
+        def another_wrapper(self, *args, **kwargs):
+            if not isinstance(self, Metric):
+                raise RuntimeError("Decorator sync_all_reduce should be used on "
+                                   "ignite.metric.Metric class methods only")
+
+            if len(attrs) > 0 and not self._is_reduced:
+                for attr in attrs:
+                    t = getattr(self, attr, None)
+                    if t is not None:
+                        t = self._sync_all_reduce(t)
+                        self._is_reduced = True
+                        setattr(self, attr, t)
+
+            return func(self, *args, **kwargs)
+        return another_wrapper
+    return wrapper
+
+
+def reinit_is_reduced(func):
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        func(self, *args, **kwargs)
+        self._is_reduced = False
+
+    return wrapper

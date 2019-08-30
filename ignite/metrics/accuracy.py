@@ -1,18 +1,19 @@
 from __future__ import division
 
-import torch
-
-from ignite.metrics.metric import Metric
+from ignite.metrics import Metric
+from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
 from ignite.exceptions import NotComputableError
+
+import torch
 
 
 class _BaseClassification(Metric):
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, device=None):
         self._is_multilabel = is_multilabel
         self._type = None
         self._num_classes = None
-        super(_BaseClassification, self).__init__(output_transform=output_transform)
+        super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self):
         self._type = None
@@ -108,18 +109,27 @@ class Accuracy(_BaseClassification):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
+        device (str of torch.device, optional): device specification in case of distributed computation usage.
+            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+            initialized and available, device is set to `cuda`.
+
     """
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, is_multilabel=False, device=None):
         self._num_correct = None
         self._num_examples = None
-        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
+        super(Accuracy, self).__init__(output_transform=output_transform,
+                                       is_multilabel=is_multilabel,
+                                       device=device)
 
+    @reinit_is_reduced
     def reset(self):
         self._num_correct = 0
         self._num_examples = 0
         super(Accuracy, self).reset()
 
+    @reinit_is_reduced
     def update(self, output):
         y_pred, y = output
         self._check_shape((y_pred, y))
@@ -141,6 +151,7 @@ class Accuracy(_BaseClassification):
         self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
 
+    @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('Accuracy must have at least one example before it can be computed.')

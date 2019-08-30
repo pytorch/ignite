@@ -4,7 +4,7 @@ import torch
 
 from ignite.metrics import Metric, MetricsLambda
 from ignite.exceptions import NotComputableError
-from ignite.utils import to_onehot
+from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
 
 
 class ConfusionMatrix(Metric):
@@ -12,12 +12,12 @@ class ConfusionMatrix(Metric):
 
     - `update` must receive output of the form `(y_pred, y)`.
     - `y_pred` must contain logits and has the following shape (batch_size, num_categories, ...)
-    - `y` can be of two types:
-        - shape (batch_size, num_categories, ...)
-        - shape (batch_size, ...) and contains ground-truth class indices
+    - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices
+        with or without the background class. During the computation, argmax of `y_pred` is taken to determine
+        predicted classes.
 
     Args:
-        num_classes (int): number of classes. In case of images, num_classes should also count the background index 0.
+        num_classes (int): number of classes. See notes for more details.
         average (str, optional): confusion matrix values averaging schema: None, "samples", "recall", "precision".
             Default is None. If `average="samples"` then confusion matrix values are normalized by the number of seen
             samples. If `average="recall"` then confusion matrix values are normalized such that diagonal values
@@ -27,9 +27,14 @@ class ConfusionMatrix(Metric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        device (str of torch.device, optional): device specification in case of distributed computation usage.
+            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+            initialized and available, device is set to `cuda`.
+
     """
 
-    def __init__(self, num_classes, average=None, output_transform=lambda x: x):
+    def __init__(self, num_classes, average=None, output_transform=lambda x: x, device=None):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of ['samples', 'recall', 'precision']")
 
@@ -37,10 +42,13 @@ class ConfusionMatrix(Metric):
         self._num_examples = 0
         self.average = average
         self.confusion_matrix = None
-        super(ConfusionMatrix, self).__init__(output_transform=output_transform)
+        super(ConfusionMatrix, self).__init__(output_transform=output_transform, device=device)
 
+    @reinit_is_reduced
     def reset(self):
-        self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes, dtype=torch.float)
+        self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes,
+                                            dtype=torch.float,
+                                            device=self._device)
         self._num_examples = 0
 
     def _check_shape(self, output):
@@ -54,9 +62,9 @@ class ConfusionMatrix(Metric):
             raise ValueError("y_pred does not have correct number of categories: {} vs {}"
                              .format(y_pred.shape[1], self.num_classes))
 
-        if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
+        if not (y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError("y_pred must have shape (batch_size, num_categories, ...) and y must have "
-                             "shape of (batch_size, num_categories, ...) or (batch_size, ...), "
+                             "shape of (batch_size, ...), "
                              "but given {} vs {}.".format(y.shape, y_pred.shape))
 
         y_shape = y.shape
@@ -68,38 +76,38 @@ class ConfusionMatrix(Metric):
         if y_shape != y_pred_shape:
             raise ValueError("y and y_pred must have compatible shapes.")
 
-        return y_pred, y
-
+    @reinit_is_reduced
     def update(self, output):
-        y_pred, y = self._check_shape(output)
+        self._check_shape(output)
+        y_pred, y = output
 
-        if y_pred.shape != y.shape:
-            y_ohe = to_onehot(y.reshape(-1), self.num_classes)
-            y_ohe_t = y_ohe.transpose(0, 1).float()
-        else:
-            y_ohe_t = y.transpose(0, 1).reshape(y.shape[1], -1).float()
-
-        indices = torch.argmax(y_pred, dim=1)
-        y_pred_ohe = to_onehot(indices.reshape(-1), self.num_classes)
-        y_pred_ohe = y_pred_ohe.float()
-
-        if self.confusion_matrix.type() != y_ohe_t.type():
-            self.confusion_matrix = self.confusion_matrix.type_as(y_ohe_t)
-
-        self.confusion_matrix += torch.matmul(y_ohe_t, y_pred_ohe).float()
         self._num_examples += y_pred.shape[0]
 
+        # target is (batch_size, ...)
+        y_pred = torch.argmax(y_pred, dim=1).flatten()
+        y = y.flatten()
+
+        target_mask = (y >= 0) & (y < self.num_classes)
+        y = y[target_mask]
+        y_pred = y_pred[target_mask]
+
+        indices = self.num_classes * y + y_pred
+        m = torch.bincount(indices, minlength=self.num_classes ** 2).reshape(self.num_classes, self.num_classes)
+        self.confusion_matrix += m.to(self.confusion_matrix)
+
+    @sync_all_reduce('confusion_matrix', '_num_examples')
     def compute(self):
         if self._num_examples == 0:
             raise NotComputableError('Confusion matrix must have at least one example before it can be computed.')
         if self.average:
+            self.confusion_matrix = self.confusion_matrix.float()
             if self.average == "samples":
                 return self.confusion_matrix / self._num_examples
             elif self.average == "recall":
                 return self.confusion_matrix / (self.confusion_matrix.sum(dim=1) + 1e-15)
             elif self.average == "precision":
                 return self.confusion_matrix / (self.confusion_matrix.sum(dim=0) + 1e-15)
-        return self.confusion_matrix.cpu()
+        return self.confusion_matrix
 
 
 def IoU(cm, ignore_index=None):

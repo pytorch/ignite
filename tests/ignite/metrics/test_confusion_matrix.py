@@ -7,7 +7,6 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall
-from ignite.utils import to_onehot
 
 import pytest
 
@@ -25,37 +24,33 @@ def test_multiclass_wrong_inputs():
     cm = ConfusionMatrix(10)
 
     with pytest.raises(ValueError, match=r"y_pred must have shape \(batch_size, num_categories, ...\)"):
-        # incompatible shapes
         cm.update((torch.rand(10),
-                   torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
+                   torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(ValueError, match=r"y_pred does not have correct number of categories:"):
-        # incompatible shapes
         cm.update((torch.rand(10, 5, 4),
-                   torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
+                   torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(ValueError, match=r"y_pred must have shape \(batch_size, num_categories, ...\) "
                                          r"and y must have "):
-        # incompatible shapes
         cm.update((torch.rand(4, 10, 12, 12),
-                   torch.randint(0, 10, size=(10, )).type(torch.LongTensor)))
+                   torch.randint(0, 10, size=(10, )).long()))
 
     with pytest.raises(ValueError, match=r"y and y_pred must have compatible shapes."):
-        # incompatible shapes
         cm.update((torch.rand(4, 10, 12, 14),
-                   torch.randint(0, 10, size=(4, 5, 6)).type(torch.LongTensor)))
+                   torch.randint(0, 10, size=(4, 5, 6)).long()))
 
     with pytest.raises(ValueError, match=r"Argument average can None or one of"):
         ConfusionMatrix(num_classes=10, average="abc")
 
 
 def test_multiclass_input_N():
-    # Multiclass input data of shape (N, ) and (N, C)
+    # Multiclass input data of shape (N, )
     def _test_N():
         num_classes = 4
         cm = ConfusionMatrix(num_classes=num_classes)
         y_pred = torch.rand(10, num_classes)
-        y = torch.randint(0, num_classes, size=(10,)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(10,)).long()
         cm.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -64,7 +59,7 @@ def test_multiclass_input_N():
         num_classes = 10
         cm = ConfusionMatrix(num_classes=num_classes)
         y_pred = torch.rand(4, num_classes)
-        y = torch.randint(0, num_classes, size=(4, )).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(4, )).long()
         cm.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -74,7 +69,7 @@ def test_multiclass_input_N():
         num_classes = 2
         cm = ConfusionMatrix(num_classes=num_classes)
         y_pred = torch.rand(4, num_classes)
-        y = torch.randint(0, num_classes, size=(4,)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(4,)).long()
         cm.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -85,7 +80,7 @@ def test_multiclass_input_N():
         cm = ConfusionMatrix(num_classes=num_classes)
 
         y_pred = torch.rand(100, num_classes)
-        y = torch.randint(0, num_classes, size=(100,)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(100,)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -95,74 +90,22 @@ def test_multiclass_input_N():
             cm.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
 
         np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    def _test_NC():
-        num_classes = 4
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(10, num_classes)
-        y_labels = torch.randint(0, num_classes, size=(10,)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y_labels.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        num_classes = 10
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes)
-        y_labels = torch.randint(0, num_classes, size=(4, )).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y_labels.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # 2-classes
-        num_classes = 2
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes)
-        y_labels = torch.randint(0, num_classes, size=(4,)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y_labels.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(100, num_classes)
-        y_labels = torch.randint(0, num_classes, size=(100,)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
-        np_y = y_labels.numpy().ravel()
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(10):
         _test_N()
-        _test_NC()
 
 
 def test_multiclass_input_NL():
-    # Multiclass input data of shape (N, L) and (N, C, L)
+    # Multiclass input data of shape (N, L)
     def _test_NL():
         num_classes = 4
         cm = ConfusionMatrix(num_classes=num_classes)
 
         y_pred = torch.rand(10, num_classes, 5)
-        y = torch.randint(0, num_classes, size=(10, 5)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(10, 5)).long()
         cm.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -171,7 +114,7 @@ def test_multiclass_input_NL():
         num_classes = 10
         cm = ConfusionMatrix(num_classes=num_classes)
         y_pred = torch.rand(4, num_classes, 5)
-        y = torch.randint(0, num_classes, size=(4, 5)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(4, 5)).long()
         cm.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -182,7 +125,7 @@ def test_multiclass_input_NL():
         cm = ConfusionMatrix(num_classes=num_classes)
 
         y_pred = torch.rand(100, num_classes, 7)
-        y = torch.randint(0, num_classes, size=(100, 7)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(100, 7)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -192,64 +135,22 @@ def test_multiclass_input_NL():
             cm.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
 
         np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    def _test_NCL():
-        num_classes = 4
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(10, num_classes, 5)
-        y_labels = torch.randint(0, num_classes, size=(10, 5)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y_labels.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        num_classes = 10
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes, 5)
-        y_labels = torch.randint(0, num_classes, size=(4, 5)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y_labels.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 9
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(100, num_classes, 7)
-        y_labels = torch.randint(0, num_classes, size=(100, 7)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
-        np_y = y_labels.numpy().ravel()
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(10):
         _test_NL()
-        _test_NCL()
 
 
 def test_multiclass_input_NHW():
-    # Multiclass input data of shape (N, H, W, ...) and (N, C, H, W, ...)
+    # Multiclass input data of shape (N, H, W, ...)
     def _test_NHW():
         num_classes = 5
         cm = ConfusionMatrix(num_classes=num_classes)
 
         y_pred = torch.rand(4, num_classes, 12, 10)
-        y = torch.randint(0, num_classes, size=(4, 12, 10)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(4, 12, 10)).long()
         cm.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -258,7 +159,7 @@ def test_multiclass_input_NHW():
         num_classes = 5
         cm = ConfusionMatrix(num_classes=num_classes)
         y_pred = torch.rand(4, num_classes, 10, 12, 8)
-        y = torch.randint(0, num_classes, size=(4, 10, 12, 8)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(4, 10, 12, 8)).long()
         cm.update((y_pred, y))
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -268,7 +169,7 @@ def test_multiclass_input_NHW():
         num_classes = 3
         cm = ConfusionMatrix(num_classes=num_classes)
         y_pred = torch.rand(100, num_classes, 8, 8)
-        y = torch.randint(0, num_classes, size=(100, 8, 8)).type(torch.LongTensor)
+        y = torch.randint(0, num_classes, size=(100, 8, 8)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -278,53 +179,24 @@ def test_multiclass_input_NHW():
             cm.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
 
         np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    def _test_NCHW():
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(4, num_classes, 12, 10)
-        y_labels = torch.randint(0, num_classes, size=(4, 12, 10)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y_labels.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes, 10, 12, 8)
-        y_labels = torch.randint(0, num_classes, size=(4, 10, 12, 8)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y_labels.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 3
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(100, num_classes, 8, 8)
-        y_labels = torch.randint(0, num_classes, size=(100, 8, 8)).type(torch.LongTensor)
-        y = to_onehot(y_labels, num_classes=num_classes)
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
-        np_y = y_labels.numpy().ravel()
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(10):
         _test_NHW()
-        _test_NCHW()
+
+
+def test_ignored_out_of_num_classes_indices():
+    num_classes = 21
+    cm = ConfusionMatrix(num_classes=num_classes)
+
+    y_pred = torch.rand(4, num_classes, 12, 10)
+    y = torch.randint(0, 255, size=(4, 12, 10)).long()
+    cm.update((y_pred, y))
+    np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+    np_y = y.numpy().ravel()
+    assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
 
 def get_y_true_y_pred():
@@ -580,8 +452,8 @@ def test_cm_recall():
 
 def test_cm_with_average():
     num_classes = 5
-    y_pred = torch.rand(20, num_classes)
-    y = torch.randint(0, num_classes, size=(20,)).type(torch.LongTensor)
+    y_pred = torch.rand(40, num_classes)
+    y = torch.randint(0, num_classes, size=(40,)).long()
     np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
     np_y = y.numpy().ravel()
 
@@ -602,3 +474,84 @@ def test_cm_with_average():
     true_pr = precision_score(np_y, np_y_pred, average=None, labels=list(range(num_classes)))
     res = cm.compute().numpy().diagonal()
     np.testing.assert_almost_equal(true_pr, res)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib(local_rank, distributed_context_single_node):
+
+    def test_distrib_multiclass_images():
+
+        import torch.distributed as dist
+
+        device = "cuda:{}".format(local_rank)
+
+        def _gather(y):
+            output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+            dist.all_gather(output, y)
+            y = torch.cat(output, dim=0)
+            return y
+
+        num_classes = 3
+        cm = ConfusionMatrix(num_classes=num_classes, device=device)
+
+        y_true, y_pred = get_y_true_y_pred()
+
+        # Compute confusion matrix with sklearn
+        true_res = confusion_matrix(y_true.reshape(-1), y_pred.reshape(-1))
+
+        th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+        th_y_true = th_y_true.to(device)
+        th_y_logits = th_y_logits.to(device)
+
+        # Update metric
+        output = (th_y_logits, th_y_true)
+        cm.update(output)
+
+        res = cm.compute().cpu().numpy() / dist.get_world_size()
+
+        assert np.all(true_res == res)
+
+        # Another test on batch of 2 images
+        num_classes = 3
+        cm = ConfusionMatrix(num_classes=num_classes, device=device)
+
+        # Create a batch of two images:
+        th_y_true1 = torch.from_numpy(y_true).reshape(1, 30, 30)
+        th_y_true2 = torch.from_numpy(y_true.transpose()).reshape(1, 30, 30)
+        th_y_true = torch.cat([th_y_true1, th_y_true2], dim=0)
+        th_y_true = th_y_true.to(device)
+
+        # Create a batch of 2 logits tensors
+        y_probas = np.ones((3, 30, 30)) * -10
+        y_probas[0, (y_pred == 0)] = 720
+        y_probas[1, (y_pred == 1)] = 720
+        y_probas[2, (y_pred == 2)] = 768
+        th_y_logits1 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
+
+        y_probas = np.ones((3, 30, 30)) * -10
+        y_probas[0, (y_pred.transpose() == 0)] = 720
+        y_probas[1, (y_pred.transpose() == 2)] = 720
+        y_probas[2, (y_pred.transpose() == 1)] = 768
+        th_y_logits2 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
+
+        th_y_logits = torch.cat([th_y_logits1, th_y_logits2], dim=0)
+        # check update if input is on another device
+        th_y_logits = th_y_logits.to(device)
+
+        # Update metric & compute
+        output = (th_y_logits, th_y_true)
+        cm.update(output)
+        res = cm.compute().cpu().numpy()
+
+        # Compute confusion matrix with sklearn
+        th_y_true = _gather(th_y_true)
+        th_y_logits = _gather(th_y_logits)
+
+        np_y_true = th_y_true.cpu().numpy().reshape(-1)
+        np_y_pred = np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1)
+        true_res = confusion_matrix(np_y_true, np_y_pred)
+
+        assert np.all(true_res == res)
+
+    test_distrib_multiclass_images()

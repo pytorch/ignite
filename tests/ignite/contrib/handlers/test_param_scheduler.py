@@ -357,7 +357,11 @@ def test_lr_scheduler():
         lrs = []
         lrs_true = []
 
-        trainer = Engine(lambda engine, batch: None)
+        def dummy_update(engine, batch):
+            optimizer1.step()
+            optimizer2.step()
+
+        trainer = Engine(dummy_update)
 
         @trainer.on(Events.ITERATION_COMPLETED)
         def torch_lr_scheduler_step(engine):
@@ -396,6 +400,7 @@ def test_lr_scheduler():
     init_lr_scheduler_state = dict(lr_scheduler.state_dict())
     copy_lr_scheduler = LRScheduler._replicate_lr_scheduler(lr_scheduler)
     for _ in range(10):
+        optimizer.step()
         lr_scheduler.step()
 
     assert copy_lr_scheduler.state_dict() == init_lr_scheduler_state
@@ -444,7 +449,7 @@ def test_piecewiselinear():
             lrs.append(optimizer.param_groups[0]['lr'])
 
         trainer = Engine(lambda engine, batch: None)
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
         trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
         trainer.run([0] * 25, max_epochs=2)
 
