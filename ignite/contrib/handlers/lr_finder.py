@@ -1,5 +1,6 @@
 # coding: utf-8
 
+from __future__ import division
 from ignite.engine import Events
 from ignite.contrib.handlers import LRScheduler, PiecewiseLinear
 from torch.optim.lr_scheduler import _LRScheduler
