@@ -99,9 +99,11 @@ def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloa
         assert all(v1 == v2)
 
 
-def test_in_dir_model_optimizer_reset(tmpdir, model, optimizer, dummy_engine, dataloader):
-    tmpdir_num_files = len(os.listdir(tmpdir))
-    lr_finder = FastaiLRFinder(model, optimizer, memory_cache=False, cache_dir=tmpdir)
+def test_in_dir_model_optimizer_reset(model, optimizer, dummy_engine, dataloader):
+    import tempfile
+    temp_dir = tempfile.gettempdir()
+    tmpdir_num_files = len(os.listdir(temp_dir))
+    lr_finder = FastaiLRFinder(model, optimizer, memory_cache=False, cache_dir=temp_dir)
 
     init_optimizer = copy.deepcopy(optimizer.state_dict())
     init_model = copy.deepcopy(model.state_dict())
@@ -116,7 +118,7 @@ def test_in_dir_model_optimizer_reset(tmpdir, model, optimizer, dummy_engine, da
         for v1, v2 in zip(init_model.values(), mid_model.values()):
             assert any(v1 != v2)
 
-        assert tmpdir_num_files != len(os.listdir(tmpdir))
+        assert tmpdir_num_files != len(os.listdir(temp_dir))
 
     with lr_finder.attach(dummy_engine, diverge_th=np.inf):
         dummy_engine.run(dataloader)
@@ -128,17 +130,15 @@ def test_in_dir_model_optimizer_reset(tmpdir, model, optimizer, dummy_engine, da
     for v1, v2 in zip(init_model.values(), end_model.values()):
         assert all(v1 == v2)
 
-    assert tmpdir_num_files == len(os.listdir(tmpdir))
+    assert tmpdir_num_files == len(os.listdir(temp_dir))
 
 
-def test_lr_policy(model, optimizer, dummy_engine, dataloader):
-    lr_finder = FastaiLRFinder(model, optimizer)
+def test_lr_policy(lr_finder, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, step_mode="linear"):
         dummy_engine.run(dataloader)
     lr = lr_finder.get_results()["lr"]
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
 
-    lr_finder = FastaiLRFinder(model, optimizer)
     with lr_finder.attach(dummy_engine, step_mode="exp"):
         dummy_engine.run(dataloader)
     lr = lr_finder.get_results()["lr"]
