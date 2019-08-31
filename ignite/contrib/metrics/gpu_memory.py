@@ -56,6 +56,10 @@ class GpuMemory(Metric):
             warnings.warn("No GPU memory usage information available in {}".format(data[local_rank]))
             return
         report = data[local_rank]['fb_memory_usage']
+        if not ('used' in report and 'total' in report):
+            warnings.warn("GPU memory usage information does not provide used/total memory consumption information in "
+                          "{}".format(report))
+            return
         engine.state.metrics[name] = "{} / {} MiB".format(int(report['used']), int(report['total']))
 
     def attach(self, engine, name="gpu memory", event_name=Events.ITERATION_COMPLETED, local_rank=0):

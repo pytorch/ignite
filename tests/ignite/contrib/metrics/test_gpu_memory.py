@@ -7,7 +7,11 @@ import pytest
 
 @pytest.fixture
 def no_site_packages():
-    import pynvml
+    try:
+        import pynvml
+    except ImportError:
+        yield "no_site_packages"
+        return
     import sys
     assert 'pynvml' in sys.modules
     pynvml_module = sys.modules['pynvml']
@@ -30,3 +34,12 @@ def test_no_gpu():
 
     with pytest.raises(RuntimeError, match="This contrib module requires available GPU"):
         GpuMemory()
+
+
+@pytest.mark.skipif(torch.cuda.is_available(), reason="Skip if has GPU")
+def test_gpu_mem_consumption():
+
+    gpu_mem = GpuMemory()
+
+    data = gpu_mem.compute()
+    assert len(data) > 0
