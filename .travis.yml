@@ -5,8 +5,8 @@ python:
   - "3.6"
 
 env:
-  - PYTORCH_PACKAGE=pytorch-cpu
-  - PYTORCH_PACKAGE=pytorch-nightly-cpu
+  - PYTORCH_CHANNEL=pytorch
+  - PYTORCH_CHANNEL=pytorch-nightly
 
 stages:
   - Lint check
@@ -25,11 +25,12 @@ before_install: &before_install
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda create -q -n test-environment -c pytorch python=$TRAVIS_PYTHON_VERSION $PYTORCH_PACKAGE
+  - conda create -q -n test-environment pytorch cpuonly torchvision python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client pynvml
+  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install futures; fi
@@ -39,7 +40,6 @@ install:
   - pip install numpy mock pytest codecov pytest-cov
   # Examples dependencies
   - pip install matplotlib pandas
-  - conda install torchvision-cpu -c pytorch
   - pip install gym==0.10.11
 
 script:
@@ -69,6 +69,7 @@ script:
 
   #fast-neural-style
   #train
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then mkdir -p /home/travis/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O/home/travis/.cache/torch/checkpoints/vgg16-397923af.pth; fi
   - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
 
 after_success:
@@ -114,7 +115,7 @@ jobs:
     - stage: Deploy
       python: "3.6"
       env:
-        - PYTORCH_PACKAGE=pytorch-cpu
+        - PYTORCH_CHANNEL=pytorch
       if: tag IS present
 
       # Use previously defined before_install
@@ -168,7 +169,7 @@ jobs:
     - stage: Nightly
       python: "3.6"
       env:
-        - PYTORCH_PACKAGE=pytorch-nightly-cpu
+        - PYTORCH_CHANNEL=pytorch-nightly
       if: branch = nightly
       # Use previously defined before_install
       before_install: *before_install

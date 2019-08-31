@@ -1,6 +1,4 @@
 import os
-import tempfile
-import shutil
 import math
 
 import pytest
@@ -11,13 +9,6 @@ import torch
 
 from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.tensorboard_logger import *
-
-
-@pytest.fixture
-def dirname():
-    path = tempfile.mkdtemp()
-    yield path
-    shutil.rmtree(path)
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -140,6 +131,23 @@ def test_output_handler_metric_names(dirname):
     assert mock_logger.writer.add_scalar.call_count == 1
     mock_logger.writer.add_scalar.assert_has_calls([
         call("tag/a", 55.56, 7),
+    ], any_order=True)
+
+    # all metrics
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.writer.add_scalar.call_count == 2
+    mock_logger.writer.add_scalar.assert_has_calls([
+        call("tag/a", 12.23, 5),
+        call("tag/b", 23.45, 5),
     ], any_order=True)
 
 
