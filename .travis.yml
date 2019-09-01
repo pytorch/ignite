@@ -74,7 +74,6 @@ script:
 after_success:
   - codecov
 
-
 jobs:
   include:
     - stage: Lint check
@@ -105,7 +104,7 @@ jobs:
       deploy:
         provider: pages
         skip-cleanup: true
-        github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+        github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
         keep-history: false
         local_dir: docs/build/html
         on:
@@ -143,10 +142,8 @@ jobs:
         # We could use --all but too much platforms to uploaded
         - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch {}
 
-
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
-
         provider: pypi
 
         user: $PYPI_USER
@@ -167,25 +164,16 @@ jobs:
 
     - stage: Nightly
       python: "3.6"
+      if: env(TRAVIS_EVENT_TYPE) = cron
       env:
         - PYTORCH_CHANNEL=pytorch-nightly
-      if: branch = nightly
       # Use previously defined before_install
       before_install: *before_install
       install:
-        # Merge master into nightly
-        - git fetch origin master
-        - git merge FETCH_HEAD --no-edit
-        # Copy "nightly" files
-        - cp nightly/setup_nightly.py setup.py
-        - cp -R nightly/conda.recipe .
-        # Push to nightly branch
-        - git remote rm origin && git remote add origin https://$GITHUB_TOKEN@github.com/${TRAVIS_REPO_SLUG}.git
-        - git push origin nightly
+        - sed -i "s/__version__ = '\(.*\)'/__version__ = '\1.dev$(date -u ++%Y%m%dT%H%M%S)'/g" ignite/__init__.py
       script: true
       after_success: # Nothing to do
       before_deploy:
-        # Conda deploy if on tag
         # ANACONDA_TOKEN should be provided by Travis
         # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
         # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
@@ -197,7 +185,7 @@ jobs:
         - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         # Upload to Anaconda
         # We could use --all but too much platforms to uploaded
-        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch {}
+        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch-nightly {}
 
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
@@ -213,4 +201,4 @@ jobs:
         skip_cleanup: true
         distributions: "sdist bdist_wheel"
         on:
-          branch: nightly
+          branch: master
