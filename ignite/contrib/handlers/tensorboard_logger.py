@@ -322,7 +322,8 @@ class TensorboardLogger(BaseLogger):
 
 
     Args:
-        log_dir (str): path to the directory where to log.
+        *args: Positional arguments accepted from :class:`~tensorboardx.SummaryWriter`.
+        **kwargs: Keyword arguments accepted from :class:`~tensorboardx.SummaryWriter`.
 
     Examples:
 
