@@ -3,7 +3,7 @@ import sys
 import torch
 
 from ignite.engine import Engine, State
-from ignite.contrib.metrics import GpuMemory
+from ignite.contrib.metrics import GpuInfo
 
 import pytest
 
@@ -26,38 +26,47 @@ def no_site_packages():
 def test_no_pynvml_package(no_site_packages):
 
     with pytest.raises(RuntimeError, match="This contrib module requires pynvml to be installed."):
-        GpuMemory()
+        GpuInfo()
 
 
 @pytest.mark.skipif(sys.version[0] == "2" or torch.cuda.is_available(), reason="No pynvml for python 2.7")
 def test_no_gpu():
 
     with pytest.raises(RuntimeError, match="This contrib module requires available GPU"):
-        GpuMemory()
+        GpuInfo()
 
 
 @pytest.mark.skipif(sys.version[0] == "2" or not (torch.cuda.is_available()),
                     reason="No pynvml for python 2.7 and no GPU")
 def test_gpu_mem_consumption():
 
-    gpu_mem = GpuMemory()
+    gpu_info = GpuInfo()
 
     t = torch.rand(4, 10, 100, 100)
-    data = gpu_mem.compute()
+    data = gpu_info.compute()
     assert len(data) > 0
     assert "fb_memory_usage" in data[0]
-    report = data[0]['fb_memory_usage']
-    assert 'used' in report and 'total' in report
-    assert report['total'] > 0.0
-    assert report['used'] > t.shape[0] * t.shape[1] * t.shape[2] * t.shape[3] / 1024.0 / 1024.0
+    mem_report = data[0]['fb_memory_usage']
+    assert 'used' in mem_report and 'total' in mem_report
+    assert mem_report['total'] > 0.0
+    assert mem_report['used'] > t.shape[0] * t.shape[1] * t.shape[2] * t.shape[3] / 1024.0 / 1024.0
+
+    assert "utilization" in data[0]
+    util_report = data[0]['utilization']
+    assert 'gpu_util' in util_report
 
     # with Engine
     engine = Engine(lambda engine, batch: 0.0)
     engine.state = State(metrics={})
 
-    gpu_mem.completed(engine, name='gpu mem', local_rank=0)
+    gpu_info.completed(engine, name='gpu info')
 
-    assert 'gpu mem' in engine.state.metrics
-    assert isinstance(engine.state.metrics['gpu mem'], str)
-    assert "{}".format(int(report['used'])) in engine.state.metrics['gpu mem']
-    assert "{}".format(int(report['total'])) in engine.state.metrics['gpu mem']
+    assert 'gpu info:0 memory' in engine.state.metrics
+    assert 'gpu info:0 util' in engine.state.metrics
+
+    assert isinstance(engine.state.metrics['gpu info:0 memory'], str)
+    assert "{}".format(int(mem_report['used'])) in engine.state.metrics['gpu info:0 memory']
+    assert "{}".format(int(mem_report['total'])) in engine.state.metrics['gpu info:0 memory']
+
+    assert isinstance(engine.state.metrics['gpu info:0 util'], str)
+    assert "{}".format(int(util_report['gpu_util'])) in engine.state.metrics['gpu info:0 util']
