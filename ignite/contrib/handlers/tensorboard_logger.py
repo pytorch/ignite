@@ -322,7 +322,9 @@ class TensorboardLogger(BaseLogger):
 
 
     Args:
-        log_dir (str): path to the directory where to log.
+        *args: Positional arguments accepted from :class:`~tensorboardx.SummaryWriter`.
+        **kwargs: Keyword arguments accepted from :class:`~tensorboardx.SummaryWriter`, for example,
+            `log_dir` to setup path to the directory where to log.
 
     Examples:
 
@@ -399,23 +401,14 @@ class TensorboardLogger(BaseLogger):
 
     """
 
-    def __init__(self, log_dir):
+    def __init__(self, *args, **kwargs):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
             raise RuntimeError("This contrib module requires tensorboardX to be installed. "
                                "Please install it with command: \n pip install tensorboardX")
 
-        try:
-            self.writer = SummaryWriter(logdir=log_dir)
-        except TypeError as err:
-            if "type object got multiple values for keyword argument 'logdir'" == str(err):
-                self.writer = SummaryWriter(log_dir=log_dir)
-                warnings.warn('tensorboardX version < 1.7 will not be supported '
-                              'after ignite 0.3.0; please upgrade',
-                              DeprecationWarning)
-            else:
-                raise err
+        self.writer = SummaryWriter(*args, **kwargs)
 
     def close(self):
         self.writer.close()
