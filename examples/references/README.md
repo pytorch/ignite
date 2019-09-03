@@ -4,10 +4,10 @@ Inspired by [torchvision/references](https://github.com/pytorch/vision/tree/mast
 reproducible baselines for vision tasks:
 
 * [ ] Classification
-    * [ ] [ImageNet](imagenet)
+    * [ ] [ImageNet](classification/imagenet)
 
 * [ ] Segmentation
-    * [ ] Pascal VOC2012
+    * [ ] [Pascal VOC2012](segmentation/pascal_voc2012)
     
 * [ ] Detection
     * [ ] MS COCO

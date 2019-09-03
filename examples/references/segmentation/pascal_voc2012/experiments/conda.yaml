@@ -1,0 +1,18 @@
+name: pascal_voc2012_env
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.7
+  - numpy
+  - pytorch>=1.2.0
+  - torchvision
+  - pip
+  - pip:
+    - mlflow
+    - albumentations
+    - tqdm
+    - tensorboardX
+    - py_config_runner
+    - git+https://github.com/pytorch/ignite.git@distrib
+    - git+https://github.com/vfdev-5/ImageDatasetViz.git

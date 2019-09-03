@@ -1,0 +1,11 @@
+name: PascalVOC2012
+
+conda_env: conda.yaml
+
+entry_points:
+
+  main:
+    parameters:
+      config_path: path
+      num_gpus: float
+    command: "sh setup_apex.sh && export PYTHONPATH=$PWD/../code:$PYTHONPATH && python -m torch.distributed.launch --nproc_per_node={num_gpus} `py_config_runner_script` ../code/scripts/training.py {config_path} --manual_config_load"
