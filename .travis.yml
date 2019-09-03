@@ -30,6 +30,7 @@ before_install: &before_install
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
   - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install futures; fi
