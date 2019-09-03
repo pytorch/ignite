@@ -170,7 +170,7 @@ jobs:
       # Use previously defined before_install
       before_install: *before_install
       install:
-        - sed -i "s/__version__ = '\(.*\)'/__version__ = '\1.dev$(date -u ++%Y%m%dT%H%M%S)'/g" ignite/__init__.py
+        - sed -i "s/__version__ = '\(.*\)'/__version__ = '\1.dev$(date -u ++%Y%m%d)'/g" ignite/__init__.py
       script: true
       after_success: # Nothing to do
       before_deploy:
