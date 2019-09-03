@@ -71,6 +71,7 @@ class GpuInfo(Metric):
 
             engine.state.metrics[mem_name] = "{}/{} MiB".format(int(mem_report['used']), int(mem_report['total']))
 
+        for i, data_by_rank in enumerate(data):
             util_name = "{}:{} util".format(name, i)
             if 'utilization' not in data_by_rank:
                 warnings.warn("No GPU utilization information available in {}".format(data_by_rank))

@@ -6,6 +6,7 @@ from ignite.engine import Engine, State
 from ignite.contrib.metrics import GpuInfo
 
 import pytest
+from mock import Mock, patch
 
 
 @pytest.fixture
@@ -36,13 +37,14 @@ def test_no_gpu():
         GpuInfo()
 
 
-@pytest.mark.skipif(sys.version[0] == "2" or not (torch.cuda.is_available()),
-                    reason="No pynvml for python 2.7 and no GPU")
-def test_gpu_mem_consumption():
-
+def _test_gpu_info(device='cpu'):
     gpu_info = GpuInfo()
 
-    t = torch.rand(4, 10, 100, 100)
+    # increase code cov
+    gpu_info.reset()
+    gpu_info.update(None)
+
+    t = torch.rand(4, 10, 100, 100).to(device)
     data = gpu_info.compute()
     assert len(data) > 0
     assert "fb_memory_usage" in data[0]
@@ -70,3 +72,92 @@ def test_gpu_mem_consumption():
 
     assert isinstance(engine.state.metrics['gpu info:0 util'], str)
     assert "{}".format(int(util_report['gpu_util'])) in engine.state.metrics['gpu info:0 util']
+
+
+@pytest.mark.skipif(sys.version[0] == "2" or not (torch.cuda.is_available()),
+                    reason="No pynvml for python 2.7 and no GPU")
+def test_gpu_info():
+    _test_gpu_info(device='cuda')
+
+
+@pytest.fixture
+def mock_pynvml_module():
+
+    with patch.dict('sys.modules', {
+        'pynvml': Mock(name='pynvml'),
+        'pynvml.smi': Mock(name='pynvml.smi'),
+        'pynvml.smi.nvidia_smi': Mock(name='pynvml.smi.nvidia_smi'),
+    }):
+        import pynvml
+        from pynvml.smi import nvidia_smi
+
+        def query(*args, **kwargs):
+            return {
+                "gpu": [{
+                    "fb_memory_usage": {
+                        "used": 100.0,
+                        "total": 11000.0
+                    },
+                    "utilization": {
+                        "gpu_util": 50.0
+                    }
+                }]
+            }
+
+        def getInstance():
+            nvsmi = Mock()
+            nvsmi.DeviceQuery = Mock(side_effect=query)
+            return nvsmi
+
+        nvidia_smi.getInstance = Mock(side_effect=getInstance)
+        yield pynvml
+
+
+@pytest.fixture
+def mock_gpu_is_available():
+
+    with patch('ignite.contrib.metrics.gpu_info.torch.cuda') as mock_cuda:
+        mock_cuda.is_available.return_value = True
+        yield mock_cuda
+
+
+@pytest.mark.skipif(torch.cuda.is_available(), reason="No need to mock if has GPU")
+def test_gpu_info_mock(mock_pynvml_module, mock_gpu_is_available):
+
+    assert torch.cuda.is_available()
+    _test_gpu_info()
+
+    def _test_with_custom_query(resp, warn_msg, check_compute=False):
+        from pynvml.smi import nvidia_smi
+
+        def query(*args, **kwargs):
+            return resp
+
+        def getInstance():
+            nvsmi = Mock()
+            nvsmi.DeviceQuery = Mock(side_effect=query)
+            return nvsmi
+
+        nvidia_smi.getInstance = Mock(side_effect=getInstance)
+        gpu_info = GpuInfo()
+        if check_compute:
+            with pytest.warns(UserWarning, match=warn_msg):
+                gpu_info.compute()
+
+        # with Engine
+        engine = Engine(lambda engine, batch: 0.0)
+        engine.state = State(metrics={})
+
+        with pytest.warns(UserWarning, match=warn_msg):
+            gpu_info.completed(engine, name='gpu info')
+
+    # No GPU info
+    _test_with_custom_query(resp={}, warn_msg=r"No GPU information available", check_compute=True)
+
+    # No GPU memory info
+    _test_with_custom_query(resp={"gpu": [{"utilization": {}}, ]},
+                            warn_msg=r"No GPU memory usage information available")
+
+    # No GPU utilization info
+    _test_with_custom_query(resp={"gpu": [{"fb_memory_usage": {}}, ]},
+                            warn_msg=r"No GPU utilization information available")
