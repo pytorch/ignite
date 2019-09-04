@@ -19,6 +19,9 @@ from dataflow.transforms import ToTensor, ignore_mask_boundaries, prepare_batch_
 assert 'DATASET_PATH' in os.environ
 data_path = os.environ['DATASET_PATH']
 
+assert 'SBD_DATASET_PATH' in os.environ
+sbd_data_path = os.environ['SBD_DATASET_PATH']
+
 
 debug = False
 seed = 12
@@ -75,6 +78,7 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(root_path=da
                                                                     batch_size=batch_size,
                                                                     num_workers=num_workers,
                                                                     val_batch_size=val_batch_size,
+                                                                    with_sbd=sbd_data_path,
                                                                     limit_train_num_samples=100 if debug else None,
                                                                     limit_val_num_samples=100 if debug else None,
                                                                     random_seed=seed)
