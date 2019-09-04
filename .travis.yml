@@ -165,7 +165,7 @@ jobs:
 
     - stage: Nightly
       python: "3.6"
-      #if: type = cron
+      if: type = cron
       env:
         - PYTORCH_CHANNEL=pytorch-nightly
       # Use previously defined before_install
