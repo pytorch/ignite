@@ -9,11 +9,11 @@ env:
   - PYTORCH_CHANNEL=pytorch-nightly
 
 stages:
+  - Nightly
   - Lint check
   - Test
   - Docs
   - Deploy
-  - Nightly
 
 before_install: &before_install
   - sudo apt-get update
@@ -202,5 +202,7 @@ jobs:
         #  secure: "secured_password"
         skip_cleanup: true
         distributions: "sdist bdist_wheel"
-        #on:
-          #branch: master
+        on:
+          branch:
+            - master
+            - fixpypi
