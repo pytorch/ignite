@@ -79,6 +79,26 @@ Examples
 Please check out the `examples
 <https://github.com/pytorch/ignite/tree/master/examples>`_ to see how to use `ignite` to train various types of networks, as well as how to use `visdom <https://github.com/facebookresearch/visdom>`_ or `tensorboardX <https://github.com/lanpa/tensorboard-pytorch>`_ for training visualizations.
 
+Nightly builds
+==============
+In addition to the stable releases, we also provide nightly builds from the master branch that can be installed to test new features and bug fixes in ignite. However, note that these have only seen automatic tests and might break in interesting ways.
+
+To install use:
+
+From pip:
+
+.. code:: bash
+
+    pip install --pre pytorch-ignite
+
+
+From conda:
+
+.. code:: bash
+
+    conda install ignite -c pytorch-nightly
+    
+You might also want to use the nightly builds of pytorch.
 
 Contributing
 ============

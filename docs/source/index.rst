@@ -42,6 +42,24 @@ You can clone the source from `github <https://github.com/pytorch/ignite>`_ and 
 
     python setup.py install
 
+    
+Nightly builds:
+
+You can install the nightly releases of ignite using
+
+From pip:
+
+.. code:: bash
+
+    pip install --pre pytorch-ignite
+
+
+From conda:
+
+.. code:: bash
+
+    conda install ignite -c pytorch-nightly
+
 
 .. toctree::
    :maxdepth: 2
