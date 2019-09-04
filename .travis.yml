@@ -195,7 +195,6 @@ jobs:
         # If password contains non alphanumeric characters
         # https://github.com/travis-ci/dpl/issues/377
         # pass it as secured variable
-        #password: $PYPI_TOKEN
         password: $PYPI_TOKEN
         # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
         # `travis encrypt deploy.password="password"`
