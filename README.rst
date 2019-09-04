@@ -32,14 +32,14 @@ your code when "rolling your own" training loop.
 Installation
 ============
 
-From pip:
+From `pip <https://pypi.org/project/pytorch-ignite/>`_:
 
 .. code:: bash
 
     pip install pytorch-ignite
 
 
-From conda:
+From `conda <https://anaconda.org/pytorch/ignite>`_:
 
 .. code:: bash
 
@@ -50,7 +50,26 @@ From source:
 
 .. code:: bash
 
-    python setup.py install
+    pip install git+https://github.com/pytorch/ignite
+
+
+
+Nightly releases
+................
+
+From `pip <https://pypi.org/project/pytorch-ignite/#history>`_:
+
+.. code:: bash
+
+    pip install --pre pytorch-ignite
+
+
+From `conda <https://anaconda.org/pytorch-nightly/ignite>`_
+(this suggests to install `pytorch nightly release <https://anaconda.org/pytorch-nightly/pytorch>`_ instead of stable version as dependency):
+
+.. code:: bash
+
+    conda install ignite -c pytorch-nightly
 
 
 Why Ignite?
