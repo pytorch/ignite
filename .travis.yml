@@ -177,16 +177,16 @@ jobs:
       before_deploy:
         # ANACONDA_TOKEN should be provided by Travis
         # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
-        # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
-        - conda install -y conda-build conda-verify anaconda-client
-        - conda config --set anaconda_upload no
-        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
-        # Convert to other platforms: OSX, WIN
-        - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
-        - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
-        # Upload to Anaconda
-        # We could use --all but too much platforms to uploaded
-        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch-nightly {}
+        ## https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
+        #- conda install -y conda-build conda-verify anaconda-client
+        #- conda config --set anaconda_upload no
+        #- travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
+        ## Convert to other platforms: OSX, WIN
+        #- conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        #- conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+        ## Upload to Anaconda
+        ## We could use --all but too much platforms to uploaded
+        #- ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch-nightly {}
 
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
