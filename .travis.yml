@@ -175,6 +175,7 @@ jobs:
       script: true
       after_success: # Nothing to do
       before_deploy:
+        - echo "Pypi user: $PYPI_USER"
         # ANACONDA_TOKEN should be provided by Travis
         # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
         ## https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
@@ -197,9 +198,7 @@ jobs:
         # https://github.com/travis-ci/dpl/issues/377
         # pass it as secured variable
         #password: $PYPI_TOKEN
-        password:
-            secure: "X4oQGhn5mhtXmhO/DKI3U0nVM+duWeOHqNKocjRW0loep0tyDO/aUGkCiRc2tlK/eiz4NvKxSfTzvjOx+wxQZclEAIOWSR5rPmXOuMcx5WtdeodcygcWdkIFFhu2+6iuU7wjNEQpQ3aFZ5D+taD7jCE/hMqemMSubPmW73SQyDXhjJEFxHTU2IpoUJ7K6OuaS7ad807N6hBJgOBKAKw7r/Cl1f6+tAnQiBD1b+CKz0bJYi6Ddz51PHLVU85k82CfaYdj9DdhV0iv0I/sc63aaDLb3K2yoVc2gdO/GHucnnX0cvIoLZH679v8mLIQUgKaZQkm9WwA0FSqKn6R58YaBbaidGuJK9fwlPMK/uNmKXk/gL/HJCTEpCnuAugDAgud53tvBaF52jow67ww9uEenp+lNYgQL5RaaKDZTq0uXSAk43wWF68+2/GQEPW/5RpoSc7QwFO8xfeMoczTrnWZ6V1ZrafRQwrb2xq9oE4OM955QT0rGwSVMNZ+kx+CUTOT5txYqa5gAluDTaFHMsOfHsuTqD00AeRn1/1RcnkNOwRpEDh5ag7WrQ5E1uyHRSlQYdKAOb2pWZTv7zjAHHGazvYcB1ckkpM9JsfRIJoN6RGLiTNMc8q4n57ZU1brELvA4dNixgXC0WusjvhL3suDryZnsaegaLsklEpM0+0FW1Y="
-
+        password: $PYPI_TOKEN
         # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
         # `travis encrypt deploy.password="password"`
         #  secure: "secured_password"
