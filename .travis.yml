@@ -192,7 +192,7 @@ jobs:
       deploy:
         provider: pypi
         user: $PYPI_USER
-        server: https://test.pypi.org/legacy
+        server: https://test.pypi.org/legacy/
         # If password contains non alphanumeric characters
         # https://github.com/travis-ci/dpl/issues/377
         # pass it as secured variable
