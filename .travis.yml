@@ -202,5 +202,5 @@ jobs:
         #  secure: "secured_password"
         skip_cleanup: true
         distributions: "sdist bdist_wheel"
-        on:
-          branch: master
+        #on:
+          #branch: master
