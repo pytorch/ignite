@@ -45,15 +45,15 @@ From source:
 Nightly releases
 ----------------
 
-From `pip <https://pypi.org/project/pytorch-ignite/#history>`_:
+From pip:
 
 .. code:: bash
 
     pip install --pre pytorch-ignite
 
 
-From `conda <https://anaconda.org/pytorch-nightly/ignite>`_
-(this suggests to install `pytorch nightly release <https://anaconda.org/pytorch-nightly/pytorch>`_ instead of stable version as dependency):
+From conda (this suggests to install `pytorch nightly release <https://anaconda.org/pytorch-nightly/pytorch>`_ instead
+of stable version as dependency):
 
 .. code:: bash
 
