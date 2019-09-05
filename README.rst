@@ -55,7 +55,7 @@ From source:
 
 
 Nightly releases
-................
+----------------
 
 From `pip <https://pypi.org/project/pytorch-ignite/#history>`_:
 
