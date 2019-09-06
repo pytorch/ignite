@@ -23,13 +23,6 @@ class FastaiLRFinder(object):
     rates and what is the optimal learning rate.
 
     Args:
-        model (`torch.nn.Module`): the model to train.
-        optimizer (`torch.optim.Optimizer`): the optimizer to use, the defined
-        optimizer learning rate is assumed to be the lower boundary of the range
-        test.
-        output_transform (callable, optional): function that transform the
-            engine's state.output after each iteration. It must return the loss
-            of that iteration.
         memory_cache (bool): if this flag is set to True, `state_dict` of model
             and optimizer will be cached in memory. Otherwise, they will be
             saved to files under the `cache_dir`.
@@ -85,19 +78,25 @@ class FastaiLRFinder(object):
         fastai/lr_find: https://github.com/fastai/fastai
     """
 
-    def __init__(self, model, optimizer, output_transform=lambda output: output, memory_cache=True, cache_dir=None):
+    def __init__(self, memory_cache=True, cache_dir=None):
 
-        self._model = model
-        self._optimizer = optimizer
-        self._output_transform = output_transform
         self._memory_cache = memory_cache
         self._cache_dir = cache_dir
 
-        self._engine = None
         self._diverge_flag = False
         self._history = None
         self._best_loss = None
         self._lr_schedule = None
+
+        self._engine = None
+        self._model = None
+        self._optimizer = None
+        self._output_transform = None
+        self._num_iter = None
+        self._end_lr = None
+        self._step_mode = None
+        self._smooth_f = None
+        self._diverge_th = None
 
         self._logger = logging.getLogger(__name__)
         self._logger.addHandler(logging.NullHandler())
@@ -180,13 +179,21 @@ class FastaiLRFinder(object):
             warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
                           " at lr_finder.plot()", UserWarning)
 
-    def attach(self, engine, num_iter=None, end_lr=10, step_mode="exp", smooth_f=0.05, diverge_th=5):
+    def attach(self, engine, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
+               step_mode="exp", smooth_f=0.05, diverge_th=5):
         """
         Attaches lr_finder to engine.
         It is recommended to use `with lr_finder.attach(engine)` instead of
         explicitly detaching using `lr_finder.detach()`
         Args:
             engine: lr_finder is attached to this engine
+            model (`torch.nn.Module`): the model to train.
+            optimizer (`torch.optim.Optimizer`): the optimizer to use, the
+            defined optimizer learning rate is assumed to be the lower boundary
+            of the range test.
+            output_transform (callable, optional): function that transform the
+                engine's state.output after each iteration. It must return the
+                loss of that iteration.
             num_iter (int): number of iterations for lr schedule between base lr
                 and end_lr. If `None` it will run for
                 `len(dataloader) * trainer.state.max_epochs`
@@ -211,38 +218,36 @@ class FastaiLRFinder(object):
             raise ValueError("diverge_th should be larger than 1")
         if step_mode not in ["exp", "linear"]:
             raise ValueError("expected one of (exp, linear), got {}".format(step_mode))
-        if isinstance(num_iter, int) and num_iter <= 0:
-            raise ValueError("if provided, num_iter should be a poitive int, got {}".format(num_iter))
+        if num_iter is not None and (not isinstance(num_iter, int) or num_iter <= 0):
+            raise ValueError("if provided, num_iter should be a positive int, got {}".format(num_iter))
 
-        if not engine.has_event_handler(self._run):
-            engine.add_event_handler(Events.STARTED, self._run, num_iter, end_lr, step_mode, smooth_f, diverge_th)
-        if not engine.has_event_handler(self._warning):
-            engine.add_event_handler(Events.COMPLETED, self._warning)
-        if not engine.has_event_handler(self._reset):
-            engine.add_event_handler(Events.COMPLETED, self._reset)
-        if not engine.has_event_handler(self.detach):
-            engine.add_event_handler(Events.COMPLETED, self.detach)
+        self._model = model
+        self._optimizer = optimizer
+        self._output_transform = output_transform
+        self._num_iter = num_iter
+        self._end_lr = end_lr
+        self._step_mode = step_mode
+        self._smooth_f = smooth_f
+        self._diverge_th = diverge_th
 
         return self
 
-    def detach(self, engine):
+    def _detach(self, engine):
         """
         Detaches lr_finder from engine.
 
         Args:
             engine: the engine to detach form.
         """
-        self._engine = None
+
         if engine.has_event_handler(self._run, Events.STARTED):
             engine.remove_event_handler(self._run, Events.STARTED)
         if engine.has_event_handler(self._warning, Events.COMPLETED):
             engine.remove_event_handler(self._warning, Events.COMPLETED)
         if engine.has_event_handler(self._reset, Events.COMPLETED):
             engine.remove_event_handler(self._reset, Events.COMPLETED)
-        if engine.has_event_handler(self.detach):
-            engine.remove_event_handler(self.detach, Events.COMPLETED)
-        else:
-            warnings.warn("This LRFinder isn't attached, this action has no effect", UserWarning)
+        if engine.has_event_handler(self._detach):
+            engine.remove_event_handler(self._detach, Events.COMPLETED)
 
     def get_results(self):
         """
@@ -269,18 +274,18 @@ class FastaiLRFinder(object):
 
         # Get the data to plot from the history dictionary. Also, handle skip_end=0
         # properly so the behaviour is the expected
+
+        lrs = self._history["lr"]
+        losses = self._history["loss"]
+        if skip_end == 0:
+            lrs = lrs[skip_start:]
+            losses = losses[skip_start:]
+        else:
+            lrs = lrs[skip_start:-skip_end]
+            losses = losses[skip_start:-skip_end]
+
         try:
             import matplotlib.pyplot as plt
-
-            lrs = self._history["lr"]
-            losses = self._history["loss"]
-            if skip_end == 0:
-                lrs = lrs[skip_start:]
-                losses = losses[skip_start:]
-            else:
-                lrs = lrs[skip_start:-skip_end]
-                losses = losses[skip_start:-skip_end]
-
             # Plot loss as a function of the learning rate
             plt.plot(lrs, losses)
             if log_lr:
@@ -302,13 +307,24 @@ class FastaiLRFinder(object):
         return self._history["lr"][int(min_grad_idx)]
 
     def __enter__(self):
-        return self
-
-    def __exit__(self, type, val, tb):
         if self._engine is not None:
             engine = self._engine()
-            self._engine = None
-            self.detach(engine)
+            if not engine.has_event_handler(self._run):
+                engine.add_event_handler(Events.STARTED, self._run, self._num_iter, self._end_lr, self._step_mode,
+                                         self._smooth_f, self._diverge_th)
+            if not engine.has_event_handler(self._warning):
+                engine.add_event_handler(Events.COMPLETED, self._warning)
+            if not engine.has_event_handler(self._reset):
+                engine.add_event_handler(Events.COMPLETED, self._reset)
+            if not engine.has_event_handler(self._detach):
+                engine.add_event_handler(Events.COMPLETED, self._detach)
+        else:
+            warnings.warn("LR finder needs to be attached to engine")
+
+    def __exit__(self, enginetype, val, tb):
+        if self._engine is not None:
+            engine = self._engine()
+            self._detach(engine)
 
 
 class _ExponentialLR(_LRScheduler):
@@ -341,6 +357,7 @@ class _StateCacher(object):
     def __init__(self, in_memory, cache_dir=None):
         self.in_memory = in_memory
         self.cache_dir = cache_dir
+        self.cached = {}
 
         if self.cache_dir is None:
             import tempfile
@@ -348,8 +365,6 @@ class _StateCacher(object):
         else:
             if not os.path.isdir(self.cache_dir):
                 raise ValueError('Given `cache_dir` is not a valid directory.')
-
-        self.cached = {}
 
     def store(self, key, state_dict):
         if self.in_memory:
