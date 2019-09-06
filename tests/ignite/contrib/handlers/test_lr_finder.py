@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('agg')
+
 import pytest
 import torch
 from torch import nn
@@ -8,8 +11,19 @@ from torch.optim import SGD
 from ignite.engine import create_supervised_trainer, Events
 import copy
 import os
-from mock import MagicMock
-from ignite.contrib.handlers import PiecewiseLinear
+from mock import patch
+
+
+@pytest.fixture
+def no_site_packages():
+    import sys
+    matplotlib = sys.modules['matplotlib']
+    del sys.modules['matplotlib']
+    prev_path = list(sys.path)
+    sys.path = [p for p in sys.path if "site-packages" not in p]
+    yield "no_site_packages"
+    sys.path = prev_path
+    sys.modules['matplotlib'] = matplotlib
 
 
 class DummyModel(nn.Module):
@@ -254,4 +268,12 @@ def test_plot(lr_finder, model, optimizer, dummy_engine, dataloader):
 
     with lr_finder.attach(dummy_engine, model, optimizer):
         dummy_engine.run(dataloader)
+
     lr_finder.plot()
+    lr_finder.plot(skip_end=0)
+
+
+def test_no_matplotlib(no_site_packages):
+
+    with pytest.raises(RuntimeError):
+        FastaiLRFinder()

@@ -22,6 +22,12 @@ class FastaiLRFinder(object):
     information on how well the network can be trained over a range of learning
     rates and what is the optimal learning rate.
 
+    This class requires `matplotlib` package to be installed:
+
+    .. code-block:: bash
+
+        pip install matplotlib
+
     Args:
         memory_cache (bool): if this flag is set to True, `state_dict` of model
             and optimizer will be cached in memory. Otherwise, they will be
@@ -79,6 +85,12 @@ class FastaiLRFinder(object):
     """
 
     def __init__(self, memory_cache=True, cache_dir=None):
+        try:
+            from matplotlib import pyplot as plt
+            self._plt = plt
+        except ImportError:
+            raise RuntimeError("This contrib module requires matplotlib to be installed. "
+                               "Please install it with command: \n pip install matplotlib")
 
         self._memory_cache = memory_cache
         self._cache_dir = cache_dir
@@ -284,18 +296,13 @@ class FastaiLRFinder(object):
             lrs = lrs[skip_start:-skip_end]
             losses = losses[skip_start:-skip_end]
 
-        try:
-            import matplotlib.pyplot as plt
-            # Plot loss as a function of the learning rate
-            plt.plot(lrs, losses)
-            if log_lr:
-                plt.xscale("log")
-            plt.xlabel("Learning rate")
-            plt.ylabel("Loss")
-            plt.show()
-
-        except ModuleNotFoundError:
-            self._logger.warning("matplotlib not found, can't plot result")
+        # Plot loss as a function of the learning rate
+        self._plt.plot(lrs, losses)
+        if log_lr:
+            self._plt.xscale("log")
+        self._plt.xlabel("Learning rate")
+        self._plt.ylabel("Loss")
+        self._plt.show()
 
     def lr_suggestion(self):
         """
