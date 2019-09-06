@@ -130,7 +130,7 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model, reduction=torch.norm):
+    def __init__(self, model, reduction=torch.norm, tag=None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, "
                             "but given {}".format(type(model)))
@@ -149,6 +149,7 @@ class BaseWeightsScalarHandler(BaseHandler):
 
         self.model = model
         self.reduction = reduction
+        self.tag = tag
 
 
 class BaseWeightsHistHandler(BaseHandler):
@@ -156,9 +157,10 @@ class BaseWeightsHistHandler(BaseHandler):
     Helper handler to log model's weights as histograms.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, tag=None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, "
                             "but given {}".format(type(model)))
 
         self.model = model
+        self.tag = tag
