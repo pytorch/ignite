@@ -101,13 +101,14 @@ def test_mse_epoch_metric():
 def test_bad_compute_fn():
 
     def compute_fn(y_preds, y_targets):
-        # Following will raise the error: Expected object of type torch.FloatTensor but found type
-        # torch.LongTensor for argument #3 'other'
+        # Following will raise the error:
+        # The size of tensor a (3) must match the size of tensor b (4)
+        # at non-singleton dimension 1
         return torch.mean(y_preds - y_targets).item()
 
     em = EpochMetric(compute_fn)
 
     em.reset()
-    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 4), dtype=torch.long))
     with pytest.warns(RuntimeWarning):
         em.update(output1)
