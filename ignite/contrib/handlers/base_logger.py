@@ -142,8 +142,8 @@ class BaseWeightsScalarHandler(BaseHandler):
         def _is_0D_tensor(t):
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
-        # Test reduction function on a random tensor
-        o = reduction(torch.rand(4, 2))
+        # Test reduction function on a tensor
+        o = reduction(torch.ones(4, 2))
         if not (isinstance(o, numbers.Number) or _is_0D_tensor(o)):
             raise ValueError("Output of the reduction function should be a scalar, but got {}".format(type(o)))
 
