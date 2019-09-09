@@ -572,12 +572,6 @@ def no_site_packages():
     sys.modules['tensorboardX'] = tensorboardX_module
 
 
-def test_no_tensorboardX(dirname, no_site_packages):
-
-    with pytest.raises(RuntimeError, match=r"This contrib module requires tensorboardX to be installed"):
-        TensorboardLogger(log_dir=dirname)
-
-
 @pytest.fixture
 def mock_tb_module():
     import sys
