@@ -322,12 +322,13 @@ class TensorboardLogger(BaseLogger):
     """
     TensorBoard handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
-    This class requires `tensorboardX <https://github.com/lanpa/tensorboardX>`_ package to be installed:
+    This class favors `tensorboardX <https://github.com/lanpa/tensorboardX>`_ package if installed:
 
     .. code-block:: bash
 
         pip install tensorboardX
 
+    else, it falls back to using PyTorch's new SummaryWriter.
 
     Args:
         *args: Positional arguments accepted from :class:`~tensorboardx.SummaryWriter`.
@@ -413,8 +414,7 @@ class TensorboardLogger(BaseLogger):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
-            raise RuntimeError("This contrib module requires tensorboardX to be installed. "
-                               "Please install it with command: \n pip install tensorboardX")
+            from torch.utils.tensorboard import SummaryWriter
 
         self.writer = SummaryWriter(*args, **kwargs)
 
