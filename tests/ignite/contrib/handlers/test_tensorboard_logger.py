@@ -561,15 +561,22 @@ def test_integration_as_context_manager(dirname):
 
 
 @pytest.fixture
-def no_site_packages():
+def no_tensorboardX_package():
     import sys
     tensorboardX_module = sys.modules['tensorboardX']
     del sys.modules['tensorboardX']
     prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
+    sys.path = [p for p in sys.path if "tensorboardX" not in p]
+    yield "no_tensorboardX_package"
     sys.path = prev_path
     sys.modules['tensorboardX'] = tensorboardX_module
+
+
+def test_no_tensorboardX(dirname, no_tensorboardX_package):
+
+    with TensorboardLogger(log_dir=dirname) as tb_logger:
+        assert isinstance(tb_logger.writer, torch.utils.tensorboard.SummaryWriter), (
+            "in the absence of tensorboardX, SummaryWriter should come from torch.utils.tensorboard")
 
 
 @pytest.fixture
