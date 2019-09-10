@@ -322,13 +322,13 @@ class TensorboardLogger(BaseLogger):
     """
     TensorBoard handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
-    This class favors `tensorboardX <https://github.com/lanpa/tensorboardX>`_ package if installed:
+    By default, this class favors `tensorboardX <https://github.com/lanpa/tensorboardX>`_ package if installed:
 
     .. code-block:: bash
 
         pip install tensorboardX
 
-    else, it falls back to using PyTorch's new SummaryWriter.
+    otherwise, it falls back to using PyTorch's SummaryWriter (>=v1.2.0).
 
     Args:
         *args: Positional arguments accepted from :class:`~tensorboardx.SummaryWriter`.
