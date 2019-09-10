@@ -15,11 +15,11 @@ class GpuInfo(Metric):
         .. code-block:: python
 
             # Default GPU measurement
-            GpuInfo().attach(trainer, name='gpu')  # metric names are 'gpu:X mem', 'gpu:X util'
-            ProgressBar(persist=True).attach(trainer, metric_names=['gpu:0 mem', 'gpu:0 util'])
+            GpuInfo().attach(trainer, name='gpu')  # metric names are 'gpu:X mem(%)', 'gpu:X util(%)'
+            ProgressBar(persist=True).attach(trainer, metric_names=['gpu:0 mem(%)', 'gpu:0 util(%)'])
 
             # Progress bar will looks like
-            # Epoch [2/10]: [12/24]  50%|█████      , gpu:0 mem=79, gpu:0 util=59 [00:17<1:23]
+            # Epoch [2/10]: [12/24]  50%|█████      , gpu:0 mem(%)=79, gpu:0 util(%)=59 [00:17<1:23]
 
     """
 
@@ -58,7 +58,7 @@ class GpuInfo(Metric):
             return
 
         for i, data_by_rank in enumerate(data):
-            mem_name = "{}:{} mem".format(name, i)
+            mem_name = "{}:{} mem(%)".format(name, i)
 
             if 'fb_memory_usage' not in data_by_rank:
                 warnings.warn("No GPU memory usage information available in {}".format(data_by_rank))
@@ -72,7 +72,7 @@ class GpuInfo(Metric):
             engine.state.metrics[mem_name] = int(mem_report['used'] * 100.0 / mem_report['total'])
 
         for i, data_by_rank in enumerate(data):
-            util_name = "{}:{} util".format(name, i)
+            util_name = "{}:{} util(%)".format(name, i)
             if 'utilization' not in data_by_rank:
                 warnings.warn("No GPU utilization information available in {}".format(data_by_rank))
                 continue
@@ -84,5 +84,5 @@ class GpuInfo(Metric):
 
             engine.state.metrics[util_name] = int(util_report['gpu_util'])
 
-    def attach(self, engine, name="gpu info", event_name=Events.ITERATION_COMPLETED):
+    def attach(self, engine, name="gpu", event_name=Events.ITERATION_COMPLETED):
         engine.add_event_handler(event_name, self.completed, name)

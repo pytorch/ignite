@@ -63,10 +63,11 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info
 
     if display_gpu_info:
         from ignite.contrib.metrics import GpuInfo
+
         GpuInfo().attach(trainer, name='gpu')
 
     pbar = ProgressBar(persist=True)
-    pbar.attach(trainer, metric_names=['loss', 'gpu:0 memory', 'gpu:0 util'])
+    pbar.attach(trainer, metric_names='all')
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
