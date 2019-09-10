@@ -14,13 +14,18 @@ class GpuInfo(Metric):
 
         .. code-block:: python
 
-            # Default GPU measurement
+            # Default GPU measurements
             GpuInfo().attach(trainer, name='gpu')  # metric names are 'gpu:X mem(%)', 'gpu:X util(%)'
-            ProgressBar(persist=True).attach(trainer, metric_names=['gpu:0 mem(%)', 'gpu:0 util(%)'])
 
+            # Logging with TQDM
+            ProgressBar(persist=True).attach(trainer, metric_names=['gpu:0 mem(%)', 'gpu:0 util(%)'])
             # Progress bar will looks like
             # Epoch [2/10]: [12/24]  50%|█████      , gpu:0 mem(%)=79, gpu:0 util(%)=59 [00:17<1:23]
 
+            # Logging with Tensorboard
+            tb_logger.attach(trainer,
+                             log_handler=OutputHandler(tag="training", metric_names='all'),
+                             event_name=Events.ITERATION_COMPLETED)
     """
 
     def __init__(self):
