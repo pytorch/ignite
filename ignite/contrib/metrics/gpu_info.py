@@ -8,18 +8,18 @@ from ignite.engine import Events
 
 
 class GpuInfo(Metric):
-    """GPU information: a) used / max memory, b) gpu utilization values as Metric.
+    """GPU information: a) used memory percentage, b) gpu utilization percentage values as Metric.
 
     Examples:
 
         .. code-block:: python
 
             # Default GPU measurement
-            GpuInfo().attach(trainer, name='gpu')  # metric names are 'gpu:X memory', 'gpu:X util'
-            ProgressBar(persist=True).attach(trainer, metric_names=['gpu:0 memory', 'gpu:0 util'])
+            GpuInfo().attach(trainer, name='gpu')  # metric names are 'gpu:X mem', 'gpu:X util'
+            ProgressBar(persist=True).attach(trainer, metric_names=['gpu:0 mem', 'gpu:0 util'])
 
             # Progress bar will looks like
-            # Epoch [2/10]: [12/24]  50%|█████      , gpu:0 memory=1120/11176 MiB, gpu:0 util=09% [00:17<1:23]
+            # Epoch [2/10]: [12/24]  50%|█████      , gpu:0 mem=79, gpu:0 util=59 [00:17<1:23]
 
     """
 
@@ -58,7 +58,7 @@ class GpuInfo(Metric):
             return
 
         for i, data_by_rank in enumerate(data):
-            mem_name = "{}:{} memory".format(name, i)
+            mem_name = "{}:{} mem".format(name, i)
 
             if 'fb_memory_usage' not in data_by_rank:
                 warnings.warn("No GPU memory usage information available in {}".format(data_by_rank))
@@ -69,7 +69,7 @@ class GpuInfo(Metric):
                               "memory consumption information in {}".format(mem_report))
                 continue
 
-            engine.state.metrics[mem_name] = "{}/{} MiB".format(int(mem_report['used']), int(mem_report['total']))
+            engine.state.metrics[mem_name] = int(mem_report['used'] * 100.0 / mem_report['total'])
 
         for i, data_by_rank in enumerate(data):
             util_name = "{}:{} util".format(name, i)
@@ -82,7 +82,7 @@ class GpuInfo(Metric):
                               "{}".format(util_report))
                 continue
 
-            engine.state.metrics[util_name] = "{:02d}%".format(int(util_report['gpu_util']))
+            engine.state.metrics[util_name] = int(util_report['gpu_util'])
 
     def attach(self, engine, name="gpu info", event_name=Events.ITERATION_COMPLETED):
         engine.add_event_handler(event_name, self.completed, name)
