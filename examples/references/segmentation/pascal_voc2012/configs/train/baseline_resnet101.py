@@ -68,13 +68,14 @@ val_transforms = A.Compose([
     ToTensor(),
 ])
 
-
 train_loader, val_loader, train_eval_loader = get_train_val_loaders(root_path=data_path,
                                                                     train_transforms=train_transforms,
                                                                     val_transforms=val_transforms,
                                                                     batch_size=batch_size,
                                                                     num_workers=num_workers,
                                                                     val_batch_size=val_batch_size,
+                                                                    train_sampler='distributed',
+                                                                    val_sampler='distributed',
                                                                     limit_train_num_samples=100 if debug else None,
                                                                     limit_val_num_samples=100 if debug else None,
                                                                     random_seed=seed)

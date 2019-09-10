@@ -115,7 +115,15 @@ it executes `main` entry point from [MLproject](experiments/MLproject) and runs 
 
 We use [py_config_runner](https://github.com/vfdev-5/py_config_runner) package to execute python scripts with python configuration files.
 
+#### Training script
 
+Main training scripts is located [here](code/scripts/training.py) and contains `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to run script with a configuration. Training logic is setup inside `training` method and configures trainer, 2 evaluators and various 
+logging handlers to tensorboard, mlflow and tqdm.
+
+#### Configurations
+
+- [baseline_resnet101.py](configs/train/baseline_resnet101.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset only
+- [baseline_resnet101_sbd.py](configs/train/baseline_resnet101_sbd.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset with SBD
 
 
 
