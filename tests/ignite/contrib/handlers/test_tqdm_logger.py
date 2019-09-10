@@ -31,7 +31,7 @@ def test_pbar(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -79,7 +79,7 @@ def test_pbar_with_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch: [1/2]  50%|█████     , batchloss=5.00e-01 [00:00<00:00]'
+    expected = u'Epoch: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]'
     assert actual == expected
 
 
@@ -110,7 +110,7 @@ def test_pbar_with_all_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch: [1/2]  50%|█████     , another batchloss=1.50e+00, batchloss=5.00e-01 [00:00<00:00]'
+    expected = u'Epoch: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]'
     assert actual == expected
 
 
@@ -148,7 +148,7 @@ def test_pbar_with_output(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -174,7 +174,7 @@ def test_pbar_with_scalar_output(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch [2/2]: [1/2]  50%|█████     , output=1.00e+00 [00:00<00:00]'
+    expected = u'Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -209,7 +209,7 @@ def test_pbar_with_tqdm_kwargs(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1.00e+00 [00:00<00:00]'.format()
+    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'.format()
     assert err[-1] == expected
 
 
@@ -245,7 +245,7 @@ def test_pbar_output_tensor(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Output tensor: [4/5]  80%|████████  , output_0=5.00e+00, output_1=0.00e+00 [00:00<00:00]'
+    expected = u'Output tensor: [4/5]  80%|████████  , output_0=5, output_1=0 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -253,7 +253,7 @@ def test_pbar_output_warning(capsys):
     loader = [1, 2, 3, 4, 5]
 
     def update_fn(engine, batch):
-        return batch, "abc"
+        return torch.zeros(1, 2, 3, 4)
 
     engine = Engine(update_fn)
 
