@@ -61,17 +61,16 @@ def _test_gpu_info(device='cpu'):
     engine = Engine(lambda engine, batch: 0.0)
     engine.state = State(metrics={})
 
-    gpu_info.completed(engine, name='gpu info')
+    gpu_info.completed(engine, name='gpu')
 
-    assert 'gpu info:0 memory' in engine.state.metrics
-    assert 'gpu info:0 util' in engine.state.metrics
+    assert 'gpu:0 mem(%)' in engine.state.metrics
+    assert 'gpu:0 util(%)' in engine.state.metrics
 
-    assert isinstance(engine.state.metrics['gpu info:0 memory'], str)
-    assert "{}".format(int(mem_report['used'])) in engine.state.metrics['gpu info:0 memory']
-    assert "{}".format(int(mem_report['total'])) in engine.state.metrics['gpu info:0 memory']
+    assert isinstance(engine.state.metrics['gpu:0 mem(%)'], int)
+    assert int(mem_report['used'] * 100.0 / mem_report['total']) == engine.state.metrics['gpu:0 mem(%)']
 
-    assert isinstance(engine.state.metrics['gpu info:0 util'], str)
-    assert "{}".format(int(util_report['gpu_util'])) in engine.state.metrics['gpu info:0 util']
+    assert isinstance(engine.state.metrics['gpu:0 util(%)'], int)
+    assert int(util_report['gpu_util']) == engine.state.metrics['gpu:0 util(%)']
 
 
 @pytest.mark.skipif(sys.version[0] == "2" or not (torch.cuda.is_available()),
