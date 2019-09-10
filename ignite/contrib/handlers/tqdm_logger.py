@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import numbers
 import warnings
 
 import torch
@@ -53,7 +52,7 @@ class ProgressBar(BaseLogger):
             pbar.attach(trainer, ['loss'])
 
             # Progress bar will looks like
-            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
 
         Directly attach the engine's output
 
@@ -65,7 +64,7 @@ class ProgressBar(BaseLogger):
             pbar.attach(trainer, output_transform=lambda x: {'loss': x})
 
             # Progress bar will looks like
-            # Epoch [2/50]: [64/128]  50%|█████      , loss=12.34e-02 [06:17<12:34]
+            # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
 
     Note:
         When adding attaching the progress bar to an engine, it is recommend that you replace
@@ -91,6 +90,7 @@ class ProgressBar(BaseLogger):
 
     def __init__(self, persist=False,
                  bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]',
+
                  **tqdm_kwargs):
 
         try:
@@ -226,18 +226,18 @@ class _OutputHandler(BaseOutputHandler):
 
         rendered_metrics = {}
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or \
-                    isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics[key] = "{:.2e}".format(value)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    k = "{}_{}".format(key, i)
-                    rendered_metrics[k] = "{:.2e}".format(v)
-            elif isinstance(value, str):
-                rendered_metrics[key] = value
+            if isinstance(value, torch.Tensor):
+                if value.ndimension() == 0:
+                    rendered_metrics[key] = value.item()
+                elif value.ndimension() == 1:
+                    for i, v in enumerate(value):
+                        k = "{}_{}".format(key, i)
+                        rendered_metrics[k] = v.item()
+                else:
+                    warnings.warn("ProgressBar can not log "
+                                  "tensor with {} dimensions".format(value.ndimension()))
             else:
-                warnings.warn("ProgressBar can not log "
-                              "metrics value type {}".format(type(value)))
+                rendered_metrics[key] = value
 
         if rendered_metrics:
             logger.pbar.set_postfix(**rendered_metrics)
