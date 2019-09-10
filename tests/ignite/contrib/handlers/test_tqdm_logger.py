@@ -230,23 +230,29 @@ def test_pbar_for_validation(capsys):
 
 
 def test_pbar_output_tensor(capsys):
-    loader = [1, 2, 3, 4, 5]
 
-    def update_fn(engine, batch):
-        return torch.Tensor([batch, 0])
+    def _test(out_tensor, out_msg):
+        loader = [1, 2, 3, 4, 5]
 
-    engine = Engine(update_fn)
+        def update_fn(engine, batch):
+            return out_tensor
 
-    pbar = ProgressBar(desc="Output tensor")
-    pbar.attach(engine, output_transform=lambda x: x)
-    engine.run(loader, max_epochs=1)
+        engine = Engine(update_fn)
 
-    captured = capsys.readouterr()
-    err = captured.err.split('\r')
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    expected = u'Output tensor: [4/5]  80%|████████  , output_0=5, output_1=0 [00:00<00:00]'
-    assert err[-1] == expected
+        pbar = ProgressBar(desc="Output tensor")
+        pbar.attach(engine, output_transform=lambda x: x)
+        engine.run(loader, max_epochs=1)
+
+        captured = capsys.readouterr()
+        err = captured.err.split('\r')
+        err = list(map(lambda x: x.strip(), err))
+        err = list(filter(None, err))
+        expected = u'Output tensor: [4/5]  80%|████████  , {} [00:00<00:00]'.format(out_msg)
+        assert err[-1] == expected
+
+    _test(out_tensor=torch.tensor([5, 0]), out_msg="output_0=5, output_1=0")
+    _test(out_tensor=torch.tensor(123), out_msg="output=123")
+    _test(out_tensor=torch.tensor(1.234), out_msg="output=1.23")
 
 
 def test_pbar_output_warning(capsys):
