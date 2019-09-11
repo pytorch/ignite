@@ -574,9 +574,9 @@ def no_tensorboardX_package():
 
 def test_no_tensorboardX(dirname, no_tensorboardX_package):
 
+    from torch.utils.tensorboard import SummaryWriter
     with TensorboardLogger(log_dir=dirname) as tb_logger:
-        assert isinstance(tb_logger.writer, torch.utils.tensorboard.SummaryWriter), (
-            "in the absence of tensorboardX, SummaryWriter should come from torch.utils.tensorboard")
+        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
 @pytest.fixture
