@@ -126,10 +126,10 @@ class BasicTimeProfiler(object):
                     self._as_last_completed]
 
         for e, m in zip(events, fmethods):
-            remove_handler(self, m, e)
+            Engine.remove_event_handler(self, m, e)
 
         for e, m in zip(events, lmethods):
-            remove_handler(self, m, e)
+            Engine.remove_event_handler(self, m, e)
 
     def attach(self, engine):
         if not isinstance(engine, Engine):
