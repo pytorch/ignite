@@ -5,6 +5,7 @@ import torch
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
 
+
 class BasicTimeProfiler(object):
 
     def __init__(self):
@@ -112,7 +113,7 @@ class BasicTimeProfiler(object):
         self.event_handlers_times[Events.COMPLETED][0] = self._event_handlers_timer.value()
 
         # Remove added handlers:
-        Engine.remove_event_handler(self._as_last_started,engine,Events.STARTED)
+        Engine.remove_event_handler(self._as_last_started, engine, Events.STARTED)
 
         #  - add the first handlers
         events = [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED,
