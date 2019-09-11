@@ -5,13 +5,6 @@ import torch
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
 
-def remove_handler(engine, handler, event_name):
-    assert event_name in engine._event_handlers
-    engine._event_handlers[event_name] = [(h, args, kwargs)
-                                          for h, args, kwargs in engine._event_handlers[event_name]
-                                          if h != handler]
-
-
 class BasicTimeProfiler(object):
 
     def __init__(self):
@@ -119,7 +112,7 @@ class BasicTimeProfiler(object):
         self.event_handlers_times[Events.COMPLETED][0] = self._event_handlers_timer.value()
 
         # Remove added handlers:
-        remove_handler(engine, self._as_last_started, Events.STARTED)
+        Engine.remove_event_handler(self._as_last_started,engine,Events.STARTED)
 
         #  - add the first handlers
         events = [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED,
@@ -133,10 +126,10 @@ class BasicTimeProfiler(object):
                     self._as_last_completed]
 
         for e, m in zip(events, fmethods):
-            remove_handler(engine, m, e)
+            remove_handler(self, m, e)
 
         for e, m in zip(events, lmethods):
-            remove_handler(engine, m, e)
+            remove_handler(self, m, e)
 
     def attach(self, engine):
         if not isinstance(engine, Engine):
