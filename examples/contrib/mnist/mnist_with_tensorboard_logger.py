@@ -19,6 +19,7 @@
 """
 from __future__ import print_function
 
+import sys
 from argparse import ArgumentParser
 import logging
 
@@ -33,6 +34,7 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.contrib.handlers.tensorboard_logger import *
+from ignite.contrib.metrics.gpu_info import GpuInfo
 
 
 LOG_INTERVAL = 10
@@ -80,6 +82,14 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
 
+    if sys.version_info > (3,):
+        try:
+            GpuInfo().attach(trainer)
+        except RuntimeError:
+            print("INFO: By default, in this example it is possible to log GPU information (used memory, utilization). "
+                  "As there is no pynvml python package installed, GPU information won't be logged. Otherwise, please "
+                  "install it : `pip install pynvml`")
+
     metrics = {
         'accuracy': Accuracy(),
         'loss': Loss(criterion)
@@ -96,7 +106,9 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     tb_logger = TensorboardLogger(log_dir=log_dir)
 
     tb_logger.attach(trainer,
-                     log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'batchloss': loss}),
+                     log_handler=OutputHandler(tag="training",
+                                               output_transform=lambda loss: {'batchloss': loss},
+                                               metric_names='all'),
                      event_name=Events.ITERATION_COMPLETED)
 
     tb_logger.attach(train_evaluator,

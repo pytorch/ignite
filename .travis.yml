@@ -30,6 +30,7 @@ before_install: &before_install
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
   - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install futures; fi
@@ -170,7 +171,7 @@ jobs:
       # Use previously defined before_install
       before_install: *before_install
       install:
-        - sed -i "s/__version__ = '\(.*\)'/__version__ = '\1.dev$(date -u ++%Y%m%dT%H%M%S)'/g" ignite/__init__.py
+        - sed -i "s/__version__ = '\(.*\)'/__version__ = '\1.dev$(date -u +%Y%m%d)'/g" ignite/__init__.py
       script: true
       after_success: # Nothing to do
       before_deploy:
@@ -201,4 +202,5 @@ jobs:
         skip_cleanup: true
         distributions: "sdist bdist_wheel"
         on:
-          branch: master
+          branch:
+            - master

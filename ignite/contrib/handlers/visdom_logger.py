@@ -234,11 +234,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
+        tag (str, optional): common title for all produced plots. For example, 'generator'
         show_legend (bool, optional): flag to show legend in the window
     """
 
-    def __init__(self, model, reduction=torch.norm, show_legend=False):
-        super(WeightsScalarHandler, self).__init__(model, reduction)
+    def __init__(self, model, reduction=torch.norm, tag=None, show_legend=False):
+        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
@@ -247,9 +248,10 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
-            k = "weights_{}/{}".format(self.reduction.__name__, name)
+            k = "{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name)
             v = float(self.reduction(p.data))
             self.add_scalar(logger, k, v, event_name, global_step)
 
@@ -278,12 +280,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
+        tag (str, optional): common title for all produced plots. For example, 'generator'
         show_legend (bool, optional): flag to show legend in the window
 
     """
 
-    def __init__(self, model, reduction=torch.norm, show_legend=False):
-        super(GradsScalarHandler, self).__init__(model, reduction)
+    def __init__(self, model, reduction=torch.norm, tag=None, show_legend=False):
+        super(GradsScalarHandler, self).__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
@@ -291,9 +294,10 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
-            k = "grads_{}/{}".format(self.reduction.__name__, name)
+            k = "{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name)
             v = float(self.reduction(p.grad))
             self.add_scalar(logger, k, v, event_name, global_step)
 

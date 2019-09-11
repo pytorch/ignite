@@ -230,23 +230,30 @@ def test_weights_scalar_handler(dummy_model_factory):
 
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = WeightsScalarHandler(model)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = WeightsScalarHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 4
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("weights_norm/fc1/weight", 0.0, 5),
-        call("weights_norm/fc1/bias", 0.0, 5),
-        call("weights_norm/fc2/weight", 12.0, 5),
-        call("weights_norm/fc2/bias", math.sqrt(12.0), 5),
-    ], any_order=True)
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        assert mock_logger.writer.add_scalar.call_count == 4
+        mock_logger.writer.add_scalar.assert_has_calls([
+            call(tag_prefix + "weights_norm/fc1/weight", 0.0, 5),
+            call(tag_prefix + "weights_norm/fc1/bias", 0.0, 5),
+            call(tag_prefix + "weights_norm/fc2/weight", 12.0, 5),
+            call(tag_prefix + "weights_norm/fc2/bias", math.sqrt(12.0), 5),
+        ], any_order=True)
+
+    _test()
+    _test(tag="tag")
 
 
 def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
@@ -294,23 +301,30 @@ def test_weights_hist_handler(dummy_model_factory):
 
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = WeightsHistHandler(model)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = WeightsHistHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.writer.add_histogram.call_count == 4
-    mock_logger.writer.add_histogram.assert_has_calls([
-        call(tag="weights/fc1/weight", values=ANY, global_step=5),
-        call(tag="weights/fc1/bias", values=ANY, global_step=5),
-        call(tag="weights/fc2/weight", values=ANY, global_step=5),
-        call(tag="weights/fc2/bias", values=ANY, global_step=5),
-    ], any_order=True)
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        assert mock_logger.writer.add_histogram.call_count == 4
+        mock_logger.writer.add_histogram.assert_has_calls([
+            call(tag=tag_prefix + "weights/fc1/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "weights/fc1/bias", values=ANY, global_step=5),
+            call(tag=tag_prefix + "weights/fc2/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "weights/fc2/bias", values=ANY, global_step=5),
+        ], any_order=True)
+
+    _test()
+    _test(tag="tag")
 
 
 def test_weights_hist_handler_frozen_layers(dummy_model_factory):
@@ -359,25 +373,32 @@ def test_grads_scalar_handler_wrong_setup():
 def test_grads_scalar_handler(dummy_model_factory, norm_mock):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = GradsScalarHandler(model, reduction=norm_mock)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
-    norm_mock.reset_mock()
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
+        norm_mock.reset_mock()
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("grads_norm/fc1/weight", ANY, 5),
-        call("grads_norm/fc1/bias", ANY, 5),
-        call("grads_norm/fc2/weight", ANY, 5),
-        call("grads_norm/fc2/bias", ANY, 5),
-    ], any_order=True)
-    assert mock_logger.writer.add_scalar.call_count == 4
-    assert norm_mock.call_count == 4
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        mock_logger.writer.add_scalar.assert_has_calls([
+            call(tag_prefix + "grads_norm/fc1/weight", ANY, 5),
+            call(tag_prefix + "grads_norm/fc1/bias", ANY, 5),
+            call(tag_prefix + "grads_norm/fc2/weight", ANY, 5),
+            call(tag_prefix + "grads_norm/fc2/bias", ANY, 5),
+        ], any_order=True)
+        assert mock_logger.writer.add_scalar.call_count == 4
+        assert norm_mock.call_count == 4
+
+    _test()
+    _test(tag="tag")
 
 
 def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
@@ -424,23 +445,30 @@ def test_grads_hist_handler_wrong_setup():
 def test_grads_hist_handler(dummy_model_factory):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = GradsHistHandler(model)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = GradsHistHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.writer.add_histogram.call_count == 4
-    mock_logger.writer.add_histogram.assert_has_calls([
-        call(tag="grads/fc1/weight", values=ANY, global_step=5),
-        call(tag="grads/fc1/bias", values=ANY, global_step=5),
-        call(tag="grads/fc2/weight", values=ANY, global_step=5),
-        call(tag="grads/fc2/bias", values=ANY, global_step=5),
-    ], any_order=True)
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        assert mock_logger.writer.add_histogram.call_count == 4
+        mock_logger.writer.add_histogram.assert_has_calls([
+            call(tag=tag_prefix + "grads/fc1/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "grads/fc1/bias", values=ANY, global_step=5),
+            call(tag=tag_prefix + "grads/fc2/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "grads/fc2/bias", values=ANY, global_step=5),
+        ], any_order=True)
+
+    _test()
+    _test(tag="tag")
 
 
 def test_grads_hist_frozen_layers(dummy_model_factory):
