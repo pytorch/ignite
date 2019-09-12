@@ -563,13 +563,24 @@ def test_integration_as_context_manager(dirname):
 @pytest.fixture
 def no_tensorboardX_package():
     import sys
+    # import bare minimum for torch.utils.tensorboard to load
+    import tensorboard.summary.writer.record_writer
+    import caffe2.python
+    import past.builtins
+    # remove tensorboardX
     tensorboardX_module = sys.modules['tensorboardX']
     del sys.modules['tensorboardX']
+    # save and replace sys.path
     prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "tensorboardX" not in p]
-    yield "no_tensorboardX_package"
+    sys.path = [p for p in sys.path if "site-packages" not in p]
+    yield "no_site_packages"
+    # put everything back in place
     sys.path = prev_path
     sys.modules['tensorboardX'] = tensorboardX_module
+    # removing imported modules
+    del sys.modules['tensorboard']
+    del sys.modules['caffe2.python']
+    del sys.modules['past.builtins']
 
 
 def test_no_tensorboardX(dirname, no_tensorboardX_package):
