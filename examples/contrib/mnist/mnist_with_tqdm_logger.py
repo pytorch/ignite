@@ -44,7 +44,7 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def run(train_batch_size, val_batch_size, epochs, lr, momentum):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
     device = 'cpu'
@@ -61,8 +61,13 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
 
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
 
+    if display_gpu_info:
+        from ignite.contrib.metrics import GpuInfo
+
+        GpuInfo().attach(trainer, name='gpu')
+
     pbar = ProgressBar(persist=True)
-    pbar.attach(trainer, ['loss'])
+    pbar.attach(trainer, metric_names='all')
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
@@ -102,7 +107,9 @@ if __name__ == "__main__":
                         help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.5,
                         help='SGD momentum (default: 0.5)')
+    parser.add_argument('--display_gpu_info', action='store_true',
+                        help='Display gpu usage info. This needs python 3.X and pynvml package')
 
     args = parser.parse_args()
 
-    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum)
+    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.display_gpu_info)

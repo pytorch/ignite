@@ -168,10 +168,11 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
+        tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
-    def __init__(self, model, reduction=torch.norm):
-        super(WeightsScalarHandler, self).__init__(model, reduction)
+    def __init__(self, model, reduction=torch.norm, tag=None):
+        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine, logger, event_name):
 
@@ -179,12 +180,13 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             name = name.replace('.', '/')
-            logger.writer.add_scalar("weights_{}/{}".format(self.reduction.__name__, name),
+            logger.writer.add_scalar("{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name),
                                      self.reduction(p.data),
                                      global_step)
 
@@ -208,23 +210,25 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
     Args:
         model (torch.nn.Module): model to log weights
+        tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
 
-    def __init__(self, model):
-        super(WeightsHistHandler, self).__init__(model)
+    def __init__(self, model, tag=None):
+        super(WeightsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             name = name.replace('.', '/')
-            logger.writer.add_histogram(tag="weights/{}".format(name),
+            logger.writer.add_histogram(tag="{}weights/{}".format(tag_prefix, name),
                                         values=p.data.detach().cpu().numpy(),
                                         global_step=global_step)
 
@@ -251,22 +255,24 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
+        tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
-    def __init__(self, model, reduction=torch.norm):
-        super(GradsScalarHandler, self).__init__(model, reduction)
+    def __init__(self, model, reduction=torch.norm, tag=None):
+        super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             name = name.replace('.', '/')
-            logger.writer.add_scalar("grads_{}/{}".format(self.reduction.__name__, name),
+            logger.writer.add_scalar("{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name),
                                      self.reduction(p.grad),
                                      global_step)
 
@@ -290,22 +296,24 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
     Args:
         model (torch.nn.Module): model to log weights
+        tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
-    def __init__(self, model):
-        super(GradsHistHandler, self).__init__(model)
+    def __init__(self, model, tag=None):
+        super(GradsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsHistHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             name = name.replace('.', '/')
-            logger.writer.add_histogram(tag="grads/{}".format(name),
+            logger.writer.add_histogram(tag="{}grads/{}".format(tag_prefix, name),
                                         values=p.grad.detach().cpu().numpy(),
                                         global_step=global_step)
 
@@ -322,7 +330,9 @@ class TensorboardLogger(BaseLogger):
 
 
     Args:
-        log_dir (str): path to the directory where to log.
+        *args: Positional arguments accepted from :class:`~tensorboardx.SummaryWriter`.
+        **kwargs: Keyword arguments accepted from :class:`~tensorboardx.SummaryWriter`, for example,
+            `log_dir` to setup path to the directory where to log.
 
     Examples:
 
@@ -399,23 +409,14 @@ class TensorboardLogger(BaseLogger):
 
     """
 
-    def __init__(self, log_dir):
+    def __init__(self, *args, **kwargs):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
             raise RuntimeError("This contrib module requires tensorboardX to be installed. "
                                "Please install it with command: \n pip install tensorboardX")
 
-        try:
-            self.writer = SummaryWriter(logdir=log_dir)
-        except TypeError as err:
-            if "type object got multiple values for keyword argument 'logdir'" == str(err):
-                self.writer = SummaryWriter(log_dir=log_dir)
-                warnings.warn('tensorboardX version < 1.7 will not be supported '
-                              'after ignite 0.3.0; please upgrade',
-                              DeprecationWarning)
-            else:
-                raise err
+        self.writer = SummaryWriter(*args, **kwargs)
 
     def close(self):
         self.writer.close()

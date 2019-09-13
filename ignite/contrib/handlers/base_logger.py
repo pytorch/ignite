@@ -130,7 +130,7 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model, reduction=torch.norm):
+    def __init__(self, model, reduction=torch.norm, tag=None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, "
                             "but given {}".format(type(model)))
@@ -142,13 +142,14 @@ class BaseWeightsScalarHandler(BaseHandler):
         def _is_0D_tensor(t):
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
-        # Test reduction function on a random tensor
-        o = reduction(torch.rand(4, 2))
+        # Test reduction function on a tensor
+        o = reduction(torch.ones(4, 2))
         if not (isinstance(o, numbers.Number) or _is_0D_tensor(o)):
             raise ValueError("Output of the reduction function should be a scalar, but got {}".format(type(o)))
 
         self.model = model
         self.reduction = reduction
+        self.tag = tag
 
 
 class BaseWeightsHistHandler(BaseHandler):
@@ -156,9 +157,10 @@ class BaseWeightsHistHandler(BaseHandler):
     Helper handler to log model's weights as histograms.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, tag=None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, "
                             "but given {}".format(type(model)))
 
         self.model = model
+        self.tag = tag

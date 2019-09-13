@@ -390,34 +390,44 @@ def test_weights_scalar_handler():
 
     model = DummyModel()
 
-    wrapper = WeightsScalarHandler(model)
-    mock_logger = MagicMock(spec=VisdomLogger)
-    mock_logger.vis = MagicMock()
-    mock_logger.executor = _DummyExecutor()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = WeightsScalarHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=VisdomLogger)
+        mock_logger.vis = MagicMock()
+        mock_logger.executor = _DummyExecutor()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.vis.line.call_count == 4
-    mock_logger.vis.line.assert_has_calls([
-        call(X=[5, ], Y=[0.0, ], env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["weights_norm/fc1/weight"]['opts'], name="weights_norm/fc1/weight"),
-        call(X=[5, ], Y=[0.0, ], env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["weights_norm/fc1/bias"]['opts'], name="weights_norm/fc1/bias"),
+        tag_prefix = "{}/".format(tag) if tag else ""
 
-        call(X=[5, ], Y=[12.0, ], env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["weights_norm/fc2/weight"]['opts'], name="weights_norm/fc2/weight"),
-        call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["weights_norm/fc2/bias"]['opts'], name="weights_norm/fc2/bias"),
+        assert mock_logger.vis.line.call_count == 4
+        mock_logger.vis.line.assert_has_calls([
+            call(X=[5, ], Y=[0.0, ], env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "weights_norm/fc1/weight"]['opts'],
+                 name=tag_prefix + "weights_norm/fc1/weight"),
+            call(X=[5, ], Y=[0.0, ], env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "weights_norm/fc1/bias"]['opts'],
+                 name=tag_prefix + "weights_norm/fc1/bias"),
 
-    ], any_order=True)
+            call(X=[5, ], Y=[12.0, ], env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "weights_norm/fc2/weight"]['opts'],
+                 name=tag_prefix + "weights_norm/fc2/weight"),
+            call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "weights_norm/fc2/bias"]['opts'],
+                 name=tag_prefix + "weights_norm/fc2/bias"),
+        ], any_order=True)
+
+    _test()
+    _test(tag="tag")
 
 
 def test_weights_scalar_handler_custom_reduction():
@@ -502,35 +512,44 @@ def test_grads_scalar_handler():
     def norm(x):
         return 0.0
 
-    wrapper = GradsScalarHandler(model, reduction=norm)
-    mock_logger = MagicMock(spec=VisdomLogger)
-    mock_logger.vis = MagicMock()
-    mock_logger.executor = _DummyExecutor()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = GradsScalarHandler(model, reduction=norm, tag=tag)
+        mock_logger = MagicMock(spec=VisdomLogger)
+        mock_logger.vis = MagicMock()
+        mock_logger.executor = _DummyExecutor()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.vis.line.call_count == 4
+        tag_prefix = "{}/".format(tag) if tag else ""
 
-    mock_logger.vis.line.assert_has_calls([
-        call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["grads_norm/fc1/weight"]['opts'], name="grads_norm/fc1/weight"),
-        call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["grads_norm/fc1/bias"]['opts'], name="grads_norm/fc1/bias"),
+        assert mock_logger.vis.line.call_count == 4
+        mock_logger.vis.line.assert_has_calls([
+            call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "grads_norm/fc1/weight"]['opts'],
+                 name=tag_prefix + "grads_norm/fc1/weight"),
+            call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "grads_norm/fc1/bias"]['opts'],
+                 name=tag_prefix + "grads_norm/fc1/bias"),
 
-        call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["grads_norm/fc2/weight"]['opts'], name="grads_norm/fc2/weight"),
-        call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
-             win=None, update=None,
-             opts=wrapper.windows["grads_norm/fc2/bias"]['opts'], name="grads_norm/fc2/bias"),
+            call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "grads_norm/fc2/weight"]['opts'],
+                 name=tag_prefix + "grads_norm/fc2/weight"),
+            call(X=[5, ], Y=ANY, env=mock_logger.vis.env,
+                 win=None, update=None,
+                 opts=wrapper.windows[tag_prefix + "grads_norm/fc2/bias"]['opts'],
+                 name=tag_prefix + "grads_norm/fc2/bias"),
+        ], any_order=True)
 
-    ], any_order=True)
+    _test()
+    _test(tag="tag")
 
 
 def test_integration_no_server():
