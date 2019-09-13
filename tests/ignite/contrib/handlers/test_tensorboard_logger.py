@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from mock import MagicMock, call, ANY, Mock
+from mock import MagicMock, call, ANY, Mock, patch
 
 import torch
 
@@ -563,10 +563,8 @@ def test_integration_as_context_manager(dirname):
 @pytest.fixture
 def no_tensorboardX_package():
     import sys
-    # import bare minimum for torch.utils.tensorboard to load
-    import tensorboard.summary.writer.record_writer
-    import caffe2.python
-    import past.builtins
+    import tensorboardX
+    from torch.utils import tensorboard
     # remove tensorboardX
     tensorboardX_module = sys.modules['tensorboardX']
     del sys.modules['tensorboardX']
@@ -577,10 +575,6 @@ def no_tensorboardX_package():
     # put everything back in place
     sys.path = prev_path
     sys.modules['tensorboardX'] = tensorboardX_module
-    # removing imported modules
-    del sys.modules['tensorboard']
-    del sys.modules['caffe2.python']
-    del sys.modules['past.builtins']
 
 
 def test_no_tensorboardX(dirname, no_tensorboardX_package):
@@ -612,4 +606,22 @@ def test_init_typeerror_exception(mock_tb_module):
     mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect)
 
     with pytest.raises(TypeError, match=r'a problem'):
+        TensorboardLogger(log_dir=None)
+
+
+@pytest.fixture
+def mock_no_torch_utils_tensorboard():
+    import sys
+    from torch.utils import tensorboard
+    orig_module = sys.modules['torch.utils.tensorboard']
+    mock_module = Mock(spec=tensorboard)
+    del mock_module.SummaryWriter
+    sys.modules['torch.utils.tensorboard'] = mock_module
+    yield mock_module
+    sys.modules['torch.utils.tensorboard'] = orig_module
+
+
+def test_no_torch_utils_tensorboard(no_tensorboardX_package, mock_no_torch_utils_tensorboard):
+
+    with pytest.raises(RuntimeError, match=r'This contrib module requires either tensorboardX or torch'):
         TensorboardLogger(log_dir=None)
