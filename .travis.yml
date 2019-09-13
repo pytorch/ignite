@@ -72,7 +72,7 @@ script:
 
   #fast-neural-style
   #train
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then mkdir -p /home/travis/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O/home/travis/.cache/torch/checkpoints/vgg16-397923af.pth; fi
+  - mkdir -p /home/travis/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O/home/travis/.cache/torch/checkpoints/vgg16-397923af.pth
   - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
 
   # tests for distributed ops
