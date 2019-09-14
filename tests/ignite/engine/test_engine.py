@@ -579,7 +579,7 @@ def test_terminate_epoch_stops_mid_epoch():
     state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert state.iteration == num_iterations_per_epoch * (max_epochs - 1) + \
-           iteration_to_stop % num_iterations_per_epoch
+        iteration_to_stop % num_iterations_per_epoch
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
