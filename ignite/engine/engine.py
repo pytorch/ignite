@@ -127,6 +127,7 @@ class Engine(object):
         # Loss value is now stored in `engine.state.output`.
 
     """
+
     def __init__(self, process_function):
         self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
@@ -208,6 +209,8 @@ class Engine(object):
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`.
+            interval (int, optional): Execute handler in intervals (default: 1). For custom events, requires
+                event_to_attr to be set with :meth:`~ignite.engine.Engine.register_events`.
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
@@ -232,6 +235,8 @@ class Engine(object):
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
         """
+        interval = kwargs.pop("interval") if "interval" in kwargs else 1
+
         if event_name not in self._allowed_events:
             self._logger.error("attempt to add event handler to an invalid event %s.", event_name)
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
@@ -239,7 +244,7 @@ class Engine(object):
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
         self._check_signature(handler, 'handler', *(event_args + args), **kwargs)
 
-        self._event_handlers[event_name].append((handler, args, kwargs))
+        self._event_handlers[event_name].append((handler, args, kwargs, interval))
         self._logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
@@ -259,7 +264,7 @@ class Engine(object):
         else:
             events = self._event_handlers
         for e in events:
-            for h, _, _ in self._event_handlers[e]:
+            for h, _, _, _ in self._event_handlers[e]:
                 if h == handler:
                     return True
         return False
@@ -275,8 +280,8 @@ class Engine(object):
         if event_name not in self._event_handlers:
             raise ValueError("Input event name '{}' does not exist".format(event_name))
 
-        new_event_handlers = [(h, args, kwargs) for h, args, kwargs in self._event_handlers[event_name]
-                              if h != handler]
+        new_event_handlers = [(h, args, kwargs, interval) for h, args, kwargs, interval in
+                              self._event_handlers[event_name] if h != handler]
         if len(new_event_handlers) == len(self._event_handlers[event_name]):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
@@ -317,9 +322,10 @@ class Engine(object):
             **kwargs: optional keyword args to be passed to `handler`.
 
         """
-        def decorator(f):
-            self.add_event_handler(event_name, f, *args, **kwargs)
+        def decorator(f, interval=1):
+            self.add_event_handler(event_name, f, *args, interval=interval, **kwargs)
             return f
+
         return decorator
 
     def _fire_event(self, event_name, *event_args, **event_kwargs):
@@ -340,9 +346,13 @@ class Engine(object):
         """
         if event_name in self._allowed_events:
             self._logger.debug("firing handlers for event %s ", event_name)
-            for func, args, kwargs in self._event_handlers[event_name]:
-                kwargs.update(event_kwargs)
-                func(self, *(event_args + args), **kwargs)
+            event_attrib_value = self.state.get_event_attrib_value(event_name) \
+                if event_name in self.state.event_to_attr \
+                else 1
+            for func, args, kwargs, interval in self._event_handlers[event_name]:
+                if (event_attrib_value - 1) % interval == 0:
+                    kwargs.update(event_kwargs)
+                    func(self, *(event_args + args), **kwargs)
 
     def fire_event(self, event_name):
         """Execute all the handlers associated with given event.
