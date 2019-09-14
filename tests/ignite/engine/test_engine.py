@@ -106,18 +106,47 @@ def test_add_event_handler():
 
     def handle_iteration_started(engine, counter):
         counter.count += 1
+
     engine.add_event_handler(Events.STARTED, handle_iteration_started, started_counter)
 
     completed_counter = Counter()
 
     def handle_iteration_completed(engine, counter):
         counter.count += 1
+
     engine.add_event_handler(Events.COMPLETED, handle_iteration_completed, completed_counter)
 
     engine.run(15)
 
     assert started_counter.count == 15
     assert completed_counter.count == 15
+
+
+def test_add_event_handler_with_interval():
+    engine = Engine(process_func)
+
+    class Counter(object):
+        def __init__(self, count=0):
+            self.count = count
+
+    started_counter = Counter()
+
+    def handle_iteration_started(engine, counter):
+        counter.count += 1
+
+    engine.add_event_handler(Events.EPOCH_STARTED, handle_iteration_started, started_counter, interval=3)
+
+    completed_counter = Counter()
+
+    def handle_iteration_completed(engine, counter):
+        counter.count += 1
+
+    engine.add_event_handler(Events.EPOCH_COMPLETED, handle_iteration_completed, completed_counter, interval=3)
+
+    engine.run(iter(range(15)), max_epochs=15)
+
+    assert started_counter.count == 5
+    assert completed_counter.count == 5
 
 
 def test_adding_multiple_event_handlers():
@@ -132,7 +161,6 @@ def test_adding_multiple_event_handlers():
 
 
 def test_event_removable_handle():
-
     # Removable handle removes event from engine.
     engine = DummyEngine()
     handler = MagicMock()
@@ -551,7 +579,7 @@ def test_terminate_epoch_stops_mid_epoch():
     state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert state.iteration == num_iterations_per_epoch * (max_epochs - 1) + \
-        iteration_to_stop % num_iterations_per_epoch
+           iteration_to_stop % num_iterations_per_epoch
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -796,7 +824,6 @@ def test_create_supervised_with_metrics():
 
 
 def test_reset_should_terminate():
-
     def update_fn(engine, batch):
         pass
 
