@@ -21,7 +21,7 @@ import pytorch_sphinx_theme
 # -- Project information -----------------------------------------------------
 
 project = 'ignite'
-copyright = '2018, Torch Contributors'
+copyright = '2019, Torch Contributors'
 author = 'Torch Contributors'
 
 # The short X.Y version
