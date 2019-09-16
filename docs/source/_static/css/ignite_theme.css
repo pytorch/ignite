@@ -1,9 +1,0 @@
-article.pytorch-article table tr th:first-of-type, article.pytorch-article table tr td:first-of-type {
-  width: 17px;
-}
-
-div.header-container a.header-logo {
-  height: 27px;
-  width: 93px;
-  background-image: url("../ignite-logo-dark.svg");
-}
