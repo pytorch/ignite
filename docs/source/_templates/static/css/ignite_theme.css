@@ -5,7 +5,8 @@ article.pytorch-article table tr th:first-of-type, article.pytorch-article table
 
 div.header-container a.header-logo
 {
-  height: 27px;
-  width: 93px;
+  height: 33px;
+  width: 108px;
   background-image: url("../ignite-logo-dark.svg");
+  background-size: 108px 33px;
 }
