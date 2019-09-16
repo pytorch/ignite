@@ -1,29 +1,24 @@
 # This a training script launched with py_config_runner
 # It should obligatory contain `run(config, **kwargs)` method
 
-from pathlib import Path
-
 import torch
 import torch.distributed as dist
 
 from apex import amp
 
-import mlflow
-
-import ignite
 from ignite.engine import Events, _prepare_batch
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 
-from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_config
 from py_config_runner.utils import set_seed
 
-from utils.commons import initialize_amp, setup_distrib_trainer, setup_distrib_evaluators, setup_mlflow_logging, \
-    setup_tb_logging, save_best_model_by_val_score, add_early_stopping_by_val_score, setup_distrib_loader
+from utils.commons import initialize_amp, setup_distrib_trainer, setup_distrib_evaluators, \
+    setup_mlflow_logging, setup_plx_logging, setup_tb_logging, \
+    save_best_model_by_val_score, add_early_stopping_by_val_score
 
 from utils.handlers import predictions_gt_images_handler
 
 
-def training(config, local_rank=None):
+def training(config, local_rank=None, with_mlflow_logging=False, with_plx_logging=False):
 
     if not getattr(config, "use_fp16", True):
         raise RuntimeError("This training script uses by default fp16 AMP")
@@ -34,16 +29,15 @@ def training(config, local_rank=None):
 
     torch.backends.cudnn.benchmark = True
 
-    if dist.get_rank() == 0:
-        mlflow.log_params({
-            "pytorch version": torch.__version__,
-            "ignite version": ignite.__version__,
-        })
-        mlflow.log_params(get_params(config, TRAINVAL_CONFIG))
+    train_loader = config.train_loader
+    train_sampler = getattr(train_loader, "sampler", None)
+    assert train_sampler is not None, "Train loader of type '{}' " \
+                                      "should have attribute 'sampler'".format(type(train_loader))
+    assert hasattr(train_sampler, 'set_epoch') and callable(train_sampler.set_epoch), \
+        "Train sampler should a callable method `set_epoch`"
 
-    train_loader, train_sampler = setup_distrib_loader("train", config)
-    train_eval_loader, _ = setup_distrib_loader("train_eval", config)
-    val_loader, _ = setup_distrib_loader("val", config)
+    train_eval_loader = config.train_eval_loader
+    val_loader = config.val_loader
 
     model = config.model.to(device)
     optimizer = config.optimizer
@@ -76,7 +70,9 @@ def training(config, local_rank=None):
             'supervised batch loss': loss.item(),
         }
 
-    trainer = setup_distrib_trainer(train_update_function, model, optimizer, train_sampler, config)
+    trainer = setup_distrib_trainer(train_update_function, model, optimizer, train_sampler, config,
+                                    # Avoid too much pbar logs
+                                    setup_pbar_on_iters=not with_plx_logging)
 
     def output_transform(output):
         return output['y_pred'], output['y']
@@ -108,7 +104,11 @@ def training(config, local_rank=None):
     if dist.get_rank() == 0:
 
         tb_logger = setup_tb_logging(trainer, optimizer, train_evaluator, evaluator, config)
-        setup_mlflow_logging(trainer, optimizer, train_evaluator, evaluator)
+        if with_mlflow_logging:
+            setup_mlflow_logging(trainer, optimizer, train_evaluator, evaluator)
+
+        if with_plx_logging:
+            setup_plx_logging(trainer, optimizer, train_evaluator, evaluator)
 
         save_best_model_by_val_score(evaluator, model, metric_name="mIoU_bg", config=config)
 
@@ -133,43 +133,3 @@ def training(config, local_rank=None):
                              event_name=Events.EPOCH_COMPLETED)
 
     trainer.run(train_loader, max_epochs=config.num_epochs)
-
-
-def run(config, logger=None, local_rank=0, **kwargs):
-
-    assert torch.cuda.is_available()
-    assert torch.backends.cudnn.enabled, "Nvidia/Amp requires cudnn backend to be enabled."
-
-    dist.init_process_group(getattr(config, "dist_backend", "nccl"),
-                            init_method=getattr(config, "dist_url", "env://"))
-
-    # We pass config with option --manual_config_load
-    assert hasattr(config, "setup"), "We need to manually setup the configuration, please set --manual_config_load " \
-                                     "to py_config_runner"
-
-    config = config.setup()
-
-    assert_config(config, TRAINVAL_CONFIG)
-    # The following attributes are automatically added by py_config_runner
-    assert hasattr(config, "config_filepath") and isinstance(config.config_filepath, Path)
-    assert hasattr(config, "script_filepath") and isinstance(config.config_filepath, Path)
-
-    # dump python files to reproduce the run
-    mlflow.log_artifact(config.config_filepath.as_posix())
-    mlflow.log_artifact(config.script_filepath.as_posix())
-
-    output_path = mlflow.get_artifact_uri()
-    config.output_path = Path(output_path)
-
-    try:
-        training(config, local_rank=local_rank)
-    except KeyboardInterrupt:
-        logger.info("Catched KeyboardInterrupt -> exit")
-    except Exception as e:  # noqa
-        logger.exception("")
-        mlflow.log_param("Run Status", "FAILED")
-        dist.destroy_process_group()
-        return
-
-    mlflow.log_param("Run Status", "OK")
-    dist.destroy_process_group()

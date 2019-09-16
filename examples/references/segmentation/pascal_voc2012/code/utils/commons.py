@@ -2,7 +2,6 @@ from functools import partial
 
 import torch
 import torch.distributed as dist
-from torch.utils.data import DataLoader, DistributedSampler
 
 from apex import amp
 from apex.parallel import DistributedDataParallel as DDP
@@ -15,8 +14,9 @@ from ignite.contrib.handlers import TensorboardLogger
 import ignite.contrib.handlers.tensorboard_logger as tb_logger_module
 from ignite.contrib.handlers import MLflowLogger
 import ignite.contrib.handlers.mlflow_logger as mlflow_logger_module
-
-from dataflow.utils import setup_distrib_sampler
+from ignite.contrib.handlers import PolyaxonLogger
+import ignite.contrib.handlers.polyaxon_logger as polyaxon_logger_module
+from ignite.contrib.metrics.gpu_info import GpuInfo
 
 
 def initialize_amp(model, optimizer, fp16_opt_level):
@@ -27,25 +27,7 @@ def initialize_amp(model, optimizer, fp16_opt_level):
     return model, optimizer
 
 
-def setup_distrib_loader(mode, config):
-    loader = getattr(config, "{}_loader".format(mode), None)
-    assert loader is not None, "Config should define '{}_loader'".format(mode)
-
-    if isinstance(loader, DataLoader):
-        if isinstance(loader.sampler, DistributedSampler):
-            return loader, loader.sampler
-        else:
-            loader, sampler = setup_distrib_sampler(loader)
-            return loader, sampler
-    else:
-        sampler = getattr(config, "{}_sampler".format(mode), None)
-        assert sampler is not None and isinstance(sampler, DistributedSampler), \
-            "As provided data loader is not torch.utils.data.DataLoader, config should " \
-            "provide '{}_sampler' as DistributedSampler".format(mode)
-        return loader, sampler
-
-
-def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler, config):
+def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler, config, setup_pbar_on_iters=True):
 
     trainer = Engine(train_update_function)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
@@ -61,6 +43,8 @@ def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler
         trainer.add_event_handler(Events.ITERATION_COMPLETED, lr_scheduler)
 
     trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
+
+    GpuInfo().attach(trainer, name='gpu')
 
     if dist.get_rank() == 0:
         # Checkpoint training
@@ -82,7 +66,9 @@ def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler
         for n in metric_names:
             RunningAverage(output_transform=partial(output_transform, name=n), epoch_bound=False).attach(trainer, n)
 
-        ProgressBar(persist=False).attach(trainer, metric_names)
+        if setup_pbar_on_iters:
+            ProgressBar(persist=False).attach(trainer, metric_names)
+
         ProgressBar(persist=True, bar_format="").attach(trainer,
                                                         event_name=Events.EPOCH_STARTED,
                                                         closing_event_name=Events.COMPLETED)
@@ -157,6 +143,12 @@ def setup_mlflow_logging(trainer, optimizer, train_evaluator, evaluator, **kwarg
     mlflow_logger = MLflowLogger()
     _setup_x_logging(mlflow_logger, mlflow_logger_module, trainer, optimizer, train_evaluator, evaluator)
     return mlflow_logger
+
+
+def setup_plx_logging(trainer, optimizer, train_evaluator, evaluator, **kwargs):
+    plx_logger = PolyaxonLogger()
+    _setup_x_logging(plx_logger, polyaxon_logger_module, trainer, optimizer, train_evaluator, evaluator)
+    return plx_logger
 
 
 def get_default_score_fn(metric_name):

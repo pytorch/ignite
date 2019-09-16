@@ -110,7 +110,7 @@ num_epochs = 100
 
 criterion = nn.CrossEntropyLoss()
 
-lr = 0.0044
+lr = 0.007
 weight_decay = 5e-4
 momentum = 0.9
 nesterov = False
