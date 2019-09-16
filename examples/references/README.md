@@ -11,11 +11,3 @@ reproducible baselines for vision tasks:
     
 * [ ] Detection
     * [ ] MS COCO
-
-## Requirements:
-
-We use `conda` and [mlflow](https://github.com/mlflow/mlflow) to handle all python dependencies. 
-Please, install these tools:
-
-- [mlflow](https://github.com/mlflow/mlflow): `pip install mlflow`
-- [conda](https://conda.io/en/latest/miniconda.html) 

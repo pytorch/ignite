@@ -17,10 +17,10 @@ from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_config
 from py_config_runner.utils import set_seed
 
-from tools.commons import initialize_amp, setup_distrib_trainer, setup_distrib_evaluators, setup_mlflow_logging, \
+from utils.commons import initialize_amp, setup_distrib_trainer, setup_distrib_evaluators, setup_mlflow_logging, \
     setup_tb_logging, save_best_model_by_val_score, add_early_stopping_by_val_score, setup_distrib_loader
 
-from tools.handlers import predictions_gt_images_handler
+from utils.handlers import predictions_gt_images_handler
 
 
 def training(config, local_rank=None):

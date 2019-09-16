@@ -4,25 +4,37 @@ In this example, we provide script and tools to perform reproducible experiments
 dataset.
 
 Features:
-
 - Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
+- Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/)
 
 ## Requirements
 
-We use `conda` and [mlflow](https://github.com/mlflow/mlflow) to handle experiments/runs and all python dependencies. 
+1) Experiments tracking with MLflow
+
+This case is suitable for a local machine with GPUs. We use `conda` and [MLflow](https://github.com/mlflow/mlflow) to 
+handle experiments/runs and all python dependencies. 
 Please, install these tools:
 
-- [mlflow](https://github.com/mlflow/mlflow): `pip install mlflow`
+- [MLflow](https://github.com/mlflow/mlflow): `pip install mlflow`
 - [conda](https://conda.io/en/latest/miniconda.html)
 
+2) Experiments tracking with Polyaxon
 
-## Dataset
+In this case we assume, user has Polyaxon installed on a machine/cluster/cloud and can schedule experiments with `polyaxon-cli`.
+
+
+## Usage
+
+1) Experiments tracking with MLflow
+
+
+### Setup dataset path
 
 To configure the path to already existing PASCAL VOC2012 dataset, please specify `DATASET_PATH` environment variable
 ```
 export DATASET_PATH=/path/to/pascal_voc2012
 ```
-### With SBD dataset
+#### With SBD dataset
 
 Optionally, user can configure the path to already existing SBD dataset, please specify `SBD_DATASET_PATH` environment variable
 ```
@@ -30,8 +42,8 @@ export SBD_DATASET_PATH=/path/to/sbd
 # e.g. SBD_DATASET_PATH=/path/to/sbd/benchmark_RELEASE/dataset/
 ```
 
-## Usage
-
+### MLflow setup
+ 
 Setup mlflow output path as 
 ```bash
 export MLFLOW_TRACKING_URI=/path/to/output/mlruns
@@ -52,11 +64,35 @@ mlflow experiments list
 ```bash
 export MLFLOW_TRACKING_URI=/path/to/output/mlruns
 # e.g export MLFLOW_TRACKING_URI=$PWD/output/mlruns
-mlflow run experiments/ --experiment-name=Trainings -P config_path=configs/train/baseline_resnet101.py -P num_gpus=2
+mlflow run experiments/mlflow --experiment-name=Trainings -P config_path=configs/train/baseline_resnet101.py -P num_gpus=2
+```
+
+2) Experiments tracking with Polyaxon
+
+### Setup Polyaxon project
+
+Create project on the cluster
+```
+polyaxon project create --name=pascal-voc2012 --description="Semantic segmentation on Pascal VOC2012"
+```
+Initialize local project
+```
+polyaxon init pascal-voc2012
+``` 
+
+Please rename and modify `experiments/plx/xp_training.yml.tmpl` to `experiments/plx/xp_training.yml` 
+to adapt to your cluster configuration.
+
+### Single node with multiple GPUs
+
+```bash
+polyaxon run -u -f experiments/plx/xp_training.yml --name="baseline_resnet101_sbd" --tags=train,deeplab,sbd
 ```
 
 ## Training tracking
 
+1) Experiments tracking with MLflow
+ 
 ### MLflow dashboard
 
 To visualize experiments and runs, user can start mlflow dashboard:
@@ -76,6 +112,8 @@ tensorboard --logdir /path/to/output/mlruns/1
 ```
 where `/1` points to "Training" experiment. 
 
+
+2) 
 
 ## Implementation details
 
@@ -97,17 +135,17 @@ notebooks : jupyter notebooks to check specific parts from code modules
 
 ### Experiments
 
-- [conda.yaml](experiments/conda.yaml): defines all python dependencies necessary for our experimentations
+- [conda.yaml](experiments/mlflow/conda.yaml): defines all python dependencies necessary for our experimentations
 
 
-- [MLproject](experiments/MLproject): defines types of experiments we would like to perform by "entry points":
+- [MLproject](experiments/mlflow/MLproject): defines types of experiments we would like to perform by "entry points":
   - main : starts single-node multi-GPU training script
 
 When we execute 
 ```
 mlflow run experiments/ --experiment-name=Trainings -P config_path=configs/train/baseline_resnet101.py -P num_gpus=2
 ```
-it executes `main` entry point from [MLproject](experiments/MLproject) and runs provided command.
+it executes `main` entry point from [MLproject](experiments/mlflow/MLproject) and runs provided command.
 
 ### Code and configs
 

@@ -1,0 +1,48 @@
+---
+version: 1
+kind: experiment
+
+# Setup running node:
+environment:
+  node_selector:
+    polyaxon: multigpu
+  resources:
+      gpu:
+        requests: 2
+        limits: 2
+
+# Setup running environment:
+build:
+  image: continuumio/miniconda3
+  build_steps:
+
+  # Install pytorch/torchvision/ignite and other useful packages
+  - conda install -y 'pytorch>=1.2.0' torchvision -c pytorch &&
+    pip install --pre pytorch-ignite &&
+    pip install git+https://github.com/vfdev-5/ImageDatasetViz.git git+https://github.com/albu/albumentations.git &&
+    pip install polyaxon-client tqdm tensorboardX py_config_runner
+
+  # Install Nvidia/APEX
+  - conda install gcc && git clone https://github.com/NVIDIA/apex /tmp/apex && cd /tmp/apex &&
+    pip install --upgrade --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
+
+declarations:
+  config_file: "baseline_resnet101_sbd.py"
+  script_file: "training.py"
+  num_gpus: 2
+
+run:
+  cmd:
+  - export CUDA_VISIBLE_DEVICES=all
+  - export PYTHONPATH=$PYTHONPATH:$PWD/code/:$PWD/code/deeplab
+
+  - export DATASET_PATH=/path/to_VOCdevkit_root
+  - export SBDATASET_PATH=/path/to/sbd-dataset/
+
+  - export config_file=$PWD/configs/train/{{config_file}}
+  - export script_file=$PWD/code/scripts/{{script_file}}
+
+  - cp $config_file $POLYAXON_RUN_OUTPUTS_PATH
+  - cp $script_file $POLYAXON_RUN_OUTPUTS_PATH
+
+  - python -m torch.distributed.launch --nproc_per_node={{num_gpus}} `py_config_runner_script` $script_file $config_path --manual_config_load
