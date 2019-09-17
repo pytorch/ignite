@@ -20,7 +20,7 @@ div.header-container a.header-logo
   width: 350px;
   color: #fcfcfc;
   font-family: FreightSans, Helvetica Neue, Helvetica, Arial, sans-serif;
-  background: #1f1d1d;
+  background: #d1d2d5;
   z-index: 400;
 }
 
@@ -37,13 +37,14 @@ div.header-container a.header-logo
 .rst-versions .rst-other-versions {
   font-size: 90%;
   padding: 12px;
-  color: grey;
+  color: #6c6c6d;
+  background: #f2f3f7;
   display: none;
 }
 
 .rst-versions .rst-current-version {
   padding: 12px;
-  background-color: #272525;
+  background-color: #e2e3e6;
   display: block;
   text-align: right;
   font-size: 90%;
@@ -59,7 +60,7 @@ div.header-container a.header-logo
 .rst-versions .rst-other-versions dd a {
   display: inline-block;
   padding: 6px;
-  color: #fcfcfc;
+  color: #454545;
 }
 
 .rst-versions a {
@@ -83,7 +84,7 @@ div.header-container a.header-logo
 }
 
 .rst-versions .rst-current-version .fa {
-  color: #fcfcfc;
+  color: #454545;
 }
 
 .rst-versions .rst-current-version .fa-book, .rst-versions .rst-current-version .icon-book {
@@ -110,6 +111,7 @@ div.header-container a.header-logo
 
 .fa-caret-down:before {
   content: "▼";
+  color: #ee4c2c;
 }
 
 .fa:before, a .fa, li .fa {
