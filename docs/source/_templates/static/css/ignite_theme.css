@@ -17,7 +17,7 @@ div.header-container a.header-logo
   position: fixed;
   bottom: 0;
   left: 0;
-  width: 350px;
+  width: inherit;
   color: #fcfcfc;
   font-family: FreightSans, Helvetica Neue, Helvetica, Arial, sans-serif;
   background: #d1d2d5;
