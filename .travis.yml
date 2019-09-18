@@ -93,7 +93,7 @@ jobs:
 
       install:
         - pip install -r docs/requirements.txt
-        - pip install -e "git+https://github.com/vfdev-5/sphinxcontrib-versioning.git#egg=sphinxcontrib-versioning"
+        - pip install git+https://github.com/vfdev-5/sphinxcontrib-versioning.git
 
       script:
         - sphinx-versioning --use-master-conf --use-master-templates build --greatest-tag --whitelist-branches master docs/source docs/build/html
