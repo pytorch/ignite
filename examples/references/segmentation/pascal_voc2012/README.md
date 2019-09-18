@@ -7,6 +7,8 @@ Features:
 - Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
 - Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/)
 
+![tb_dashboard](assets/tb_dashboard.png)
+
 ## Requirements
 
 1) Experiments tracking with MLflow
@@ -113,7 +115,10 @@ tensorboard --logdir /path/to/output/mlruns/1
 where `/1` points to "Training" experiment. 
 
 
-2) 
+2) Experiments tracking with Polyaxon
+
+Please, see Polyaxon dashboard usage at https://docs.polyaxon.com/
+
 
 ## Implementation details
 
@@ -135,9 +140,9 @@ notebooks : jupyter notebooks to check specific parts from code modules
 
 ### Experiments
 
+1) Experiments tracking with MLflow
+
 - [conda.yaml](experiments/mlflow/conda.yaml): defines all python dependencies necessary for our experimentations
-
-
 - [MLproject](experiments/mlflow/MLproject): defines types of experiments we would like to perform by "entry points":
   - main : starts single-node multi-GPU training script
 
@@ -147,16 +152,31 @@ mlflow run experiments/ --experiment-name=Trainings -P config_path=configs/train
 ```
 it executes `main` entry point from [MLproject](experiments/mlflow/MLproject) and runs provided command.
 
+
+2) Experiments tracking with Polyaxon
+
+File [xp_training.yml.tmpl](experiments/mlflow/xp_training.yml.tmpl) defines all configurations and dependencies 
+necessary for our experimentations. Part `run.cmd` starts single-node multi-GPU training script. 
+
+
 ### Code and configs
 
 #### [py_config_runner](https://github.com/vfdev-5/py_config_runner)
 
 We use [py_config_runner](https://github.com/vfdev-5/py_config_runner) package to execute python scripts with python configuration files.
 
-#### Training script
+#### Training scripts
 
-Main training scripts is located [here](code/scripts/training.py) and contains `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to run script with a configuration. Training logic is setup inside `training` method and configures trainer, 2 evaluators and various 
-logging handlers to tensorboard, mlflow and tqdm.
+Training scripts are located [code/scripts](code/scripts/) and contains  
+
+- `mlflow_training.py`, training script with MLflow experiments tracking
+- `plx_training.py`, training script with Polyaxon experiments tracking
+- `gen_training.py`, common training code used by above files
+ 
+Training scripts contain `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
+run a script with a configuration. Training logic is setup inside `training` method and configures a disrtibuted trainer, 
+2 evaluators and various logging handlers to tensorboard, mlflow/polyaxon logger and tqdm.
+
 
 #### Configurations
 
