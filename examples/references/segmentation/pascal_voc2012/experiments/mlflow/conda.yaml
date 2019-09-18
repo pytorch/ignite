@@ -14,5 +14,6 @@ dependencies:
     - tqdm
     - tensorboardX
     - py_config_runner
+    - pynvml
     - git+https://github.com/pytorch/ignite.git@distrib
     - git+https://github.com/vfdev-5/ImageDatasetViz.git

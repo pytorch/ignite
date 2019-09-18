@@ -75,7 +75,7 @@ def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler
     return trainer
 
 
-def setup_distrib_evaluators(model, device, val_metrics, config):
+def setup_distrib_evaluators(model, device, val_metrics, config, setup_pbar_on_iters=True):
 
     prepare_batch = config.prepare_batch
     non_blocking = config.non_blocking
@@ -99,7 +99,7 @@ def setup_distrib_evaluators(model, device, val_metrics, config):
         metric.attach(evaluator, name)
         metric.attach(train_evaluator, name)
 
-    if dist.get_rank() == 0:
+    if dist.get_rank() == 0 and setup_pbar_on_iters:
         ProgressBar(persist=False, desc="Train Evaluation").attach(train_evaluator)
         ProgressBar(persist=False, desc="Val Evaluation").attach(evaluator)
 

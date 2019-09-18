@@ -17,7 +17,7 @@ build:
   build_steps:
 
   # Install ignite and other useful packages
-  - pip install --pre pytorch-ignite &&
+  - pip install git+https://github.com/pytorch/ignite.git@distrib &&
     pip install git+https://github.com/vfdev-5/ImageDatasetViz.git git+https://github.com/albu/albumentations.git &&
     pip install polyaxon-client tqdm tensorboardX py_config_runner pynvml
 
