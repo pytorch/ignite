@@ -96,7 +96,7 @@ jobs:
         - pip install -e "git+https://github.com/vfdev-5/sphinxcontrib-versioning.git#egg=sphinxcontrib-versioning"
 
       script:
-        - sphinx-versioning --use-master-conf build --greatest-tag --whitelist-branches master docs/source docs/build/html
+        - sphinx-versioning --use-master-conf --use-master-templates build --greatest-tag --whitelist-branches master docs/source docs/build/html
         # Create .nojekyll file to serve correctly _static and friends
         - touch docs/build/html/.nojekyll
       after_success: # Nothing to do
