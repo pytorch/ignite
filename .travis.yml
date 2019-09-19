@@ -29,7 +29,7 @@ before_install: &before_install
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow
+  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow tensorboard
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
@@ -102,10 +102,10 @@ jobs:
 
       install:
         - pip install -r docs/requirements.txt
-        - pip install git+https://github.com/anmolsjoshi/sphinxcontrib-versioning.git
+        - pip install git+https://github.com/vfdev-5/sphinxcontrib-versioning.git
 
       script:
-        - sphinx-versioning --use-master-conf build --greatest-tag --whitelist-branches master docs/source docs/build/html
+        - sphinx-versioning --use-master-conf --use-master-templates build --greatest-tag --whitelist-branches master docs/source docs/build/html
         # Create .nojekyll file to serve correctly _static and friends
         - touch docs/build/html/.nojekyll
       after_success: # Nothing to do

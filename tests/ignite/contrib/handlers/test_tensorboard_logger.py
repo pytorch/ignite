@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from mock import MagicMock, call, ANY, Mock
+from mock import MagicMock, call, ANY, Mock, patch
 
 import torch
 
@@ -560,44 +560,88 @@ def test_integration_as_context_manager(dirname):
     assert len(written_files) > 0
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-    tensorboardX_module = sys.modules['tensorboardX']
-    del sys.modules['tensorboardX']
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules['tensorboardX'] = tensorboardX_module
+# @pytest.fixture
+# def no_tensorboardX_package():
+#     import sys
+#     import tensorboardX
+#     from torch.utils import tensorboard
+#     # remove tensorboardX
+#     tensorboardX_module = sys.modules['tensorboardX']
+#     del sys.modules['tensorboardX']
+#     # save and replace sys.path
+#     prev_path = list(sys.path)
+#     sys.path = [p for p in sys.path if "site-packages" not in p]
+#     yield "no_site_packages"
+#     # put everything back in place
+#     sys.path = prev_path
+#     sys.modules['tensorboardX'] = tensorboardX_module
 
 
-def test_no_tensorboardX(dirname, no_site_packages):
+# def test_no_tensorboardX(dirname, no_tensorboardX_package):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires tensorboardX to be installed"):
-        TensorboardLogger(log_dir=dirname)
-
-
-@pytest.fixture
-def mock_tb_module():
-    import sys
-    import types
-
-    module_name = 'tensorboardX'
-    tb_module = types.ModuleType(module_name)
-    prev_tb_module = sys.modules[module_name]
-    sys.modules[module_name] = tb_module
-
-    yield tb_module
-    sys.modules[module_name] = prev_tb_module
+#     from torch.utils.tensorboard import SummaryWriter
+#     with TensorboardLogger(log_dir=dirname) as tb_logger:
+#         assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
-def test_init_typeerror_exception(mock_tb_module):
+# @pytest.fixture
+# def mock_tb_module():
+#     import sys
+#     import types
 
-    def side_effect(*args, **kwargs):
-        raise TypeError("a problem")
+#     module_name = 'tensorboardX'
+#     tb_module = types.ModuleType(module_name)
+#     prev_tb_module = sys.modules[module_name]
+#     sys.modules[module_name] = tb_module
 
-    mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect)
+#     yield tb_module
+#     sys.modules[module_name] = prev_tb_module
 
-    with pytest.raises(TypeError, match=r'a problem'):
-        TensorboardLogger(log_dir=None)
+
+# def test_init_typeerror_exception(mock_tb_module):
+
+#     def side_effect(*args, **kwargs):
+#         raise TypeError("a problem")
+
+#     mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect)
+
+#     with pytest.raises(TypeError, match=r'a problem'):
+#         TensorboardLogger(log_dir=None)
+
+
+# @pytest.fixture
+# def mock_no_torch_utils_tensorboard():
+#     import sys
+#     from torch.utils import tensorboard
+#     orig_module = sys.modules['torch.utils.tensorboard']
+#     mock_module = Mock(spec=tensorboard)
+#     del mock_module.SummaryWriter
+#     sys.modules['torch.utils.tensorboard'] = mock_module
+#     yield mock_module
+#     sys.modules['torch.utils.tensorboard'] = orig_module
+
+
+# def test_no_torch_utils_tensorboard(no_tensorboardX_package, mock_no_torch_utils_tensorboard):
+
+#     with pytest.raises(RuntimeError, match=r'This contrib module requires either tensorboardX or torch'):
+#         TensorboardLogger(log_dir=None)
+
+
+def test_no_tensorboardX_package(dirname):
+    from torch.utils.tensorboard import SummaryWriter
+    with patch.dict('sys.modules', {'tensorboardX': None}):
+        tb_logger = TensorboardLogger(log_dir=dirname)
+        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
+
+
+def test_no_torch_utils_tensorboard_package(dirname):
+    from tensorboardX import SummaryWriter
+    with patch.dict('sys.modules', {'torch.utils.tensorboard': None}):
+        tb_logger = TensorboardLogger(log_dir=dirname)
+        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
+
+
+def test_no_tensorboardX_nor_torch_utils_tensorboard():
+    with patch.dict('sys.modules', {'tensorboardX': None, 'torch.utils.tensorboard': None}):
+        with pytest.raises(RuntimeError, match=r'This contrib module requires either tensorboardX or torch'):
+            TensorboardLogger(log_dir=None)
