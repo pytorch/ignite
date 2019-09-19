@@ -231,7 +231,7 @@ def test_integration(dirname):
     stored_values = client.get_metric_history(active_run.info.run_id, "test_value")
 
     for t, s in zip(true_values, stored_values):
-        assert t == s.value
+        assert pytest.approx(t) == s.value
 
 
 def test_integration_as_context_manager(dirname):
@@ -272,31 +272,40 @@ def test_integration_as_context_manager(dirname):
     stored_values = client.get_metric_history(active_run.info.run_id, "test_value")
 
     for t, s in zip(true_values, stored_values):
-        assert t == s.value
+        assert pytest.approx(t) == s.value
 
 
-def test_mlflow_exceptions_handling(dirname):
+def test_mlflow_bad_metric_name_handling(dirname):
+    import mlflow
+
     true_values = [123.0, 23.4, 333.4]
     with MLflowLogger(os.path.join(dirname, "mlruns")) as mlflow_logger:
 
-        import mlflow
         active_run = mlflow.active_run()
 
-        with pytest.warns(UserWarning, match=r"Invalid metric name"):
-            mlflow_logger.log_metrics({
-                "metric:0 in %": 123.0
-            })
-        for v in true_values:
-            mlflow_logger.log_metrics({
-                "metric 0": v
-            })
+        handler = OutputHandler(tag="training", metric_names="all")
+        engine = Engine(lambda e, b: None)
+        engine.state = State(metrics={
+            "metric:0 in %": 123.0,
+            "metric 0": 1000.0,
+        })
+
+        with pytest.warns(UserWarning, match=r"MLflowLogger output_handler encountered an invalid metric name"):
+
+            engine.state.epoch = 1
+            handler(engine, mlflow_logger, event_name=Events.EPOCH_COMPLETED)
+
+            for i, v in enumerate(true_values):
+                engine.state.epoch += 1
+                engine.state.metrics['metric 0'] = v
+                handler(engine, mlflow_logger, event_name=Events.EPOCH_COMPLETED)
 
     from mlflow.tracking import MlflowClient
 
     client = MlflowClient(tracking_uri=os.path.join(dirname, "mlruns"))
-    stored_values = client.get_metric_history(active_run.info.run_id, "metric 0")
+    stored_values = client.get_metric_history(active_run.info.run_id, "training metric 0")
 
-    for t, s in zip(true_values, stored_values):
+    for t, s in zip([1000.0, ] + true_values, stored_values):
         assert t == s.value
 
 
