@@ -104,6 +104,15 @@ class OutputHandler(BaseOutputHandler):
                 warnings.warn("MLflowLogger output_handler can not log "
                               "metrics value type {}".format(type(value)))
 
+        # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
+        from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES
+
+        for key in list(rendered_metrics.keys()):
+            if not _VALID_PARAM_AND_METRIC_NAMES.match(key):
+                warnings.warn("MLflowLogger output_handler encountered an invalid metric name '{}' that "
+                              "will be ignored and not logged to MLflow".format(key))
+                del rendered_metrics[key]
+
         logger.log_metrics(rendered_metrics, step=global_step)
 
 
@@ -216,13 +225,9 @@ class MLflowLogger(BaseLogger):
     def __getattr__(self, attr):
 
         import mlflow
-        from mlflow.exceptions import MlflowException
 
         def wrapper(*args, **kwargs):
-            try:
-                return getattr(mlflow, attr)(*args, **kwargs)
-            except MlflowException as e:
-                warnings.warn(e.message)
+            return getattr(mlflow, attr)(*args, **kwargs)
 
         return wrapper
 
