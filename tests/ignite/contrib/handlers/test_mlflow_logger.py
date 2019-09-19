@@ -244,6 +244,15 @@ def test_integration_as_context_manager(dirname):
         trainer.run(data, max_epochs=n_epochs)
 
 
+def test_mlflow_exceptions_handling(dirname):
+
+    with MLflowLogger(os.path.join(dirname, "mlruns")) as mlflow_logger:
+        with pytest.warns(UserWarning, match=r"Invalid metric name"):
+            mlflow_logger.log_metrics({
+                "metric:0 in %": 123.0
+            })
+
+
 @pytest.fixture
 def no_site_packages():
     import sys

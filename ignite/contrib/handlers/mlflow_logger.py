@@ -216,9 +216,14 @@ class MLflowLogger(BaseLogger):
     def __getattr__(self, attr):
 
         import mlflow
+        from mlflow.exceptions import MlflowException
 
         def wrapper(*args, **kwargs):
-            return getattr(mlflow, attr)(*args, **kwargs)
+            try:
+                return getattr(mlflow, attr)(*args, **kwargs)
+            except MlflowException as e:
+                warnings.warn(e.message)
+
         return wrapper
 
     def close(self):
