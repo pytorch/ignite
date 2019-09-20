@@ -1,110 +1,115 @@
-from typing import Union, Callable, Optional
+# Baseline segmentation model on ISPRS datasets
+from pathlib import Path
+from functools import partial
 
-import numpy as np
-from PIL import Image
+import cv2
+import torch.nn as nn
+import torch.optim as optim
+import torch.optim.lr_scheduler as lrs
+import torch.distributed as dist
 
-import torch
+import albumentations as A
 
-try:
-    from image_dataset_viz import render_datapoint
-except ImportError:
-    raise RuntimeError("Install it via pip install --upgrade git+https://github.com/vfdev-5/ImageDatasetViz.git")
+from polyaxon_client.tracking import get_outputs_refs_paths
+
+from dataflow.transforms import prepare_batch_fp32, denormalize
+from dataflow.datasets import get_isprs_train_val_test_datasets
+from dataflow.dataloaders import get_train_val_loaders
+
+from models import IsprsLWRefineNet
+
+#################### Globals ####################
+
+seed = 12
+debug = False
+device = 'cuda'
+fp16_opt_level = "O2"
+
+num_classes = 7
+
+#################### Dataflow ####################
+
+outputs_refs_paths = get_outputs_refs_paths()
+assert outputs_refs_paths is not None
+assert "jobs" in outputs_refs_paths and len(outputs_refs_paths['jobs']) == 3, "{}".format(outputs_refs_paths)
+
+pdm_path = Path(outputs_refs_paths['jobs'][0]) / "potsdam_tiles"
+vgn_path = Path(outputs_refs_paths['jobs'][1]) / "vaihingen_tiles"
+
+pdm_csv = Path(outputs_refs_paths['jobs'][2]) / "potsdam" / "dataset_stats_with_fold_indices.csv"
+vgn_csv = Path(outputs_refs_paths['jobs'][2]) / "vaihingen" / "dataset_stats_with_fold_indices.csv"
+
+# According to https://arxiv.org/pdf/1906.06423.pdf
+# Train size: 224 -> Test size: 320 = max accuracy on ImageNet with ResNet-50
+val_img_size = 512
+train_img_size = int(val_img_size * 0.72)
+
+batch_size = 16
+num_workers = 12 // dist.get_world_size()
+val_batch_size = 16
+
+mean = (0.5, 0.5, 0.5)
+std = (0.25, 0.25, 0.25)
+
+train_folds = [2, 3, 4, ]
+val_folds = [1, ]
+test_folds = [0, ]
+
+train_ds, val_ds, test_ds = get_isprs_train_val_test_datasets(pdm_path, vgn_path,
+                                                              pdm_csv, vgn_csv,
+                                                              train_folds, val_folds, test_folds,
+                                                              return_meta=False)
+
+train_transforms = A.Compose([
+    A.RandomResizedCrop(train_size, train_size),
+
+    A.OneOf([
+        A.Flip(),
+        A.RandomRotate90(),
+    ]),
+
+    A.Normalize(mean=mean, std=std, max_pixel_value=255.0),
+    ToTensorV2()
+])
+
+val_transforms = A.Compose([
+
+    A.Normalize(mean=mean, std=std, max_pixel_value=255.0),
+    ToTensorV2()
+])
+
+train_loader, val_loader, train_eval_loader = get_train_val_loaders(
+    train_ds, val_ds,
+    train_transforms=train_transforms,
+    val_transforms=val_transforms,
+    batch_size=batch_size,
+    num_workers=num_workers,
+    val_batch_size=val_batch_size,
+    pin_memory=True
+)
+
+#################### Model ####################
+
+model = IsprsLWRefineNet(num_channels=3, num_classes=num_classes)
+
+#################### Solver ####################
+
+num_epochs = 100
+
+criterion = nn.CrossEntropyLoss()
+
+lr = 0.007
+weight_decay = 5e-4
+momentum = 0.9
+nesterov = True
+optimizer = optim.SGD(model.parameters(), lr=1.0, momentum=momentum, weight_decay=weight_decay, nesterov=nesterov)
+
+le = len(train_loader)
 
 
-def _getvocpallete(num_cls):
-    n = num_cls
-    pallete = [0]*(n*3)
-    for j in range(0, n):
-        lab = j
-        pallete[j*3+0] = 0
-        pallete[j*3+1] = 0
-        pallete[j*3+2] = 0
-        i = 0
-        while lab > 0:
-            pallete[j*3+0] |= (((lab >> 0) & 1) << (7-i))
-            pallete[j*3+1] |= (((lab >> 1) & 1) << (7-i))
-            pallete[j*3+2] |= (((lab >> 2) & 1) << (7-i))
-            i = i + 1
-            lab >>= 3
-    return pallete
+def lambda_lr_scheduler(iteration, lr0, n, a):
+    return lr0 * pow((1.0 - 1.0 * iteration / n), a)
 
 
-vocpallete = _getvocpallete(256)
-
-
-def render_mask(mask: Union[np.ndarray, Image.Image]) -> Image.Image:
-    if isinstance(mask, np.ndarray):
-        mask = Image.fromarray(mask)
-    mask.putpalette(vocpallete)
-    mask = mask.convert(mode='RGB')
-    return mask
-
-
-def tensor_to_rgb(t: torch.Tensor) -> np.ndarray:
-    img = t.cpu().numpy().transpose((1, 2, 0))
-    return img.astype(np.uint8)
-
-
-def make_grid(batch_img: torch.Tensor,
-              batch_mask: torch.Tensor,
-              img_denormalize_fn: Callable,
-              batch_gt_mask: Optional[torch.Tensor] = None):
-    """Create a grid from batch image and mask as
-
-        img1  | img2  | img3  | img4  | ...
-        i+m1  | i+m2  | i+m3  | i+m4  | ...
-        mask1 | mask2 | mask3 | mask4 | ...
-        i+M1  | i+M2  | i+M3  | i+M4  | ...
-        Mask1 | Mask2 | Mask3 | Mask4 | ...
-
-        i+m = image + mask blended with alpha=0.4
-        - maskN is predicted mask
-        - MaskN is ground-truth mask if given
-
-    Args:
-        batch_img (torch.Tensor) batch of images of any type
-        batch_mask (torch.Tensor) batch of masks
-        img_denormalize_fn (Callable): function to denormalize batch of images
-        batch_gt_mask (torch.Tensor, optional): batch of ground truth masks.
-    """
-    assert isinstance(batch_img, torch.Tensor) and isinstance(batch_mask, torch.Tensor)
-    assert len(batch_img) == len(batch_mask)
-
-    if batch_gt_mask is not None:
-        assert isinstance(batch_gt_mask, torch.Tensor)
-        assert len(batch_mask) == len(batch_gt_mask)
-
-    b = batch_img.shape[0]
-    h, w = batch_img.shape[2:]
-
-    le = 3 if batch_gt_mask is None else 3 + 2
-    out_image = np.zeros((h * le, w * b, 3), dtype='uint8')
-
-    for i in range(b):
-        img = batch_img[i]
-        mask = batch_mask[i]
-
-        img = img_denormalize_fn(img)
-        img = tensor_to_rgb(img)
-        mask = mask.cpu().numpy()
-        mask = render_mask(mask)
-
-        out_image[0:h, i * w:(i + 1) * w, :] = img
-        out_image[1 * h:2 * h, i * w:(i + 1) * w, :] = render_datapoint(img,
-                                                                        mask,
-                                                                        blend_alpha=0.4)
-        out_image[2 * h:3 * h, i * w:(i + 1) * w, :] = mask
-
-        if batch_gt_mask is not None:
-            gt_mask = batch_gt_mask[i]
-            gt_mask = gt_mask.cpu().numpy()
-            m = gt_mask == 0
-            gt_mask += 1
-            gt_mask[m] = 0
-            gt_mask = render_mask(gt_mask)
-            out_image[3 * h:4 * h, i * w:(i + 1) * w, :] = render_datapoint(img,
-                                                                            gt_mask,
-                                                                            blend_alpha=0.4)
-            out_image[4 * h:5 * h, i * w:(i + 1) * w, :] = gt_mask
-
-    return out_image
+lr_scheduler = lrs.LambdaLR(optimizer,
+                            lr_lambda=partial(lambda_lr_scheduler, lr0=lr * 10.0, n=num_epochs * le, a=0.9))

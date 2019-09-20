@@ -34,7 +34,7 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
     assert train_sampler is not None, "Train loader of type '{}' " \
                                       "should have attribute 'sampler'".format(type(train_loader))
     assert hasattr(train_sampler, 'set_epoch') and callable(train_sampler.set_epoch), \
-        "Train sampler should a callable method `set_epoch`"
+        "Train sampler should have a callable method `set_epoch`"
 
     train_eval_loader = config.train_eval_loader
     val_loader = config.val_loader
@@ -88,7 +88,9 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
     if hasattr(config, "val_metrics") and isinstance(config.val_metrics, dict):
         val_metrics.update(config.val_metrics)
 
-    train_evaluator, evaluator = setup_distrib_evaluators(model, device, val_metrics, config)
+    train_evaluator, evaluator = setup_distrib_evaluators(model, device, val_metrics, config,
+                                                          # Avoid too much pbar logs
+                                                          setup_pbar_on_iters=not with_plx_logging)
 
     val_interval = getattr(config, "val_interval", 1)
     start_by_validation = getattr(config, "start_by_validation", False)

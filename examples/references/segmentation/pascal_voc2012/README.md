@@ -23,12 +23,11 @@ Files tree description:
 ```
 code
   |___ dataflow : module privides data loaders and various transformers
-  |___ scripts : executable training and inference scripts
+  |___ scripts : executable training scripts
   |___ utils : other helper modules
 
 configs
-  |___ train : training python configuration files
-  |___ inference : inference python configuration files
+  |___ train : training python configuration files  
   
 experiments 
   |___ mlflow : MLflow related files

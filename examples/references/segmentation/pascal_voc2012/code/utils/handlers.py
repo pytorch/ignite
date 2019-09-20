@@ -1,6 +1,6 @@
 import torch
 
-from dataflow import make_grid, tensor_to_rgb
+from dataflow.vis import make_grid, tensor_to_rgb
 
 
 def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_engine=None, prefix_tag=None):
