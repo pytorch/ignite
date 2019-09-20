@@ -356,6 +356,51 @@ def test_output_handler_with_global_step_transform():
              opts=wrapper.windows['tag/loss']['opts'], name="tag/loss")])
 
 
+def test_output_handler_with_global_step_from_engine():
+
+    mock_another_engine = MagicMock()
+    mock_another_engine.state = State()
+    mock_another_engine.state.epoch = 10
+    mock_another_engine.state.output = 12.345
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x},
+                            global_step_transform=global_step_from_engine(mock_another_engine))
+
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 1
+    mock_engine.state.output = 0.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.vis.line.call_count == 1
+    assert len(wrapper.windows) == 1 and "tag/loss" in wrapper.windows
+    assert wrapper.windows["tag/loss"]['win'] is not None
+    mock_logger.vis.line.assert_has_calls([call(X=[mock_another_engine.state.epoch, ],
+                                                Y=[mock_engine.state.output, ],
+                                                env=mock_logger.vis.env,
+                                                win=None, update=None,
+                                                opts=wrapper.windows['tag/loss']['opts'],
+                                                name="tag/loss")])
+
+    mock_another_engine.state.epoch = 11
+    mock_engine.state.output = 1.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.vis.line.call_count == 2
+    assert len(wrapper.windows) == 1 and "tag/loss" in wrapper.windows
+    assert wrapper.windows["tag/loss"]['win'] is not None
+    mock_logger.vis.line.assert_has_calls([call(X=[mock_another_engine.state.epoch, ],
+                                                Y=[mock_engine.state.output, ],
+                                                env=mock_logger.vis.env,
+                                                win=wrapper.windows["tag/loss"]['win'], update='append',
+                                                opts=wrapper.windows['tag/loss']['opts'],
+                                                name="tag/loss")])
+
+
 def test_weights_scalar_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
