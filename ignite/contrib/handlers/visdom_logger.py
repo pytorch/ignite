@@ -129,7 +129,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
-            :meth:`~ignite.contrib.handlers.base_logger.global_step_from_engine`.
+            :meth:`~ignite.contrib.handlers.visdom_logger.global_step_from_engine`.
         show_legend (bool, optional): flag to show legend in the window
 
     Note:
