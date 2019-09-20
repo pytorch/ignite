@@ -4,11 +4,12 @@ import warnings
 import torch
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
-    BaseWeightsScalarHandler, BaseWeightsHistHandler
+    BaseWeightsScalarHandler, BaseWeightsHistHandler, global_step_from_engine
 
 
 __all__ = ['TensorboardLogger', 'OptimizerParamsHandler', 'OutputHandler',
-           'WeightsScalarHandler', 'WeightsHistHandler', 'GradsScalarHandler', 'GradsHistHandler']
+           'WeightsScalarHandler', 'WeightsHistHandler', 'GradsScalarHandler',
+           'GradsHistHandler', 'global_step_from_engine']
 
 
 class OutputHandler(BaseOutputHandler):
@@ -24,11 +25,12 @@ class OutputHandler(BaseOutputHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # of the `trainer`:
             tb_logger.attach(evaluator,
                              log_handler=OutputHandler(tag="validation",
                                                        metric_names=["nll", "accuracy"],
-                                                       another_engine=trainer),
+                                                       global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
         Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
@@ -56,7 +58,6 @@ class OutputHandler(BaseOutputHandler):
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Tensorboard.
 
-
             tb_logger.attach(evaluator,
                              log_handler=OutputHandler(tag="validation",
                                                        metrics=["nll", "accuracy"],
@@ -71,13 +72,26 @@ class OutputHandler(BaseOutputHandler):
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
             with corresponding keys.
-        another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
+        another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
+            value of event. Typically, user can provide
             the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
             epoch/iteration value.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
-            Output of function should be an integer. Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step.
-        """
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.base_logger.global_step_from_engine`.
+
+    Note:
+
+        Example of `global_step_transform`:
+
+        .. code-block:: python
+
+            def global_step_transform(engine, event_name):
+                return engine.state.get_event_attrib_value(event_name)
+
+    """
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
 
@@ -88,7 +102,6 @@ class OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics(engine)
 
-        engine = engine if self.another_engine is None else self.another_engine
         global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
@@ -350,19 +363,21 @@ class TensorboardLogger(BaseLogger):
                              event_name=Events.ITERATION_COMPLETED)
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
-            # We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `train_evaluator`.
+            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # of the `trainer` instead of `train_evaluator`.
             tb_logger.attach(train_evaluator,
                              log_handler=OutputHandler(tag="training",
                                                        metric_names=["nll", "accuracy"],
-                                                       another_engine=trainer),
+                                                       global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `evaluator`.
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
+            # `trainer` instead of `evaluator`.
             tb_logger.attach(evaluator,
                              log_handler=OutputHandler(tag="validation",
                                                        metric_names=["nll", "accuracy"],
-                                                       another_engine=trainer),
+                                                       global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
