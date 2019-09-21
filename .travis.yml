@@ -87,7 +87,7 @@ jobs:
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
     - stage: Docs
       python: "3.6"
-      if: branch != nightly
+      if: type != cron
       # Use previously defined before_install
       before_install: *before_install
 
@@ -101,15 +101,22 @@ jobs:
         - touch docs/build/html/.nojekyll
       after_success: # Nothing to do
 
-      # Deploy built docs when PR is merged to master
+      # Deploy built docs : a) when PR is merged to master, b) when a tag is built
       deploy:
-        provider: pages
-        skip-cleanup: true
-        github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
-        keep-history: false
-        local_dir: docs/build/html
-        on:
-          branch: master
+        - provider: pages
+          skip-cleanup: true
+          github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
+          keep-history: false
+          local_dir: docs/build/html
+          on:
+            branch: master
+        - provider: pages
+          skip-cleanup: true
+          github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
+          keep-history: false
+          local_dir: docs/build/html
+          on:
+            tags: true
 
     - stage: Deploy
       python: "3.6"
