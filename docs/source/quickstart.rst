@@ -132,14 +132,14 @@ logging purposes we added a function to be executed after every iteration:
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
-        print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, len(train_loader), engine.state.output))
+        print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, engine.state.output))
 
 or equivalently without the decorator
 
 .. code-block:: python
 
     def log_training_loss(engine):
-        print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, len(train_loader), engine.state.output))
+        print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, engine.state.output))
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss)
 
@@ -153,15 +153,15 @@ complete event:
     def log_training_results(trainer):
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
-        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
+        print("Training Results - Epoch[{}] Avg accuracy: {:.2f} Avg loss: {:.2f}"
               .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(engine):
+    def log_validation_results(trainer):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
-        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, metrics['accuracy'], metrics['nll']))
+        print("Validation Results - Epoch[{}] Avg accuracy: {:.2f} Avg loss: {:.2f}"
+              .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
 
 
 .. Note ::

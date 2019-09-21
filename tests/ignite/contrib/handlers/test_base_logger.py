@@ -2,7 +2,7 @@ import math
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, global_step_from_engine
 from ignite.contrib.handlers import CustomPeriodicEvent
 
 import pytest
@@ -225,3 +225,19 @@ def test_as_context_manager():
     _test(Events.EPOCH_COMPLETED, n_epochs)
     _test(Events.STARTED, 1)
     _test(Events.COMPLETED, 1)
+
+
+def test_global_step_from_engine():
+
+    engine = Engine(lambda engine, batch: None)
+    engine.state = State()
+    engine.state.epoch = 1
+
+    another_engine = Engine(lambda engine, batch: None)
+    another_engine.state = State()
+    another_engine.state.epoch = 10
+
+    global_step_transform = global_step_from_engine(another_engine)
+    res = global_step_transform(engine, Events.EPOCH_COMPLETED)
+
+    assert res == another_engine.state.epoch
