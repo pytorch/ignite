@@ -487,10 +487,11 @@ class LRScheduler(ParamScheduler):
         lr_scheduler_cls = lr_scheduler.__class__
         optimizer_cls = lr_scheduler.optimizer.__class__
         t = torch.zeros([1], requires_grad=True)
-        dummy_optimizer = optimizer_cls([t], lr=0.1)
-        dummy_optimizer.load_state_dict(lr_scheduler.optimizer.state_dict())
+        dummy_optimizer = optimizer_cls([t], **lr_scheduler.optimizer.defaults)
         if new_optimizer_param_groups is not None:
             dummy_optimizer.param_groups = new_optimizer_param_groups
+        for group in dummy_optimizer.param_groups:
+            group.setdefault('initial_lr', group['lr'])
         kwargs = lr_scheduler.state_dict()
         for k in ['base_lrs', '_step_count']:
             del kwargs[k]

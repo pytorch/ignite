@@ -710,3 +710,24 @@ def test_param_group_scheduler():
     lr_scheduler2 = LinearCyclicalScheduler(optimizer.param_groups[1], "lr",
                                             start_value=1.0, end_value=0.0, cycle_size=10)
     _test([lr_scheduler1, lr_scheduler2], optimizer)
+
+
+def test_create_lr_scheduler_with_warmup_with_real_model(dummy_model_factory):
+
+    model = dummy_model_factory(with_grads=False, with_frozen_layer=False)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    scaled_lr = 0.02
+
+    output_simulated_values = [None] * 50
+
+    create_lr_scheduler_with_warmup(
+        torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.97),
+        warmup_start_value=0.0,
+        warmup_end_value=scaled_lr,
+        warmup_duration=5,
+        output_simulated_values=output_simulated_values
+    )
+
+    assert output_simulated_values[0] == [0, 0.0]
+    assert output_simulated_values[5] == [5, scaled_lr]
+    assert output_simulated_values[6] == [5 + 1, 0.01]
