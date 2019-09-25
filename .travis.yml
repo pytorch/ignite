@@ -29,7 +29,7 @@ before_install: &before_install
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow
+  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow tensorboard
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
@@ -69,7 +69,7 @@ script:
 
   #fast-neural-style
   #train
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then mkdir -p /home/travis/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O/home/travis/.cache/torch/checkpoints/vgg16-397923af.pth; fi
+  - mkdir -p /home/travis/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O/home/travis/.cache/torch/checkpoints/vgg16-397923af.pth
   - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
 
 after_success:
@@ -87,29 +87,36 @@ jobs:
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
     - stage: Docs
       python: "3.6"
-      if: branch != nightly
+      if: type != cron
       # Use previously defined before_install
       before_install: *before_install
 
       install:
         - pip install -r docs/requirements.txt
-        - pip install git+https://github.com/anmolsjoshi/sphinxcontrib-versioning.git
+        - pip install git+https://github.com/vfdev-5/sphinxcontrib-versioning.git
 
       script:
-        - sphinx-versioning --use-master-conf build --greatest-tag --whitelist-branches master docs/source docs/build/html
+        - sphinx-versioning --use-master-conf --use-master-templates build --greatest-tag --whitelist-branches master docs/source docs/build/html
         # Create .nojekyll file to serve correctly _static and friends
         - touch docs/build/html/.nojekyll
       after_success: # Nothing to do
 
-      # Deploy built docs when PR is merged to master
+      # Deploy built docs : a) when PR is merged to master, b) when a tag is built
       deploy:
-        provider: pages
-        skip-cleanup: true
-        github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
-        keep-history: false
-        local_dir: docs/build/html
-        on:
-          branch: master
+        - provider: pages
+          skip-cleanup: true
+          github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
+          keep-history: false
+          local_dir: docs/build/html
+          on:
+            branch: master
+        - provider: pages
+          skip-cleanup: true
+          github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
+          keep-history: false
+          local_dir: docs/build/html
+          on:
+            tags: true
 
     - stage: Deploy
       python: "3.6"

@@ -1,0 +1,127 @@
+article.pytorch-article table tr th:first-of-type, article.pytorch-article table tr td:first-of-type
+{
+  width: 17px;
+}
+
+div.header-container a.header-logo
+{
+  height: 42px;
+  width: 135px;
+  background-image: url("../img/ignite-logo-dark.svg");
+  background-size: 135px 42px;
+}
+
+/* versions block */
+
+.rst-versions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: inherit;
+  color: #fcfcfc;
+  font-family: FreightSans, Helvetica Neue, Helvetica, Arial, sans-serif;
+  background: #d1d2d5;
+  z-index: 400;
+}
+
+.rst-versions.shift-up {
+  height: auto;
+  max-height: 100%;
+  overflow-y: scroll;
+}
+
+.rst-versions.shift-up .rst-other-versions {
+  display: block;
+}
+
+.rst-versions .rst-other-versions {
+  font-size: 90%;
+  padding: 12px;
+  color: #6c6c6d;
+  background: #f2f3f7;
+  display: none;
+}
+
+.rst-versions .rst-current-version {
+  padding: 12px;
+  background-color: #e2e3e6;
+  display: block;
+  text-align: right;
+  font-size: 90%;
+  cursor: pointer;
+  color: #ee4c2c;
+}
+
+.rst-versions .rst-other-versions dd {
+  display: inline-block;
+  margin: 0;
+}
+
+.rst-versions .rst-other-versions dd a {
+  display: inline-block;
+  padding: 6px;
+  color: #454545;
+}
+
+.rst-versions a {
+  color: #2980b9;
+  text-decoration: none;
+}
+
+.rst-versions .rst-current-version:after, .rst-versions .rst-current-version:before {
+  display: table;
+  content: "";
+}
+
+.rst-versions .rst-current-version:after {
+  clear: both;
+  content: "";
+  display: block;
+}
+
+.rst-versions .rst-current-version .fa-book, .rst-versions .rst-current-version .icon-book {
+  float: left;
+}
+
+.rst-versions .rst-current-version .fa {
+  color: #454545;
+}
+
+.rst-versions .rst-current-version .fa-book, .rst-versions .rst-current-version .icon-book {
+  float: left;
+}
+
+.rst-other-versions dt {
+  font-weight: normal;
+}
+
+.fa {
+  font-family: inherit;
+  display: inline-block;
+  /* font: normal normal normal 14px/1 FontAweSome; */
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.fa-book:before, .icon-book: before {
+  content: "\f02d";
+}
+
+.fa-caret-down:before {
+  content: "▼";
+  color: #ee4c2c;
+}
+
+.fa:before, a .fa, li .fa {
+  text-decoration: inherit;
+}
+
+.fa:before {
+  font-family: FontAwesome;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+}
+
