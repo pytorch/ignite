@@ -1,6 +1,9 @@
 Examples
 ========
 
+Scripts
+-------
+
 There are several examples ported from `pytorch/examples <https://github.com/pytorch/examples>`_ using `ignite`
 to display how it helps to write compact and full-featured training loops in a few lines of code:
 
@@ -11,7 +14,8 @@ to display how it helps to write compact and full-featured training loops in a f
 - `Distributed Cifar10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10>`_
 
 
-Notebooks:
+Notebooks
+---------
 
 - `Text Classification using Convolutional Neural Networks <https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb>`_
 - `Variational Auto Encoders <https://github.com/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb>`_

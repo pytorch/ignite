@@ -177,6 +177,38 @@ def test_output_handler_with_global_step_transform():
     mock_logger.log_metrics.assert_called_once_with(step=10, **{"tag/loss": 12345})
 
 
+def test_output_handler_with_global_step_from_engine():
+
+    mock_another_engine = MagicMock()
+    mock_another_engine.state = State()
+    mock_another_engine.state.epoch = 10
+    mock_another_engine.state.output = 12.345
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x},
+                            global_step_transform=global_step_from_engine(mock_another_engine))
+
+    mock_logger = MagicMock(spec=PolyaxonLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 1
+    mock_engine.state.output = 0.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.log_metrics.call_count == 1
+    mock_logger.log_metrics.assert_has_calls([call(step=mock_another_engine.state.epoch,
+                                                   **{"tag/loss": mock_engine.state.output})])
+
+    mock_another_engine.state.epoch = 11
+    mock_engine.state.output = 1.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.log_metrics.call_count == 2
+    mock_logger.log_metrics.assert_has_calls([call(step=mock_another_engine.state.epoch,
+                                                   **{"tag/loss": mock_engine.state.output})])
+
+
 def test_optimizer_params_handler_wrong_setup():
 
     with pytest.raises(TypeError):
