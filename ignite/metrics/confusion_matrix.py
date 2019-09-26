@@ -140,8 +140,8 @@ def IoU(cm, ignore_index=None):
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
             raise ValueError("ignore_index should be non-negative integer, but given {}".format(ignore_index))
 
-    # Increase floating point precision
-    cm = cm.type(torch.float64)
+    # Increase floating point precision and pass to CPU
+    cm = cm.type(torch.DoubleTensor)
     iou = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)
     if ignore_index is not None:
 
@@ -194,8 +194,8 @@ def cmAccuracy(cm):
     Returns:
         MetricsLambda
     """
-    # Increase floating point precision
-    cm = cm.type(torch.float64)
+    # Increase floating point precision and pass to CPU
+    cm = cm.type(torch.DoubleTensor)
     return cm.diag().sum() / (cm.sum() + 1e-15)
 
 
@@ -209,8 +209,8 @@ def cmPrecision(cm, average=True):
         MetricsLambda
     """
 
-    # Increase floating point precision
-    cm = cm.type(torch.float64)
+    # Increase floating point precision and pass to CPU
+    cm = cm.type(torch.DoubleTensor)
     precision = cm.diag() / (cm.sum(dim=0) + 1e-15)
     if average:
         return precision.mean()
@@ -227,8 +227,8 @@ def cmRecall(cm, average=True):
         MetricsLambda
     """
 
-    # Increase floating point precision
-    cm = cm.type(torch.float64)
+    # Increase floating point precision and pass to CPU
+    cm = cm.type(torch.DoubleTensor)
     recall = cm.diag() / (cm.sum(dim=1) + 1e-15)
     if average:
         return recall.mean()
