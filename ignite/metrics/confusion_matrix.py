@@ -32,6 +32,11 @@ class ConfusionMatrix(Metric):
             if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
             initialized and available, device is set to `cuda`.
 
+    Note:
+        In case of the targets `y` in `(batch_size, ...)` format, target indices between 0 and `num_classes` only
+        contribute to the confusion matrix and others are neglected. For example, if `num_classes=20` and target index
+        equal 255 is encountered, then it is filtered out.
+
     """
 
     def __init__(self, num_classes, average=None, output_transform=lambda x: x, device=None):
@@ -47,7 +52,7 @@ class ConfusionMatrix(Metric):
     @reinit_is_reduced
     def reset(self):
         self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes,
-                                            dtype=torch.float,
+                                            dtype=torch.int64,
                                             device=self._device)
         self._num_examples = 0
 
