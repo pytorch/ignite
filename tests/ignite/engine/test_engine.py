@@ -886,3 +886,67 @@ def test_epoch_length():
     _test_as_iter(data, 1, num_iters=None)
     _test_as_iter(data, 1, num_iters)
     _test_as_iter(data, 2, num_iters // 2)
+
+
+def test_state_repr():
+
+    data = [0, 1, 2, 3, 4, 5]
+    max_epochs = 1
+    metrics = {"accuracy": Mock()}
+    state = State(dataloader=data, max_epochs=max_epochs, metrics=metrics)
+    s = repr(state)
+    assert "iteration: 0" in s
+    assert "epoch: 0" in s
+    assert "max_epochs: 1" in s
+    assert "dataloader" in s
+    assert "metrics" in s
+    assert "output" in s
+    assert "batch" in s
+
+
+def test_alter_batch():
+
+    small_shape = (1, 2, 2)
+    large_shape = (1, 3, 3)
+
+    small_loader = torch.randint(0, 256, size=(30, ) + small_shape)
+    large_loader = torch.randint(0, 256, size=(20, ) + large_shape)
+
+    switch_iteration = 50
+
+    def should_take_large_img(i):
+        return i >= switch_iteration
+
+    def update_fn(engine, batch):
+        i = engine.state.iteration
+        if i < switch_iteration:
+            assert batch.shape == small_shape
+            assert (small_loader[(i - 1) % len(small_loader), ...] == batch).all()
+        else:
+            assert batch.shape == large_shape
+            assert (large_loader[(i - switch_iteration) % len(large_loader), ...] == batch).all()
+
+    trainer = Engine(update_fn)
+
+    def cycle(seq):
+        while True:
+            for i in seq:
+                yield i
+
+    small_loader_iter = cycle(small_loader)
+    large_loader_iter = cycle(large_loader)
+
+    @trainer.on(Events.ITERATION_STARTED)
+    def choose_batch(engine):
+        i = engine.state.iteration
+        if should_take_large_img(i):
+            batch = next(large_loader_iter)
+        else:
+            batch = next(small_loader_iter)
+
+        engine.state.batch = batch
+
+    num_epochs = 5
+    num_iters = 25
+    data = list(range(num_iters))
+    trainer.run(data, num_epochs)
