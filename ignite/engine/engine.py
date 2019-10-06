@@ -304,8 +304,7 @@ class Engine(object):
             passed_params = [self] + list(args) + list(kwargs)
             raise ValueError("Error adding {} '{}': "
                              "takes parameters {} but will be called with {} "
-                             "({}).".format(
-                                 fn, fn_description, fn_params, passed_params, exception_msg))
+                             "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))
 
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler.
@@ -383,8 +382,29 @@ class Engine(object):
     def _run_once_on_dataset(self):
         start_time = time.time()
 
+        has_epoch_length = self.state.epoch_length is not None
+        epoch_counter = 0
+        should_exit = False
         try:
-            for batch in self.state.dataloader:
+            while True:
+                try:
+                    batch = next(self.state.dataloader_iter)
+                    epoch_counter += 1
+                    should_exit = False
+                except StopIteration:
+                    self.state.dataloader_iter = iter(self.state.dataloader)
+                    # Define self.state.epoch_length if it is not yet set
+                    if self.state.epoch_length is None:
+                        self.state.epoch_length = self.state.iteration
+
+                    # Should exit while loop if we can not iterate
+                    if should_exit:
+                        break
+
+                    should_exit = True
+
+                    continue
+
                 self.state.batch = batch
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
@@ -392,6 +412,10 @@ class Engine(object):
                 self._fire_event(Events.ITERATION_COMPLETED)
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self.should_terminate_single_epoch = False
+                    self.state.dataloader_iter = iter(self.state.dataloader)
+                    break
+
+                if has_epoch_length and epoch_counter == self.state.epoch_length:
                     break
 
         except BaseException as e:
@@ -409,18 +433,25 @@ class Engine(object):
         else:
             raise e
 
-    def run(self, data, max_epochs=1):
+    def run(self, data, max_epochs=1, epoch_length=None):
         """Runs the process_function over the passed data.
 
         Args:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
             max_epochs (int, optional): max epochs to run for (default: 1).
+            epoch_length (int, optional): number of iterations to count as one epoch. By default, at the first place
+                epoch_length is tried to be set as `len(data)`. If previous command is failed, engine measures
+                automatically the length by iterating over the data until `StopIteration` is raised.
 
         Returns:
             State: output state.
         """
+        if epoch_length is None and hasattr(data, "__len__"):
+            epoch_length = len(data)
 
-        self.state = State(dataloader=data, max_epochs=max_epochs, metrics={})
+        self.state = State(dataloader=data, max_epochs=max_epochs, metrics={},
+                           dataloader_iter=iter(data),
+                           epoch_length=epoch_length)
         self.should_terminate = self.should_terminate_single_epoch = False
 
         try:

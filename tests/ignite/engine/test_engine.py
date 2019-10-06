@@ -539,7 +539,7 @@ def test_terminate_stops_run_mid_epoch():
 
 def test_terminate_epoch_stops_mid_epoch():
     num_iterations_per_epoch = 10
-    iteration_to_stop = num_iterations_per_epoch + 3
+    iteration_to_stop = num_iterations_per_epoch + 4
     engine = Engine(MagicMock(return_value=1))
 
     def start_of_iteration_handler(engine):
@@ -560,6 +560,7 @@ def _create_mock_data_loader(epochs, batches_per_epoch):
     batch_iterators = [iter(batches) for _ in range(epochs)]
 
     data_loader_manager.__iter__.side_effect = batch_iterators
+    data_loader_manager.__len__.return_value = batches_per_epoch
 
     return data_loader_manager
 
@@ -812,3 +813,76 @@ def test_reset_should_terminate():
 
     engine.run([0] * 20)
     assert engine.state.iteration == 10
+
+
+def test_batch_values():
+
+    def _test(data):
+        # This test check the content passed to update function
+        counter = [0]
+        num_iters = len(data)
+
+        def update_fn(engine, batch):
+            assert batch == data[counter[0] % num_iters]
+            counter[0] += 1
+
+        engine = Engine(update_fn)
+        engine.run(data, max_epochs=10)
+
+    data = torch.randint(0, 1000, size=(256, ))
+    _test(data)
+
+
+def test_epoch_length():
+
+    class BatchChecker:
+
+        def __init__(self, data):
+            self.counter = 0
+            self.data = data
+
+        def check(self, batch):
+            true_batch = self.data[self.counter % len(self.data)]
+            assert true_batch == batch, \
+                "{}: {} vs {}".format(self.counter, true_batch, batch)
+            self.counter += 1
+
+    def _test(data, max_epochs, num_iters):
+
+        batch_checker = BatchChecker(data)
+
+        def update_fn(engine, batch):
+            batch_checker.check(batch)
+
+        engine = Engine(update_fn)
+        engine.run(data, max_epochs=max_epochs, epoch_length=num_iters)
+        if num_iters is None:
+            num_iters = len(data)
+        assert engine.state.iteration == num_iters * max_epochs
+        assert engine.state.epoch == max_epochs
+
+    def _test_as_iter(data, max_epochs, num_iters):
+
+        batch_checker = BatchChecker(data)
+
+        def update_fn(engine, batch):
+            batch_checker.check(batch)
+
+        engine = Engine(update_fn)
+        engine.run(iter(data), max_epochs=max_epochs, epoch_length=num_iters)
+        if num_iters is None:
+            num_iters = len(data)
+        assert engine.state.iteration == num_iters * max_epochs
+        assert engine.state.epoch == max_epochs
+
+    max_epochs = 10
+    num_iters = 20
+    data = torch.randint(0, 1000, size=(num_iters,))
+    _test(data, max_epochs, num_iters=None)
+    _test(data, max_epochs, num_iters)
+    _test(data, max_epochs, num_iters // 2)
+    _test(data, max_epochs, num_iters * 2)
+
+    _test_as_iter(data, 1, num_iters=None)
+    _test_as_iter(data, 1, num_iters)
+    _test_as_iter(data, 2, num_iters // 2)
