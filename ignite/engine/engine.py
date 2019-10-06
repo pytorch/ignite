@@ -5,6 +5,8 @@ import time
 from collections import defaultdict
 from enum import Enum
 import weakref
+import numbers
+
 
 from ignite._utils import _to_hours_mins_secs
 
@@ -47,6 +49,14 @@ class State(object):
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
+
+    def __repr__(self):
+        s = "State:\n"
+        for attr, value in self.__dict__.items():
+            if not isinstance(value, (numbers.Number, str)):
+                value = type(value)
+            s += "\t{}: {}\n".format(attr, value)
+        return s
 
 
 class RemovableEventHandle(object):
@@ -388,7 +398,7 @@ class Engine(object):
                 self.state.batch = batch
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
-                self.state.output = self._process_function(self, batch)
+                self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self.should_terminate_single_epoch = False
@@ -410,7 +420,7 @@ class Engine(object):
             raise e
 
     def run(self, data, max_epochs=1):
-        """Runs the process_function over the passed data.
+        """Runs the `process_function` over the passed data.
 
         Args:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
@@ -418,6 +428,20 @@ class Engine(object):
 
         Returns:
             State: output state.
+
+
+        Note:
+            User can dynamically preprocess input batch at :attr:`~ignite.engine.Events.ITERATION_STARTED` and store
+            output batch in `engine.state.batch`. Latter is passed as usually to `process_function` as argument:
+
+            .. code-block:: python
+
+                trainer = ...
+
+                @trainer.on(Events.ITERATION_STARTED)
+                def switch_batch(engine):
+                    engine.state.batch = preprocess_batch(engine.state.batch)
+
         """
 
         self.state = State(dataloader=data, max_epochs=max_epochs, metrics={})
