@@ -1,5 +1,14 @@
 import os
 import tempfile
+import sys
+
+IS_PYTHON2 = sys.version_info[0] < 3
+
+if IS_PYTHON2:
+    import collections
+else:
+    import collections.abc as collections
+
 
 import torch
 
@@ -179,3 +188,115 @@ class ModelCheckpoint(object):
             _, paths = self._saved.pop(0)
             for p in paths:
                 os.remove(p)
+
+
+class DiskSaver(object):
+    """Handler that saves input checkpoint on a disk.
+
+    Args:
+        dirname (str): Directory path where the checkpoint will be saved (file checkpoint.pth.tar)
+        atomic (bool, optional): if True, checkpoint is serialized to a temporary file, and then
+            moved to final destination, so that files are guaranteed to not be damaged
+            (for example if exception occures during saving).
+        create_dir (bool, optional): if True, will create directory 'dirname' if it doesnt exist.
+
+    """
+
+    def __init__(self, tag, dirname, atomic=True, create_dir=True):
+        self.tag = tag
+        self.dirname = dirname
+        self._atomic = atomic
+        if create_dir:
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+        # Ensure that dirname exists
+        if not os.path.exists(dirname):
+            raise ValueError("Directory path '{}' is not found".format(dirname))
+
+    def __call__(self, checkpoint):
+        filename = "{}_chkpt.pth.tar".format(self.tag)
+        path = os.path.join(self.dirname, filename)
+
+        if not self._atomic:
+            torch.save(checkpoint, path)
+        else:
+            tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
+            try:
+                torch.save(checkpoint, tmp.file)
+            except BaseException:
+                tmp.close()
+                os.remove(tmp.name)
+                raise
+            else:
+                tmp.close()
+                os.rename(tmp.name, path)
+
+
+class EngineCheckpoint(object):
+    """EngineCheckpoint handler can be used to periodically save engine and other objects
+     to disk, web storage, etc. Saved checkpoint then can be used to resume Engine.
+
+    Args:
+        save_handler (callable): Method to use to save engine and other provided objects. Function receives a checkpoint
+            as a dictionary to save. In case if user needs to save engine's checkpoint on a disk, `save_method` can be
+            defined with `DiskSaver`.
+        to_save (dict): Dictionary with the objects to save. Objects should have implemented
+            `state_dict` and `load_state_dict` methods
+        save_interval (int, optional): if not None, objects will be saved to disk every `save_interval`
+            calls to the handler.
+    """
+
+    def __init__(self,
+                 save_handler,
+                 # dirname,
+                 to_save,
+                 save_interval=100,  # this will be deprecated
+                 # atomic=True,
+                 # create_dir=True
+                 ):
+        if not callable(save_handler):
+            raise TypeError("Argument `save_handler` should be callable")
+
+        if not isinstance(to_save, collections.Mapping):
+            raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
+
+        self.check_objects(to_save)
+        self.save_handler = save_handler
+        self.to_save = to_save
+        self._save_interval = save_interval
+
+    def __call__(self, engine):
+        if engine.state.iteration % self._save_interval != 0:
+            return
+        checkpoint = self._setup_checkpoint(engine)
+        self.save_handler(checkpoint)
+
+    def _setup_checkpoint(self, engine):
+        checkpoint = {
+            "engine": engine.state_dict()
+        }
+        for k, obj in self.to_save.items():
+            checkpoint[k] = obj.state_dict()
+        return checkpoint
+
+    @staticmethod
+    def check_objects(to_save_or_load):
+        for k, obj in to_save_or_load.items():
+            assert hasattr(obj, "state_dict") and hasattr(obj, "load_state_dict"), \
+                "Object {} should have `state_dict` and `load_state_dict` methods".format(type(obj))
+
+    @staticmethod
+    def load_objects(to_load, checkpoint):
+        """Method to load objects from Engine checkpoint
+
+        Args:
+            to_load (Mapping):
+            checkpoint (Mapping):
+        """
+        EngineCheckpoint.check_objects(to_load)
+        if not isinstance(checkpoint, collections.Mapping):
+            raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
+        for k, obj in to_load.items():
+            if k not in checkpoint:
+                raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
+            obj.load_state_dict(checkpoint[k])
