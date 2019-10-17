@@ -14,7 +14,7 @@ from torchvision.datasets.sbd import SBDataset
 
 class TransformedDataset(Dataset):
 
-    def __init__(self, ds: Type[Dataset], transform_fn: Callable):
+    def __init__(self, ds: Dataset, transform_fn: Callable):
         assert isinstance(ds, Dataset)
         assert callable(transform_fn)
         self.ds = ds

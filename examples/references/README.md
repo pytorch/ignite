@@ -7,7 +7,7 @@ reproducible baselines for vision tasks:
     * [ ] [ImageNet](classification/imagenet)
 
 * [ ] Segmentation
-    * [ ] [Pascal VOC2012](segmentation/pascal_voc2012)
+    * [x] [Pascal VOC2012](segmentation/pascal_voc2012)
     
 * [ ] Detection
     * [ ] MS COCO

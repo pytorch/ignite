@@ -40,7 +40,7 @@ def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler
     if isinstance(lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
         trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: lr_scheduler.step())
     else:
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, lr_scheduler)
+        trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 
     trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
 
