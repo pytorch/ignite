@@ -4,7 +4,7 @@ import torch
 
 from ignite.metrics.precision import _BasePrecisionRecall
 from ignite.utils import to_onehot
-from ignite.metrics.metric import reinit_is_reduced
+from ignite.metrics.metric import reinit__is_reduced
 
 
 class Recall(_BasePrecisionRecall):
@@ -69,7 +69,7 @@ class Recall(_BasePrecisionRecall):
         super(Recall, self).__init__(output_transform=output_transform,
                                      average=average, is_multilabel=is_multilabel, device=device)
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def update(self, output):
         y_pred, y = output
         self._check_shape(output)

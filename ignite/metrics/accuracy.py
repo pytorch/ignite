@@ -1,7 +1,7 @@
 from __future__ import division
 
 from ignite.metrics import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
+from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 from ignite.exceptions import NotComputableError
 
 import torch
@@ -123,13 +123,13 @@ class Accuracy(_BaseClassification):
                                        is_multilabel=is_multilabel,
                                        device=device)
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def reset(self):
         self._num_correct = 0
         self._num_examples = 0
         super(Accuracy, self).reset()
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def update(self, output):
         y_pred, y = output
         self._check_shape((y_pred, y))

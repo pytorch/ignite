@@ -7,7 +7,7 @@ import torch
 from ignite.metrics.accuracy import _BaseClassification
 from ignite.exceptions import NotComputableError
 from ignite.utils import to_onehot
-from ignite.metrics.metric import reinit_is_reduced
+from ignite.metrics.metric import reinit__is_reduced
 
 
 class _BasePrecisionRecall(_BaseClassification):
@@ -27,7 +27,7 @@ class _BasePrecisionRecall(_BaseClassification):
                                                    is_multilabel=is_multilabel,
                                                    device=device)
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def reset(self):
         self._true_positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
         self._positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
@@ -113,7 +113,7 @@ class Precision(_BasePrecisionRecall):
         super(Precision, self).__init__(output_transform=output_transform,
                                         average=average, is_multilabel=is_multilabel, device=device)
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def update(self, output):
         y_pred, y = output
         self._check_shape(output)

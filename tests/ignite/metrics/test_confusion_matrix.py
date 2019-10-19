@@ -476,82 +476,89 @@ def test_cm_with_average():
     np.testing.assert_almost_equal(true_pr, res)
 
 
+def _test_distrib_multiclass_images(device):
+
+    import torch.distributed as dist
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+
+    num_classes = 3
+    cm = ConfusionMatrix(num_classes=num_classes, device=device)
+
+    y_true, y_pred = get_y_true_y_pred()
+
+    # Compute confusion matrix with sklearn
+    true_res = confusion_matrix(y_true.reshape(-1), y_pred.reshape(-1))
+
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+    th_y_true = th_y_true.to(device)
+    th_y_logits = th_y_logits.to(device)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = cm.compute().cpu().numpy() / dist.get_world_size()
+
+    assert np.all(true_res == res)
+
+    # Another test on batch of 2 images
+    num_classes = 3
+    cm = ConfusionMatrix(num_classes=num_classes, device=device)
+
+    # Create a batch of two images:
+    th_y_true1 = torch.from_numpy(y_true).reshape(1, 30, 30)
+    th_y_true2 = torch.from_numpy(y_true.transpose()).reshape(1, 30, 30)
+    th_y_true = torch.cat([th_y_true1, th_y_true2], dim=0)
+    th_y_true = th_y_true.to(device)
+
+    # Create a batch of 2 logits tensors
+    y_probas = np.ones((3, 30, 30)) * -10
+    y_probas[0, (y_pred == 0)] = 720
+    y_probas[1, (y_pred == 1)] = 720
+    y_probas[2, (y_pred == 2)] = 768
+    th_y_logits1 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
+
+    y_probas = np.ones((3, 30, 30)) * -10
+    y_probas[0, (y_pred.transpose() == 0)] = 720
+    y_probas[1, (y_pred.transpose() == 2)] = 720
+    y_probas[2, (y_pred.transpose() == 1)] = 768
+    th_y_logits2 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
+
+    th_y_logits = torch.cat([th_y_logits1, th_y_logits2], dim=0)
+    # check update if input is on another device
+    th_y_logits = th_y_logits.to(device)
+
+    # Update metric & compute
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+    res = cm.compute().cpu().numpy()
+
+    # Compute confusion matrix with sklearn
+    th_y_true = _gather(th_y_true)
+    th_y_logits = _gather(th_y_logits)
+
+    np_y_true = th_y_true.cpu().numpy().reshape(-1)
+    np_y_pred = np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1)
+    true_res = confusion_matrix(np_y_true, np_y_pred)
+
+    assert np.all(true_res == res)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib(local_rank, distributed_context_single_node):
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    def test_distrib_multiclass_images():
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_multiclass_images(device)
 
-        import torch.distributed as dist
 
-        device = "cuda:{}".format(local_rank)
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
 
-        def _gather(y):
-            output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-            dist.all_gather(output, y)
-            y = torch.cat(output, dim=0)
-            return y
-
-        num_classes = 3
-        cm = ConfusionMatrix(num_classes=num_classes, device=device)
-
-        y_true, y_pred = get_y_true_y_pred()
-
-        # Compute confusion matrix with sklearn
-        true_res = confusion_matrix(y_true.reshape(-1), y_pred.reshape(-1))
-
-        th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
-        th_y_true = th_y_true.to(device)
-        th_y_logits = th_y_logits.to(device)
-
-        # Update metric
-        output = (th_y_logits, th_y_true)
-        cm.update(output)
-
-        res = cm.compute().cpu().numpy() / dist.get_world_size()
-
-        assert np.all(true_res == res)
-
-        # Another test on batch of 2 images
-        num_classes = 3
-        cm = ConfusionMatrix(num_classes=num_classes, device=device)
-
-        # Create a batch of two images:
-        th_y_true1 = torch.from_numpy(y_true).reshape(1, 30, 30)
-        th_y_true2 = torch.from_numpy(y_true.transpose()).reshape(1, 30, 30)
-        th_y_true = torch.cat([th_y_true1, th_y_true2], dim=0)
-        th_y_true = th_y_true.to(device)
-
-        # Create a batch of 2 logits tensors
-        y_probas = np.ones((3, 30, 30)) * -10
-        y_probas[0, (y_pred == 0)] = 720
-        y_probas[1, (y_pred == 1)] = 720
-        y_probas[2, (y_pred == 2)] = 768
-        th_y_logits1 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
-
-        y_probas = np.ones((3, 30, 30)) * -10
-        y_probas[0, (y_pred.transpose() == 0)] = 720
-        y_probas[1, (y_pred.transpose() == 2)] = 720
-        y_probas[2, (y_pred.transpose() == 1)] = 768
-        th_y_logits2 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
-
-        th_y_logits = torch.cat([th_y_logits1, th_y_logits2], dim=0)
-        # check update if input is on another device
-        th_y_logits = th_y_logits.to(device)
-
-        # Update metric & compute
-        output = (th_y_logits, th_y_true)
-        cm.update(output)
-        res = cm.compute().cpu().numpy()
-
-        # Compute confusion matrix with sklearn
-        th_y_true = _gather(th_y_true)
-        th_y_logits = _gather(th_y_logits)
-
-        np_y_true = th_y_true.cpu().numpy().reshape(-1)
-        np_y_pred = np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1)
-        true_res = confusion_matrix(np_y_true, np_y_pred)
-
-        assert np.all(true_res == res)
-
-    test_distrib_multiclass_images()
+    device = "cpu"
+    _test_distrib_multiclass_images(device)

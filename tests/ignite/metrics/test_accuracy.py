@@ -611,187 +611,194 @@ def test_incorrect_type():
         acc.update((y_pred, y))
 
 
+def _test_distrib_multilabel_input_NHW(device, local_rank):
+    # Multilabel input data of shape (N, C, H, W, ...) and (N, C, H, W, ...)
+
+    import torch.distributed as dist
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+
+    def _test():
+        acc = Accuracy(is_multilabel=True, device=device)
+
+        torch.manual_seed(10 + local_rank)
+        y_pred = torch.randint(0, 2, size=(4, 5, 12, 10), device=device).long()
+        y = torch.randint(0, 2, size=(4, 5, 12, 10), device=device).long()
+        acc.update((y_pred, y))
+
+        # gather y_pred, y
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+
+        np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        assert acc._type == 'multilabel'
+        n = acc._num_examples
+        res = acc.compute()
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+
+        acc.reset()
+        torch.manual_seed(10 + local_rank)
+        y_pred = torch.randint(0, 2, size=(4, 10, 12, 8), device=device).long()
+        y = torch.randint(0, 2, size=(4, 10, 12, 8), device=device).long()
+        acc.update((y_pred, y))
+
+        # gather y_pred, y
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+
+        np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+        np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
+
+        assert acc._type == 'multilabel'
+        n = acc._num_examples
+        res = acc.compute()
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+        # check that result is not changed
+        res = acc.compute()
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+
+        # Batched Updates
+        acc.reset()
+        torch.manual_seed(10 + local_rank)
+        y_pred = torch.randint(0, 2, size=(100, 5, 12, 10), device=device).long()
+        y = torch.randint(0, 2, size=(100, 5, 12, 10), device=device).long()
+
+        batch_size = 16
+        n_iters = y.shape[0] // batch_size + 1
+
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+
+        # gather y_pred, y
+        y_pred = _gather(y_pred)
+        y = _gather(y)
+
+        np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, L, ...) -> (N * L * ..., C)
+        np_y = to_numpy_multilabel(y.cpu())  # (N, C, L, ...) -> (N * L ..., C)
+
+        assert acc._type == 'multilabel'
+        n = acc._num_examples
+        res = acc.compute()
+        assert n * dist.get_world_size() == acc._num_examples
+        assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+
+def _test_distrib_itegration_multiclass(device, local_rank):
+
+    import torch.distributed as dist
+    from ignite.engine import Engine
+
+    torch.manual_seed(12)
+
+    def _test(n_epochs):
+        n_iters = 100
+        s = 16
+        n_classes = 10
+
+        offset = n_iters * s
+        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
+        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+
+        def update(engine, i):
+            return y_preds[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, :], \
+                y_true[i * s + local_rank * offset:(i + 1) * s + local_rank * offset]
+
+        engine = Engine(update)
+
+        acc = Accuracy(device=device)
+        acc.attach(engine, "acc")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "acc" in engine.state.metrics
+        res = engine.state.metrics['acc']
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+
+        true_res = accuracy_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy())
+
+        assert pytest.approx(res) == true_res
+
+    for _ in range(5):
+        _test(n_epochs=1)
+        _test(n_epochs=2)
+
+
+def _test_distrib_itegration_multilabel(device, local_rank):
+
+    import torch.distributed as dist
+    from ignite.engine import Engine
+
+    torch.manual_seed(12)
+
+    def _test(n_epochs):
+        n_iters = 100
+        s = 16
+        n_classes = 10
+
+        offset = n_iters * s
+        y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 10, 12)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 10, 12)).to(device)
+
+        def update(engine, i):
+            return y_preds[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, ...], \
+                y_true[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, ...]
+
+        engine = Engine(update)
+
+        acc = Accuracy(is_multilabel=True, device=device)
+        acc.attach(engine, "acc")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "acc" in engine.state.metrics
+        res = engine.state.metrics['acc']
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+
+        true_res = accuracy_score(to_numpy_multilabel(y_true),
+                                  to_numpy_multilabel(y_preds))
+
+        assert pytest.approx(res) == true_res
+
+    for _ in range(5):
+        _test(n_epochs=1)
+        _test(n_epochs=2)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib(local_rank, distributed_context_single_node):
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    def test_distrib_multilabel_input_NHW():
-        # Multilabel input data of shape (N, C, H, W, ...) and (N, C, H, W, ...)
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_multilabel_input_NHW(device, local_rank)
+    _test_distrib_itegration_multiclass(device, local_rank)
+    _test_distrib_itegration_multilabel(device, local_rank)
 
-        import torch.distributed as dist
 
-        device = "cuda:{}".format(local_rank)
+@pytest.mark.distributed
+def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 
-        def _gather(y):
-            output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-            dist.all_gather(output, y)
-            y = torch.cat(output, dim=0)
-            return y
-
-        def _test():
-            acc = Accuracy(is_multilabel=True, device=device)
-
-            torch.manual_seed(10 + local_rank)
-            y_pred = torch.randint(0, 2, size=(4, 5, 12, 10), device=device).long()
-            y = torch.randint(0, 2, size=(4, 5, 12, 10), device=device).long()
-            acc.update((y_pred, y))
-
-            # gather y_pred, y
-            y_pred = _gather(y_pred)
-            y = _gather(y)
-
-            np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
-            np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
-            assert acc._type == 'multilabel'
-            n = acc._num_examples
-            res = acc.compute()
-            assert n * dist.get_world_size() == acc._num_examples
-            assert isinstance(res, float)
-            assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
-
-            acc.reset()
-            torch.manual_seed(10 + local_rank)
-            y_pred = torch.randint(0, 2, size=(4, 10, 12, 8), device=device).long()
-            y = torch.randint(0, 2, size=(4, 10, 12, 8), device=device).long()
-            acc.update((y_pred, y))
-
-            # gather y_pred, y
-            y_pred = _gather(y_pred)
-            y = _gather(y)
-
-            np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
-            np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
-
-            assert acc._type == 'multilabel'
-            n = acc._num_examples
-            res = acc.compute()
-            assert n * dist.get_world_size() == acc._num_examples
-            assert isinstance(res, float)
-            assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
-            # check that result is not changed
-            res = acc.compute()
-            assert n * dist.get_world_size() == acc._num_examples
-            assert isinstance(res, float)
-            assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
-
-            # Batched Updates
-            acc.reset()
-            torch.manual_seed(10 + local_rank)
-            y_pred = torch.randint(0, 2, size=(100, 5, 12, 10), device=device).long()
-            y = torch.randint(0, 2, size=(100, 5, 12, 10), device=device).long()
-
-            batch_size = 16
-            n_iters = y.shape[0] // batch_size + 1
-
-            for i in range(n_iters):
-                idx = i * batch_size
-                acc.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
-
-            # gather y_pred, y
-            y_pred = _gather(y_pred)
-            y = _gather(y)
-
-            np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, L, ...) -> (N * L * ..., C)
-            np_y = to_numpy_multilabel(y.cpu())  # (N, C, L, ...) -> (N * L ..., C)
-
-            assert acc._type == 'multilabel'
-            n = acc._num_examples
-            res = acc.compute()
-            assert n * dist.get_world_size() == acc._num_examples
-            assert isinstance(res, float)
-            assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
-
-        # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
-            _test()
-
-    test_distrib_multilabel_input_NHW()
-
-    def test_distrib_itegration_multiclass():
-
-        import torch.distributed as dist
-        from ignite.engine import Engine
-
-        torch.manual_seed(12)
-        device = "cuda:{}".format(local_rank)
-
-        def _test(n_epochs):
-            n_iters = 100
-            s = 16
-            n_classes = 10
-
-            offset = n_iters * s
-            y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
-            y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
-
-            def update(engine, i):
-                return y_preds[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, :], \
-                    y_true[i * s + local_rank * offset:(i + 1) * s + local_rank * offset]
-
-            engine = Engine(update)
-
-            acc = Accuracy(device=device)
-            acc.attach(engine, "acc")
-
-            data = list(range(n_iters))
-            engine.run(data=data, max_epochs=n_epochs)
-
-            assert "acc" in engine.state.metrics
-            res = engine.state.metrics['acc']
-            if isinstance(res, torch.Tensor):
-                res = res.cpu().numpy()
-
-            true_res = accuracy_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy())
-
-            assert pytest.approx(res) == true_res
-
-        for _ in range(5):
-            _test(n_epochs=1)
-            _test(n_epochs=2)
-
-    test_distrib_itegration_multiclass()
-
-    def test_distrib_itegration_multilabel():
-
-        import torch.distributed as dist
-        from ignite.engine import Engine
-
-        torch.manual_seed(12)
-        device = "cuda:{}".format(local_rank)
-
-        def _test(n_epochs):
-            n_iters = 100
-            s = 16
-            n_classes = 10
-
-            offset = n_iters * s
-            y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 10, 12)).to(device)
-            y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 10, 12)).to(device)
-
-            def update(engine, i):
-                return y_preds[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, ...], \
-                    y_true[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, ...]
-
-            engine = Engine(update)
-
-            acc = Accuracy(is_multilabel=True, device=device)
-            acc.attach(engine, "acc")
-
-            data = list(range(n_iters))
-            engine.run(data=data, max_epochs=n_epochs)
-
-            assert "acc" in engine.state.metrics
-            res = engine.state.metrics['acc']
-            if isinstance(res, torch.Tensor):
-                res = res.cpu().numpy()
-
-            true_res = accuracy_score(to_numpy_multilabel(y_true),
-                                      to_numpy_multilabel(y_preds))
-
-            assert pytest.approx(res) == true_res
-
-        for _ in range(5):
-            _test(n_epochs=1)
-            _test(n_epochs=2)
-
-    test_distrib_itegration_multilabel()
+    device = "cpu"
+    _test_distrib_multilabel_input_NHW(device, local_rank)
+    _test_distrib_itegration_multiclass(device, local_rank)
+    _test_distrib_itegration_multilabel(device, local_rank)

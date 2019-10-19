@@ -116,24 +116,46 @@ def test_bad_compute_fn():
         em.update(output1)
 
 
+def _test_warning():
+
+    def compute_fn(y_preds, y_targets):
+        return 0.0
+
+    with pytest.warns(RuntimeWarning, match="EpochMetric class does not support distributed setting"):
+        EpochMetric(compute_fn)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib(local_rank, distributed_context_single_node):
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    def test_warning():
-
-        def compute_fn(y_preds, y_targets):
-            return 0.0
-
-        with pytest.warns(RuntimeWarning, match="EpochMetric class does not work in distributed setting."):
-            EpochMetric(compute_fn)
-
-    test_warning()
+    _test_warning()
 
     # Perform some ops otherwise, next tests fail
     import torch.distributed as dist
 
     device = "cuda:{}".format(local_rank)
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+
+    y = torch.rand(10, 12, device=device)
+    y = _gather(y)
+    assert isinstance(y, torch.Tensor)
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
+
+    _test_warning()
+
+    # Perform some ops otherwise, next tests fail
+    import torch.distributed as dist
+
+    device = "cpu"
 
     def _gather(y):
         output = [torch.zeros_like(y) for i in range(dist.get_world_size())]

@@ -1,6 +1,6 @@
 import itertools
 
-from ignite.metrics.metric import Metric
+from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.engine import Events
 
 
@@ -41,11 +41,13 @@ class MetricsLambda(Metric):
         self.kwargs = kwargs
         super(MetricsLambda, self).__init__(device='cpu')
 
+    @reinit__is_reduced
     def reset(self):
         for i in itertools.chain(self.args, self.kwargs.values()):
             if isinstance(i, Metric):
                 i.reset()
 
+    @reinit__is_reduced
     def update(self, output):
         # NB: this method does not recursively update dependency metrics,
         # which might cause duplicate update issue. To update this metric,
