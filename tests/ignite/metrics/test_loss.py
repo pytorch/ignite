@@ -1,9 +1,13 @@
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Loss
-import pytest
+import os
+
 import torch
 from torch import nn
 from torch.nn.functional import nll_loss
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Loss
+
+import pytest
 from numpy.testing import assert_almost_equal
 
 
@@ -121,5 +125,12 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
+    device = "cpu"
+    _test_distrib_compute_on_criterion(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_compute_on_criterion(device)

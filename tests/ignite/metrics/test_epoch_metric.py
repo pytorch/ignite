@@ -1,3 +1,4 @@
+import os
 import torch
 
 from ignite.metrics import EpochMetric
@@ -149,6 +150,28 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
+
+    _test_warning()
+
+    # Perform some ops otherwise, next tests fail
+    import torch.distributed as dist
+
+    device = "cpu"
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+
+    y = torch.rand(10, 12, device=device)
+    y = _gather(y)
+    assert isinstance(y, torch.Tensor)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
     _test_warning()
 

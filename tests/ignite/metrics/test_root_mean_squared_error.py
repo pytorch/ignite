@@ -1,7 +1,11 @@
+import os
+
+import torch
+
 from ignite.exceptions import NotComputableError
 from ignite.metrics import RootMeanSquaredError
+
 import pytest
-import torch
 
 
 def test_zero_div():
@@ -27,20 +31,21 @@ def test_compute():
     assert rmse.compute() == 3.0
 
 
-def _test_distrib_itegration(device, local_rank):
+def _test_distrib_itegration(device):
     import numpy as np
     import torch.distributed as dist
     from ignite.engine import Engine
 
+    rank = dist.get_rank()
     n_iters = 100
     s = 50
     offset = n_iters * s
 
     y_true = torch.arange(0, offset * dist.get_world_size(), dtype=torch.float).to(device)
-    y_preds = (local_rank + 1) * torch.ones(offset, dtype=torch.float).to(device)
+    y_preds = (rank + 1) * torch.ones(offset, dtype=torch.float).to(device)
 
     def update(engine, i):
-        return y_preds[i * s:(i + 1) * s], y_true[i * s + offset * local_rank:(i + 1) * s + offset * local_rank]
+        return y_preds[i * s:(i + 1) * s], y_true[i * s + offset * rank:(i + 1) * s + offset * rank]
 
     engine = Engine(update)
 
@@ -68,11 +73,18 @@ def _test_distrib_itegration(device, local_rank):
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
     device = "cuda:{}".format(local_rank)
-    _test_distrib_itegration(device, local_rank)
+    _test_distrib_itegration(device)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 
     device = "cpu"
-    _test_distrib_itegration(device, local_rank)
+    _test_distrib_itegration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_itegration(device)

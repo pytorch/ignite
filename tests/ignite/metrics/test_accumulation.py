@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 
@@ -145,7 +146,7 @@ def _test_distrib_variable_accumulation(device):
     import torch.distributed as dist
 
     mean_var = VariableAccumulation(lambda a, x: a + x, device=device)
-    y_true = torch.rand(100, device=device)
+    y_true = torch.rand(100, device=device, dtype=torch.float64)
 
     for y in y_true:
         mean_var.update(y)
@@ -160,22 +161,22 @@ def _test_distrib_variable_accumulation(device):
     assert n == len(y_true) * dist.get_world_size()
 
     mean_var = VariableAccumulation(lambda a, x: a + x, device=device)
-    y_true = torch.rand(50, 10, device=device)
+    y_true = torch.rand(50, 10, device=device, dtype=torch.float64)
 
     for y in y_true:
         mean_var.update(y)
 
     dist.all_reduce(y_true)
     a, n = mean_var.compute()
+    assert n == len(y_true) * dist.get_world_size()
     np.testing.assert_almost_equal(a.cpu().numpy(),
                                    y_true.sum(dim=0).cpu().numpy(),
                                    decimal=5)
-    assert n == len(y_true) * dist.get_world_size()
     a, n = mean_var.compute()
+    assert n == len(y_true) * dist.get_world_size()
     np.testing.assert_almost_equal(a.cpu().numpy(),
                                    y_true.sum(dim=0).cpu().numpy(),
                                    decimal=5)
-    assert n == len(y_true) * dist.get_world_size()
 
 
 def _test_distrib_average(device):
@@ -187,7 +188,7 @@ def _test_distrib_average(device):
         v.compute()
 
     mean_var = Average(device=device)
-    y_true = torch.rand(100) + torch.randint(0, 10, size=(100, )).float()
+    y_true = torch.rand(100, dtype=torch.float64) + torch.randint(0, 10, size=(100, )).double()
     y_true = y_true.to(device)
 
     for y in y_true:
@@ -199,7 +200,7 @@ def _test_distrib_average(device):
     assert m.item() == pytest.approx(y_true.mean().item() / dist.get_world_size())
 
     mean_var = Average(device=device)
-    y_true = torch.rand(100, 10) + torch.randint(0, 10, size=(100, 10)).float()
+    y_true = torch.rand(100, 10, dtype=torch.float64) + torch.randint(0, 10, size=(100, 10)).double()
     y_true = y_true.to(device)
 
     for y in y_true:
@@ -222,7 +223,7 @@ def _test_distrib_geom_average(device):
         v.compute()
 
     mean_var = GeometricAverage(device=device)
-    y_true = torch.rand(100) + torch.randint(0, 10, size=(100,)).float()
+    y_true = torch.rand(100, dtype=torch.float64) + torch.randint(0, 10, size=(100,)).double()
     y_true = y_true.to(device)
 
     for y in y_true:
@@ -234,7 +235,7 @@ def _test_distrib_geom_average(device):
     assert m.item() == pytest.approx(torch.exp(log_y_true.mean(dim=0) / dist.get_world_size()).item())
 
     mean_var = GeometricAverage(device=device)
-    y_true = torch.rand(100, 10) + torch.randint(0, 10, size=(100, 10)).float()
+    y_true = torch.rand(100, 10, dtype=torch.float64) + torch.randint(0, 10, size=(100, 10)).double()
     y_true = y_true.to(device)
 
     for y in y_true:
@@ -255,7 +256,7 @@ def _test_distrib_integration(device):
     def _test(metric_cls, true_result_fn):
 
         size = 100
-        custom_variable = 10.0 + 5.0 * torch.rand(size, 12)
+        custom_variable = 10.0 + 5.0 * torch.rand(size, 12, dtype=torch.float64)
         custom_variable = custom_variable.to(device)
 
         def update_fn(engine, batch):
@@ -273,7 +274,7 @@ def _test_distrib_integration(device):
                                        decimal=5)
 
         size = 100
-        custom_variable = 10.0 + 5.0 * torch.rand(size)
+        custom_variable = 10.0 + 5.0 * torch.rand(size, dtype=torch.float64)
         custom_variable = custom_variable.to(device)
 
         def update_fn(engine, batch):
@@ -304,9 +305,9 @@ def _test_distrib_integration(device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_gpu(distributed_context_single_node_nccl):
 
-    device = "cuda:{}".format(local_rank)
+    device = "cuda:{}".format(distributed_context_single_node_nccl['local_rank'])
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
@@ -317,6 +318,26 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = "cpu"
+    _test_distrib_variable_accumulation(device)
+    _test_distrib_average(device)
+    _test_distrib_geom_average(device)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_variable_accumulation(device)
+    _test_distrib_average(device)
+    _test_distrib_geom_average(device)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
     _test_distrib_geom_average(device)

@@ -1,9 +1,11 @@
-import pytest
+import os
 
 import torch
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import TopKCategoricalAccuracy
+
+import pytest
 
 
 def test_zero_div():
@@ -50,10 +52,10 @@ def top_k_accuracy(y_true, y_pred, k=5, normalize=True):
         return counter
 
 
-def _test_distrib_itegration(device, local_rank):
+def _test_distrib_itegration(device):
     import torch.distributed as dist
     from ignite.engine import Engine
-
+    rank = dist.get_rank()
     torch.manual_seed(12)
 
     def _test(n_epochs):
@@ -66,8 +68,8 @@ def _test_distrib_itegration(device, local_rank):
         y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
 
         def update(engine, i):
-            return y_preds[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, :], \
-                y_true[i * s + local_rank * offset:(i + 1) * s + local_rank * offset]
+            return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, :], \
+                y_true[i * s + rank * offset:(i + 1) * s + rank * offset]
 
         engine = Engine(update)
 
@@ -96,13 +98,18 @@ def _test_distrib_itegration(device, local_rank):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-
     device = "cuda:{}".format(local_rank)
-    _test_distrib_itegration(device, local_rank)
+    _test_distrib_itegration(device)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
-
     device = "cpu"
-    _test_distrib_itegration(device, local_rank)
+    _test_distrib_itegration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_itegration(device)

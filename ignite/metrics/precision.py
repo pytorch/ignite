@@ -29,8 +29,9 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self):
-        self._true_positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
-        self._positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
+        dtype = torch.float64
+        self._true_positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
+        self._positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
         super(_BasePrecisionRecall, self).reset()
 
     def compute(self):
@@ -39,9 +40,10 @@ class _BasePrecisionRecall(_BaseClassification):
                                      " it can be computed.".format(self.__class__.__name__))
 
         if not (self._type == "multilabel" and not self._average):
-            self._true_positives = self._sync_all_reduce(self._true_positives)
-            self._positives = self._sync_all_reduce(self._positives)
-            self._is_reduced = True
+            if not self._is_reduced:
+                self._true_positives = self._sync_all_reduce(self._true_positives)
+                self._positives = self._sync_all_reduce(self._positives)
+                self._is_reduced = True
 
         result = self._true_positives / (self._positives + self.eps)
 

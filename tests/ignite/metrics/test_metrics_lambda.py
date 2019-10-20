@@ -1,13 +1,15 @@
-import pytest
-from pytest import approx
-
-import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score
+import os
 
 import torch
 
 from ignite.engine import Engine
 from ignite.metrics import Metric, MetricsLambda, Precision, Recall
+
+import pytest
+from pytest import approx
+
+import numpy as np
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 class ListGatherMetric(Metric):
@@ -298,10 +300,10 @@ def test_recursive_attachment():
     _test(some_metric, "some metric", compute_true_somemetric)
 
 
-def _test_distrib_integration(device, local_rank):
+def _test_distrib_integration(device):
 
     import torch.distributed as dist
-
+    rank = dist.get_rank()
     np.random.seed(12)
 
     n_iters = 10
@@ -322,8 +324,8 @@ def _test_distrib_integration(device, local_rank):
         y_pred = y_pred.reshape(n_iters * dist.get_world_size(), batch_size, n_classes)
 
         def update_fn(engine, i):
-            y_true_batch = y_true[i + local_rank * n_iters, ...]
-            y_pred_batch = y_pred[i + local_rank * n_iters, ...]
+            y_true_batch = y_true[i + rank * n_iters, ...]
+            y_pred_batch = y_pred[i + rank * n_iters, ...]
             return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         evaluator = Engine(update_fn)
@@ -358,11 +360,18 @@ def _test_distrib_integration(device, local_rank):
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
     device = "cuda:{}".format(local_rank)
-    _test_distrib_integration(device, local_rank)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 
     device = "cpu"
-    _test_distrib_integration(device, local_rank)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_integration(device)
