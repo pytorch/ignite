@@ -51,22 +51,21 @@ def test_integration():
     avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
     avg_output.attach(trainer, 'running_avg_output')
 
-    running_avg_acc = None
+    running_avg_acc = [None, ]
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def manual_running_avg_acc(engine):
-        nonlocal running_avg_acc
         _, y_pred, y = engine.state.output
         indices = torch.max(y_pred, 1)[1]
         correct = torch.eq(indices, y).view(-1)
         num_correct = torch.sum(correct).item()
         num_examples = correct.shape[0]
         batch_acc = num_correct * 1.0 / num_examples
-        if running_avg_acc is None:
-            running_avg_acc = batch_acc
+        if running_avg_acc[0] is None:
+            running_avg_acc[0] = batch_acc
         else:
-            running_avg_acc = running_avg_acc * alpha + (1.0 - alpha) * batch_acc
-        engine.state.running_avg_acc = running_avg_acc
+            running_avg_acc[0] = running_avg_acc[0] * alpha + (1.0 - alpha) * batch_acc
+        engine.state.running_avg_acc = running_avg_acc[0]
 
     @trainer.on(Events.EPOCH_STARTED)
     def running_avg_output_init(engine):
@@ -91,7 +90,7 @@ def test_integration():
             "{} vs {}".format(engine.state.running_avg_output, engine.state.metrics['running_avg_output'])
 
     np.random.seed(10)
-    running_avg_acc = None
+    running_avg_acc = [None, ]
     n_iters = 10
     batch_size = 10
     n_classes = 10
@@ -101,7 +100,7 @@ def test_integration():
     y_pred_batch_values = iter(np.random.rand(n_iters, batch_size, n_classes))
     trainer.run(data, max_epochs=1)
 
-    running_avg_acc = None
+    running_avg_acc = [None, ]
     n_iters = 10
     batch_size = 10
     n_classes = 10
@@ -295,12 +294,11 @@ def _test_distrib_on_metric(device):
                                 alpha=alpha, epoch_bound=False)
     acc_metric.attach(trainer, 'running_avg_accuracy')
 
-    running_avg_acc = None
+    running_avg_acc = [None, ]
     true_acc_metric = Accuracy(device=device)
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def manual_running_avg_acc(engine):
-        nonlocal running_avg_acc
         i = engine.state.iteration - 1
 
         true_acc_metric.reset()
@@ -311,11 +309,11 @@ def _test_distrib_on_metric(device):
 
         batch_acc = true_acc_metric._num_correct / true_acc_metric._num_examples
 
-        if running_avg_acc is None:
-            running_avg_acc = batch_acc
+        if running_avg_acc[0] is None:
+            running_avg_acc[0] = batch_acc
         else:
-            running_avg_acc = running_avg_acc * alpha + (1.0 - alpha) * batch_acc
-        engine.state.running_avg_acc = running_avg_acc
+            running_avg_acc[0] = running_avg_acc[0] * alpha + (1.0 - alpha) * batch_acc
+        engine.state.running_avg_acc = running_avg_acc[0]
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_acc_values(engine):
@@ -346,5 +344,13 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
+    _test_distrib_on_output(device)
+    _test_distrib_on_metric(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
     _test_distrib_on_output(device)
     _test_distrib_on_metric(device)

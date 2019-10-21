@@ -34,11 +34,11 @@ def run(output_path, config):
     num_workers = int((config['num_workers'] + ngpus_per_node - 1) / ngpus_per_node)
 
     local_rank = config['local_rank']
-
     distributed = backend is not None
     if distributed:
-        torch.cuda.set_device(config['local_rank'])
+        torch.cuda.set_device(local_rank)
         device = "cuda"
+    rank = dist.get_rank() if distributed else 0
 
     train_labelled_loader, test_loader = \
         get_train_test_loaders(path=config['data_path'],
@@ -99,7 +99,7 @@ def run(output_path, config):
     else:
         trainer.add_event_handler(Events.ITERATION_STARTED, lambda engine: lr_scheduler.step())
 
-    if local_rank == 0:
+    if rank == 0:
 
         checkpoint_handler = ModelCheckpoint(dirname=output_path,
                                              filename_prefix="checkpoint",
@@ -142,13 +142,14 @@ def run(output_path, config):
 
     def run_validation(engine, val_interval):
         if engine.state.epoch % val_interval == 0:
+            torch.cuda.synchronize()
             train_evaluator.run(train_labelled_loader)
             evaluator.run(test_loader)
 
     trainer.add_event_handler(Events.EPOCH_STARTED, run_validation, val_interval=3)
     trainer.add_event_handler(Events.COMPLETED, run_validation, val_interval=1)
 
-    if local_rank == 0:
+    if rank == 0:
         ProgressBar(persist=False, desc="Train evaluation").attach(train_evaluator)
         ProgressBar(persist=False, desc="Test evaluation").attach(evaluator)
 
@@ -179,6 +180,9 @@ def run(output_path, config):
         evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
 
     trainer.run(train_labelled_loader, max_epochs=config['num_epochs'])
+
+    if rank == 0:
+        tb_logger.close()
 
 
 if __name__ == "__main__":
@@ -238,7 +242,18 @@ if __name__ == "__main__":
     backend = config['dist_backend']
     distributed = backend is not None
 
+    if distributed:
+        dist.init_process_group(backend, init_method=config['dist_url'])
+        # let each node print the info
+        if config['local_rank'] == 0:
+            print("\nDistributed setting:")
+            print("\tbackend: {}".format(dist.get_backend()))
+            print("\tworld size: {}".format(dist.get_world_size()))
+            print("\trank: {}".format(dist.get_rank()))
+            print("\n")
+
     output_path = None
+    # let each node print the info
     if config['local_rank'] == 0:
         print("Train {} on CIFAR10".format(network_name))
         print("- PyTorch version: {}".format(torch.__version__))
@@ -251,21 +266,21 @@ if __name__ == "__main__":
             print("\t{}: {}".format(key, value))
         print("\n")
 
-        from datetime import datetime
+        # create log directory only by 1 node
+        if (not distributed) or (dist.get_rank() == 0):
+            from datetime import datetime
 
-        now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        gpu_conf = "-single-gpu"
-        if distributed:
-            gpu_conf = "-distributed-{}-gpus".format(torch.cuda.device_count())
+            now = datetime.now().strftime("%Y%m%d-%H%M%S")
+            gpu_conf = "-single-gpu"
+            if distributed:
+                ws = dist.get_world_size()
+                gpu_conf = "-distributed-{}-gpus".format(ws)
 
-        output_path = Path(config['output_path']) / "{}{}".format(now, gpu_conf)
-        if not output_path.exists():
-            output_path.mkdir(parents=True)
-        output_path = output_path.as_posix()
-        print("Output path: {}".format(output_path))
-
-    if distributed:
-        dist.init_process_group(backend, init_method=config['dist_url'])
+            output_path = Path(config['output_path']) / "{}{}".format(now, gpu_conf)
+            if not output_path.exists():
+                output_path.mkdir(parents=True)
+            output_path = output_path.as_posix()
+            print("Output path: {}".format(output_path))
 
     try:
         run(output_path, config)

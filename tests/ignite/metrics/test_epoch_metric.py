@@ -189,3 +189,24 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     y = torch.rand(10, 12, device=device)
     y = _gather(y)
     assert isinstance(y, torch.Tensor)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    _test_warning()
+
+    # Perform some ops otherwise, next tests fail
+    import torch.distributed as dist
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+
+    y = torch.rand(10, 12, device=device)
+    y = _gather(y)
+    assert isinstance(y, torch.Tensor)
+

@@ -856,3 +856,11 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_itegration_multiclass(device)
     _test_distrib_itegration_multilabel(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)
