@@ -13,11 +13,21 @@ class Metric(with_metaclass(ABCMeta, object)):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-
+        started_event (<enum Events>): event from which on the metric should be calculated
+        iteration_completed_event (<enum Events>): event at which intermediate metric calculations (`self.update()`)
+            are executed from current model outputs, e.g. for a mean loss metric this would refer to adding
+            the current model loss output after each iteration to a summed loss and increasing to count of losses added.
+        completed_event (<enum Events>): event at which the metric value us calculated and written to
+            `engine.state.metrics[metric_name]`. E.g. for mean loss metric calculation the summed output losses
+            of each iterations is devided by the number of iterations and outputed to `trainer.state.metrics['loss'].
     """
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform=lambda x: x, started_event=Events.EPOCH_STARTED,
+                 iteration_completed_event=Events.ITERATION_COMPLETED, completed_event=Events.EPOCH_COMPLETED):
         self._output_transform = output_transform
+        self.started_event = started_event
+        self.iteration_completed_event = iteration_completed_event
+        self.completed_event = completed_event
         self.reset()
 
     @abstractmethod
@@ -71,11 +81,12 @@ class Metric(with_metaclass(ABCMeta, object)):
         engine.state.metrics[name] = result
 
     def attach(self, engine, name):
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
-        if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
-            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
+        if not engine.has_event_handler(self.started, self.started_event):
+            engine.add_event_handler(self.started_event, self.started)
+        if not engine.has_event_handler(self.iteration_completed, self.iteration_completed_event):
+            engine.add_event_handler(self.iteration_completed_event, self.iteration_completed)
+        # `self.completed()` is always executed at the end, so it should be added to `engine` at the end
+        engine.add_event_handler(self.completed_event, self.completed, name)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
