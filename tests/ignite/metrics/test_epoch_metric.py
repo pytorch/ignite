@@ -209,4 +209,3 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     y = torch.rand(10, 12, device=device)
     y = _gather(y)
     assert isinstance(y, torch.Tensor)
-
