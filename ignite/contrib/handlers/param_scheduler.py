@@ -423,7 +423,13 @@ class LRScheduler(ParamScheduler):
 
         step_scheduler = StepLR(optimizer, step_size=3, gamma=0.1)
         scheduler = LRScheduler(step_scheduler)
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+        # In this example, we assume to have installed PyTorch>=1.1.0
+        # (with new `torch.optim.lr_scheduler` behaviour) and
+        # we attach scheduler to Events.ITERATION_COMPLETED
+        # instead of Events.ITERATION_STARTED to make sure to use
+        # the first lr value from the optimizer, otherwise it is will be skipped:
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
 
     def __init__(self, lr_scheduler, save_history=False, **kwds):
@@ -450,7 +456,10 @@ class LRScheduler(ParamScheduler):
     def get_param(self):
         """Method to get current optimizer's parameter value
         """
+        # Emulate context manager for pytorch>=1.4
+        self.lr_scheduler._get_lr_called_within_step = True
         lr_list = self.lr_scheduler.get_lr()
+        self.lr_scheduler._get_lr_called_within_step = False
         if len(lr_list) > 1:
             raise ValueError("Optimizer passed to lr_scheduler should have a single param group, "
                              "but currently there are {} param groups".format(len(lr_list)))
@@ -475,8 +484,8 @@ class LRScheduler(ParamScheduler):
         values = []
         scheduler = cls(save_history=False, lr_scheduler=copy_lr_scheduler)
         for i in range(num_events):
-            scheduler(engine=None)
             values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+            scheduler(engine=None)
 
         return values
 
@@ -493,7 +502,7 @@ class LRScheduler(ParamScheduler):
         for group in dummy_optimizer.param_groups:
             group.setdefault('initial_lr', group['lr'])
         kwargs = lr_scheduler.state_dict()
-        for k in ['base_lrs', '_step_count']:
+        for k in [_k for _k in kwargs.keys() if "_" == _k[0]] + ['base_lrs', 'last_epoch']:
             del kwargs[k]
         copy_lr_scheduler = lr_scheduler_cls(optimizer=dummy_optimizer, **kwargs)
         copy_lr_scheduler.load_state_dict(lr_scheduler.state_dict())
@@ -504,58 +513,82 @@ def create_lr_scheduler_with_warmup(lr_scheduler, warmup_start_value, warmup_end
                                     save_history=False,
                                     output_simulated_values=None):
     """
-    Helper method to create a LR scheduler with a linear warm-up.
+    Helper method to create a learning rate scheduler with a linear warm-up.
 
     Args:
-        lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): LR scheduler after
-            the warm-up.
-        warmup_start_value (float): LR start value of the warm-up phase.
-        warmup_end_value (float): LR end value of the warm-up phase.
+        lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
+            after the warm-up.
+        warmup_start_value (float): learning rate start value of the warm-up phase.
+        warmup_end_value (float): learning rate end value of the warm-up phase.
         warmup_duration (int): warm-up phase duration, number of events.
         save_history (bool, optional): whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        output_simulated_values (list, optional): optional output of simulated LR values.
+        output_simulated_values (list, optional): optional output of simulated learning rate values.
             If output_simulated_values is a list of None, e.g. `[None] * 100`, after the execution it will be filled
-            by 100 simulated LR values.
+            by 100 simulated learning rate values.
 
     Returns:
-        ConcatScheduler: LR scheduler with linear warm-up.
+        ConcatScheduler: learning rate scheduler with linear warm-up.
 
+    Note:
+        If the first learning rate value provided by `lr_scheduler` is different from `warmup_end_value`, an additional
+        event is added after the warm-up phase such that the warm-up ends with `warmup_end_value` value and then
+        `lr_scheduler` provides its learning rate values as normally.
 
-    .. code-block:: python
+    Examples:
 
-        torch_lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.98)
-        lr_values = [None] * 100
-        scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
-                                                    warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10,
-                                                    output_simulated_values=lr_values)
-        lr_values = np.array(lr_values)
-        # Plot simulated values
-        plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
+        .. code-block:: python
 
-        # Attach to the trainer
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            torch_lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.98)
+            lr_values = [None] * 100
+            scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
+                                                        warmup_start_value=0.0,
+                                                        warmup_end_value=0.1,
+                                                        warmup_duration=10,
+                                                        output_simulated_values=lr_values)
+            lr_values = np.array(lr_values)
+            # Plot simulated values
+            plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
+
+            # Attach to the trainer
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
     """
     if not isinstance(lr_scheduler, (ParamScheduler, _LRScheduler)):
         raise TypeError("Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler or "
                         "ParamScheduler, but given {}".format(type(lr_scheduler)))
 
+    if not (isinstance(warmup_duration, numbers.Integral) and warmup_duration > 1):
+        raise ValueError("Argument warmup_duration should be at least 2 events, but given {}"
+                         .format(warmup_duration))
+
+    milestones_values = [(0, warmup_start_value), (warmup_duration - 1, warmup_end_value)]
+
     duration_extension = 0
     if isinstance(lr_scheduler, _LRScheduler):
+        init_lrs = [g['lr'] for g in lr_scheduler.optimizer.param_groups]
+        if len(init_lrs) < 1:
+            raise RuntimeError("Number of parameter groups of input `lr_scheduler.optimizer` is less than one.")
+
+        if init_lrs[0] != warmup_end_value:
+            milestones_values.append((warmup_duration, init_lrs[0]))
+
         lr_scheduler = LRScheduler(lr_scheduler)
-        duration_extension = 1
+    else:
+        init_lr = lr_scheduler.get_param()
+        if init_lr == warmup_end_value:
+            if warmup_duration > 2:
+                d = (warmup_end_value - warmup_start_value) / (warmup_duration - 1)
+                milestones_values[-1] = (warmup_duration - 2, warmup_end_value - d)
+            else:
+                milestones_values.pop(-1)
 
     dummy_optimizer = {}
-    warmup_scheduler = LinearCyclicalScheduler(dummy_optimizer, param_name="lr",
-                                               start_value=warmup_start_value,
-                                               end_value=warmup_end_value,
-                                               cycle_size=warmup_duration * 2)
-
+    warmup_scheduler = PiecewiseLinear(dummy_optimizer, param_name="lr", milestones_values=milestones_values)
     warmup_scheduler.optimizer_param_groups = lr_scheduler.optimizer_param_groups
 
     schedulers = [warmup_scheduler, lr_scheduler]
-    durations = [warmup_duration + duration_extension, ]
+    durations = [milestones_values[-1][0] + 1, ]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations,
                                          save_history=save_history)
     if output_simulated_values is not None:
