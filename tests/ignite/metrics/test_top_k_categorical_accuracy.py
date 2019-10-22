@@ -41,13 +41,13 @@ def top_k_accuracy(y_true, y_pred, k=5, normalize=True):
 
     num_obs, num_labels = y_pred.shape
     idx = num_labels - k - 1
-    counter = 0
+    counter = 0.0
     argsorted = np.argsort(y_pred, axis=1)
     for i in range(num_obs):
         if y_true[i] in argsorted[i, idx + 1:]:
-            counter += 1
+            counter += 1.0
     if normalize:
-        return counter / num_obs
+        return counter * 1.0 / num_obs
     else:
         return counter
 
@@ -66,6 +66,8 @@ def _test_distrib_itegration(device):
         offset = n_iters * s
         y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
         y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+
+        print("{}: y_true={} | y_preds={}".format(rank, y_true[:5], y_preds[:5, :2]))
 
         def update(engine, i):
             return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, :], \
