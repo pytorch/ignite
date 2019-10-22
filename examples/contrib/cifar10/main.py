@@ -28,17 +28,18 @@ from utils import set_seed, get_train_test_loaders, get_model
 def run(output_path, config):
     device = "cuda"
 
-    # Rescale batch_size and
-    ngpus_per_node = torch.cuda.device_count()
-    batch_size = config['batch_size'] // ngpus_per_node
-    num_workers = int((config['num_workers'] + ngpus_per_node - 1) / ngpus_per_node)
-
     local_rank = config['local_rank']
-
     distributed = backend is not None
     if distributed:
-        torch.cuda.set_device(config['local_rank'])
+        torch.cuda.set_device(local_rank)
         device = "cuda"
+    rank = dist.get_rank() if distributed else 0
+
+    # Rescale batch_size and num_workers
+    ngpus_per_node = torch.cuda.device_count()
+    ngpus = dist.get_world_size() if distributed else 1
+    batch_size = config['batch_size'] // ngpus
+    num_workers = int((config['num_workers'] + ngpus_per_node - 1) / ngpus_per_node)
 
     train_labelled_loader, test_loader = \
         get_train_test_loaders(path=config['data_path'],
@@ -99,29 +100,31 @@ def run(output_path, config):
     else:
         trainer.add_event_handler(Events.ITERATION_STARTED, lambda engine: lr_scheduler.step())
 
-    if local_rank == 0:
+    metric_names = [
+        'batch loss',
+    ]
 
+    def output_transform(x, name):
+        return x[name]
+
+    for n in metric_names:
+        # We compute running average values on the output (batch loss) across all devices
+        RunningAverage(output_transform=partial(output_transform, name=n),
+                       epoch_bound=False, device=device).attach(trainer, n)
+
+    if rank == 0:
         checkpoint_handler = ModelCheckpoint(dirname=output_path,
                                              filename_prefix="checkpoint",
                                              save_interval=1000)
         trainer.add_event_handler(Events.ITERATION_COMPLETED,
                                   checkpoint_handler,
                                   {'model': model, 'optimizer': optimizer})
-        metric_names = [
-            'batch loss',
-        ]
-
-        def output_transform(x, name):
-            return x[name]
-
-        for n in metric_names:
-            RunningAverage(output_transform=partial(output_transform, name=n), epoch_bound=False).attach(trainer, n)
 
         ProgressBar(persist=True, bar_format="").attach(trainer,
                                                         event_name=Events.EPOCH_STARTED,
                                                         closing_event_name=Events.COMPLETED)
-
-        ProgressBar(persist=False, bar_format="").attach(trainer, metric_names=metric_names)
+        if config['display_iters']:
+            ProgressBar(persist=False, bar_format="").attach(trainer, metric_names=metric_names)
 
         tb_logger = TensorboardLogger(log_dir=output_path)
         tb_logger.attach(trainer,
@@ -142,15 +145,17 @@ def run(output_path, config):
 
     def run_validation(engine, val_interval):
         if engine.state.epoch % val_interval == 0:
+            torch.cuda.synchronize()
             train_evaluator.run(train_labelled_loader)
             evaluator.run(test_loader)
 
     trainer.add_event_handler(Events.EPOCH_STARTED, run_validation, val_interval=3)
     trainer.add_event_handler(Events.COMPLETED, run_validation, val_interval=1)
 
-    if local_rank == 0:
-        ProgressBar(persist=False, desc="Train evaluation").attach(train_evaluator)
-        ProgressBar(persist=False, desc="Test evaluation").attach(evaluator)
+    if rank == 0:
+        if config['display_iters']:
+            ProgressBar(persist=False, desc="Train evaluation").attach(train_evaluator)
+            ProgressBar(persist=False, desc="Test evaluation").attach(evaluator)
 
         tb_logger.attach(train_evaluator,
                          log_handler=tbOutputHandler(tag="train",
@@ -179,6 +184,9 @@ def run(output_path, config):
         evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
 
     trainer.run(train_labelled_loader, max_epochs=config['num_epochs'])
+
+    if rank == 0:
+        tb_logger.close()
 
 
 if __name__ == "__main__":
@@ -220,6 +228,9 @@ if __name__ == "__main__":
         # distributed settings
         "dist_url": "env://",
         "dist_backend": None,  # if None distributed option is disabled, set to "nccl" to enable
+
+        # Logging:
+        "display_iters": True
     }
 
     if args.local_rank is not None:
@@ -238,7 +249,18 @@ if __name__ == "__main__":
     backend = config['dist_backend']
     distributed = backend is not None
 
+    if distributed:
+        dist.init_process_group(backend, init_method=config['dist_url'])
+        # let each node print the info
+        if config['local_rank'] == 0:
+            print("\nDistributed setting:")
+            print("\tbackend: {}".format(dist.get_backend()))
+            print("\tworld size: {}".format(dist.get_world_size()))
+            print("\trank: {}".format(dist.get_rank()))
+            print("\n")
+
     output_path = None
+    # let each node print the info
     if config['local_rank'] == 0:
         print("Train {} on CIFAR10".format(network_name))
         print("- PyTorch version: {}".format(torch.__version__))
@@ -251,21 +273,22 @@ if __name__ == "__main__":
             print("\t{}: {}".format(key, value))
         print("\n")
 
-        from datetime import datetime
+        # create log directory only by 1 node
+        if (not distributed) or (dist.get_rank() == 0):
+            from datetime import datetime
 
-        now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        gpu_conf = "-single-gpu"
-        if distributed:
-            gpu_conf = "-distributed-{}-gpus".format(torch.cuda.device_count())
+            now = datetime.now().strftime("%Y%m%d-%H%M%S")
+            gpu_conf = "-single-gpu"
+            if distributed:
+                ngpus_per_node = torch.cuda.device_count()
+                nnodes = dist.get_world_size() // ngpus_per_node
+                gpu_conf = "-distributed-{}nodes-{}gpus".format(nnodes, ngpus_per_node)
 
-        output_path = Path(config['output_path']) / "{}{}".format(now, gpu_conf)
-        if not output_path.exists():
-            output_path.mkdir(parents=True)
-        output_path = output_path.as_posix()
-        print("Output path: {}".format(output_path))
-
-    if distributed:
-        dist.init_process_group(backend, init_method=config['dist_url'])
+            output_path = Path(config['output_path']) / "{}{}".format(now, gpu_conf)
+            if not output_path.exists():
+                output_path.mkdir(parents=True)
+            output_path = output_path.as_posix()
+            print("Output path: {}".format(output_path))
 
     try:
         run(output_path, config)

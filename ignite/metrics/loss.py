@@ -2,7 +2,7 @@ from __future__ import division
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
+from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
 
 class Loss(Metric):
@@ -36,12 +36,12 @@ class Loss(Metric):
         self._loss_fn = loss_fn
         self._batch_size = batch_size
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def reset(self):
         self._sum = 0
         self._num_examples = 0
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def update(self, output):
         if len(output) == 2:
             y_pred, y = output

@@ -17,7 +17,8 @@ class EpochMetric(Metric):
 
     .. warning::
 
-        Current implementation does not work with distributed computations
+        Current implementation does not work with distributed computations. Results are not gather across all devices
+        and computed results are valid for a single device only.
 
     - `update` must receive output of the form `(y_pred, y)`.
 
@@ -32,11 +33,7 @@ class EpochMetric(Metric):
             you want to compute the metric with respect to one of the outputs.
 
     """
-
     def __init__(self, compute_fn, output_transform=lambda x: x):
-
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
-            warnings.warn("EpochMetric class does not work in distributed setting.", RuntimeWarning)
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
@@ -82,5 +79,4 @@ class EpochMetric(Metric):
                               RuntimeWarning)
 
     def compute(self):
-        # We need gather
         return self.compute_fn(self._predictions, self._targets)

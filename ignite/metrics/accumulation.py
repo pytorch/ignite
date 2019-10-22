@@ -1,7 +1,7 @@
 import numbers
 
 from ignite.metrics import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
+from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 from ignite.exceptions import NotComputableError
 
 import torch
@@ -42,19 +42,19 @@ class VariableAccumulation(Metric):
         self.accumulator = None
         self.num_examples = None
         self._op = op
+
         super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def reset(self):
         self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self.num_examples = torch.tensor(0.0, dtype=torch.long, device=self._device)
-        super(VariableAccumulation, self).reset()
 
     def _check_output_type(self, output):
         if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
             raise TypeError("Output should be a number or torch.Tensor, but given {}".format(type(output)))
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def update(self, output):
         self._check_output_type(output)
 

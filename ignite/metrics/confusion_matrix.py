@@ -4,7 +4,7 @@ import torch
 
 from ignite.metrics import Metric, MetricsLambda
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import sync_all_reduce, reinit_is_reduced
+from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
 
 class ConfusionMatrix(Metric):
@@ -49,7 +49,7 @@ class ConfusionMatrix(Metric):
         self.confusion_matrix = None
         super(ConfusionMatrix, self).__init__(output_transform=output_transform, device=device)
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def reset(self):
         self.confusion_matrix = torch.zeros(self.num_classes, self.num_classes,
                                             dtype=torch.int64,
@@ -81,7 +81,7 @@ class ConfusionMatrix(Metric):
         if y_shape != y_pred_shape:
             raise ValueError("y and y_pred must have compatible shapes.")
 
-    @reinit_is_reduced
+    @reinit__is_reduced
     def update(self, output):
         self._check_shape(output)
         y_pred, y = output

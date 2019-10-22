@@ -1,6 +1,7 @@
 import numbers
 from abc import ABCMeta, abstractmethod
 from functools import wraps
+import warnings
 
 try:
     from collections.abc import Sequence
@@ -8,6 +9,7 @@ except ImportError:  # Python 2.7 compatibility
     from collections import Sequence
 
 import torch
+import torch.distributed as dist
 
 from ignite._six import with_metaclass
 from ignite.engine import Events
@@ -33,7 +35,13 @@ class Metric(with_metaclass(ABCMeta, object)):
         self._output_transform = output_transform
 
         # Check device if distributed is initialized:
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if dist.is_available() and dist.is_initialized():
+
+            # check if reset and update methods are decorated. Compute may not be decorated
+            if not (hasattr(self.reset, "_decorated") and hasattr(self.update, "_decorated")):
+                warnings.warn("{} class does not support distributed setting. Computed result is not collected "
+                              "across all computing devices".format(self.__class__.__name__),
+                              RuntimeWarning)
             if device is None:
                 device = "cuda"
             device = torch.device(device)
@@ -78,7 +86,7 @@ class Metric(with_metaclass(ABCMeta, object)):
         pass
 
     def _sync_all_reduce(self, tensor):
-        if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
+        if not (dist.is_available() and dist.is_initialized()):
             # Nothing to reduce
             return tensor
 
@@ -95,8 +103,8 @@ class Metric(with_metaclass(ABCMeta, object)):
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
         # synchronize and reduce
-        torch.distributed.barrier()
-        torch.distributed.all_reduce(tensor)
+        dist.barrier()
+        dist.all_reduce(tensor)
 
         if tensor_to_number:
             return tensor.item()
@@ -213,15 +221,19 @@ def sync_all_reduce(*attrs):
                         setattr(self, attr, t)
 
             return func(self, *args, **kwargs)
+
         return another_wrapper
+
+    wrapper._decorated = True
     return wrapper
 
 
-def reinit_is_reduced(func):
+def reinit__is_reduced(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)
         self._is_reduced = False
 
+    wrapper._decorated = True
     return wrapper

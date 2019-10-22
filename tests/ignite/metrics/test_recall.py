@@ -1,13 +1,15 @@
+import os
+
+import torch
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Recall
+
 import pytest
 import warnings
 
 from sklearn.metrics import recall_score
 from sklearn.exceptions import UndefinedMetricWarning
-
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Recall
-
-import torch
 
 torch.manual_seed(12)
 
@@ -140,7 +142,6 @@ def test_binary_input_NL():
         re_compute = re.compute() if average else re.compute().numpy()
         assert recall_score(np_y, np_y_pred, average='binary') == pytest.approx(re_compute)
 
-        re = Recall(average=average)
         # Batched Updates
         re.reset()
         y_pred = torch.randint(0, 2, size=(100, 5))
@@ -724,118 +725,141 @@ def test_incorrect_y_classes():
     _test(average=False)
 
 
+def _test_distrib_itegration_multiclass(device):
+    import torch.distributed as dist
+    from ignite.engine import Engine
+
+    rank = dist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(average, n_epochs):
+        n_iters = 60
+        s = 16
+        n_classes = 7
+
+        offset = n_iters * s
+        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
+        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+
+        def update(engine, i):
+            return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, :], \
+                y_true[i * s + rank * offset:(i + 1) * s + rank * offset]
+
+        engine = Engine(update)
+
+        re = Recall(average=average, device=device)
+        re.attach(engine, "re")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "re" in engine.state.metrics
+        res = engine.state.metrics['re']
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+
+        true_res = recall_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(),
+                                average='macro' if average else None)
+
+        assert pytest.approx(res) == true_res
+
+    for _ in range(2):
+        _test(average=True, n_epochs=1)
+        _test(average=True, n_epochs=2)
+        _test(average=False, n_epochs=1)
+        _test(average=False, n_epochs=2)
+
+
+def _test_distrib_itegration_multilabel(device):
+
+    import torch.distributed as dist
+    from ignite.engine import Engine
+
+    rank = dist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(average, n_epochs):
+        n_iters = 60
+        s = 16
+        n_classes = 7
+
+        offset = n_iters * s
+        y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
+
+        def update(engine, i):
+            return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, ...], \
+                y_true[i * s + rank * offset:(i + 1) * s + rank * offset, ...]
+
+        engine = Engine(update)
+
+        re = Recall(average=average, is_multilabel=True, device=device)
+        re.attach(engine, "re")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "re" in engine.state.metrics
+        res = engine.state.metrics['re']
+        res2 = re.compute()
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+            res2 = res2.cpu().numpy()
+            assert (res == res2).all()
+        else:
+            assert res == res2
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            true_res = recall_score(to_numpy_multilabel(y_true),
+                                    to_numpy_multilabel(y_preds),
+                                    average='samples' if average else None)
+
+        assert pytest.approx(res) == true_res
+
+    for _ in range(2):
+        _test(average=True, n_epochs=1)
+        _test(average=True, n_epochs=2)
+
+    with pytest.warns(RuntimeWarning, match="Precision/Recall metrics do not work in distributed setting when "
+                                            "average=False and is_multilabel=True"):
+        re = Recall(average=False, is_multilabel=True, device=device)
+
+    y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
+    y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
+    re.update((y_pred, y))
+    re_compute1 = re.compute()
+    re_compute2 = re.compute()
+    assert len(re_compute1) == 4 * 6 * 8
+    assert (re_compute1 == re_compute2).all()
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib(local_rank, distributed_context_single_node):
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)
 
-    def test_distrib_itegration_multiclass():
 
-        import torch.distributed as dist
-        from ignite.engine import Engine
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    device = "cpu"
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)
 
-        torch.manual_seed(12)
-        device = "cuda:{}".format(local_rank)
 
-        def _test(average, n_epochs):
-            n_iters = 100
-            s = 16
-            n_classes = 10
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)
 
-            offset = n_iters * s
-            y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
-            y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
 
-            def update(engine, i):
-                return y_preds[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, :], \
-                    y_true[i * s + local_rank * offset:(i + 1) * s + local_rank * offset]
-
-            engine = Engine(update)
-
-            re = Recall(average=average, device=device)
-            re.attach(engine, "re")
-
-            data = list(range(n_iters))
-            engine.run(data=data, max_epochs=n_epochs)
-
-            assert "re" in engine.state.metrics
-            res = engine.state.metrics['re']
-            if isinstance(res, torch.Tensor):
-                res = res.cpu().numpy()
-
-            true_res = recall_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(),
-                                    average='macro' if average else None)
-
-            assert pytest.approx(res) == true_res
-
-        for _ in range(5):
-            _test(average=True, n_epochs=1)
-            _test(average=True, n_epochs=2)
-            _test(average=False, n_epochs=1)
-            _test(average=False, n_epochs=2)
-
-    test_distrib_itegration_multiclass()
-
-    def test_distrib_itegration_multilabel():
-
-        import torch.distributed as dist
-        from ignite.engine import Engine
-
-        torch.manual_seed(12)
-        device = "cuda:{}".format(local_rank)
-
-        def _test(average, n_epochs):
-            n_iters = 100
-            s = 16
-            n_classes = 10
-
-            offset = n_iters * s
-            y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 10, 12)).to(device)
-            y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 10, 12)).to(device)
-
-            def update(engine, i):
-                return y_preds[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, ...], \
-                    y_true[i * s + local_rank * offset:(i + 1) * s + local_rank * offset, ...]
-
-            engine = Engine(update)
-
-            re = Recall(average=average, is_multilabel=True, device=device)
-            re.attach(engine, "re")
-
-            data = list(range(n_iters))
-            engine.run(data=data, max_epochs=n_epochs)
-
-            assert "re" in engine.state.metrics
-            res = engine.state.metrics['re']
-            res2 = re.compute()
-            if isinstance(res, torch.Tensor):
-                res = res.cpu().numpy()
-                res2 = res2.cpu().numpy()
-                assert (res == res2).all()
-            else:
-                assert res == res2
-
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-                true_res = recall_score(to_numpy_multilabel(y_true),
-                                        to_numpy_multilabel(y_preds),
-                                        average='samples' if average else None)
-
-            assert pytest.approx(res) == true_res
-
-        for _ in range(5):
-            _test(average=True, n_epochs=1)
-            _test(average=True, n_epochs=2)
-
-        with pytest.warns(RuntimeWarning, match="Precision/Recall metrics do not work in distributed setting when "
-                                                "average=False and is_multilabel=True"):
-            re = Recall(average=False, is_multilabel=True, device=device)
-
-        y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
-        y = torch.randint(0, 2, size=(10, 5, 18, 16)).long()
-        re.update((y_pred, y))
-        re_compute1 = re.compute()
-        re_compute2 = re.compute()
-        assert len(re_compute1) == 10 * 18 * 16
-        assert (re_compute1 == re_compute2).all()
-
-    test_distrib_itegration_multilabel()
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)

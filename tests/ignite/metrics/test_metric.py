@@ -1,11 +1,16 @@
+import os
 import sys
-from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
-from ignite.engine import Engine, State
-import torch
-from mock import MagicMock
 
+import torch
+
+from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
+from ignite.metrics.metric import reinit__is_reduced
+from ignite.engine import Engine, State
+
+from mock import MagicMock
 import pytest
 from pytest import approx, raises
+
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
@@ -449,12 +454,15 @@ def test_indexing_metric():
 
 
 class DummyMetric(Metric):
+
+    @reinit__is_reduced
     def reset(self):
         pass
 
     def compute(self):
         pass
 
+    @reinit__is_reduced
     def update(self, output):
         pass
 
@@ -465,65 +473,91 @@ def test__sync_all_reduce():
     assert res == 10
 
 
+def _test_distrib__sync_all_reduce(device):
+    import torch.distributed as dist
+    assert dist.is_available() and dist.is_initialized()
+
+    m = DummyMetric(device=device)
+    res = m._sync_all_reduce(10)
+    assert res == 10 * dist.get_world_size()
+
+    m = DummyMetric(device=device)
+    t = torch.tensor(10, device=device)
+    res = m._sync_all_reduce(t)
+    assert res.item() == 10 * dist.get_world_size()
+
+    m = DummyMetric(device=device)
+    with pytest.raises(TypeError, match=r"Unhandled input type"):
+        m._sync_all_reduce("abc")
+
+
+def _test_distrib_sync_all_reduce_decorator(device):
+
+    import torch.distributed as dist
+    from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+
+    class DummyMetric(Metric):
+
+        @reinit__is_reduced
+        def reset(self):
+            self.a = torch.tensor([0.0, 1.0, 2.0, 3.0], device=self._device, requires_grad=False)
+            self.a_nocomp = self.a.clone().to('cpu')
+            self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
+            self.b_nocomp = self.b.clone().to("cpu")
+            self.c = 0.0
+            self.c_nocomp = self.c
+            self.n = 0
+            self.n_nocomp = self.n
+
+        @sync_all_reduce("a", "b", "c", "n")
+        def compute(self):
+            assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
+            assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
+            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
+            assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+
+        @reinit__is_reduced
+        def update(self, output):
+            self.n += 1
+            self.c += 1.23456
+            self.a += 10.0
+            self.b -= 5.0
+
+    m = DummyMetric(device=device)
+    m.update(None)
+    m.compute()
+    # check if can call compute multiple times without all reduce invocation
+    m.compute()
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib(local_rank, distributed_context_single_node):
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    def test_distrib__sync_all_reduce():
-        import torch.distributed as dist
-        assert dist.is_available() and dist.is_initialized()
+    device = "cuda:{}".format(local_rank)
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)
 
-        device = "cuda:{}".format(local_rank)
 
-        m = DummyMetric(device=device)
-        res = m._sync_all_reduce(10)
-        assert res == 10 * dist.get_world_size()
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
 
-        m = DummyMetric(device=device)
-        t = torch.tensor(10, device=device)
-        res = m._sync_all_reduce(t)
-        assert res.item() == 10 * dist.get_world_size()
+    device = "cpu"
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)
 
-        m = DummyMetric(device=device)
-        with pytest.raises(TypeError, match=r"Unhandled input type"):
-            m._sync_all_reduce("abc")
 
-    test_distrib__sync_all_reduce()
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)
 
-    def test_distrib_sync_all_reduce_decorator():
 
-        import torch.distributed as dist
-        from ignite.metrics.metric import sync_all_reduce
-
-        class DummyMetric(Metric):
-
-            def reset(self):
-                self.a = torch.tensor([0, 1, 2, 3], device=self._device, requires_grad=False)
-                self.a_nocomp = self.a.clone().to('cpu')
-                self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
-                self.b_nocomp = self.b.clone().to("cpu")
-                self.c = 0.0
-                self.c_nocomp = self.c
-                self.n = 0
-                self.n_nocomp = self.n
-
-            @sync_all_reduce("a", "b", "c", "n")
-            def compute(self):
-                assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
-                assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
-                assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
-                assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
-
-            def update(self, output):
-                self.n += 1
-                self.c += 1.23456
-                self.a += 10.0
-                self.b -= 5.0
-
-        m = DummyMetric(device="cuda:{}".format(local_rank))
-        m.update(None)
-        m.compute()
-        # check if can call compute twise without all reduce
-        m.compute()
-
-    test_distrib_sync_all_reduce_decorator()
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)

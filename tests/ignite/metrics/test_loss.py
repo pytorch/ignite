@@ -1,9 +1,13 @@
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Loss
-import pytest
+import os
+
 import torch
 from torch import nn
 from torch.nn.functional import nll_loss
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Loss
+
+import pytest
 from numpy.testing import assert_almost_equal
 
 
@@ -71,48 +75,69 @@ def test_reset():
         loss.compute()
 
 
+def _test_distrib_compute_on_criterion(device):
+    import torch.distributed as dist
+
+    def _gather(y):
+        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
+        dist.all_gather(output, y)
+        y = torch.cat(output, dim=0)
+        return y
+
+    criterion = nn.NLLLoss().to(device)
+    loss = Loss(criterion, device=device)
+
+    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
+    y = torch.tensor([2, 2], device=device).long()
+    loss.update((y_pred, y))
+    n = loss._num_examples
+    assert n == len(y)
+    res = loss.compute()
+    assert n * dist.get_world_size() == loss._num_examples
+
+    y_pred = _gather(y_pred)
+    y = _gather(y)
+    true_loss_value = criterion(y_pred, y)
+    assert_almost_equal(res, true_loss_value.item())
+
+    loss.reset()
+    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
+    y = torch.tensor([2, 0, 2], device=device).long()
+    loss.update((y_pred, y))
+    n = loss._num_examples
+    res = loss.compute()
+    assert n * dist.get_world_size() == loss._num_examples
+
+    y_pred = _gather(y_pred)
+    y = _gather(y)
+    true_loss_value = criterion(y_pred, y)
+    assert_almost_equal(res, true_loss_value.item())
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib(local_rank, distributed_context_single_node):
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    def test_distrib_compute_on_criterion():
-        import torch.distributed as dist
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_compute_on_criterion(device)
 
-        device = "cuda:{}".format(local_rank)
 
-        def _gather(y):
-            output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-            dist.all_gather(output, y)
-            y = torch.cat(output, dim=0)
-            return y
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
 
-        criterion = nn.NLLLoss().to(device)
-        loss = Loss(criterion, device=device)
+    device = "cpu"
+    _test_distrib_compute_on_criterion(device)
 
-        y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
-        y = torch.tensor([2, 2], device=device).long()
-        loss.update((y_pred, y))
-        n = loss._num_examples
-        assert n == len(y)
-        res = loss.compute()
-        assert n * dist.get_world_size() == loss._num_examples
 
-        y_pred = _gather(y_pred)
-        y = _gather(y)
-        true_loss_value = criterion(y_pred, y)
-        assert_almost_equal(res, true_loss_value.item())
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_compute_on_criterion(device)
 
-        loss.reset()
-        y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
-        y = torch.tensor([2, 0, 2], device=device).long()
-        loss.update((y_pred, y))
-        n = loss._num_examples
-        res = loss.compute()
-        assert n * dist.get_world_size() == loss._num_examples
 
-        y_pred = _gather(y_pred)
-        y = _gather(y)
-        true_loss_value = criterion(y_pred, y)
-        assert_almost_equal(res, true_loss_value.item())
-
-    test_distrib_compute_on_criterion()
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_distrib_compute_on_criterion(device)
