@@ -2,7 +2,7 @@
  MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
 
  Requirements:
-    TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+    Optionally TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
     Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
 
  Usage:
@@ -34,7 +34,6 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.contrib.handlers.tensorboard_logger import *
-from ignite.contrib.metrics.gpu_info import GpuInfo
 
 
 LOG_INTERVAL = 10
@@ -83,6 +82,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
 
     if sys.version_info > (3,):
+        from ignite.contrib.metrics.gpu_info import GpuInfo
         try:
             GpuInfo().attach(trainer)
         except RuntimeError:

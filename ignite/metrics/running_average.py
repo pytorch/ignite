@@ -1,5 +1,6 @@
-from ignite.metrics import Metric
 from ignite.engine import Events
+from ignite.metrics import Metric
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class RunningAverage(Metric):
@@ -13,6 +14,11 @@ class RunningAverage(Metric):
             corresponds the output of process function. Otherwise it should be None.
         epoch_bound (boolean, optional): whether the running average should be reset after each epoch (defaults
             to True).
+        device (str of torch.device, optional): device specification in case of distributed computation usage.
+            This is necessary when running average is computed on the output of process function.
+            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+            initialized and available, device is set to `cuda`.
 
     Examples:
 
@@ -32,7 +38,7 @@ class RunningAverage(Metric):
 
     """
 
-    def __init__(self, src=None, alpha=0.98, output_transform=None, epoch_bound=True):
+    def __init__(self, src=None, alpha=0.98, output_transform=None, epoch_bound=True, device=None):
         if not (isinstance(src, Metric) or src is None):
             raise TypeError("Argument src should be a Metric or None.")
         if not (0.0 < alpha <= 1.0):
@@ -41,6 +47,8 @@ class RunningAverage(Metric):
         if isinstance(src, Metric):
             if output_transform is not None:
                 raise ValueError("Argument output_transform should be None if src is a Metric.")
+            if device is not None:
+                raise ValueError("Argument device should be None if src is a Metric.")
             self.src = src
             self._get_src_value = self._get_metric_value
             self.iteration_completed = self._metric_iteration_completed
@@ -53,11 +61,13 @@ class RunningAverage(Metric):
 
         self.alpha = alpha
         self.epoch_bound = epoch_bound
-        super(RunningAverage, self).__init__(output_transform=output_transform)
+        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
 
+    @reinit__is_reduced
     def reset(self):
         self._value = None
 
+    @reinit__is_reduced
     def update(self, output):
         # Implement abstract method
         pass
@@ -67,6 +77,7 @@ class RunningAverage(Metric):
             self._value = self._get_src_value()
         else:
             self._value = self._value * self.alpha + (1.0 - self.alpha) * self._get_src_value()
+
         return self._value
 
     def attach(self, engine, name):
@@ -81,6 +92,7 @@ class RunningAverage(Metric):
     def _get_metric_value(self):
         return self.src.compute()
 
+    @sync_all_reduce("src")
     def _get_output_value(self):
         return self.src
 
@@ -88,5 +100,6 @@ class RunningAverage(Metric):
         self.src.started(engine)
         self.src.iteration_completed(engine)
 
+    @reinit__is_reduced
     def _output_update(self, output):
         self.src = output

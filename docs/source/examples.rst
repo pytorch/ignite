@@ -1,16 +1,32 @@
 Examples
 ========
 
-Scripts
--------
-
-There are several examples ported from `pytorch/examples <https://github.com/pytorch/examples>`_ using `ignite`
+We provide several examples ported from `pytorch/examples <https://github.com/pytorch/examples>`_ using `ignite`
 to display how it helps to write compact and full-featured training loops in a few lines of code:
 
-- `Mnist <https://github.com/pytorch/ignite/tree/master/examples/mnist>`_
+MNIST example
+-------------
+
+Basic neural network training on MNIST dataset with/without `ignite.contrib` module:
+
+- `MNIST with ignite.contrib TQDM/Tensorboard/Visdom loggers <https://github.com/pytorch/ignite/tree/master/examples/contrib/mnist>`_
+- `MNIST with native TQDM/Tensorboard/Visdom logging <https://github.com/pytorch/ignite/tree/master/examples/mnist>`_
+
+Distributed CIFAR10 example
+---------------------------
+
+Training a small variant of ResNet on CIFAR10 in various configurations: 1) single gpu, 2) single node multiple gpus, 3) multiple nodes and multilple gpus.
+
+- `CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10>`_
+
+
+Other examples
+--------------
+
 - `DCGAN <https://github.com/pytorch/ignite/tree/master/examples/gan>`_
 - `Reinforcement Learning <https://github.com/pytorch/ignite/tree/master/examples/reinforcement_learning>`_
 - `Fast Neural Style <https://github.com/pytorch/ignite/tree/master/examples/fast_neural_style>`_
+
 
 Notebooks
 ---------

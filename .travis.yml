@@ -37,13 +37,16 @@ before_install: &before_install
 
 install:
   - python setup.py install
-  - pip install numpy mock pytest codecov pytest-cov
+  - pip install numpy mock pytest codecov pytest-cov pytest-xdist
   # Examples dependencies
   - pip install matplotlib pandas
   - pip install gym==0.10.11
 
 script:
-  - py.test --cov ignite --cov-report term-missing
+  - CUDA_VISIBLE_DEVICES="" py.test --tx 4*popen//python=python$TRAVIS_PYTHON_VERSION --cov ignite --cov-report term-missing -vvv tests/
+  # Run test on cuda device
+  # As no GPUs on travis -> all tests will be skipped
+  - CUDA_VISIBLE_DEVICES=0 py.test --cov ignite --cov-append --cov-report term-missing -vvv tests/ -k "on_cuda"
 
   # Smoke tests for the examples
   # Mnist
@@ -71,6 +74,12 @@ script:
   #train
   - mkdir -p /home/travis/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O/home/travis/.cache/torch/checkpoints/vgg16-397923af.pth
   - python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
+
+  # tests for distributed ops
+  # As no GPUs on travis -> all tests will be skipped
+  # 2 is the number of processes <-> number of available GPUs
+  - export WORLD_SIZE=2
+  - py.test --cov ignite --cov-append --cov-report term-missing --dist=each --tx $WORLD_SIZE*popen//python=python$TRAVIS_PYTHON_VERSION tests -m distributed -vvv
 
 after_success:
   - codecov

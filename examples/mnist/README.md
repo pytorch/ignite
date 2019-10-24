@@ -56,9 +56,3 @@ Run the example:
 ```bash
 python mnist_with_visdom.py
 ```
-
-## Distributed training
-
-Distributed training with Ignite is under development. Please, refer to 
-[cifar10](https://github.com/pytorch/ignite/tree/distrib/examples/contrib/cifar10) example from 
-[distrib](https://github.com/pytorch/ignite/tree/distrib) branch.
