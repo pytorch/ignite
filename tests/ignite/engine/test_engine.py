@@ -13,6 +13,7 @@ from torch.optim import SGD
 
 from ignite.engine import Engine, Events, State, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import MeanSquaredError
+from ignite.engine.engine import ReproducibleBatchSampler, _update_dataloader
 
 
 def process_func(engine, batch):
@@ -1127,7 +1128,7 @@ def test_resume_random_dataloader_from_epoch():
         num_iters = 20
         data = torch.randint(0, 1000, size=(num_iters * batch_size, ))
 
-        for num_workers in [0, 4]:
+        for num_workers in [0, ]:
             dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
                                                      num_workers=num_workers,
                                                      pin_memory=False,
@@ -1211,3 +1212,35 @@ def test_resume_random_dataloader_from_iter():
     _test(strict=False)
     _test(strict=True)
 
+
+def test_reproducible_batch_sampler():
+    import torch
+    from torch.utils.data import DataLoader
+
+    data = list(range(100))
+    dataloader = DataLoader(data, batch_size=12, num_workers=0, shuffle=True, drop_last=True)
+
+    torch.manual_seed(12 + 0)
+    dataloader_ = _update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+
+    seen_batches = []
+    num_epochs = 3
+    for i in range(num_epochs):
+        t = []
+        for b in dataloader_:
+            t.append(b)
+        seen_batches.append(t)
+        torch.manual_seed(12 + i + 1)
+
+    for i in range(num_epochs - 1):
+        for j in range(i + 1, num_epochs):
+            assert not all([(b1 == b2).all() for b1, b2 in zip(seen_batches[i], seen_batches[j])])
+
+    for resume_epoch in range(num_epochs):
+        torch.manual_seed(12 + resume_epoch)
+        dataloader_ = _update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+        resumed_seen_batches = []
+        for b in dataloader_:
+            resumed_seen_batches.append(b)
+
+        assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])

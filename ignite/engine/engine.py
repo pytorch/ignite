@@ -432,6 +432,7 @@ class Engine(object):
                     # Define self.state.epoch_length if it is not yet set
                     if self.state.epoch_length is None:
                         self.state.epoch_length = self.state.iteration
+                        has_epoch_length = True
 
                     # Should exit while loop if we can not iterate
                     if should_exit:
@@ -519,6 +520,7 @@ class Engine(object):
             "epoch_length": epoch_length,
         }
         self._setup_state(state_dict, data, strict=True)
+
         # self.state = State(iteration=0,
         #                    epoch=0,
         #                    dataloader=data,
@@ -644,7 +646,7 @@ class Engine(object):
         if isinstance(data, torch.utils.data.DataLoader):
             if iteration % len(data) > 0:
                 # batch sampler is ReproducibleBatchSampler
-                data.batch_sampler.set_start_iteration(iteration)
+                data.batch_sampler.start_iteration = iteration
             data_iter = iter(data)
         else:
             data_iter = iter(data)
@@ -711,25 +713,26 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
         batch_sampler: batch sampler same as used with torch.utils.data.DataLoader
     """
     def __init__(self, batch_sampler, start_iteration=None):
-        self.batch_indices = self._setup_batch_indices(batch_sampler)
+        self.batch_indices = None
         self.batch_sampler = batch_sampler
-        if start_iteration is not None:
-            self.set_start_iteration(start_iteration)
+        self.start_iteration = start_iteration
 
-    def set_start_iteration(self, iteration):
-        self.batch_indices = self.batch_indices[iteration:]
+    def setup_batch_indices(self):
+        self.batch_indices = []
+        for batch in self.batch_sampler:
+            self.batch_indices.append(batch)
 
-    @staticmethod
-    def _setup_batch_indices(batch_sampler):
-        batch_indices = []
-        for batch in batch_sampler:
-            batch_indices.append(batch)
-        return batch_indices
+        if self.start_iteration is not None:
+            self.batch_indices = self.batch_indices[self.start_iteration:]
+            self.start_iteration = None
 
     def __iter__(self):
+        if self.batch_indices is None:
+            self.setup_batch_indices()
         for batch in self.batch_indices:
             yield batch
-        self.batch_indices = self._setup_batch_indices(self.batch_sampler)
+
+        self.batch_indices = None
 
     def __len__(self):
         return len(self.batch_sampler)
