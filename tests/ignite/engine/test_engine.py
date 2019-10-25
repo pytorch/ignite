@@ -1130,6 +1130,7 @@ def test_resume_random_dataloader_from_epoch():
         for num_workers in [0, 4]:
             dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
                                                      num_workers=num_workers,
+                                                     pin_memory=False,
                                                      drop_last=True, shuffle=True)
 
             seen_batchs = []
@@ -1167,16 +1168,15 @@ def test_resume_random_dataloader_from_iter():
     torch.manual_seed(0)
 
     def _test(strict):
-        max_epochs = 5
+        max_epochs = 1
         batch_size = 1
-        num_iters = 20
+        num_iters = 7  # 20
         data = torch.randint(0, 1000, size=(num_iters * batch_size,))
 
         for num_workers in [0, 4]:
             dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
                                                      num_workers=num_workers,
                                                      drop_last=True, shuffle=True)
-
             seen_batchs = []
 
             def update_fn(engine, batch):
@@ -1208,10 +1208,6 @@ def test_resume_random_dataloader_from_iter():
                                                    engine.state.iteration,
                                                    num_iters * max_epochs)
 
-    # _test(strict=False)
+    _test(strict=False)
     _test(strict=True)
 
-
-# TODO:
-#  1) Test engine.resume with random data
-#  2) Test engine.resume with random batchsampler in dataloader

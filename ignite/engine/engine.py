@@ -512,21 +512,35 @@ class Engine(object):
             if epoch_length < 1:
                 raise ValueError("Input data has zero size. Please provide non-empty data")
 
-        self.state = State(iteration=0,
-                           epoch=0,
-                           dataloader=data,
-                           max_epochs=max_epochs,
-                           metrics={},
-                           epoch_length=epoch_length,
-                           seed=seed)
-        # setup seed here, as iter(data) can start prefetching
-        self._manual_seed(self.state.seed, self.state.epoch)
-        self._dataloader_iter = iter(data)
+        state_dict = {
+            "seed": seed,
+            "iteration": 0,
+            "max_epochs": max_epochs,
+            "epoch_length": epoch_length,
+        }
+        self._setup_state(state_dict, data, strict=True)
+        # self.state = State(iteration=0,
+        #                    epoch=0,
+        #                    dataloader=data,
+        #                    max_epochs=max_epochs,
+        #                    metrics={},
+        #                    epoch_length=epoch_length,
+        #                    seed=seed)
+        # # setup seed here, as iter(data) can start prefetching
+        # self._manual_seed(self.state.seed, self.state.epoch)
+        # # Patch dataloader
+        # if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
+        #     batch_sampler = self.state.dataloader.batch_sampler
+        #     if not isinstance(batch_sampler, ReproducibleBatchSampler):
+        #         self.state.dataloader = _update_dataloader(self.state.dataloader,
+        #                                                    ReproducibleBatchSampler(batch_sampler))
+        # self._dataloader_iter = iter(self.state.dataloader)
+
         self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         return self._internal_run()
 
     def resume(self, data, state_dict, strict=True):
-        """Resume engine run from a checkpoint
+        """Resume engine run from a state.
 
         Args:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
@@ -543,14 +557,7 @@ class Engine(object):
 
         Note:
             State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, optionally `epoch_length`,
-            `seed`.
-            Iteration, epoch values are 0-based: the first iteration or epoch is zero.
-
-
-            ~~If specified, the value of `iteration` determines starting
-            iteration, e.g. if `iteration=5` then engine skips 4 previous iterations and starts from 5th
-            (1-based) iteration. Similarly, if specified, the value of `epoch` should determine the epoch to
-            start engine from. Epoch value is also 1-based.~~
+            `seed`. Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
         """
         # TODO: bad API and we need to decide what is self.state and how it is managed by Engine
@@ -608,19 +615,24 @@ class Engine(object):
             self.state.epoch = state_dict['epoch']
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
-        self.state.dataloader = data
-
         iteration = self.state.iteration
         if self.state.epoch_length is not None:
             iteration %= self.state.epoch_length
 
         # setup seed here, as iter(data) can start prefetching
         self._manual_seed(self.state.seed, self.state.epoch)
+        self.state.dataloader = data
+
+        if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
+            batch_sampler = self.state.dataloader.batch_sampler
+            if not isinstance(batch_sampler, ReproducibleBatchSampler):
+                self.state.dataloader = _update_dataloader(self.state.dataloader,
+                                                           ReproducibleBatchSampler(batch_sampler))
         if not strict:
-            self._dataloader_iter = iter(data)
+            self._dataloader_iter = iter(self.state.dataloader)
         else:
             try:
-                self._dataloader_iter = self._from_iteration(data, iteration)
+                self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
             except StopIteration:
                 raise ValueError("Specified resume iteration {} is larger than the size of the input data"
                                  .format(iteration))
@@ -629,24 +641,17 @@ class Engine(object):
 
     @staticmethod
     def _from_iteration(data, iteration):
-        if not isinstance(data, torch.utils.data.DataLoader):
+        if isinstance(data, torch.utils.data.DataLoader):
+            if iteration % len(data) > 0:
+                # batch sampler is ReproducibleBatchSampler
+                data.batch_sampler.set_start_iteration(iteration)
+            data_iter = iter(data)
+        else:
             data_iter = iter(data)
             counter = 0
             while counter < iteration:
                 next(data_iter)
                 counter += 1
-        else:
-            if iteration % len(data) > 0:
-                # patch batch sampler
-                if not isinstance(data.batch_sampler, _RewindableProxyBatchSampler):
-                    data._original_batch_sampler = data.batch_sampler
-                    data.batch_sampler = _RewindableProxyBatchSampler(data.batch_sampler)
-                counter = 0
-                while counter < iteration:
-                    next(data.batch_sampler.batch_sampler_iter)
-                    counter += 1
-
-            data_iter = iter(data)
 
         return data_iter
 
@@ -687,27 +692,44 @@ class Engine(object):
             self._logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
-        if hasattr(self.state.dataloader, "_original_batch_sampler"):
-            self.state.dataloader.batch_sampler = self.state.dataloader._original_batch_sampler
-            del self.state.dataloader._original_batch_sampler
-
         return self.state
 
 
-class _RewindableProxyBatchSampler(torch.utils.data.sampler.BatchSampler):
-    """Rewindable proxy batch sampler
+def _update_dataloader(dataloader, new_batch_sampler):
+    params_keys = [k for k in dataloader.__dict__.keys() if k[0] != "_"]
+    for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler']:
+        params_keys.remove(k)
+    params = {k: getattr(dataloader, k) for k in params_keys}
+    params['batch_sampler'] = new_batch_sampler
+    return torch.utils.data.DataLoader(**params)
+
+
+class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
+    """Reproducible batch sampler
 
     Args:
         batch_sampler: batch sampler same as used with torch.utils.data.DataLoader
     """
-    def __init__(self, batch_sampler):
+    def __init__(self, batch_sampler, start_iteration=None):
+        self.batch_indices = self._setup_batch_indices(batch_sampler)
         self.batch_sampler = batch_sampler
-        self.batch_sampler_iter = iter(self.batch_sampler)
+        if start_iteration is not None:
+            self.set_start_iteration(start_iteration)
+
+    def set_start_iteration(self, iteration):
+        self.batch_indices = self.batch_indices[iteration:]
+
+    @staticmethod
+    def _setup_batch_indices(batch_sampler):
+        batch_indices = []
+        for batch in batch_sampler:
+            batch_indices.append(batch)
+        return batch_indices
 
     def __iter__(self):
-        for batch in self.batch_sampler_iter:
+        for batch in self.batch_indices:
             yield batch
-        self.batch_sampler_iter = iter(self.batch_sampler)
+        self.batch_indices = self._setup_batch_indices(self.batch_sampler)
 
     def __len__(self):
         return len(self.batch_sampler)
