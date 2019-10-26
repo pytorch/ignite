@@ -466,7 +466,11 @@ def test_piecewiselinear():
     _test(milestones_as_np_int=False)
 
 
-def test_simulate_values():
+def test_simulate_and_plot_values():
+
+    import matplotlib
+    matplotlib.use('Agg')
+
     def _test(scheduler_cls, **scheduler_kwargs):
 
         optimizer = None
@@ -510,6 +514,9 @@ def test_simulate_values():
                                                          save_history=True,  # this will be removed
                                                          **scheduler_kwargs)
         assert lrs == pytest.approx([v for i, v in simulated_values])
+
+        # launch plot values
+        scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
     # LinearCyclicalScheduler
     _test(LinearCyclicalScheduler, param_name="lr", start_value=1.0, end_value=0.0, cycle_size=10)
