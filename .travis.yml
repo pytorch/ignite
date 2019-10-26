@@ -29,7 +29,7 @@ before_install: &before_install
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Test contrib dependencies
-  - pip install tqdm scikit-learn tensorboardX visdom polyaxon-client mlflow tensorboard
+  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow tensorboard
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
   # Futures should be already installed via visdom -> tornado -> futures
   # Let's reinstall it anyway to be sure
@@ -39,7 +39,7 @@ install:
   - python setup.py install
   - pip install numpy mock pytest codecov pytest-cov pytest-xdist
   # Examples dependencies
-  - pip install matplotlib pandas
+  - pip install pandas
   - pip install gym==0.10.11
 
 script:
