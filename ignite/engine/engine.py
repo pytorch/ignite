@@ -447,6 +447,10 @@ class Engine(object):
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
+
+                # TODO: remove refs on batch to avoid high mem consumption ? -> need verify
+                # self.state.batch = batch = None
+
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self.should_terminate_single_epoch = False
                     self._dataloader_iter = iter(self.state.dataloader)
@@ -520,24 +524,6 @@ class Engine(object):
             "epoch_length": epoch_length,
         }
         self._setup_state(state_dict, data, strict=True)
-
-        # self.state = State(iteration=0,
-        #                    epoch=0,
-        #                    dataloader=data,
-        #                    max_epochs=max_epochs,
-        #                    metrics={},
-        #                    epoch_length=epoch_length,
-        #                    seed=seed)
-        # # setup seed here, as iter(data) can start prefetching
-        # self._manual_seed(self.state.seed, self.state.epoch)
-        # # Patch dataloader
-        # if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
-        #     batch_sampler = self.state.dataloader.batch_sampler
-        #     if not isinstance(batch_sampler, ReproducibleBatchSampler):
-        #         self.state.dataloader = _update_dataloader(self.state.dataloader,
-        #                                                    ReproducibleBatchSampler(batch_sampler))
-        # self._dataloader_iter = iter(self.state.dataloader)
-
         self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         return self._internal_run()
 
@@ -563,10 +549,10 @@ class Engine(object):
 
         """
         # TODO: bad API and we need to decide what is self.state and how it is managed by Engine
-        # - resuming state contains only serializable info
+        # OK - resuming state contains only serializable info
         # - self.state is a mix of serializable info + other stuff
-        # - we need to provide Engine.state_dict() = serializable info <--> it is not self.state ?
-        # - we would like to keep Engine "stateless" for each run ?
+        # - we need to provide Engine.state_dict() = serializable info <--> it is not self.state ? => NO
+        # - we would like to keep Engine "stateless" for each run ? => YES
 
         # In any case, we have requirements:
         # 1) object to pass between handlers with running info, minimal data and other custom stuff
@@ -617,10 +603,6 @@ class Engine(object):
             self.state.epoch = state_dict['epoch']
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
-        iteration = self.state.iteration
-        if self.state.epoch_length is not None:
-            iteration %= self.state.epoch_length
-
         # setup seed here, as iter(data) can start prefetching
         self._manual_seed(self.state.seed, self.state.epoch)
         self.state.dataloader = data
@@ -630,30 +612,40 @@ class Engine(object):
             if not isinstance(batch_sampler, ReproducibleBatchSampler):
                 self.state.dataloader = _update_dataloader(self.state.dataloader,
                                                            ReproducibleBatchSampler(batch_sampler))
+
+        iteration = self.state.iteration
         if not strict:
             self._dataloader_iter = iter(self.state.dataloader)
         else:
-            try:
-                self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
-            except StopIteration:
-                raise ValueError("Specified resume iteration {} is larger than the size of the input data"
-                                 .format(iteration))
+            self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
 
+        # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
+        if self.state.epoch_length is not None:
+            iteration %= self.state.epoch_length
         self._init_iter.append(iteration)
 
     @staticmethod
     def _from_iteration(data, iteration):
         if isinstance(data, torch.utils.data.DataLoader):
-            if iteration % len(data) > 0:
+            # TODO: The following probably wont work in case if
+            # iteration is larger than len(data.batch_sampler)
+            # batch sampler indices will correspond to the 1st fold but 2nd or 3rd etc is required
+            iteration %= len(data.batch_sampler)
+            if iteration > 0:
                 # batch sampler is ReproducibleBatchSampler
                 data.batch_sampler.start_iteration = iteration
             data_iter = iter(data)
         else:
+            if hasattr(data, "__len__"):
+                iteration %= len(data)
             data_iter = iter(data)
             counter = 0
             while counter < iteration:
-                next(data_iter)
-                counter += 1
+                try:
+                    next(data_iter)
+                    counter += 1
+                except StopIteration:
+                    data_iter = iter(data)
 
         return data_iter
 
@@ -707,10 +699,12 @@ def _update_dataloader(dataloader, new_batch_sampler):
 
 
 class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
-    """Reproducible batch sampler
+    """Reproducible batch sampler. Internally, this class iterates and stores indices of the input batch sampler.
 
     Args:
-        batch_sampler: batch sampler same as used with torch.utils.data.DataLoader
+        batch_sampler (torch.utils.data.sampler.BatchSampler): batch sampler same as used with
+            `torch.utils.data.DataLoader`
+        start_iteration (int, optional): optional start iteration
     """
     def __init__(self, batch_sampler, start_iteration=None):
         self.batch_indices = None
