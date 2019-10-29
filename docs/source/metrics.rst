@@ -188,15 +188,16 @@ Complete list of metrics
     - :class:`~ignite.metrics.Average`
     - :class:`~ignite.metrics.ConfusionMatrix`
     - :class:`~ignite.metrics.EpochMetric`
+    - :meth:`~ignite.metrics.Fbeta`
     - :class:`~ignite.metrics.GeometricAverage`
     - :meth:`~ignite.metrics.IoU`
+    - :meth:`~ignite.metrics.mIoU`
     - :class:`~ignite.metrics.Loss`
     - :class:`~ignite.metrics.MeanAbsoluteError`
     - :class:`~ignite.metrics.MeanPairwiseDistance`
     - :class:`~ignite.metrics.MeanSquaredError`
     - :class:`~ignite.metrics.Metric`
     - :class:`~ignite.metrics.MetricsLambda`
-    - :meth:`~ignite.metrics.mIoU`
     - :class:`~ignite.metrics.Precision`
     - :class:`~ignite.metrics.Recall`
     - :class:`~ignite.metrics.RootMeanSquaredError`
@@ -209,6 +210,20 @@ Complete list of metrics
 
 .. autoclass:: Accuracy
 
+.. autoclass:: Average
+
+.. autoclass:: ConfusionMatrix
+
+.. autoclass:: EpochMetric
+
+.. autofunction:: Fbeta
+
+.. autoclass:: GeometricAverage
+
+.. autofunction:: IoU
+
+.. autofunction:: mIoU
+
 .. autoclass:: Loss
 
 .. autoclass:: MeanAbsoluteError
@@ -220,28 +235,16 @@ Complete list of metrics
 .. autoclass:: Metric
     :members:
 
+.. autoclass:: MetricsLambda
+
 .. autoclass:: Precision
 
 .. autoclass:: Recall
 
 .. autoclass:: RootMeanSquaredError
 
-.. autoclass:: TopKCategoricalAccuracy
-
-.. autoclass:: EpochMetric
-
 .. autoclass:: RunningAverage
 
-.. autoclass:: MetricsLambda
-
-.. autoclass:: ConfusionMatrix
-
-.. autofunction:: IoU
-
-.. autofunction:: mIoU
+.. autoclass:: TopKCategoricalAccuracy
 
 .. autoclass:: VariableAccumulation
-
-.. autoclass:: Average
-
-.. autoclass:: GeometricAverage

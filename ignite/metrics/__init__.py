@@ -13,3 +13,4 @@ from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.confusion_matrix import ConfusionMatrix, IoU, mIoU
 from ignite.metrics.accumulation import VariableAccumulation, Average, GeometricAverage
+from ignite.metrics.fbeta import Fbeta
