@@ -486,11 +486,10 @@ class Engine(object):
         if self.state is None:
             return {}
         return {
+            "seed": self.state.seed,
             "iteration": self.state.iteration,
-            "epoch": self.state.epoch,
             "epoch_length": self.state.epoch_length,
             "max_epochs": self.state.max_epochs,
-            "seed": self.state.seed,
         }
 
     def run(self, data, max_epochs=1, epoch_length=None, seed=12):

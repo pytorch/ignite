@@ -194,7 +194,8 @@ class DiskSaver(object):
     """Handler that saves input checkpoint on a disk.
 
     Args:
-        dirname (str): Directory path where the checkpoint will be saved (file checkpoint.pth.tar)
+        tag (str): checkpoint name, such that output file is `<tag>_checkpoint.pth.tar`
+        dirname (str): Directory path where the checkpoint will be saved
         atomic (bool, optional): if True, checkpoint is serialized to a temporary file, and then
             moved to final destination, so that files are guaranteed to not be damaged
             (for example if exception occures during saving).
@@ -214,7 +215,7 @@ class DiskSaver(object):
             raise ValueError("Directory path '{}' is not found".format(dirname))
 
     def __call__(self, checkpoint):
-        filename = "{}_chkpt.pth.tar".format(self.tag)
+        filename = "{}_checkpoint.pth.tar".format(self.tag)
         path = os.path.join(self.dirname, filename)
 
         if not self._atomic:
@@ -234,7 +235,7 @@ class DiskSaver(object):
 
 class EngineCheckpoint(object):
     """EngineCheckpoint handler can be used to periodically save engine and other objects
-     to disk, web storage, etc. Saved checkpoint then can be used to resume Engine.
+     to the disk, cloud storage, etc. Saved checkpoint then can be used to resume Engine.
 
     Args:
         save_handler (callable): Method to use to save engine and other provided objects. Function receives a checkpoint
@@ -242,18 +243,10 @@ class EngineCheckpoint(object):
             defined with `DiskSaver`.
         to_save (dict): Dictionary with the objects to save. Objects should have implemented
             `state_dict` and `load_state_dict` methods
-        save_interval (int, optional): if not None, objects will be saved to disk every `save_interval`
-            calls to the handler.
     """
 
-    def __init__(self,
-                 save_handler,
-                 # dirname,
-                 to_save,
-                 save_interval=100,  # this will be deprecated
-                 # atomic=True,
-                 # create_dir=True
-                 ):
+    def __init__(self, to_save, save_handler):
+
         if not callable(save_handler):
             raise TypeError("Argument `save_handler` should be callable")
 
@@ -263,11 +256,8 @@ class EngineCheckpoint(object):
         self.check_objects(to_save)
         self.save_handler = save_handler
         self.to_save = to_save
-        self._save_interval = save_interval
 
     def __call__(self, engine):
-        if engine.state.iteration % self._save_interval != 0:
-            return
         checkpoint = self._setup_checkpoint(engine)
         self.save_handler(checkpoint)
 

@@ -10,7 +10,7 @@ from torchvision.datasets import MNIST
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
-from ignite.handlers import EngineCheckpoint
+from ignite.handlers import EngineCheckpoint, DiskSaver
 from tqdm import tqdm
 
 
@@ -104,9 +104,11 @@ def run(train_batch_size, val_batch_size,
         pbar.n = pbar.last_print_n = 0
 
     objects_to_checkpoint = {"model": model, "optimizer": optimizer}
-    engine_checkpoint = EngineCheckpoint(dirname="engine_checkpoint",
-                                         to_save=objects_to_checkpoint,
-                                         save_interval=int(0.33 * len(train_loader)))
+    engine_checkpoint = EngineCheckpoint(to_save=objects_to_checkpoint,
+                                         save_handler=DiskSaver("trainer", "/tmp/engine"))
+
+    # def every(engine):
+
     trainer.add_event_handler(Events.ITERATION_COMPLETED, engine_checkpoint)
 
     if restore_from == "":
