@@ -1,13 +1,15 @@
+import os
+
+import torch
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Precision
+
 import pytest
 import warnings
 
 from sklearn.metrics import precision_score
 from sklearn.exceptions import UndefinedMetricWarning
-
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Precision
-
-import torch
 
 torch.manual_seed(12)
 
@@ -27,28 +29,28 @@ def test_binary_wrong_inputs():
 
     with pytest.raises(ValueError):
         # y has not only 0 or 1 values
-        pr.update((torch.randint(0, 2, size=(10,)).type(torch.LongTensor),
-                   torch.arange(0, 10).type(torch.LongTensor)))
+        pr.update((torch.randint(0, 2, size=(10,)).long(),
+                   torch.arange(0, 10).long()))
 
     with pytest.raises(ValueError):
         # y_pred values are not thresholded to 0, 1 values
         pr.update((torch.rand(10,),
-                   torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
+                   torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.randint(0, 2, size=(10,)).type(torch.LongTensor),
-                   torch.randint(0, 2, size=(10, 5)).type(torch.LongTensor)))
+        pr.update((torch.randint(0, 2, size=(10,)).long(),
+                   torch.randint(0, 2, size=(10, 5)).long()))
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.randint(0, 2, size=(10, 5, 6)).type(torch.LongTensor),
-                   torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
+        pr.update((torch.randint(0, 2, size=(10, 5, 6)).long(),
+                   torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.randint(0, 2, size=(10,)).type(torch.LongTensor),
-                   torch.randint(0, 2, size=(10, 5, 6)).type(torch.LongTensor)))
+        pr.update((torch.randint(0, 2, size=(10,)).long(),
+                   torch.randint(0, 2, size=(10, 5, 6)).long()))
 
 
 def test_binary_input_N():
@@ -57,7 +59,7 @@ def test_binary_input_N():
     def _test(average):
         pr = Precision(average=average)
         y_pred = torch.randint(0, 2, size=(10,))
-        y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10,)).long()
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
@@ -68,7 +70,7 @@ def test_binary_input_N():
 
         pr.reset()
         y_pred = torch.randint(0, 2, size=(10,))
-        y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10,)).long()
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
@@ -80,7 +82,7 @@ def test_binary_input_N():
         pr.reset()
         y_pred = torch.Tensor([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.51])
         y_pred = torch.round(y_pred)
-        y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10,)).long()
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
@@ -92,7 +94,7 @@ def test_binary_input_N():
         # Batched Updates
         pr.reset()
         y_pred = torch.randint(0, 2, size=(100,))
-        y = torch.randint(0, 2, size=(100,)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100,)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -120,7 +122,7 @@ def test_binary_input_NL():
         pr = Precision(average=average)
 
         y_pred = torch.randint(0, 2, size=(10, 5))
-        y = torch.randint(0, 2, size=(10, 5)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 5)).long()
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
@@ -131,7 +133,7 @@ def test_binary_input_NL():
 
         pr.reset()
         y_pred = torch.randint(0, 2, size=(10, 1, 5))
-        y = torch.randint(0, 2, size=(10, 1, 5)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 1, 5)).long()
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
@@ -143,7 +145,7 @@ def test_binary_input_NL():
         # Batched Updates
         pr.reset()
         y_pred = torch.randint(0, 2, size=(100, 1, 5))
-        y = torch.randint(0, 2, size=(100, 1, 5)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100, 1, 5)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -171,7 +173,7 @@ def test_binary_input_NHW():
         pr = Precision(average=average)
 
         y_pred = torch.randint(0, 2, size=(10, 12, 10))
-        y = torch.randint(0, 2, size=(10, 12, 10)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 12, 10)).long()
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
@@ -182,7 +184,7 @@ def test_binary_input_NHW():
 
         pr.reset()
         y_pred = torch.randint(0, 2, size=(10, 1, 12, 10))
-        y = torch.randint(0, 2, size=(10, 1, 12, 10)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 1, 12, 10)).long()
         pr.update((y_pred, y))
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
@@ -194,7 +196,7 @@ def test_binary_input_NHW():
         # Batched Updates
         pr.reset()
         y_pred = torch.randint(0, 2, size=(100, 12, 10))
-        y = torch.randint(0, 2, size=(100, 12, 10)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100, 12, 10)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -220,39 +222,39 @@ def test_multiclass_wrong_inputs():
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.rand(10, 5, 4), torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 5, 4), torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.rand(10, 5, 6), torch.randint(0, 5, size=(10, 5)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 5, 6), torch.randint(0, 5, size=(10, 5)).long()))
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.rand(10), torch.randint(0, 5, size=(10, 5, 6)).type(torch.LongTensor)))
+        pr.update((torch.rand(10), torch.randint(0, 5, size=(10, 5, 6)).long()))
 
     pr = Precision(average=True)
 
     with pytest.raises(ValueError):
         # incompatible shapes between two updates
-        pr.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
-        pr.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).long()))
+        pr.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).long()))
 
     with pytest.raises(ValueError):
         # incompatible shapes between two updates
-        pr.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
-        pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
+        pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
 
     pr = Precision(average=False)
 
     with pytest.raises(ValueError):
         # incompatible shapes between two updates
-        pr.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
-        pr.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).long()))
+        pr.update((torch.rand(10, 6), torch.randint(0, 5, size=(10,)).long()))
 
     with pytest.raises(ValueError):
         # incompatible shapes between two updates
-        pr.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
-        pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 5, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
+        pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
 
 
 def test_multiclass_input_N():
@@ -261,7 +263,7 @@ def test_multiclass_input_N():
     def _test(average):
         pr = Precision(average=average)
         y_pred = torch.rand(20, 6)
-        y = torch.randint(0, 6, size=(20,)).type(torch.LongTensor)
+        y = torch.randint(0, 6, size=(20,)).long()
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -277,7 +279,7 @@ def test_multiclass_input_N():
 
         pr.reset()
         y_pred = torch.rand(10, 4)
-        y = torch.randint(0, 4, size=(10,)).type(torch.LongTensor)
+        y = torch.randint(0, 4, size=(10,)).long()
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -294,7 +296,7 @@ def test_multiclass_input_N():
         # 2-classes
         pr.reset()
         y_pred = torch.rand(10, 2)
-        y = torch.randint(0, 2, size=(10,)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10,)).long()
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -311,7 +313,7 @@ def test_multiclass_input_N():
         # Batched Updates
         pr.reset()
         y_pred = torch.rand(100, 3)
-        y = torch.randint(0, 3, size=(100,)).type(torch.LongTensor)
+        y = torch.randint(0, 3, size=(100,)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -344,7 +346,7 @@ def test_multiclass_input_NL():
         pr = Precision(average=average)
 
         y_pred = torch.rand(10, 5, 8)
-        y = torch.randint(0, 5, size=(10, 8)).type(torch.LongTensor)
+        y = torch.randint(0, 5, size=(10, 8)).long()
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -360,7 +362,7 @@ def test_multiclass_input_NL():
 
         pr.reset()
         y_pred = torch.rand(15, 10, 8)
-        y = torch.randint(0, 10, size=(15, 8)).type(torch.LongTensor)
+        y = torch.randint(0, 10, size=(15, 8)).long()
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -377,7 +379,7 @@ def test_multiclass_input_NL():
         # Batched Updates
         pr.reset()
         y_pred = torch.rand(100, 8, 12)
-        y = torch.randint(0, 8, size=(100, 12)).type(torch.LongTensor)
+        y = torch.randint(0, 8, size=(100, 12)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -410,7 +412,7 @@ def test_multiclass_input_NHW():
         pr = Precision(average=average)
 
         y_pred = torch.rand(10, 5, 18, 16)
-        y = torch.randint(0, 5, size=(10, 18, 16)).type(torch.LongTensor)
+        y = torch.randint(0, 5, size=(10, 18, 16)).long()
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -426,7 +428,7 @@ def test_multiclass_input_NHW():
 
         pr.reset()
         y_pred = torch.rand(10, 7, 20, 12)
-        y = torch.randint(0, 7, size=(10, 20, 12)).type(torch.LongTensor)
+        y = torch.randint(0, 7, size=(10, 20, 12)).long()
         pr.update((y_pred, y))
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
@@ -443,7 +445,7 @@ def test_multiclass_input_NHW():
         # Batched Updates
         pr.reset()
         y_pred = torch.rand(100, 8, 12, 14)
-        y = torch.randint(0, 8, size=(100, 12, 14)).type(torch.LongTensor)
+        y = torch.randint(0, 8, size=(100, 12, 14)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -474,11 +476,11 @@ def test_multilabel_wrong_inputs():
 
     with pytest.raises(ValueError):
         # incompatible shapes
-        pr.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)).type(torch.LongTensor)))
+        pr.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(ValueError):
         # incompatible y_pred
-        pr.update((torch.rand(10, 5), torch.randint(0, 2, size=(10, 5)).type(torch.LongTensor)))
+        pr.update((torch.rand(10, 5), torch.randint(0, 2, size=(10, 5)).long()))
 
     with pytest.raises(ValueError):
         # incompatible y
@@ -486,13 +488,13 @@ def test_multilabel_wrong_inputs():
 
     with pytest.raises(ValueError):
         # incompatible shapes between two updates
-        pr.update((torch.randint(0, 2, size=(20, 5)), torch.randint(0, 2, size=(20, 5)).type(torch.LongTensor)))
-        pr.update((torch.randint(0, 2, size=(20, 6)), torch.randint(0, 2, size=(20, 6)).type(torch.LongTensor)))
+        pr.update((torch.randint(0, 2, size=(20, 5)), torch.randint(0, 2, size=(20, 5)).long()))
+        pr.update((torch.randint(0, 2, size=(20, 6)), torch.randint(0, 2, size=(20, 6)).long()))
 
 
 def to_numpy_multilabel(y):
     # reshapes input array to (N x ..., C)
-    y = y.transpose(1, 0).numpy()
+    y = y.transpose(1, 0).cpu().numpy()
     num_classes = y.shape[0]
     y = y.reshape((num_classes, -1)).transpose(1, 0)
     return y
@@ -504,7 +506,7 @@ def test_multilabel_input_NC():
         pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(20, 5))
-        y = torch.randint(0, 2, size=(20, 5)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(20, 5)).long()
         pr.update((y_pred, y))
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
@@ -516,7 +518,7 @@ def test_multilabel_input_NC():
 
         pr.reset()
         y_pred = torch.randint(0, 2, size=(10, 4))
-        y = torch.randint(0, 2, size=(10, 4)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 4)).long()
         pr.update((y_pred, y))
         np_y_pred = y_pred.numpy()
         np_y = y.numpy()
@@ -529,7 +531,7 @@ def test_multilabel_input_NC():
         # Batched Updates
         pr.reset()
         y_pred = torch.randint(0, 2, size=(100, 4))
-        y = torch.randint(0, 2, size=(100, 4)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100, 4)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -553,7 +555,7 @@ def test_multilabel_input_NC():
     pr1 = Precision(is_multilabel=True, average=True)
     pr2 = Precision(is_multilabel=True, average=False)
     y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
     pr1.update((y_pred, y))
     pr2.update((y_pred, y))
     assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
@@ -565,7 +567,7 @@ def test_multilabel_input_NCL():
         pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 10))
-        y = torch.randint(0, 2, size=(10, 5, 10)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 5, 10)).long()
         pr.update((y_pred, y))
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
@@ -577,7 +579,7 @@ def test_multilabel_input_NCL():
 
         pr.reset()
         y_pred = torch.randint(0, 2, size=(15, 4, 10))
-        y = torch.randint(0, 2, size=(15, 4, 10)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(15, 4, 10)).long()
         pr.update((y_pred, y))
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
@@ -590,7 +592,7 @@ def test_multilabel_input_NCL():
         # Batched Updates
         pr.reset()
         y_pred = torch.randint(0, 2, size=(100, 4, 12))
-        y = torch.randint(0, 2, size=(100, 4, 12)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100, 4, 12)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -614,7 +616,7 @@ def test_multilabel_input_NCL():
     pr1 = Precision(is_multilabel=True, average=True)
     pr2 = Precision(is_multilabel=True, average=False)
     y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
     pr1.update((y_pred, y))
     pr2.update((y_pred, y))
     assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
@@ -626,7 +628,7 @@ def test_multilabel_input_NCHW():
         pr = Precision(average=average, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
-        y = torch.randint(0, 2, size=(10, 5, 18, 16)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 5, 18, 16)).long()
         pr.update((y_pred, y))
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
@@ -638,7 +640,7 @@ def test_multilabel_input_NCHW():
 
         pr.reset()
         y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-        y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
         pr.update((y_pred, y))
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
@@ -651,7 +653,7 @@ def test_multilabel_input_NCHW():
         # Batched Updates
         pr.reset()
         y_pred = torch.randint(0, 2, size=(100, 5, 12, 14))
-        y = torch.randint(0, 2, size=(100, 5, 12, 14)).type(torch.LongTensor)
+        y = torch.randint(0, 2, size=(100, 5, 12, 14)).long()
 
         batch_size = 16
         n_iters = y.shape[0] // batch_size + 1
@@ -675,7 +677,7 @@ def test_multilabel_input_NCHW():
     pr1 = Precision(is_multilabel=True, average=True)
     pr2 = Precision(is_multilabel=True, average=False)
     y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
     pr1.update((y_pred, y))
     pr2.update((y_pred, y))
     assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
@@ -688,11 +690,11 @@ def test_incorrect_type():
         pr = Precision(average=average)
 
         y_pred = torch.softmax(torch.rand(4, 4), dim=1)
-        y = torch.ones(4).type(torch.LongTensor)
+        y = torch.ones(4).long()
         pr.update((y_pred, y))
 
         y_pred = torch.randint(0, 2, size=(4,))
-        y = torch.ones(4).type(torch.LongTensor)
+        y = torch.ones(4).long()
 
         with pytest.raises(RuntimeError):
             pr.update((y_pred, y))
@@ -703,7 +705,7 @@ def test_incorrect_type():
     pr1 = Precision(is_multilabel=True, average=True)
     pr2 = Precision(is_multilabel=True, average=False)
     y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-    y = torch.randint(0, 2, size=(10, 4, 20, 23)).type(torch.LongTensor)
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
     pr1.update((y_pred, y))
     pr2.update((y_pred, y))
     assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
@@ -722,3 +724,143 @@ def test_incorrect_y_classes():
 
     _test(average=True)
     _test(average=False)
+
+
+def _test_distrib_itegration_multiclass(device):
+    import torch.distributed as dist
+    from ignite.engine import Engine
+
+    rank = dist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(average, n_epochs):
+        n_iters = 60
+        s = 16
+        n_classes = 7
+
+        offset = n_iters * s
+        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
+        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+
+        def update(engine, i):
+            return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, :], \
+                y_true[i * s + rank * offset:(i + 1) * s + rank * offset]
+
+        engine = Engine(update)
+
+        pr = Precision(average=average, device=device)
+        pr.attach(engine, "pr")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "pr" in engine.state.metrics
+        res = engine.state.metrics['pr']
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+
+        true_res = precision_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(),
+                                   average='macro' if average else None)
+
+        assert pytest.approx(res) == true_res
+
+    for _ in range(2):
+        _test(average=True, n_epochs=1)
+        _test(average=True, n_epochs=2)
+        _test(average=False, n_epochs=1)
+        _test(average=False, n_epochs=2)
+
+
+def _test_distrib_itegration_multilabel(device):
+
+    import torch.distributed as dist
+    from ignite.engine import Engine
+
+    rank = dist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(average, n_epochs):
+        n_iters = 60
+        s = 16
+        n_classes = 7
+
+        offset = n_iters * s
+        y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
+
+        def update(engine, i):
+            return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, ...], \
+                y_true[i * s + rank * offset:(i + 1) * s + rank * offset, ...]
+
+        engine = Engine(update)
+
+        pr = Precision(average=average, is_multilabel=True, device=device)
+        pr.attach(engine, "pr")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "pr" in engine.state.metrics
+        res = engine.state.metrics['pr']
+        res2 = pr.compute()
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+            res2 = res2.cpu().numpy()
+            assert (res == res2).all()
+        else:
+            assert res == res2
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+            true_res = precision_score(to_numpy_multilabel(y_true),
+                                       to_numpy_multilabel(y_preds),
+                                       average='samples' if average else None)
+
+        assert pytest.approx(res) == true_res
+
+    for _ in range(2):
+        _test(average=True, n_epochs=1)
+        _test(average=True, n_epochs=2)
+
+    with pytest.warns(RuntimeWarning, match="Precision/Recall metrics do not work in distributed setting when "
+                                            "average=False and is_multilabel=True"):
+        pr = Precision(average=False, is_multilabel=True, device=device)
+
+    y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
+    y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
+    pr.update((y_pred, y))
+    pr_compute1 = pr.compute()
+    pr_compute2 = pr.compute()
+    assert len(pr_compute1) == 4 * 6 * 8
+    assert (pr_compute1 == pr_compute2).all()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
+    device = "cpu"
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_distrib_itegration_multiclass(device)
+    _test_distrib_itegration_multilabel(device)

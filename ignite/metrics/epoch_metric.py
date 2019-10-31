@@ -15,6 +15,10 @@ class EpochMetric(Metric):
         Current implementation stores all input data (output and target) in as tensors before computing a metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
 
+    .. warning::
+
+        Current implementation does not work with distributed computations. Results are not gather across all devices
+        and computed results are valid for a single device only.
 
     - `update` must receive output of the form `(y_pred, y)`.
 
@@ -29,13 +33,12 @@ class EpochMetric(Metric):
             you want to compute the metric with respect to one of the outputs.
 
     """
-
     def __init__(self, compute_fn, output_transform=lambda x: x):
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
-        super(EpochMetric, self).__init__(output_transform=output_transform)
+        super(EpochMetric, self).__init__(output_transform=output_transform, device='cpu')
         self.compute_fn = compute_fn
 
     def reset(self):
@@ -61,8 +64,8 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        y_pred = y_pred.type_as(self._predictions)
-        y = y.type_as(self._targets)
+        y_pred = y_pred.to(self._predictions)
+        y = y.to(self._targets)
 
         self._predictions = torch.cat([self._predictions, y_pred], dim=0)
         self._targets = torch.cat([self._targets, y], dim=0)
