@@ -12,6 +12,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 from ignite.engine import Engine, Events, State, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine.engine import _Value
 from ignite.metrics import MeanSquaredError
 
 
@@ -346,6 +347,164 @@ def test_custom_events_with_event_to_attr():
     engine = Engine(lambda engine, batch: 0)
     with pytest.raises(ValueError):
         engine.register_events(*Custom_Events, event_to_attr=custom_event_to_attr)
+
+
+def test_call_on_events_with_wrong_inputs():
+
+    with pytest.raises(ValueError, match=r"Only one of the input arguments should be specified"):
+        Events.ITERATION_STARTED()
+
+    with pytest.raises(ValueError, match=r"Only one of the input arguments should be specified"):
+        Events.ITERATION_STARTED(event_filter="123", every=12)
+
+    with pytest.raises(TypeError, match=r"Argument event_filter should be a callable"):
+        Events.ITERATION_STARTED(event_filter="123")
+
+    with pytest.raises(ValueError, match=r"Argument every should be integer and greater than one"):
+        Events.ITERATION_STARTED(every=-1)
+
+    with pytest.raises(TypeError, match=r"can not be used with call operator"):
+        Events.EXCEPTION_RAISED(once=1)
+
+    with pytest.raises(ValueError, match=r"but will be called with"):
+        Events.ITERATION_STARTED(event_filter=lambda x: x)
+
+
+def test_call_on_events():
+    assert isinstance(Events.ITERATION_STARTED.value, _Value)
+    assert Events.ITERATION_STARTED.value.fn is None
+
+    def foo(engine, event):
+        return True
+
+    Events.ITERATION_STARTED(event_filter=foo)
+
+    assert Events.ITERATION_STARTED.value.fn == foo
+    Events.ITERATION_STARTED._reset()
+    assert Events.ITERATION_STARTED.value.fn is None
+
+    Events.ITERATION_STARTED(every=10)
+
+    assert Events.ITERATION_STARTED.value.fn is not None
+    Events.ITERATION_STARTED._reset()
+    assert Events.ITERATION_STARTED.value.fn is None
+
+    Events.ITERATION_STARTED(once=10)
+
+    assert Events.ITERATION_STARTED.value.fn is not None
+    Events.ITERATION_STARTED._reset()
+    assert Events.ITERATION_STARTED.value.fn is None
+
+
+def test_every_event_filter_with_engine():
+
+    def _test(event_name, event_attr, every, true_num_calls):
+        assert isinstance(event_name.value, _Value)
+        assert event_name.value.fn is None
+
+        engine = Engine(lambda e, b: b)
+
+        counter = [0, ]
+        counter_every = [0, ]
+        num_calls = [0, ]
+
+        @engine.on(event_name(every=every))
+        def assert_every(engine):
+            counter_every[0] += every
+            assert getattr(engine.state, event_attr) % every == 0
+            assert counter_every[0] == getattr(engine.state, event_attr)
+            num_calls[0] += 1
+
+        assert event_name.value.fn is None
+
+        @engine.on(event_name)
+        def assert_(engine):
+            counter[0] += 1
+            assert getattr(engine.state, event_attr) == counter[0]
+
+        assert event_name.value.fn is None
+
+        d = list(range(100))
+        engine.run(d, max_epochs=5)
+
+        assert num_calls[0] == true_num_calls
+
+    _test(Events.ITERATION_STARTED, "iteration", 10, 100 * 5 // 10)
+    _test(Events.ITERATION_COMPLETED, "iteration", 10, 100 * 5 // 10)
+    _test(Events.EPOCH_STARTED, "epoch", 2, 5 // 2)
+    _test(Events.EPOCH_COMPLETED, "epoch", 2, 5 // 2)
+
+
+def test_once_event_filter_with_engine():
+
+    def _test(event_name, event_attr):
+        assert isinstance(event_name.value, _Value)
+        assert event_name.value.fn is None
+
+        engine = Engine(lambda e, b: b)
+
+        once = 2
+        counter = [0, ]
+        num_calls = [0, ]
+
+        @engine.on(event_name(once=once))
+        def assert_once(engine):
+            assert getattr(engine.state, event_attr) == once
+            num_calls[0] += 1
+
+        assert event_name.value.fn is None
+
+        @engine.on(event_name)
+        def assert_(engine):
+            counter[0] += 1
+            assert getattr(engine.state, event_attr) == counter[0]
+
+        assert event_name.value.fn is None
+
+        d = list(range(100))
+        engine.run(d, max_epochs=5)
+
+        assert num_calls[0] == 1
+
+    _test(Events.ITERATION_STARTED, "iteration")
+    _test(Events.ITERATION_COMPLETED, "iteration")
+    _test(Events.EPOCH_STARTED, "epoch")
+    _test(Events.EPOCH_COMPLETED, "epoch")
+
+
+def test_custom_event_filter_with_engine():
+
+    special_events = [1, 2, 5, 7, 17, 20]
+
+    def custom_event_filter(engine, event):
+        if event in special_events:
+            return True
+        return False
+
+    def _test(event_name, event_attr, true_num_calls):
+        assert isinstance(event_name.value, _Value)
+        assert event_name.value.fn is None
+
+        engine = Engine(lambda e, b: b)
+
+        num_calls = [0, ]
+
+        @engine.on(event_name(event_filter=custom_event_filter))
+        def assert_on_special_event(engine):
+            assert getattr(engine.state, event_attr) == special_events.pop(0)
+            num_calls[0] += 1
+
+        assert event_name.value.fn is None
+
+        d = list(range(50))
+        engine.run(d, max_epochs=25)
+
+        assert num_calls[0] == true_num_calls
+
+    _test(Events.ITERATION_STARTED, "iteration", len(special_events))
+    _test(Events.ITERATION_COMPLETED, "iteration", len(special_events))
+    _test(Events.EPOCH_STARTED, "epoch", len(special_events))
+    _test(Events.EPOCH_COMPLETED, "epoch", len(special_events))
 
 
 def test_on_decorator_raises_with_invalid_event():

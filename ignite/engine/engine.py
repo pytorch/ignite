@@ -6,22 +6,78 @@ from collections import defaultdict
 from enum import Enum
 import weakref
 import numbers
-
+from collections import namedtuple
 
 from ignite._utils import _to_hours_mins_secs
 
 IS_PYTHON2 = sys.version_info[0] < 3
 
 
+_Value = namedtuple("_Value", ["name", "fn"])
+
+
 class Events(Enum):
-    """Events that are fired by the :class:`~ignite.engine.Engine` during execution."""
-    EPOCH_STARTED = "epoch_started"
-    EPOCH_COMPLETED = "epoch_completed"
-    STARTED = "started"
-    COMPLETED = "completed"
-    ITERATION_STARTED = "iteration_started"
-    ITERATION_COMPLETED = "iteration_completed"
+    """Events that are fired by the :class:`~ignite.engine.Engine` during execution.
+
+
+    """
+    EPOCH_STARTED = _Value("epoch_started", None)
+    EPOCH_COMPLETED = _Value("epoch_completed", None)
+    STARTED = _Value("started", None)
+    COMPLETED = _Value("completed", None)
+    ITERATION_STARTED = _Value("iteration_started", None)
+    ITERATION_COMPLETED = _Value("iteration_completed", None)
     EXCEPTION_RAISED = "exception_raised"
+
+    def __call__(self, event_filter=None, every=None, once=None):
+
+        if not isinstance(self.value, _Value):
+            raise TypeError("This event {} can not be used with call operator".format(self))
+
+        if not((event_filter is not None) ^ (every is not None) ^ (once is not None)):
+            raise ValueError("Only one of the input arguments should be specified")
+
+        if (event_filter is not None) and not callable(event_filter):
+            raise TypeError("Argument event_filter should be a callable")
+
+        if (every is not None) and not (isinstance(every, numbers.Integral) and every > 1):
+            raise ValueError("Argument every should be integer and greater than one")
+
+        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
+            raise ValueError("Argument every should be integer and positive")
+
+        if every is not None:
+            event_filter = self.every_event_filter(every)
+
+        if once is not None:
+            event_filter = self.once_event_filter(once)
+
+        # check signature:
+        Engine._check_signature("engine", event_filter, "event_filter", "event")
+
+        self._value_ = self.value._replace(fn=event_filter)
+        return self
+
+    def _reset(self):
+        if not isinstance(self.value, _Value):
+            return None
+        self._value_ = self.value._replace(fn=None)
+
+    @staticmethod
+    def every_event_filter(every):
+        def wrapper(engine, event):
+            if event % every == 0:
+                return True
+            return False
+        return wrapper
+
+    @staticmethod
+    def once_event_filter(once):
+        def wrapper(engine, event):
+            if event == once:
+                return True
+            return False
+        return wrapper
 
 
 class State(object):
@@ -152,7 +208,7 @@ class Engine(object):
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        self._check_signature(process_function, 'process_function', None)
+        Engine._check_signature(self, process_function, 'process_function', None)
 
     def register_events(self, *event_names, **kwargs):
         """Add events that can be fired.
@@ -210,6 +266,15 @@ class Engine(object):
             if event_to_attr:
                 State.event_to_attr[name] = event_to_attr[name]
 
+    def _handler_wrapper(self, handler, event_name, event_filter):
+
+        def wrapper(*args, **kwargs):
+            event = self.state.get_event_attrib_value(event_name)
+            if event_filter(self, event):
+                return handler(*args, **kwargs)
+
+        return wrapper
+
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
@@ -247,7 +312,12 @@ class Engine(object):
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
-        self._check_signature(handler, 'handler', *(event_args + args), **kwargs)
+        Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
+
+        if isinstance(event_name.value, _Value) and callable(event_name.value.fn):
+            handler = self._handler_wrapper(handler, event_name, event_name.value.fn)
+            # remove event filter as it should be temporary
+            event_name._reset()
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s.", event_name)
@@ -291,6 +361,7 @@ class Engine(object):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
 
+    @staticmethod
     def _check_signature(self, fn, fn_description, *args, **kwargs):
         exception_msg = None
 
