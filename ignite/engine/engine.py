@@ -148,6 +148,8 @@ class State(object):
             setattr(self, value, 0)
 
     def get_event_attrib_value(self, event_name):
+        if isinstance(event_name, _EventPair):
+            event_name = event_name.name
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
