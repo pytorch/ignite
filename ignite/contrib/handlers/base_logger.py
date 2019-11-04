@@ -5,6 +5,7 @@ import warnings
 import torch
 
 from ignite.engine import State, Engine
+from ignite.engine.engine import _EventPair
 from ignite._six import with_metaclass
 
 
@@ -23,10 +24,13 @@ class BaseLogger(object):
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
 
         """
-        if event_name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(event_name))
+        name = event_name
+        if isinstance(event_name, _EventPair):
+            name = event_name.name
+        if name not in State.event_to_attr:
+            raise RuntimeError("Unknown event name '{}'".format(name))
 
-        engine.add_event_handler(event_name, log_handler, self, event_name)
+        engine.add_event_handler(event_name, log_handler, self, name)
 
     def __enter__(self):
         return self

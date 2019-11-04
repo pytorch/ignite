@@ -3,7 +3,7 @@ import logging
 import sys
 import time
 from collections import defaultdict
-from enum import Enum
+from enum import Enum, EnumMeta
 import weakref
 import numbers
 from collections import namedtuple
@@ -15,7 +15,15 @@ IS_PYTHON2 = sys.version_info[0] < 3
 _EventPair = namedtuple("_EventPair", ["name", "filter"])
 
 
-class CallableEvents(object):
+class _EnumMeta(EnumMeta):
+
+    def __contains__(self, member):
+        if isinstance(member, _EventPair):
+            member = member.name
+        return super(_EnumMeta, self).__contains__(member)
+
+
+class CallableEvents(metaclass=_EnumMeta):
     """Base class for Events implementing call operator and storing event filter. This class should be inherited
     for any custom events with event filtering feature:
 

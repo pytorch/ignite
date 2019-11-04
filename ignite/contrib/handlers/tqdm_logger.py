@@ -4,6 +4,7 @@ import warnings
 import torch
 
 from ignite.engine import Events
+from ignite.engine.engine import _EventPair
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 
@@ -90,7 +91,6 @@ class ProgressBar(BaseLogger):
 
     def __init__(self, persist=False,
                  bar_format='{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]',
-
                  **tqdm_kwargs):
 
         try:
@@ -120,6 +120,10 @@ class ProgressBar(BaseLogger):
 
     @staticmethod
     def _compare_lt(event1, event2):
+        if isinstance(event1, _EventPair):
+            event1 = event1.name
+        if isinstance(event2, _EventPair):
+            event2 = event2.name
         i1 = ProgressBar.events_order.index(event1)
         i2 = ProgressBar.events_order.index(event2)
         return i1 < i2
@@ -160,6 +164,9 @@ class ProgressBar(BaseLogger):
 
         if not (event_name in Events and closing_event_name in Events):
             raise ValueError("Logging and closing events should be only ignite.engine.Events")
+
+        if isinstance(closing_event_name, _EventPair):
+            raise ValueError("Closing event should not use any event filter")
 
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError("Logging event {} should be called before closing event {}"
@@ -204,6 +211,8 @@ class _OutputHandler(BaseOutputHandler):
 
     @staticmethod
     def get_max_number_events(event_name, engine):
+        if isinstance(event_name, _EventPair):
+            event_name = event_name.name
         if event_name in (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED):
             return len(engine.state.dataloader)
         if event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED):
@@ -212,8 +221,9 @@ class _OutputHandler(BaseOutputHandler):
 
     def __call__(self, engine, logger, event_name):
 
+        pbar_total = self.get_max_number_events(self.event_name, engine)
         if logger.pbar is None:
-            logger._reset(pbar_total=self.get_max_number_events(self.event_name, engine))
+            logger._reset(pbar_total=pbar_total)
 
         desc = self.tag
         max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
@@ -242,4 +252,6 @@ class _OutputHandler(BaseOutputHandler):
         if rendered_metrics:
             logger.pbar.set_postfix(**rendered_metrics)
 
-        logger.pbar.update()
+        global_step = engine.state.get_event_attrib_value(event_name)
+        global_step = (global_step - 1) % pbar_total + 1
+        logger.pbar.update(global_step - logger.pbar.n)

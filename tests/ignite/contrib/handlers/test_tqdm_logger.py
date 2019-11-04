@@ -345,3 +345,22 @@ def test_pbar_with_nan_input():
     assert engine.should_terminate
     assert engine.state.iteration == 1001
     assert engine.state.epoch == 1
+
+
+def test_pbar_on_callable_events(capsys):
+
+    n_epochs = 1
+    loader = list(range(100))
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine, event_name=Events.ITERATION_STARTED(every=10), closing_event_name=Events.EPOCH_COMPLETED)
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch: [90/100]  90%|█████████  [00:00<00:00]'
+    assert actual == expected
