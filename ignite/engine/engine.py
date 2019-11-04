@@ -19,6 +19,35 @@ _Value = namedtuple("_Value", ["name", "fn"])
 class Events(Enum):
     """Events that are fired by the :class:`~ignite.engine.Engine` during execution.
 
+    Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:
+
+    .. code-block:: python
+
+        engine = Engine()
+
+        # a) custom event filter
+        def custom_event_filter(engine, event):
+            if event in [1, 2, 5, 10, 50, 100]:
+                return True
+            return False
+
+        @engine.on(Events.ITERATION_STARTED(event_filter=custom_event_filter))
+        def call_on_special_event(engine):
+             # do something on 1, 2, 5, 10, 50, 100 iterations
+
+        # b) "every" event filter
+        @engine.on(Events.ITERATION_STARTED(every=10))
+        def call_every(engine):
+            # do something every 10th iteration
+
+        # c) "once" event filter
+        @engine.on(Events.ITERATION_STARTED(once=50))
+        def call_once(engine):
+            # do something on 50th iteration
+
+    Almost all events like `EPOCH_STARTED`, `EPOCH_COMPLETED`, etc implements this feature. Event filter function
+    `event_filter` accepts as input `engine` and `event` and should return True/False.
+    Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
 
     """
     EPOCH_STARTED = _Value("epoch_started", None)
@@ -286,11 +315,11 @@ class Engine(object):
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
-              The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
-              was bound to.
+            The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
+            was bound to.
 
-              Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
-              passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
+            Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
+            passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handler.
@@ -305,6 +334,11 @@ class Engine(object):
                 print("Epoch: {}".format(engine.state.epoch))
 
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
+
+
+        Note:
+            Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
+            See :class:`~ignite.engine.Events` for more details.
 
         """
         if event_name not in self._allowed_events:
