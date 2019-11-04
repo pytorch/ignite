@@ -127,20 +127,23 @@ event filtering function:
 
     trainer = create_supervised_trainer(model, optimizer, loss)
 
-    def log_metrics(engine, title):
-        print("Epoch: {} - {} accuracy: {:.2f}"
-               .format(trainer.state.epoch, title, engine.state.metrics['acc']))
+    @trainer.on(Events.ITERATION_COMPLETED(every=50))
+    def log_training_loss_every_50_iterations(engine):
+        print("{} / {} : {} - loss: {:.2f}"
+              .format(engine.state.epoch, engine.state.max_epochs, engine.state.iteration, engine.state.output))
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def evaluate(trainer):
-        with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "train"):
-            evaluator.run(train_loader)
+    @trainer.on(Events.EPOCH_STARTED(once=25))
+    def do_something_once_on_25_epoch(engine):
+        # do something
 
-        with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "validation"):
-            evaluator.run(validation_loader)
+    def custom_event_filter(engine, event):
+        if event in [1, 2, 5, 10, 50, 100]:
+            return True
+        return False
 
-        with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "test"):
-            evaluator.run(test_loader)
+    @engine.on(Events.ITERATION_STARTED(event_filter=custom_event_filter))
+    def call_on_special_event(engine):
+         # do something on 1, 2, 5, 10, 50, 100 iterations
 
     trainer.run(train_loader, max_epochs=100)
 
