@@ -146,8 +146,6 @@ class State(object):
             setattr(self, k, v)
 
         for value in self.event_to_attr.values():
-            if value is None:
-                continue
             if not hasattr(self, value):
                 setattr(self, value, 0)
 
