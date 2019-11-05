@@ -308,6 +308,9 @@ def test_pbar_wrong_events_order():
     with pytest.raises(ValueError, match="should be called before closing event"):
         pbar.attach(engine, event_name=Events.ITERATION_COMPLETED, closing_event_name=Events.ITERATION_STARTED)
 
+    with pytest.raises(ValueError, match="Closing event should not use any event filter"):
+        pbar.attach(engine, event_name=Events.ITERATION_STARTED, closing_event_name=Events.EPOCH_COMPLETED(every=10))
+
 
 def test_pbar_on_custom_events(capsys):
 
@@ -315,7 +318,7 @@ def test_pbar_on_custom_events(capsys):
     pbar = ProgressBar()
     cpe = CustomPeriodicEvent(n_iterations=15)
 
-    with pytest.raises(ValueError, match=r"Logging and closing events should be only ignite.engine.Events"):
+    with pytest.raises(ValueError, match=r"Logging event should be only `ignite.engine.Events`"):
         pbar.attach(engine, event_name=cpe.Events.ITERATIONS_15_COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
 
 

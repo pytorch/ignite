@@ -4,8 +4,7 @@ import warnings
 import torch
 
 from ignite.engine import Events
-from ignite.engine.engine import _EventPair
-
+from ignite.engine.engine import EventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 
 
@@ -80,7 +79,7 @@ class ProgressBar(BaseLogger):
 
     """
 
-    events_order = [
+    _events_order = [
         Events.STARTED,
         Events.EPOCH_STARTED,
         Events.ITERATION_STARTED,
@@ -120,12 +119,12 @@ class ProgressBar(BaseLogger):
 
     @staticmethod
     def _compare_lt(event1, event2):
-        if isinstance(event1, _EventPair):
-            event1 = event1.name
-        if isinstance(event2, _EventPair):
-            event2 = event2.name
-        i1 = ProgressBar.events_order.index(event1)
-        i2 = ProgressBar.events_order.index(event2)
+        if isinstance(event1, EventWithFilter):
+            event1 = event1.event
+        if isinstance(event2, EventWithFilter):
+            event2 = event2.event
+        i1 = ProgressBar._events_order.index(event1)
+        i2 = ProgressBar._events_order.index(event2)
         return i1 < i2
 
     @staticmethod
@@ -162,10 +161,10 @@ class ProgressBar(BaseLogger):
         """
         desc = self.tqdm_kwargs.get("desc", "Epoch")
 
-        if not (event_name in Events and closing_event_name in Events):
-            raise ValueError("Logging and closing events should be only ignite.engine.Events")
+        if not isinstance(event_name, (Events, EventWithFilter)):
+            raise ValueError("Logging event should be only `ignite.engine.Events`")
 
-        if isinstance(closing_event_name, _EventPair):
+        if isinstance(closing_event_name, EventWithFilter):
             raise ValueError("Closing event should not use any event filter")
 
         if not self._compare_lt(event_name, closing_event_name):
@@ -211,8 +210,8 @@ class _OutputHandler(BaseOutputHandler):
 
     @staticmethod
     def get_max_number_events(event_name, engine):
-        if isinstance(event_name, _EventPair):
-            event_name = event_name.name
+        if isinstance(event_name, EventWithFilter):
+            event_name = event_name.event
         if event_name in (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED):
             return len(engine.state.dataloader)
         if event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED):

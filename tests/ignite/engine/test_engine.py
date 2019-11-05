@@ -12,7 +12,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 from ignite.engine import Engine, Events, State, create_supervised_trainer, create_supervised_evaluator
-from ignite.engine.engine import _EventPair, CallableEvents
+from ignite.engine.engine import CallableEvents, EventWithFilter
 from ignite.metrics import MeanSquaredError
 
 
@@ -56,7 +56,7 @@ def test_invalid_process_raises_with_invalid_signature():
 def test_add_event_handler_raises_with_invalid_event():
     engine = DummyEngine()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"is not a valid event for this Engine"):
         engine.add_event_handler("incorrect", lambda engine: None)
 
 
@@ -369,25 +369,44 @@ def test_callable_events_with_wrong_inputs():
 
 
 def test_callable_events():
+
     assert isinstance(Events.ITERATION_STARTED.value, str)
 
     def foo(engine, event):
         return True
 
     ret = Events.ITERATION_STARTED(event_filter=foo)
-    assert isinstance(ret, _EventPair)
-    assert ret.name == Events.ITERATION_STARTED
+    assert isinstance(ret, EventWithFilter)
+    assert ret.event == Events.ITERATION_STARTED
     assert ret.filter == foo
+    assert isinstance(Events.ITERATION_STARTED.value, str)
+
+    # assert ret in Events
+    assert Events.ITERATION_STARTED.name in "{}".format(ret)
+    # assert ret in State.event_to_attr
 
     ret = Events.ITERATION_STARTED(every=10)
-    assert isinstance(ret, _EventPair)
-    assert ret.name == Events.ITERATION_STARTED
+    assert isinstance(ret, EventWithFilter)
+    assert ret.event == Events.ITERATION_STARTED
     assert ret.filter is not None
 
+    # assert ret in Events
+    assert Events.ITERATION_STARTED.name in "{}".format(ret)
+    # assert ret in State.event_to_attr
+
     ret = Events.ITERATION_STARTED(once=10)
-    assert isinstance(ret, _EventPair)
-    assert ret.name == Events.ITERATION_STARTED
+    assert isinstance(ret, EventWithFilter)
+    assert ret.event == Events.ITERATION_STARTED
     assert ret.filter is not None
+
+    # assert ret in Events
+    assert Events.ITERATION_STARTED.name in "{}".format(ret)
+    # assert ret in State.event_to_attr
+
+    def _attach(e1, e2):
+        assert id(e1) != id(e2)
+
+    _attach(Events.ITERATION_STARTED(every=10), Events.ITERATION_COMPLETED(every=10))
 
 
 def test_every_event_filter_with_engine():

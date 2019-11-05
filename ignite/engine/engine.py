@@ -3,27 +3,28 @@ import logging
 import sys
 import time
 from collections import defaultdict
-from enum import Enum, EnumMeta
+from enum import Enum
 import weakref
 import numbers
-from collections import namedtuple
 
 from ignite._utils import _to_hours_mins_secs
 
 IS_PYTHON2 = sys.version_info[0] < 3
 
-_EventPair = namedtuple("_EventPair", ["name", "filter"])
+
+class EventWithFilter(object):
+
+    def __init__(self, event, filter):
+        if not callable(filter):
+            raise TypeError("Argument filter should be callable")
+        self.event = event
+        self.filter = filter
+
+    def __str__(self):
+        return "<%s event=%s, filter=%r>" % (self.__class__.__name__, self.event, self.filter)
 
 
-class _EnumMeta(EnumMeta):
-
-    def __contains__(self, member):
-        if isinstance(member, _EventPair):
-            member = member.name
-        return super(_EnumMeta, self).__contains__(member)
-
-
-class CallableEvents(metaclass=_EnumMeta):
+class CallableEvents(object):
     """Base class for Events implementing call operator and storing event filter. This class should be inherited
     for any custom events with event filtering feature:
 
@@ -65,7 +66,7 @@ class CallableEvents(metaclass=_EnumMeta):
         # check signature:
         Engine._check_signature("engine", event_filter, "event_filter", "event")
 
-        return _EventPair(name=self, filter=event_filter)
+        return EventWithFilter(self, event_filter)
 
     @staticmethod
     def every_event_filter(every):
@@ -135,7 +136,7 @@ class State(object):
         Events.EPOCH_STARTED: "epoch",
         Events.EPOCH_COMPLETED: "epoch",
         Events.STARTED: "epoch",
-        Events.COMPLETED: "epoch"
+        Events.COMPLETED: "epoch",
     }
 
     def __init__(self, **kwargs):
@@ -145,11 +146,12 @@ class State(object):
             setattr(self, k, v)
 
         for value in self.event_to_attr.values():
-            setattr(self, value, 0)
+            if value is None:
+                continue
+            if not hasattr(self, value):
+                setattr(self, value, 0)
 
     def get_event_attrib_value(self, event_name):
-        if isinstance(event_name, _EventPair):
-            event_name = event_name.name
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
@@ -270,7 +272,7 @@ class Engine(object):
         Args:
             *event_names: An object (ideally a string or int) to define the
                 name of the event being supported.
-            event_to_attr (dict): A dictionary to map an event to a state attribute.
+            event_to_attr (dict, optional): A dictionary to map an event to a state attribute.
 
         Example usage:
 
@@ -308,15 +310,16 @@ class Engine(object):
             engine.run(data)
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
+        # for python2 compatibility:
         event_to_attr = kwargs.get('event_to_attr', None)
-        if event_to_attr:
+        if event_to_attr is not None:
             if not isinstance(event_to_attr, dict):
                 raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
 
-        for name in event_names:
-            self._allowed_events.append(name)
-            if event_to_attr:
-                State.event_to_attr[name] = event_to_attr[name]
+        for e in event_names:
+            self._allowed_events.append(e)
+            if event_to_attr and e in event_to_attr:
+                State.event_to_attr[e] = event_to_attr[e]
 
     def _handler_wrapper(self, handler, event_name, event_filter):
 
@@ -364,9 +367,8 @@ class Engine(object):
             See :class:`~ignite.engine.Events` for more details.
 
         """
-        if isinstance(event_name, _EventPair):
-            event_filter = event_name.filter
-            event_name = event_name.name
+        if isinstance(event_name, EventWithFilter):
+            event_name, event_filter = event_name.event, event_name.filter
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
