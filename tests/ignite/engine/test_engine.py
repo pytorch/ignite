@@ -1113,3 +1113,31 @@ def test_alter_batch():
     num_iters = 25
     data = list(range(num_iters))
     trainer.run(data, num_epochs)
+
+
+def test_state_get_event_attrib_value():
+    state = State()
+    state.iteration = 10
+    state.epoch = 9
+
+    e = Events.ITERATION_STARTED
+    assert state.get_event_attrib_value(e) == state.iteration
+    e = Events.ITERATION_COMPLETED
+    assert state.get_event_attrib_value(e) == state.iteration
+    e = Events.EPOCH_STARTED
+    assert state.get_event_attrib_value(e) == state.epoch
+    e = Events.EPOCH_COMPLETED
+    assert state.get_event_attrib_value(e) == state.epoch
+    e = Events.STARTED
+    assert state.get_event_attrib_value(e) == state.epoch
+    e = Events.COMPLETED
+    assert state.get_event_attrib_value(e) == state.epoch
+
+    e = Events.ITERATION_STARTED(every=10)
+    assert state.get_event_attrib_value(e) == state.iteration
+    e = Events.ITERATION_COMPLETED(every=10)
+    assert state.get_event_attrib_value(e) == state.iteration
+    e = Events.EPOCH_STARTED(once=5)
+    assert state.get_event_attrib_value(e) == state.epoch
+    e = Events.EPOCH_COMPLETED(once=5)
+    assert state.get_event_attrib_value(e) == state.epoch
