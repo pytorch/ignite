@@ -1,0 +1,11 @@
+core:
+  - ignite/engine/*
+  - ignite/handlers/*
+  - ignite/metrics/*
+
+contrib:
+  - ignite/contrib/*
+
+examples:
+  - examples/*
+  
