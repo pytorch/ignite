@@ -5,12 +5,13 @@ import warnings
 import torch
 
 from ignite.engine import State, Engine
+from ignite.engine.engine import EventWithFilter
 from ignite._six import with_metaclass
 
 
 class BaseLogger(object):
     """
-    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger
+    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
 
     """
     def attach(self, engine, log_handler, event_name):
@@ -23,10 +24,14 @@ class BaseLogger(object):
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
 
         """
-        if event_name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(event_name))
+        name = event_name
+        if isinstance(event_name, EventWithFilter):
+            name = event_name.event
 
-        engine.add_event_handler(event_name, log_handler, self, event_name)
+        if name not in State.event_to_attr:
+            raise RuntimeError("Unknown event name '{}'".format(name))
+
+        engine.add_event_handler(event_name, log_handler, self, name)
 
     def __enter__(self):
         return self

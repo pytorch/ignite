@@ -143,14 +143,13 @@ def run(output_path, config):
     evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
 
-    def run_validation(engine, val_interval):
-        if engine.state.epoch % val_interval == 0:
-            torch.cuda.synchronize()
-            train_evaluator.run(train_labelled_loader)
-            evaluator.run(test_loader)
+    def run_validation(engine):
+        torch.cuda.synchronize()
+        train_evaluator.run(train_labelled_loader)
+        evaluator.run(test_loader)
 
-    trainer.add_event_handler(Events.EPOCH_STARTED, run_validation, val_interval=3)
-    trainer.add_event_handler(Events.COMPLETED, run_validation, val_interval=1)
+    trainer.add_event_handler(Events.EPOCH_STARTED(every=3), run_validation)
+    trainer.add_event_handler(Events.COMPLETED, run_validation)
 
     if rank == 0:
         if config['display_iters']:

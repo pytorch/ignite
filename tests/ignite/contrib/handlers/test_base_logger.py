@@ -2,6 +2,7 @@ import math
 import torch
 
 from ignite.engine import Engine, State, Events
+from ignite.engine.engine import EventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, global_step_from_engine
 from ignite.contrib.handlers import CustomPeriodicEvent
 
@@ -112,6 +113,9 @@ def test_attach():
 
         trainer.run(data, max_epochs=n_epochs)
 
+        if isinstance(event, EventWithFilter):
+            event = event.event
+
         mock_log_handler.assert_called_with(trainer, logger, event)
         assert mock_log_handler.call_count == n_calls
 
@@ -121,6 +125,8 @@ def test_attach():
     _test(Events.EPOCH_COMPLETED, n_epochs)
     _test(Events.STARTED, 1)
     _test(Events.COMPLETED, 1)
+
+    _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
 
 
 def test_attach_on_custom_event():
@@ -214,6 +220,10 @@ def test_as_context_manager():
                           event_name=event)
 
             trainer.run(data, max_epochs=n_epochs)
+
+            if isinstance(event, EventWithFilter):
+                event = event.event
+
             mock_log_handler.assert_called_with(trainer, logger, event)
             assert mock_log_handler.call_count == n_calls
 
@@ -225,6 +235,8 @@ def test_as_context_manager():
     _test(Events.EPOCH_COMPLETED, n_epochs)
     _test(Events.STARTED, 1)
     _test(Events.COMPLETED, 1)
+
+    _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
 
 
 def test_global_step_from_engine():
