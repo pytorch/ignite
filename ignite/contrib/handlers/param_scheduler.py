@@ -73,7 +73,7 @@ class ParamScheduler(with_metaclass(ABCMeta, object)):
 
     @classmethod
     def simulate_values(cls, num_events, **scheduler_kwargs):
-        """Method to simulate scheduled values during num_events events.
+        """Method to simulate scheduled values during `num_events` events.
 
         Args:
             num_events (int): number of events during the simulation.
@@ -106,6 +106,46 @@ class ParamScheduler(with_metaclass(ABCMeta, object)):
             scheduler(engine=None)
             values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
         return values
+
+    @classmethod
+    def plot_values(cls, num_events, **scheduler_kwargs):
+        """Method to plot simulated scheduled values during `num_events` events.
+
+        This class requires `matplotlib package <https://matplotlib.org/>`_ to be installed:
+
+        .. code-block:: bash
+
+            pip install matplotlib
+
+        Args:
+            num_events (int): number of events during the simulation.
+            **scheduler_kwargs : parameter scheduler configuration kwargs.
+
+        Returns:
+            matplotlib.lines.Line2D
+
+        Examples:
+
+            .. code-block:: python
+
+                import matplotlib.pylab as plt
+
+                plt.figure(figsize=(10, 7))
+                LinearCyclicalScheduler.plot_values(num_events=50, param_name='lr',
+                                                    start_value=1e-1, end_value=1e-3, cycle_size=10))
+        """
+        try:
+            import matplotlib.pylab as plt
+        except ImportError:
+            raise RuntimeError("This method requires matplotlib to be installed. "
+                               "Please install it with command: \n pip install matplotlib")
+
+        values = cls.simulate_values(num_events=num_events, **scheduler_kwargs)
+        label = scheduler_kwargs.get("param_name", "learning rate")
+        ax = plt.plot([e for e, _ in values], [v for _, v in values], label=label)
+        plt.legend()
+        plt.grid(which='both')
+        return ax
 
 
 class CyclicalScheduler(ParamScheduler):

@@ -1,0 +1,6 @@
+output
+cifar10
+.polyaxonignore
+.polyaxon
+plx_configs
+gcp_configs

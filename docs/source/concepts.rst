@@ -116,6 +116,38 @@ reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can 
 
     trainer.run(train_loader, max_epochs=100)
 
+
+Event handlers can be also configured to be called with a user pattern: every n-th events, once or using a custom
+event filtering function:
+
+.. code-block:: python
+
+    model = ...
+    train_loader, validation_loader, test_loader = ...
+
+    trainer = create_supervised_trainer(model, optimizer, loss)
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=50))
+    def log_training_loss_every_50_iterations(engine):
+        print("{} / {} : {} - loss: {:.2f}"
+              .format(engine.state.epoch, engine.state.max_epochs, engine.state.iteration, engine.state.output))
+
+    @trainer.on(Events.EPOCH_STARTED(once=25))
+    def do_something_once_on_25_epoch(engine):
+        # do something
+
+    def custom_event_filter(engine, event):
+        if event in [1, 2, 5, 10, 50, 100]:
+            return True
+        return False
+
+    @engine.on(Events.ITERATION_STARTED(event_filter=custom_event_filter))
+    def call_on_special_event(engine):
+         # do something on 1, 2, 5, 10, 50, 100 iterations
+
+    trainer.run(train_loader, max_epochs=100)
+
+
 .. Note ::
 
    User can also register custom events with :meth:`~ignite.engine.Engine.register_events`, attach handlers and fire custom events

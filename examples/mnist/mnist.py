@@ -65,13 +65,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         desc=desc.format(0)
     )
 
-    @trainer.on(Events.ITERATION_COMPLETED)
+    @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
-        iter = (engine.state.iteration - 1) % len(train_loader) + 1
-
-        if iter % log_interval == 0:
-            pbar.desc = desc.format(engine.state.output)
-            pbar.update(log_interval)
+        pbar.desc = desc.format(engine.state.output)
+        pbar.update(log_interval)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):

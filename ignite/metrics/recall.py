@@ -4,6 +4,7 @@ import torch
 
 from ignite.metrics.precision import _BasePrecisionRecall
 from ignite.utils import to_onehot
+from ignite.metrics.metric import reinit__is_reduced
 
 
 class Recall(_BasePrecisionRecall):
@@ -42,6 +43,12 @@ class Recall(_BasePrecisionRecall):
         as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
         than available RAM.
 
+    .. warning::
+
+        In multilabel cases, if average is False, current implementation does not work with distributed computations.
+        Results are not reduced across the GPUs. Computed result corresponds to the local rank's (single GPU) result.
+
+
     Args:
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
@@ -51,12 +58,18 @@ class Recall(_BasePrecisionRecall):
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
+        device (str of torch.device, optional): device specification in case of distributed computation usage.
+            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+            initialized and available, device is set to `cuda`.
+
     """
 
-    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
         super(Recall, self).__init__(output_transform=output_transform,
-                                     average=average, is_multilabel=is_multilabel)
+                                     average=average, is_multilabel=is_multilabel, device=device)
 
+    @reinit__is_reduced
     def update(self, output):
         y_pred, y = output
         self._check_shape(output)
