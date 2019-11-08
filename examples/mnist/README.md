@@ -22,7 +22,7 @@ MNIST example with training and validation monitoring using TensorboardX and Ten
 
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [TensorboardX](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
-- Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
+- Tensorboard: `pip install tensorboard`
 
 #### Usage:
 
@@ -60,15 +60,15 @@ python mnist_with_visdom.py
 
 ### Training save & resume
 
-Example showing how to save a checkpoint of the trainer, model, optimizer, lr scheduler. Training crash is emulated 
-and with user can resume the training passing from the latest checkpoint.
+Example shows how to save a checkpoint of the trainer, model, optimizer, lr scheduler. Training crash is emulated 
+and user can resume the training from the latest checkpoint.
  
 #### Requirements:
 
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
 - [TensorboardX](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
-- Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
+- Tensorboard: `pip install tensorboard`
 
 #### Usage:
 
