@@ -13,12 +13,12 @@ import torch.distributed as dist
 import ignite
 from ignite.engine import Events, Engine, create_supervised_evaluator
 from ignite.metrics import Accuracy, RunningAverage, Loss
-from ignite.handlers import ModelCheckpoint
+from ignite.handlers import ModelCheckpoint, EngineCheckpoint, DiskSaver
 from ignite.utils import convert_tensor
 
 from ignite.contrib.handlers import TensorboardLogger, ProgressBar
-from ignite.contrib.handlers.tensorboard_logger import OutputHandler as tbOutputHandler, \
-    OptimizerParamsHandler as tbOptimizerParamsHandler
+from ignite.contrib.handlers.tensorboard_logger import OutputHandler, OptimizerParamsHandler, GradsHistHandler, \
+    global_step_from_engine
 
 from ignite.contrib.handlers import PiecewiseLinear
 
@@ -128,11 +128,11 @@ def run(output_path, config):
 
         tb_logger = TensorboardLogger(log_dir=output_path)
         tb_logger.attach(trainer,
-                         log_handler=tbOutputHandler(tag="train",
-                                                     metric_names=metric_names),
+                         log_handler=OutputHandler(tag="train",
+                                                   metric_names=metric_names),
                          event_name=Events.ITERATION_COMPLETED)
         tb_logger.attach(trainer,
-                         log_handler=tbOptimizerParamsHandler(optimizer, param_name="lr"),
+                         log_handler=OptimizerParamsHandler(optimizer, param_name="lr"),
                          event_name=Events.ITERATION_STARTED)
 
     metrics = {
@@ -157,18 +157,18 @@ def run(output_path, config):
             ProgressBar(persist=False, desc="Test evaluation").attach(evaluator)
 
         tb_logger.attach(train_evaluator,
-                         log_handler=tbOutputHandler(tag="train",
-                                                     metric_names=list(metrics.keys()),
-                                                     another_engine=trainer),
+                         log_handler=OutputHandler(tag="train",
+                                                   metric_names=list(metrics.keys()),
+                                                   global_step_transform=global_step_from_engine(trainer)),
                          event_name=Events.COMPLETED)
 
         tb_logger.attach(evaluator,
-                         log_handler=tbOutputHandler(tag="test",
-                                                     metric_names=list(metrics.keys()),
-                                                     another_engine=trainer),
+                         log_handler=OutputHandler(tag="test",
+                                                   metric_names=list(metrics.keys()),
+                                                   global_step_transform=global_step_from_engine(trainer)),
                          event_name=Events.COMPLETED)
 
-        # Store the best model
+        # Store the best model:
         def default_score_fn(engine):
             score = engine.state.metrics['accuracy']
             return score
@@ -181,6 +181,23 @@ def run(output_path, config):
                                              score_name="val_accuracy",
                                              score_function=score_function)
         evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
+
+        # Store training checkpoints:
+        objects_to_checkpoint = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
+        engine_checkpoint = EngineCheckpoint(to_save=objects_to_checkpoint,
+                                             save_handler=DiskSaver("trainer", output_path))
+
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=200), engine_checkpoint)
+
+        if config['log_model_grads_every'] is not None:
+            tb_logger.attach(trainer,
+                             log_handler=GradsHistHandler(model, tag=model.__class__.__name__),
+                             event_name=Events.ITERATION_COMPLETED(every=config['log_model_grads_every']))
+
+        if config['crash_iteration'] is not None:
+            @trainer.on(Events.ITERATION_STARTED(once=config['crash_iteration']))
+            def _(engine):
+                raise Exception("STOP at iteration: {}".format(engine.state.iteration))
 
     trainer.run(train_labelled_loader, max_epochs=config['num_epochs'])
 
@@ -229,7 +246,12 @@ if __name__ == "__main__":
         "dist_backend": None,  # if None distributed option is disabled, set to "nccl" to enable
 
         # Logging:
-        "display_iters": True
+        "display_iters": True,
+        "log_model_grads_every": None,
+
+        # Crash/Resume training:
+        "resume_from": None,
+        "crash_iteration": None,
     }
 
     if args.local_rank is not None:
@@ -293,6 +315,7 @@ if __name__ == "__main__":
         run(output_path, config)
     except KeyboardInterrupt:
         print("Catched KeyboardInterrupt -> exit")
-
-    if distributed:
-        dist.destroy_process_group()
+    except Exception as e:
+        if distributed:
+            dist.destroy_process_group()
+        raise e

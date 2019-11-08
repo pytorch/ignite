@@ -2,7 +2,7 @@
 
 if [ -z $4 ]; then
     echo "Usage:"
-    echo "\tbash submit_job.sh <PROJECT> <REGION> <NUM_NODES> <NUM_GPUS_PER_NODE>"
+    echo "\tbash submit_job.sh <PROJECT> <REGION> <NUM_NODES> <NUM_GPUS_PER_NODE> [additional params]"
     echo "\te.g. bash submit_job.sh ignite-distrib us-east1 2 4"
     exit 0
 fi
@@ -11,6 +11,7 @@ PROJECT=$1
 REGION=$2
 NUM_NODES=$3
 NUM_GPUS_PER_NODE=$4
+ADDITIONAL_PARAMS=$5
 
 JOB_NAME="training-${NUM_NODES}n-${NUM_GPUS_PER_NODE}g-$(date +%Y%m%d-%H%M%S)"
 OUTPUT_PATH="gs://output-cifar10/${JOB_NAME}"
@@ -48,4 +49,4 @@ gcloud ai-platform jobs submit training $job_id \
     --master-machine-type $machine_type \
     --master-accelerator count=$NUM_GPUS_PER_NODE,type=$accelerator_type \
     $workers_setup -- \
-    $NUM_NODES $NUM_GPUS_PER_NODE $OUTPUT_PATH
+    $NUM_NODES $NUM_GPUS_PER_NODE $OUTPUT_PATH $ADDITIONAL_PARAMS
