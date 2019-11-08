@@ -10,14 +10,117 @@ import random
 
 import torch
 
-
 from ignite._utils import _to_hours_mins_secs
 
 IS_PYTHON2 = sys.version_info[0] < 3
 
 
-class Events(Enum):
-    """Events that are fired by the :class:`~ignite.engine.Engine` during execution."""
+class EventWithFilter(object):
+
+    def __init__(self, event, filter):
+        if not callable(filter):
+            raise TypeError("Argument filter should be callable")
+        self.event = event
+        self.filter = filter
+
+    def __str__(self):
+        return "<%s event=%s, filter=%r>" % (self.__class__.__name__, self.event, self.filter)
+
+
+class CallableEvents(object):
+    """Base class for Events implementing call operator and storing event filter. This class should be inherited
+    for any custom events with event filtering feature:
+
+    .. code-block:: python
+
+        from ignite.engine.engine import CallableEvents
+
+        class CustomEvents(CallableEvents, Enum):
+            TEST_EVENT = "test_event"
+
+        engine = ...
+        engine.register_events(*CustomEvents, event_to_attr={CustomEvents.TEST_EVENT: "test_event"})
+
+        @engine.on(CustomEvents.TEST_EVENT(every=5))
+        def call_on_test_event_every(engine):
+            # do something
+
+    """
+    def __call__(self, event_filter=None, every=None, once=None):
+
+        if not((event_filter is not None) ^ (every is not None) ^ (once is not None)):
+            raise ValueError("Only one of the input arguments should be specified")
+
+        if (event_filter is not None) and not callable(event_filter):
+            raise TypeError("Argument event_filter should be a callable")
+
+        if (every is not None) and not (isinstance(every, numbers.Integral) and every > 1):
+            raise ValueError("Argument every should be integer and greater than one")
+
+        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
+            raise ValueError("Argument every should be integer and positive")
+
+        if every is not None:
+            event_filter = CallableEvents.every_event_filter(every)
+
+        if once is not None:
+            event_filter = CallableEvents.once_event_filter(once)
+
+        # check signature:
+        Engine._check_signature("engine", event_filter, "event_filter", "event")
+
+        return EventWithFilter(self, event_filter)
+
+    @staticmethod
+    def every_event_filter(every):
+        def wrapper(engine, event):
+            if event % every == 0:
+                return True
+            return False
+        return wrapper
+
+    @staticmethod
+    def once_event_filter(once):
+        def wrapper(engine, event):
+            if event == once:
+                return True
+            return False
+        return wrapper
+
+
+class Events(CallableEvents, Enum):
+    """Events that are fired by the :class:`~ignite.engine.Engine` during execution.
+
+    Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:
+
+    .. code-block:: python
+
+        engine = Engine()
+
+        # a) custom event filter
+        def custom_event_filter(engine, event):
+            if event in [1, 2, 5, 10, 50, 100]:
+                return True
+            return False
+
+        @engine.on(Events.ITERATION_STARTED(event_filter=custom_event_filter))
+        def call_on_special_event(engine):
+             # do something on 1, 2, 5, 10, 50, 100 iterations
+
+        # b) "every" event filter
+        @engine.on(Events.ITERATION_STARTED(every=10))
+        def call_every(engine):
+            # do something every 10th iteration
+
+        # c) "once" event filter
+        @engine.on(Events.ITERATION_STARTED(once=50))
+        def call_once(engine):
+            # do something on 50th iteration
+
+    Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
+    Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
+
+    """
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"
@@ -50,7 +153,7 @@ class State(object):
         Events.EPOCH_STARTED: "epoch",
         Events.EPOCH_COMPLETED: "epoch",
         Events.STARTED: "epoch",
-        Events.COMPLETED: "epoch"
+        Events.COMPLETED: "epoch",
     }
 
     def __init__(self, **kwargs):
@@ -68,6 +171,8 @@ class State(object):
                 setattr(self, value, 0)
 
     def get_event_attrib_value(self, event_name):
+        if isinstance(event_name, EventWithFilter):
+            event_name = event_name.event
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
@@ -177,7 +282,7 @@ class Engine(object):
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        self._check_signature(process_function, 'process_function', None)
+        Engine._check_signature(self, process_function, 'process_function', None)
 
     def register_events(self, *event_names, **kwargs):
         """Add events that can be fired.
@@ -191,20 +296,21 @@ class Engine(object):
         Args:
             *event_names: An object (ideally a string or int) to define the
                 name of the event being supported.
-            event_to_attr (dict): A dictionary to map an event to a state attribute.
+            event_to_attr (dict, optional): A dictionary to map an event to a state attribute.
 
         Example usage:
 
         .. code-block:: python
 
             from enum import Enum
+            from ignite.engine import Engine
 
-            class Custom_Events(Enum):
+            class CustomEvents(CallableEvents, Enum):
                 FOO_EVENT = "foo_event"
                 BAR_EVENT = "bar_event"
 
             engine = Engine(process_function)
-            engine.register_events(*Custom_Events)
+            engine.register_events(*CustomEvents)
 
 
         Example with State Attribute:
@@ -212,28 +318,41 @@ class Engine(object):
         .. code-block:: python
 
             from enum import Enum
+            from ignite.engine.engine import Engine, CallableEvents
 
-            class TBPTT_Events(Enum):
+            class TBPTT_Events(CallableEvents, Enum):
                 TIME_ITERATION_STARTED = "time_iteration_started"
                 TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
-            TBPTT_event_to_attr = {TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
-                                   TBPTT_Events.TIME_ITERATION_COMPLETED: 'time_iteration'}
+            TBPTT_event_to_attr = {
+                TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
+                TBPTT_Events.TIME_ITERATION_COMPLETED: 'time_iteration'
+            }
 
             engine = Engine(process_function)
             engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
             engine.run(data)
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
+        # for python2 compatibility:
         event_to_attr = kwargs.get('event_to_attr', None)
-        if event_to_attr:
+        if event_to_attr is not None:
             if not isinstance(event_to_attr, dict):
                 raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
 
-        for name in event_names:
-            self._allowed_events.append(name)
-            if event_to_attr:
-                State.event_to_attr[name] = event_to_attr[name]
+        for e in event_names:
+            self._allowed_events.append(e)
+            if event_to_attr and e in event_to_attr:
+                State.event_to_attr[e] = event_to_attr[e]
+
+    def _handler_wrapper(self, handler, event_name, event_filter):
+
+        def wrapper(*args, **kwargs):
+            event = self.state.get_event_attrib_value(event_name)
+            if event_filter(self, event):
+                return handler(*args, **kwargs)
+
+        return wrapper
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
@@ -246,11 +365,11 @@ class Engine(object):
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
-              The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
-              was bound to.
+            The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
+            was bound to.
 
-              Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
-              passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
+            Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
+            passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handler.
@@ -266,13 +385,22 @@ class Engine(object):
 
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
+
+        Note:
+            Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
+            See :class:`~ignite.engine.Events` for more details.
+
         """
+        if isinstance(event_name, EventWithFilter):
+            event_name, event_filter = event_name.event, event_name.filter
+            handler = self._handler_wrapper(handler, event_name, event_filter)
+
         if event_name not in self._allowed_events:
             self._logger.error("attempt to add event handler to an invalid event %s.", event_name)
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
-        self._check_signature(handler, 'handler', *(event_args + args), **kwargs)
+        Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self._logger.debug("added handler for event %s.", event_name)
@@ -316,6 +444,7 @@ class Engine(object):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
 
+    @staticmethod
     def _check_signature(self, fn, fn_description, *args, **kwargs):
         exception_msg = None
 

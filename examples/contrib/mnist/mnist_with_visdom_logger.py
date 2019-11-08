@@ -33,7 +33,6 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.contrib.handlers.visdom_logger import *
-from ignite.contrib.handlers import CustomPeriodicEvent
 
 
 class Net(nn.Module):
@@ -78,9 +77,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
 
-    cpe = CustomPeriodicEvent(n_iterations=100)
-    cpe.attach(trainer)
-
     metrics = {
         'accuracy': Accuracy(),
         'loss': Loss(criterion)
@@ -98,7 +94,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
 
     vd_logger.attach(trainer,
                      log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'batchloss': loss}),
-                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     vd_logger.attach(train_evaluator,
                      log_handler=OutputHandler(tag="training",
@@ -114,15 +110,15 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
 
     vd_logger.attach(trainer,
                      log_handler=OptimizerParamsHandler(optimizer),
-                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     vd_logger.attach(trainer,
                      log_handler=WeightsScalarHandler(model),
-                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     vd_logger.attach(trainer,
                      log_handler=GradsScalarHandler(model),
-                     event_name=cpe.Events.ITERATIONS_100_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)

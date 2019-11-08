@@ -109,7 +109,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
                      log_handler=OutputHandler(tag="training",
                                                output_transform=lambda loss: {'batchloss': loss},
                                                metric_names='all'),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(train_evaluator,
                      log_handler=OutputHandler(tag="training",
@@ -125,23 +125,23 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
 
     tb_logger.attach(trainer,
                      log_handler=OptimizerParamsHandler(optimizer),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=WeightsScalarHandler(model),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=WeightsHistHandler(model),
-                     event_name=Events.EPOCH_COMPLETED)
+                     event_name=Events.EPOCH_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=GradsScalarHandler(model),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=GradsHistHandler(model),
-                     event_name=Events.EPOCH_COMPLETED)
+                     event_name=Events.EPOCH_COMPLETED(every=100))
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)

@@ -109,12 +109,11 @@ def main(env, args):
         engine.state.running_reward = engine.state.running_reward * 0.99 + t * 0.01
         finish_episode(model, optimizer, args.gamma, eps)
 
-    @trainer.on(EPISODE_COMPLETED)
+    @trainer.on(EPISODE_COMPLETED(every=args.log_interval))
     def log_episode(engine):
         i_episode = engine.state.epoch
-        if i_episode % args.log_interval == 0:
-            print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
-                i_episode, engine.state.timestep, engine.state.running_reward))
+        print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
+            i_episode, engine.state.timestep, engine.state.running_reward))
 
     @trainer.on(EPISODE_COMPLETED)
     def should_finish_training(engine):
