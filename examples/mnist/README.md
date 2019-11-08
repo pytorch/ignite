@@ -92,4 +92,5 @@ Start tensorboard:
 tensorboard --logdir=/tmp/mnist_save_resume/
 ```
 
-
+![tb1](assets/save_resume_p1.png)
+![tb2](assets/save_resume_p2.png)
