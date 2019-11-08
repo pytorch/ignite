@@ -1,17 +1,25 @@
+from pathlib import Path
 from argparse import ArgumentParser
 
 import torch
 from torch import nn
 from torch.optim import SGD
+from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+
 from torchvision.transforms import Compose, ToTensor, Normalize
 from torchvision.datasets import MNIST
+
+from tqdm import tqdm
+try:
+    from tensorboardX import SummaryWriter
+except ImportError:
+    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.handlers import EngineCheckpoint, DiskSaver
-from tqdm import tqdm
 
 
 class Net(nn.Module):
@@ -46,38 +54,61 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 def run(train_batch_size, val_batch_size,
         epochs, lr, momentum,
-        log_interval, restore_from, crash_iteration=1000):
+        log_interval, log_dir,
+        checkpoint_every,
+        resume_from, crash_iteration=1000):
 
+    log_dir = Path(log_dir)
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
+    writer = SummaryWriter(logdir=log_dir.as_posix())
     device = 'cpu'
 
     if torch.cuda.is_available():
         device = 'cuda'
 
+    criterion = nn.NLLLoss()
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
-    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
+    lr_scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
+    trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
     evaluator = create_supervised_evaluator(model,
                                             metrics={'accuracy': Accuracy(),
-                                                     'nll': Loss(F.nll_loss)},
+                                                     'nll': Loss(criterion)},
                                             device=device)
 
-    desc = "ITERATION - loss: {:.2f}"
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def lr_step(engine):
+        lr_scheduler.step()
+
+    desc = "ITERATION - loss: {:.4f} - lr: {:.4f}"
     pbar = tqdm(
         initial=0, leave=False, total=len(train_loader),
-        desc=desc.format(0)
+        desc=desc.format(0, lr)
     )
 
-    @trainer.on(Events.ITERATION_COMPLETED)
+    if log_interval is None:
+        e = Events.ITERATION_COMPLETED
+        log_interval = 1
+    else:
+        e = Events.ITERATION_COMPLETED(every=log_interval)
+
+    @trainer.on(e)
     def log_training_loss(engine):
-        iter = (engine.state.iteration - 1) % len(train_loader) + 1
+        lr = optimizer.param_groups[0]['lr']
+        pbar.desc = desc.format(engine.state.output, lr)
+        pbar.update(log_interval)
+        writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
+        writer.add_scalar("lr", lr, engine.state.iteration)
 
-        if iter % log_interval == 0:
-            pbar.desc = desc.format(engine.state.output)
-            pbar.update(log_interval)
-
-        if engine.state.iteration == crash_iteration:
+    if resume_from is None:
+        @trainer.on(Events.ITERATION_COMPLETED(once=crash_iteration))
+        def _(engine):
             raise Exception("STOP at {}".format(engine.state.iteration))
+    else:
+        @trainer.on(Events.STARTED)
+        def _(engine):
+            pbar.n = engine.state.iteration
+            print("Engine resuming state:\n {}".format(repr(engine.state)))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
@@ -90,6 +121,8 @@ def run(train_batch_size, val_batch_size,
             "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
             .format(engine.state.epoch, avg_accuracy, avg_nll)
         )
+        writer.add_scalar("training/avg_loss", avg_nll, engine.state.epoch)
+        writer.add_scalar("training/avg_accuracy", avg_accuracy, engine.state.epoch)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
@@ -100,22 +133,30 @@ def run(train_batch_size, val_batch_size,
         tqdm.write(
             "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
             .format(engine.state.epoch, avg_accuracy, avg_nll))
-
         pbar.n = pbar.last_print_n = 0
+        writer.add_scalar("valdation/avg_loss", avg_nll, engine.state.epoch)
+        writer.add_scalar("valdation/avg_accuracy", avg_accuracy, engine.state.epoch)
 
-    objects_to_checkpoint = {"model": model, "optimizer": optimizer}
+    objects_to_checkpoint = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     engine_checkpoint = EngineCheckpoint(to_save=objects_to_checkpoint,
-                                         save_handler=DiskSaver("trainer", "/tmp/engine"))
+                                         save_handler=DiskSaver("trainer", log_dir))
 
-    # def every(engine):
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=checkpoint_every), engine_checkpoint)
 
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, engine_checkpoint)
-
-    if restore_from == "":
-        trainer.run(train_loader, max_epochs=epochs)
+    if resume_from is None:
+        try:
+            trainer.run(train_loader, max_epochs=epochs)
+        except Exception as e:
+            print(e)
     else:
-        trainer.resume(train_loader, restore_from, to_load=objects_to_checkpoint)
+        checkpoint_fp = Path(resume_from) / engine_checkpoint.save_handler.filename
+        print("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
+        checkpoint = torch.load(checkpoint_fp.as_posix())
+        EngineCheckpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
+        trainer.resume(train_loader, state_dict=checkpoint['engine'])
+
     pbar.close()
+    writer.close()
 
 
 if __name__ == "__main__":
@@ -132,11 +173,16 @@ if __name__ == "__main__":
                         help='SGD momentum (default: 0.5)')
     parser.add_argument('--log_interval', type=int, default=10,
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--restore_from', type=str, default="", help='restore trainer state from checkpoint')
-    parser.add_argument('--crash_iteration', type=int, default=1000, help='Iteration to suddenly raise as exception')
+    parser.add_argument("--log_dir", type=str, default="/tmp/mnist_save_resume",
+                        help="log directory for Tensorboard log output")
+    parser.add_argument('--checkpoint_every', type=int, default=550, help='Checkpoint training every X iterations')
+    parser.add_argument('--resume_from', type=str, default=None,
+                        help='Folder with a checkpoint to resume training from')
+    parser.add_argument('--crash_iteration', type=int, default=3000, help='Iteration at which to raise an exception')
 
     args = parser.parse_args()
 
     run(args.batch_size, args.val_batch_size,
         args.epochs, args.lr, args.momentum,
-        args.log_interval, args.restore_from, args.crash_iteration)
+        args.log_interval, args.log_dir, args.checkpoint_every,
+        args.resume_from, args.crash_iteration)

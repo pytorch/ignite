@@ -56,3 +56,40 @@ Run the example:
 ```bash
 python mnist_with_visdom.py
 ```
+
+
+### Training save & resume
+
+Example showing how to save a checkpoint of the trainer, model, optimizer, lr scheduler. Training crash is emulated 
+and with user can resume the training passing from the latest checkpoint.
+ 
+#### Requirements:
+
+- [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
+- [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
+- [TensorboardX](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+- Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
+
+#### Usage:
+
+Initial training with a crash
+```bash
+python mnist_save_resume_engine.py
+```
+
+Resume from the latest checkpoint
+```bash
+python mnist_save_resume_engine.py --resume_from /tmp/mnist_save_resume/<XYZ>/initial-3000
+```
+
+Training without crashing
+```bash
+python mnist_save_resume_engine.py --crash_iteration 100000
+```
+
+Start tensorboard:
+```bash
+tensorboard --logdir=/tmp/mnist_save_resume/
+```
+
+

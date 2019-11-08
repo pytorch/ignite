@@ -214,9 +214,10 @@ class DiskSaver(object):
         if not os.path.exists(dirname):
             raise ValueError("Directory path '{}' is not found".format(dirname))
 
+        self.filename = "{}_checkpoint.pth.tar".format(self.tag)
+
     def __call__(self, checkpoint):
-        filename = "{}_checkpoint.pth.tar".format(self.tag)
-        path = os.path.join(self.dirname, filename)
+        path = os.path.join(self.dirname, self.filename)
 
         if not self._atomic:
             torch.save(checkpoint, path)
