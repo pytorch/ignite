@@ -43,7 +43,7 @@ run:
   - echo "nnodes=$WORLD_SIZE"
   - echo "node_rank=$RANK"
 
-  - python -m torch.distributed.launch --nproc_per_node=1
+  - python -m torch.distributed.launch --nproc_per_node=2
     --nnodes=$WORLD_SIZE --node_rank=$RANK --master_addr="$MASTER_ADDR" --master_port=$MASTER_PORT
     main.py --params="batch_size=512;dist_backend='nccl';data_path=$DATA_PATH;output_path=$POLYAXON_RUN_OUTPUTS_PATH;display_iters=False"
 
