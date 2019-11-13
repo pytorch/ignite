@@ -65,8 +65,10 @@ python -u -m torch.distributed.launch \
 
 ![tb2](assets/tb_logger_gcp.png)
 
+## Reproduce trainings
 
-To reproduce trainings on GCP AI platform, please see [gcp_ai_platform](gcp_ai_platform/README.md).
+- To reproduce trainings with [Polyaxon](https://polyaxon.com/), please see [plx_configs/README.md](plx_configs/README.md)
+- To reproduce trainings on [GCP AI platform](https://cloud.google.com/ml-engine/docs/), please see [gcp_ai_platform](gcp_ai_platform/README.md).
 
 ## Acknowledgements
 
