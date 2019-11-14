@@ -98,7 +98,7 @@ def run(output_path, config):
     if not hasattr(lr_scheduler, "step"):
         trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
     else:
-        trainer.add_event_handler(Events.ITERATION_STARTED, lambda engine: lr_scheduler.step())
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: lr_scheduler.step())
 
     metric_names = [
         'batch loss',
