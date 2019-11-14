@@ -105,7 +105,7 @@ class BaseOutputHandler(BaseHandler):
             if not isinstance(another_engine, Engine):
                 raise TypeError("Argument another_engine should be of type Engine, "
                                 "but given {}".format(type(another_engine)))
-            warnings.warn("Use of another_engine is deprecated and will be removed in 0.3.0. "
+            warnings.warn("Use of another_engine is deprecated and will be removed in 0.4.0. "
                           "Please use global_step_transform instead.", DeprecationWarning)
             global_step_transform = global_step_from_engine(another_engine)
 
