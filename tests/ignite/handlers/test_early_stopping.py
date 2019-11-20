@@ -181,7 +181,6 @@ def test_with_engine_no_early_stopping():
 def _test_distrib_with_engine_early_stopping(device):
 
     import torch.distributed as dist
-    from ignite.engine import Engine
 
     torch.manual_seed(12)
 
@@ -218,17 +217,71 @@ def _test_distrib_with_engine_early_stopping(device):
     assert n_epochs_counter.count == 7
 
 
+def _test_distrib_integration_engine_early_stopping(device):
+
+    import torch.distributed as dist
+    from ignite.metrics import Accuracy
+    rank = dist.get_rank()
+    ws = dist.get_world_size()
+    torch.manual_seed(12)
+
+    n_epochs = 10
+    n_iters = 20
+
+    y_preds = [
+        torch.randint(0, 2, size=(n_iters, ws)).to(device)
+    ] + [
+        torch.ones(n_iters, ws).to(device)
+    ] + [
+        torch.randint(0, 2, size=(n_iters, ws)).to(device) for _ in range(n_epochs - 2)
+    ]
+
+    y_true = [
+        torch.randint(0, 2, size=(n_iters, ws)).to(device)
+    ] + [
+        torch.ones(n_iters, ws).to(device)
+    ] + [
+        torch.randint(0, 2, size=(n_iters, ws)).to(device) for _ in range(n_epochs - 2)
+    ]
+
+    def update(engine, _):
+        e = trainer.state.epoch - 1
+        i = engine.state.iteration - 1
+        return y_preds[e][i, rank], y_true[e][i, rank]
+
+    evaluator = Engine(update)
+    acc = Accuracy(device=device)
+    acc.attach(evaluator, "acc")
+
+    def score_function(engine):
+        return engine.state.metrics['acc']
+
+    trainer = Engine(lambda e, b: None)
+    early_stopping = EarlyStopping(patience=3, score_function=score_function, trainer=trainer)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def evaluation(engine):
+        data = list(range(n_iters))
+        evaluator.run(data=data)
+
+    evaluator.add_event_handler(Events.COMPLETED, early_stopping)
+    trainer.run([0], max_epochs=10)
+    assert trainer.state.epoch == 5
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
     _test_distrib_with_engine_early_stopping(device)
+    _test_distrib_integration_engine_early_stopping(device)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
     device = "cpu"
     _test_distrib_with_engine_early_stopping(device)
+    _test_distrib_integration_engine_early_stopping(device)
 
 
 @pytest.mark.multinode_distributed
@@ -236,6 +289,7 @@ def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_with_engine_early_stopping(device)
+    _test_distrib_integration_engine_early_stopping(device)
 
 
 @pytest.mark.multinode_distributed
@@ -243,3 +297,4 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
     _test_distrib_with_engine_early_stopping(device)
+    _test_distrib_integration_engine_early_stopping(device)
