@@ -38,31 +38,26 @@ def test_args_validation(dirname):
     with open(os.path.join(nonempty, '{}_name_0.pth'.format(_PREFIX)), 'w'):
         pass
 
-    # save_interval & score_func
-    with pytest.raises(ValueError):
-        h = ModelCheckpoint(existing, _PREFIX,
-                            create_dir=False)
+    with pytest.raises(ValueError, match=r"Files are already present in the directory"):
+        ModelCheckpoint(nonempty, _PREFIX)
 
-    with pytest.raises(ValueError):
-        h = ModelCheckpoint(nonempty, _PREFIX, save_interval=42)
+    with pytest.raises(ValueError, match=r"Argument save_interval is deprecated and should be None"):
+        ModelCheckpoint(existing, _PREFIX, save_interval=42)
 
-    with pytest.raises(ValueError):
-        h = ModelCheckpoint(nonempty, _PREFIX,
-                            score_function="score",
-                            save_interval=42)
+    with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
+        ModelCheckpoint(os.path.join(dirname, 'non_existing_dir'), _PREFIX, create_dir=False)
 
-    with pytest.raises(ValueError):
-        h = ModelCheckpoint(os.path.join(dirname, 'non_existing_dir'), _PREFIX,
-                            create_dir=False,
-                            save_interval=42)
+    with pytest.raises(ValueError, match=r"Argument save_as_state_dict is deprecated and should be True"):
+        ModelCheckpoint(existing, _PREFIX, create_dir=False, save_as_state_dict=False)
 
 
 def test_simple_recovery(dirname):
-    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, save_interval=1,
-                        save_as_state_dict=False)
-    h(None, {'obj': 42})
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
 
-    fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
+    model = DummyModel()
+    h(None, {'model': model})
+
+    fname = ModelCheckpoint.
     assert torch.load(fname) == 42
 
 
@@ -352,3 +347,7 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
         lr_scheduler_value = lr_scheduler_state_dict[key]
         loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
         assert lr_scheduler_value == loaded_lr_scheduler_value
+
+
+def test_():
+    pass
