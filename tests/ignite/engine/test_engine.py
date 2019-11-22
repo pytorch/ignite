@@ -361,7 +361,7 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(TypeError, match=r"Argument event_filter should be a callable"):
         Events.ITERATION_STARTED(event_filter="123")
 
-    with pytest.raises(ValueError, match=r"Argument every should be integer and greater than one"):
+    with pytest.raises(ValueError, match=r"Argument every should be integer and greater than zero"):
         Events.ITERATION_STARTED(every=-1)
 
     with pytest.raises(ValueError, match=r"but will be called with"):
@@ -407,6 +407,12 @@ def test_callable_events():
         assert id(e1) != id(e2)
 
     _attach(Events.ITERATION_STARTED(every=10), Events.ITERATION_COMPLETED(every=10))
+
+
+def test_callable_events_every_eq_one():
+    e = Events.ITERATION_STARTED(every=1)
+    assert not isinstance(e, EventWithFilter)
+    assert isinstance(e, Events)
 
 
 def test_every_event_filter_with_engine():
