@@ -5,15 +5,15 @@ import torch
 import torch.distributed as dist
 
 from apex import amp
+from apex.parallel import DistributedDataParallel as DDP
 
-from ignite.engine import Events, _prepare_batch
+from ignite.engine import Engine, Events, _prepare_batch, create_supervised_evaluator
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 
-from py_config_runner.utils import set_seed
+from ignite.contrib.handlers import ProgressBar
+from ignite.contrib.engines import common
 
-from utils.commons import initialize_amp, setup_distrib_trainer, setup_distrib_evaluators, \
-    setup_mlflow_logging, setup_plx_logging, setup_tb_logging, \
-    save_best_model_by_val_score, add_early_stopping_by_val_score
+from py_config_runner.utils import set_seed
 
 from utils.handlers import predictions_gt_images_handler
 
@@ -41,12 +41,14 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
 
     model = config.model.to(device)
     optimizer = config.optimizer
-    model, optimizer = initialize_amp(model, optimizer, getattr(config, "fp16_opt_level", "O2"))
+    model, optimizer = amp.initialize(model, optimizer, opt_level=getattr(config, "fp16_opt_level", "O2"), num_losses=1)
+    model = DDP(model, delay_allreduce=True)
     criterion = config.criterion.to(device)
 
-    # Setup trainer
     prepare_batch = getattr(config, "prepare_batch", _prepare_batch)
     non_blocking = getattr(config, "non_blocking", True)
+
+    # Setup trainer
     accumulation_steps = getattr(config, "accumulation_steps", 1)
     model_output_transform = getattr(config, "model_output_transform", lambda x: x)
 
@@ -70,15 +72,20 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
             'supervised batch loss': loss.item(),
         }
 
-    trainer = setup_distrib_trainer(train_update_function, model, optimizer, train_sampler, config,
-                                    # Avoid too much pbar logs
-                                    setup_pbar_on_iters=not with_plx_logging)
+    trainer = Engine(train_update_function)
+    common.setup_common_distrib_training_handlers(
+        trainer, train_sampler,
+        to_save={'model': model, 'optimizer': optimizer},
+        save_every=1000,  output_path=config.output_path.as_posix(),
+        lr_scheduler=config.lr_scheduler, with_gpu_stats=True,
+        output_names=['supervised batch loss', ],
+        with_pbars=True, with_pbar_on_iters=with_mlflow_logging,
+        log_every_iters=1
+    )
 
-    def output_transform(output):
-        return output['y_pred'], output['y']
-
+    # Setup evaluators
     num_classes = config.num_classes
-    cm_metric = ConfusionMatrix(num_classes=num_classes, output_transform=output_transform)
+    cm_metric = ConfusionMatrix(num_classes=num_classes)
 
     val_metrics = {
         "IoU": IoU(cm_metric),
@@ -88,34 +95,48 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
     if hasattr(config, "val_metrics") and isinstance(config.val_metrics, dict):
         val_metrics.update(config.val_metrics)
 
-    train_evaluator, evaluator = setup_distrib_evaluators(model, device, val_metrics, config,
-                                                          # Avoid too much pbar logs
-                                                          setup_pbar_on_iters=not with_plx_logging)
+    model_output_transform = getattr(config, "model_output_transform", lambda x: x)
 
-    val_interval = getattr(config, "val_interval", 1)
-    start_by_validation = getattr(config, "start_by_validation", False)
+    train_evaluator = create_supervised_evaluator(
+        model, metrics=val_metrics, device=device, non_blocking=non_blocking, prepare_batch=prepare_batch,
+        output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y,)
+    )
+    evaluator = create_supervised_evaluator(
+        model, metrics=val_metrics, device=device, non_blocking=non_blocking, prepare_batch=prepare_batch,
+        output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y,)
+    )
 
-    def run_validation(engine, val_interval):
-        if engine.state.epoch > int(not start_by_validation) and ((engine.state.epoch - 1) % val_interval == 0):
-            train_evaluator.run(train_eval_loader)
-            evaluator.run(val_loader)
+    if dist.get_rank() == 0 and with_mlflow_logging:
+        ProgressBar(persist=False, desc="Train Evaluation").attach(train_evaluator)
+        ProgressBar(persist=False, desc="Val Evaluation").attach(evaluator)
 
-    trainer.add_event_handler(Events.EPOCH_STARTED, run_validation, val_interval=val_interval)
-    trainer.add_event_handler(Events.COMPLETED, run_validation, val_interval=1)
+    def run_validation(_):
+        train_evaluator.run(train_eval_loader)
+        evaluator.run(val_loader)
+
+    if getattr(config, "start_by_validation", False):
+        trainer.add_event_handler(Events.STARTED, run_validation)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=getattr(config, "val_interval", 1)), run_validation)
+    trainer.add_event_handler(Events.COMPLETED, run_validation)
+
+    score_metric_name = "mIoU_bg"
+
+    if hasattr(config, "es_patience"):
+        common.add_early_stopping_by_val_score(evaluator, trainer, metric_name="mIoU_bg", config=config)
 
     if dist.get_rank() == 0:
 
-        tb_logger = setup_tb_logging(trainer, optimizer, train_evaluator, evaluator, config)
+        tb_logger = common.setup_tb_logging(config.output_path.as_posix(), trainer, optimizer,
+                                            evaluators={"training": train_evaluator, "validation": evaluator})
         if with_mlflow_logging:
-            setup_mlflow_logging(trainer, optimizer, train_evaluator, evaluator)
+            common.setup_mlflow_logging(trainer, optimizer,
+                                        evaluators={"training": train_evaluator, "validation": evaluator})
 
         if with_plx_logging:
-            setup_plx_logging(trainer, optimizer, train_evaluator, evaluator)
+            common.setup_plx_logging(trainer, optimizer,
+                                     evaluators={"training": train_evaluator, "validation": evaluator})
 
-        save_best_model_by_val_score(evaluator, model, metric_name="mIoU_bg", config=config)
-
-        if hasattr(config, "es_patience"):
-            add_early_stopping_by_val_score(evaluator, trainer, metric_name="mIoU_bg", config=config)
+        common.save_best_model_by_val_score(config.output_path.as_posix(), evaluator, model, metric_name=score_metric_name)
 
         # Log train/val predictions:
         tb_logger.attach(evaluator,

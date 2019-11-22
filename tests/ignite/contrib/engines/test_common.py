@@ -5,8 +5,8 @@ import shutil
 import torch
 import torch.nn as nn
 
-from ignite.engine import Events
-from ignite.contrib.engines import create_common_trainer, create_common_distrib_trainer
+from ignite.engine import Events, Engine
+from ignite.contrib.engines import setup_common_training_handlers
 
 from ignite.handlers import TerminateOnNan
 
@@ -29,7 +29,7 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def test_create_common_trainer(dirname, capsys):
+def test_setup_common_training_handlers(dirname, capsys):
 
     lr = 0.01
     step_size = 100
@@ -48,12 +48,13 @@ def test_create_common_trainer(dirname, capsys):
         optimizer.step()
         return loss
 
-    trainer = create_common_trainer(update_fn,
-                                    to_save={"model": model, "optimizer": optimizer},
-                                    save_every=75, output_path=dirname,
-                                    lr_scheduler=lr_scheduler, with_gpu_stats=False,
-                                    output_names=['batch_loss', ],
-                                    with_pbars=True, with_pbar_on_iters=True, log_every=50)
+    trainer = Engine(update_fn)
+    setup_common_training_handlers(update_fn,
+                                   to_save={"model": model, "optimizer": optimizer},
+                                   save_every=75, output_path=dirname,
+                                   lr_scheduler=lr_scheduler, with_gpu_stats=False,
+                                   output_names=['batch_loss', ],
+                                   with_pbars=True, with_pbar_on_iters=True, log_every=50)
 
     num_iters = 100
     num_epochs = 10

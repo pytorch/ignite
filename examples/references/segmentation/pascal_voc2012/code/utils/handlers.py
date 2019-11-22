@@ -10,7 +10,7 @@ def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_eng
         output = engine.state.output
         x = batch['image']
         y = batch['mask']
-        y_pred = output['y_pred']
+        y_pred = output[0]
 
         if y.shape == y_pred.shape and y.ndim == 4:
             # Case of y of shape (B, C, H, W)

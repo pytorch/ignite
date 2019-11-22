@@ -33,16 +33,14 @@ fp16_opt_level = "O2"
 num_classes = 21
 
 
-batch_size = 16
-val_batch_size = 20
+batch_size = 9
+val_batch_size = 24
 non_blocking = True
 num_workers = 12 // dist.get_world_size()
-val_interval = 3
+val_interval = 1
 
-# According to https://arxiv.org/pdf/1906.06423.pdf
-# Train size: 224 -> Test size: 320 = max accuracy on ImageNet with ResNet-50
 val_img_size = 513
-train_img_size = int(val_img_size * 0.7)
+train_img_size = 480
 
 # ##############################
 # Setup Dataflow
