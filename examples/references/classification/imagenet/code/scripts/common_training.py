@@ -8,7 +8,7 @@ from apex import amp
 from apex.parallel import DistributedDataParallel as DDP
 
 from ignite.engine import Engine, Events, _prepare_batch, create_supervised_evaluator
-from ignite.metrics import ConfusionMatrix, IoU, mIoU
+from ignite.metrics import Accuracy, TopKCategoricalAccuracy
 
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.engines import common
@@ -84,12 +84,9 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
     )
 
     # Setup evaluators
-    num_classes = config.num_classes
-    cm_metric = ConfusionMatrix(num_classes=num_classes)
-
     val_metrics = {
-        "IoU": IoU(cm_metric),
-        "mIoU_bg": mIoU(cm_metric),
+        "Accuracy": Accuracy(device=device),
+        "Top-5 Accuracy": TopKCategoricalAccuracy(k=5, device=device),
     }
 
     if hasattr(config, "val_metrics") and isinstance(config.val_metrics, dict):
@@ -119,7 +116,7 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
     trainer.add_event_handler(Events.EPOCH_COMPLETED(every=getattr(config, "val_interval", 1)), run_validation)
     trainer.add_event_handler(Events.COMPLETED, run_validation)
 
-    score_metric_name = "mIoU_bg"
+    score_metric_name = "Accuracy"
 
     if hasattr(config, "es_patience"):
         common.add_early_stopping_by_val_score(config.es_patience, evaluator, trainer, metric_name=score_metric_name)
@@ -136,24 +133,23 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
             common.setup_plx_logging(trainer, optimizer,
                                      evaluators={"training": train_evaluator, "validation": evaluator})
 
-        common.save_best_model_by_val_score(config.output_path.as_posix(), evaluator, model,
-                                            metric_name=score_metric_name)
+        common.save_best_model_by_val_score(config.output_path.as_posix(), evaluator, model, metric_name=score_metric_name)
 
-        # Log train/val predictions:
-        tb_logger.attach(evaluator,
-                         log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
-                                                                   n_images=15,
-                                                                   another_engine=trainer,
-                                                                   prefix_tag="validation"),
-                         event_name=Events.EPOCH_COMPLETED)
-
-        log_train_predictions = getattr(config, "log_train_predictions", False)
-        if log_train_predictions:
-            tb_logger.attach(train_evaluator,
-                             log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
-                                                                       n_images=15,
-                                                                       another_engine=trainer,
-                                                                       prefix_tag="validation"),
-                             event_name=Events.EPOCH_COMPLETED)
+        # # Log train/val predictions:
+        # tb_logger.attach(evaluator,
+        #                  log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
+        #                                                            n_images=15,
+        #                                                            another_engine=trainer,
+        #                                                            prefix_tag="validation"),
+        #                  event_name=Events.EPOCH_COMPLETED)
+        #
+        # log_train_predictions = getattr(config, "log_train_predictions", False)
+        # if log_train_predictions:
+        #     tb_logger.attach(train_evaluator,
+        #                      log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
+        #                                                                n_images=15,
+        #                                                                another_engine=trainer,
+        #                                                                prefix_tag="validation"),
+        #                      event_name=Events.EPOCH_COMPLETED)
 
     trainer.run(train_loader, max_epochs=config.num_epochs)

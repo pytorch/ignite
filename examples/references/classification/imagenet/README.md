@@ -51,68 +51,11 @@ Training scripts are located [code/scripts](code/scripts/) and contains
 - `common_training.py`, common training code used by above files
  
 Training scripts contain `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
-run a script with a configuration. Training logic is setup inside `training` method and configures a disrtibuted trainer, 
+run a script with a configuration. Training logic is setup inside `training` method and configures a distributed trainer, 
 2 evaluators and various logging handlers to tensorboard, mlflow/polyaxon logger and tqdm.
 
 
 ### Configurations
 
-- ~~[baseline_resnet101.py](configs/train/baseline_resnet101.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset only~~
-- ~~[baseline_resnet101_sbd.py](configs/train/baseline_resnet101_sbd.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset with SBD~~
-
-
-
-
-## Requirements
-
-We use `conda` and [mlflow](https://github.com/mlflow/mlflow) to handle all python dependencies. 
-Please, install these tools:
-
-- [mlflow](https://github.com/mlflow/mlflow): `pip install mlflow`
-- [conda](https://conda.io/en/latest/miniconda.html)
-
-
-## Dataset
-
-To configure the path to already existing ImageNet dataset, please specify `DATASET_PATH` environment variable
-```
-export DATASET_PATH=/path/to/imagenet
-```
-### How to download ImageNet
-
-```bash
-
-```
-
-## Usage
-
-Setup mlflow output path as 
-```bash
-export MLFLOW_TRACKING_URI=/path/to/output/mlruns
-```
-
-Create once "Trainings" experiment
-```
-mlflow experiments create -n Trainings
-```
-
-### Single node with multiple GPUs
-
-```bash
-export MLFLOW_TRACKING_URI=/path/to/output/mlruns
-# e.g export MLFLOW_TRACKING_URI=$PWD/output/mlruns
-mlflow run experiments/ --experiment-name=Trainings -P config_path=configs/baseline_r50.py -P num_gpus=2
-```
-
-## Training tracking
-
-### MLflow dashboard
-
-To visualize experiments and runs, user can start mlflow dashboard:
-
-```bash
-mlflow server --backend-store-uri /path/to/output/mlruns --default-artifact-root /path/to/output/mlruns -p 6006 -h 0.0.0.0
-# e.g mlflow server --backend-store-uri $PWD/output/mlruns --default-artifact-root $PWD/output/mlruns -p 6006 -h 0.0.0.0
-```
-
-
+- [baseline_resnet101.py](configs/train/baseline_r50.py) : trains ResNet50
+- [quick_baseline_r18.py](configs/train/quick_baseline_r18.py) : quick train of ResNet18

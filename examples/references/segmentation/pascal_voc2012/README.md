@@ -51,7 +51,7 @@ Training scripts are located [code/scripts](code/scripts/) and contains
 - `common_training.py`, common training code used by above files
  
 Training scripts contain `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
-run a script with a configuration. Training logic is setup inside `training` method and configures a disrtibuted trainer, 
+run a script with a configuration. Training logic is setup inside `training` method and configures a distributed trainer, 
 2 evaluators and various logging handlers to tensorboard, mlflow/polyaxon logger and tqdm.
 
 

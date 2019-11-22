@@ -4,4 +4,3 @@ output
 experiments/plx/*.yml
 experiments/plx/*.yaml
 .polyaxon/
-.polyaxonignore
