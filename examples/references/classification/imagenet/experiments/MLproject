@@ -4,6 +4,11 @@ conda_env: conda.yaml
 
 entry_points:
 
+  download:
+    parameters:
+      output_path: path
+    command: "python --version"
+
   main:
     parameters:
       config_path: path

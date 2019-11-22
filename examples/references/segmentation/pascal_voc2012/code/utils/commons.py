@@ -46,6 +46,17 @@ def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler
 
     GpuInfo().attach(trainer, name='gpu')
 
+    def output_transform(x, name):
+        return x[name]
+
+    # Logging training with TQDM
+    metric_names = [
+        'supervised batch loss',
+    ]
+
+    for n in metric_names:
+        RunningAverage(output_transform=partial(output_transform, name=n), epoch_bound=False).attach(trainer, n)
+
     if dist.get_rank() == 0:
         # Checkpoint training
         checkpoint_handler = ModelCheckpoint(dirname=config.output_path.as_posix(),
@@ -54,17 +65,6 @@ def setup_distrib_trainer(train_update_function, model, optimizer, train_sampler
         trainer.add_event_handler(Events.ITERATION_COMPLETED,
                                   checkpoint_handler,
                                   {'model': model, 'optimizer': optimizer})
-
-        # Logging training with TQDM
-        metric_names = [
-            'supervised batch loss',
-        ]
-
-        def output_transform(x, name):
-            return x[name]
-
-        for n in metric_names:
-            RunningAverage(output_transform=partial(output_transform, name=n), epoch_bound=False).attach(trainer, n)
 
         if setup_pbar_on_iters:
             ProgressBar(persist=False).attach(trainer, metric_names)

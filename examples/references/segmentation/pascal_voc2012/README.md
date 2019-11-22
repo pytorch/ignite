@@ -48,7 +48,7 @@ Training scripts are located [code/scripts](code/scripts/) and contains
 
 - `mlflow_training.py`, training script with MLflow experiments tracking
 - `plx_training.py`, training script with Polyaxon experiments tracking
-- `gen_training.py`, common training code used by above files
+- `common_training.py`, common training code used by above files
  
 Training scripts contain `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
 run a script with a configuration. Training logic is setup inside `training` method and configures a disrtibuted trainer, 

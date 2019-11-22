@@ -11,7 +11,7 @@ from polyaxon_client.tracking import get_outputs_path, Experiment
 
 from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_config
 
-from gen_training import training
+from common_training import training
 
 
 def run(config, logger=None, local_rank=0, **kwargs):

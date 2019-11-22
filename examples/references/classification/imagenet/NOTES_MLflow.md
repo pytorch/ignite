@@ -15,26 +15,15 @@ Please, install these tools:
 ### Setup dataset path
 
 To configure the path to already existing PASCAL VOC2012 dataset, please specify `DATASET_PATH` environment variable
-```bash
+```
 export DATASET_PATH=/path/to/pascal_voc2012
 ```
-
-If you would like just to download the datasets, see instructions below. 
-
 #### With SBD dataset
 
 Optionally, user can configure the path to already existing SBD dataset, please specify `SBD_DATASET_PATH` environment variable
-```bash
+```
 export SBD_DATASET_PATH=/path/to/sbd
 # e.g. SBD_DATASET_PATH=/path/to/sbd/benchmark_RELEASE/dataset/
-```
-
-#### Download Pascal VOC 2012 and SBD
-
-```bash
-export MLFLOW_TRACKING_URI=/path/to/output/mlruns
-# e.g export MLFLOW_TRACKING_URI=$PWD/output/mlruns
-mlflow run experiments/mlflow -e download -P output_path=/path/where/download/
 ```
 
 ### MLflow setup
@@ -46,11 +35,11 @@ export MLFLOW_TRACKING_URI=/path/to/output/mlruns
 ```
 
 Create once "Trainings" experiment
-```bash
+```
 mlflow experiments create -n Trainings
 ```
 or check existing experiments:
-```bash
+```
 mlflow experiments list
 ```
 
@@ -101,7 +90,7 @@ notebooks
   - main : starts single-node multi-GPU training script
 
 When we execute 
-```bash
+```
 mlflow run experiments/mlflow --experiment-name=Trainings -P config_path=configs/train/baseline_resnet101.py -P num_gpus=2
 ```
 it executes `main` entry point from [MLproject](experiments/mlflow/MLproject) and runs provided command.

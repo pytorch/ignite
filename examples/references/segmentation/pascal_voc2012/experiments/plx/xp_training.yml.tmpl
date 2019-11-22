@@ -13,16 +13,17 @@ environment:
 
 # Setup running environment:
 build:
-  image: pytorch/pytorch:1.2-cuda10.0-cudnn7-devel
+  image: pytorch/pytorch:latest
   build_steps:
 
   # Install ignite and other useful packages
-  - pip install git+https://github.com/pytorch/ignite.git@distrib &&
+  - pip install --upgrade --pre pytorch-ignite.git &&
     pip install git+https://github.com/vfdev-5/ImageDatasetViz.git git+https://github.com/albu/albumentations.git &&
     pip install polyaxon-client tqdm tensorboardX py_config_runner pynvml
 
   # Install Nvidia/APEX
   - git clone https://github.com/NVIDIA/apex /tmp/apex && cd /tmp/apex &&
+    export TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5" &&
     pip install --upgrade --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
   # For opencv
@@ -35,8 +36,6 @@ declarations:
 
 run:
   cmd:
-  - export LC_ALL=C.UTF-8 && export LANG=C.UTF-8
-
   - export PYTHONPATH=$PYTHONPATH:$PWD/code/
 
   # Required env variables to define dataset placement
@@ -46,7 +45,8 @@ run:
   - export config_file=$PWD/configs/train/{{config_file}}
   - export script_file=$PWD/code/scripts/{{script_file}}
 
+  # Copy configuration file to the output
   - cp $config_file $POLYAXON_RUN_OUTPUTS_PATH
   - cp $script_file $POLYAXON_RUN_OUTPUTS_PATH
 
-  - python -m torch.distributed.launch --nproc_per_node={{num_gpus}} `py_config_runner_script` $script_file $config_file --manual_config_load
+  - python -m torch.distributed.launch --nproc_per_node={{num_gpus}} -m py_config_runner $script_file $config_file --manual_config_load

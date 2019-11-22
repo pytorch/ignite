@@ -20,15 +20,6 @@ polyaxon init pascal-voc2012
 Please rename and modify `experiments/plx/xp_training.yml.tmpl` to `experiments/plx/xp_training.yml` 
 to adapt to your cluster configuration.
 
-#### Download Pascal VOC 2012 and SBD
-
-Optionally, it is possible to download the datasets as a job. 
-Please rename and modify `experiments/plx/job_download_datasets.yml.tmpl` to `experiments/plx/job_download_datasets.yml`
-```bash
-polyaxon run -u -f experiments/plx/job_download_datasets.yml
-```
-
-
 ### Single node with multiple GPUs
 
 ```bash
