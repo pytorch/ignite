@@ -33,7 +33,7 @@ fp16_opt_level = "O2"
 num_classes = 21
 
 
-batch_size = 9
+batch_size = 9  # ~9GB GPU RAM
 val_batch_size = 24
 non_blocking = True
 num_workers = 12 // dist.get_world_size()
