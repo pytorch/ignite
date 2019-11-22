@@ -35,6 +35,7 @@ export SBD_DATASET_PATH=/path/to/sbd
 export MLFLOW_TRACKING_URI=/path/to/output/mlruns
 # e.g export MLFLOW_TRACKING_URI=$PWD/output/mlruns
 mlflow run experiments/mlflow -e download -P output_path=/path/where/download/
+# e.g mlflow run experiments/mlflow -e download -P output_path=$PWD/input
 ```
 
 ### MLflow setup
