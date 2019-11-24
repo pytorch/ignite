@@ -1,6 +1,7 @@
 import os
 import tempfile
 from collections import namedtuple
+import warnings
 
 import sys
 
@@ -10,7 +11,6 @@ if IS_PYTHON2:
     import collections
 else:
     import collections.abc as collections
-
 
 import torch
 
@@ -23,10 +23,11 @@ class Checkpoint(object):
     Args:
         to_save (dict): Dictionary with the objects to save. Objects should have implemented
             `state_dict` and `load_state_dict` methods
-        filename_prefix (str): Prefix for the filenames to which objects will be saved. See Notes for more details.
         save_handler (callable): Method to use to save engine and other provided objects. Function receives a checkpoint
             as a dictionary to save. In case if user needs to save engine's checkpoint on a disk, `save_method` can be
             defined with `DiskSaver`.
+        filename_prefix (str, optional): Prefix for the filename to which objects will be saved.
+            See Notes for more details.
         score_function (callable, optional): if not None, it should be a function taking a single argument,
             :class:`~ignite.engine.Engine` object, and returning a score (`float`). Objects with highest scores will be
             retained. Exactly one of (`save_interval`, `score_function`) arguments must be provided.
@@ -35,18 +36,29 @@ class Checkpoint(object):
         n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed.
 
     Note:
-        These names are used to specify filenames for saved objects.
-        Each filename has the following structure:
-        `{filename_prefix}_{name}_{step_number}.pth`.
-        Here, `filename_prefix` is the argument passed to the constructor,
-        `name` is the key in the aforementioned `dict`, and `step_number`
-        is incremented by `1` with every call to the handler.
+        This class stores a single file as a dictionary of provided objects to save.
+        The filename has the following structure: `{filename_prefix}_{name}_{suffix}.pth`.
+            - `filename_prefix` is the argument passed to the constructor
+            - `name` is the key in `to_save` if a single object is to store, otherwise `name` is "checkpoint".
+            - `suffix` can have 3 possible values:
 
-        If `score_function` is provided, user can store its absolute value using `score_name` in the filename.
-        Each filename can have the following structure:
-        `{filename_prefix}_{name}_{step_number}_{score_name}={abs(score_function_result)}.pth`.
+        1) Default, when no `score_function`/`score_name` defined:
+
+        Suffix is defined by attached engine's current iteration. The filename will be
+        `{filename_prefix}_{name}_{engine.state.iteration}.pth`.
+
+        2) With `score_function`, but without `score_name`:
+
+        Suffix is defined by provided score. The filename will be
+        `{filename_prefix}_{name}_{score}.pth`.
+
+        3) With `score_function` and `score_name`:
+
+        In this case, user can store its absolute value using `score_name` in the filename.
+        Suffix is defined by engine's current epoch, score name and its value. The filename will be
+        `{filename_prefix}_{name}_{engine.state.epoch}_{score_name}={abs(score)}.pth`.
         For example, `score_name="val_loss"` and `score_function` that returns `-loss` (as objects with highest scores
-        will be retained), then saved models filenames will be `model_resnet_10_val_loss=0.1234.pth`.
+        will be retained), then saved models filenames will be `model_0_val_loss=0.1234.pth`.
 
     Examples:
         Saved checkpoint then can be used to resume a training:
@@ -54,26 +66,26 @@ class Checkpoint(object):
         .. code-block:: python
 
             from ignite.engine import Engine, Events
-            from ignite.handlers import ModelCheckpoint
+            from ignite.handlers import Checkpoint, DiskSaver
             from torch import nn
             trainer = Engine(lambda batch: None)
-            # handler = Checkpoint('/tmp/models', 'myprefix', save_interval=2, n_saved=2, create_dir=True)
-            # model = nn.Linear(3, 3)
-            # trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, {'mymodel': model})
-            # trainer.run([0], max_epochs=6)
-            # os.listdir('/tmp/models')
+            model = ...
+            optimizer = ...
+            lr_scheduler = ...
+            to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+            handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), 'myprefix', n_saved=2)
+            trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
+            trainer.run([0], max_epochs=6)
+            os.listdir('/tmp/models')
 
 
     """
 
     Item = namedtuple("Item", ["priority", "filename"])
 
-    def __init__(self, to_save, filename_prefix, save_handler,
+    def __init__(self, to_save, save_handler, filename_prefix="",
                  score_function=None, score_name=None,
                  n_saved=1):
-
-        if not callable(save_handler):
-            raise TypeError("Argument `save_handler` should be callable")
 
         if not isinstance(to_save, collections.Mapping):
             raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
@@ -81,12 +93,15 @@ class Checkpoint(object):
         if len(to_save) < 1:
             raise ValueError("No objects to checkpoint.")
 
+        if not callable(save_handler):
+            raise TypeError("Argument `save_handler` should be callable")
+
         if score_function is None and score_name is not None:
             raise ValueError("If `score_name` is provided, then `score_function` "
                              "should be also provided.")
 
         self._check_objects(to_save)
-        self._fname_prefix = filename_prefix
+        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = save_handler
         self.to_save = to_save
         self._score_function = score_function
@@ -112,7 +127,7 @@ class Checkpoint(object):
 
             suffix = "{}".format(priority)
             if self._score_name is not None:
-                suffix = "{}={:.7}".format(self._score_name, abs(priority))
+                suffix = "{}_{}={:.7}".format(engine.state.epoch, self._score_name, abs(priority))
 
             checkpoint = self._setup_checkpoint()
 
@@ -140,8 +155,8 @@ class Checkpoint(object):
     @staticmethod
     def _check_objects(to_save_or_load):
         for k, obj in to_save_or_load.items():
-            assert hasattr(obj, "state_dict") and hasattr(obj, "load_state_dict"), \
-                "Object {} should have `state_dict` and `load_state_dict` methods".format(type(obj))
+            if not (hasattr(obj, "state_dict") and hasattr(obj, "load_state_dict")):
+                raise TypeError("Object {} should have `state_dict` and `load_state_dict` methods".format(type(obj)))
 
     @staticmethod
     def load_objects(to_load, checkpoint):
@@ -223,11 +238,23 @@ class ModelCheckpoint(Checkpoint):
 
     See Notes and Examples for further details.
 
+    .. warning::
+
+        Behaviour of this class has been changed since v0.3.0, namely
+        - argument save_as_state_dict is deprecated and should not be used. It is considered as True.
+        - argument save_interval is deprecated and should not be used. Please, use events filtering instead, e.g.
+        `Events.ITERATION_STARTED(every=1000)`
+        - there is no more internal counter that has been used to indicate the number of save actions. User could
+        see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pth`. Actually,
+        `step_number` is replaced by current engine's epoch if `score_function` is specified and current iteration
+        otherwise.
+        - A single `pth` file is created instead of multiple files.
+
     Args:
         dirname (str):
             Directory path where objects will be saved.
         filename_prefix (str):
-            Prefix for the filenames to which objects will be saved. See Notes
+            Prefix for the filenames to which objects will be saved. See Notes of :class:`~ignite.handlers.Checkpoint`
             for more details.
         score_function (callable, optional):
             if not None, it should be a function taking a single argument,
@@ -249,39 +276,23 @@ class ModelCheckpoint(Checkpoint):
         create_dir (bool, optional):
             If True, will create directory 'dirname' if it doesnt exist.
 
-    Note:
-          This handler expects two arguments: an :class:`~ignite.engine.Engine` object and a `dict`
-          mapping names to objects that should be saved.
-
-          These names are used to specify filenames for saved objects.
-          Each filename has the following structure:
-          `{filename_prefix}_{name}_{step_number}.pth`.
-          Here, `filename_prefix` is the argument passed to the constructor,
-          `name` is the key in the aforementioned `dict`, and `step_number`
-          is incremented by `1` with every call to the handler.
-
-          If `score_function` is provided, user can store its absolute value using `score_name` in the filename.
-          Each filename can have the following structure:
-          `{filename_prefix}_{name}_{step_number}_{score_name}={abs(score_function_result)}.pth`.
-          For example, `score_name="val_loss"` and `score_function` that returns `-loss` (as objects with highest scores
-          will be retained), then saved models filenames will be `model_resnet_10_val_loss=0.1234.pth`.
-
     Examples:
         >>> import os
         >>> from ignite.engine import Engine, Events
         >>> from ignite.handlers import ModelCheckpoint
         >>> from torch import nn
         >>> trainer = Engine(lambda batch: None)
-        >>> handler = ModelCheckpoint('/tmp/models', 'myprefix', save_interval=2, n_saved=2, create_dir=True)
+        >>> handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True)
         >>> model = nn.Linear(3, 3)
-        >>> trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, {'mymodel': model})
+        >>> trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
         >>> trainer.run([0], max_epochs=6)
         >>> os.listdir('/tmp/models')
         ['myprefix_mymodel_4.pth', 'myprefix_mymodel_6.pth']
     """
 
     def __init__(self, dirname, filename_prefix,
-                 save_interval=None, score_function=None, score_name=None,
+                 save_interval=None,
+                 score_function=None, score_name=None,
                  n_saved=1,
                  atomic=True, require_empty=True,
                  create_dir=True,
@@ -290,8 +301,14 @@ class ModelCheckpoint(Checkpoint):
         if not save_as_state_dict:
             raise ValueError("Argument save_as_state_dict is deprecated and should be True")
         if save_interval is not None:
-            raise ValueError("Argument save_interval is deprecated and should be None. "
-                             "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)")
+            msg = "Argument save_interval is deprecated and should be None. "\
+                  "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
+            if save_interval == 1:
+                # Do not break for old version who used `save_interval=1`
+                warnings.warn(msg)
+            else:
+                # No choice
+                raise ValueError(msg)
 
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty)
 
@@ -299,13 +316,19 @@ class ModelCheckpoint(Checkpoint):
             raise ValueError("If `score_name` is provided, then `score_function` "
                              "should be also provided.")
 
-        self._fname_prefix = filename_prefix
+        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = disk_saver
         self.to_save = None
         self._score_function = score_function
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
+
+    @property
+    def last_checkpoint(self):
+        if len(self._saved) < 1:
+            return None
+        return os.path.join(self.save_handler.dirname, self._saved[0].filename)
 
     def __call__(self, engine, to_save):
 
