@@ -17,48 +17,42 @@ import torch
 
 class Checkpoint(object):
     """Checkpoint handler can be used to periodically save and load objects which have attribute
-    `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud storage,
-    etc.
+    `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
+    storage, etc.
 
     Args:
-        to_save (dict): Dictionary with the objects to save. Objects should have implemented
-            `state_dict` and `load_state_dict` methods
-        save_handler (callable): Method to use to save engine and other provided objects. Function receives a checkpoint
-            as a dictionary to save. In case if user needs to save engine's checkpoint on a disk, `save_method` can be
-            defined with `DiskSaver`.
-        filename_prefix (str, optional): Prefix for the filename to which objects will be saved.
-            See Notes for more details.
-        score_function (callable, optional): if not None, it should be a function taking a single argument,
+        to_save (dict): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
+            load_state_dict` methods.
+        save_handler (callable): Method to use to save engine and other provided objects. Function receives a
+            checkpoint as a dictionary to save. In case if user needs to save engine's checkpoint on a disk,
+            `save_handler` can be defined with :class:`~ignite.handlers.DiskSaver`.
+        filename_prefix (str, optional): Prefix for the filename to which objects will be saved. See Note for details.
+        score_function (callable, optional): If not None, it should be a function taking a single argument,
             :class:`~ignite.engine.Engine` object, and returning a score (`float`). Objects with highest scores will be
             retained. Exactly one of (`save_interval`, `score_function`) arguments must be provided.
-        score_name (str, optional): if `score_function` not None, it is possible to store its absolute value using
+        score_name (str, optional): If `score_function` not None, it is possible to store its absolute value using
             `score_name`. See Notes for more details.
         n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed.
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
-        The filename has the following structure: `{filename_prefix}_{name}_{suffix}.pth`.
-            - `filename_prefix` is the argument passed to the constructor
-            - `name` is the key in `to_save` if a single object is to store, otherwise `name` is "checkpoint".
-            - `suffix` can have 3 possible values:
+        The filename has the following structure: `{filename_prefix}_{name}_{suffix}.pth` where
 
-        1) Default, when no `score_function`/`score_name` defined:
+        - `filename_prefix` is the argument passed to the constructor,
+        - `name` is the key in `to_save` if a single object is to store, otherwise `name` is "checkpoint".
+        - `suffix` can have 3 possible values:
 
-        Suffix is defined by attached engine's current iteration. The filename will be
-        `{filename_prefix}_{name}_{engine.state.iteration}.pth`.
+        1) Default, when no `score_function`/`score_name` defined: Suffix is defined by attached engine's current
+        iteration. The filename will be `{filename_prefix}_{name}_{engine.state.iteration}.pth`.
 
-        2) With `score_function`, but without `score_name`:
-
-        Suffix is defined by provided score. The filename will be
+        2) With `score_function`, but without `score_name`: Suffix is defined by provided score. The filename will be
         `{filename_prefix}_{name}_{score}.pth`.
 
-        3) With `score_function` and `score_name`:
-
-        In this case, user can store its absolute value using `score_name` in the filename.
-        Suffix is defined by engine's current epoch, score name and its value. The filename will be
-        `{filename_prefix}_{name}_{engine.state.epoch}_{score_name}={abs(score)}.pth`.
-        For example, `score_name="val_loss"` and `score_function` that returns `-loss` (as objects with highest scores
-        will be retained), then saved models filenames will be `model_0_val_loss=0.1234.pth`.
+        3) With `score_function` and `score_name`: In this case, user can store its absolute value using `score_name`
+        in the filename. Suffix is defined by engine's current epoch, score name and its value. The filename will
+        be `{filename_prefix}_{name}_{engine.state.epoch}_{score_name}={abs(score)}.pth`.
+        For example, `score_name="val_loss"` and `score_function` that returns `-loss` (as objects with
+        highest scores will be retained), then saved models filenames will be `model_0_val_loss=0.1234.pth`.
 
     Examples:
         Saved checkpoint then can be used to resume a training:
@@ -239,16 +233,20 @@ class ModelCheckpoint(Checkpoint):
     See Notes and Examples for further details.
 
     .. warning::
+        Behaviour of this class has been changed since v0.3.0.
 
-        Behaviour of this class has been changed since v0.3.0, namely
-        - argument save_as_state_dict is deprecated and should not be used. It is considered as True.
-        - argument save_interval is deprecated and should not be used. Please, use events filtering instead, e.g.
-        `Events.ITERATION_STARTED(every=1000)`
-        - there is no more internal counter that has been used to indicate the number of save actions. User could
+        Argument `save_as_state_dict` is deprecated and should not be used. It is considered as True.
+
+        Argument `save_interval` is deprecated and should not be used. Please, use events filtering instead, e.g.
+        :attr:`~ignite.engine.Events.ITERATION_STARTED(every=1000)`
+
+        There is no more internal counter that has been used to indicate the number of save actions. User could
         see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pth`. Actually,
         `step_number` is replaced by current engine's epoch if `score_function` is specified and current iteration
         otherwise.
-        - A single `pth` file is created instead of multiple files.
+
+        A single `pth` file is created instead of multiple files.
+
 
     Args:
         dirname (str):
@@ -301,7 +299,7 @@ class ModelCheckpoint(Checkpoint):
         if not save_as_state_dict:
             raise ValueError("Argument save_as_state_dict is deprecated and should be True")
         if save_interval is not None:
-            msg = "Argument save_interval is deprecated and should be None. "\
+            msg = "Argument save_interval is deprecated and should be None. " \
                   "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
             if save_interval == 1:
                 # Do not break for old version who used `save_interval=1`
