@@ -1,11 +1,18 @@
 from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
+import cv2
 
 from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Subset
 import torch.utils.data.distributed as data_dist
 from torchvision.datasets import ImageNet
+
+
+def opencv_loader(path):
+    img = cv2.imread(path)
+    assert img is not None, "Image at '{}' has a problem".format(path)
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
 def get_train_val_loaders(root_path: str,
@@ -21,8 +28,12 @@ def get_train_val_loaders(root_path: str,
                           limit_train_num_samples: Optional[int] = None,
                           limit_val_num_samples: Optional[int] = None) -> Tuple[DataLoader, DataLoader, DataLoader]:
 
-    train_ds = ImageNet(root_path, split='train', transform=train_transforms)
-    val_ds = ImageNet(root_path, split='val', transform=val_transforms)
+    train_ds = ImageNet(root_path, split='train',
+                        transform=lambda sample: train_transforms(image=sample)['image'],
+                        loader=opencv_loader)
+    val_ds = ImageNet(root_path, split='val',
+                      transform=lambda sample: val_transforms(image=sample)['image'],
+                      loader=opencv_loader)
 
     if limit_train_num_samples is not None:
         if random_seed is not None:

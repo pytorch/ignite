@@ -8,6 +8,7 @@ Features:
 - Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/)
 
 ![tb_dashboard](assets/tb_dashboard.png)
+![mlflow_dashboard](assets/mlflow_dashboard.png)
 
 There are two possible options: 1) Experiments tracking with MLflow or 2) Experiments tracking with Polyaxon. 
 Experiments tracking with MLflow is more suitable for a local machine with GPUs. For experiments tracking with Polyaxon
@@ -59,4 +60,10 @@ run a script with a configuration. Training logic is setup inside `training` met
 
 - [baseline_resnet101.py](configs/train/baseline_resnet101.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset only
 - [baseline_resnet101_sbd.py](configs/train/baseline_resnet101_sbd.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset with SBD
+
+
+## Acknowledgements
+
+Part of trainings was done within [Tesla GPU Test Drive](https://www.nvidia.com/en-us/data-center/tesla/gpu-test-drive/) 
+on 2 Nvidia V100 GPUs.
 

@@ -18,7 +18,7 @@ build:
 
   # Install ignite and other useful packages
   - pip install --upgrade --pre pytorch-ignite &&
-    pip install git+https://github.com/vfdev-5/ImageDatasetViz.git git+https://github.com/albu/albumentations.git &&
+    pip install git+https://github.com/vfdev-5/ImageDatasetViz.git albumentations &&
     pip install polyaxon-client tqdm tensorboardX py_config_runner pynvml
 
   # Install Nvidia/APEX

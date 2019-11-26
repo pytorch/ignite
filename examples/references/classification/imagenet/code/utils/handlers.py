@@ -8,8 +8,7 @@ def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_eng
     def wrapper(engine, logger, event_name):
         batch = engine.state.batch
         output = engine.state.output
-        x = batch['image']
-        y = batch['mask']
+        x, y = batch
         y_pred = output[0]
 
         if y.shape == y_pred.shape and y.ndim == 4:
@@ -23,7 +22,7 @@ def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_eng
             y = y[:n_images, ...]
             y_pred = y_pred[:n_images, ...]
 
-        grid_pred_gt = make_grid(x, y_pred, img_denormalize_fn, batch_gt_mask=y)
+        grid_pred_gt = make_grid(x, y_pred, img_denormalize_fn, batch_gt=y)
 
         state = engine.state if another_engine is None else another_engine.state
         global_step = state.get_event_attrib_value(event_name)

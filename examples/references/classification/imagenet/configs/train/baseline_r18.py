@@ -7,8 +7,10 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
 import torch.distributed as dist
 
-from torchvision import transforms
 from torchvision.models.resnet import resnet18
+
+import albumentations as A
+from albumentations.pytorch import ToTensorV2 as ToTensor
 
 from dataflow.dataloaders import get_train_val_loaders
 from dataflow.transforms import denormalize
@@ -33,7 +35,7 @@ val_interval = 2
 train_crop_size = 224
 val_crop_size = 320
 
-batch_size = 480  # batch size per local rank
+batch_size = 512  # batch size per local rank
 num_workers = 10  # num_workers per local rank
 
 
@@ -47,19 +49,24 @@ data_path = os.environ['DATASET_PATH']
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
 
-train_transforms = transforms.Compose([
-    transforms.RandomResizedCrop(train_crop_size),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize(mean, std)
+train_transforms = A.Compose([
+    A.RandomResizedCrop(train_crop_size, train_crop_size, scale=(0.08, 1.0)),
+    A.HorizontalFlip(),
+    A.CoarseDropout(),
+    A.HueSaturationValue(),
+    A.Normalize(mean=mean, std=std),
+    ToTensor(),
 ])
 
-val_transforms = transforms.Compose([
-    transforms.CenterCrop(val_crop_size),
-    transforms.ToTensor(),
-    transforms.Normalize(mean, std)
-])
+s = int((256 / train_crop_size) * val_crop_size)
 
+val_transforms = A.Compose([
+    # https://github.com/facebookresearch/FixRes/blob/b27575208a7c48a3a6e0fa9efb57baa4021d1305/imnet_resnet50_scratch/transforms.py#L76
+    A.Resize(s, s),
+    A.CenterCrop(val_crop_size, val_crop_size),
+    A.Normalize(mean=mean, std=std),
+    ToTensor(),
+])
 
 train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     data_path,
@@ -67,7 +74,7 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     val_transforms=val_transforms,
     batch_size=batch_size,
     num_workers=num_workers,
-    val_batch_size=batch_size * 4,
+    val_batch_size=batch_size,
     pin_memory=True,
     train_sampler='distributed',
     val_sampler='distributed'
@@ -91,10 +98,11 @@ num_epochs = 5
 
 criterion = nn.CrossEntropyLoss()
 
-# accumulation_steps = 4
-
-lr = 0.001 * (batch_size * dist.get_world_size() / 256.0)
-optimizer = optim.Adam(model.parameters(), lr=lr, amsgrad=False)
-
 le = len(train_loader)
-lr_scheduler = lrs.CosineAnnealingLR(optimizer, T_max=le * num_epochs, eta_min=0)
+
+lr = 0.02
+linear_scaled_lr = 8.0 * lr * batch_size * dist.get_world_size() / 512.0
+
+optimizer = optim.SGD(model.parameters(), lr=linear_scaled_lr, momentum=0.9, weight_decay=1e-4)
+
+lr_scheduler = lrs.StepLR(optimizer, step_size=30 * le)

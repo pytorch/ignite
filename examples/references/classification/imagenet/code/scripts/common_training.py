@@ -103,7 +103,7 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
             def show_progress_benchmark_dataflow(engine):
                 print(".", end=" ")
 
-        timer = Timer(average=True)
+        timer = Timer(average=False)
         timer.attach(benchmark_dataflow,
                      start=Events.EPOCH_STARTED,
                      resume=Events.ITERATION_STARTED,
