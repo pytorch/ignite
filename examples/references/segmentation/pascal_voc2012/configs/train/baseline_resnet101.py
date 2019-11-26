@@ -11,9 +11,10 @@ import torch.distributed as dist
 from torchvision.models.segmentation import deeplabv3_resnet101
 
 import albumentations as A
+from albumentations.pytorch import ToTensorV2 as ToTensor
 
 from dataflow.dataloaders import get_train_val_loaders
-from dataflow.transforms import ToTensor, ignore_mask_boundaries, prepare_batch_fp32, denormalize
+from dataflow.transforms import ignore_mask_boundaries, prepare_batch_fp32, denormalize
 
 
 assert 'DATASET_PATH' in os.environ
@@ -36,10 +37,8 @@ non_blocking = True
 num_workers = 12 // dist.get_world_size()
 val_interval = 3
 
-# According to https://arxiv.org/pdf/1906.06423.pdf
-# Train size: 224 -> Test size: 320 = max accuracy on ImageNet with ResNet-50
 val_img_size = 513
-train_img_size = int(val_img_size * 0.7)
+train_img_size = 480
 
 # ##############################
 # Setup Dataflow
@@ -67,6 +66,7 @@ val_transforms = A.Compose([
     ignore_mask_boundaries,
     ToTensor(),
 ])
+
 
 train_loader, val_loader, train_eval_loader = get_train_val_loaders(root_path=data_path,
                                                                     train_transforms=train_transforms,

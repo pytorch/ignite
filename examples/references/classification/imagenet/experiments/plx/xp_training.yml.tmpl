@@ -47,6 +47,5 @@ run:
 
   # Copy configuration file to the output
   - cp $config_file $POLYAXON_RUN_OUTPUTS_PATH
-  - cp $script_file $POLYAXON_RUN_OUTPUTS_PATH
 
   - python -m torch.distributed.launch --nproc_per_node={{num_gpus}} -m py_config_runner $script_file $config_file --manual_config_load

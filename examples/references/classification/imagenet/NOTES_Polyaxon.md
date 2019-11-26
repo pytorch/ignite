@@ -22,12 +22,8 @@ to adapt to your cluster configuration.
 
 #### Download ImageNet dataset
 
-Optionally, it is possible to download the datasets as a job. 
-Please rename and modify `experiments/plx/job_download_datasets.yml.tmpl` to `experiments/plx/job_download_datasets.yml`
-```bash
-polyaxon run -u -f experiments/plx/job_download_datasets.yml
-```
-
+Since 10/2019, we need to register an account in order to download the dataset.
+To download the dataset, use the following form : http://www.image-net.org/download.php 
 
 ### Single node with multiple GPUs
 

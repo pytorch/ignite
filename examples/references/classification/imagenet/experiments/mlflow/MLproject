@@ -4,11 +4,6 @@ conda_env: conda.yaml
 
 entry_points:
 
-  download:
-    parameters:
-      output_path: path
-    command: "export PYTHONPATH=$PWD/../../code:$PYTHONPATH && python ../../code/scripts/download_dataset.py {output_path}"
-
   main:
     parameters:
       config_path: path

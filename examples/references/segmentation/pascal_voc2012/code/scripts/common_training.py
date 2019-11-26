@@ -1,6 +1,8 @@
 # This a training script launched with py_config_runner
 # It should obligatory contain `run(config, **kwargs)` method
 
+from collections.abc import Mapping
+
 import torch
 import torch.distributed as dist
 
@@ -59,7 +61,15 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
         y_pred = model_output_transform(y_pred)
-        loss = criterion(y_pred, y) / accumulation_steps
+        loss = criterion(y_pred, y)
+
+        if isinstance(loss, Mapping):
+            assert 'supervised batch loss' in loss
+            loss_dict = loss
+            output = {k: v.item() for k, v in loss_dict.items()}
+            loss = loss_dict['supervised batch loss'] / accumulation_steps
+        else:
+            output = {'supervised batch loss': loss.item()}
 
         with amp.scale_loss(loss, optimizer, loss_id=0) as scaled_loss:
             scaled_loss.backward()
@@ -68,9 +78,9 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
             optimizer.step()
             optimizer.zero_grad()
 
-        return {
-            'supervised batch loss': loss.item(),
-        }
+        return output
+
+    output_names = getattr(config, "output_names", ['supervised batch loss', ])
 
     trainer = Engine(train_update_function)
     common.setup_common_distrib_training_handlers(
@@ -78,7 +88,7 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
         to_save={'model': model, 'optimizer': optimizer},
         save_every=1000,  output_path=config.output_path.as_posix(),
         lr_scheduler=config.lr_scheduler, with_gpu_stats=True,
-        output_names=['supervised batch loss', ],
+        output_names=output_names,
         with_pbars=True, with_pbar_on_iters=with_mlflow_logging,
         log_every_iters=1
     )

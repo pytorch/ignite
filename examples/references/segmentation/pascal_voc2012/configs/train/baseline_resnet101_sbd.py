@@ -11,9 +11,10 @@ import torch.distributed as dist
 from torchvision.models.segmentation import deeplabv3_resnet101
 
 import albumentations as A
+from albumentations.pytorch import ToTensorV2 as ToTensor
 
 from dataflow.dataloaders import get_train_val_loaders
-from dataflow.transforms import ToTensor, ignore_mask_boundaries, prepare_batch_fp32, denormalize
+from dataflow.transforms import ignore_mask_boundaries, prepare_batch_fp32, denormalize
 
 
 assert 'DATASET_PATH' in os.environ
@@ -38,6 +39,8 @@ val_batch_size = 24
 non_blocking = True
 num_workers = 12 // dist.get_world_size()
 val_interval = 1
+accumulation_steps = 4
+
 
 val_img_size = 513
 train_img_size = 480

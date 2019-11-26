@@ -1,27 +1,6 @@
 import torch
 
-from albumentations import BasicTransform
-
 from ignite.utils import convert_tensor
-
-
-class ToTensor(BasicTransform):
-
-    def __init__(self):
-        super(ToTensor, self).__init__(always_apply=True)
-
-    @property
-    def targets(self):
-        return {
-            'image': self.apply,
-            'mask': self.apply_to_mask
-        }
-
-    def apply(self, img, **params):
-        return torch.from_numpy(img.transpose(2, 0, 1))
-
-    def apply_to_mask(self, mask, **params):
-        return torch.from_numpy(mask)
 
 
 def ignore_mask_boundaries(force_apply, **kwargs):

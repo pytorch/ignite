@@ -83,6 +83,53 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
         log_every_iters=1
     )
 
+    if getattr(config, "benchmark_dataflow", False):
+        benchmark_dataflow_num_iters = getattr(config, "benchmark_dataflow_num_iters", 1000)
+
+        from torch.utils.data import DataLoader
+        from ignite.handlers import Timer
+
+        def upload_to_gpu(engine, batch):
+            x, y = prepare_batch(batch, device=device, non_blocking=False)
+
+        benchmark_dataflow = Engine(upload_to_gpu)
+
+        @benchmark_dataflow.on(Events.ITERATION_COMPLETED(once=benchmark_dataflow_num_iters))
+        def stop_benchmark_dataflow(engine):
+            engine.terminate()
+
+        if dist.get_rank() == 0:
+            @benchmark_dataflow.on(Events.ITERATION_COMPLETED(every=benchmark_dataflow_num_iters // 100))
+            def show_progress_benchmark_dataflow(engine):
+                print(".", end=" ")
+
+        timer = Timer(average=True)
+        timer.attach(benchmark_dataflow,
+                     start=Events.EPOCH_STARTED,
+                     resume=Events.ITERATION_STARTED,
+                     pause=Events.ITERATION_COMPLETED,
+                     step=Events.ITERATION_COMPLETED)
+
+        @trainer.on(Events.STARTED)
+        def run_benchmark(_):
+            if dist.get_rank() == 0:
+                print("-" * 50)
+                print(" - Dataflow benchmark")
+
+            benchmark_dataflow.run(train_loader)
+            t = timer.value()
+
+            if dist.get_rank() == 0:
+                print(" ")
+                print(" Total time ({} iterations) : {:.5f} seconds".format(benchmark_dataflow_num_iters, t))
+                print(" time per iteration         : {} seconds".format(t / benchmark_dataflow_num_iters))
+
+                if isinstance(train_loader, DataLoader):
+                    num_images = train_loader.batch_size * benchmark_dataflow_num_iters
+                    print(" number of images / s       : {}".format(num_images / t))
+
+                print("-" * 50)
+
     # Setup evaluators
     val_metrics = {
         "Accuracy": Accuracy(device=device),
@@ -133,23 +180,22 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
             common.setup_plx_logging(trainer, optimizer,
                                      evaluators={"training": train_evaluator, "validation": evaluator})
 
-        common.save_best_model_by_val_score(config.output_path.as_posix(), evaluator, model, metric_name=score_metric_name)
+        common.save_best_model_by_val_score(config.output_path.as_posix(), evaluator, model,
+                                            metric_name=score_metric_name)
 
-        # # Log train/val predictions:
-        # tb_logger.attach(evaluator,
-        #                  log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
-        #                                                            n_images=15,
-        #                                                            another_engine=trainer,
-        #                                                            prefix_tag="validation"),
-        #                  event_name=Events.EPOCH_COMPLETED)
-        #
-        # log_train_predictions = getattr(config, "log_train_predictions", False)
-        # if log_train_predictions:
-        #     tb_logger.attach(train_evaluator,
-        #                      log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
-        #                                                                n_images=15,
-        #                                                                another_engine=trainer,
-        #                                                                prefix_tag="validation"),
-        #                      event_name=Events.EPOCH_COMPLETED)
+        # Log train/val predictions:
+        tb_logger.attach(evaluator,
+                         log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
+                                                                   n_images=15,
+                                                                   another_engine=trainer,
+                                                                   prefix_tag="validation"),
+                         event_name=Events.ITERATION_COMPLETED(once=len(val_loader) // 2))
+
+        tb_logger.attach(train_evaluator,
+                         log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
+                                                                   n_images=15,
+                                                                   another_engine=trainer,
+                                                                   prefix_tag="training"),
+                         event_name=Events.ITERATION_COMPLETED(once=len(train_eval_loader) // 2))
 
     trainer.run(train_loader, max_epochs=config.num_epochs)

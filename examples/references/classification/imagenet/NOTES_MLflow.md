@@ -14,12 +14,8 @@ Please, install these tools:
 
 ### Download ImageNet-1k dataset
 
-```bash
-export MLFLOW_TRACKING_URI=/path/to/output/mlruns
-# e.g export MLFLOW_TRACKING_URI=$PWD/output/mlruns
-mlflow run experiments/mlflow -e download -P output_path=/path/where/download/
-# e.g mlflow run experiments/mlflow -e download -P output_path=$PWD/input
-```
+Since 10/2019, we need to register an account in order to download the dataset.
+To download the dataset, use the following form : http://www.image-net.org/download.php 
 
 ### Setup dataset path
 
