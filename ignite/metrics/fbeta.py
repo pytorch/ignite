@@ -42,7 +42,7 @@ def Fbeta(beta, average=True, precision=None, recall=None, output_transform=None
     elif recall._average:
         raise ValueError("Input recall metric should have average=False")
 
-    fbeta = (1.0 + beta ** 2) * precision * recall / (beta ** 2 * precision + recall)
+    fbeta = (1.0 + beta ** 2) * precision * recall / (beta ** 2 * precision + recall + 1e-15)
 
     if average:
         fbeta = fbeta.mean().item()
