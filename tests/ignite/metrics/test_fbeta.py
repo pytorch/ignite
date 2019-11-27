@@ -72,7 +72,7 @@ def test_integration():
         f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1),
                               average='macro' if average else None, beta=2.0)
         if isinstance(state.metrics['f2'], torch.Tensor):
-            assert (f2_true == state.metrics['f2'].numpy()).all(), "{} vs {}".format(f2_true, state.metrics['f2'])
+            np.testing.assert_allclose(f2_true, state.metrics['f2'].numpy())
         else:
             assert f2_true == pytest.approx(state.metrics['f2']), "{} vs {}".format(f2_true, state.metrics['f2'])
 
