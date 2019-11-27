@@ -3,6 +3,10 @@ ignite.handlers
 
 .. currentmodule:: ignite.handlers
 
+.. autoclass:: Checkpoint
+
+.. autoclass:: DiskSaver
+
 .. autoclass:: ModelCheckpoint
 
 .. autoclass:: EarlyStopping
