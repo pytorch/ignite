@@ -31,18 +31,18 @@ def Fbeta(beta, average=True, precision=None, recall=None, output_transform=None
         raise ValueError("If recall argument is provided, output_transform should be None")
 
     if precision is None:
-        precision = Precision(output_transform=lambda x: x if output_transform is None else output_transform,
+        precision = Precision(output_transform=(lambda x: x) if output_transform is None else output_transform,
                               average=False, device=device)
     elif precision._average:
         raise ValueError("Input precision metric should have average=False")
 
     if recall is None:
-        recall = Recall(output_transform=lambda x: x if output_transform is None else output_transform,
+        recall = Recall(output_transform=(lambda x: x) if output_transform is None else output_transform,
                         average=False, device=device)
     elif recall._average:
         raise ValueError("Input recall metric should have average=False")
 
-    fbeta = (1.0 + beta ** 2) * precision * recall / (beta ** 2 * precision + recall)
+    fbeta = (1.0 + beta ** 2) * precision * recall / (beta ** 2 * precision + recall + 1e-15)
 
     if average:
         fbeta = fbeta.mean().item()
