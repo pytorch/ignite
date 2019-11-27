@@ -54,13 +54,16 @@ class CallableEvents(object):
         if (event_filter is not None) and not callable(event_filter):
             raise TypeError("Argument event_filter should be a callable")
 
-        if (every is not None) and not (isinstance(every, numbers.Integral) and every > 1):
-            raise ValueError("Argument every should be integer and greater than one")
+        if (every is not None) and not (isinstance(every, numbers.Integral) and every > 0):
+            raise ValueError("Argument every should be integer and greater than zero")
 
         if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
             raise ValueError("Argument every should be integer and positive")
 
         if every is not None:
+            if every == 1:
+                # Just return the event itself
+                return self
             event_filter = CallableEvents.every_event_filter(every)
 
         if once is not None:

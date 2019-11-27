@@ -140,3 +140,22 @@ We appreciate all contributions. If you are planning to contribute back bug-fixe
 Please see the `contribution guidelines <https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md>`_ for more information.
 
 As always, PRs are welcome :)
+
+
+They use Ignite
+===============
+
+- `State-of-the-Art Conversational AI with Transfer Learning <https://github.com/huggingface/transfer-learning-conv-ai>`_
+- `Tutorial on Transfer Learning in NLP held at NAACL 2019 <https://github.com/huggingface/naacl_transfer_learning_tutorial>`_
+- `Implementation of "Attention is All You Need" paper <https://github.com/akurniawan/pytorch-transformer>`_
+- `Implementation of DropBlock: A regularization method for convolutional networks in PyTorch <https://github.com/miguelvr/dropblock>`_
+- `Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by Packt <https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition>`_
+- `Kaggle Kuzushiji Recognition: 2nd place solution <https://github.com/lopuhin/kaggle-kuzushiji-2019>`_
+- `Unsupervised Data Augmentation experiments in PyTorch <https://github.com/vfdev-5/UDA-pytorch>`_
+- `Hyperparameters tuning with Optuna <https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py>`_
+
+See other projects at `"Used by" <https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D>`_
+
+If your project implements a paper, represents other use-cases not covered in our official tutorials,
+Kaggle competition's code or just your code presents interesting results and uses Ignite. We would like to add your project
+in this list, so please send a PR with brief description of the project.
