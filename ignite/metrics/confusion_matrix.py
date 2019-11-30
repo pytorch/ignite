@@ -238,3 +238,22 @@ def cmRecall(cm, average=True):
     if average:
         return recall.mean()
     return recall
+
+
+def dice_coefficient(cm, ignore_index=None):
+    """Calculates Dice Coefficient for a given Confusion Matrix.
+    Args:
+        cm (ConfusionMatrix): instance of confusion matrix metric
+        ignore_index (int, optional): index to ignore, e.g. background index
+    """
+
+    if not isinstance(cm, ConfusionMatrix):
+        raise TypeError("Argument cm should be instance of ConfusionMatrix, but given {}".format(type(cm)))
+
+    if ignore_index is not None:
+        if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
+            raise ValueError("ignore_index should be non-negative integer, but given {}".format(ignore_index))
+
+    tp = cm.confusion_matrix.diag().sum()
+    fp_plus_fn = cm.confusion_matrix.sum() - tp
+    return (2.0 * tp) / (2.0 * tp + fp_plus_fn)
