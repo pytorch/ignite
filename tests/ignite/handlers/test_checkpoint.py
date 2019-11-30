@@ -41,7 +41,7 @@ def test_args_validation(dirname):
     with open(os.path.join(nonempty, '{}_name_0.pth'.format(_PREFIX)), 'w'):
         pass
 
-    with pytest.raises(ValueError, match=r"Files are already present in the directory"):
+    with pytest.raises(ValueError, match=r"with extension '.pth' or '.pth.tar' are already present "):
         ModelCheckpoint(nonempty, _PREFIX)
 
     with pytest.raises(ValueError, match=r"Argument save_interval is deprecated and should be None"):
@@ -73,26 +73,34 @@ def test_simple_recovery(dirname):
 
 
 def test_simple_recovery_from_existing_non_empty(dirname):
-    previous_fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
-    with open(previous_fname, 'w') as f:
-        f.write("test")
 
-    h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=False)
-    engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=1)
+    def _test(ext, require_empty, archived):
+        previous_fname = os.path.join(dirname, '{}_{}_{}{}'.format(_PREFIX, 'obj', 1, ext))
+        with open(previous_fname, 'w') as f:
+            f.write("test")
 
-    model = DummyModel()
-    to_save = {'model': model}
-    h(engine, to_save)
+        h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=require_empty, archived=archived)
+        engine = Engine(lambda e, b: None)
+        engine.state = State(epoch=0, iteration=1)
 
-    fname = h.last_checkpoint
-    assert isinstance(fname, str)
-    assert os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'model', 1)) == fname
-    assert os.path.exists(fname)
-    assert os.path.exists(previous_fname)
-    loaded_objects = torch.load(fname)
-    assert "model" in loaded_objects
-    assert loaded_objects['model'] == model.state_dict()
+        model = DummyModel()
+        to_save = {'model': model}
+        h(engine, to_save)
+
+        fname = h.last_checkpoint
+        ext = ".pth.tar" if archived else ".pth"
+        assert isinstance(fname, str)
+        assert os.path.join(dirname, '{}_{}_{}{}'.format(_PREFIX, 'model', 1, ext)) == fname
+        assert os.path.exists(fname)
+        assert os.path.exists(previous_fname)
+        loaded_objects = torch.load(fname)
+        assert "model" in loaded_objects
+        assert loaded_objects['model'] == model.state_dict()
+        os.remove(fname)
+
+    _test(".txt", require_empty=True, archived=False)
+    _test(".txt", require_empty=True, archived=True)
+    _test(".pth", require_empty=False, archived=False)
 
 
 def test_atomic(dirname):
@@ -467,9 +475,13 @@ def test_disksaver_wrong_input(dirname):
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
         DiskSaver("/tmp/non-existing-folder", create_dir=False)
 
-    previous_fname = os.path.join(dirname, '{}_{}_{}.pth'.format(_PREFIX, 'obj', 1))
-    with open(previous_fname, 'w') as f:
-        f.write("test")
+    def _test(ext):
+        previous_fname = os.path.join(dirname, '{}_{}_{}{}'.format(_PREFIX, 'obj', 1, ext))
+        with open(previous_fname, 'w') as f:
+            f.write("test")
 
-    with pytest.raises(ValueError, match=r"Files are already present in the directory"):
-        DiskSaver(dirname, require_empty=True)
+        with pytest.raises(ValueError, match=r"with extension '.pth' or '.pth.tar' are already present"):
+            DiskSaver(dirname, require_empty=True)
+
+    _test(".pth")
+    _test(".pth.tar")

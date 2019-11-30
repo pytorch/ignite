@@ -33,6 +33,7 @@ class Checkpoint(object):
         score_name (str, optional): If `score_function` not None, it is possible to store its absolute value using
             `score_name`. See Notes for more details.
         n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed.
+        archived (bool, optional): It True, saved checkpoint extension will be `.pth.tar`, Default value is False.
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -53,6 +54,15 @@ class Checkpoint(object):
         be `{filename_prefix}_{name}_{engine.state.epoch}_{score_name}={abs(score)}.pth`.
         For example, `score_name="val_loss"` and `score_function` that returns `-loss` (as objects with
         highest scores will be retained), then saved models filenames will be `model_0_val_loss=0.1234.pth`.
+
+        To get the last stored filename, handler exposes attribute `last_checkpoint`:
+
+        .. code-block:: python
+
+            handler = Checkpoint(...)
+            ...
+            print(handler.last_checkpoint)
+            > checkpoint_12345.pth
 
     Examples:
         Saved checkpoint then can be used to resume a training:
@@ -79,7 +89,7 @@ class Checkpoint(object):
 
     def __init__(self, to_save, save_handler, filename_prefix="",
                  score_function=None, score_name=None,
-                 n_saved=1):
+                 n_saved=1, archived=False):
 
         if not isinstance(to_save, collections.Mapping):
             raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
@@ -102,6 +112,7 @@ class Checkpoint(object):
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
+        self._ext = ".pth.tar" if archived else ".pth"
 
     @property
     def last_checkpoint(self):
@@ -129,7 +140,7 @@ class Checkpoint(object):
             if len(checkpoint) == 1:
                 for k in checkpoint:
                     name = k
-            filename = '{}{}_{}.pth'.format(self._fname_prefix, name, suffix)
+            filename = '{}{}_{}{}'.format(self._fname_prefix, name, suffix, self._ext)
 
             self.save_handler(checkpoint, filename)
 
@@ -179,7 +190,6 @@ class DiskSaver(object):
             (for example if exception occures during saving).
         create_dir (bool, optional): if True, will create directory 'dirname' if it doesnt exist.
         require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
-
     """
 
     def __init__(self, dirname, atomic=True, create_dir=True, require_empty=True):
@@ -193,12 +203,12 @@ class DiskSaver(object):
             raise ValueError("Directory path '{}' is not found".format(dirname))
 
         if require_empty:
-            matched = [fname for fname in os.listdir(dirname)]
+            matched = [fname for fname in os.listdir(dirname) if fname.endswith(".pth") or fname.endswith(".pth.tar")]
             if len(matched) > 0:
-                raise ValueError("Files are already present "
+                raise ValueError("Files {} with extension '.pth' or '.pth.tar' are already present "
                                  "in the directory {}. If you want to use this "
                                  "directory anyway, pass `require_empty=False`."
-                                 "".format(dirname))
+                                 "".format(matched, dirname))
 
     def __call__(self, checkpoint, filename):
         path = os.path.join(self.dirname, filename)
@@ -230,7 +240,7 @@ class ModelCheckpoint(Checkpoint):
         - an :class:`~ignite.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
 
-    See Notes and Examples for further details.
+    See Examples for further details.
 
     .. warning::
         Behaviour of this class has been changed since v0.3.0.
@@ -273,6 +283,7 @@ class ModelCheckpoint(Checkpoint):
             in the directory 'dirname'.
         create_dir (bool, optional):
             If True, will create directory 'dirname' if it doesnt exist.
+        archived (bool, optional): It True, saved checkpoint extension will be `.pth.tar`, Default value is False.
 
     Examples:
         >>> import os
@@ -286,6 +297,8 @@ class ModelCheckpoint(Checkpoint):
         >>> trainer.run([0], max_epochs=6)
         >>> os.listdir('/tmp/models')
         ['myprefix_mymodel_4.pth', 'myprefix_mymodel_6.pth']
+        >>> handler.last_checkpoint
+        ['/tmp/models/myprefix_mymodel_6.pth']
     """
 
     def __init__(self, dirname, filename_prefix,
@@ -294,7 +307,7 @@ class ModelCheckpoint(Checkpoint):
                  n_saved=1,
                  atomic=True, require_empty=True,
                  create_dir=True,
-                 save_as_state_dict=True):
+                 save_as_state_dict=True, archived=False):
 
         if not save_as_state_dict:
             raise ValueError("Argument save_as_state_dict is deprecated and should be True")
@@ -321,6 +334,7 @@ class ModelCheckpoint(Checkpoint):
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
+        self._ext = ".pth.tar" if archived else ".pth"
 
     @property
     def last_checkpoint(self):
