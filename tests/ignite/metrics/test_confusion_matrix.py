@@ -611,5 +611,5 @@ def test_dice_coefficient(ignore_index=None):
     # Update metric
     output = (th_y_logits, th_y_true)
     cm.update(output)
-    res = dice_coefficient(cm).item()
+    res = DiceCoefficient(cm).item()
     assert float("{0:.2f}".format(res)) == float("{0:.2f}".format(true_res))
