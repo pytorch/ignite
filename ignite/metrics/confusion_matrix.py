@@ -240,7 +240,7 @@ def cmRecall(cm, average=True):
     return recall
 
 
-def dice_coefficient(cm, ignore_index=None):
+def DiceCoefficient(cm, ignore_index=None):
     """Calculates Dice Coefficient for a given Confusion Matrix.
 
     Args:
