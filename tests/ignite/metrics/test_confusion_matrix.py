@@ -7,8 +7,8 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
-from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall
-
+from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, dice_coefficient
+import random
 import pytest
 
 
@@ -577,3 +577,39 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
     _test_distrib_multiclass_images(device)
+
+
+def test_dice_coefficient(ignore_index=None):
+    n_classes = 3
+    logits = [[random.random() for j in range(n_classes)] for i in range(5)]
+    y_true = np.asarray([random.randint(0, n_classes - 1) for i in range(5)])
+    y_pred = np.argmax(logits, axis=1)
+
+    _intersection = []
+    _union = []
+    for index in range(n_classes):
+        bin_y_true = y_true == index
+        bin_y_pred = y_pred == index
+        intersection = bin_y_true & bin_y_pred
+        union = bin_y_true | bin_y_pred
+
+        if len(_intersection) == 0:
+            _intersection = intersection
+            _union = union
+        else:
+            _intersection = np.logical_or(_intersection, intersection)
+            _union = np.logical_or(_union, union)
+
+    fp_plus_fn = _union.sum() - _intersection.sum()
+    eps = 1e-15
+    true_res = (2.0 * _intersection.sum()) / (2.0 * _intersection.sum() + fp_plus_fn + eps)
+
+    cm = ConfusionMatrix(num_classes=n_classes)
+    th_y_true = torch.tensor(y_true)
+    th_y_logits = torch.tensor(logits)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+    res = dice_coefficient(cm).item()
+    assert float("{0:.2f}".format(res)) == float("{0:.2f}".format(true_res))
