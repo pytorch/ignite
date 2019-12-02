@@ -31,7 +31,258 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def test_args_validation(dirname):
+def test_checkpoint_wrong_input():
+
+    with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
+        Checkpoint(12, lambda x: x, "prefix", )
+
+    with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
+        Checkpoint([12, ], lambda x: x, "prefix")
+
+    with pytest.raises(ValueError, match=r"No objects to checkpoint."):
+        Checkpoint({}, lambda x: x, "prefix")
+
+    model = DummyModel()
+    to_save = {'model': model}
+
+    with pytest.raises(TypeError, match=r"Argument `save_handler` should be callable"):
+        Checkpoint(to_save, 12, "prefix")
+
+    with pytest.raises(ValueError,
+                       match=r"If `score_name` is provided, then `score_function` should be also provided."):
+        Checkpoint(to_save, lambda x: x, score_name="acc")
+
+    with pytest.raises(TypeError, match=r"global_step_transform should be a function."):
+        Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", global_step_transform=123)
+
+
+def test_checkpoint_default():
+
+    def _test(to_save, obj, name):
+        save_handler = MagicMock()
+        save_handler.remove = MagicMock()
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler)
+        assert checkpointer.last_checkpoint is None
+
+        trainer = Engine(lambda e, b: None)
+        trainer.state = State(epoch=0, iteration=0)
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 1
+
+        save_handler.assert_called_with(obj, "{}_0.pth".format(name))
+
+        trainer.state.epoch = 12
+        trainer.state.iteration = 1234
+        checkpointer(trainer)
+        assert save_handler.call_count == 2
+        save_handler.assert_called_with(obj, "{}_1234.pth".format(name))
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with("{}_0.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_1234.pth".format(name)
+
+    model = DummyModel()
+    to_save = {'model': model}
+    _test(to_save, model.state_dict(), 'model')
+
+    model = DummyModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    to_save = {'model': model, 'optimizer': optimizer}
+    _test(to_save, {'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, 'checkpoint')
+
+
+def test_checkpoint_with_global_step_transform():
+
+    def _test(filename_prefix, to_save, obj, name):
+        save_handler = MagicMock()
+        save_handler.remove = MagicMock()
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler, filename_prefix=filename_prefix,
+                                  global_step_transform=lambda e, _: e.state.epoch)
+
+        trainer = Engine(lambda e, b: None)
+        trainer.state = State(epoch=1, iteration=1)
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 1
+
+        if len(filename_prefix) > 0:
+            filename_prefix += "_"
+
+        save_handler.assert_called_with(obj, "{}{}_1.pth".format(filename_prefix, name))
+
+        trainer.state.epoch = 12
+        trainer.state.iteration = 1234
+        checkpointer(trainer)
+        assert save_handler.call_count == 2
+        save_handler.assert_called_with(obj, "{}{}_12.pth".format(filename_prefix, name))
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with("{}{}_1.pth".format(filename_prefix, name))
+        assert checkpointer.last_checkpoint == "{}{}_12.pth".format(filename_prefix, name)
+
+    for prefix in ["", "dummytask"]:
+        model = DummyModel()
+        to_save = {'model': model}
+        _test(prefix, to_save, model.state_dict(), 'model')
+
+        model = DummyModel()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        to_save = {'model': model, 'optimizer': optimizer}
+        _test(prefix, to_save, {'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, 'checkpoint')
+
+
+def test_checkpoint_with_score_function():
+
+    def _test(to_save, obj, name):
+        save_handler = MagicMock()
+        save_handler.remove = MagicMock()
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler, score_function=lambda e: e.state.score)
+
+        trainer = Engine(lambda e, b: None)
+        trainer.state = State(epoch=1, iteration=1, score=0.77)
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 1
+
+        save_handler.assert_called_with(obj, "{}_0.77.pth".format(name))
+
+        trainer.state.epoch = 12
+        trainer.state.iteration = 1234
+        trainer.state.score = 0.78
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 2
+        save_handler.assert_called_with(obj, "{}_0.78.pth".format(name))
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with("{}_0.77.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_0.78.pth".format(name)
+
+    model = DummyModel()
+    to_save = {'model': model}
+    _test(to_save, model.state_dict(), 'model')
+
+    model = DummyModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    to_save = {'model': model, 'optimizer': optimizer}
+    _test(to_save, {'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, 'checkpoint')
+
+
+def test_checkpoint_with_score_name_and_function():
+
+    def _test(to_save, obj, name):
+        save_handler = MagicMock()
+        save_handler.remove = MagicMock()
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler,
+                                  score_name="loss",
+                                  score_function=lambda e: e.state.score)
+
+        trainer = Engine(lambda e, b: None)
+        trainer.state = State(epoch=1, iteration=1, score=-0.77)
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 1
+
+        save_handler.assert_called_with(obj, "{}_loss=-0.77.pth".format(name))
+
+        trainer.state.epoch = 12
+        trainer.state.iteration = 1234
+        trainer.state.score = -0.76
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 2
+        save_handler.assert_called_with(obj, "{}_loss=-0.76.pth".format(name))
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with("{}_loss=-0.77.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_loss=-0.76.pth".format(name)
+
+    model = DummyModel()
+    to_save = {'model': model}
+    _test(to_save, model.state_dict(), 'model')
+
+    model = DummyModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    to_save = {'model': model, 'optimizer': optimizer}
+    _test(to_save, {'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, 'checkpoint')
+
+
+def test_checkpoint_with_score_function_and_trainer_epoch():
+
+    def _test(to_save, obj, name):
+        save_handler = MagicMock()
+        save_handler.remove = MagicMock()
+
+        trainer = Engine(lambda e, b: None)
+        evaluator = Engine(lambda e, b: None)
+        trainer.state = State(epoch=11, iteration=1)
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler,
+                                  global_step_transform=lambda _1, _2: trainer.state.epoch,
+                                  score_function=lambda e: e.state.metrics['val_acc'])
+
+        evaluator.state = State(epoch=1, iteration=1000,
+                                metrics={'val_acc': 0.77})
+        checkpointer(evaluator)
+        assert save_handler.call_count == 1
+
+        save_handler.assert_called_with(obj, "{}_11_0.77.pth".format(name))
+
+        trainer.state.epoch = 12
+        evaluator.state.metrics['val_acc'] = 0.78
+
+        checkpointer(evaluator)
+        assert save_handler.call_count == 2
+        save_handler.assert_called_with(obj, "{}_12_0.78.pth".format(name))
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with("{}_11_0.77.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_12_0.78.pth".format(name)
+
+    model = DummyModel()
+    to_save = {'model': model}
+    _test(to_save, model.state_dict(), 'model')
+
+
+def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
+
+    def _test(to_save, obj, name):
+        save_handler = MagicMock()
+        save_handler.remove = MagicMock()
+
+        trainer = Engine(lambda e, b: None)
+        evaluator = Engine(lambda e, b: None)
+        trainer.state = State(epoch=11, iteration=1)
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler,
+                                  global_step_transform=lambda _1, _2: trainer.state.epoch,
+                                  score_name="val_acc",
+                                  score_function=lambda e: e.state.metrics['val_acc'])
+
+        evaluator.state = State(epoch=1, iteration=1000,
+                                metrics={'val_acc': 0.77})
+
+        checkpointer(evaluator)
+        assert save_handler.call_count == 1
+
+        save_handler.assert_called_with(obj, "{}_11_val_acc=0.77.pth".format(name))
+
+        trainer.state.epoch = 12
+        evaluator.state.metrics['val_acc'] = 0.78
+
+        checkpointer(evaluator)
+        assert save_handler.call_count == 2
+        save_handler.assert_called_with(obj, "{}_12_val_acc=0.78.pth".format(name))
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with("{}_11_val_acc=0.77.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_12_val_acc=0.78.pth".format(name)
+
+    model = DummyModel()
+    to_save = {'model': model}
+    _test(to_save, model.state_dict(), 'model')
+
+
+def test_model_checkpoint_args_validation(dirname):
     existing = os.path.join(dirname, 'existing_dir')
     nonempty = os.path.join(dirname, 'nonempty')
 
@@ -53,8 +304,19 @@ def test_args_validation(dirname):
     with pytest.raises(ValueError, match=r"Argument save_as_state_dict is deprecated and should be True"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, save_as_state_dict=False)
 
+    with pytest.raises(ValueError, match=r"If `score_name` is provided, then `score_function` "):
+        ModelCheckpoint(existing, _PREFIX, create_dir=False, score_name='test')
 
-def test_simple_recovery(dirname):
+    with pytest.raises(TypeError, match=r"global_step_transform should be a function"):
+        ModelCheckpoint(existing, _PREFIX, create_dir=False, global_step_transform=1234)
+
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
+    assert h.last_checkpoint is None
+    with pytest.raises(RuntimeError, match=r"No objects to checkpoint found."):
+        h(None, [])
+
+
+def test_model_checkpoint_simple_recovery(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     engine = Engine(lambda e, b: None)
     engine.state = State(epoch=0, iteration=1)
@@ -68,11 +330,10 @@ def test_simple_recovery(dirname):
     assert os.path.join(dirname, _PREFIX) in fname
     assert os.path.exists(fname)
     loaded_objects = torch.load(fname)
-    assert "model" in loaded_objects
-    assert loaded_objects['model'] == model.state_dict()
+    assert loaded_objects == model.state_dict()
 
 
-def test_simple_recovery_from_existing_non_empty(dirname):
+def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
 
     def _test(ext, require_empty, archived):
         previous_fname = os.path.join(dirname, '{}_{}_{}{}'.format(_PREFIX, 'obj', 1, ext))
@@ -94,8 +355,7 @@ def test_simple_recovery_from_existing_non_empty(dirname):
         assert os.path.exists(fname)
         assert os.path.exists(previous_fname)
         loaded_objects = torch.load(fname)
-        assert "model" in loaded_objects
-        assert loaded_objects['model'] == model.state_dict()
+        assert loaded_objects == model.state_dict()
         os.remove(fname)
 
     _test(".txt", require_empty=True, archived=False)
@@ -103,7 +363,7 @@ def test_simple_recovery_from_existing_non_empty(dirname):
     _test(".pth", require_empty=False, archived=False)
 
 
-def test_atomic(dirname):
+def test_disk_saver_atomic(dirname):
 
     model = DummyModel()
     to_save_serializable = {'model': model}
@@ -192,7 +452,7 @@ def test_best_k_with_suffix(dirname):
         engine.state.epoch += 1
         h(engine, to_save)
 
-    expected = ['{}_{}_{}_val_loss={:.7}.pth'.format(_PREFIX, 'model', e, scores[e - 1]) for e in [1, 3]]
+    expected = ['{}_{}_val_loss={:.7}.pth'.format(_PREFIX, 'model', scores[e - 1]) for e in [1, 3]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -238,10 +498,10 @@ def test_with_state_dict(dirname):
     model_state_dict = model.state_dict()
     loaded_model_state_dict = load_model
     for key in model_state_dict.keys():
-        assert key in loaded_model_state_dict['model']
+        assert key in loaded_model_state_dict
 
         model_value = model_state_dict[key]
-        loaded_model_value = loaded_model_state_dict['model'][key]
+        loaded_model_value = loaded_model_state_dict[key]
 
         assert model_value.numpy() == loaded_model_value.numpy()
 
@@ -324,130 +584,6 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
         lr_scheduler_value = lr_scheduler_state_dict[key]
         loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
         assert lr_scheduler_value == loaded_lr_scheduler_value
-
-
-def test_checkpoint_wrong_input():
-
-    with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
-        Checkpoint(12, lambda x: x, "prefix", )
-
-    with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
-        Checkpoint([12, ], lambda x: x, "prefix")
-
-    with pytest.raises(ValueError, match=r"No objects to checkpoint."):
-        Checkpoint({}, lambda x: x, "prefix")
-
-    model = DummyModel()
-    to_save = {'model': model}
-
-    with pytest.raises(TypeError, match=r"Argument `save_handler` should be callable"):
-        Checkpoint(to_save, 12, "prefix")
-
-    with pytest.raises(ValueError,
-                       match=r"If `score_name` is provided, then `score_function` should be also provided."):
-        Checkpoint(to_save, lambda x: x, score_name="acc")
-
-
-def test_checkpoint__setup_checkpoint():
-    save_handler = MagicMock()
-
-    to_save = {'model1': DummyModel(), 'model2': DummyModel()}
-
-    checkpointer = Checkpoint(to_save, save_handler=save_handler)
-    chkpt = checkpointer._setup_checkpoint()
-    assert isinstance(chkpt, dict)
-    for k in ['model1', 'model2']:
-        assert k in chkpt
-        assert chkpt[k] == to_save[k].state_dict()
-
-
-def test_checkpoint_default():
-    save_handler = MagicMock()
-    save_handler.remove = MagicMock()
-
-    model = DummyModel()
-    to_save = {'model': model}
-
-    checkpointer = Checkpoint(to_save, save_handler=save_handler)
-
-    engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
-    checkpointer(engine)
-
-    assert save_handler.call_count == 1
-    save_handler.assert_called_with(checkpointer._setup_checkpoint(), "model_0.pth")
-
-    engine.state.iteration += 1
-    checkpointer(engine)
-    assert save_handler.call_count == 2
-    save_handler.assert_called_with(checkpointer._setup_checkpoint(), "model_1.pth")
-    assert save_handler.remove.call_count == 1
-    save_handler.remove.assert_called_with("model_0.pth")
-
-
-def test_checkpoint_score_function():
-
-    model = DummyModel()
-    to_save = {'model': model}
-
-    def _test(scores, score_name=None):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
-
-        def score_function(_):
-            return next(scores)
-
-        checkpointer = Checkpoint(to_save, save_handler=save_handler,
-                                  score_function=score_function, score_name=score_name)
-
-        engine = Engine(lambda e, b: None)
-        engine.state = State(epoch=0, iteration=0)
-        checkpointer(engine)
-
-        assert save_handler.call_count == 1
-        fname = "model_{}1.2.pth"
-        if score_name is not None:
-            fname = fname.format("0_" + score_name + "=")
-        else:
-            fname = fname.format("")
-        save_handler.assert_called_with(checkpointer._setup_checkpoint(), fname)
-
-        engine.state.epoch += 1
-        checkpointer(engine)
-        assert save_handler.call_count == 1
-
-        engine.state.epoch += 1
-        checkpointer(engine)
-        assert save_handler.call_count == 2
-        fname2 = "model_{}3.1.pth"
-        if score_name is not None:
-            fname2 = fname2.format("2_" + score_name + "=")
-        else:
-            fname2 = fname2.format("")
-        save_handler.assert_called_with(checkpointer._setup_checkpoint(), fname2)
-        assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(fname)
-
-    _test(iter([1.2, -2., 3.1, -4.0]))
-    _test(iter([1.2, float('nan'), 3.1, -4.0]))
-    _test(iter([1.2, -2., 3.1, -4.0]), score_name="acc")
-    _test(iter([1.2, float('nan'), 3.1, -4.0]), score_name="acc")
-
-
-def test_checkpoint_last_checkpoint():
-    save_handler = MagicMock()
-    save_handler.__call__ = MagicMock()
-    model = DummyModel()
-    to_save = {'model': model}
-
-    checkpointer = Checkpoint(to_save, save_handler=save_handler)
-    assert checkpointer.last_checkpoint is None
-
-    engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
-
-    checkpointer(engine)
-    assert checkpointer.last_checkpoint == "model_0.pth"
 
 
 def test_checkpoint_load_objects():
