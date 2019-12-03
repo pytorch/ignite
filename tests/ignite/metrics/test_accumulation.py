@@ -81,6 +81,14 @@ def test_average():
     m = mean_var.compute()
     assert m.numpy() == pytest.approx(y_true.mean(dim=0).numpy())
 
+    mean_var = Average()
+    y_true = torch.rand(8, 16, 10) + torch.randint(0, 10, size=(8, 16, 10)).float()
+    for y in y_true:
+        mean_var.update(y)
+
+    m = mean_var.compute()
+    assert m.numpy() == pytest.approx(y_true.reshape(-1, 10).mean(dim=0).numpy())
+
 
 def _geom_mean(t):
     np_t = t.numpy()
@@ -109,6 +117,14 @@ def test_geom_average():
 
     m = mean_var.compute()
     np.testing.assert_almost_equal(m.numpy(), _geom_mean(y_true), decimal=5)
+
+    mean_var = GeometricAverage()
+    y_true = torch.rand(8, 16, 10) + torch.randint(0, 10, size=(8, 16, 10)).float()
+    for y in y_true:
+        mean_var.update(y)
+
+    m = mean_var.compute()
+    np.testing.assert_almost_equal(m.numpy(), _geom_mean(y_true.reshape(-1, 10)), decimal=5)
 
 
 def test_integration():
