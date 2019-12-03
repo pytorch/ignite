@@ -47,6 +47,16 @@ def test_variable_accumulation_mean_variable():
     assert a.numpy() == pytest.approx(y_true.sum(dim=0).numpy())
     assert n == len(y_true)
 
+    mean_var = VariableAccumulation(lambda a, x: a + x.sum(dim=0))
+    # iterate by batch of 16 samples
+    y_true = torch.rand(8, 16, 10)
+    for y in y_true:
+        mean_var.update(y)
+
+    a, n = mean_var.compute()
+    assert a.numpy() == pytest.approx(y_true.reshape(-1, 10).sum(dim=0).numpy())
+    assert n == y_true.shape[0] * y_true.shape[1]
+
 
 def test_average():
 
