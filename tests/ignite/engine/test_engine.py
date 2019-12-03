@@ -837,6 +837,34 @@ def test_iteration_events_are_fired():
     assert mock_manager.mock_calls == expected_calls
 
 
+def test_last_event_name():
+    engine = Engine(MagicMock(return_value=1))
+    assert engine.last_event_name is None
+
+    @engine.on(Events.STARTED)
+    def _(_engine):
+        assert _engine.last_event_name == Events.STARTED
+
+    @engine.on(Events.EPOCH_STARTED)
+    def _(_engine):
+        assert _engine.last_event_name == Events.EPOCH_STARTED
+
+    @engine.on(Events.ITERATION_STARTED)
+    def _(_engine):
+        assert _engine.last_event_name == Events.ITERATION_STARTED
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def _(_engine):
+        assert _engine.last_event_name == Events.ITERATION_COMPLETED
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _(_engine):
+        assert _engine.last_event_name == Events.EPOCH_COMPLETED
+
+    engine.run([0, 1])
+    assert engine.last_event_name == Events.COMPLETED
+
+
 def test_create_supervised_trainer():
     model = Linear(1, 1)
     model.weight.data.zero_()
