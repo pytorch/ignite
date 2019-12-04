@@ -37,7 +37,7 @@ def test_wrong_inputs():
 
 def test_integration():
 
-    def _test(p, r, average):
+    def _test(p, r, average, output_transform):
         np.random.seed(1)
 
         n_iters = 10
@@ -59,11 +59,16 @@ def test_integration():
         def update_fn(engine, batch):
             y_true_batch = next(y_true_batch_values)
             y_pred_batch = next(y_pred_batch_values)
+            if output_transform is not None:
+                return {
+                    'y_pred': torch.from_numpy(y_pred_batch),
+                    'y': torch.from_numpy(y_true_batch)
+                }
             return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         evaluator = Engine(update_fn)
 
-        f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r)
+        f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform)
         f2.attach(evaluator, "f2")
 
         data = list(range(n_iters))
@@ -72,16 +77,22 @@ def test_integration():
         f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1),
                               average='macro' if average else None, beta=2.0)
         if isinstance(state.metrics['f2'], torch.Tensor):
-            assert (f2_true == state.metrics['f2'].numpy()).all(), "{} vs {}".format(f2_true, state.metrics['f2'])
+            np.testing.assert_allclose(f2_true, state.metrics['f2'].numpy())
         else:
             assert f2_true == pytest.approx(state.metrics['f2']), "{} vs {}".format(f2_true, state.metrics['f2'])
 
-    _test(None, None, False)
-    _test(None, None, True)
+    _test(None, None, False, output_transform=None)
+    _test(None, None, True, output_transform=None)
+
+    def output_transform(output):
+        return output['y_pred'], output['y']
+
+    _test(None, None, False, output_transform=output_transform)
+    _test(None, None, True, output_transform=output_transform)
     precision = Precision(average=False)
     recall = Recall(average=False)
-    _test(precision, recall, False)
-    _test(precision, recall, True)
+    _test(precision, recall, False, None)
+    _test(precision, recall, True, None)
 
 
 def _test_distrib_itegration(device):
