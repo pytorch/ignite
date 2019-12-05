@@ -130,6 +130,9 @@ def setup_common_distrib_training_handlers(trainer, train_sampler,
     Returns:
         Engine
     """
+    if not dist.is_available():
+        raise RuntimeError("Distributed setting is not initialized, please call `dist.init_process_group` before.")
+
     setup_common_training_handlers(trainer, to_save=None,
                                    lr_scheduler=lr_scheduler, with_gpu_stats=with_gpu_stats,
                                    output_names=output_names,
