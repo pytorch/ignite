@@ -85,50 +85,7 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
 
     if getattr(config, "benchmark_dataflow", False):
         benchmark_dataflow_num_iters = getattr(config, "benchmark_dataflow_num_iters", 1000)
-
-        from torch.utils.data import DataLoader
-        from ignite.handlers import Timer
-
-        def upload_to_gpu(engine, batch):
-            x, y = prepare_batch(batch, device=device, non_blocking=False)
-
-        benchmark_dataflow = Engine(upload_to_gpu)
-
-        @benchmark_dataflow.on(Events.ITERATION_COMPLETED(once=benchmark_dataflow_num_iters))
-        def stop_benchmark_dataflow(engine):
-            engine.terminate()
-
-        if dist.get_rank() == 0:
-            @benchmark_dataflow.on(Events.ITERATION_COMPLETED(every=benchmark_dataflow_num_iters // 100))
-            def show_progress_benchmark_dataflow(engine):
-                print(".", end=" ")
-
-        timer = Timer(average=False)
-        timer.attach(benchmark_dataflow,
-                     start=Events.EPOCH_STARTED,
-                     resume=Events.ITERATION_STARTED,
-                     pause=Events.ITERATION_COMPLETED,
-                     step=Events.ITERATION_COMPLETED)
-
-        @trainer.on(Events.STARTED)
-        def run_benchmark(_):
-            if dist.get_rank() == 0:
-                print("-" * 50)
-                print(" - Dataflow benchmark")
-
-            benchmark_dataflow.run(train_loader)
-            t = timer.value()
-
-            if dist.get_rank() == 0:
-                print(" ")
-                print(" Total time ({} iterations) : {:.5f} seconds".format(benchmark_dataflow_num_iters, t))
-                print(" time per iteration         : {} seconds".format(t / benchmark_dataflow_num_iters))
-
-                if isinstance(train_loader, DataLoader):
-                    num_images = train_loader.batch_size * benchmark_dataflow_num_iters
-                    print(" number of images / s       : {}".format(num_images / t))
-
-                print("-" * 50)
+        DataflowBenchmark(benchmark_dataflow_num_iters, prepare_batch=prepare_batch, device=device).attach(trainer, train_loader)
 
     # Setup evaluators
     val_metrics = {
@@ -199,3 +156,59 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
                          event_name=Events.ITERATION_COMPLETED(once=len(train_eval_loader) // 2))
 
     trainer.run(train_loader, max_epochs=config.num_epochs)
+
+
+class DataflowBenchmark:
+
+    def __init__(self, num_iters=100, prepare_batch=None, device="cuda"):
+
+        from ignite.handlers import Timer
+
+        def upload_to_gpu(engine, batch):
+            if prepare_batch is not None:
+                x, y = prepare_batch(batch, device=device, non_blocking=False)
+
+        self.num_iters = num_iters
+        self.benchmark_dataflow = Engine(upload_to_gpu)
+
+        @self.benchmark_dataflow.on(Events.ITERATION_COMPLETED(once=num_iters))
+        def stop_benchmark_dataflow(engine):
+            engine.terminate()
+
+        if dist.is_available() and dist.get_rank() == 0:
+            @self.benchmark_dataflow.on(Events.ITERATION_COMPLETED(every=num_iters // 100))
+            def show_progress_benchmark_dataflow(engine):
+                print(".", end=" ")
+
+        self.timer = Timer(average=False)
+        self.timer.attach(self.benchmark_dataflow,
+                          start=Events.EPOCH_STARTED,
+                          resume=Events.ITERATION_STARTED,
+                          pause=Events.ITERATION_COMPLETED,
+                          step=Events.ITERATION_COMPLETED)
+
+    def attach(self, trainer, train_loader):
+
+        from torch.utils.data import DataLoader
+
+        @trainer.on(Events.STARTED)
+        def run_benchmark(_):
+            if dist.is_available() and dist.get_rank() == 0:
+                print("-" * 50)
+                print(" - Dataflow benchmark")
+
+            self.benchmark_dataflow.run(train_loader)
+            t = self.timer.value()
+
+            if dist.is_available() and dist.get_rank() == 0:
+                print(" ")
+                print(" Total time ({} iterations) : {:.5f} seconds".format(self.num_iters, t))
+                print(" time per iteration         : {} seconds".format(t / self.num_iters))
+
+                if isinstance(train_loader, DataLoader):
+                    num_images = train_loader.batch_size * self.num_iters
+                    print(" number of images / s       : {}".format(num_images / t))
+
+                print("-" * 50)
+
+
