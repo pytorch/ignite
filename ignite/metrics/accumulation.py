@@ -86,7 +86,10 @@ class Average(VariableAccumulation):
 
         - `+1` if input is a number
         - `+1` if input is a 1D `torch.Tensor`
-        - `+batch_size` if input is a ND `torch.Tensor`. Batch size is the first dimension (`shape[0]`).
+        - `+batch_size` if input is an ND `torch.Tensor`. Batch size is the first dimension (`shape[0]`).
+
+        For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
+        is summed up and added to the accumulator: `accumulator += x.sum(dim=0)`
 
     Examples:
 
@@ -113,6 +116,8 @@ class Average(VariableAccumulation):
     def __init__(self, output_transform=lambda x: x, device=None):
 
         def _mean_op(a, x):
+            if isinstance(x, torch.Tensor) and x.ndim > 1:
+                x = x.sum(dim=0)
             return a + x
 
         super(Average, self).__init__(op=_mean_op, output_transform=output_transform, device=device)
@@ -140,6 +145,9 @@ class GeometricAverage(VariableAccumulation):
         - `+1` if input is a 1D `torch.Tensor`
         - `+batch_size` if input is a ND `torch.Tensor`. Batch size is the first dimension (`shape[0]`).
 
+        For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
+        is aggregated and added to the accumulator: `accumulator *= prod(x, dim=0)`
+
     Args:
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
@@ -155,7 +163,10 @@ class GeometricAverage(VariableAccumulation):
         def _geom_op(a, x):
             if not isinstance(x, torch.Tensor):
                 x = torch.tensor(x)
-            return a + torch.log(x)
+            x = torch.log(x)
+            if x.ndim > 1:
+                x = x.sum(dim=0)
+            return a + x
 
         super(GeometricAverage, self).__init__(op=_geom_op, output_transform=output_transform, device=device)
 
