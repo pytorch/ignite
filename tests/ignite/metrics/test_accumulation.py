@@ -47,6 +47,16 @@ def test_variable_accumulation_mean_variable():
     assert a.numpy() == pytest.approx(y_true.sum(dim=0).numpy())
     assert n == len(y_true)
 
+    mean_var = VariableAccumulation(lambda a, x: a + x.sum(dim=0))
+    # iterate by batch of 16 samples
+    y_true = torch.rand(8, 16, 10)
+    for y in y_true:
+        mean_var.update(y)
+
+    a, n = mean_var.compute()
+    assert a.numpy() == pytest.approx(y_true.reshape(-1, 10).sum(dim=0).numpy())
+    assert n == y_true.shape[0] * y_true.shape[1]
+
 
 def test_average():
 
@@ -70,6 +80,14 @@ def test_average():
 
     m = mean_var.compute()
     assert m.numpy() == pytest.approx(y_true.mean(dim=0).numpy())
+
+    mean_var = Average()
+    y_true = torch.rand(8, 16, 10) + torch.randint(0, 10, size=(8, 16, 10)).float()
+    for y in y_true:
+        mean_var.update(y)
+
+    m = mean_var.compute()
+    assert m.numpy() == pytest.approx(y_true.reshape(-1, 10).mean(dim=0).numpy())
 
 
 def _geom_mean(t):
@@ -99,6 +117,14 @@ def test_geom_average():
 
     m = mean_var.compute()
     np.testing.assert_almost_equal(m.numpy(), _geom_mean(y_true), decimal=5)
+
+    mean_var = GeometricAverage()
+    y_true = torch.rand(8, 16, 10) + torch.randint(0, 10, size=(8, 16, 10)).float()
+    for y in y_true:
+        mean_var.update(y)
+
+    m = mean_var.compute()
+    np.testing.assert_almost_equal(m.numpy(), _geom_mean(y_true.reshape(-1, 10)), decimal=5)
 
 
 def test_integration():
@@ -139,6 +165,36 @@ def test_integration():
 
     _test(Average, _mean)
     _test(GeometricAverage, _geom_mean)
+
+
+def test_compute_mean_std():
+    n = 8
+    b = 12
+    c = 3
+    w = h = 64
+    true_data = np.arange(0, n * b * h * w * c, dtype='float64').reshape(n * b, c, h, w) - (n * b * c * w * h * 0.75)
+    mean = true_data.transpose((0, 2, 3, 1)).reshape(-1, c).mean(axis=0)
+    std = true_data.transpose((0, 2, 3, 1)).reshape(-1, c).std(axis=0)
+
+    train_loader = torch.from_numpy(true_data).reshape(n, b, c, h, w)
+
+    def compute_mean_std(engine, batch):
+        _b, _c = batch.shape[:2]
+        data = batch.reshape(_b, _c, -1).to(dtype=torch.float64)
+        _mean = torch.mean(data, dim=-1)
+        _mean2 = torch.mean(data ** 2, dim=-1)
+        return {"mean": _mean, "mean^2": _mean2}
+
+    compute_engine = Engine(compute_mean_std)
+    img_mean = Average(output_transform=lambda output: output['mean'])
+    img_mean2 = Average(output_transform=lambda output: output['mean^2'])
+    img_mean.attach(compute_engine, 'mean')
+    img_mean2.attach(compute_engine, 'mean2')
+    state = compute_engine.run(train_loader)
+    state.metrics['std'] = torch.sqrt(state.metrics['mean2'] - state.metrics['mean'] ** 2)
+
+    np.testing.assert_almost_equal(state.metrics['mean'].numpy(), mean, decimal=7)
+    np.testing.assert_almost_equal(state.metrics['std'].numpy(), std, decimal=5)
 
 
 def _test_distrib_variable_accumulation(device):
