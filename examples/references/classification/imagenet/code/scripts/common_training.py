@@ -181,7 +181,7 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
                                      evaluators={"training": train_evaluator, "validation": evaluator})
 
         common.save_best_model_by_val_score(config.output_path.as_posix(), evaluator, model,
-                                            metric_name=score_metric_name)
+                                            metric_name=score_metric_name, trainer=trainer)
 
         # Log train/val predictions:
         tb_logger.attach(evaluator,

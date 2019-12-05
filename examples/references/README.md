@@ -6,7 +6,7 @@ reproducible baselines for vision tasks:
 * [ ] Classification
     * [ ] [ImageNet](classification/imagenet)
 
-* [ ] Segmentation
+* [x] Segmentation
     * [x] [Pascal VOC2012](segmentation/pascal_voc2012)
     
 * [ ] Detection

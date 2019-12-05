@@ -62,7 +62,7 @@ def setup_common_training_handlers(trainer,
     if to_save is not None:
         if output_path is None:
             raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="checkpoint", save_interval=1)
+        checkpoint_handler = ModelCheckpoint(dirname=output_path)
         trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every), checkpoint_handler, to_save)
 
     if with_gpu_stats:
@@ -280,7 +280,7 @@ def get_default_score_fn(metric_name):
     return wrapper
 
 
-def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3):
+def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3, trainer=None):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
     provided by `evaluator`.
 
@@ -291,11 +291,17 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
         metric_name (str): metric name to use for score evaluation. This metric should be present in 
             `evaluator.state.metrics`.
         n_saved (int, optional): number of best models to store
+        trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.
 
     """
+    global_step_transform = None
+    if trainer is not None:
+        global_step_transform = global_step_from_engine(trainer)
+
     best_model_handler = ModelCheckpoint(dirname=output_path,
                                          filename_prefix="best",
                                          n_saved=n_saved,
+                                         global_step_transform=global_step_transform,
                                          score_name="val_{}".format(metric_name.lower()),
                                          score_function=get_default_score_fn(metric_name))
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
