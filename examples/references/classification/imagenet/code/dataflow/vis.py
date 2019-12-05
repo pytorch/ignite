@@ -63,4 +63,3 @@ def make_grid(batch_img: torch.Tensor,
         out_image[0:h, i * w:(i + 1) * w, :] = render_datapoint(img, target, text_size=12)
 
     return out_image
-

@@ -288,7 +288,7 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
         output_path (str): output path to indicate where to save best models
         evaluator (Engine): evaluation engine used to provide the score
         model (nn.Module): model to store
-        metric_name (str): metric name to use for score evaluation. This metric should be present in 
+        metric_name (str): metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
         n_saved (int, optional): number of best models to store
         trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.

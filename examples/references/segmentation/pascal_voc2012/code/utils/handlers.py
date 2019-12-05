@@ -34,4 +34,3 @@ def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_eng
         logger.writer.add_image(tag=tag, img_tensor=grid_pred_gt, global_step=global_step, dataformats='HWC')
 
     return wrapper
-

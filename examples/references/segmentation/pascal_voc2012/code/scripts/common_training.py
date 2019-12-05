@@ -86,7 +86,7 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
     common.setup_common_distrib_training_handlers(
         trainer, train_sampler,
         to_save={'model': model, 'optimizer': optimizer},
-        save_every=1000,  output_path=config.output_path.as_posix(),
+        save_every=1000, output_path=config.output_path.as_posix(),
         lr_scheduler=config.lr_scheduler, with_gpu_stats=True,
         output_names=output_names,
         with_pbars=True, with_pbar_on_iters=with_mlflow_logging,
