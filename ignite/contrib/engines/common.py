@@ -22,7 +22,7 @@ import ignite.contrib.handlers.polyaxon_logger as polyaxon_logger_module
 
 
 def setup_common_training_handlers(trainer,
-                                   to_save=None, save_every=1000, output_path=None,
+                                   to_save=None, save_every_iters=1000, output_path=None,
                                    lr_scheduler=None, with_gpu_stats=True,
                                    output_names=None, with_pbars=True, with_pbar_on_iters=True, log_every_iters=100):
     """Helper method to setup trainer with common handlers:
@@ -37,7 +37,8 @@ def setup_common_training_handlers(trainer,
             or sequence or a single tensor.
         to_save (dict, optional): dictionary with objects to save in the checkpoint. This is used with
             :class:`~ignite.handlers.ModelCheckpoint`.
-        save_every (int, optional): saving interval. By default, `to_save` objects are stored each 1000 iterations.
+        save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
+            each 1000 iterations.
         output_path (str, optional): output path to indicate where `to_save` objects are stored.
         lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
@@ -45,7 +46,7 @@ def setup_common_training_handlers(trainer,
             trainer
         output_names (list/tuple): list of names associated with `update_function` output dictionary.
         with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached
-        with_pbar_on_iters (bool, optional): if True, a progress bar on interations is attached to the trainer.
+        with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
         log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
             epoch-wise progress bar.
     """
@@ -62,8 +63,8 @@ def setup_common_training_handlers(trainer,
     if to_save is not None:
         if output_path is None:
             raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-        checkpoint_handler = ModelCheckpoint(dirname=output_path)
-        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every), checkpoint_handler, to_save)
+        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training")
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
 
     if with_gpu_stats:
         GpuInfo().attach(trainer, name='gpu', event_name=Events.ITERATION_COMPLETED(every=log_every_iters))
@@ -96,7 +97,7 @@ def setup_common_training_handlers(trainer,
 
 
 def setup_common_distrib_training_handlers(trainer, train_sampler,
-                                           to_save=None, save_every=1000, output_path=None,
+                                           to_save=None, save_every_iters=1000, output_path=None,
                                            lr_scheduler=None, with_gpu_stats=True,
                                            output_names=None, with_pbars=True, with_pbar_on_iters=True,
                                            log_every_iters=100):
@@ -115,7 +116,8 @@ def setup_common_distrib_training_handlers(trainer, train_sampler,
             epoch started event.
         to_save (dict, optional): dictionary with objects to save in the checkpoint. This is used with
             :class:`~ignite.handlers.ModelCheckpoint`.
-        save_every (int, optional): saving interval. By default, `to_save` objects are stored each 1000 iterations.
+        save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
+            each 1000 iterations.
         output_path (str, optional): output path to indicate where `to_save` objects are stored.
         lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
@@ -123,7 +125,7 @@ def setup_common_distrib_training_handlers(trainer, train_sampler,
             trainer
         output_names (list/tuple): list of names associated with `update_function` output.
         with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached
-        with_pbar_on_iters (bool, optional): if True, a progress bar on interations is attached to the trainer.
+        with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
         log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
             epoch-wise progress bar.
 
@@ -149,7 +151,7 @@ def setup_common_distrib_training_handlers(trainer, train_sampler,
             if output_path is None:
                 raise ValueError("If to_save argument is provided then output_path argument should be also defined")
             checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="checkpoint", save_interval=1)
-            trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every), checkpoint_handler, to_save)
+            trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
 
     return trainer
 

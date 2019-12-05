@@ -49,12 +49,12 @@ def test_setup_common_training_handlers(dirname, capsys):
         return loss
 
     trainer = Engine(update_fn)
-    setup_common_training_handlers(update_fn,
+    setup_common_training_handlers(trainer,
                                    to_save={"model": model, "optimizer": optimizer},
-                                   save_every=75, output_path=dirname,
+                                   save_every_iters=75, output_path=dirname,
                                    lr_scheduler=lr_scheduler, with_gpu_stats=False,
                                    output_names=['batch_loss', ],
-                                   with_pbars=True, with_pbar_on_iters=True, log_every=50)
+                                   with_pbars=True, with_pbar_on_iters=True, log_every_iters=50)
 
     num_iters = 100
     num_epochs = 10
@@ -77,8 +77,8 @@ def test_setup_common_training_handlers(dirname, capsys):
 
     # Check saved checkpoint
     checkpoints = list(os.listdir(dirname))
-    assert len(checkpoints) == 2
-    for v in ["checkpoint_model", "checkpoint_optimizer"]:
+    assert len(checkpoints) == 1
+    for v in ["training_checkpoint", ]:
         assert any([v in c for c in checkpoints])
 
     # Check LR scheduling
