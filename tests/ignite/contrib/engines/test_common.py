@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from ignite.engine import Events, Engine
-from ignite.contrib.engines import setup_common_training_handlers
+from ignite.contrib.engines.common import setup_common_training_handlers
 
 from ignite.handlers import TerminateOnNan
 
