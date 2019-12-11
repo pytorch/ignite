@@ -47,28 +47,29 @@ def test_simple_early_stopping():
     assert trainer.should_terminate
 
 
-def test_early_stopping_based_on_delta():
+def test_early_stopping_on_delta():
 
-    scores = iter([1.0, 2.0, 2.01, 2.02])
-
-    def score_function(engine):
-        return next(scores)
+    scores = iter([1.0, 2.0, 2.01, 3.0, 3.01, 3.02])
 
     def update_fn(engine, batch):
         pass
 
     trainer = Engine(update_fn)
 
-    h = EarlyStopping(patience=2, min_delta=0.1, score_function=score_function, trainer=trainer)
-    # Call 3 times and check if stopped
+    h = EarlyStopping(patience=2, min_delta=0.1, score_function=lambda _: next(scores), trainer=trainer)
+
     assert not trainer.should_terminate
-    h(None)
+    h(None)  # counter == 0
     assert not trainer.should_terminate
-    h(None)
+    h(None)  # counter == 0
     assert not trainer.should_terminate
-    h(None)
+    h(None)  # counter == 1
     assert not trainer.should_terminate
-    h(None)
+    h(None)  # counter == 0
+    assert not trainer.should_terminate
+    h(None)  # counter == 1
+    assert not trainer.should_terminate
+    h(None)  # counter == 2
     assert trainer.should_terminate
 
 

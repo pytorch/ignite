@@ -10,7 +10,7 @@ class EarlyStopping(object):
         patience (int):
             Number of events to wait if no improvement and then stop the training.
         min_delta (float):
-            Minimum increase in the monitored quantity to qualify as an improvement,
+            Minimum increase in the score to qualify as an improvement,
             i.e. an increase of less than min_delta, will count as no improvement.
         score_function (callable):
             It should be a function taking a single argument, an :class:`~ignite.engine.Engine` object,
