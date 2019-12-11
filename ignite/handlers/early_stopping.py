@@ -9,6 +9,9 @@ class EarlyStopping(object):
     Args:
         patience (int):
             Number of events to wait if no improvement and then stop the training.
+        min_delta (float):
+            Minimum increase in the monitored quantity to qualify as an improvement,
+            i.e. an increase of less than min_delta, will count as no improvement.
         score_function (callable):
             It should be a function taking a single argument, an :class:`~ignite.engine.Engine` object,
             and return a score `float`. An improvement is considered if the score is higher.
@@ -31,7 +34,7 @@ class EarlyStopping(object):
         evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
-    def __init__(self, patience, score_function, trainer):
+    def __init__(self, patience, score_function, trainer, min_delta=0.):
 
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -39,11 +42,15 @@ class EarlyStopping(object):
         if patience < 1:
             raise ValueError("Argument patience should be positive integer.")
 
+        if min_delta < 0.:
+            raise ValueError("Argument min_delta should not be a negative number.")
+
         if not isinstance(trainer, Engine):
             raise TypeError("Argument trainer should be an instance of Engine.")
 
         self.score_function = score_function
         self.patience = patience
+        self.min_delta = min_delta
         self.trainer = trainer
         self.counter = 0
         self.best_score = None
@@ -55,7 +62,9 @@ class EarlyStopping(object):
 
         if self.best_score is None:
             self.best_score = score
-        elif score <= self.best_score:
+        elif score - self.best_score <= self.min_delta:
+            if score > self.best_score:
+                self.best_score = score
             self.counter += 1
             self._logger.debug("EarlyStopping: %i / %i" % (self.counter, self.patience))
             if self.counter >= self.patience:
