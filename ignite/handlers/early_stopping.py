@@ -62,7 +62,7 @@ class EarlyStopping(object):
 
         if self.best_score is None:
             self.best_score = score
-        elif score - self.best_score <= self.min_delta:
+        elif score <= self.best_score + self.min_delta:
             if score > self.best_score:
                 self.best_score = score
             self.counter += 1

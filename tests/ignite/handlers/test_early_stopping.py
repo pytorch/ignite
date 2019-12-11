@@ -17,6 +17,9 @@ def test_args_validation():
     with pytest.raises(ValueError, match=r"Argument patience should be positive integer."):
         EarlyStopping(patience=-1, score_function=lambda engine: 0, trainer=trainer)
 
+    with pytest.raises(ValueError, match=r"Argument min_delta should not be a negative number."):
+        EarlyStopping(patience=2, min_delta=-0.1, score_function=lambda engine: 0, trainer=trainer)
+
     with pytest.raises(TypeError, match=r"Argument score_function should be a function."):
         EarlyStopping(patience=2, score_function=12345, trainer=trainer)
 
