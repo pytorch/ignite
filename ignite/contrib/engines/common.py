@@ -150,7 +150,7 @@ def setup_common_distrib_training_handlers(trainer, train_sampler,
         if to_save is not None:
             if output_path is None:
                 raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-            checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="checkpoint", save_interval=1)
+            checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="checkpoint")
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
 
     return trainer
