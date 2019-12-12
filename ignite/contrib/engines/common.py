@@ -285,7 +285,7 @@ def get_default_score_fn(metric_name):
     return wrapper
 
 
-def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3, trainer=None):
+def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3, trainer=None, tag="val"):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
     provided by `evaluator`.
 
@@ -297,6 +297,7 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
             `evaluator.state.metrics`.
         n_saved (int, optional): number of best models to store
         trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.
+        tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
 
     """
     global_step_transform = None
@@ -307,7 +308,7 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
                                          filename_prefix="best",
                                          n_saved=n_saved,
                                          global_step_transform=global_step_transform,
-                                         score_name="val_{}".format(metric_name.lower()),
+                                         score_name="{}_{}".format(tag, metric_name.lower()),
                                          score_function=get_default_score_fn(metric_name))
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
 
