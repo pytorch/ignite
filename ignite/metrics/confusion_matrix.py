@@ -260,5 +260,5 @@ def DiceCoefficient(cm, ignore_index=None):
     eps = 1e-15
     tp = cm.confusion_matrix.diag().sum()
     fp_plus_fn = cm.confusion_matrix.sum() - tp
-    dice_metric = (2.0 * tp) / (2.0 * tp + fp_plus_fn + eps)        
+    dice_metric = (2.0 * tp) / (2.0 * tp + fp_plus_fn + eps)
     return dice_metric
