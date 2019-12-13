@@ -71,7 +71,7 @@ def test_early_stopping_on_delta():
     assert trainer.should_terminate
 
 
-def test_early_stopping_on_single_event_delta():
+def test_early_stopping_on_last_event_delta():
 
     scores = iter([0.0, 0.3, 0.6])
 
