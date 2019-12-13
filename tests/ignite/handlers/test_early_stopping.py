@@ -271,20 +271,20 @@ def _test_distrib_integration_engine_early_stopping(device):
     n_iters = 20
 
     y_preds = [
-                  torch.randint(0, 2, size=(n_iters, ws)).to(device)
-              ] + [
-                  torch.ones(n_iters, ws).to(device)
-              ] + [
-                  torch.randint(0, 2, size=(n_iters, ws)).to(device) for _ in range(n_epochs - 2)
-              ]
+        torch.randint(0, 2, size=(n_iters, ws)).to(device)
+    ] + [
+        torch.ones(n_iters, ws).to(device)
+    ] + [
+        torch.randint(0, 2, size=(n_iters, ws)).to(device) for _ in range(n_epochs - 2)
+    ]
 
     y_true = [
-                 torch.randint(0, 2, size=(n_iters, ws)).to(device)
-             ] + [
-                 torch.ones(n_iters, ws).to(device)
-             ] + [
-                 torch.randint(0, 2, size=(n_iters, ws)).to(device) for _ in range(n_epochs - 2)
-             ]
+        torch.randint(0, 2, size=(n_iters, ws)).to(device)
+    ] + [
+        torch.ones(n_iters, ws).to(device)
+    ] + [
+        torch.randint(0, 2, size=(n_iters, ws)).to(device) for _ in range(n_epochs - 2)
+    ]
 
     def update(engine, _):
         e = trainer.state.epoch - 1
