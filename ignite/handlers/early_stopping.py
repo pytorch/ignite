@@ -9,14 +9,17 @@ class EarlyStopping(object):
     Args:
         patience (int):
             Number of events to wait if no improvement and then stop the training.
-        min_delta (float):
-            Minimum increase in the score after one event to qualify as an improvement,
-            i.e. an increase of less than min_delta, will count as no improvement.
         score_function (callable):
             It should be a function taking a single argument, an :class:`~ignite.engine.Engine` object,
             and return a score `float`. An improvement is considered if the score is higher.
         trainer (Engine):
             trainer engine to stop the run if no improvement.
+        min_delta (float, optional):
+            A minimum increase in the score to qualify as an improvement,
+            i.e. an increase of less than or equal to `min_delta`, will count as no improvement.
+        cumulative_delta (bool, optional):
+            It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
+            it defines an increase after the last event. Default value is False.
 
     Examples:
 
@@ -34,7 +37,8 @@ class EarlyStopping(object):
         evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
-    def __init__(self, patience, score_function, trainer, min_delta=0.):
+
+    def __init__(self, patience, score_function, trainer, min_delta=0., cumulative_delta=False):
 
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -51,6 +55,7 @@ class EarlyStopping(object):
         self.score_function = score_function
         self.patience = patience
         self.min_delta = min_delta
+        self.cumulative_delta = cumulative_delta
         self.trainer = trainer
         self.counter = 0
         self.best_score = None
@@ -63,7 +68,7 @@ class EarlyStopping(object):
         if self.best_score is None:
             self.best_score = score
         elif score <= self.best_score + self.min_delta:
-            if score > self.best_score:
+            if not self.cumulative_delta and score > self.best_score:
                 self.best_score = score
             self.counter += 1
             self._logger.debug("EarlyStopping: %i / %i" % (self.counter, self.patience))
