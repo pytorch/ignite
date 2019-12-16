@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 
 from ignite.engine import Events, Engine
-from ignite.contrib.engines.common import setup_common_training_handlers
+from ignite.contrib.engines.common import setup_common_training_handlers, \
+    save_best_model_by_val_score, add_early_stopping_by_val_score
 
 from ignite.handlers import TerminateOnNan
 
@@ -84,3 +85,49 @@ def test_setup_common_training_handlers(dirname, capsys):
     # Check LR scheduling
     assert optimizer.param_groups[0]['lr'] <= lr * gamma ** (num_iters * num_epochs / step_size), \
         "{} vs {}".format(optimizer.param_groups[0]['lr'], lr * gamma ** (num_iters * num_epochs / step_size))
+
+
+def test_save_best_model_by_val_score(dirname, capsys):
+
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+    model = DummyModel()
+
+    acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.5, 0.6, 0.61, 0.7, 0.5]
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def validate(engine):
+        evaluator.run([0, ])
+
+    @evaluator.on(Events.EPOCH_COMPLETED)
+    def set_eval_metric(engine):
+        engine.state.metrics = {"acc": acc_scores[trainer.state.epoch - 1]}
+
+    save_best_model_by_val_score(dirname, evaluator, model, metric_name="acc", n_saved=2, trainer=trainer)
+
+    data = [0, ]
+    trainer.run(data, max_epochs=len(acc_scores))
+
+    assert set(os.listdir(dirname)) == set(['best_model_8_val_acc=0.61.pth', 'best_model_9_val_acc=0.7.pth'])
+
+
+def test_add_early_stopping_by_val_score():
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+
+    acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.3, 0.2, 0.1, 0.1, 0.0]
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def validate(engine):
+        evaluator.run([0, ])
+
+    @evaluator.on(Events.EPOCH_COMPLETED)
+    def set_eval_metric(engine):
+        engine.state.metrics = {"acc": acc_scores[trainer.state.epoch - 1]}
+
+    add_early_stopping_by_val_score(patience=3, evaluator=evaluator, trainer=trainer, metric_name="acc")
+
+    data = [0, ]
+    state = trainer.run(data, max_epochs=len(acc_scores))
+
+    assert state.epoch == 7

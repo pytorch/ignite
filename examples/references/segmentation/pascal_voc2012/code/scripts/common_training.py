@@ -107,14 +107,12 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
 
     model_output_transform = getattr(config, "model_output_transform", lambda x: x)
 
-    train_evaluator = create_supervised_evaluator(
-        model, metrics=val_metrics, device=device, non_blocking=non_blocking, prepare_batch=prepare_batch,
+    evaluator_args = dict(
+        model=model, metrics=val_metrics, device=device, non_blocking=non_blocking, prepare_batch=prepare_batch,
         output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y,)
     )
-    evaluator = create_supervised_evaluator(
-        model, metrics=val_metrics, device=device, non_blocking=non_blocking, prepare_batch=prepare_batch,
-        output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y,)
-    )
+    train_evaluator = create_supervised_evaluator(**evaluator_args)
+    evaluator = create_supervised_evaluator(**evaluator_args)
 
     if dist.get_rank() == 0 and with_mlflow_logging:
         ProgressBar(persist=False, desc="Train Evaluation").attach(train_evaluator)
