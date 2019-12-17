@@ -7,7 +7,7 @@ Features:
 - Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
 - Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/)
 
-TODO: ![tb_dashboard](assets/tb_dashboard.png)
+![tb_dashboard](assets/tb_dashboard.png)
 
 There are two possible options: 1) Experiments tracking with MLflow or 2) Experiments tracking with Polyaxon. 
 Experiments tracking with MLflow is more suitable for a local machine with GPUs. For experiments tracking with Polyaxon
@@ -57,5 +57,12 @@ run a script with a configuration. Training logic is setup inside `training` met
 
 ### Configurations
 
-- [baseline_resnet101.py](configs/train/baseline_r50.py) : trains ResNet50
-- [quick_baseline_r18.py](configs/train/quick_baseline_r18.py) : quick train of ResNet18
+- [baseline_r50.py](configs/train/baseline_r50.py) : trains ResNet50
+
+
+## Acknowledgements
+
+Part of trainings was done within [Tesla GPU Test Drive](https://www.nvidia.com/en-us/data-center/tesla/gpu-test-drive/) 
+on 2 Nvidia V100 GPUs.
+
+![tb_dashboard_images](assets/tb_dashboard_images.png)
