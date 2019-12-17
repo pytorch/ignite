@@ -33,7 +33,7 @@ val_interval = 2
 train_crop_size = 224
 val_crop_size = 320
 
-batch_size = 512  # batch size per local rank
+batch_size = 64  # batch size per local rank
 num_workers = 10  # num_workers per local rank
 
 
@@ -50,7 +50,7 @@ std = [0.229, 0.224, 0.225]
 train_transforms = A.Compose([
     A.RandomResizedCrop(train_crop_size, train_crop_size, scale=(0.08, 1.0)),
     A.HorizontalFlip(),
-    A.CoarseDropout(),
+    A.CoarseDropout(max_height=32, max_width=32),
     A.HueSaturationValue(),
     A.Normalize(mean=mean, std=std),
     ToTensor(),
@@ -90,15 +90,12 @@ model = resnet50(pretrained=False)
 # Setup Solver
 # ##############################
 
-num_epochs = 100
+num_epochs = 105
 
 criterion = nn.CrossEntropyLoss()
 
 le = len(train_loader)
 
-lr = 0.02
-linear_scaled_lr = 8.0 * lr * batch_size * dist.get_world_size() / 512.0
-
-optimizer = optim.SGD(model.parameters(), lr=linear_scaled_lr, momentum=0.9, weight_decay=1e-4)
-
-lr_scheduler = lrs.StepLR(optimizer, step_size=30 * le)
+base_lr = 0.1 * (batch_size * dist.get_world_size() / 256.0)
+optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=1e-4)
+lr_scheduler = lrs.MultiStepLR(optimizer, milestones=[30 * le, 60 * le, 90 * le, 100 * le], gamma=0.1)
