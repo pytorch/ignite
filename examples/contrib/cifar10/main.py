@@ -13,7 +13,7 @@ import torch.distributed as dist
 import ignite
 from ignite.engine import Events, Engine, create_supervised_evaluator
 from ignite.metrics import Accuracy, RunningAverage, Loss
-from ignite.handlers import ModelCheckpoint, EngineCheckpoint, DiskSaver
+from ignite.handlers import ModelCheckpoint, global_step_from_engine
 from ignite.utils import convert_tensor
 
 from ignite.contrib.handlers import TensorboardLogger, ProgressBar
@@ -113,12 +113,11 @@ def run(output_path, config):
                        epoch_bound=False, device=device).attach(trainer, n)
 
     if rank == 0:
-        checkpoint_handler = ModelCheckpoint(dirname=output_path,
-                                             filename_prefix="checkpoint",
-                                             save_interval=1000)
-        trainer.add_event_handler(Events.ITERATION_COMPLETED,
+        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training")
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=200),
                                   checkpoint_handler,
-                                  {'model': model, 'optimizer': optimizer})
+                                  {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler,
+                                   'trainer': trainer})
 
         ProgressBar(persist=True, bar_format="").attach(trainer,
                                                         event_name=Events.EPOCH_STARTED,
@@ -178,16 +177,10 @@ def run(output_path, config):
         best_model_handler = ModelCheckpoint(dirname=output_path,
                                              filename_prefix="best",
                                              n_saved=3,
+                                             global_step_transform=global_step_from_engine(trainer),
                                              score_name="val_accuracy",
                                              score_function=score_function)
         evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
-
-        # Store training checkpoints:
-        objects_to_checkpoint = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
-        engine_checkpoint = EngineCheckpoint(to_save=objects_to_checkpoint,
-                                             save_handler=DiskSaver("trainer", output_path))
-
-        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=200), engine_checkpoint)
 
         if config['log_model_grads_every'] is not None:
             tb_logger.attach(trainer,
@@ -319,3 +312,6 @@ if __name__ == "__main__":
         if distributed:
             dist.destroy_process_group()
         raise e
+
+    if distributed:
+        dist.destroy_process_group()

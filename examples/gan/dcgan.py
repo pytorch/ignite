@@ -306,7 +306,7 @@ def main(dataset, dataroot,
 
     # ignite objects
     trainer = Engine(step)
-    checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, save_interval=1, n_saved=10, require_empty=False)
+    checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, n_saved=10, require_empty=False)
     timer = Timer(average=True)
 
     # attach running average metrics

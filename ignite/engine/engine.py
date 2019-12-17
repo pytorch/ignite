@@ -248,23 +248,81 @@ class Engine(object):
         process_function (callable): A function receiving a handle to the engine and the current batch
             in each iteration, and returns data to be stored in the engine's state.
 
-    Example usage:
+    Attributes:
+        state (State): object that is used to pass internal and user-defined state between event handlers.
+            It is created and reset on every :meth:`~ignite.engine.Engine.run`.
+        last_event_name (Events): last event name triggered by the engine.
 
-    .. code-block:: python
+    Examples:
 
-        def train_and_store_loss(engine, batch):
-            inputs, targets = batch
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = loss_fn(outputs, targets)
-            loss.backward()
-            optimizer.step()
-            return loss.item()
+        Create a basic trainer
 
-        engine = Engine(train_and_store_loss)
-        engine.run(data_loader)
+        .. code-block:: python
 
-        # Loss value is now stored in `engine.state.output`.
+            def update_model(engine, batch):
+                inputs, targets = batch
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                loss.backward()
+                optimizer.step()
+                return loss.item()
+
+            trainer = Engine(update_model)
+
+            @trainer.on(Events.ITERATION_COMPLETED(every=100))
+            def log_training(engine):
+                batch_loss = engine.state.output
+                lr = optimizer.param_groups[0]['lr']
+                e = engine.state.epoch
+                n = engine.state.max_epochs
+                i = engine.state.iteration
+                print("Epoch {}/{} : {} - batch loss: {}, lr: {}".format(e, n, i, batch_loss, lr))
+
+            trainer.run(data_loader, max_epochs=5)
+
+            > Epoch 1/5 : 100 - batch loss: 0.10874069479016124, lr: 0.01
+            > ...
+            > Epoch 2/5 : 1700 - batch loss: 0.4217900575859437, lr: 0.01
+
+        Create a basic evaluator to compute metrics
+
+        .. code-block:: python
+            from ignite.metrics import Accuracy
+
+            def predict_on_batch(engine, batch)
+                model.eval()
+                with torch.no_grad():
+                    x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+                    y_pred = model(x)
+
+                return y_pred, y
+
+            evaluator = Engine(predict_on_batch)
+            Accuracy().attach(evaluator, "val_acc")
+            evaluator.run(val_dataloader)
+
+        Compute image mean/std on training dataset
+
+        .. code-block:: python
+            from ignite.metrics import Average
+
+            def compute_mean_std(engine, batch):
+                b, c, *_ = batch['image'].shape
+                data = batch['image'].reshape(b, c, -1).to(dtype=torch.float64)
+                mean = torch.mean(data, dim=-1).sum(dim=0)
+                mean2 = torch.mean(data ** 2, dim=-1).sum(dim=0)
+                return {"mean": mean, "mean^2": mean2}
+
+            compute_engine = Engine(compute_mean_std)
+            img_mean = Average(output_transform=lambda output: output['mean'])
+            img_mean.attach(compute_engine, 'mean')
+            img_mean2 = Average(output_transform=lambda output: output['mean^2'])
+            img_mean2.attach(compute_engine, 'mean2')
+            state = compute_engine.run(train_loader)
+            state.metrics['std'] = torch.sqrt(state.metrics['mean2'] - state.metrics['mean'] ** 2)
+            mean = state.metrics['mean'].tolist()
+            std = state.metrics['std'].tolist()
 
     """
     def __init__(self, process_function):
@@ -272,6 +330,7 @@ class Engine(object):
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._logger.addHandler(logging.NullHandler())
         self._process_function = process_function
+        self.last_event_name = None
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
@@ -494,7 +553,7 @@ class Engine(object):
         This method executes all handlers associated with the event
         `event_name`. Optional positional and keyword arguments can be used to
         pass arguments to **all** handlers added with this event. These
-        aguments updates arguments passed using :meth:`~ignite.engine.Engine.add_event_handler`.
+        arguments updates arguments passed using :meth:`~ignite.engine.Engine.add_event_handler`.
 
         Args:
             event_name: event for which the handlers should be executed. Valid
@@ -506,6 +565,7 @@ class Engine(object):
         """
         if event_name in self._allowed_events:
             self._logger.debug("firing handlers for event %s ", event_name)
+            self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
