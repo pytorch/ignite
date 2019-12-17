@@ -8,6 +8,3 @@ reproducible baselines for vision tasks:
 
 * [x] Segmentation
     * [x] [Pascal VOC2012](segmentation/pascal_voc2012)
-    
-* [ ] Detection
-    * [ ] MS COCO
