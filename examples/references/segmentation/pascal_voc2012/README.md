@@ -62,6 +62,13 @@ run a script with a configuration. Training logic is setup inside `training` met
 - [baseline_resnet101_sbd.py](configs/train/baseline_resnet101_sbd.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset with SBD
 
 
+### Results
+
+Model | with SBD | Training mIoU+BG | Test mIoU+BG
+---|---|---|---
+DeepLabV3 ResNet-101 | X | 86% | 68%
+
+
 ## Acknowledgements
 
 Part of trainings was done within [Tesla GPU Test Drive](https://www.nvidia.com/en-us/data-center/tesla/gpu-test-drive/) 

@@ -60,6 +60,12 @@ run a script with a configuration. Training logic is setup inside `training` met
 - [baseline_r50.py](configs/train/baseline_r50.py) : trains ResNet50
 
 
+### Results
+
+Model | Training Top-1 Accuracy | Training Top-5 Accuracy | Test Top-1 Accuracy | Test Top-5 Accuracy
+---|---|---|---|---
+ResNet-50 | 78% | 92% | 77% | 94%
+
 ## Acknowledgements
 
 Part of trainings was done within [Tesla GPU Test Drive](https://www.nvidia.com/en-us/data-center/tesla/gpu-test-drive/) 
