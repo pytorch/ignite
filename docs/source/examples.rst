@@ -37,3 +37,18 @@ Notebooks
 - `Finetuning EfficientNet-B0 on CIFAR100 <https://github.com/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb>`_
 - `Convolutional Neural Networks for Classifying Fashion-MNIST Dataset <https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb>`_
 - `Hyperparameters tuning with Ax <https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb>`_
+
+
+Reproducible trainings
+----------------------
+
+Inspired by `torchvision/references <https://github.com/pytorch/vision/tree/master/references>`_, we provide several
+reproducible baselines for vision tasks:
+
+- `ImageNet <https://github.com/pytorch/ignite/blob/master/examples/references/classification/imagenet>`_
+- `Pascal VOC2012 <https://github.com/pytorch/ignite/blob/master/examples/references/segmentation/pascal_voc2012>`_
+
+Features:
+
+- Distributed training with mixed precision by `nvidia/apex <https://github.com/NVIDIA/apex/>`_
+- Experiments tracking with `MLflow <https://mlflow.org/>`_ or `Polyaxon <https://polyaxon.com/>`_
