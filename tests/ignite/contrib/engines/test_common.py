@@ -23,7 +23,7 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def _test_setup_common_training_handlers(dirname, device):
+def _test_setup_common_training_handlers(dirname, device, rank=0):
 
     lr = 0.01
     step_size = 100
@@ -66,14 +66,28 @@ def _test_setup_common_training_handlers(dirname, device):
     assert 'batch_loss' in trainer.state.metrics
 
     # Check saved checkpoint
-    checkpoints = list(os.listdir(dirname))
-    assert len(checkpoints) == 1
-    for v in ["training_checkpoint", ]:
-        assert any([v in c for c in checkpoints])
+    if rank == 0:
+        checkpoints = list(os.listdir(dirname))
+        assert len(checkpoints) == 1
+        for v in ["training_checkpoint", ]:
+            assert any([v in c for c in checkpoints])
 
     # Check LR scheduling
     assert optimizer.param_groups[0]['lr'] <= lr * gamma ** (num_iters * num_epochs / step_size), \
         "{} vs {}".format(optimizer.param_groups[0]['lr'], lr * gamma ** (num_iters * num_epochs / step_size))
+
+
+def test_asserts_setup_common_training_handlers():
+    trainer = Engine(lambda e, b: None)
+
+    with pytest.raises(ValueError, match=r"If to_save argument is provided then output_path argument should be "
+                                         r"also defined"):
+        setup_common_training_handlers(trainer, to_save={})
+
+    with pytest.warns(UserWarning, match=r"Argument train_sampler distributed sampler used to call "
+                                         r"`set_epoch` method on epoch"):
+        train_sampler = MagicMock()
+        setup_common_training_handlers(trainer, train_sampler=train_sampler, with_gpu_stats=False)
 
 
 def test_setup_common_training_handlers(dirname, capsys):
@@ -191,22 +205,23 @@ def test_setup_tb_logging(dirname):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(dirname, local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
-    _test_setup_common_training_handlers(dirname, device)
+    _test_setup_common_training_handlers(dirname, device, rank=local_rank)
     test_add_early_stopping_by_val_score()
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(dirname, local_rank, distributed_context_single_node_gloo):
     device = "cpu"
-    _test_setup_common_training_handlers(dirname, device)
+    _test_setup_common_training_handlers(dirname, device, rank=local_rank)
     test_add_early_stopping_by_val_score()
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
+
     device = "cpu"
-    _test_setup_common_training_handlers(dirname, device)
+    _test_setup_common_training_handlers(dirname, device, rank=distributed_context_multi_node_gloo['rank'])
     test_add_early_stopping_by_val_score()
 
 
@@ -214,5 +229,5 @@ def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
 @pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(dirname, distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
-    _test_setup_common_training_handlers(dirname, device)
+    _test_setup_common_training_handlers(dirname, device, rank=distributed_context_multi_node_nccl['rank'])
     test_add_early_stopping_by_val_score()

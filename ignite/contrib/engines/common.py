@@ -1,4 +1,5 @@
 from functools import partial
+import warnings
 
 try:
     from collections.abc import Sequence, Mapping
@@ -26,7 +27,7 @@ def setup_common_training_handlers(trainer, train_sampler=None,
                                    lr_scheduler=None, with_gpu_stats=True,
                                    output_names=None, with_pbars=True, with_pbar_on_iters=True, log_every_iters=100,
                                    device='cuda'):
-    """Helper method to setup trainer with common handlers (by default it supports distributed configuration):
+    """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
         - handler to setup learning rate scheduling
         - :class:`~ignite.handlers.ModelCheckpoint`
@@ -63,6 +64,9 @@ def setup_common_training_handlers(trainer, train_sampler=None,
     if dist.is_available() and dist.is_initialized():
         return _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
     else:
+        if train_sampler is not None:
+            warnings.warn("Argument train_sampler distributed sampler used to call `set_epoch` method on epoch "
+                          "started event, but no distributed setting detected", UserWarning)
         return _setup_common_training_handlers(trainer, **kwargs)
 
 
