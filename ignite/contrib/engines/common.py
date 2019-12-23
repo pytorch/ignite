@@ -21,11 +21,12 @@ from ignite.contrib.handlers import PolyaxonLogger
 import ignite.contrib.handlers.polyaxon_logger as polyaxon_logger_module
 
 
-def setup_common_training_handlers(trainer,
+def setup_common_training_handlers(trainer, train_sampler=None,
                                    to_save=None, save_every_iters=1000, output_path=None,
                                    lr_scheduler=None, with_gpu_stats=True,
-                                   output_names=None, with_pbars=True, with_pbar_on_iters=True, log_every_iters=100):
-    """Helper method to setup trainer with common handlers:
+                                   output_names=None, with_pbars=True, with_pbar_on_iters=True, log_every_iters=100,
+                                   device='cuda'):
+    """Helper method to setup trainer with common handlers (by default it supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
         - handler to setup learning rate scheduling
         - :class:`~ignite.handlers.ModelCheckpoint`
@@ -35,6 +36,8 @@ def setup_common_training_handlers(trainer,
     Args:
         trainer (Engine): trainer engine. Output of trainer's `update_function` should be a dictionary
             or sequence or a single tensor.
+        train_sampler (torch.utils.data.DistributedSampler, optional): Optional distributed sampler used to call
+            `set_epoch` method on epoch started event.
         to_save (dict, optional): dictionary with objects to save in the checkpoint. This is used with
             :class:`~ignite.handlers.ModelCheckpoint`.
         save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
@@ -49,7 +52,28 @@ def setup_common_training_handlers(trainer,
         with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
         log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
             epoch-wise progress bar.
+        device (str of torch.device, optional): Optional device specification in case of distributed computation usage.
     """
+    kwargs = dict(to_save=to_save,
+                  save_every_iters=save_every_iters, output_path=output_path,
+                  lr_scheduler=lr_scheduler, with_gpu_stats=with_gpu_stats,
+                  output_names=output_names, with_pbars=with_pbars,
+                  with_pbar_on_iters=with_pbar_on_iters,
+                  log_every_iters=log_every_iters, device=device)
+    if dist.is_available() and dist.is_initialized():
+        return _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
+    else:
+        return _setup_common_training_handlers(trainer, **kwargs)
+
+
+setup_common_distrib_training_handlers = setup_common_training_handlers
+
+
+def _setup_common_training_handlers(trainer,
+                                    to_save=None, save_every_iters=1000, output_path=None,
+                                    lr_scheduler=None, with_gpu_stats=True,
+                                    output_names=None, with_pbars=True, with_pbar_on_iters=True,
+                                    log_every_iters=100, device='cuda'):
     trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
 
     if lr_scheduler is not None:
@@ -84,7 +108,7 @@ def setup_common_training_handlers(trainer,
 
         for i, n in enumerate(output_names):
             RunningAverage(output_transform=partial(output_transform, index=i, name=n),
-                           epoch_bound=False).attach(trainer, n)
+                           epoch_bound=False, device=device).attach(trainer, n)
 
     if with_pbars:
         if with_pbar_on_iters:
@@ -96,61 +120,35 @@ def setup_common_training_handlers(trainer,
                                                         closing_event_name=Events.COMPLETED)
 
 
-def setup_common_distrib_training_handlers(trainer, train_sampler,
-                                           to_save=None, save_every_iters=1000, output_path=None,
-                                           lr_scheduler=None, with_gpu_stats=True,
-                                           output_names=None, with_pbars=True, with_pbar_on_iters=True,
-                                           log_every_iters=100):
-    """Helper method to setup trainer supporting data parallel distributed configuration with
-    common handlers:
-        - :class:`~ignite.handlers.TerminateOnNan`
-        - handler to setup learning rate scheduling
-        - :class:`~ignite.handlers.ModelCheckpoint`
-        - :class:`~ignite.metrics.RunningAverage` on `update_function` output
-        - Two progress bars on epochs and optionally on iterations
+def _setup_common_distrib_training_handlers(trainer, train_sampler=None,
+                                            to_save=None, save_every_iters=1000, output_path=None,
+                                            lr_scheduler=None, with_gpu_stats=True,
+                                            output_names=None, with_pbars=True, with_pbar_on_iters=True,
+                                            log_every_iters=100, device='cuda'):
 
-    Args:
-        trainer (callable): trainer engine. Output of trainer's `update_function` should be a dictionary
-            or sequence or a single tensor.
-        train_sampler (torch.utils.data.DistributedSampler): distributed sampler used to call `set_epoch` method on
-            epoch started event.
-        to_save (dict, optional): dictionary with objects to save in the checkpoint. This is used with
-            :class:`~ignite.handlers.ModelCheckpoint`.
-        save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
-            each 1000 iterations.
-        output_path (str, optional): output path to indicate where `to_save` objects are stored.
-        lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
-            as native torch LRScheduler or ignite's parameter scheduler.
-        with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
-            trainer
-        output_names (list/tuple): list of names associated with `update_function` output.
-        with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached
-        with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
-        log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
-            epoch-wise progress bar.
-
-    Returns:
-        Engine
-    """
-    if not dist.is_available():
+    if not (dist.is_available() and dist.is_initialized()):
         raise RuntimeError("Distributed setting is not initialized, please call `dist.init_process_group` before.")
 
-    setup_common_training_handlers(trainer, to_save=None,
-                                   lr_scheduler=lr_scheduler, with_gpu_stats=with_gpu_stats,
-                                   output_names=output_names,
-                                   with_pbars=(dist.get_rank() == 0) and with_pbars,
-                                   with_pbar_on_iters=with_pbar_on_iters,
-                                   log_every_iters=log_every_iters)
+    _setup_common_training_handlers(trainer, to_save=None,
+                                    lr_scheduler=lr_scheduler, with_gpu_stats=with_gpu_stats,
+                                    output_names=output_names,
+                                    with_pbars=(dist.get_rank() == 0) and with_pbars,
+                                    with_pbar_on_iters=with_pbar_on_iters,
+                                    log_every_iters=log_every_iters, device=device)
 
-    @trainer.on(Events.EPOCH_STARTED)
-    def distrib_set_epoch(engine):
-        train_sampler.set_epoch(engine.state.epoch - 1)
+    if train_sampler is not None:
+        if not callable(getattr(train_sampler, "set_epoch", None)):
+            raise TypeError("Train sampler should have `set_epoch` method")
+
+        @trainer.on(Events.EPOCH_STARTED)
+        def distrib_set_epoch(engine):
+            train_sampler.set_epoch(engine.state.epoch - 1)
 
     if dist.get_rank() == 0:
         if to_save is not None:
             if output_path is None:
                 raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-            checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="checkpoint")
+            checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training")
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
 
     return trainer
@@ -164,13 +162,15 @@ def empty_cuda_cache(_):
 
 def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters):
 
-    from torch.optim.optimizer import Optimizer
+    if optimizers is not None:
+        from torch.optim.optimizer import Optimizer
 
-    if not isinstance(optimizers, (Optimizer, Mapping)):
-        raise TypeError("Argument optimizers should be either a single optimizer or a dictionary or optimizers")
+        if not isinstance(optimizers, (Optimizer, Mapping)):
+            raise TypeError("Argument optimizers should be either a single optimizer or a dictionary or optimizers")
 
-    if not isinstance(evaluators, (Engine, Mapping)):
-        raise TypeError("Argument optimizers should be either a single optimizer or a dictionary or optimizers")
+    if evaluators is not None:
+        if not isinstance(evaluators, (Engine, Mapping)):
+            raise TypeError("Argument optimizers should be either a single optimizer or a dictionary or optimizers")
 
     if log_every_iters is None:
         log_every_iters = 1
@@ -179,25 +179,26 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
                   log_handler=logger_module.OutputHandler(tag="training", metric_names='all'),
                   event_name=Events.ITERATION_COMPLETED(every=log_every_iters))
 
-    # Log optimizer parameters
-    if isinstance(optimizers, Optimizer):
-        optimizers = {None: optimizers}
+    if optimizers is not None:
+        # Log optimizer parameters
+        if isinstance(optimizers, Optimizer):
+            optimizers = {None: optimizers}
 
-    for k, optimizer in optimizers.items():
-        logger.attach(trainer,
-                      log_handler=logger_module.OptimizerParamsHandler(optimizer, param_name="lr", tag=k),
-                      event_name=Events.ITERATION_STARTED(every=log_every_iters))
+        for k, optimizer in optimizers.items():
+            logger.attach(trainer,
+                          log_handler=logger_module.OptimizerParamsHandler(optimizer, param_name="lr", tag=k),
+                          event_name=Events.ITERATION_STARTED(every=log_every_iters))
 
-    # Log evaluation metrics
-    if isinstance(evaluators, Engine):
-        evaluators = {"validation": evaluators}
+    if evaluators is not None:
+        # Log evaluation metrics
+        if isinstance(evaluators, Engine):
+            evaluators = {"validation": evaluators}
 
-    for k, evaluator in evaluators.items():
-        logger.attach(evaluator,
-                      log_handler=logger_module.OutputHandler(tag=k,
-                                                              metric_names='all',
-                                                              global_step_transform=global_step_from_engine(trainer)),
-                      event_name=Events.COMPLETED)
+        for k, evaluator in evaluators.items():
+            gst = global_step_from_engine(trainer)
+            logger.attach(evaluator,
+                          log_handler=logger_module.OutputHandler(tag=k, metric_names='all', global_step_transform=gst),
+                          event_name=Events.COMPLETED)
 
 
 def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log_every_iters=100):

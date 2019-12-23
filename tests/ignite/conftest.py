@@ -1,7 +1,17 @@
-import pytest
+import tempfile
+import shutil
 
 import torch
 import torch.distributed as dist
+
+import pytest
+
+
+@pytest.fixture
+def dirname():
+    path = tempfile.mkdtemp()
+    yield path
+    shutil.rmtree(path)
 
 
 @pytest.fixture()
