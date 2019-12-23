@@ -288,7 +288,8 @@ class DiskSaver(object):
 
 
 class ModelCheckpoint(Checkpoint):
-    """ModelCheckpoint handler can be used to periodically save objects to disk.
+    """ModelCheckpoint handler can be used to periodically save objects to disk only. If needed to store checkpoints to
+    another storage type, please consider :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     This handler expects two arguments:
 

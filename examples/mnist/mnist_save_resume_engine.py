@@ -19,7 +19,7 @@ except ImportError:
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
-from ignite.handlers import EngineCheckpoint, DiskSaver
+from ignite.handlers import Checkpoint, DiskSaver
 
 
 class Net(nn.Module):
@@ -119,7 +119,7 @@ def run(train_batch_size, val_batch_size,
         avg_nll = metrics['nll']
         tqdm.write(
             "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            .format(engine.state.epoch, avg_accuracy, avg_nll)
+                .format(engine.state.epoch, avg_accuracy, avg_nll)
         )
         writer.add_scalar("training/avg_loss", avg_nll, engine.state.epoch)
         writer.add_scalar("training/avg_accuracy", avg_accuracy, engine.state.epoch)
@@ -132,16 +132,15 @@ def run(train_batch_size, val_batch_size,
         avg_nll = metrics['nll']
         tqdm.write(
             "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-            .format(engine.state.epoch, avg_accuracy, avg_nll))
+                .format(engine.state.epoch, avg_accuracy, avg_nll))
         pbar.n = pbar.last_print_n = 0
         writer.add_scalar("valdation/avg_loss", avg_nll, engine.state.epoch)
         writer.add_scalar("valdation/avg_accuracy", avg_accuracy, engine.state.epoch)
 
-    objects_to_checkpoint = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
-    engine_checkpoint = EngineCheckpoint(to_save=objects_to_checkpoint,
-                                         save_handler=DiskSaver("trainer", log_dir))
+    objects_to_checkpoint = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
+    training_checkpoint = Checkpoint(to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir))
 
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=checkpoint_every), engine_checkpoint)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=checkpoint_every), training_checkpoint)
 
     if resume_from is None:
         try:
@@ -149,10 +148,10 @@ def run(train_batch_size, val_batch_size,
         except Exception as e:
             print(e)
     else:
-        checkpoint_fp = Path(resume_from) / engine_checkpoint.save_handler.filename
+        checkpoint_fp = Path(resume_from) / training_checkpoint.save_handler.filename
         print("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
         checkpoint = torch.load(checkpoint_fp.as_posix())
-        EngineCheckpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
+        Checkpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
         trainer.resume(train_loader, state_dict=checkpoint['engine'])
 
     pbar.close()
