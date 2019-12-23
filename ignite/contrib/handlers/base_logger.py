@@ -7,6 +7,7 @@ import torch
 from ignite.engine import State, Engine
 from ignite.engine.engine import EventWithFilter
 from ignite._six import with_metaclass
+from ignite.handlers import global_step_from_engine
 
 
 class BaseLogger(object):
@@ -63,23 +64,6 @@ class BaseOptimizerParamsHandler(BaseHandler):
         self.optimizer = optimizer
         self.param_name = param_name
         self.tag = tag
-
-
-def global_step_from_engine(engine):
-    """Helper method to setup `global_step_transform` function using another engine.
-    This can be helpful for logging trainer epoch/iteration while output handler is attached to an evaluator.
-
-    Args:
-        engine (Engine): engine which state is used to provide the global step
-
-    Returns:
-        global step
-    """
-
-    def wrapper(_, event_name):
-        return engine.state.get_event_attrib_value(event_name)
-
-    return wrapper
 
 
 class BaseOutputHandler(BaseHandler):

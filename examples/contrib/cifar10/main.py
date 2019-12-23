@@ -13,7 +13,7 @@ import torch.distributed as dist
 import ignite
 from ignite.engine import Events, Engine, create_supervised_evaluator
 from ignite.metrics import Accuracy, RunningAverage, Loss
-from ignite.handlers import ModelCheckpoint
+from ignite.handlers import ModelCheckpoint, global_step_from_engine
 from ignite.utils import convert_tensor
 
 from ignite.contrib.handlers import TensorboardLogger, ProgressBar
@@ -114,9 +114,8 @@ def run(output_path, config):
 
     if rank == 0:
         checkpoint_handler = ModelCheckpoint(dirname=output_path,
-                                             filename_prefix="checkpoint",
-                                             save_interval=1000)
-        trainer.add_event_handler(Events.ITERATION_COMPLETED,
+                                             filename_prefix="checkpoint")
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000),
                                   checkpoint_handler,
                                   {'model': model, 'optimizer': optimizer})
 
@@ -178,6 +177,7 @@ def run(output_path, config):
         best_model_handler = ModelCheckpoint(dirname=output_path,
                                              filename_prefix="best",
                                              n_saved=3,
+                                             global_step_transform=global_step_from_engine(trainer),
                                              score_name="val_accuracy",
                                              score_function=score_function)
         evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })

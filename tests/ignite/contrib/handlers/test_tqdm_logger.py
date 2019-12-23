@@ -209,7 +209,7 @@ def test_pbar_with_tqdm_kwargs(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'.format()
+    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'
     assert err[-1] == expected
 
 
