@@ -219,7 +219,6 @@ def test_distrib_cpu(dirname, local_rank, distributed_context_single_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
-
     device = "cpu"
     _test_setup_common_training_handlers(dirname, device, rank=distributed_context_multi_node_gloo['rank'])
     test_add_early_stopping_by_val_score()
