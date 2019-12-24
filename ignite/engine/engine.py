@@ -876,9 +876,10 @@ class Engine(object):
 
 
 def _update_dataloader(dataloader, new_batch_sampler):
-    params_keys = [k for k in dataloader.__dict__.keys() if k[0] != "_"]
-    for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler']:
-        params_keys.remove(k)
+    params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
+    for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler', 'dataset_kind']:
+        if k in params_keys:
+            params_keys.remove(k)
     params = {k: getattr(dataloader, k) for k in params_keys}
     params['batch_sampler'] = new_batch_sampler
     return torch.utils.data.DataLoader(**params)

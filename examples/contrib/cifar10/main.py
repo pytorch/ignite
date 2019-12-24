@@ -1,8 +1,6 @@
 import argparse
 from pathlib import Path
 
-from functools import partial
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -41,6 +39,7 @@ def run(output_path, config):
     batch_size = config['batch_size'] // ngpus
     num_workers = int((config['num_workers'] + ngpus_per_node - 1) / ngpus_per_node)
 
+    print("- get_train_test_loaders")
     train_loader, test_loader = get_train_test_loaders(
         path=config['data_path'],
         batch_size=batch_size,
@@ -48,6 +47,7 @@ def run(output_path, config):
         num_workers=num_workers
     )
 
+    print("- get_model")
     model = get_model(config['model'])
     model = model.to(device)
 
@@ -56,6 +56,7 @@ def run(output_path, config):
                                                           device_ids=[local_rank, ],
                                                           output_device=local_rank)
 
+    print("- optimizer")
     optimizer = optim.SGD(model.parameters(), lr=config['learning_rate'],
                           momentum=config['momentum'],
                           weight_decay=config['weight_decay'],
@@ -94,6 +95,7 @@ def run(output_path, config):
             'batch loss': loss.item(),
         }
 
+    print("- trainer")
     trainer = Engine(process_function)
     train_sampler = train_loader.sampler if distributed else None
     to_save = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
@@ -103,6 +105,7 @@ def run(output_path, config):
                                           output_path=output_path, lr_scheduler=lr_scheduler,
                                           output_names=metric_names, with_pbar_on_iters=config['display_iters'])
 
+    print("- loggers")
     if rank == 0:
         tb_logger = TensorboardLogger(log_dir=output_path)
         tb_logger.attach(trainer,
@@ -118,6 +121,7 @@ def run(output_path, config):
         "loss": Loss(criterion, device=device if distributed else None)
     }
 
+    print("- create_supervised_evaluator")
     evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
 
@@ -129,17 +133,20 @@ def run(output_path, config):
     trainer.add_event_handler(Events.EPOCH_STARTED(every=3), run_validation)
     trainer.add_event_handler(Events.COMPLETED, run_validation)
 
+    print("- other loggers")
     if rank == 0:
         if config['display_iters']:
             ProgressBar(persist=False, desc="Train evaluation").attach(train_evaluator)
             ProgressBar(persist=False, desc="Test evaluation").attach(evaluator)
 
+        print("-- tb_logger output of train_evaluator")
         tb_logger.attach(train_evaluator,
                          log_handler=OutputHandler(tag="train",
                                                    metric_names=list(metrics.keys()),
                                                    global_step_transform=global_step_from_engine(trainer)),
                          event_name=Events.COMPLETED)
 
+        print("-- tb_logger output of evaluator")
         tb_logger.attach(evaluator,
                          log_handler=OutputHandler(tag="test",
                                                    metric_names=list(metrics.keys()),
@@ -147,31 +154,37 @@ def run(output_path, config):
                          event_name=Events.COMPLETED)
 
         # Store the best model by validation accuracy:
+        print("-- save_best_model_by_val_score")
         common.save_best_model_by_val_score(output_path, evaluator, model=model, metric_name='accuracy', n_saved=3,
                                             trainer=trainer, tag="test")
 
         if config['log_model_grads_every'] is not None:
+            print("-- GradsHistHandler")
             tb_logger.attach(trainer,
                              log_handler=GradsHistHandler(model, tag=model.__class__.__name__),
                              event_name=Events.ITERATION_COMPLETED(every=config['log_model_grads_every']))
 
         if config['crash_iteration'] is not None:
+            print("-- set crash_iteration")
             @trainer.on(Events.ITERATION_STARTED(once=config['crash_iteration']))
             def _(engine):
                 raise Exception("STOP at iteration: {}".format(engine.state.iteration))
 
-    # trainer.run(train_labelled_loader, max_epochs=config['num_epochs'])
+    print("- run or resume")
     resume_from = config['resume_from']
     if resume_from is None:
         try:
+            print("- trainer run")
             trainer.run(train_loader, max_epochs=config['num_epochs'])
         except Exception as e:
-            print(e)
+            import traceback
+            print(traceback.format_exc())
     else:
         checkpoint_fp = Path(resume_from) / "training_checkpoint.pth"
         assert checkpoint_fp.exists(), "Checkpoint '{}' is not found".format(checkpoint_fp.as_posix())
         print("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
         checkpoint = torch.load(checkpoint_fp.as_posix())
+
         Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
         trainer.resume(train_loader, state_dict=checkpoint['engine'])
 
