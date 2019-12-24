@@ -1,5 +1,3 @@
-import tempfile
-import shutil
 
 import numpy as np
 import pytest
@@ -7,13 +5,6 @@ import pytest
 import torch
 
 from mock import Mock
-
-
-@pytest.fixture
-def dirname():
-    path = tempfile.mkdtemp()
-    yield path
-    shutil.rmtree(path)
 
 
 @pytest.fixture()

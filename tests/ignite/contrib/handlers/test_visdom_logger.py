@@ -1,6 +1,3 @@
-import tempfile
-import shutil
-
 import torch
 import pytest
 
@@ -9,13 +6,6 @@ from mock import MagicMock, call, ANY
 from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.visdom_logger import *
 from ignite.contrib.handlers.visdom_logger import _DummyExecutor, _BaseVisDrawer
-
-
-@pytest.fixture
-def dirname():
-    path = tempfile.mkdtemp()
-    yield path
-    shutil.rmtree(path)
 
 
 @pytest.fixture

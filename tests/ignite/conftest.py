@@ -1,7 +1,17 @@
-import pytest
+import tempfile
+import shutil
 
 import torch
 import torch.distributed as dist
+
+import pytest
+
+
+@pytest.fixture
+def dirname():
+    path = tempfile.mkdtemp()
+    yield path
+    shutil.rmtree(path)
 
 
 @pytest.fixture()
@@ -34,6 +44,8 @@ def distributed_context_single_node_nccl(local_rank):
 
     yield {'local_rank': local_rank}
 
+    dist.barrier()
+
     dist.destroy_process_group()
 
 
@@ -53,7 +65,9 @@ def distributed_context_single_node_gloo(local_rank):
 
     dist.init_process_group(**dist_info)
 
-    yield "distributed_context_single_node_gloo"
+    yield {"local_rank": local_rank}
+
+    dist.barrier()
 
     dist.destroy_process_group()
 
@@ -95,6 +109,8 @@ def distributed_context_multi_node_gloo(multi_node_conf):
 
     yield multi_node_conf
 
+    dist.barrier()
+
     dist.destroy_process_group()
 
 
@@ -107,7 +123,7 @@ def distributed_context_multi_node_nccl(multi_node_conf):
     assert "MASTER_PORT" in os.environ
 
     dist_info = {
-        "backend": "gloo",
+        "backend": "nccl",
         "init_method": "env://",
         "world_size": multi_node_conf['world_size'],
         "rank": multi_node_conf['rank']
@@ -117,5 +133,7 @@ def distributed_context_multi_node_nccl(multi_node_conf):
     torch.cuda.device(multi_node_conf['local_rank'])
 
     yield multi_node_conf
+
+    dist.barrier()
 
     dist.destroy_process_group()
