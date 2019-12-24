@@ -1,6 +1,4 @@
 import os
-import tempfile
-import shutil
 import warnings
 
 import torch
@@ -13,13 +11,6 @@ import pytest
 from mock import MagicMock
 
 _PREFIX = 'PREFIX'
-
-
-@pytest.fixture
-def dirname():
-    path = tempfile.mkdtemp()
-    yield path
-    shutil.rmtree(path)
 
 
 class DummyModel(nn.Module):
