@@ -220,11 +220,12 @@ class Checkpoint(object):
 
     @staticmethod
     def load_objects(to_load, checkpoint):
-        """Method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
+        """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Args:
-            to_load (Mapping):
-            checkpoint (Mapping):
+            to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
+                "optimizer": opt_state_dict}`
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):

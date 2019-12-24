@@ -2,17 +2,22 @@ import inspect
 import logging
 import sys
 import time
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from enum import Enum
 import weakref
 import numbers
 import random
 
+IS_PYTHON2 = sys.version_info[0] < 3
+
+if not IS_PYTHON2:
+    from collections.abc import Mapping
+else:
+    from collections import Mapping
+
 import torch
 
 from ignite._utils import _to_hours_mins_secs
-
-IS_PYTHON2 = sys.version_info[0] < 3
 
 
 class EventWithFilter(object):
@@ -144,6 +149,7 @@ class State(object):
         state.seed              # seed to set at each epoch
         state.dataloader        # data passed to engine
         state.epoch_length      # optional length of an epoch
+        state.max_epochs        # number of epochs to run
         state.batch             # batch passed to `process_function`
         state.output            # output of `process_function` after a single iteration
         state.metrics           # dictionary with defined metrics if any
@@ -160,11 +166,15 @@ class State(object):
     }
 
     def __init__(self, **kwargs):
-        self.output = None
-        self.batch = None
         self.iteration = 0
         self.epoch = 0
         self.epoch_length = None
+        self.max_epochs = None
+        self.output = None
+        self.batch = None
+        self.metrics = {}
+        self.dataloader = None
+        self.seed = None
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -288,6 +298,7 @@ class Engine(object):
         Create a basic evaluator to compute metrics
 
         .. code-block:: python
+
             from ignite.metrics import Accuracy
 
             def predict_on_batch(engine, batch)
@@ -305,6 +316,7 @@ class Engine(object):
         Compute image mean/std on training dataset
 
         .. code-block:: python
+
             from ignite.metrics import Average
 
             def compute_mean_std(engine, batch):
@@ -324,7 +336,24 @@ class Engine(object):
             mean = state.metrics['mean'].tolist()
             std = state.metrics['std'].tolist()
 
+        Resume engine's run from a state. User can load a `state_dict` and run engine starting from loaded state :
+
+        .. code-block:: python
+
+            # Restore from an epoch
+            state_dict = {"seed": 0, "epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
+            # or an iteration
+            # state_dict = {"seed": 0, "iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
+
+            trainer = Engine(...)
+            trainer.load_state_dict(state_dict)
+            trainer.run(data)
+
     """
+
+    _state_dict_all_req_keys = ("seed", "epoch_length", "max_epochs")
+    _state_dict_one_of_opt_keys = ("iteration", "epoch")
+
     def __init__(self, process_function):
         self._event_handlers = defaultdict(list)
         self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
@@ -609,7 +638,6 @@ class Engine(object):
     def _run_once_on_dataset(self):
         start_time = time.time()
 
-        has_epoch_length = self.state.epoch_length is not None
         # We need to setup iter_counter > 0 if we resume from an iteration
         iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
         should_exit = False
@@ -620,12 +648,6 @@ class Engine(object):
                     iter_counter += 1
                     should_exit = False
                 except StopIteration:
-                    # Define self.state.epoch_length if it is not yet set
-                    if self.state.epoch_length is None:
-                        # self.state.epoch_length = self.state.iteration
-                        self.state.epoch_length = iter_counter
-                        has_epoch_length = True
-
                     if self._dataloader_len is None:
                         self._dataloader_len = iter_counter
 
@@ -656,7 +678,7 @@ class Engine(object):
                     self._dataloader_iter = iter(self.state.dataloader)
                     break
 
-                if has_epoch_length and iter_counter == self.state.epoch_length:
+                if iter_counter == self.state.epoch_length:
                     break
 
         except BaseException as e:
@@ -675,25 +697,75 @@ class Engine(object):
             raise e
 
     def state_dict(self):
-        if self.state is None:
-            return {}
-        return {
-            "seed": self.state.seed,
-            "iteration": self.state.iteration,
-            "epoch_length": self.state.epoch_length,
-            "max_epochs": self.state.max_epochs,
-        }
+        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration"
 
-    def run(self, data, max_epochs=1, epoch_length=None, seed=12):
+        Returns:
+            dict:
+                a dictionary containing engine's state
+
+        """
+        if self.state is None:
+            return OrderedDict()
+        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0], )
+        return OrderedDict([(k, getattr(self.state, k)) for k in keys])
+
+    def load_state_dict(self, state_dict):
+        """Setups engine from `state_dict`.
+
+        State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
+        `seed`. Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+
+        Args:
+            state_dict (Mapping): a dict with parameters
+
+        """
+        if not isinstance(state_dict, Mapping):
+            raise TypeError("Argument state_dict should be a dictionary, but given {}".format(type(state_dict)))
+
+        for k in self._state_dict_all_req_keys:
+            if k not in state_dict:
+                raise ValueError("Required state attribute '{}' is absent in provided state_dict '{}'"
+                                 .format(k, state_dict.keys()))
+
+        opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
+        if (not any(opts)) or (all(opts)):
+            raise ValueError("state_dict should contain only one of '{}' keys".format(self._state_dict_one_of_opt_keys))
+
+        self.state = State(seed=state_dict['seed'], max_epochs=state_dict['max_epochs'],
+                           epoch_length=state_dict['epoch_length'], metrics={})
+
+        if "iteration" in state_dict:
+            self.state.iteration = state_dict['iteration']
+            self.state.epoch = self.state.iteration // self.state.epoch_length
+        elif "epoch" in state_dict:
+            self.state.epoch = state_dict['epoch']
+            self.state.iteration = self.state.epoch_length * self.state.epoch
+
+    @staticmethod
+    def _is_done(state):
+        return state.iteration == state.epoch_length * state.max_epochs
+
+    def run(self, data, max_epochs=None, epoch_length=None, seed=None):
         """Runs the `process_function` over the passed data.
+
+        Engine has a state and the following logic is applied in the function:
+
+        - At the first call, new state is defined by `max_epochs`, `epoch_length`, `seed` if provided.
+        - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
+            provided, state is kept and used in the function.
+        - If state is defined and engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
+        - If state is defined, engine is NOT "done" and there are input arguments provided, an error is raised.
 
         Args:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
-            max_epochs (int, optional): Max epochs to run for (default: 1).
-            epoch_length (int, optional): Number of iterations to count as one epoch. By default, at the first place
-                epoch_length is tried to be set as `len(data)`. If previous command is failed, engine measures
-                automatically the length by iterating over the data until `StopIteration` is raised.
+            max_epochs (int, optional): Max epochs to run for (default: None).
+                If a new state should be created (first run or run again from ended engine), it's default value is 1.
+                This argument should be `None` if run is resuming from a state.
+            epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
+                `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
+                This argument should be `None` if run is resuming from a state.
             seed (int, optional): Seed to setup at each epoch for reproducible runs.
+                This argument should be `None` if run is resuming from a state.
 
         Returns:
             State: output state.
@@ -710,85 +782,40 @@ class Engine(object):
                 def switch_batch(engine):
                     engine.state.batch = preprocess_batch(engine.state.batch)
 
-        """
-        if epoch_length is None and hasattr(data, "__len__"):
-            epoch_length = len(data)
-            if epoch_length < 1:
-                raise ValueError("Input data has zero size. Please provide non-empty data")
-
-        state_dict = {
-            "seed": seed,
-            "iteration": 0,
-            "max_epochs": max_epochs,
-            "epoch_length": epoch_length,
-        }
-        self._setup_state(state_dict, data, strict=True)
-        self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
-        return self._internal_run()
-
-    def resume(self, data, state_dict, strict=True):
-        """Resume engine run from a state.
-
-        Args:
-            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
-            state_dict (Mapping): A dictionary with keys: iteration, epoch, max_epochs, epoch_length, seed.
-                See notes below for more details.
-            strict (bool, optional): Flag to indicate whether user needs a strict data resuming. If
-                True, data is iterated without running `process_function` or executing handlers until `state.iteration`.
-                This phase can take time depending on the data. If type of data is `torch.utils.DataLoader`,
-                its batch sampler is used to iterate over data and accelerate resuming. If False, data is used from
-                the beginning.
-
-        Returns:
-            State: output state.
-
         Note:
-            State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, optionally `epoch_length`,
-            `seed`. Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+            In order to perform a reproducible run, if input `data` is `torch.utils.data.DataLoader`, its batch sampler
+            is replaced by a batch sampler (:class:`~ignite.engine.engine.ReproducibleBatchSampler`) such that random
+            sampling indices are reproducible by prefetching them before data iteration.
 
         """
-        for req_field in ["max_epochs", "seed"]:
-            if req_field not in state_dict:
-                raise ValueError("state_dict should contain '{}' key".format(req_field))
 
-        opt_fields = ("iteration", "epoch")
-        opts = [opt_field in state_dict for opt_field in opt_fields]
-        if not any(opts):
-            raise ValueError("state_dict should contain one of '{}' keys".format(opt_fields))
+        if self.state is None or self._is_done(self.state):
+            # Create new state
+            if max_epochs is None:
+                max_epochs = 1
+            if seed is None:
+                seed = 12
+            if epoch_length is None:
+                if hasattr(data, "__len__"):
+                    epoch_length = len(data)
+                    if epoch_length < 1:
+                        raise ValueError("Input data has zero size. Please provide non-empty data")
+                else:
+                    raise ValueError("Argument `epoch_length` should be defined if `data` is an iterator")
+            self.state = State(seed=seed, iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
+            self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
+        else:
+            # Keep actual state
+            if not (max_epochs is None and epoch_length is None and seed is None):
+                raise ValueError("Input arguments `max_epochs`, `epoch_length` and `seed` should be all None "
+                                 "if resuming from loaded state")
+            self._logger.info("Engine run resuming from iteration {}, epoch {} until {} epochs"
+                              .format(self.state.iteration, self.state.epoch, self.state.max_epochs))
 
-        if all(opts):
-            raise ValueError("state_dict should contain only on of '{}' keys".format(opt_fields))
-
-        self._setup_state(state_dict, data, strict)
-        self._logger.info("Engine run resuming from epoch {} and iteration {} with max_epochs={}"
-                          .format(self.state.epoch, self.state.iteration, self.state.max_epochs))
+        self._setup_engine(data)
         return self._internal_run()
 
-    def _setup_state(self, state_dict, data, strict):
-
-        self.state = State(seed=state_dict['seed'],
-                           max_epochs=state_dict['max_epochs'],
-                           epoch_length=state_dict.get('epoch_length', None),
-                           metrics={})
-
-        if self.state.epoch_length is None and hasattr(data, "__len__"):
-            self.state.epoch_length = len(data)
-            if self.state.epoch_length < 1:
-                raise ValueError("Input data has zero size. Please provide non-empty data")
-
-        if "iteration" in state_dict:
-            self.state.iteration = state_dict['iteration']
-            if self.state.epoch_length is None:
-                self.state.epoch = 0
-            else:
-                self.state.epoch = self.state.iteration // self.state.epoch_length
-        elif "epoch" in state_dict:
-            if self.state.epoch_length is None:
-                raise ValueError("When start epoch is specified, state.epoch={}, "
-                                 "resuming state should have epoch_length value, but state.epoch_length={}"
-                                 .format(self.state.epoch, self.state.epoch_length))
-            self.state.epoch = state_dict['epoch']
-            self.state.iteration = self.state.epoch_length * self.state.epoch
+    def _setup_engine(self, data):
 
         self.state.dataloader = data
         self._dataloader_len = len(self.state.dataloader) if hasattr(self.state.dataloader, "__len__") else None
@@ -805,10 +832,7 @@ class Engine(object):
                                                            ReproducibleBatchSampler(batch_sampler))
 
         iteration = self.state.iteration
-        if not strict:
-            self._dataloader_iter = iter(self.state.dataloader)
-        else:
-            self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
+        self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
