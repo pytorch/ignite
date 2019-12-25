@@ -7,6 +7,7 @@ from enum import Enum
 import weakref
 import numbers
 import random
+import warnings
 
 IS_PYTHON2 = sys.version_info[0] < 3
 
@@ -649,15 +650,25 @@ class Engine(object):
                     should_exit = False
                 except StopIteration:
                     if self._dataloader_len is None:
-                        self._dataloader_len = iter_counter
+                        if iter_counter > 0:
+                            self._dataloader_len = iter_counter
+                        else:
+                            # this can happen when data is finite iterator and epoch_length is equal to its size
+                            self._dataloader_len = self.state.iteration
+
+                    # Should exit while loop if we can not iterate
+                    if should_exit:
+                        if not self._is_done(self.state):
+                            warnings.warn("Data iterator can not provide data anymore but required total number of "
+                                          "iterations to run is not reached. "
+                                          "Current iteration: {} vs Total iterations to run : {}"
+                                          .format(self.state.iteration,
+                                                  self.state.epoch_length * self.state.max_epochs))
+                        break
 
                     # set seed on restart of data iterator
                     self._manual_seed(self.state.seed, self.state.iteration // self._dataloader_len)
                     self._dataloader_iter = iter(self.state.dataloader)
-
-                    # Should exit while loop if we can not iterate
-                    if should_exit:
-                        break
 
                     should_exit = True
 
@@ -821,6 +832,9 @@ class Engine(object):
         self._dataloader_len = len(self.state.dataloader) if hasattr(self.state.dataloader, "__len__") else None
         # setup seed here, as iter(data) can start prefetching
         # seed value should be related to input data iterator length -> iteration at data iterator restart
+        # - seed can not be epoch because during a single epoch we can have multiple `_dataloader_len`
+        # - seed can not be iteration because when resuming from iteration we need to set the seed from the start of the
+        #   dataloader and then rewind to required iteration
         le = self._dataloader_len if self._dataloader_len is not None else 1
         self._manual_seed(self.state.seed, self.state.iteration // le)
         # if input data is torch dataloader we replace batch sampler by a batch sampler

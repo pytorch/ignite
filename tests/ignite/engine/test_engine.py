@@ -377,3 +377,94 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
     e = Events.EPOCH_COMPLETED(once=5)
     assert state.get_event_attrib_value(e) == state.epoch
+
+
+def test_run_check_triggered_events():
+
+    def _test(data, max_epochs, epoch_length):
+        engine = Engine(lambda e, b: 1)
+
+        events = [Events.STARTED, Events.EPOCH_STARTED, Events.ITERATION_STARTED,
+                  Events.ITERATION_COMPLETED, Events.EPOCH_COMPLETED, Events.COMPLETED]
+
+        handlers = {e: MagicMock() for e in events}
+
+        for e, handler in handlers.items():
+            engine.add_event_handler(e, handler)
+
+        engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+        expected_num_calls = {
+            Events.STARTED: 1,
+            Events.COMPLETED: 1,
+            Events.EPOCH_STARTED: max_epochs,
+            Events.EPOCH_COMPLETED: max_epochs,
+            Events.ITERATION_STARTED: max_epochs * epoch_length,
+            Events.ITERATION_COMPLETED: max_epochs * epoch_length,
+        }
+
+        for n, handler in handlers.items():
+            assert handler.call_count == expected_num_calls[n], \
+                "{}: {} vs {}".format(n, handler.call_count, expected_num_calls[n])
+
+    _test(list(range(100)), max_epochs=5, epoch_length=100)
+    _test(list(range(100)), max_epochs=5, epoch_length=50)
+    _test(list(range(100)), max_epochs=5, epoch_length=150)
+
+
+def test_run_check_triggered_events_on_iterator():
+
+    def _test(data, max_epochs, epoch_length):
+        engine = Engine(lambda e, b: 1)
+
+        events = [Events.STARTED, Events.EPOCH_STARTED, Events.ITERATION_STARTED,
+                  Events.ITERATION_COMPLETED, Events.EPOCH_COMPLETED, Events.COMPLETED]
+
+        handlers = {e: MagicMock() for e in events}
+
+        for e, handler in handlers.items():
+            engine.add_event_handler(e, handler)
+
+        engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+        expected_num_calls = {
+            Events.STARTED: 1,
+            Events.COMPLETED: 1,
+            Events.EPOCH_STARTED: max_epochs,
+            Events.EPOCH_COMPLETED: max_epochs,
+            Events.ITERATION_STARTED: max_epochs * epoch_length,
+            Events.ITERATION_COMPLETED: max_epochs * epoch_length,
+        }
+
+        for n, handler in handlers.items():
+            assert handler.call_count == expected_num_calls[n], \
+                "{}: {} vs {}".format(n, handler.call_count, expected_num_calls[n])
+
+    def infinite_data_iterator():
+        while True:
+            for i in range(100):
+                yield i
+
+    _test(infinite_data_iterator(), max_epochs=5, epoch_length=100)
+    _test(infinite_data_iterator(), max_epochs=5, epoch_length=50)
+    _test(infinite_data_iterator(), max_epochs=5, epoch_length=150)
+
+    def limited_data_iterator():
+        for i in range(100):
+            yield i
+
+    _test(limited_data_iterator(), max_epochs=1, epoch_length=100)
+    _test(limited_data_iterator(), max_epochs=10, epoch_length=10)
+
+    # These tests will fail
+    with pytest.raises(AssertionError):
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            _test(limited_data_iterator(), max_epochs=3, epoch_length=100)
+
+    with pytest.raises(AssertionError):
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            _test(limited_data_iterator(), max_epochs=3, epoch_length=75)
+
+    with pytest.raises(AssertionError):
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            _test(limited_data_iterator(), max_epochs=1, epoch_length=101)

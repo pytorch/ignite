@@ -134,7 +134,7 @@ def test_epoch_length():
         assert engine.state.epoch == max_epochs
 
     max_epochs = 10
-    num_iters = 20
+    num_iters = 21
     data = torch.randint(0, 1000, size=(num_iters,))
     _test(data, max_epochs, num_iters=None)
     _test(data, max_epochs, num_iters)
@@ -182,7 +182,6 @@ def test_strict_resume_from_iter():
             assert engine.state.iteration == epoch_length * max_epochs
 
     _test()
-    _test(30)
     _test(60)
     _test(15)
 
@@ -191,7 +190,7 @@ def test_strict_resume_from_epoch():
 
     def _test(epoch_length=None):
         max_epochs = 10
-        num_iters = 20
+        num_iters = 21
         data = torch.randint(0, 1000, size=(num_iters,))
         if epoch_length is None:
             epoch_length = num_iters
@@ -216,7 +215,6 @@ def test_strict_resume_from_epoch():
             assert engine.state.iteration == epoch_length * max_epochs
 
     _test()
-    _test(30)
     _test(60)
     _test(15)
 
@@ -258,7 +256,6 @@ def test_resume_dataloader_from_iter():
                                                epoch_length * max_epochs)
 
     _test()
-    _test(epoch_length=25)
     _test(epoch_length=30)
     _test(epoch_length=5)
 
@@ -299,7 +296,6 @@ def test_resume_dataloader_from_epoch():
                 assert engine.state.iteration == epoch_length * max_epochs
 
     _test()
-    _test(epoch_length=30)
     _test(epoch_length=60)
     _test(epoch_length=15)
 
@@ -309,7 +305,7 @@ def test_reproduce_run_with_seed():
     def _test(epoch_length=None):
         max_epochs = 5
         batch_size = 4
-        num_iters = 20
+        num_iters = 21
         data = torch.randint(0, 1000, size=(num_iters * batch_size, ))
 
         for num_workers in [0, 4]:
@@ -337,7 +333,6 @@ def test_reproduce_run_with_seed():
                 assert (ref_b == b).all(), "{}, {}: {} vs {}".format(num_workers, i, ref_b, b)
 
     _test()
-    _test(30)
     _test(60)
     _test(15)
 
@@ -389,7 +384,6 @@ def test_resume_random_dataloader_from_epoch():
                 assert engine.state.iteration == epoch_length * max_epochs
 
     _test()
-    _test(30)
     _test(60)
     _test(15)
 
@@ -419,8 +413,7 @@ def test_resume_random_dataloader_from_iter():
             engine = Engine(update_fn)
             engine.run(dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
 
-            for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 5):
-                resume_epoch = resume_iteration // epoch_length
+            for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
                 def update_fn(engine, batch):
@@ -443,7 +436,6 @@ def test_resume_random_dataloader_from_iter():
                                                epoch_length * max_epochs)
 
     _test()
-    _test(30)
     _test(50)
     _test(11)
 
@@ -479,3 +471,98 @@ def test_reproducible_batch_sampler():
             resumed_seen_batches.append(b)
 
         assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
+
+
+def test_resume_random_data_iterator_from_epoch():
+
+    def _test(epoch_length=None):
+        max_epochs = 5
+        batch_size = 4
+        num_iters = 21
+
+        def infinite_data_iterator():
+            torch.manual_seed(0)
+            while True:
+                for _ in range(num_iters):
+                    data = torch.randint(0, 1000, size=(batch_size,))
+                    yield data
+
+        if epoch_length is None:
+            epoch_length = num_iters
+
+        seen_batchs = []
+
+        def update_fn(engine, batch):
+            seen_batchs.append(batch)
+
+        engine = Engine(update_fn)
+        engine.run(infinite_data_iterator(), max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+
+        for resume_epoch in range(1, max_epochs):
+            batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
+
+            def update_fn(engine, batch):
+                assert batch_checker.check(batch), \
+                    "{} | {}: {} vs {}".format(resume_epoch, batch_checker.counter, batch_checker.true_batch, batch)
+
+            engine = Engine(update_fn)
+            resume_state_dict = dict(epoch=resume_epoch,
+                                     max_epochs=max_epochs,
+                                     epoch_length=epoch_length,
+                                     seed=12)
+            engine.load_state_dict(resume_state_dict)
+            engine.run(infinite_data_iterator())
+            assert engine.state.epoch == max_epochs
+            assert engine.state.iteration == epoch_length * max_epochs
+
+    _test()
+    _test(60)
+    _test(15)
+
+
+def test_resume_random_data_iterator_from_iter():
+
+    def _test(epoch_length=None):
+        max_epochs = 3
+        batch_size = 4
+        num_iters = 17
+
+        def infinite_data_iterator():
+            torch.manual_seed(0)
+            while True:
+                for _ in range(num_iters):
+                    data = torch.randint(0, 1000, size=(batch_size,))
+                    yield data
+
+        if epoch_length is None:
+            epoch_length = num_iters
+
+        seen_batchs = []
+
+        def update_fn(engine, batch):
+            seen_batchs.append(batch)
+
+        engine = Engine(update_fn)
+        engine.run(infinite_data_iterator(), max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+
+        for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
+            batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
+
+            def update_fn(engine, batch):
+                assert batch_checker.check(batch), \
+                    "{} | {}: {} vs {}".format(resume_iteration, batch_checker.counter, batch_checker.true_batch, batch)
+
+            engine = Engine(update_fn)
+            resume_state_dict = dict(iteration=resume_iteration,
+                                     max_epochs=max_epochs,
+                                     epoch_length=epoch_length,
+                                     seed=12)
+            engine.load_state_dict(resume_state_dict)
+            engine.run(infinite_data_iterator())
+            assert engine.state.epoch == max_epochs
+            assert engine.state.iteration == epoch_length * max_epochs, \
+                "{} | {} vs {}".format(resume_iteration, engine.state.iteration, epoch_length * max_epochs)
+
+    _test()
+    _test(50)
+    _test(11)
