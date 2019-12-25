@@ -505,7 +505,7 @@ def test_valid_state_dict_save(dirname):
     engine.state = State(epoch=0, iteration=0)
 
     to_save = {'name': 42}
-    with pytest.raises(TypeError, match=r"should have `state_dict` and `load_state_dict` methods"):
+    with pytest.raises(TypeError, match=r"should have `state_dict` method"):
         h(engine, to_save)
     to_save = {'name': model}
     try:
@@ -581,6 +581,9 @@ def test_checkpoint_load_objects():
 
     with pytest.raises(TypeError, match=r"Argument checkpoint should be a dictionary"):
         Checkpoint.load_objects({}, [])
+
+    with pytest.raises(TypeError, match=r"should have `load_state_dict` method"):
+        Checkpoint.load_objects({"a": None}, {"a": None})
 
     model = DummyModel()
     to_load = {'model': model}

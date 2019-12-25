@@ -356,7 +356,7 @@ def test_pytorch_operators():
                 yield (y_pred[i], y[i])
 
         d = data(y_pred, y)
-        state = validator.run(d, max_epochs=1)
+        state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
         assert set(state.metrics.keys()) == set([metric_name, ])
         np_y_pred = np.argmax(y_pred.numpy(), axis=-1).ravel()
@@ -418,7 +418,7 @@ def test_indexing_metric():
                 yield (y_pred[i], y[i])
 
         d = data(y_pred, y)
-        state = validator.run(d, max_epochs=1)
+        state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
         sklearn_output = sklearn_metic(y.view(-1).numpy(),
                                        y_pred.view(-1, num_classes).argmax(dim=1).numpy(),
