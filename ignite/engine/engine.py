@@ -444,6 +444,8 @@ class Engine(object):
             if event_filter(self, event):
                 return handler(*args, **kwargs)
 
+        # setup input handler as parent to make has_event_handler work
+        wrapper._parent = handler
         return wrapper
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
@@ -515,6 +517,8 @@ class Engine(object):
             events = self._event_handlers
         for e in events:
             for h, _, _ in self._event_handlers[e]:
+                if hasattr(h, "_parent"):
+                    h = h._parent
                 if h == handler:
                     return True
         return False

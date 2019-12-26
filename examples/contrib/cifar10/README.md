@@ -102,3 +102,20 @@ Training without crashing
 ```bash
 python main.py --params="data_path=/path/to/cifar10"
 ```
+
+### Single Node, multiple GPUs
+
+Initial training with a crash at 1000 iteration (~10 epochs)
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/cifar10-output;crash_iteration=1000"
+```
+
+Resume from the latest checkpoint
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/cifar10-output;resume_from=/tmp/cifar10-output/XYZ--distributed-1nodes-2gpus/training_checkpoint_800.pth"
+```
+
+Training without crashing
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/cifar10-output"
+```

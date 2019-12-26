@@ -2,6 +2,8 @@ from enum import Enum
 
 from mock import MagicMock
 
+import torch
+
 from ignite.engine import Engine, Events
 from ignite.engine.engine import CallableEvents, EventWithFilter
 
@@ -139,7 +141,27 @@ def test_callable_events_every_eq_one():
     assert isinstance(e, Events)
 
 
-def test_every_event_filter_with_engine():
+def test_engine_has_handler_on_callable_events():
+    engine = Engine(lambda e, b: 1)
+
+    def foo(e):
+        pass
+
+    assert not engine.has_event_handler(foo)
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo)
+    assert engine.has_event_handler(foo)
+
+    def bar(e):
+        pass
+
+    engine.add_event_handler(Events.EPOCH_COMPLETED(every=3), bar)
+    assert engine.has_event_handler(bar)
+
+
+def _test_every_event_filter_with_engine(device="cpu"):
+
+    data = torch.rand(100, 4, device=device)
 
     def _test(event_name, event_attr, every, true_num_calls):
 
@@ -161,8 +183,7 @@ def test_every_event_filter_with_engine():
             counter[0] += 1
             assert getattr(engine.state, event_attr) == counter[0]
 
-        d = list(range(100))
-        engine.run(d, max_epochs=5)
+        engine.run(data, max_epochs=5)
 
         assert num_calls[0] == true_num_calls
 
@@ -170,6 +191,10 @@ def test_every_event_filter_with_engine():
     _test(Events.ITERATION_COMPLETED, "iteration", 10, 100 * 5 // 10)
     _test(Events.EPOCH_STARTED, "epoch", 2, 5 // 2)
     _test(Events.EPOCH_COMPLETED, "epoch", 2, 5 // 2)
+
+
+def test_every_event_filter_with_engine():
+    _test_every_event_filter_with_engine()
 
 
 def test_once_event_filter_with_engine():
@@ -313,3 +338,59 @@ def test_custom_callable_events_with_engine():
         assert num_calls[0] == true_num_calls
 
     _test(CustomEvents.TEST_EVENT, "test_event", len(special_events))
+
+
+def _test_every_event_filter_with_engine_with_dataloader(device):
+
+    def _test(num_workers):
+        # max_epochs = 3
+        max_epochs = 1
+        batch_size = 4
+        num_iters = 2
+        data = torch.randint(0, 1000, size=(num_iters * batch_size,))
+
+        dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
+                                                 num_workers=num_workers,
+                                                 pin_memory="cuda" in device,
+                                                 drop_last=True, shuffle=True)
+        seen_batchs = []
+
+        def update_fn(engine, batch):
+            batch_to_device = batch.to(device)
+            seen_batchs.append(batch)
+
+        engine = Engine(update_fn)
+
+        def foo(engine):
+            pass
+
+        engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo)
+
+        engine.run(dataloader, max_epochs=max_epochs, seed=12)
+
+        engine._eve
+        engine.state = None
+        engine = None
+
+    # _test(num_workers=0)
+    _test(num_workers=1)
+    assert False
+
+
+def test_every_event_filter_with_engine_with_dataloader():
+
+    _test_every_event_filter_with_engine_with_dataloader("cpu")
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    # _test_every_event_filter_with_engine()
+    _test_every_event_filter_with_engine_with_dataloader("cpu")
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    device = "cuda:{}".format(distributed_context_single_node_nccl['local_rank'])
+    # _test_every_event_filter_with_engine(device)
+    _test_every_event_filter_with_engine_with_dataloader(device)

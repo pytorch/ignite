@@ -1,3 +1,4 @@
+import os
 import pytest
 
 try:
@@ -337,7 +338,7 @@ def test_reproduce_run_with_seed():
     _test(15)
 
 
-def test_resume_random_dataloader_from_epoch():
+def _test_resume_random_dataloader_from_epoch(device):
 
     torch.manual_seed(0)
 
@@ -353,12 +354,13 @@ def test_resume_random_dataloader_from_epoch():
         for num_workers in [0, 4]:
             dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
                                                      num_workers=num_workers,
-                                                     pin_memory=False,
+                                                     pin_memory="cuda" in device,
                                                      drop_last=True, shuffle=True)
 
             seen_batchs = []
 
             def update_fn(engine, batch):
+                batch_to_device = batch.to(device)
                 seen_batchs.append(batch)
 
             engine = Engine(update_fn)
@@ -368,6 +370,7 @@ def test_resume_random_dataloader_from_epoch():
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
                 def update_fn(engine, batch):
+                    batch_to_device = batch.to(device)
                     assert batch_checker.check(batch), \
                         "{} {} | {}: {} vs {}".format(
                             num_workers, resume_epoch,
@@ -388,7 +391,11 @@ def test_resume_random_dataloader_from_epoch():
     _test(15)
 
 
-def test_resume_random_dataloader_from_iter():
+def test_resume_random_dataloader_from_epoch():
+    _test_resume_random_dataloader_from_epoch("cpu")
+
+
+def _test_resume_random_dataloader_from_iter(device):
 
     torch.manual_seed(0)
 
@@ -404,10 +411,12 @@ def test_resume_random_dataloader_from_iter():
         for num_workers in [0, 4]:
             dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
                                                      num_workers=num_workers,
+                                                     pin_memory="cuda" in device,
                                                      drop_last=True, shuffle=True)
             seen_batchs = []
 
             def update_fn(engine, batch):
+                batch_to_device = batch.to(device)
                 seen_batchs.append(batch)
 
             engine = Engine(update_fn)
@@ -417,6 +426,7 @@ def test_resume_random_dataloader_from_iter():
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
                 def update_fn(engine, batch):
+                    batch_to_device = batch.to(device)
                     assert batch_checker.check(batch), \
                         "{} {} | {}: {} vs {}".format(
                             num_workers, resume_iteration,
@@ -438,6 +448,10 @@ def test_resume_random_dataloader_from_iter():
     _test()
     _test(50)
     _test(11)
+
+
+def test_resume_random_dataloader_from_iter():
+    _test_resume_random_dataloader_from_iter("cpu")
 
 
 def test_reproducible_batch_sampler():
@@ -473,7 +487,7 @@ def test_reproducible_batch_sampler():
         assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
 
 
-def test_resume_random_data_iterator_from_epoch():
+def _test_resume_random_data_iterator_from_epoch(device):
 
     def _test(epoch_length=None):
         max_epochs = 5
@@ -484,7 +498,7 @@ def test_resume_random_data_iterator_from_epoch():
             torch.manual_seed(0)
             while True:
                 for _ in range(num_iters):
-                    data = torch.randint(0, 1000, size=(batch_size,))
+                    data = torch.randint(0, 1000, size=(batch_size,), device=device)
                     yield data
 
         if epoch_length is None:
@@ -520,7 +534,11 @@ def test_resume_random_data_iterator_from_epoch():
     _test(15)
 
 
-def test_resume_random_data_iterator_from_iter():
+def test_resume_random_data_iterator_from_epoch():
+    _test_resume_random_data_iterator_from_epoch("cpu")
+
+
+def _test_resume_random_data_iterator_from_iter(device):
 
     def _test(epoch_length=None):
         max_epochs = 3
@@ -531,7 +549,7 @@ def test_resume_random_data_iterator_from_iter():
             torch.manual_seed(0)
             while True:
                 for _ in range(num_iters):
-                    data = torch.randint(0, 1000, size=(batch_size,))
+                    data = torch.randint(0, 1000, size=(batch_size,), device=device)
                     yield data
 
         if epoch_length is None:
@@ -566,3 +584,46 @@ def test_resume_random_data_iterator_from_iter():
     _test()
     _test(50)
     _test(11)
+
+
+def test_resume_random_data_iterator_from_iter():
+    _test_resume_random_data_iterator_from_iter("cpu")
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    device = "cuda:{}".format(distributed_context_single_node_nccl['local_rank'])
+    _test_resume_random_data_iterator_from_iter(device)
+    _test_resume_random_data_iterator_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device)
+    _test_resume_random_dataloader_from_epoch(device)
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    device = "cpu"
+    _test_resume_random_data_iterator_from_iter(device)
+    _test_resume_random_data_iterator_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device)
+    _test_resume_random_dataloader_from_epoch(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_resume_random_data_iterator_from_iter(device)
+    _test_resume_random_data_iterator_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device)
+    _test_resume_random_dataloader_from_epoch(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_resume_random_data_iterator_from_iter(device)
+    _test_resume_random_data_iterator_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device)
+    _test_resume_random_dataloader_from_epoch(device)

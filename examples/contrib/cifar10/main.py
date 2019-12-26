@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,13 +12,13 @@ import torch.distributed as dist
 
 import ignite
 from ignite.engine import Events, Engine, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss
-from ignite.handlers import Checkpoint, global_step_from_engine
+from ignite.metrics import Accuracy, RunningAverage, Loss
+from ignite.handlers import ModelCheckpoint, global_step_from_engine
 from ignite.utils import convert_tensor
 
-from ignite.contrib.engines import common
 from ignite.contrib.handlers import TensorboardLogger, ProgressBar
-from ignite.contrib.handlers.tensorboard_logger import OutputHandler, OptimizerParamsHandler, GradsHistHandler
+from ignite.contrib.handlers.tensorboard_logger import OutputHandler as tbOutputHandler, \
+    OptimizerParamsHandler as tbOptimizerParamsHandler
 
 from ignite.contrib.handlers import PiecewiseLinear
 
@@ -39,12 +41,11 @@ def run(output_path, config):
     batch_size = config['batch_size'] // ngpus
     num_workers = int((config['num_workers'] + ngpus_per_node - 1) / ngpus_per_node)
 
-    train_loader, test_loader = get_train_test_loaders(
-        path=config['data_path'],
-        batch_size=batch_size,
-        distributed=distributed,
-        num_workers=num_workers
-    )
+    train_labelled_loader, test_loader = \
+        get_train_test_loaders(path=config['data_path'],
+                               batch_size=batch_size,
+                               distributed=distributed,
+                               num_workers=num_workers)
 
     model = get_model(config['model'])
     model = model.to(device)
@@ -61,7 +62,7 @@ def run(output_path, config):
 
     criterion = nn.CrossEntropyLoss().to(device)
 
-    le = len(train_loader)
+    le = len(train_labelled_loader)
     milestones_values = [
         (0, 0.0),
         (le * config['num_warmup_epochs'], config['learning_rate']),
@@ -93,23 +94,44 @@ def run(output_path, config):
         }
 
     trainer = Engine(process_function)
-    train_sampler = train_loader.sampler if distributed else None
-    to_save = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
-    metric_names = ['batch loss', ]
-    common.setup_common_training_handlers(trainer, train_sampler=train_sampler,
-                                          to_save=to_save, save_every_iters=config['checkpoint_every'],
-                                          output_path=output_path, lr_scheduler=lr_scheduler,
-                                          output_names=metric_names, with_pbar_on_iters=config['display_iters'],
-                                          log_every_iters=10)
+
+    if not hasattr(lr_scheduler, "step"):
+        trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
+    else:
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: lr_scheduler.step())
+
+    metric_names = [
+        'batch loss',
+    ]
+
+    def output_transform(x, name):
+        return x[name]
+
+    for n in metric_names:
+        # We compute running average values on the output (batch loss) across all devices
+        RunningAverage(output_transform=partial(output_transform, name=n),
+                       epoch_bound=False, device=device).attach(trainer, n)
 
     if rank == 0:
+        checkpoint_handler = ModelCheckpoint(dirname=output_path,
+                                             filename_prefix="checkpoint")
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000),
+                                  checkpoint_handler,
+                                  {'model': model, 'optimizer': optimizer})
+
+        ProgressBar(persist=True, bar_format="").attach(trainer,
+                                                        event_name=Events.EPOCH_STARTED,
+                                                        closing_event_name=Events.COMPLETED)
+        if config['display_iters']:
+            ProgressBar(persist=False, bar_format="").attach(trainer, metric_names=metric_names)
+
         tb_logger = TensorboardLogger(log_dir=output_path)
         tb_logger.attach(trainer,
-                         log_handler=OutputHandler(tag="train",
-                                                   metric_names=metric_names),
+                         log_handler=tbOutputHandler(tag="train",
+                                                     metric_names=metric_names),
                          event_name=Events.ITERATION_COMPLETED)
         tb_logger.attach(trainer,
-                         log_handler=OptimizerParamsHandler(optimizer, param_name="lr"),
+                         log_handler=tbOptimizerParamsHandler(optimizer, param_name="lr"),
                          event_name=Events.ITERATION_STARTED)
 
     metrics = {
@@ -122,7 +144,7 @@ def run(output_path, config):
 
     def run_validation(engine):
         torch.cuda.synchronize()
-        train_evaluator.run(train_loader)
+        train_evaluator.run(train_labelled_loader)
         evaluator.run(test_loader)
 
     trainer.add_event_handler(Events.EPOCH_STARTED(every=3), run_validation)
@@ -134,44 +156,33 @@ def run(output_path, config):
             ProgressBar(persist=False, desc="Test evaluation").attach(evaluator)
 
         tb_logger.attach(train_evaluator,
-                         log_handler=OutputHandler(tag="train",
-                                                   metric_names=list(metrics.keys()),
-                                                   global_step_transform=global_step_from_engine(trainer)),
+                         log_handler=tbOutputHandler(tag="train",
+                                                     metric_names=list(metrics.keys()),
+                                                     another_engine=trainer),
                          event_name=Events.COMPLETED)
 
         tb_logger.attach(evaluator,
-                         log_handler=OutputHandler(tag="test",
-                                                   metric_names=list(metrics.keys()),
-                                                   global_step_transform=global_step_from_engine(trainer)),
+                         log_handler=tbOutputHandler(tag="test",
+                                                     metric_names=list(metrics.keys()),
+                                                     another_engine=trainer),
                          event_name=Events.COMPLETED)
 
-        # Store the best model by validation accuracy:
-        common.save_best_model_by_val_score(output_path, evaluator, model=model, metric_name='accuracy', n_saved=3,
-                                            trainer=trainer, tag="test")
+        # Store the best model
+        def default_score_fn(engine):
+            score = engine.state.metrics['accuracy']
+            return score
 
-        if config['log_model_grads_every'] is not None:
-            tb_logger.attach(trainer,
-                             log_handler=GradsHistHandler(model, tag=model.__class__.__name__),
-                             event_name=Events.ITERATION_COMPLETED(every=config['log_model_grads_every']))
+        score_function = default_score_fn if not hasattr(config, "score_function") else config.score_function
 
-        if config['crash_iteration'] is not None:
-            @trainer.on(Events.ITERATION_STARTED(once=config['crash_iteration']))
-            def _(engine):
-                raise Exception("STOP at iteration: {}".format(engine.state.iteration))
+        best_model_handler = ModelCheckpoint(dirname=output_path,
+                                             filename_prefix="best",
+                                             n_saved=3,
+                                             global_step_transform=global_step_from_engine(trainer),
+                                             score_name="val_accuracy",
+                                             score_function=score_function)
+        evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
 
-    resume_from = config['resume_from']
-    if resume_from is not None:
-        checkpoint_fp = Path(resume_from)
-        assert checkpoint_fp.exists(), "Checkpoint '{}' is not found".format(checkpoint_fp.as_posix())
-        print("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
-        checkpoint = torch.load(checkpoint_fp.as_posix())
-        Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
-
-    try:
-        trainer.run(train_loader, max_epochs=config['num_epochs'])
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
+    trainer.run(train_labelled_loader, max_epochs=config['num_epochs'])
 
     if rank == 0:
         tb_logger.close()
@@ -197,10 +208,9 @@ if __name__ == "__main__":
 
     batch_size = 512
     num_epochs = 24
-    # Default configuration dictionary
     config = {
-        "data_path": "/tmp/cifar10",
-        "output_path": "/tmp/cifar10-output",
+        "data_path": ".",
+        "output_path": "output",
 
         "model": network_name,
 
@@ -219,13 +229,7 @@ if __name__ == "__main__":
         "dist_backend": None,  # if None distributed option is disabled, set to "nccl" to enable
 
         # Logging:
-        "display_iters": True,
-        "log_model_grads_every": None,
-        "checkpoint_every": 200,
-
-        # Crash/Resume training:
-        "resume_from": None,  # Path to checkpoint file .pth
-        "crash_iteration": None,
+        "display_iters": True
     }
 
     if args.local_rank is not None:
@@ -289,10 +293,6 @@ if __name__ == "__main__":
         run(output_path, config)
     except KeyboardInterrupt:
         print("Catched KeyboardInterrupt -> exit")
-    except Exception as e:
-        if distributed:
-            dist.destroy_process_group()
-        raise e
 
     if distributed:
         dist.destroy_process_group()

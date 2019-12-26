@@ -1,5 +1,6 @@
 from __future__ import division
 
+import os
 import pytest
 from mock import call, MagicMock, Mock
 
@@ -369,7 +370,7 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
 
 
-def test_run_check_triggered_events():
+def _test_run_check_triggered_events():
 
     def _test(data, max_epochs, epoch_length):
         engine = Engine(lambda e, b: 1)
@@ -402,7 +403,12 @@ def test_run_check_triggered_events():
     _test(list(range(100)), max_epochs=5, epoch_length=150)
 
 
-def test_run_check_triggered_events_on_iterator():
+def test_run_check_triggered_events():
+
+    _test_run_check_triggered_events()
+
+
+def _test_run_check_triggered_events_on_iterator():
 
     def _test(data, max_epochs, epoch_length):
         engine = Engine(lambda e, b: 1)
@@ -458,3 +464,35 @@ def test_run_check_triggered_events_on_iterator():
     with pytest.raises(AssertionError):
         with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
             _test(limited_data_iterator(), max_epochs=1, epoch_length=101)
+
+
+def test_run_check_triggered_events_on_iterator():
+
+    _test_run_check_triggered_events_on_iterator()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    _test_run_check_triggered_events_on_iterator()
+    _test_run_check_triggered_events()
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    _test_run_check_triggered_events_on_iterator()
+    _test_run_check_triggered_events()
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    _test_run_check_triggered_events_on_iterator()
+    _test_run_check_triggered_events()
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    _test_run_check_triggered_events_on_iterator()
+    _test_run_check_triggered_events()
