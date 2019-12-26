@@ -1,4 +1,3 @@
-from pathlib import Path
 from argparse import ArgumentParser
 
 import torch
@@ -58,10 +57,9 @@ def run(train_batch_size, val_batch_size,
         checkpoint_every,
         resume_from, crash_iteration=1000):
 
-    log_dir = Path(log_dir)
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = SummaryWriter(logdir=log_dir.as_posix())
+    writer = SummaryWriter(logdir=log_dir)
     device = 'cpu'
 
     if torch.cuda.is_available():
