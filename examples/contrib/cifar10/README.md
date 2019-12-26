@@ -22,6 +22,12 @@ Run the example on a single GPU (script will not run without a GPU):
 python main.py
 ```
 
+If user would like to provide already downloaded dataset, the path can be setup in parameters as
+```bash
+--params="data_path=/path/to/cifar10/"
+```
+
+
 ### Distributed training
 
 #### Single node, multiple GPUs
@@ -76,3 +82,23 @@ In this repository we are using the code from
 - [cifar10-fast repository](https://github.com/davidcpage/cifar10-fast)
 
 Thanks to the authors for sharing their code!
+
+
+## Check resume training
+
+### Single GPU
+
+Initial training with a crash at 1000 iteration (~10 epochs)
+```bash
+python main.py --params="data_path=/path/to/cifar10;crash_iteration=1000"
+```
+
+Resume from the latest checkpoint
+```bash
+python main.py --params="data_path=/path/to/cifar10;resume_from=/tmp/cifar10-output/XYZ-single-gpu/training_checkpoint_800.pth"
+```
+
+Training without crashing
+```bash
+python main.py --params="data_path=/path/to/cifar10"
+```

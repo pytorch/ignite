@@ -765,7 +765,7 @@ class Engine(object):
         - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
             provided, state is kept and used in the function.
         - If state is defined and engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
-        - If state is defined, engine is NOT "done" and there are input arguments provided, an error is raised.
+        - If state is defined, engine is NOT "done", then input arguments if provided override defined state.
 
         Args:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
@@ -816,10 +816,13 @@ class Engine(object):
             self.state = State(seed=seed, iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
             self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
-            # Keep actual state
-            if not (max_epochs is None and epoch_length is None and seed is None):
-                raise ValueError("Input arguments `max_epochs`, `epoch_length` and `seed` should be all None "
-                                 "if resuming from loaded state")
+            # Keep actual state and override it if input args provided
+            if max_epochs is not None:
+                self.state.max_epochs = max_epochs
+            if seed is not None:
+                self.state.seed = seed
+            if epoch_length is not None:
+                self.state.epoch_length = epoch_length
             self._logger.info("Engine run resuming from iteration {}, epoch {} until {} epochs"
                               .format(self.state.iteration, self.state.epoch, self.state.max_epochs))
 

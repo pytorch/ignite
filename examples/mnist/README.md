@@ -79,7 +79,7 @@ python mnist_save_resume_engine.py
 
 Resume from the latest checkpoint
 ```bash
-python mnist_save_resume_engine.py --resume_from /tmp/mnist_save_resume/<XYZ>/initial-3000
+python mnist_save_resume_engine.py --resume_from /tmp/mnist_save_resume/checkpoint_<N>.pth
 ```
 
 Training without crashing

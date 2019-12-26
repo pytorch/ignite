@@ -108,7 +108,6 @@ def run(train_batch_size, val_batch_size,
         @trainer.on(Events.STARTED)
         def _(engine):
             pbar.n = engine.state.iteration
-            print("Engine resuming state:\n {}".format(repr(engine.state)))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
@@ -138,21 +137,21 @@ def run(train_batch_size, val_batch_size,
         writer.add_scalar("valdation/avg_accuracy", avg_accuracy, engine.state.epoch)
 
     objects_to_checkpoint = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
-    training_checkpoint = Checkpoint(to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir))
+    training_checkpoint = Checkpoint(to_save=objects_to_checkpoint,
+                                     save_handler=DiskSaver(log_dir, require_empty=False))
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED(every=checkpoint_every), training_checkpoint)
 
-    if resume_from is None:
-        try:
-            trainer.run(train_loader, max_epochs=epochs)
-        except Exception as e:
-            print(e)
-    else:
-        checkpoint_fp = Path(resume_from) / training_checkpoint.save_handler.filename
-        print("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
-        checkpoint = torch.load(checkpoint_fp.as_posix())
+    if resume_from is not None:
+        tqdm.write("Resume from a checkpoint: {}".format(resume_from))
+        checkpoint = torch.load(resume_from)
         Checkpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
-        trainer.resume(train_loader, state_dict=checkpoint['engine'])
+
+    try:
+        trainer.run(train_loader, max_epochs=epochs)
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
 
     pbar.close()
     writer.close()
@@ -176,7 +175,7 @@ if __name__ == "__main__":
                         help="log directory for Tensorboard log output")
     parser.add_argument('--checkpoint_every', type=int, default=550, help='Checkpoint training every X iterations')
     parser.add_argument('--resume_from', type=str, default=None,
-                        help='Folder with a checkpoint to resume training from')
+                        help='Path to the checkpoint .pth file to resume training from')
     parser.add_argument('--crash_iteration', type=int, default=3000, help='Iteration at which to raise an exception')
 
     args = parser.parse_args()

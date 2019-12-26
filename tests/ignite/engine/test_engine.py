@@ -340,16 +340,6 @@ def test_run_asserts():
     with pytest.raises(ValueError, match=r"Argument `epoch_length` should be defined if `data` is an iterator"):
         engine.run(iter([0, 1, 2, 3]))
 
-    engine.load_state_dict({"seed": 0, "iteration": 1, "max_epochs": 100, "epoch_length": 100})
-    with pytest.raises(ValueError, match=r"Input arguments `max_epochs`, `epoch_length` and `seed` should be all None"):
-        engine.run(list(range(500)), max_epochs=2)
-
-    with pytest.raises(ValueError, match=r"Input arguments `max_epochs`, `epoch_length` and `seed` should be all None"):
-        engine.run(list(range(500)), seed=2)
-
-    with pytest.raises(ValueError, match=r"Input arguments `max_epochs`, `epoch_length` and `seed` should be all None"):
-        engine.run(list(range(500)), epoch_length=20)
-
 
 def test_state_get_event_attrib_value():
     state = State()
