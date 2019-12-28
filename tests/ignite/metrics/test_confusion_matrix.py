@@ -579,7 +579,7 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_distrib_multiclass_images(device)
 
 
-def test_dice_coefficient(ignore_index=None):
+def test_dice_coefficient():
     n_classes = 3
     logits = [[np.random.random() for j in range(n_classes)] for i in range(5)]
     y_true = np.asarray([np.random.randint(0, n_classes) for i in range(5)])
