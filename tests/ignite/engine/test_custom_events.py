@@ -141,7 +141,7 @@ def test_callable_events_every_eq_one():
     assert isinstance(e, Events)
 
 
-def test_engine_has_handler_on_callable_events():
+def test_has_handler_on_callable_events():
     engine = Engine(lambda e, b: 1)
 
     def foo(e):
@@ -157,6 +157,36 @@ def test_engine_has_handler_on_callable_events():
 
     engine.add_event_handler(Events.EPOCH_COMPLETED(every=3), bar)
     assert engine.has_event_handler(bar)
+    assert engine.has_event_handler(bar, Events.EPOCH_COMPLETED)
+
+    with pytest.raises(TypeError, match=r"Argument event_name should not be a callable event"):
+        engine.has_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
+
+
+def test_remove_event_handler_on_callable_events():
+
+    engine = Engine(lambda e, b: 1)
+
+    def foo(e):
+        pass
+
+    assert not engine.has_event_handler(foo)
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo)
+    assert engine.has_event_handler(foo)
+    engine.remove_event_handler(foo, Events.EPOCH_STARTED)
+    assert not engine.has_event_handler(foo)
+
+    def bar(e):
+        pass
+
+    engine.add_event_handler(Events.EPOCH_COMPLETED(every=3), bar)
+    assert engine.has_event_handler(bar)
+    engine.remove_event_handler(bar, Events.EPOCH_COMPLETED)
+    assert not engine.has_event_handler(foo)
+
+    with pytest.raises(TypeError, match=r"Argument event_name should not be a callable event"):
+        engine.remove_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
 
 
 def _test_every_event_filter_with_engine(device="cpu"):
@@ -343,10 +373,9 @@ def test_custom_callable_events_with_engine():
 def _test_every_event_filter_with_engine_with_dataloader(device):
 
     def _test(num_workers):
-        # max_epochs = 3
-        max_epochs = 1
+        max_epochs = 3
         batch_size = 4
-        num_iters = 2
+        num_iters = 21
         data = torch.randint(0, 1000, size=(num_iters * batch_size,))
 
         dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
@@ -365,26 +394,24 @@ def _test_every_event_filter_with_engine_with_dataloader(device):
             pass
 
         engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo)
-
         engine.run(dataloader, max_epochs=max_epochs, seed=12)
-
-        engine._eve
-        engine.state = None
         engine = None
 
-    # _test(num_workers=0)
+        import gc
+        gc.collect()
+        assert len(gc.garbage) == 0
+
+    _test(num_workers=0)
     _test(num_workers=1)
-    assert False
 
 
 def test_every_event_filter_with_engine_with_dataloader():
-
     _test_every_event_filter_with_engine_with_dataloader("cpu")
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo):
-    # _test_every_event_filter_with_engine()
+    _test_every_event_filter_with_engine()
     _test_every_event_filter_with_engine_with_dataloader("cpu")
 
 
@@ -392,5 +419,5 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl['local_rank'])
-    # _test_every_event_filter_with_engine(device)
+    _test_every_event_filter_with_engine(device)
     _test_every_event_filter_with_engine_with_dataloader(device)

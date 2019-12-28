@@ -103,7 +103,8 @@ def test_event_removable_handle():
 
     # Removable handle removes event from engine.
     engine = DummyEngine()
-    handler = MagicMock()
+    handler = MagicMock(spec_set=True)
+    assert not hasattr(handler, "_parent")
 
     removable_handle = engine.add_event_handler(Events.STARTED, handler)
     assert engine.has_event_handler(handler, Events.STARTED)
@@ -119,7 +120,7 @@ def test_event_removable_handle():
     handler.assert_called_once_with(engine)
 
     # Removable handle can be used as a context manager
-    handler = MagicMock()
+    handler = MagicMock(spec_set=True)
 
     with engine.add_event_handler(Events.STARTED, handler):
         assert engine.has_event_handler(handler, Events.STARTED)
@@ -132,7 +133,7 @@ def test_event_removable_handle():
     handler.assert_called_once_with(engine)
 
     # Removeable handle only effects a single event registration
-    handler = MagicMock()
+    handler = MagicMock(spec_set=True)
 
     with engine.add_event_handler(Events.STARTED, handler):
         with engine.add_event_handler(Events.COMPLETED, handler):
@@ -145,7 +146,7 @@ def test_event_removable_handle():
 
     # Removeable handle is re-enter and re-exitable
 
-    handler = MagicMock()
+    handler = MagicMock(spec_set=True)
 
     remove = engine.add_event_handler(Events.STARTED, handler)
 
@@ -180,8 +181,8 @@ def test_event_removable_handle():
 
 def test_has_event_handler():
     engine = DummyEngine()
-    handlers = [MagicMock(), MagicMock()]
-    m = MagicMock()
+    handlers = [MagicMock(spec_set=True), MagicMock(spec_set=True)]
+    m = MagicMock(spec_set=True)
     for handler in handlers:
         engine.add_event_handler(Events.STARTED, handler)
     engine.add_event_handler(Events.COMPLETED, m)
@@ -212,10 +213,10 @@ def test_remove_event_handler():
     with pytest.raises(ValueError, match=r'Input handler'):
         engine.remove_event_handler(lambda x: x, Events.STARTED)
 
-    h1 = MagicMock()
-    h2 = MagicMock()
+    h1 = MagicMock(spec_set=True)
+    h2 = MagicMock(spec_set=True)
     handlers = [h1, h2]
-    m = MagicMock()
+    m = MagicMock(spec_set=True)
     for handler in handlers:
         engine.add_event_handler(Events.EPOCH_STARTED, handler)
     engine.add_event_handler(Events.EPOCH_COMPLETED, m)
@@ -236,7 +237,7 @@ def test_args_and_kwargs_are_passed_to_event():
     args = (1, 2, 3)
     handlers = []
     for event in [Events.STARTED, Events.COMPLETED]:
-        handler = MagicMock()
+        handler = MagicMock(spec_set=True)
         engine.add_event_handler(event, handler, *args, **kwargs)
         handlers.append(handler)
 

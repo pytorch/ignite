@@ -437,15 +437,16 @@ class Engine(object):
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
 
-    def _handler_wrapper(self, handler, event_name, event_filter):
+    @staticmethod
+    def _handler_wrapper(handler, event_name, event_filter):
 
-        def wrapper(*args, **kwargs):
-            event = self.state.get_event_attrib_value(event_name)
-            if event_filter(self, event):
-                return handler(*args, **kwargs)
+        def wrapper(engine, *args, **kwargs):
+            event = engine.state.get_event_attrib_value(event_name)
+            if event_filter(engine, event):
+                return handler(engine, *args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
-        wrapper._parent = handler
+        wrapper._parent = weakref.ref(handler)
         return wrapper
 
     def add_event_handler(self, event_name, handler, *args, **kwargs):
@@ -487,7 +488,7 @@ class Engine(object):
         """
         if isinstance(event_name, EventWithFilter):
             event_name, event_filter = event_name.event, event_name.filter
-            handler = self._handler_wrapper(handler, event_name, event_filter)
+            handler = Engine._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
             self._logger.error("attempt to add event handler to an invalid event %s.", event_name)
@@ -501,6 +502,12 @@ class Engine(object):
 
         return RemovableEventHandle(event_name, handler, self)
 
+    @staticmethod
+    def _assert_non_callable_event(event_name):
+        if isinstance(event_name, EventWithFilter):
+            raise TypeError("Argument event_name should not be a callable event, "
+                            "please use event without any event filtering")
+
     def has_event_handler(self, handler, event_name=None):
         """Check if the specified event has the specified handler.
 
@@ -510,6 +517,8 @@ class Engine(object):
                 to ``None`` to search all events.
         """
         if event_name is not None:
+            self._assert_non_callable_event(event_name)
+
             if event_name not in self._event_handlers:
                 return False
             events = [event_name]
@@ -517,11 +526,15 @@ class Engine(object):
             events = self._event_handlers
         for e in events:
             for h, _, _ in self._event_handlers[e]:
-                if hasattr(h, "_parent"):
-                    h = h._parent
-                if h == handler:
+                if self._compare_handlers(handler, h):
                     return True
         return False
+
+    @staticmethod
+    def _compare_handlers(user_handler, registered_handler):
+        if hasattr(registered_handler, "_parent"):
+            registered_handler = registered_handler._parent()
+        return registered_handler == user_handler
 
     def remove_event_handler(self, handler, event_name):
         """Remove event handler `handler` from registered handlers of the engine
@@ -531,11 +544,12 @@ class Engine(object):
             event_name: The event the handler attached to.
 
         """
+        self._assert_non_callable_event(event_name)
         if event_name not in self._event_handlers:
             raise ValueError("Input event name '{}' does not exist".format(event_name))
 
         new_event_handlers = [(h, args, kwargs) for h, args, kwargs in self._event_handlers[event_name]
-                              if h != handler]
+                              if not self._compare_handlers(handler, h)]
         if len(new_event_handlers) == len(self._event_handlers[event_name]):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
