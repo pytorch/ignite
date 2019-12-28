@@ -254,8 +254,8 @@ def DiceCoefficient(cm, ignore_index=None):
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
             raise ValueError("ignore_index should be non-negative integer, but given {}".format(ignore_index))
-        cm.confusion_matrix[indices] = 0
-        cm.confusion_matrix[:, indices] = 0
+        cm.confusion_matrix[ignore_index] = 0
+        cm.confusion_matrix[:, ignore_index] = 0
 
     eps = 1e-15
     tp = cm.confusion_matrix.diag().sum()

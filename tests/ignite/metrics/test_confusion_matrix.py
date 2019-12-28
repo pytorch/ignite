@@ -579,30 +579,15 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_distrib_multiclass_images(device)
 
 
-def test_dice_coefficient():
+def test_dice_coefficient(ignore_index=None):
     n_classes = 3
-    logits = [[random.random() for j in range(n_classes)] for i in range(5)]
-    y_true = np.asarray([random.randint(0, n_classes - 1) for i in range(5)])
+    logits = [[np.random.random() for j in range(n_classes)] for i in range(5)]
+    y_true = np.asarray([np.random.randint(0, n_classes) for i in range(5)])
     y_pred = np.argmax(logits, axis=1)
-
-    _intersection = []
-    _union = []
-    for index in range(n_classes):
-        bin_y_true = y_true == index
-        bin_y_pred = y_pred == index
-        intersection = bin_y_true & bin_y_pred
-        union = bin_y_true | bin_y_pred
-
-        if len(_intersection) == 0:
-            _intersection = intersection
-            _union = union
-        else:
-            _intersection = np.logical_or(_intersection, intersection)
-            _union = np.logical_or(_union, union)
-
-    fp_plus_fn = _union.sum() - _intersection.sum()
+    _intersection = (y_true == y_pred).sum()
+    fp_plus_fn = len(y_pred) - _intersection
     eps = 1e-15
-    true_res = (2.0 * _intersection.sum()) / (2.0 * _intersection.sum() + fp_plus_fn + eps)
+    true_res = (2.0 * _intersection) / (2.0 * _intersection + fp_plus_fn + eps)
 
     cm = ConfusionMatrix(num_classes=n_classes)
     th_y_true = torch.tensor(y_true)
@@ -611,5 +596,20 @@ def test_dice_coefficient():
     # Update metric
     output = (th_y_logits, th_y_true)
     cm.update(output)
+    temp = cm.confusion_matrix
     res = DiceCoefficient(cm).item()
     assert float("{0:.2f}".format(res)) == float("{0:.2f}".format(true_res))
+    for ignore_index in range(n_classes):
+        res = DiceCoefficient(cm, ignore_index=ignore_index).item()
+        ignore_indices = np.logical_or(y_true == ignore_index, y_pred == ignore_index).sum()
+        cm = ConfusionMatrix(num_classes=n_classes)
+        cm.update(output)
+        y_pred[y_pred == ignore_index] = n_classes + 1
+        y_true[y_true == ignore_index] = n_classes + 2
+        _intersection = (y_true == y_pred).sum()
+        fp_plus_fn = len(y_pred) - _intersection - ignore_indices
+        eps = 1e-15
+        true_res = (2.0 * _intersection) / (2.0 * _intersection + fp_plus_fn + eps)
+        y_pred[y_pred == n_classes + 1] = ignore_index
+        y_true[y_true == n_classes + 2] = ignore_index
+        assert "{0:.2f}".format(res) == "{0:.2f}".format(true_res), "{}: {} vs {}".format(ignore_index, res, true_res)
