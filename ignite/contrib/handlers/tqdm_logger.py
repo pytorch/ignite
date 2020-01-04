@@ -127,8 +127,7 @@ class ProgressBar(BaseLogger):
         i2 = ProgressBar._events_order.index(event2)
         return i1 < i2
 
-    @staticmethod
-    def log_message(message, **tqdm_kwargs):
+    def log_message(self, message):
         """
         Logs a message, preserving the progress bar correct output format.
 
@@ -136,7 +135,7 @@ class ProgressBar(BaseLogger):
             message (str): string you wish to log.
         """
         from tqdm import tqdm
-        tqdm.write(message, **tqdm_kwargs)
+        tqdm.write(message, **self.tqdm_kwargs)
 
     def attach(self, engine, metric_names=None, output_transform=None,
                event_name=Events.ITERATION_COMPLETED,
