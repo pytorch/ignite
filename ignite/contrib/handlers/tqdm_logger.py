@@ -39,6 +39,16 @@ class ProgressBar(BaseLogger):
             # Progress bar will looks like
             # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
 
+        Log output to a file instead of stderr (tqdm's default output)
+
+        .. code-block:: python
+
+            trainer = create_supervised_trainer(model, optimizer, loss)
+
+            log_file = open("output.log", "w")
+            pbar = ProgressBar(file=log_file)
+            pbar.attach(trainer)
+
         Attach metrics that already have been computed at :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
         (such as :class:`~ignite.metrics.RunningAverage`)
 
