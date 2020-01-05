@@ -931,6 +931,8 @@ class Engine(object):
             self._logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
+        self._dataloader_iter = None
+        self._dataloader_len = None
         return self.state
 
 
