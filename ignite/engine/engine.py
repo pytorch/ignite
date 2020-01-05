@@ -928,11 +928,11 @@ class Engine(object):
             self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
+            self._dataloader_iter = self._dataloader_len = None
             self._logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
-        self._dataloader_iter = None
-        self._dataloader_len = None
+        self._dataloader_iter = self._dataloader_len = None
         return self.state
 
 
