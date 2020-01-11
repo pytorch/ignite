@@ -306,8 +306,8 @@ class Engine(object):
     """
     def __init__(self, process_function):
         self._event_handlers = defaultdict(list)
-        self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self._logger.addHandler(logging.NullHandler())
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.logger.addHandler(logging.NullHandler())
         self._process_function = process_function
         self.last_event_name = None
         self.should_terminate = False
@@ -434,14 +434,14 @@ class Engine(object):
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
-            self._logger.error("attempt to add event handler to an invalid event %s.", event_name)
+            self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
         Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
-        self._logger.debug("added handler for event %s.", event_name)
+        self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
 
@@ -507,7 +507,7 @@ class Engine(object):
             raise ValueError("Error adding {} '{}': "
                              "takes parameters {} but will be called with {} "
                              "({}).".format(
-                                 fn, fn_description, fn_params, passed_params, exception_msg))
+                fn, fn_description, fn_params, passed_params, exception_msg))
 
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler.
@@ -541,7 +541,7 @@ class Engine(object):
 
         """
         if event_name in self._allowed_events:
-            self._logger.debug("firing handlers for event %s ", event_name)
+            self.logger.debug("firing handlers for event %s ", event_name)
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
@@ -573,14 +573,14 @@ class Engine(object):
     def terminate(self):
         """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration.
         """
-        self._logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
+        self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self):
         """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
         """
-        self._logger.info("Terminate current epoch is signaled. "
-                          "Current epoch iteration will stop after current iteration is finished.")
+        self.logger.info("Terminate current epoch is signaled. "
+                         "Current epoch iteration will stop after current iteration is finished.")
         self.should_terminate_single_epoch = True
 
     def _run_once_on_dataset(self):
@@ -598,7 +598,7 @@ class Engine(object):
                     break
 
         except BaseException as e:
-            self._logger.error("Current run is terminating due to exception: %s.", str(e))
+            self.logger.error("Current run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         time_taken = time.time() - start_time
@@ -641,14 +641,14 @@ class Engine(object):
         self.should_terminate = self.should_terminate_single_epoch = False
 
         try:
-            self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
+            self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
             start_time = time.time()
             self._fire_event(Events.STARTED)
             while self.state.epoch < max_epochs and not self.should_terminate:
                 self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
                 hours, mins, secs = self._run_once_on_dataset()
-                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+                self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
@@ -656,10 +656,36 @@ class Engine(object):
             self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
-            self._logger.error("Engine run is terminating due to exception: %s.", str(e))
+            self.logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         return self.state
+
+    def setup_logger(self, name, handlers_iter=None, logger_level=logging.INFO):
+        """Change the logger name, configuration and handlers.
+
+        Args:
+            name (str): Name to be displayed in the log
+            handlers_iter (Iterable, optional): Iterator of logging handlers to be added to your logger.
+                If none, streamhandler is added by default.
+            logger_level (logging level, optional): level of messages to be displayed in the log file.
+            If not provided, default is logging.INFO
+
+        Note:
+            When using two engines (i.e trainer and evaluator), use this method to change their names to be able to
+            distinguish messages from either one of them.
+
+        """
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logger_level)
+        if handlers_iter:
+            for handler in handlers_iter:
+                self.logger.addHandler(handler)
+        else:
+            stream_handler = logging.StreamHandler()
+            self.logger.addHandler(stream_handler)
+
+
