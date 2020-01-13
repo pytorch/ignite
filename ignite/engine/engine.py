@@ -1,27 +1,20 @@
 import inspect
 import logging
-import sys
 import time
 from collections import defaultdict, OrderedDict
+from collections import Mapping
 from enum import Enum
 import weakref
 import numbers
 import random
 import warnings
 
-IS_PYTHON2 = sys.version_info[0] < 3
-
-if not IS_PYTHON2:
-    from collections.abc import Mapping
-else:
-    from collections import Mapping
-
 import torch
 
 from ignite._utils import _to_hours_mins_secs
 
 
-class EventWithFilter(object):
+class EventWithFilter:
 
     def __init__(self, event, filter):
         if not callable(filter):
@@ -33,7 +26,7 @@ class EventWithFilter(object):
         return "<%s event=%s, filter=%r>" % (self.__class__.__name__, self.event, self.filter)
 
 
-class CallableEvents(object):
+class CallableEvents:
     """Base class for Events implementing call operator and storing event filter. This class should be inherited
     for any custom events with event filtering feature:
 
@@ -142,7 +135,7 @@ class Events(CallableEvents, Enum):
     GET_BATCH_COMPLETED = "get_batch_completed"
 
 
-class State(object):
+class State:
     """An object that is used to pass internal and user-defined state between event handlers. By default, state
     contains the following attributes:
 
@@ -205,7 +198,7 @@ class State(object):
         return s
 
 
-class RemovableEventHandle(object):
+class RemovableEventHandle:
     """A weakref handle to remove a registered event.
 
     A handle that may be used to remove a registered event handler via the
@@ -257,7 +250,7 @@ class RemovableEventHandle(object):
         self.remove()
 
 
-class Engine(object):
+class Engine:
     """Runs a given `process_function` over each batch of a dataset, emitting events as it goes.
 
     Args:
@@ -563,21 +556,12 @@ class Engine(object):
     def _check_signature(self, fn, fn_description, *args, **kwargs):
         exception_msg = None
 
-        if IS_PYTHON2:
-            try:
-                callable_ = fn if hasattr(fn, '__name__') else fn.__call__
-                inspect.getcallargs(callable_, self, *args, **kwargs)
-            except TypeError as exc:
-                spec = inspect.getargspec(callable_)
-                fn_params = list(spec.args)
-                exception_msg = str(exc)
-        else:
-            signature = inspect.signature(fn)
-            try:
-                signature.bind(self, *args, **kwargs)
-            except TypeError as exc:
-                fn_params = list(signature.parameters)
-                exception_msg = str(exc)
+        signature = inspect.signature(fn)
+        try:
+            signature.bind(self, *args, **kwargs)
+        except TypeError as exc:
+            fn_params = list(signature.parameters)
+            exception_msg = str(exc)
 
         if exception_msg:
             passed_params = [self] + list(args) + list(kwargs)

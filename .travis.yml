@@ -1,8 +1,8 @@
 language: python
 
 python:
-  - "2.7"
   - "3.6"
+  - "3.7"
 
 env:
   - PYTORCH_CHANNEL=pytorch
@@ -27,19 +27,14 @@ before_install: &before_install
   - conda info -a
   - conda create -q -n test-environment pytorch cpuonly torchvision python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
   - source activate test-environment
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
   # Fix pillow deps until torchvision>0.4.2
   - pip install --upgrade 'pillow<7.0.0'
   # Test contrib dependencies
-  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow tensorboard
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
-  # Futures should be already installed via visdom -> tornado -> futures
-  # Let's reinstall it anyway to be sure
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install futures; fi
+  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow tensorboard pynvml
 
 install:
   - python setup.py install
-  - pip install numpy mock pytest codecov pytest-cov pytest-xdist
+  - pip install numpy pytest codecov pytest-cov pytest-xdist
   # Examples dependencies
   - pip install pandas
   - pip install gym==0.10.11

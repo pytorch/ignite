@@ -8,7 +8,7 @@ from ignite.engine import Engine, Events, State
 from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver
 
 import pytest
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 _PREFIX = 'PREFIX'
 

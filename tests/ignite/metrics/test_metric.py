@@ -7,7 +7,7 @@ from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
 from ignite.metrics.metric import reinit__is_reduced
 from ignite.engine import Engine, State
 
-from mock import MagicMock
+from unittest.mock import MagicMock
 import pytest
 from pytest import approx, raises
 

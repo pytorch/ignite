@@ -4,7 +4,7 @@ import pytest
 
 import torch
 
-from mock import Mock
+from unittest.mock import Mock
 
 
 @pytest.fixture()

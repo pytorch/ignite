@@ -1,6 +1,6 @@
 from enum import Enum
 
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 import torch
 

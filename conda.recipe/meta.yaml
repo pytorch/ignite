@@ -17,12 +17,10 @@ requirements:
     - python
     - setuptools
     - pytorch
-    - enum34 # [py < 34]
 
   run:
     - python
     - pytorch
-    - enum34 # [py < 34]
 
 test:
   imports:
