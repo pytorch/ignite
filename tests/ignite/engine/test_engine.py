@@ -2,7 +2,7 @@ from __future__ import division
 
 import os
 import pytest
-from mock import call, MagicMock, Mock
+from unittest.mock import call, MagicMock, Mock
 
 import numpy as np
 import torch

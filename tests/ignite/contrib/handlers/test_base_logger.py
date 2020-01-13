@@ -8,7 +8,7 @@ from ignite.contrib.handlers import CustomPeriodicEvent
 
 import pytest
 
-from mock import MagicMock, call
+from unittest.mock import MagicMock
 
 
 class DummyLogger(BaseLogger):

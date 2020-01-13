@@ -2,7 +2,7 @@ from enum import Enum
 from ignite.engine import Events, State
 
 
-class CustomPeriodicEvent(object):
+class CustomPeriodicEvent:
     """Handler to define a custom periodic events as a number of elapsed iterations/epochs for an engine.
 
     When custom periodic event is created and attached to an engine, the following events are fired:
