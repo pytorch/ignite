@@ -21,7 +21,7 @@ def test_state_dict():
         engine.state = state
         sd = engine.state_dict()
         assert isinstance(sd, Mapping) and \
-               len(sd) == len(engine._state_dict_all_req_keys) + 1
+            len(sd) == len(engine._state_dict_all_req_keys) + 1
         assert sd['seed'] == engine.state.seed
         assert sd['iteration'] == engine.state.iteration
         assert sd['epoch_length'] == engine.state.epoch_length
@@ -330,7 +330,7 @@ def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
 
             if sampler_type == "distributed":
                 @engine.on(Events.EPOCH_STARTED)
-                def distrib_set_epoch(engine):
+                def _(engine):
                     sampler.set_epoch(engine.state.epoch - 1)
 
             engine.run(orig_dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
@@ -356,7 +356,7 @@ def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
 
                 if sampler_type == "distributed":
                     @engine.on(Events.EPOCH_STARTED)
-                    def distrib_set_epoch(engine):
+                    def _(engine):
                         sampler.set_epoch(engine.state.epoch - 1)
 
                 resume_state_dict = dict(epoch=resume_epoch,
@@ -425,7 +425,7 @@ def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
 
             if sampler_type == "distributed":
                 @engine.on(Events.EPOCH_STARTED)
-                def distrib_set_epoch(engine):
+                def _(engine):
                     sampler.set_epoch(engine.state.epoch)
 
             engine.run(orig_dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
@@ -451,7 +451,7 @@ def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
 
                 if sampler_type == "distributed":
                     @engine.on(Events.EPOCH_STARTED)
-                    def distrib_set_epoch(engine):
+                    def _(engine):
                         sampler.set_epoch(engine.state.epoch)
 
                 resume_state_dict = dict(iteration=resume_iteration,
