@@ -3,19 +3,13 @@ from abc import ABCMeta, abstractmethod
 from functools import wraps
 import warnings
 
-try:
-    from collections.abc import Sequence
-except ImportError:  # Python 2.7 compatibility
-    from collections import Sequence
-
 import torch
 import torch.distributed as dist
 
-from ignite._six import with_metaclass
 from ignite.engine import Events
 
 
-class Metric(with_metaclass(ABCMeta, object)):
+class Metric(metaclass=ABCMeta):
     """
     Base class for all Metrics.
 

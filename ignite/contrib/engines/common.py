@@ -1,10 +1,7 @@
 from functools import partial
 import warnings
 
-try:
-    from collections.abc import Sequence, Mapping
-except ImportError:  # Python 2.7 compatibility
-    from collections import Sequence, Mapping
+from collections.abc import Sequence, Mapping
 
 import torch
 import torch.distributed as dist

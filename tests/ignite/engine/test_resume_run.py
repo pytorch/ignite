@@ -1,10 +1,7 @@
 import os
 import pytest
 
-try:
-    from collections.abc import Mapping
-except ImportError:  # Python 2.7 compatibility
-    from collections import Mapping
+from collections.abc import Mapping
 
 import torch
 

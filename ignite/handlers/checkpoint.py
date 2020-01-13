@@ -2,23 +2,15 @@ import os
 import tempfile
 
 from collections import namedtuple
+import collections.abc as collections
 import warnings
-
-import sys
-
-IS_PYTHON2 = sys.version_info[0] < 3
-
-if IS_PYTHON2:
-    import collections
-else:
-    import collections.abc as collections
 
 import torch
 
 from ignite.engine import Events
 
 
-class Checkpoint(object):
+class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
     storage, etc.
@@ -236,7 +228,7 @@ class Checkpoint(object):
             obj.load_state_dict(checkpoint[k])
 
 
-class DiskSaver(object):
+class DiskSaver:
     """Handler that saves input checkpoint on a disk.
 
     Args:
