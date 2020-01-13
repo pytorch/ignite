@@ -119,3 +119,18 @@ Training without crashing
 ```bash
 python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/cifar10-output"
 ```
+
+![tb-resume](assets/tb_logger_resume1.png)
+
+- Orange curves represent the training with a crash at the iteration 1000
+- Blue curves show resumed training from the last checkpoint (iteration 800)
+- Red curves display complete training without crashing  
+
+**Note 1:** We can observe a gap on `train/batch_loss` curve between intial training and resumed training. This metric is 
+computed as a running average and while resuming the training, the cumulative part is not restored.
+
+**Note 2:** As we are resuming the training from an iteration between epochs, even if Ignite's engine handles the dataflow by
+correctly providing data samples for the resumed iteration, random data augmentations are not synchronized. This causes a gap  
+in validation curves (`train/loss`, `train/accuracy` etc.) at the begining of training resuming. 
+  
+![tb-resume](assets/tb_logger_resume2.png)

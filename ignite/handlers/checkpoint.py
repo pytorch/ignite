@@ -91,7 +91,7 @@ class Checkpoint(object):
             optimizer = ...
             lr_scheduler = ...
 
-            to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+            to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'trainer': trainer}
             handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2)
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
             trainer.run(data_loader, max_epochs=6)

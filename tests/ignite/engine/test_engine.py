@@ -327,8 +327,8 @@ def test__setup_engine():
     engine.state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100, seed=12)
 
     data = list(range(100))
-    engine._setup_engine(data)
-    assert engine.state.dataloader == data
+    engine.state.dataloader = data
+    engine._setup_engine()
     assert engine._dataloader_len == len(data)
 
 

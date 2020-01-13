@@ -33,6 +33,8 @@ def run(output_path, config):
         device = "cuda"
     rank = dist.get_rank() if distributed else 0
 
+    torch.manual_seed(config['seed'] + rank)
+
     # Rescale batch_size and num_workers
     ngpus_per_node = torch.cuda.device_count()
     ngpus = dist.get_world_size() if distributed else 1
@@ -75,9 +77,9 @@ def run(output_path, config):
         return (convert_tensor(x, device=device, non_blocking=non_blocking),
                 convert_tensor(y, device=device, non_blocking=non_blocking))
 
-    def process_function(engine, labelled_batch):
+    def process_function(engine, batch):
 
-        x, y = _prepare_batch(labelled_batch, device=device, non_blocking=True)
+        x, y = _prepare_batch(batch, device=device, non_blocking=True)
 
         model.train()
         # Supervised part
@@ -125,7 +127,7 @@ def run(output_path, config):
         train_evaluator.run(train_loader)
         evaluator.run(test_loader)
 
-    trainer.add_event_handler(Events.EPOCH_STARTED(every=3), run_validation)
+    trainer.add_event_handler(Events.EPOCH_STARTED(every=config['validate_every']), run_validation)
     trainer.add_event_handler(Events.COMPLETED, run_validation)
 
     if rank == 0:
@@ -199,6 +201,8 @@ if __name__ == "__main__":
     num_epochs = 24
     # Default configuration dictionary
     config = {
+        "seed": 12,
+
         "data_path": "/tmp/cifar10",
         "output_path": "/tmp/cifar10-output",
 
@@ -213,6 +217,8 @@ if __name__ == "__main__":
 
         "learning_rate": 0.04,
         "num_warmup_epochs": 4,
+
+        "validate_every": 3,
 
         # distributed settings
         "dist_url": "env://",

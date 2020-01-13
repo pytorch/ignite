@@ -21,7 +21,7 @@ def test_state_dict():
         engine.state = state
         sd = engine.state_dict()
         assert isinstance(sd, Mapping) and \
-            len(sd) == len(engine._state_dict_all_req_keys) + 1
+               len(sd) == len(engine._state_dict_all_req_keys) + 1
         assert sd['seed'] == engine.state.seed
         assert sd['iteration'] == engine.state.iteration
         assert sd['epoch_length'] == engine.state.epoch_length
@@ -220,125 +220,86 @@ def test_strict_resume_from_epoch():
     _test(15)
 
 
-def test_resume_dataloader_from_iter():
+def _setup_sampler(sampler_type, num_iters, batch_size):
+    if sampler_type is None:
+        return None
 
-    def _test(epoch_length=None):
-        max_epochs = 3
+    if sampler_type == "weighted":
+        from torch.utils.data.sampler import WeightedRandomSampler
+
+        w = torch.ones(num_iters * batch_size, dtype=torch.float)
+        for i in range(num_iters):
+            w[batch_size * i:batch_size * (i + 1)] += i * 1.0
+        return WeightedRandomSampler(w, num_samples=num_iters * batch_size, replacement=True)
+
+    if sampler_type == "distributed":
+        from torch.utils.data.distributed import DistributedSampler
+        import torch.distributed as dist
+
+        num_replicas = 1
+        rank = 0
+        if dist.is_available() and dist.is_initialized():
+            num_replicas = dist.get_world_size()
+            rank = dist.get_rank()
+
+        dataset = torch.zeros(num_iters * batch_size)
+        return DistributedSampler(dataset, num_replicas=num_replicas, rank=rank)
+
+
+def test__update_dataloader():
+
+    def _test(sampler_type=None):
+        num_epochs = 3
         batch_size = 4
-        num_iters = 11
-        data = torch.randint(0, 1000, size=(num_iters * batch_size, 2, 4, 5))
-        if epoch_length is None:
-            epoch_length = num_iters
+        num_iters = 17
+        data = torch.randint(0, 1000, size=(num_iters * batch_size,))
+        num_workers = 4
 
-        for num_workers in [0, 4]:
-            dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size, num_workers=num_workers,
-                                                     drop_last=False, shuffle=False)
+        sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+        dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
+                                                 num_workers=num_workers,
+                                                 pin_memory=False,
+                                                 sampler=sampler,
+                                                 drop_last=True, shuffle=sampler is None)
 
-            for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 6):
-                batch_checker = BatchChecker(data.reshape(-1, batch_size, 2, 4, 5), init_counter=resume_iteration)
+        torch.manual_seed(12)
+        seen_batches = []
+        for i in range(num_epochs):
+            t = []
+            if sampler_type == "distributed":
+                sampler.set_epoch(i)
+            for b in dataloader:
+                t.append(b)
+            seen_batches.append(t)
 
-                def update_fn(engine, batch):
-                    assert batch_checker.check(batch), \
-                        "{} {} | {}: {} vs {}".format(
-                            num_workers, resume_iteration,
-                            batch_checker.counter, batch_checker.true_batch, batch)
+        sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+        dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
+                                                 num_workers=num_workers,
+                                                 pin_memory=False,
+                                                 sampler=sampler,
+                                                 drop_last=True, shuffle=sampler is None)
+        batch_sampler = dataloader.batch_sampler
+        new_dataloader = _update_dataloader(dataloader, ReproducibleBatchSampler(batch_sampler))
 
-                engine = Engine(update_fn)
-                resume_state_dict = dict(iteration=resume_iteration,
-                                         max_epochs=max_epochs,
-                                         epoch_length=epoch_length,
-                                         seed=0)
-                engine.load_state_dict(resume_state_dict)
-                engine.run(dataloader)
-                assert engine.state.epoch == max_epochs
-                assert engine.state.iteration == epoch_length * max_epochs, \
-                    "{}, {} | {} vs {}".format(num_workers, resume_iteration,
-                                               engine.state.iteration,
-                                               epoch_length * max_epochs)
+        torch.manual_seed(12)
+        new_batches = []
+        for i in range(num_epochs):
+            t = []
+            if sampler_type == "distributed":
+                sampler.set_epoch(i)
+            for b in new_dataloader:
+                t.append(b)
+            new_batches.append(t)
+
+        for i in range(num_epochs):
+            assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[i], new_batches[i])])
 
     _test()
-    _test(epoch_length=30)
-    _test(epoch_length=5)
+    _test("weighted")
+    _test("distributed")
 
 
-def test_resume_dataloader_from_epoch():
-
-    def _test(epoch_length=None):
-
-        max_epochs = 5
-        batch_size = 4
-        num_iters = 11
-        data = torch.randint(0, 256, size=(num_iters * batch_size, 3, 4, 5))
-        if epoch_length is None:
-            epoch_length = num_iters
-
-        for num_workers in [0, 4]:
-            dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size, num_workers=num_workers,
-                                                     drop_last=False, shuffle=False)
-
-            for resume_epoch in range(1, max_epochs):
-                batch_checker = BatchChecker(data.reshape(-1, batch_size, 3, 4, 5),
-                                             init_counter=resume_epoch * epoch_length)
-
-                def update_fn(engine, batch):
-                    assert batch_checker.check(batch), \
-                        "{} {} | {}: {} vs {}".format(
-                            num_workers, resume_epoch,
-                            batch_checker.counter, batch_checker.true_batch, batch)
-
-                engine = Engine(update_fn)
-                resume_state_dict = dict(epoch=resume_epoch,
-                                         max_epochs=max_epochs,
-                                         epoch_length=epoch_length,
-                                         seed=0)
-                engine.load_state_dict(resume_state_dict)
-                engine.run(dataloader)
-                assert engine.state.epoch == max_epochs
-                assert engine.state.iteration == epoch_length * max_epochs
-
-    _test()
-    _test(epoch_length=60)
-    _test(epoch_length=15)
-
-
-def test_reproduce_run_with_seed():
-
-    def _test(epoch_length=None):
-        max_epochs = 5
-        batch_size = 4
-        num_iters = 21
-        data = torch.randint(0, 1000, size=(num_iters * batch_size, ))
-
-        for num_workers in [0, 4]:
-            dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
-                                                     num_workers=num_workers,
-                                                     drop_last=True, shuffle=True)
-
-            ref_seen_batchs = []
-
-            def ref_update_fn(engine, batch):
-                ref_seen_batchs.append(batch)
-
-            engine = Engine(ref_update_fn)
-            engine.run(dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
-
-            seen_batchs = []
-
-            def update_fn(engine, batch):
-                seen_batchs.append(batch)
-
-            engine = Engine(update_fn)
-            engine.run(dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
-
-            for i, (ref_b, b) in enumerate(zip(ref_seen_batchs, seen_batchs)):
-                assert (ref_b == b).all(), "{}, {}: {} vs {}".format(num_workers, i, ref_b, b)
-
-    _test()
-    _test(60)
-    _test(15)
-
-
-def _test_resume_random_dataloader_from_epoch(device):
+def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
 
     torch.manual_seed(0)
 
@@ -352,10 +313,12 @@ def _test_resume_random_dataloader_from_epoch(device):
             epoch_length = num_iters
 
         for num_workers in [0, 4]:
-            dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
-                                                     num_workers=num_workers,
-                                                     pin_memory="cuda" in device,
-                                                     drop_last=True, shuffle=True)
+            sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+            orig_dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
+                                                          num_workers=num_workers,
+                                                          pin_memory="cuda" in device,
+                                                          sampler=sampler,
+                                                          drop_last=True, shuffle=sampler is None)
 
             seen_batchs = []
 
@@ -364,10 +327,23 @@ def _test_resume_random_dataloader_from_epoch(device):
                 seen_batchs.append(batch)
 
             engine = Engine(update_fn)
-            engine.run(dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+
+            if sampler_type == "distributed":
+                @engine.on(Events.EPOCH_STARTED)
+                def distrib_set_epoch(engine):
+                    sampler.set_epoch(engine.state.epoch - 1)
+
+            engine.run(orig_dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
 
             for resume_epoch in range(1, max_epochs):
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
+
+                sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+                resume_dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
+                                                                num_workers=num_workers,
+                                                                pin_memory="cuda" in device,
+                                                                sampler=sampler,
+                                                                drop_last=True, shuffle=sampler is None)
 
                 def update_fn(engine, batch):
                     batch_to_device = batch.to(device)
@@ -377,25 +353,48 @@ def _test_resume_random_dataloader_from_epoch(device):
                             batch_checker.counter, batch_checker.true_batch, batch)
 
                 engine = Engine(update_fn)
+
+                if sampler_type == "distributed":
+                    @engine.on(Events.EPOCH_STARTED)
+                    def distrib_set_epoch(engine):
+                        sampler.set_epoch(engine.state.epoch - 1)
+
                 resume_state_dict = dict(epoch=resume_epoch,
                                          max_epochs=max_epochs,
                                          epoch_length=epoch_length,
                                          seed=12)
                 engine.load_state_dict(resume_state_dict)
-                engine.run(dataloader)
+                engine.run(resume_dataloader)
                 assert engine.state.epoch == max_epochs
                 assert engine.state.iteration == epoch_length * max_epochs
 
     _test()
-    _test(60)
-    _test(15)
+    if sampler_type != "distributed":
+        _test(60)
+        _test(15)
 
 
 def test_resume_random_dataloader_from_epoch():
     _test_resume_random_dataloader_from_epoch("cpu")
+    _test_resume_random_dataloader_from_epoch("cpu", sampler_type='weighted')
+    _test_resume_random_dataloader_from_epoch("cpu", sampler_type='distributed')
 
 
-def _test_resume_random_dataloader_from_iter(device):
+class AugmentedData:
+
+    def __init__(self, data):
+        self.data = data
+
+    def __getitem__(self, i):
+        dp = self.data[i]
+        r = torch.randint_like(dp, 0, 100)
+        return dp + r
+
+    def __len__(self):
+        return len(self.data)
+
+
+def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
 
     torch.manual_seed(0)
 
@@ -409,10 +408,13 @@ def _test_resume_random_dataloader_from_iter(device):
             epoch_length = num_iters
 
         for num_workers in [0, 4]:
-            dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
-                                                     num_workers=num_workers,
-                                                     pin_memory="cuda" in device,
-                                                     drop_last=True, shuffle=True)
+
+            sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+            orig_dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
+                                                          num_workers=num_workers,
+                                                          pin_memory="cuda" in device,
+                                                          sampler=sampler,
+                                                          drop_last=True, shuffle=sampler is None)
             seen_batchs = []
 
             def update_fn(engine, batch):
@@ -420,10 +422,23 @@ def _test_resume_random_dataloader_from_iter(device):
                 seen_batchs.append(batch)
 
             engine = Engine(update_fn)
-            engine.run(dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+
+            if sampler_type == "distributed":
+                @engine.on(Events.EPOCH_STARTED)
+                def distrib_set_epoch(engine):
+                    sampler.set_epoch(engine.state.epoch)
+
+            engine.run(orig_dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
 
             for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
+
+                sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+                resume_dataloader = torch.utils.data.DataLoader(data, batch_size=batch_size,
+                                                                num_workers=num_workers,
+                                                                pin_memory="cuda" in device,
+                                                                sampler=sampler,
+                                                                drop_last=True, shuffle=sampler is None)
 
                 def update_fn(engine, batch):
                     batch_to_device = batch.to(device)
@@ -433,12 +448,18 @@ def _test_resume_random_dataloader_from_iter(device):
                             batch_checker.counter, batch_checker.true_batch, batch)
 
                 engine = Engine(update_fn)
+
+                if sampler_type == "distributed":
+                    @engine.on(Events.EPOCH_STARTED)
+                    def distrib_set_epoch(engine):
+                        sampler.set_epoch(engine.state.epoch)
+
                 resume_state_dict = dict(iteration=resume_iteration,
                                          max_epochs=max_epochs,
                                          epoch_length=epoch_length,
                                          seed=12)
                 engine.load_state_dict(resume_state_dict)
-                engine.run(dataloader)
+                engine.run(resume_dataloader)
                 assert engine.state.epoch == max_epochs
                 assert engine.state.iteration == epoch_length * max_epochs, \
                     "{}, {} | {} vs {}".format(num_workers, resume_iteration,
@@ -446,12 +467,20 @@ def _test_resume_random_dataloader_from_iter(device):
                                                epoch_length * max_epochs)
 
     _test()
-    _test(50)
-    _test(11)
+    if sampler_type != "distributed":
+        _test(40)
+        _test(11)
+    else:
+        with pytest.raises(AssertionError):
+            with pytest.warns(UserWarning, match=r"When defined engine's epoch length is different of "
+                                                 r"input dataloader length"):
+                _test(40)
 
 
 def test_resume_random_dataloader_from_iter():
     _test_resume_random_dataloader_from_iter("cpu")
+    # _test_resume_random_dataloader_from_iter("cpu", sampler_type='weighted')
+    # _test_resume_random_dataloader_from_iter("cpu", sampler_type='distributed')
 
 
 def test_reproducible_batch_sampler():
