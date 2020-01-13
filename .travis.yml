@@ -28,6 +28,8 @@ before_install: &before_install
   - conda create -q -n test-environment pytorch cpuonly torchvision python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
   - source activate test-environment
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install enum34; fi
+  # Fix pillow deps until torchvision>0.4.2
+  - pip install --upgrade 'pillow<7.0.0'
   # Test contrib dependencies
   - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow tensorboard
   - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pynvml; fi
