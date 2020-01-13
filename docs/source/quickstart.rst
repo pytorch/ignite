@@ -11,6 +11,7 @@ Code
 .. code-block:: python
 
     from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+    from ignite.metrics import Accuracy, Loss
 
     model = Net()
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
