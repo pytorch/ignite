@@ -3,18 +3,10 @@ FROM pytorch/pytorch:latest
 WORKDIR /workspace
 
 # Setup dependencies
-RUN pip install tqdm tensorboardX git+https://github.com/pytorch/ignite.git@distrib
+RUN pip install tqdm tensorboard git+https://github.com/pytorch/ignite.git
 
 # Setup dataset
 RUN mkdir /workspace/data && python -c 'from torchvision.datasets.cifar import CIFAR10; CIFAR10("/workspace/data", download=True)'
-
-# Copy code
-RUN mkdir /workspace/code
-COPY fastresnet.py /workspace/code/fastresnet.py
-COPY main.py /workspace/code/main.py
-COPY utils.py /workspace/code/utils.py
-COPY gcp_ai_platform/entrypoint.sh /workspace/code/entrypoint.sh
-COPY gcp_ai_platform/parse_cluster_spec.py /workspace/code/parse_cluster_spec.py
 
 # Installs google cloud sdk, this is mostly for using gsutil to export model.
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz -o google-cloud-sdk.tar.gz && \
@@ -33,6 +25,14 @@ RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz -o go
 ENV PATH $PATH:/root/tools/google-cloud-sdk/bin
 # Make sure gsutil will use the default service account
 RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
+
+# Copy code
+RUN mkdir /workspace/code
+COPY fastresnet.py /workspace/code/fastresnet.py
+COPY main.py /workspace/code/main.py
+COPY utils.py /workspace/code/utils.py
+COPY gcp_ai_platform/entrypoint.sh /workspace/code/entrypoint.sh
+COPY gcp_ai_platform/parse_cluster_spec.py /workspace/code/parse_cluster_spec.py
 
 # Sets up the entry point to invoke the trainer.
 ENTRYPOINT ["/bin/bash", "/workspace/code/entrypoint.sh"]

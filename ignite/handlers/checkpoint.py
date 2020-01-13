@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 from collections import namedtuple
 import warnings
 
@@ -90,7 +91,7 @@ class Checkpoint(object):
             optimizer = ...
             lr_scheduler = ...
 
-            to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+            to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'trainer': trainer}
             handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2)
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
             trainer.run(data_loader, max_epochs=6)
@@ -144,7 +145,7 @@ class Checkpoint(object):
             raise TypeError("global_step_transform should be a function, got {} instead."
                             .format(type(global_step_transform)))
 
-        self._check_objects(to_save)
+        self._check_objects(to_save, "state_dict")
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = save_handler
         self.to_save = to_save
@@ -212,20 +213,21 @@ class Checkpoint(object):
         return checkpoint
 
     @staticmethod
-    def _check_objects(to_save_or_load):
-        for k, obj in to_save_or_load.items():
-            if not (hasattr(obj, "state_dict") and hasattr(obj, "load_state_dict")):
-                raise TypeError("Object {} should have `state_dict` and `load_state_dict` methods".format(type(obj)))
+    def _check_objects(objs, attr):
+        for k, obj in objs.items():
+            if not hasattr(obj, attr):
+                raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
     def load_objects(to_load, checkpoint):
-        """Method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
+        """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Args:
-            to_load (Mapping):
-            checkpoint (Mapping):
+            to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
+                "optimizer": opt_state_dict}`
         """
-        Checkpoint._check_objects(to_load)
+        Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
         for k, obj in to_load.items():
@@ -287,7 +289,8 @@ class DiskSaver(object):
 
 
 class ModelCheckpoint(Checkpoint):
-    """ModelCheckpoint handler can be used to periodically save objects to disk.
+    """ModelCheckpoint handler can be used to periodically save objects to disk only. If needed to store checkpoints to
+    another storage type, please consider :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     This handler expects two arguments:
 
@@ -401,6 +404,6 @@ class ModelCheckpoint(Checkpoint):
         if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")
 
-        self._check_objects(to_save)
+        self._check_objects(to_save, "state_dict")
         self.to_save = to_save
         super(ModelCheckpoint, self).__call__(engine)
