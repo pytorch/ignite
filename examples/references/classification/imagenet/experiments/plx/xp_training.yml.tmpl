@@ -40,7 +40,7 @@ run:
   - export PYTHONPATH=$PYTHONPATH:$PWD/code/
 
   # Required env variables to define dataset placement
-  - export DATASET_PATH=/data_deep/CLASSIC_DATASETS/ImageNet-1k/
+  - export DATASET_PATH=/path/to/ImageNet-1k/
 
   - export config_file=$PWD/configs/train/{{config_file}}
   - export script_file=$PWD/code/scripts/{{script_file}}
