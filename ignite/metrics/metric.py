@@ -121,7 +121,7 @@ class Metric(metaclass=ABCMeta):
                 raise ValueError("When transformed engine's output is a mapping, "
                                  "it should contain {} keys, but given {}".format(self._required_output_keys,
                                                                                   list(output.keys())))
-            output = [output[k] for k in self._required_output_keys]
+            output = tuple(output[k] for k in self._required_output_keys)
         self.update(output)
 
     def completed(self, engine, name):
