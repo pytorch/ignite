@@ -85,7 +85,7 @@ class Accuracy(_BaseClassification):
     """
     Calculates the accuracy for binary, multiclass and multilabel data.
 
-    - `update` must receive output of the form `(y_pred, y)`.
+    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) for multilabel cases.

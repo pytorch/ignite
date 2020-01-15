@@ -35,6 +35,7 @@ class VariableAccumulation(Metric):
             initialized and available, device is set to `cuda`.
 
     """
+    _required_output_keys = None
 
     def __init__(self, op, output_transform=lambda x: x, device=None):
         if not callable(op):
