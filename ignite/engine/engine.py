@@ -2,7 +2,7 @@ import inspect
 import logging
 import time
 from collections import defaultdict, OrderedDict
-from collections import Mapping
+from collections.abc import Mapping
 from enum import Enum
 import weakref
 import numbers
