@@ -403,6 +403,27 @@ def test_last_k(dirname):
     assert sorted(os.listdir(dirname)) == expected, "{} vs {}".format(sorted(os.listdir(dirname)), expected)
 
 
+def test_disabled_n_saved(dirname):
+
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=None)
+    engine = Engine(lambda e, b: None)
+    engine.state = State(epoch=0, iteration=0)
+
+    model = DummyModel()
+    to_save = {'model': model}
+
+    num_iters = 100
+    for i in range(num_iters):
+        engine.state.iteration = i
+        h(engine, to_save)
+
+    saved_files = sorted(os.listdir(dirname))
+    assert len(saved_files) == num_iters, "{}".format(saved_files)
+
+    expected = sorted(['{}_{}_{}.pth'.format(_PREFIX, 'model', i) for i in range(num_iters)])
+    assert saved_files == expected, "{} vs {}".format(saved_files, expected)
+
+
 def test_best_k(dirname):
     scores = iter([1.2, -2., 3.1, -4.0])
 
