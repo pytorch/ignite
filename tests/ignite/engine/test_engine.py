@@ -783,7 +783,7 @@ def test_terminate_epoch_stops_mid_epoch():
     state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert state.iteration == num_iterations_per_epoch * (max_epochs - 1) + \
-           iteration_to_stop % num_iterations_per_epoch
+        iteration_to_stop % num_iterations_per_epoch
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -1183,9 +1183,3 @@ def test_logging_handlers_added():
     n_handlers_after = len(engine.logger.handlers)
 
     assert n_handlers_after == n_handlers_before + 1
-
-
-if __name__ == '__main__':
-    test_logger_name_changed()
-    test_logger_level_changed()
-    test_logging_handlers_added()
