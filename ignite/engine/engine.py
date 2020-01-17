@@ -670,9 +670,8 @@ class Engine(object):
         Args:
             name (str, optional): Name to be displayed in the log. If None, will use Ignite's default name.
             handlers_iter (Iterable, optional): Iterator of logging handlers to be added to your logger.
-                If none, streamhandler is added by default.
             logger_level (logging level, optional): level of messages to be displayed in the log file.
-            If not provided, default is logging.WARNING
+                If not provided, default is logging.WARNING
 
         Note:
             When using two engines (i.e trainer and evaluator), use this method to change their names to be able to
