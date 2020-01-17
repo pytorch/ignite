@@ -664,28 +664,29 @@ class Engine(object):
 
         return self.state
 
-    def setup_logger(self, name, handlers_iter=None, logger_level=logging.INFO):
-        """Change the logger name, configuration and handlers.
+    def setup_logger(self, name=None, handlers_iter=None, logger_level=None):
+        """Change the logger's name, configuration and handlers.
 
         Args:
-            name (str): Name to be displayed in the log
+            name (str, optional): Name to be displayed in the log. If None, will use Ignite's default name.
             handlers_iter (Iterable, optional): Iterator of logging handlers to be added to your logger.
                 If none, streamhandler is added by default.
             logger_level (logging level, optional): level of messages to be displayed in the log file.
-            If not provided, default is logging.INFO
+            If not provided, default is logging.WARNING
 
         Note:
             When using two engines (i.e trainer and evaluator), use this method to change their names to be able to
             distinguish messages from either one of them.
 
         """
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(logger_level)
+        if name:
+            self.logger.name = name
+
+        if logger_level:
+            self.logger.setLevel(logger_level)
+
         if handlers_iter:
             for handler in handlers_iter:
                 self.logger.addHandler(handler)
-        else:
-            stream_handler = logging.StreamHandler()
-            self.logger.addHandler(stream_handler)
 
 
