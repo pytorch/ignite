@@ -107,12 +107,14 @@ def test_add_event_handler():
 
     def handle_iteration_started(engine, counter):
         counter.count += 1
+
     engine.add_event_handler(Events.STARTED, handle_iteration_started, started_counter)
 
     completed_counter = Counter()
 
     def handle_iteration_completed(engine, counter):
         counter.count += 1
+
     engine.add_event_handler(Events.COMPLETED, handle_iteration_completed, completed_counter)
 
     engine.run(15)
@@ -133,7 +135,6 @@ def test_adding_multiple_event_handlers():
 
 
 def test_event_removable_handle():
-
     # Removable handle removes event from engine.
     engine = DummyEngine()
     handler = MagicMock()
@@ -313,7 +314,6 @@ def test_custom_events():
 
 
 def test_custom_events_with_event_to_attr():
-
     class CustomEvents(Enum):
         TEST_EVENT = "test_event"
 
@@ -351,7 +351,6 @@ def test_custom_events_with_event_to_attr():
 
 
 def test_callable_events_with_wrong_inputs():
-
     with pytest.raises(ValueError, match=r"Only one of the input arguments should be specified"):
         Events.ITERATION_STARTED()
 
@@ -369,7 +368,6 @@ def test_callable_events_with_wrong_inputs():
 
 
 def test_callable_events():
-
     assert isinstance(Events.ITERATION_STARTED.value, str)
 
     def foo(engine, event):
@@ -401,6 +399,7 @@ def test_callable_events():
 
     # assert ret in Events
     assert Events.ITERATION_STARTED.name in "{}".format(ret)
+
     # assert ret in State.event_to_attr
 
     def _attach(e1, e2):
@@ -416,9 +415,7 @@ def test_callable_events_every_eq_one():
 
 
 def test_every_event_filter_with_engine():
-
     def _test(event_name, event_attr, every, true_num_calls):
-
         engine = Engine(lambda e, b: b)
 
         counter = [0, ]
@@ -449,9 +446,7 @@ def test_every_event_filter_with_engine():
 
 
 def test_once_event_filter_with_engine():
-
     def _test(event_name, event_attr):
-
         engine = Engine(lambda e, b: b)
 
         once = 2
@@ -480,7 +475,6 @@ def test_once_event_filter_with_engine():
 
 
 def test_custom_event_filter_with_engine():
-
     special_events = [1, 2, 5, 7, 17, 20]
 
     def custom_event_filter(engine, event):
@@ -489,7 +483,6 @@ def test_custom_event_filter_with_engine():
         return False
 
     def _test(event_name, event_attr, true_num_calls):
-
         engine = Engine(lambda e, b: b)
 
         num_calls = [0, ]
@@ -511,7 +504,6 @@ def test_custom_event_filter_with_engine():
 
 
 def test_callable_event_bad_behaviour():
-
     special_events = [1, 2, 5, 7, 17, 20]
 
     def custom_event_filter(engine, event):
@@ -538,7 +530,6 @@ def test_callable_event_bad_behaviour():
 
 
 def test_custom_callable_events():
-
     class CustomEvents(Enum):
         TEST_EVENT = "test_event"
 
@@ -552,7 +543,6 @@ def test_custom_callable_events():
 
 
 def test_custom_callable_events_with_engine():
-
     class CustomEvents(CallableEvents, Enum):
         TEST_EVENT = "test_event"
 
@@ -568,7 +558,6 @@ def test_custom_callable_events_with_engine():
         return False
 
     def _test(event_name, event_attr, true_num_calls):
-
         def update_fn(engine, batch):
             engine.state.test_event = engine.state.iteration
             engine.fire_event(CustomEvents.TEST_EVENT)
@@ -794,7 +783,7 @@ def test_terminate_epoch_stops_mid_epoch():
     state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert state.iteration == num_iterations_per_epoch * (max_epochs - 1) + \
-        iteration_to_stop % num_iterations_per_epoch
+           iteration_to_stop % num_iterations_per_epoch
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -1067,7 +1056,6 @@ def test_create_supervised_with_metrics():
 
 
 def test_reset_should_terminate():
-
     def update_fn(engine, batch):
         pass
 
@@ -1086,7 +1074,6 @@ def test_reset_should_terminate():
 
 
 def test_state_repr():
-
     data = [0, 1, 2, 3, 4, 5]
     max_epochs = 1
     metrics = {"accuracy": Mock()}
@@ -1102,12 +1089,11 @@ def test_state_repr():
 
 
 def test_alter_batch():
-
     small_shape = (1, 2, 2)
     large_shape = (1, 3, 3)
 
-    small_loader = torch.randint(0, 256, size=(30, ) + small_shape)
-    large_loader = torch.randint(0, 256, size=(20, ) + large_shape)
+    small_loader = torch.randint(0, 256, size=(30,) + small_shape)
+    large_loader = torch.randint(0, 256, size=(20,) + large_shape)
 
     switch_iteration = 50
 
@@ -1175,3 +1161,31 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
     e = Events.EPOCH_COMPLETED(once=5)
     assert state.get_event_attrib_value(e) == state.epoch
+
+
+def test_logger_name_changed():
+    engine = DummyEngine()
+    engine.change_logger_name('new_name')
+    assert engine.logger.name == 'new_name'
+
+
+def test_logger_level_changed():
+    engine = DummyEngine()
+    engine.change_logging_level(10)
+    assert engine.logger.level == 10
+
+
+def test_logging_handlers_added():
+    import logging
+    engine = DummyEngine()
+    n_handlers_before = len(engine.logger.handlers)
+    engine.add_logging_handler(logging.StreamHandler())
+    n_handlers_after = len(engine.logger.handlers)
+
+    assert n_handlers_after == n_handlers_before + 1
+
+
+if __name__ == '__main__':
+    test_logger_name_changed()
+    test_logger_level_changed()
+    test_logging_handlers_added()

@@ -664,28 +664,28 @@ class Engine(object):
 
         return self.state
 
-    def setup_logger(self, name, handlers_iter=None, logger_level=logging.INFO):
-        """Change the logger name, configuration and handlers.
+    def change_logger_name(self, desired_name: str):
+        """Change the name of the internal logger.
+         When using two engines (i.e trainer and evaluator), use this method to change their names to be able to
+        distinguish messages from either one of them.
+        """
+        self.logger.name = desired_name
+
+    def change_logging_level(self, logger_level):
+        """Change the level of messages to be written in the log:
+         DEBUG
+         INFO
+         WARNING
+         CRITICAL
+         ERROR
+         (default is WARNING)
+         """
+        self.logger.setLevel(logger_level)
+
+    def add_logging_handler(self, handler):
+        """Add a handler to your (NullHandler is added defaultively in the constructor).
 
         Args:
-            name (str): Name to be displayed in the log
-            handlers_iter (Iterable, optional): Iterator of logging handlers to be added to your logger.
-                If none, streamhandler is added by default.
-            logger_level (logging level, optional): level of messages to be displayed in the log file.
-            If not provided, default is logging.INFO
-
-        Note:
-            When using two engines (i.e trainer and evaluator), use this method to change their names to be able to
-            distinguish messages from either one of them.
-
+            handler: logging handler to be added to your logger.
         """
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(logger_level)
-        if handlers_iter:
-            for handler in handlers_iter:
-                self.logger.addHandler(handler)
-        else:
-            stream_handler = logging.StreamHandler()
-            self.logger.addHandler(stream_handler)
-
-
+        self.logger.addHandler(handler)
