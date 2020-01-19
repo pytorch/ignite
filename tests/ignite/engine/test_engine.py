@@ -1183,3 +1183,21 @@ def test_logging_handlers_added():
     n_handlers_after = len(engine.logger.handlers)
 
     assert n_handlers_after == n_handlers_before + 1
+
+def test_handlers_sorted():
+    engine = DummyEngine()
+
+    @engine.on(Events.ITERATION_COMPLETED, 3)
+    def prio3(_): pass
+
+    @engine.on(Events.ITERATION_COMPLETED, 2)
+    def prio2(_): pass
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def prio0(_): pass
+
+    metric = MeanSquaredError()
+    metric.attach(engine, 'mock')
+    engine._sort_handlers()
+    prio_list = list(zip(*engine._event_handlers[Events.ITERATION_COMPLETED]))[0]
+    assert np.all(np.diff(prio_list) <= 0)

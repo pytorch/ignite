@@ -392,13 +392,14 @@ class Engine(object):
 
         return wrapper
 
-    def add_event_handler(self, event_name, handler, *args, **kwargs):
+    def add_event_handler(self, event_name, handler, priority=0, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
+            priority(int, optional): change this to determine execution group, Default is 0 (last group)
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
@@ -440,7 +441,7 @@ class Engine(object):
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
         Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
 
-        self._event_handlers[event_name].append((handler, args, kwargs))
+        self._event_handlers[event_name].append((priority, handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
@@ -460,7 +461,7 @@ class Engine(object):
         else:
             events = self._event_handlers
         for e in events:
-            for h, _, _ in self._event_handlers[e]:
+            for _, h, _, _ in self._event_handlers[e]:
                 if h == handler:
                     return True
         return False
@@ -509,20 +510,26 @@ class Engine(object):
                              "({}).".format(
                 fn, fn_description, fn_params, passed_params, exception_msg))
 
-    def on(self, event_name, *args, **kwargs):
+    def on(self, event_name, priority=0, *args, **kwargs):
         """Decorator shortcut for add_event_handler.
 
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events` or
                 any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            priority(int, optional): change this to determine execution group, Default is 0 (last group)
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
         """
         def decorator(f):
-            self.add_event_handler(event_name, f, *args, **kwargs)
+            self.add_event_handler(event_name, f, priority, *args, **kwargs)
             return f
         return decorator
+
+    def _sort_handlers(self):
+        """sort all handlers list according to their priority, ascending"""
+        for key, handlers_list in self._event_handlers.items():
+            self._event_handlers[key] = sorted(handlers_list, reverse=True)
 
     def _fire_event(self, event_name, *event_args, **event_kwargs):
         """Execute all the handlers associated with given event.
@@ -543,7 +550,7 @@ class Engine(object):
         if event_name in self._allowed_events:
             self.logger.debug("firing handlers for event %s ", event_name)
             self.last_event_name = event_name
-            for func, args, kwargs in self._event_handlers[event_name]:
+            for _, func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
 
@@ -639,6 +646,7 @@ class Engine(object):
 
         self.state = State(dataloader=data, max_epochs=max_epochs, metrics={})
         self.should_terminate = self.should_terminate_single_epoch = False
+        self._sort_handlers()  # sort all handlers at the beginning of a run
 
         try:
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
