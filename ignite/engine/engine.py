@@ -508,7 +508,7 @@ class Engine(object):
             raise ValueError("Error adding {} '{}': "
                              "takes parameters {} but will be called with {} "
                              "({}).".format(
-                               fn, fn_description, fn_params, passed_params, exception_msg))
+                                 fn, fn_description, fn_params, passed_params, exception_msg))
 
     def on(self, event_name, priority=0, *args, **kwargs):
         """Decorator shortcut for add_event_handler.
