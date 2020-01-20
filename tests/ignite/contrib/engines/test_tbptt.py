@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import pytest
-import mock
+import unittest.mock as mock
 
 from ignite.contrib.engines import create_supervised_tbptt_trainer, Tbptt_Events
 from ignite.contrib.engines.tbptt import _detach_hidden

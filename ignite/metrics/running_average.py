@@ -37,6 +37,7 @@ class RunningAverage(Metric):
             print("running avg loss:", engine.state.metrics['running_avg_loss'])
 
     """
+    _required_output_keys = None
 
     def __init__(self, src=None, alpha=0.98, output_transform=None, epoch_bound=True, device=None):
         if not (isinstance(src, Metric) or src is None):

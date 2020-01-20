@@ -8,7 +8,8 @@ from ignite.engine import Events
 
 
 class GpuInfo(Metric):
-    """GPU information: a) used memory percentage, b) gpu utilization percentage values as Metric.
+    """Provides GPU information: a) used memory percentage, b) gpu utilization percentage values as Metric
+    on each iterations.
 
     Examples:
 

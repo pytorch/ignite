@@ -36,8 +36,9 @@ def test_pbar(capsys):
 
 
 def test_pbar_log_message(capsys):
+    pbar = ProgressBar()
 
-    ProgressBar.log_message("test")
+    pbar.log_message("test")
 
     captured = capsys.readouterr()
     out = captured.out.split('\r')
@@ -209,7 +210,7 @@ def test_pbar_with_tqdm_kwargs(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'.format()
+    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'
     assert err[-1] == expected
 
 

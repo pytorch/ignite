@@ -93,7 +93,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
         print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-              "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
+              "".format(engine.state.epoch, engine.state.iteration, len(train_loader), engine.state.output))
         writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
 
     @trainer.on(Events.EPOCH_COMPLETED)

@@ -11,7 +11,7 @@ class Recall(_BasePrecisionRecall):
     """
     Calculates recall for binary and multiclass data.
 
-    - `update` must receive output of the form `(y_pred, y)`.
+    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
 

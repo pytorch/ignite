@@ -6,7 +6,7 @@ import torch
 from ignite.utils import apply_to_type
 
 
-class TerminateOnNan(object):
+class TerminateOnNan:
     """TerminateOnNan handler can be used to stop the training if the `process_function`'s output
     contains a NaN or infinite number or `torch.tensor`.
     The output can be of type: number, tensor or collection of them. The training is stopped if
