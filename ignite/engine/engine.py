@@ -306,8 +306,8 @@ class Engine(object):
     """
     def __init__(self, process_function):
         self._event_handlers = defaultdict(list)
-        self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self._logger.addHandler(logging.NullHandler())
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.logger.addHandler(logging.NullHandler())
         self._process_function = process_function
         self.last_event_name = None
         self.should_terminate = False
@@ -392,13 +392,14 @@ class Engine(object):
 
         return wrapper
 
-    def add_event_handler(self, event_name, handler, *args, **kwargs):
+    def add_event_handler(self, event_name, handler, priority=0, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
+            priority(int, optional): change this to determine execution group, Default is 0 (last group)
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
@@ -434,14 +435,14 @@ class Engine(object):
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
-            self._logger.error("attempt to add event handler to an invalid event %s.", event_name)
+            self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
         Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
 
-        self._event_handlers[event_name].append((handler, args, kwargs))
-        self._logger.debug("added handler for event %s.", event_name)
+        self._event_handlers[event_name].append((priority, handler, args, kwargs))
+        self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
 
@@ -460,7 +461,7 @@ class Engine(object):
         else:
             events = self._event_handlers
         for e in events:
-            for h, _, _ in self._event_handlers[e]:
+            for _, h, _, _ in self._event_handlers[e]:
                 if h == handler:
                     return True
         return False
@@ -507,22 +508,28 @@ class Engine(object):
             raise ValueError("Error adding {} '{}': "
                              "takes parameters {} but will be called with {} "
                              "({}).".format(
-                                 fn, fn_description, fn_params, passed_params, exception_msg))
+                fn, fn_description, fn_params, passed_params, exception_msg))
 
-    def on(self, event_name, *args, **kwargs):
+    def on(self, event_name, priority=0, *args, **kwargs):
         """Decorator shortcut for add_event_handler.
 
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events` or
                 any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            priority(int, optional): change this to determine execution group, Default is 0 (last group)
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
         """
         def decorator(f):
-            self.add_event_handler(event_name, f, *args, **kwargs)
+            self.add_event_handler(event_name, f, priority, *args, **kwargs)
             return f
         return decorator
+
+    def _sort_handlers(self):
+        """sort all handlers list according to their priority, ascending"""
+        for key, handlers_list in self._event_handlers.items():
+            self._event_handlers[key] = sorted(handlers_list, reverse=True)
 
     def _fire_event(self, event_name, *event_args, **event_kwargs):
         """Execute all the handlers associated with given event.
@@ -541,9 +548,9 @@ class Engine(object):
 
         """
         if event_name in self._allowed_events:
-            self._logger.debug("firing handlers for event %s ", event_name)
+            self.logger.debug("firing handlers for event %s ", event_name)
             self.last_event_name = event_name
-            for func, args, kwargs in self._event_handlers[event_name]:
+            for _, func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
 
@@ -573,14 +580,14 @@ class Engine(object):
     def terminate(self):
         """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration.
         """
-        self._logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
+        self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self):
         """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
         """
-        self._logger.info("Terminate current epoch is signaled. "
-                          "Current epoch iteration will stop after current iteration is finished.")
+        self.logger.info("Terminate current epoch is signaled. "
+                         "Current epoch iteration will stop after current iteration is finished.")
         self.should_terminate_single_epoch = True
 
     def _run_once_on_dataset(self):
@@ -598,7 +605,7 @@ class Engine(object):
                     break
 
         except BaseException as e:
-            self._logger.error("Current run is terminating due to exception: %s.", str(e))
+            self.logger.error("Current run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         time_taken = time.time() - start_time
@@ -639,16 +646,17 @@ class Engine(object):
 
         self.state = State(dataloader=data, max_epochs=max_epochs, metrics={})
         self.should_terminate = self.should_terminate_single_epoch = False
+        self._sort_handlers()  # sort all handlers at the beginning of a run
 
         try:
-            self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
+            self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
             start_time = time.time()
             self._fire_event(Events.STARTED)
             while self.state.epoch < max_epochs and not self.should_terminate:
                 self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
                 hours, mins, secs = self._run_once_on_dataset()
-                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+                self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
@@ -656,10 +664,10 @@ class Engine(object):
             self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
-            self._logger.error("Engine run is terminating due to exception: %s.", str(e))
+            self.logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         return self.state

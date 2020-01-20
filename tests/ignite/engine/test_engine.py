@@ -1175,3 +1175,22 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
     e = Events.EPOCH_COMPLETED(once=5)
     assert state.get_event_attrib_value(e) == state.epoch
+
+
+def test_handlers_sorted():
+    engine = DummyEngine()
+
+    @engine.on(Events.ITERATION_COMPLETED, 2)
+    def prio2(_): pass
+
+    @engine.on(Events.ITERATION_COMPLETED, 3)
+    def prio3(_): pass
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def prio0(_): pass
+
+    metric = MeanSquaredError()
+    metric.attach(engine, 'mock')
+    engine._sort_handlers()
+    prio_list = list(zip(*engine._event_handlers[Events.ITERATION_COMPLETED]))[0]
+    assert np.all(np.diff(prio_list) <= 0)
