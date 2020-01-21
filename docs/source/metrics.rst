@@ -187,6 +187,7 @@ Complete list of metrics
     - :class:`~ignite.metrics.Accuracy`
     - :class:`~ignite.metrics.Average`
     - :class:`~ignite.metrics.ConfusionMatrix`
+    - :meth:`~ignite.metrics.DiceCoefficient`
     - :class:`~ignite.metrics.EpochMetric`
     - :meth:`~ignite.metrics.Fbeta`
     - :class:`~ignite.metrics.GeometricAverage`
@@ -213,6 +214,8 @@ Complete list of metrics
 .. autoclass:: Average
 
 .. autoclass:: ConfusionMatrix
+
+.. autofunction:: DiceCoefficient
 
 .. autoclass:: EpochMetric
 
