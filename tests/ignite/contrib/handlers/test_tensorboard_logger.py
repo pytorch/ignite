@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from mock import MagicMock, call, ANY, patch
+from unittest.mock import MagicMock, call, ANY, patch
 
 import torch
 

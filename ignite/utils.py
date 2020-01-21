@@ -1,14 +1,5 @@
-import sys
-
 import torch
-from torch._six import string_classes
-
-IS_PYTHON2 = sys.version_info[0] < 3
-
-if IS_PYTHON2:
-    import collections
-else:
-    import collections.abc as collections
+import collections.abc as collections
 
 
 def convert_tensor(input_, device=None, non_blocking=False):
@@ -30,7 +21,7 @@ def apply_to_type(input_, input_type, func):
     """
     if isinstance(input_, input_type):
         return func(input_)
-    elif isinstance(input_, string_classes):
+    elif isinstance(input_, (str, bytes)):
         return input_
     elif isinstance(input_, collections.Mapping):
         return {k: apply_to_type(sample, input_type, func) for k, sample in input_.items()}

@@ -17,7 +17,7 @@ value is then computed using the output of the engine's `process_function`:
     metric = Accuracy()
     metric.attach(engine, "accuracy")
 
-If the engine's output is not in the format `y_pred, y`, the user can
+If the engine's output is not in the format `(y_pred, y)` or `{'y_pred': y_pred, 'y': y, ...}`, the user can
 use the `output_transform` argument to transform it:
 
 .. code-block:: python

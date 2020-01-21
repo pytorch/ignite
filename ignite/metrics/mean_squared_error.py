@@ -11,7 +11,7 @@ class MeanSquaredError(Metric):
     """
     Calculates the mean squared error.
 
-    - `update` must receive output of the form `(y_pred, y)`.
+    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
     """
     @reinit__is_reduced
     def reset(self):

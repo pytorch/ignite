@@ -15,19 +15,20 @@ environment:
 build:
   image: pytorch/pytorch:1.3-cuda10.1-cudnn7-devel
   build_steps:
-
-  # Install ignite and other useful packages
-  - pip install --upgrade --pre pytorch-ignite &&
-    pip install git+https://github.com/vfdev-5/ImageDatasetViz.git albumentations &&
-    pip install polyaxon-client tqdm tensorboardX py_config_runner pynvml
+  # For opencv
+  - apt-get update &&
+    apt-get -y install --no-install-recommends libglib2.0 libsm6 libxext6 libxrender-dev
 
   # Install Nvidia/APEX
   - git clone https://github.com/NVIDIA/apex /tmp/apex && cd /tmp/apex &&
     export TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5" &&
     pip install --upgrade --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
-  # For opencv
-  - apt-get update && apt-get -y install --no-install-recommends libglib2.0
+  # Install ignite and other useful packages
+  - pip install --upgrade --pre pytorch-ignite &&
+    pip install git+https://github.com/vfdev-5/ImageDatasetViz.git albumentations &&
+    pip install polyaxon-client tqdm tensorboardX py_config_runner pynvml
+
 
 declarations:
   config_file: "baseline_resnet50.py"
@@ -40,7 +41,7 @@ run:
   - export PYTHONPATH=$PYTHONPATH:$PWD/code/
 
   # Required env variables to define dataset placement
-  - export DATASET_PATH=/data_deep/CLASSIC_DATASETS/ImageNet-1k/
+  - export DATASET_PATH=/path/to/ImageNet-1k/
 
   - export config_file=$PWD/configs/train/{{config_file}}
   - export script_file=$PWD/code/scripts/{{script_file}}

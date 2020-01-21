@@ -18,9 +18,9 @@ class Loss(Metric):
             form expected by the metric.
             This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-            The output is is expected to be a tuple (prediction, target) or
+            The output is expected to be a tuple `(prediction, target)` or
             (prediction, target, kwargs) where kwargs is a dictionary of extra
-            keywords arguments.
+            keywords arguments. If extra keywords arguments are provided they are passed to `loss_fn`.
         batch_size (callable): a callable taking a target tensor that returns the
             first dimension size (usually the batch size).
         device (str of torch.device, optional): device specification in case of distributed computation usage.
@@ -29,6 +29,7 @@ class Loss(Metric):
             initialized and available, device is set to `cuda`.
 
     """
+    _required_output_keys = None
 
     def __init__(self, loss_fn, output_transform=lambda x: x,
                  batch_size=lambda x: len(x), device=None):
