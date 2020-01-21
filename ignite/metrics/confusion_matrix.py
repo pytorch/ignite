@@ -116,7 +116,7 @@ class ConfusionMatrix(Metric):
 
 
 def IoU(cm, ignore_index=None):
-    """Calculates Intersection over Union
+    """Calculates Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
 
     Args:
         cm (ConfusionMatrix): instance of confusion matrix metric
@@ -164,7 +164,7 @@ def IoU(cm, ignore_index=None):
 
 
 def mIoU(cm, ignore_index=None):
-    """Calculates mean Intersection over Union
+    """Calculates mean Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
 
     Args:
         cm (ConfusionMatrix): instance of confusion matrix metric
@@ -191,8 +191,8 @@ def mIoU(cm, ignore_index=None):
 
 
 def cmAccuracy(cm):
-    """
-    Calculates accuracy using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    """Calculates accuracy using :class:`~ignite.metrics.ConfusionMatrix` metric.
+
     Args:
         cm (ConfusionMatrix): instance of confusion matrix metric
 
@@ -205,8 +205,8 @@ def cmAccuracy(cm):
 
 
 def cmPrecision(cm, average=True):
-    """
-    Calculates precision using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    """Calculates precision using :class:`~ignite.metrics.ConfusionMatrix` metric.
+
     Args:
         cm (ConfusionMatrix): instance of confusion matrix metric
         average (bool, optional): if True metric value is averaged over all classes
@@ -241,7 +241,7 @@ def cmRecall(cm, average=True):
 
 
 def DiceCoefficient(cm, ignore_index=None):
-    """Calculates Dice Coefficient for a given Confusion Matrix.
+    """Calculates Dice Coefficient for a given :class:`~ignite.metrics.ConfusionMatrix` metric.
 
     Args:
         cm (ConfusionMatrix): instance of confusion matrix metric
@@ -254,11 +254,21 @@ def DiceCoefficient(cm, ignore_index=None):
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
             raise ValueError("ignore_index should be non-negative integer, but given {}".format(ignore_index))
-        cm.confusion_matrix[ignore_index] = 0
-        cm.confusion_matrix[:, ignore_index] = 0
 
-    eps = 1e-15
-    tp = cm.confusion_matrix.diag().sum()
-    fp_plus_fn = cm.confusion_matrix.sum() - tp
-    dice_metric = (2.0 * tp) / (2.0 * tp + fp_plus_fn + eps)
-    return dice_metric
+    # Increase floating point precision and pass to CPU
+    cm = cm.type(torch.DoubleTensor)
+    dice = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)
+
+    if ignore_index is not None:
+
+        def ignore_index_fn(dice_vector):
+            if ignore_index >= len(dice_vector):
+                raise ValueError("ignore_index {} is larger than the length of Dice vector {}"
+                                 .format(ignore_index, len(dice_vector)))
+            indices = list(range(len(dice_vector)))
+            indices.remove(ignore_index)
+            return dice_vector[indices]
+
+        return MetricsLambda(ignore_index_fn, dice)
+    else:
+        return dice

@@ -1,4 +1,3 @@
-from __future__ import division
 import os
 import torch
 
@@ -8,7 +7,6 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, DiceCoefficient
-import random
 import pytest
 
 
@@ -477,6 +475,42 @@ def test_cm_with_average():
     np.testing.assert_almost_equal(true_pr, res)
 
 
+def test_dice_coefficient():
+
+    y_true, y_pred = get_y_true_y_pred()
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+
+    true_res = [0, 0, 0]
+    for index in range(3):
+        bin_y_true = y_true == index
+        bin_y_pred = y_pred == index
+        # dice coefficient: 2*intersection(x, y) / (|x| + |y|)
+        # union(x, y) = |x| + |y| - intersection(x, y)
+        intersection = bin_y_true & bin_y_pred
+        union = bin_y_true | bin_y_pred
+        true_res[index] = 2.0 * intersection.sum() / (union.sum() + intersection.sum())
+
+    cm = ConfusionMatrix(num_classes=3)
+    dice_metric = DiceCoefficient(cm)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = dice_metric.compute().numpy()
+    np.testing.assert_allclose(res, true_res)
+
+    for ignore_index in range(3):
+        cm = ConfusionMatrix(num_classes=3)
+        dice_metric = DiceCoefficient(cm, ignore_index=ignore_index)
+        # Update metric
+        output = (th_y_logits, th_y_true)
+        cm.update(output)
+        res = dice_metric.compute().numpy()
+        true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1:]
+        assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
+
+
 def _test_distrib_multiclass_images(device):
 
     import torch.distributed as dist
@@ -577,39 +611,3 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
     _test_distrib_multiclass_images(device)
-
-
-def test_dice_coefficient():
-    n_classes = 3
-    logits = [[np.random.random() for j in range(n_classes)] for i in range(5)]
-    y_true = np.asarray([np.random.randint(0, n_classes) for i in range(5)])
-    y_pred = np.argmax(logits, axis=1)
-    _intersection = (y_true == y_pred).sum()
-    fp_plus_fn = len(y_pred) - _intersection
-    eps = 1e-15
-    true_res = (2.0 * _intersection) / (2.0 * _intersection + fp_plus_fn + eps)
-
-    cm = ConfusionMatrix(num_classes=n_classes)
-    th_y_true = torch.tensor(y_true)
-    th_y_logits = torch.tensor(logits)
-
-    # Update metric
-    output = (th_y_logits, th_y_true)
-    cm.update(output)
-    temp = cm.confusion_matrix
-    res = DiceCoefficient(cm).item()
-    assert float("{0:.2f}".format(res)) == float("{0:.2f}".format(true_res))
-    for ignore_index in range(n_classes):
-        res = DiceCoefficient(cm, ignore_index=ignore_index).item()
-        ignore_indices = np.logical_or(y_true == ignore_index, y_pred == ignore_index).sum()
-        cm = ConfusionMatrix(num_classes=n_classes)
-        cm.update(output)
-        y_pred[y_pred == ignore_index] = n_classes + 1
-        y_true[y_true == ignore_index] = n_classes + 2
-        _intersection = (y_true == y_pred).sum()
-        fp_plus_fn = len(y_pred) - _intersection - ignore_indices
-        eps = 1e-15
-        true_res = (2.0 * _intersection) / (2.0 * _intersection + fp_plus_fn + eps)
-        y_pred[y_pred == n_classes + 1] = ignore_index
-        y_true[y_true == n_classes + 2] = ignore_index
-        assert "{0:.2f}".format(res) == "{0:.2f}".format(true_res), "{}: {} vs {}".format(ignore_index, res, true_res)
