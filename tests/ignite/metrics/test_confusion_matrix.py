@@ -475,6 +475,25 @@ def test_cm_with_average():
     np.testing.assert_almost_equal(true_pr, res)
 
 
+def test_dice_coefficient_wrong_input():
+
+    with pytest.raises(TypeError, match="Argument cm should be instance of ConfusionMatrix"):
+        DiceCoefficient(None)
+
+    cm = ConfusionMatrix(num_classes=10)
+    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+        DiceCoefficient(cm, ignore_index=-1)
+
+    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+        DiceCoefficient(cm, ignore_index="a")
+
+    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+        DiceCoefficient(cm, ignore_index=10)
+
+    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+        DiceCoefficient(cm, ignore_index=11)
+
+
 def test_dice_coefficient():
 
     y_true, y_pred = get_y_true_y_pred()
