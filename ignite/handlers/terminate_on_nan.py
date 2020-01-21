@@ -29,8 +29,8 @@ class TerminateOnNan:
     """
 
     def __init__(self, output_transform=lambda x: x):
-        self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self._logger.addHandler(logging.StreamHandler())
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.logger.addHandler(logging.StreamHandler())
         self._output_transform = output_transform
 
     def __call__(self, engine):
@@ -47,6 +47,6 @@ class TerminateOnNan:
         try:
             apply_to_type(output, (numbers.Number, torch.Tensor), raise_error)
         except RuntimeError:
-            self._logger.warning("{}: Output '{}' contains NaN or Inf. Stop training"
-                                 .format(self.__class__.__name__, output))
+            self.logger.warning("{}: Output '{}' contains NaN or Inf. Stop training"
+                                .format(self.__class__.__name__, output))
             engine.terminate()
