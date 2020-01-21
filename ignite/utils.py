@@ -1,5 +1,8 @@
-import torch
+import os
 import collections.abc as collections
+import logging
+
+import torch
 
 
 def convert_tensor(input_, device=None, non_blocking=False):
@@ -41,3 +44,67 @@ def to_onehot(indices, num_classes):
                          dtype=torch.uint8,
                          device=indices.device)
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
+
+
+def setup_logger(name, level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s: %(message)s",
+                 filepath=None, distributed_rank=0):
+    """Setups logger: name, level, format etc.
+
+    Args:
+        name (str): new name for the logger.
+        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG
+        format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`
+        filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
+        distributed_rank (int, optional): Optional, rank in distributed configuration to avoid logger setup for workers.
+
+    Returns:
+        logging.Logger
+
+    For example, to improve logs readability when training with a trainer and evaluator:
+
+    .. code-block:: python
+
+        from ignite.utils import setup_logger
+
+        trainer = ...
+        evaluator = ...
+
+        trainer.logger = setup_logger("trainer")
+        evaluator.logger = setup_logger("evaluator")
+
+        trainer.run(data, max_epochs=10)
+
+        # Logs will look like
+        # 2020-01-21 12:46:07,356 trainer INFO: Engine run starting with max_epochs=5.
+        # 2020-01-21 12:46:07,358 trainer INFO: Epoch[1] Complete. Time taken: 00:5:23
+        # 2020-01-21 12:46:07,358 evaluator INFO: Engine run starting with max_epochs=1.
+        # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
+        # ...
+
+    """
+    logger = logging.getLogger(name)
+
+    if distributed_rank > 0:
+        return logger
+
+    logger.setLevel(level)
+
+    # Remove previous handlers
+    if logger.hasHandlers():
+        for h in list(logger.handlers):
+            logger.removeHandler(h)
+
+    formatter = logging.Formatter(format)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    if filepath is not None:
+        fh = logging.FileHandler(filepath)
+        fh.setLevel(level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+    return logger
