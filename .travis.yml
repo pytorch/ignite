@@ -1,7 +1,6 @@
 language: python
 
 python:
-  - "3.6"
   - "3.7"
 
 env:
@@ -87,7 +86,7 @@ after_success:
 jobs:
   include:
     - stage: Lint check
-      python: "3.6"
+      python: "3.7"
       before_install: # Nothing to do
       install: pip install flake8
       script: flake8
@@ -95,7 +94,7 @@ jobs:
 
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
     - stage: Docs
-      python: "3.6"
+      python: "3.7"
       if: type != cron
       # Use previously defined before_install
       before_install: *before_install
@@ -128,7 +127,7 @@ jobs:
             tags: true
 
     - stage: Deploy
-      python: "3.6"
+      python: "3.7"
       env:
         - PYTORCH_CHANNEL=pytorch
       if: tag IS present
@@ -180,7 +179,7 @@ jobs:
           tags: true
 
     - stage: Nightly
-      python: "3.6"
+      python: "3.7"
       if: type = cron
       env:
         - PYTORCH_CHANNEL=pytorch-nightly
