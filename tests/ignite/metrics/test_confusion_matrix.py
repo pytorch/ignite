@@ -1,4 +1,3 @@
-from __future__ import division
 import os
 import torch
 
@@ -7,8 +6,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
-from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall
-
+from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, DiceCoefficient
 import pytest
 
 
@@ -475,6 +473,42 @@ def test_cm_with_average():
     true_pr = precision_score(np_y, np_y_pred, average=None, labels=list(range(num_classes)))
     res = cm.compute().numpy().diagonal()
     np.testing.assert_almost_equal(true_pr, res)
+
+
+def test_dice_coefficient():
+
+    y_true, y_pred = get_y_true_y_pred()
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+
+    true_res = [0, 0, 0]
+    for index in range(3):
+        bin_y_true = y_true == index
+        bin_y_pred = y_pred == index
+        # dice coefficient: 2*intersection(x, y) / (|x| + |y|)
+        # union(x, y) = |x| + |y| - intersection(x, y)
+        intersection = bin_y_true & bin_y_pred
+        union = bin_y_true | bin_y_pred
+        true_res[index] = 2.0 * intersection.sum() / (union.sum() + intersection.sum())
+
+    cm = ConfusionMatrix(num_classes=3)
+    dice_metric = DiceCoefficient(cm)
+
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = dice_metric.compute().numpy()
+    np.testing.assert_allclose(res, true_res)
+
+    for ignore_index in range(3):
+        cm = ConfusionMatrix(num_classes=3)
+        dice_metric = DiceCoefficient(cm, ignore_index=ignore_index)
+        # Update metric
+        output = (th_y_logits, th_y_true)
+        cm.update(output)
+        res = dice_metric.compute().numpy()
+        true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1:]
+        assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
 
 
 def _test_distrib_multiclass_images(device):
