@@ -639,7 +639,7 @@ class Engine:
         """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
         """
         self.logger.info("Terminate current epoch is signaled. "
-                          "Current epoch iteration will stop after current iteration is finished.")
+                         "Current epoch iteration will stop after current iteration is finished.")
         self.should_terminate_single_epoch = True
 
     def _run_once_on_dataset(self):
@@ -844,7 +844,7 @@ class Engine:
             if epoch_length is not None:
                 self.state.epoch_length = epoch_length
             self.logger.info("Engine run resuming from iteration {}, epoch {} until {} epochs"
-                              .format(self.state.iteration, self.state.epoch, self.state.max_epochs))
+                             .format(self.state.iteration, self.state.epoch, self.state.max_epochs))
 
         self.state.dataloader = data
         return self._internal_run()
