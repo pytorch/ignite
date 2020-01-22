@@ -355,8 +355,7 @@ class Engine:
 
     def __init__(self, process_function):
         self._event_handlers = defaultdict(list)
-        self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self._logger.addHandler(logging.NullHandler())
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
         self.last_event_name = None
         self.should_terminate = False
@@ -489,14 +488,14 @@ class Engine:
             handler = Engine._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
-            self._logger.error("attempt to add event handler to an invalid event %s.", event_name)
+            self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
         Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
-        self._logger.debug("added handler for event %s.", event_name)
+        self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
 
@@ -601,7 +600,7 @@ class Engine:
 
         """
         if event_name in self._allowed_events:
-            self._logger.debug("firing handlers for event %s ", event_name)
+            self.logger.debug("firing handlers for event %s ", event_name)
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
@@ -633,14 +632,14 @@ class Engine:
     def terminate(self):
         """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration.
         """
-        self._logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
+        self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self):
         """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
         """
-        self._logger.info("Terminate current epoch is signaled. "
-                          "Current epoch iteration will stop after current iteration is finished.")
+        self.logger.info("Terminate current epoch is signaled. "
+                         "Current epoch iteration will stop after current iteration is finished.")
         self.should_terminate_single_epoch = True
 
     def _run_once_on_dataset(self):
@@ -702,7 +701,7 @@ class Engine:
                     break
 
         except BaseException as e:
-            self._logger.error("Current run is terminating due to exception: %s.", str(e))
+            self.logger.error("Current run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         time_taken = time.time() - start_time
@@ -835,7 +834,7 @@ class Engine:
                 else:
                     raise ValueError("Argument `epoch_length` should be defined if `data` is an iterator")
             self.state = State(seed=seed, iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
-            self._logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
+            self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
             # Keep actual state and override it if input args provided
             if max_epochs is not None:
@@ -844,8 +843,8 @@ class Engine:
                 self.state.seed = seed
             if epoch_length is not None:
                 self.state.epoch_length = epoch_length
-            self._logger.info("Engine run resuming from iteration {}, epoch {} until {} epochs"
-                              .format(self.state.iteration, self.state.epoch, self.state.max_epochs))
+            self.logger.info("Engine run resuming from iteration {}, epoch {} until {} epochs"
+                             .format(self.state.iteration, self.state.epoch, self.state.max_epochs))
 
         self.state.dataloader = data
         return self._internal_run()
@@ -937,7 +936,7 @@ class Engine:
 
                 hours, mins, secs = self._run_once_on_dataset()
 
-                self._logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+                self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
@@ -945,11 +944,11 @@ class Engine:
             self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self._logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
             self._dataloader_iter = self._dataloader_len = None
-            self._logger.error("Engine run is terminating due to exception: %s.", str(e))
+            self.logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
         self._dataloader_iter = self._dataloader_len = None
