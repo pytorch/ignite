@@ -15,23 +15,21 @@ In both cases, you will also need to code some tests to ensure the correct behav
   - naming convention for files `test_*.py`, e.g. `test_precision.py`
   - naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
 
-New code should be compatible with Python 2.7 and Python 3.X versions. Once you finish implementing a feature or bugfix and tests, please run lint checking and tests:
+New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests, please run lint checking and tests:
 
 #### Run lint checking
 ```bash
-flake8 ignite/ tests/
+flake8 ignite/ tests/ examples/
 ```
 
 #### Run tests:
 ```bash
-pytest tests/
+pytest tests/ -vvv
 ```
 or tests with coverage (assuming installed `pytest-cov`):
 ```bash
 py.test --cov ignite --cov-report term-missing
 ```
-
-We suggest to run test on Python 3.X, however be aware that our CI system is testing on Python 2.7 and Python 3.6. 
 
 #### Send a PR
 If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
