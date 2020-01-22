@@ -496,3 +496,30 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
+
+
+def test_engine_with_iterable_dataloader():
+
+    class MyIterableDataset(torch.utils.data.IterableDataset):
+        def __init__(self, start, end):
+            super(MyIterableDataset).__init__()
+            assert end > start, "this example code only works with end >= start"
+            self.start = start
+            self.end = end
+
+        def __iter__(self):
+            return iter(range(self.start, self.end))
+
+    ds = MyIterableDataset(0, 1000)
+    data_loader = torch.utils.data.DataLoader(ds, num_workers=2)
+
+    counter = [0]
+
+    def foo(e, b):
+        print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
+        counter[0] += 1
+
+    engine = Engine(foo)
+    engine.run(data_loader, epoch_length=10, max_epochs=5)
+
+    assert counter[0] == 50
