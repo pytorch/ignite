@@ -1,4 +1,5 @@
 import warnings
+from typing import Sequence, Callable, Optional, Union
 
 import torch
 
@@ -14,7 +15,7 @@ __all__ = [
 
 class _BasePrecisionRecall(_BaseClassification):
 
-    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
+    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False, device: Optional[Union[str, torch.device]] = None):
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             if (not average) and is_multilabel:
                 warnings.warn("Precision/Recall metrics do not work in distributed setting when average=False "
@@ -30,13 +31,13 @@ class _BasePrecisionRecall(_BaseClassification):
                                                    device=device)
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         dtype = torch.float64
         self._true_positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
         self._positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
         super(_BasePrecisionRecall, self).reset()
 
-    def compute(self):
+    def compute(self) -> torch.Tensor:
         if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed.".format(self.__class__.__name__))
@@ -113,12 +114,12 @@ class Precision(_BasePrecisionRecall):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
+    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False, device: Optional[Union[str, torch.device]] = None):
         super(Precision, self).__init__(output_transform=output_transform,
                                         average=average, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
-    def update(self, output):
+    def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
         self._check_shape(output)
         self._check_type((y_pred, y))
