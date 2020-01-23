@@ -17,7 +17,9 @@ class TopKCategoricalAccuracy(Metric):
 
     - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
     """
-    def __init__(self, k=5, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None):
+
+    def __init__(self, k=5, output_transform: Callable = lambda x: x,
+                 device: Optional[Union[str, torch.device]] = None):
         super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device)
         self._k = k
 

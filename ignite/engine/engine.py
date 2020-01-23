@@ -277,7 +277,7 @@ class Engine:
             raise TypeError("Argument event_name should not be a callable event, "
                             "please use event without any event filtering")
 
-    def has_event_handler(self, handler: Callable, event_name: Optional[str]=None):
+    def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
         """Check if the specified event has the specified handler.
 
         Args:
@@ -350,9 +350,11 @@ class Engine:
             **kwargs: optional keyword args to be passed to `handler`.
 
         """
+
         def decorator(f: Callable) -> Callable:
             self.add_event_handler(event_name, f, *args, **kwargs)
             return f
+
         return decorator
 
     def _fire_event(self, event_name: str, *event_args, **event_kwargs) -> None:
@@ -497,7 +499,7 @@ class Engine:
         """
         if self.state is None:
             return OrderedDict()
-        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0], )
+        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
@@ -548,7 +550,8 @@ class Engine:
     def _is_done(state: State) -> bool:
         return state.iteration == state.epoch_length * state.max_epochs
 
-    def run(self, data: Iterable, max_epochs: Optional[int]=None, epoch_length: Optional[int]=None, seed: Optional[int]=None) -> State:
+    def run(self, data: Iterable, max_epochs: Optional[int] = None, epoch_length: Optional[int] = None,
+            seed: Optional[int] = None) -> State:
         """Runs the `process_function` over the passed data.
 
         Engine has a state and the following logic is applied in this function:
@@ -731,51 +734,3 @@ class Engine:
 
         self._dataloader_iter = self._dataloader_len = None
         return self.state
-
-
-def _update_dataloader(dataloader, new_batch_sampler):
-    params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
-    for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler', 'dataset_kind']:
-        if k in params_keys:
-            params_keys.remove(k)
-    params = {k: getattr(dataloader, k) for k in params_keys}
-    params['batch_sampler'] = new_batch_sampler
-    return torch.utils.data.DataLoader(**params)
-
-
-class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
-    """Reproducible batch sampler. Internally, this class iterates and stores indices of the input batch sampler.
-
-    Args:
-        batch_sampler (torch.utils.data.sampler.BatchSampler): batch sampler same as used with
-            `torch.utils.data.DataLoader`
-        start_iteration (int, optional): optional start iteration
-    """
-    def __init__(self, batch_sampler, start_iteration=None):
-        if not isinstance(batch_sampler, torch.utils.data.sampler.BatchSampler):
-            raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
-
-        self.batch_indices = None
-        self.batch_sampler = batch_sampler
-        self.start_iteration = start_iteration
-        self.sampler = self.batch_sampler.sampler
-
-    def setup_batch_indices(self):
-        self.batch_indices = []
-        for batch in self.batch_sampler:
-            self.batch_indices.append(batch)
-
-        if self.start_iteration is not None:
-            self.batch_indices = self.batch_indices[self.start_iteration:]
-            self.start_iteration = None
-
-    def __iter__(self):
-        if self.batch_indices is None:
-            self.setup_batch_indices()
-        for batch in self.batch_indices:
-            yield batch
-
-        self.batch_indices = None
-
-    def __len__(self):
-        return len(self.batch_sampler)

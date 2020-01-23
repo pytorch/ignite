@@ -43,7 +43,8 @@ class EarlyStopping:
 
     """
 
-    def __init__(self, patience: int, score_function: Callable, trainer: Engine, min_delta: float = 0., cumulative_delta: bool = False):
+    def __init__(self, patience: int, score_function: Callable, trainer: Engine, min_delta: float = 0.,
+                 cumulative_delta: bool = False):
 
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")

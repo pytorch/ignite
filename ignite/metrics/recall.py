@@ -69,7 +69,8 @@ class Recall(_BasePrecisionRecall):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False, device: Optional[Union[str, torch.device]] = None):
+    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False,
+                 device: Optional[Union[str, torch.device]] = None):
         super(Recall, self).__init__(output_transform=output_transform,
                                      average=average, is_multilabel=is_multilabel, device=device)
 

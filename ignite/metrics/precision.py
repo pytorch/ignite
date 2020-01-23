@@ -15,7 +15,8 @@ __all__ = [
 
 class _BasePrecisionRecall(_BaseClassification):
 
-    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False, device: Optional[Union[str, torch.device]] = None):
+    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False,
+                 device: Optional[Union[str, torch.device]] = None):
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             if (not average) and is_multilabel:
                 warnings.warn("Precision/Recall metrics do not work in distributed setting when average=False "
@@ -114,7 +115,8 @@ class Precision(_BasePrecisionRecall):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False, device: Optional[Union[str, torch.device]] = None):
+    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False,
+                 device: Optional[Union[str, torch.device]] = None):
         super(Precision, self).__init__(output_transform=output_transform,
                                         average=average, is_multilabel=is_multilabel, device=device)
 
