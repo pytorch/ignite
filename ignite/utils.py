@@ -1,5 +1,6 @@
 import collections.abc as collections
 import logging
+from typing import Union, Optional, Callable, Any, Type
 
 import torch
 
@@ -12,21 +13,37 @@ __all__ = [
 ]
 
 
-def convert_tensor(input_, device=None, non_blocking=False):
+def convert_tensor(input_: Union[torch.Tensor, collections.Sequence,
+                                 collections.Mapping, str, bytes],
+                   device: Optional[Union[str, torch.device]] = None,
+                   non_blocking: bool = False) -> Union[torch.Tensor,
+                                                        collections.Sequence,
+                                                        collections.Mapping,
+                                                        str, bytes]:
     """Move tensors to relevant device."""
-    def _func(tensor):
-        return tensor.to(device=device, non_blocking=non_blocking) if device else tensor
+
+    def _func(tensor: torch.Tensor) -> torch.Tensor:
+        return tensor.to(device=device,
+                         non_blocking=non_blocking) if device else tensor
 
     return apply_to_tensor(input_, _func)
 
 
-def apply_to_tensor(input_, func):
+def apply_to_tensor(input_: Union[torch.Tensor, collections.Sequence,
+                                  collections.Mapping, str, bytes],
+                    func: Callable) -> Union[torch.Tensor,
+                                             collections.Sequence,
+                                             collections.Mapping, str, bytes]:
     """Apply a function on a tensor or mapping, or sequence of tensors.
     """
     return apply_to_type(input_, torch.Tensor, func)
 
 
-def apply_to_type(input_, input_type, func):
+def apply_to_type(input_: Union[Any, collections.Sequence,
+                                collections.Mapping, str, bytes],
+                  input_type: Type,
+                  func: Callable) -> Union[Any, collections.Sequence,
+                                           collections.Mapping, str, bytes]:
     """Apply a function on a object of `input_type` or mapping, or sequence of objects of `input_type`.
     """
     if isinstance(input_, input_type):
@@ -42,7 +59,7 @@ def apply_to_type(input_, input_type, func):
                          .format(input_type, type(input_))))
 
 
-def to_onehot(indices, num_classes):
+def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     """Convert a tensor of indices of any shape `(N, ...)` to a
     tensor of one-hot indicators of shape `(N, num_classes, ...) and of type uint8. Output's device is equal to the
     input's device`.
@@ -53,8 +70,10 @@ def to_onehot(indices, num_classes):
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
 
 
-def setup_logger(name, level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s: %(message)s",
-                 filepath=None, distributed_rank=0):
+def setup_logger(name: str, level: int = logging.INFO,
+                 format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
+                 filepath: Optional[str] = None,
+                 distributed_rank: int = 0) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
     Args:
