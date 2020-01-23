@@ -1,6 +1,6 @@
 import collections.abc as collections
 import logging
-from typing import Union, Optional, Callable, Any, Type
+from typing import Union, Optional, Callable, Any, Type, Tuple
 
 import torch
 
@@ -41,7 +41,7 @@ def apply_to_tensor(input_: Union[torch.Tensor, collections.Sequence,
 
 def apply_to_type(input_: Union[Any, collections.Sequence,
                                 collections.Mapping, str, bytes],
-                  input_type: Type,
+                  input_type: Union[Type, Tuple[Type[Any], Any]],
                   func: Callable) -> Union[Any, collections.Sequence,
                                            collections.Mapping, str, bytes]:
     """Apply a function on a object of `input_type` or mapping, or sequence of objects of `input_type`.
