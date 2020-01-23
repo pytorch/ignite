@@ -1,5 +1,7 @@
 from typing import Union, Sequence, Optional, Callable
 
+from typing import Union, Sequence, Optional, Callable
+
 import torch
 from torch.nn.functional import pairwise_distance
 
