@@ -1,9 +1,12 @@
+from typing import Callable, Optional, Generator
 import inspect
 
 import torch
 
+from ignite.engine.engine import Engine
 
-def _check_signature(engine, fn, fn_description, *args, **kwargs):
+
+def _check_signature(engine: Engine, fn: Callable, fn_description: str, *args, **kwargs) -> None:
     exception_msg = None
 
     signature = inspect.signature(fn)
@@ -20,7 +23,7 @@ def _check_signature(engine, fn, fn_description, *args, **kwargs):
                          "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))
 
 
-def _update_dataloader(dataloader, new_batch_sampler):
+def _update_dataloader(dataloader: torch.utils.data.DataLoader, new_batch_sampler: torch.utils.data.sampler.BatchSampler) -> torch.utils.data.DataLoader:
     params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
     for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler', 'dataset_kind']:
         if k in params_keys:
@@ -38,7 +41,7 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
             `torch.utils.data.DataLoader`
         start_iteration (int, optional): optional start iteration
     """
-    def __init__(self, batch_sampler, start_iteration=None):
+    def __init__(self, batch_sampler: torch.utils.data.sampler.BatchSampler, start_iteration: Optional[int] = None):
         if not isinstance(batch_sampler, torch.utils.data.sampler.BatchSampler):
             raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
 
@@ -47,7 +50,7 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
         self.start_iteration = start_iteration
         self.sampler = self.batch_sampler.sampler
 
-    def setup_batch_indices(self):
+    def setup_batch_indices(self) -> None:
         self.batch_indices = []
         for batch in self.batch_sampler:
             self.batch_indices.append(batch)
@@ -56,7 +59,7 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
             self.batch_indices = self.batch_indices[self.start_iteration:]
             self.start_iteration = None
 
-    def __iter__(self):
+    def __iter__(self) -> Generator:
         if self.batch_indices is None:
             self.setup_batch_indices()
         for batch in self.batch_indices:
@@ -64,5 +67,5 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
 
         self.batch_indices = None
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.batch_sampler)
