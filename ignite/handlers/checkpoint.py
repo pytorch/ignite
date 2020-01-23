@@ -401,7 +401,7 @@ class ModelCheckpoint(Checkpoint):
         self.global_step_transform = global_step_transform
 
     @property
-    def last_checkpoint(self) -> None:
+    def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
             return None
         return os.path.join(self.save_handler.dirname, self._saved[0].filename)
