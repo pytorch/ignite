@@ -3,6 +3,16 @@ from ignite.handlers.timing import Timer
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.terminate_on_nan import TerminateOnNan
 
+__all__ = [
+    'ModelCheckpoint',
+    'Checkpoint',
+    'DiskSaver',
+    'Timer',
+    'EarlyStopping',
+    'TerminateOnNan',
+    'global_step_from_engine'
+]
+
 
 def global_step_from_engine(engine):
     """Helper method to setup `global_step_transform` function using another engine.

@@ -4,6 +4,10 @@ from ignite.exceptions import NotComputableError
 
 import torch
 
+__all__ = [
+    'Accuracy'
+]
+
 
 class _BaseClassification(Metric):
 

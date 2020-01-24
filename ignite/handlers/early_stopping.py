@@ -2,6 +2,10 @@ import logging
 
 from ignite.engine import Engine
 
+__all__ = [
+    'EarlyStopping'
+]
+
 
 class EarlyStopping:
     """EarlyStopping handler can be used to stop the training if no improvement after a given number of events.
