@@ -28,7 +28,7 @@ def apply_to_type(input_, input_type, func):
     elif isinstance(input_, collections.Mapping):
         return type(input_)({k: apply_to_type(sample, input_type, func) for k, sample in input_.items()})
     elif isinstance(input_, collections.Sequence):
-        return type(input)([apply_to_type(sample, input_type, func) for sample in input_])
+        return type(input_)([apply_to_type(sample, input_type, func) for sample in input_])
     else:
         raise TypeError(("input must contain {}, dicts or lists; found {}"
                          .format(input_type, type(input_))))
