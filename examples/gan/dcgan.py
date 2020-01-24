@@ -306,7 +306,7 @@ def main(dataset, dataroot,
 
     # ignite objects
     trainer = Engine(step)
-    checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, save_interval=1, n_saved=10, require_empty=False)
+    checkpoint_handler = ModelCheckpoint(output_dir, CKPT_PREFIX, n_saved=10, require_empty=False)
     timer = Timer(average=True)
 
     # attach running average metrics
@@ -321,27 +321,26 @@ def main(dataset, dataroot,
     pbar = ProgressBar()
     pbar.attach(trainer, metric_names=monitoring_metrics)
 
-    @trainer.on(Events.ITERATION_COMPLETED)
+    @trainer.on(Events.ITERATION_COMPLETED(every=PRINT_FREQ))
     def print_logs(engine):
-        if (engine.state.iteration - 1) % PRINT_FREQ == 0:
-            fname = os.path.join(output_dir, LOGS_FNAME)
-            columns = ["iteration", ] + list(engine.state.metrics.keys())
-            values = [str(engine.state.iteration), ] + \
-                     [str(round(value, 5)) for value in engine.state.metrics.values()]
+        fname = os.path.join(output_dir, LOGS_FNAME)
+        columns = ["iteration", ] + list(engine.state.metrics.keys())
+        values = [str(engine.state.iteration), ] + \
+                 [str(round(value, 5)) for value in engine.state.metrics.values()]
 
-            with open(fname, 'a') as f:
-                if f.tell() == 0:
-                    print('\t'.join(columns), file=f)
-                print('\t'.join(values), file=f)
+        with open(fname, 'a') as f:
+            if f.tell() == 0:
+                print('\t'.join(columns), file=f)
+            print('\t'.join(values), file=f)
 
-            message = '[{epoch}/{max_epoch}][{i}/{max_i}]'.format(epoch=engine.state.epoch,
-                                                                  max_epoch=epochs,
-                                                                  i=(engine.state.iteration % len(loader)),
-                                                                  max_i=len(loader))
-            for name, value in zip(columns, values):
-                message += ' | {name}: {value}'.format(name=name, value=value)
+        message = '[{epoch}/{max_epoch}][{i}/{max_i}]'.format(epoch=engine.state.epoch,
+                                                              max_epoch=epochs,
+                                                              i=(engine.state.iteration % len(loader)),
+                                                              max_i=len(loader))
+        for name, value in zip(columns, values):
+            message += ' | {name}: {value}'.format(name=name, value=value)
 
-            pbar.log_message(message)
+        pbar.log_message(message)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)

@@ -16,7 +16,7 @@ class R2Score(_BaseRegression):
         where :math:`A_j` is the ground truth, :math:`P_j` is the predicted value and
         :math:`\bar{A}` is the mean of the ground truth.
 
-        - `update` must receive output of the form `(y_pred, y)`.
+        - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
         - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
     """
     def reset(self):

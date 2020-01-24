@@ -5,12 +5,13 @@ import warnings
 import torch
 
 from ignite.engine import State, Engine
-from ignite._six import with_metaclass
+from ignite.engine.engine import EventWithFilter
+from ignite.handlers import global_step_from_engine
 
 
-class BaseLogger(object):
+class BaseLogger:
     """
-    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger
+    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
 
     """
     def attach(self, engine, log_handler, event_name):
@@ -23,10 +24,14 @@ class BaseLogger(object):
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
 
         """
-        if event_name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(event_name))
+        name = event_name
+        if isinstance(event_name, EventWithFilter):
+            name = event_name.event
 
-        engine.add_event_handler(event_name, log_handler, self, event_name)
+        if name not in State.event_to_attr:
+            raise RuntimeError("Unknown event name '{}'".format(name))
+
+        engine.add_event_handler(event_name, log_handler, self, name)
 
     def __enter__(self):
         return self
@@ -38,7 +43,7 @@ class BaseLogger(object):
         pass
 
 
-class BaseHandler(with_metaclass(ABCMeta, object)):
+class BaseHandler(metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self, *args, **kwargs):
@@ -83,8 +88,9 @@ class BaseOutputHandler(BaseHandler):
             if not isinstance(another_engine, Engine):
                 raise TypeError("Argument another_engine should be of type Engine, "
                                 "but given {}".format(type(another_engine)))
-            warnings.warn("Use of another_engine is deprecated and will be removed in 0.2.1. "
+            warnings.warn("Use of another_engine is deprecated and will be removed in 0.4.0. "
                           "Please use global_step_transform instead.", DeprecationWarning)
+            global_step_transform = global_step_from_engine(another_engine)
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError("global_step_transform should be a function, got {} instead."
@@ -97,7 +103,6 @@ class BaseOutputHandler(BaseHandler):
         self.tag = tag
         self.metric_names = metric_names
         self.output_transform = output_transform
-        self.another_engine = another_engine
         self.global_step_transform = global_step_transform
 
     def _setup_output_metrics(self, engine):
@@ -130,7 +135,7 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model, reduction=torch.norm):
+    def __init__(self, model, reduction=torch.norm, tag=None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, "
                             "but given {}".format(type(model)))
@@ -142,13 +147,14 @@ class BaseWeightsScalarHandler(BaseHandler):
         def _is_0D_tensor(t):
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
-        # Test reduction function on a random tensor
-        o = reduction(torch.rand(4, 2))
+        # Test reduction function on a tensor
+        o = reduction(torch.ones(4, 2))
         if not (isinstance(o, numbers.Number) or _is_0D_tensor(o)):
             raise ValueError("Output of the reduction function should be a scalar, but got {}".format(type(o)))
 
         self.model = model
         self.reduction = reduction
+        self.tag = tag
 
 
 class BaseWeightsHistHandler(BaseHandler):
@@ -156,9 +162,10 @@ class BaseWeightsHistHandler(BaseHandler):
     Helper handler to log model's weights as histograms.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, tag=None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, "
                             "but given {}".format(type(model)))
 
         self.model = model
+        self.tag = tag

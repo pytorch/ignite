@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import pytest
-import mock
+import unittest.mock as mock
 
 from ignite.contrib.engines import create_supervised_tbptt_trainer, Tbptt_Events
 from ignite.contrib.engines.tbptt import _detach_hidden
@@ -139,5 +139,5 @@ def test_create_supervised_tbptt_trainer_with_cpu():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_tbptt_trainer_with_gpu():
+def test_create_supervised_tbptt_trainer_on_cuda():
     _test_create_supervised_tbptt_trainer("cuda")

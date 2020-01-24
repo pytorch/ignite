@@ -78,15 +78,13 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     val_avg_loss_window = create_plot_window(vis, '#Epochs', 'Loss', 'Validation Average Loss')
     val_avg_accuracy_window = create_plot_window(vis, '#Epochs', 'Accuracy', 'Validation Average Accuracy')
 
-    @trainer.on(Events.ITERATION_COMPLETED)
+    @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
-        iter = (engine.state.iteration - 1) % len(train_loader) + 1
-        if iter % log_interval == 0:
-            print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-                  "".format(engine.state.epoch, iter, len(train_loader), engine.state.output))
-            vis.line(X=np.array([engine.state.iteration]),
-                     Y=np.array([engine.state.output]),
-                     update='append', win=train_loss_window)
+        print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
+              "".format(engine.state.epoch, engine.state.iteration, len(train_loader), engine.state.output))
+        vis.line(X=np.array([engine.state.iteration]),
+                 Y=np.array([engine.state.output]),
+                 update='append', win=train_loss_window)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):

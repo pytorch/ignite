@@ -1,5 +1,5 @@
-Ignite Documentation
-====================
+Ignite Your Networks!
+=====================
 
 :mod:`ignite` is a high-level library to help with training neural networks in PyTorch.
 
@@ -20,14 +20,14 @@ your code when "rolling your own" training loop.
 Installation
 ============
 
-From pip:
+From `pip <https://pypi.org/project/pytorch-ignite/>`_:
 
 .. code:: bash
 
     pip install pytorch-ignite
 
 
-From conda:
+From `conda <https://anaconda.org/pytorch/ignite>`_:
 
 .. code:: bash
 
@@ -36,11 +36,30 @@ From conda:
 
 From source:
 
-You can clone the source from `github <https://github.com/pytorch/ignite>`_ and run
+.. code:: bash
+
+    pip install git+https://github.com/pytorch/ignite
+
+
+
+Nightly releases
+----------------
+
+From pip:
 
 .. code:: bash
 
-    python setup.py install
+    pip install --pre pytorch-ignite
+
+
+From conda (this suggests to install `pytorch nightly release <https://anaconda.org/pytorch-nightly/pytorch>`_ instead
+of stable version as dependency):
+
+.. code:: bash
+
+    conda install ignite -c pytorch-nightly
+
+
 
 
 .. toctree::

@@ -16,12 +16,12 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 import ignite
-import sphinx_rtd_theme
+import pytorch_sphinx_theme
 
 # -- Project information -----------------------------------------------------
 
 project = 'ignite'
-copyright = '2018, Torch Contributors'
+copyright = '2019, Torch Contributors'
 author = 'Torch Contributors'
 
 # The short X.Y version
@@ -91,10 +91,11 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = 'pytorch_sphinx_theme'
+html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
+    'canonical_url': 'https://pytorch.org/ignite/index.html',
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': True,
@@ -111,12 +112,13 @@ html_logo = '_static/img/ignite-logo-dark.svg'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ['_static', '_templates/_static']
 
 html_context = {
     'css_files': [
-        'https://fonts.googleapis.com/css?family=Lato',
-        '_static/css/pytorch_theme.css'
+        # 'https://fonts.googleapis.com/css?family=Lato',
+        # '_static/css/pytorch_theme.css'
+        '_static/css/ignite_theme.css'
     ],
 }
 

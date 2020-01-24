@@ -5,14 +5,14 @@ import warnings
 import torch
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
-    BaseWeightsScalarHandler
+    BaseWeightsScalarHandler, global_step_from_engine
 
 
 __all__ = ['VisdomLogger', 'OptimizerParamsHandler', 'OutputHandler',
-           'WeightsScalarHandler', 'GradsScalarHandler']
+           'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
 
 
-class _BaseVisDrawer(object):
+class _BaseVisDrawer:
 
     def __init__(self, show_legend=False):
         self.windows = {}
@@ -73,11 +73,12 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             vd_logger = VisdomLogger()
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer`
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of
+            # the `trainer`:
             vd_logger.attach(evaluator,
                              log_handler=OutputHandler(tag="validation",
                                                        metric_names=["nll", "accuracy"],
-                                                       another_engine=trainer),
+                                                       global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
         Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
@@ -120,15 +121,27 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
             with corresponding keys.
-        another_engine (Engine): another engine to use to provide the value of event. Typically, user can provide
+        another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
+            value of event. Typically, user can provide
             the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
             epoch/iteration value.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
-            Output of function should be an integer. Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step.
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.visdom_logger.global_step_from_engine`.
         show_legend (bool, optional): flag to show legend in the window
-    """
 
+    Note:
+
+        Example of `global_step_transform`:
+
+        .. code-block:: python
+
+            def global_step_transform(engine, event_name):
+                return engine.state.get_event_attrib_value(event_name)
+
+    """
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None,
                  show_legend=False):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
@@ -141,8 +154,8 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         metrics = self._setup_output_metrics(engine)
 
-        engine = engine if self.another_engine is None else self.another_engine
         global_step = self.global_step_transform(engine, event_name)
+
         if not isinstance(global_step, int):
             raise TypeError("global_step must be int, got {}."
                             " Please check the output of global_step_transform.".format(type(global_step)))
@@ -234,11 +247,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
+        tag (str, optional): common title for all produced plots. For example, 'generator'
         show_legend (bool, optional): flag to show legend in the window
     """
 
-    def __init__(self, model, reduction=torch.norm, show_legend=False):
-        super(WeightsScalarHandler, self).__init__(model, reduction)
+    def __init__(self, model, reduction=torch.norm, tag=None, show_legend=False):
+        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
@@ -247,9 +261,10 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
-            k = "weights_{}/{}".format(self.reduction.__name__, name)
+            k = "{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name)
             v = float(self.reduction(p.data))
             self.add_scalar(logger, k, v, event_name, global_step)
 
@@ -278,12 +293,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
+        tag (str, optional): common title for all produced plots. For example, 'generator'
         show_legend (bool, optional): flag to show legend in the window
 
     """
 
-    def __init__(self, model, reduction=torch.norm, show_legend=False):
-        super(GradsScalarHandler, self).__init__(model, reduction)
+    def __init__(self, model, reduction=torch.norm, tag=None, show_legend=False):
+        super(GradsScalarHandler, self).__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine, logger, event_name):
@@ -291,9 +307,10 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
             name = name.replace('.', '/')
-            k = "grads_{}/{}".format(self.reduction.__name__, name)
+            k = "{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name)
             v = float(self.reduction(p.grad))
             self.add_scalar(logger, k, v, event_name, global_step)
 
@@ -345,19 +362,21 @@ class VisdomLogger(BaseLogger):
                              event_name=Events.ITERATION_COMPLETED)
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
-            # We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `train_evaluator`.
+            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # of the `trainer` instead of `train_evaluator`:
             vd_logger.attach(train_evaluator,
                              log_handler=OutputHandler(tag="training",
                                                        metric_names=["nll", "accuracy"],
-                                                       another_engine=trainer),
+                                                       global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `another_engine=trainer` to take the epoch of the `trainer` instead of `evaluator`.
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of
+            # the `trainer` instead of `evaluator`:
             vd_logger.attach(evaluator,
                              log_handler=OutputHandler(tag="validation",
                                                        metric_names=["nll", "accuracy"],
-                                                       another_engine=trainer),
+                                                       global_step_transform=global_step_from_engine(trainer),
                              event_name=Events.EPOCH_COMPLETED)
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration

@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from mock import MagicMock, call, ANY, Mock
+from unittest.mock import MagicMock, call, ANY, patch
 
 import torch
 
@@ -189,6 +189,40 @@ def test_output_handler_with_wrong_global_step_transform_output():
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
 
+def test_output_handler_with_global_step_from_engine():
+
+    mock_another_engine = MagicMock()
+    mock_another_engine.state = State()
+    mock_another_engine.state.epoch = 10
+    mock_another_engine.state.output = 12.345
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x},
+                            global_step_transform=global_step_from_engine(mock_another_engine))
+
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 1
+    mock_engine.state.output = 0.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.writer.add_scalar.call_count == 1
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss",
+                                                         mock_engine.state.output,
+                                                         mock_another_engine.state.epoch)])
+
+    mock_another_engine.state.epoch = 11
+    mock_engine.state.output = 1.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.writer.add_scalar.call_count == 2
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss",
+                                                         mock_engine.state.output,
+                                                         mock_another_engine.state.epoch)])
+
+
 def test_output_handler_with_global_step_transform():
     def global_step_transform(*args, **kwargs):
         return 10
@@ -230,23 +264,30 @@ def test_weights_scalar_handler(dummy_model_factory):
 
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = WeightsScalarHandler(model)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = WeightsScalarHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 4
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("weights_norm/fc1/weight", 0.0, 5),
-        call("weights_norm/fc1/bias", 0.0, 5),
-        call("weights_norm/fc2/weight", 12.0, 5),
-        call("weights_norm/fc2/bias", math.sqrt(12.0), 5),
-    ], any_order=True)
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        assert mock_logger.writer.add_scalar.call_count == 4
+        mock_logger.writer.add_scalar.assert_has_calls([
+            call(tag_prefix + "weights_norm/fc1/weight", 0.0, 5),
+            call(tag_prefix + "weights_norm/fc1/bias", 0.0, 5),
+            call(tag_prefix + "weights_norm/fc2/weight", 12.0, 5),
+            call(tag_prefix + "weights_norm/fc2/bias", math.sqrt(12.0), 5),
+        ], any_order=True)
+
+    _test()
+    _test(tag="tag")
 
 
 def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
@@ -294,23 +335,30 @@ def test_weights_hist_handler(dummy_model_factory):
 
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = WeightsHistHandler(model)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = WeightsHistHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.writer.add_histogram.call_count == 4
-    mock_logger.writer.add_histogram.assert_has_calls([
-        call(tag="weights/fc1/weight", values=ANY, global_step=5),
-        call(tag="weights/fc1/bias", values=ANY, global_step=5),
-        call(tag="weights/fc2/weight", values=ANY, global_step=5),
-        call(tag="weights/fc2/bias", values=ANY, global_step=5),
-    ], any_order=True)
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        assert mock_logger.writer.add_histogram.call_count == 4
+        mock_logger.writer.add_histogram.assert_has_calls([
+            call(tag=tag_prefix + "weights/fc1/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "weights/fc1/bias", values=ANY, global_step=5),
+            call(tag=tag_prefix + "weights/fc2/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "weights/fc2/bias", values=ANY, global_step=5),
+        ], any_order=True)
+
+    _test()
+    _test(tag="tag")
 
 
 def test_weights_hist_handler_frozen_layers(dummy_model_factory):
@@ -359,25 +407,32 @@ def test_grads_scalar_handler_wrong_setup():
 def test_grads_scalar_handler(dummy_model_factory, norm_mock):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = GradsScalarHandler(model, reduction=norm_mock)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
-    norm_mock.reset_mock()
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
+        norm_mock.reset_mock()
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("grads_norm/fc1/weight", ANY, 5),
-        call("grads_norm/fc1/bias", ANY, 5),
-        call("grads_norm/fc2/weight", ANY, 5),
-        call("grads_norm/fc2/bias", ANY, 5),
-    ], any_order=True)
-    assert mock_logger.writer.add_scalar.call_count == 4
-    assert norm_mock.call_count == 4
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        mock_logger.writer.add_scalar.assert_has_calls([
+            call(tag_prefix + "grads_norm/fc1/weight", ANY, 5),
+            call(tag_prefix + "grads_norm/fc1/bias", ANY, 5),
+            call(tag_prefix + "grads_norm/fc2/weight", ANY, 5),
+            call(tag_prefix + "grads_norm/fc2/bias", ANY, 5),
+        ], any_order=True)
+        assert mock_logger.writer.add_scalar.call_count == 4
+        assert norm_mock.call_count == 4
+
+    _test()
+    _test(tag="tag")
 
 
 def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
@@ -424,23 +479,30 @@ def test_grads_hist_handler_wrong_setup():
 def test_grads_hist_handler(dummy_model_factory):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    wrapper = GradsHistHandler(model)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = GradsHistHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=TensorboardLogger)
+        mock_logger.writer = MagicMock()
 
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
 
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.writer.add_histogram.call_count == 4
-    mock_logger.writer.add_histogram.assert_has_calls([
-        call(tag="grads/fc1/weight", values=ANY, global_step=5),
-        call(tag="grads/fc1/bias", values=ANY, global_step=5),
-        call(tag="grads/fc2/weight", values=ANY, global_step=5),
-        call(tag="grads/fc2/bias", values=ANY, global_step=5),
-    ], any_order=True)
+        tag_prefix = "{}/".format(tag) if tag else ""
+
+        assert mock_logger.writer.add_histogram.call_count == 4
+        mock_logger.writer.add_histogram.assert_has_calls([
+            call(tag=tag_prefix + "grads/fc1/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "grads/fc1/bias", values=ANY, global_step=5),
+            call(tag=tag_prefix + "grads/fc2/weight", values=ANY, global_step=5),
+            call(tag=tag_prefix + "grads/fc2/bias", values=ANY, global_step=5),
+        ], any_order=True)
+
+    _test()
+    _test(tag="tag")
 
 
 def test_grads_hist_frozen_layers(dummy_model_factory):
@@ -532,56 +594,21 @@ def test_integration_as_context_manager(dirname):
     assert len(written_files) > 0
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-    tensorboardX_module = sys.modules['tensorboardX']
-    del sys.modules['tensorboardX']
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules['tensorboardX'] = tensorboardX_module
+def test_no_tensorboardX_package(dirname):
+    from torch.utils.tensorboard import SummaryWriter
+    with patch.dict('sys.modules', {'tensorboardX': None}):
+        tb_logger = TensorboardLogger(log_dir=dirname)
+        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
-def test_no_tensorboardX(dirname, no_site_packages):
-
-    with pytest.raises(RuntimeError, match=r"This contrib module requires tensorboardX to be installed"):
-        TensorboardLogger(log_dir=dirname)
-
-
-@pytest.fixture
-def mock_tb_module():
-    import sys
-    import types
-
-    module_name = 'tensorboardX'
-    tb_module = types.ModuleType(module_name)
-    prev_tb_module = sys.modules[module_name]
-    sys.modules[module_name] = tb_module
-
-    yield tb_module
-    sys.modules[module_name] = prev_tb_module
+def test_no_torch_utils_tensorboard_package(dirname):
+    from tensorboardX import SummaryWriter
+    with patch.dict('sys.modules', {'torch.utils.tensorboard': None}):
+        tb_logger = TensorboardLogger(log_dir=dirname)
+        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
-def test_init_tb1p6(mock_tb_module):
-
-    def side_effect_v1p6(*args, **kwargs):
-        if 'logdir' in kwargs:
-            raise TypeError("type object got multiple values for keyword argument 'logdir'")
-
-    mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect_v1p6)
-
-    with pytest.warns(DeprecationWarning, match=r'tensorboardX version < 1.7 will not be supported'):
-        TensorboardLogger(log_dir=None)
-
-
-def test_init_typeerror_exception(mock_tb_module):
-
-    def side_effect(*args, **kwargs):
-        raise TypeError("a problem")
-
-    mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect)
-
-    with pytest.raises(TypeError, match=r'a problem'):
-        TensorboardLogger(log_dir=None)
+def test_no_tensorboardX_nor_torch_utils_tensorboard():
+    with patch.dict('sys.modules', {'tensorboardX': None, 'torch.utils.tensorboard': None}):
+        with pytest.raises(RuntimeError, match=r'This contrib module requires either tensorboardX or torch'):
+            TensorboardLogger(log_dir=None)

@@ -25,23 +25,24 @@ lr_finder
 tensorboard_logger
 ------------------
 
+See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
+and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
+
+
 .. automodule:: ignite.contrib.handlers.tensorboard_logger
    :members:
    :inherited-members:
-
-See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
-and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
 
 
 visdom_logger
 -------------
 
+See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_
+for detailed usage.
+
 .. automodule:: ignite.contrib.handlers.visdom_logger
    :members:
    :inherited-members:
-
-See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_
-for detailed usage.
 
 
 mlflow_logger
