@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 
 from ignite.metrics.metric import Metric

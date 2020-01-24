@@ -1,4 +1,3 @@
-from __future__ import division
 import math
 
 from ignite.metrics.mean_squared_error import MeanSquaredError
