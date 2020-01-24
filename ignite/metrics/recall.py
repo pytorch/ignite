@@ -6,6 +6,10 @@ from ignite.metrics.precision import _BasePrecisionRecall
 from ignite.utils import to_onehot
 from ignite.metrics.metric import reinit__is_reduced
 
+__all__ = [
+    'Recall'
+]
+
 
 class Recall(_BasePrecisionRecall):
     """

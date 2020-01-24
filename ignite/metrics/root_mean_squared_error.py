@@ -3,6 +3,10 @@ import math
 
 from ignite.metrics.mean_squared_error import MeanSquaredError
 
+__all__ = [
+    'RootMeanSquaredError'
+]
+
 
 class RootMeanSquaredError(MeanSquaredError):
     """

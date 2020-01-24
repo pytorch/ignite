@@ -9,6 +9,11 @@ import torch
 
 from ignite.engine import Events
 
+__all__ = [
+    'Checkpoint',
+    'ModelCheckpoint'
+]
+
 
 class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
