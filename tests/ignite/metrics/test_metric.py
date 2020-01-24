@@ -1,29 +1,41 @@
+import os
 import sys
-from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
-from ignite.engine import Engine, State
-import torch
-from mock import MagicMock
 
+import torch
+
+from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
+from ignite.metrics.metric import reinit__is_reduced
+from ignite.engine import Engine, State
+
+from unittest.mock import MagicMock
+import pytest
 from pytest import approx, raises
+
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+
+
+class DummyMetric1(Metric):
+
+    def __init__(self, true_output, output_transform=lambda x: x):
+        super(DummyMetric1, self).__init__(output_transform=output_transform)
+        self.true_output = true_output
+
+    def reset(self):
+        pass
+
+    def compute(self):
+        pass
+
+    def update(self, output):
+        assert output == self.true_output
 
 
 def test_no_transform():
     y_pred = torch.Tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
-    class DummyMetric(Metric):
-        def reset(self):
-            pass
-
-        def compute(self):
-            pass
-
-        def update(self, output):
-            assert output == (y_pred, y)
-
-    metric = DummyMetric()
+    metric = DummyMetric1(true_output=(y_pred, y))
     state = State(output=(y_pred, y))
     engine = MagicMock(state=state)
     metric.iteration_completed(engine)
@@ -33,7 +45,31 @@ def test_transform():
     y_pred = torch.Tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
+    def transform(output):
+        pred_dict, target_dict = output
+        return pred_dict['y'], target_dict['y']
+
+    metric = DummyMetric1(true_output=(y_pred, y), output_transform=transform)
+    state = State(output=({'y': y_pred}, {'y': y}))
+    engine = MagicMock(state=state)
+    metric.iteration_completed(engine)
+
+
+def test_output_as_mapping_wrong_keys():
+    metric = DummyMetric1(true_output=(0, 1))
+    state = State(output=({'y1': 0, 'y2': 1}))
+    engine = MagicMock(state=state)
+
+    with pytest.raises(ValueError, match=r"When transformed engine's output is a mapping, "
+                                         r"it should contain \('y_pred', 'y'\) keys"):
+        metric.iteration_completed(engine)
+
+
+def test_output_as_mapping_keys_is_none():
+
     class DummyMetric(Metric):
+        _required_output_keys = None
+
         def reset(self):
             pass
 
@@ -41,14 +77,23 @@ def test_transform():
             pass
 
         def update(self, output):
-            assert output == (y_pred, y)
+            pass
 
-    def transform(output):
-        pred_dict, target_dict = output
-        return pred_dict['y'], target_dict['y']
+    metric = DummyMetric()
+    assert metric._required_output_keys is None
+    state = State(output=({'y1': 0, 'y2': 1}))
+    engine = MagicMock(state=state)
 
-    metric = DummyMetric(output_transform=transform)
-    state = State(output=({'y': y_pred}, {'y': y}))
+    with pytest.raises(TypeError, match=r"Transformed engine output for DummyMetric metric should be a tuple/list"):
+        metric.iteration_completed(engine)
+
+
+def test_output_as_mapping():
+    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y = torch.zeros(2)
+
+    metric = DummyMetric1(true_output=(y_pred, y))
+    state = State(output=({'y_pred': y_pred, 'y': y}))
     engine = MagicMock(state=state)
     metric.iteration_completed(engine)
 
@@ -350,7 +395,7 @@ def test_pytorch_operators():
                 yield (y_pred[i], y[i])
 
         d = data(y_pred, y)
-        state = validator.run(d, max_epochs=1)
+        state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
         assert set(state.metrics.keys()) == set([metric_name, ])
         np_y_pred = np.argmax(y_pred.numpy(), axis=-1).ravel()
@@ -412,7 +457,7 @@ def test_indexing_metric():
                 yield (y_pred[i], y[i])
 
         d = data(y_pred, y)
-        state = validator.run(d, max_epochs=1)
+        state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
         sklearn_output = sklearn_metic(y.view(-1).numpy(),
                                        y_pred.view(-1, num_classes).argmax(dim=1).numpy(),
@@ -445,3 +490,113 @@ def test_indexing_metric():
     _test(ConfusionMatrix(num_classes), confusion_matrix, {'labels': labels}, index=np.ix_(labels, labels))
     labels = [1]
     _test(ConfusionMatrix(num_classes), confusion_matrix, {'labels': labels}, index=np.ix_(labels, labels))
+
+
+class DummyMetric2(Metric):
+
+    @reinit__is_reduced
+    def reset(self):
+        pass
+
+    def compute(self):
+        pass
+
+    @reinit__is_reduced
+    def update(self, output):
+        pass
+
+
+def test__sync_all_reduce():
+    m = DummyMetric2()
+    res = m._sync_all_reduce(10)
+    assert res == 10
+
+
+def _test_distrib__sync_all_reduce(device):
+    import torch.distributed as dist
+    assert dist.is_available() and dist.is_initialized()
+
+    m = DummyMetric2(device=device)
+    res = m._sync_all_reduce(10)
+    assert res == 10 * dist.get_world_size()
+
+    m = DummyMetric2(device=device)
+    t = torch.tensor(10, device=device)
+    res = m._sync_all_reduce(t)
+    assert res.item() == 10 * dist.get_world_size()
+
+    m = DummyMetric2(device=device)
+    with pytest.raises(TypeError, match=r"Unhandled input type"):
+        m._sync_all_reduce("abc")
+
+
+def _test_distrib_sync_all_reduce_decorator(device):
+
+    import torch.distributed as dist
+    from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+
+    class DummyMetric(Metric):
+
+        @reinit__is_reduced
+        def reset(self):
+            self.a = torch.tensor([0.0, 1.0, 2.0, 3.0], device=self._device, requires_grad=False)
+            self.a_nocomp = self.a.clone().to('cpu')
+            self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
+            self.b_nocomp = self.b.clone().to("cpu")
+            self.c = 0.0
+            self.c_nocomp = self.c
+            self.n = 0
+            self.n_nocomp = self.n
+
+        @sync_all_reduce("a", "b", "c", "n")
+        def compute(self):
+            assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
+            assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
+            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
+            assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+
+        @reinit__is_reduced
+        def update(self, output):
+            self.n += 1
+            self.c += 1.23456
+            self.a += 10.0
+            self.b -= 5.0
+
+    m = DummyMetric(device=device)
+    m.update(None)
+    m.compute()
+    # check if can call compute multiple times without all reduce invocation
+    m.compute()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+
+    device = "cuda:{}".format(local_rank)
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+
+    device = "cpu"
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_distrib__sync_all_reduce(device)
+    _test_distrib_sync_all_reduce_decorator(device)

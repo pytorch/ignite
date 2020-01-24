@@ -36,8 +36,9 @@ def test_pbar(capsys):
 
 
 def test_pbar_log_message(capsys):
+    pbar = ProgressBar()
 
-    ProgressBar.log_message("test")
+    pbar.log_message("test")
 
     captured = capsys.readouterr()
     out = captured.out.split('\r')
@@ -209,7 +210,7 @@ def test_pbar_with_tqdm_kwargs(capsys):
     err = captured.err.split('\r')
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'.format()
+    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'
     assert err[-1] == expected
 
 
@@ -308,6 +309,9 @@ def test_pbar_wrong_events_order():
     with pytest.raises(ValueError, match="should be called before closing event"):
         pbar.attach(engine, event_name=Events.ITERATION_COMPLETED, closing_event_name=Events.ITERATION_STARTED)
 
+    with pytest.raises(ValueError, match="Closing event should not use any event filter"):
+        pbar.attach(engine, event_name=Events.ITERATION_STARTED, closing_event_name=Events.EPOCH_COMPLETED(every=10))
+
 
 def test_pbar_on_custom_events(capsys):
 
@@ -315,7 +319,7 @@ def test_pbar_on_custom_events(capsys):
     pbar = ProgressBar()
     cpe = CustomPeriodicEvent(n_iterations=15)
 
-    with pytest.raises(ValueError, match=r"Logging and closing events should be only ignite.engine.Events"):
+    with pytest.raises(ValueError, match=r"Logging event should be only `ignite.engine.Events`"):
         pbar.attach(engine, event_name=cpe.Events.ITERATIONS_15_COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
 
 
@@ -345,3 +349,22 @@ def test_pbar_with_nan_input():
     assert engine.should_terminate
     assert engine.state.iteration == 1001
     assert engine.state.epoch == 1
+
+
+def test_pbar_on_callable_events(capsys):
+
+    n_epochs = 1
+    loader = list(range(100))
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine, event_name=Events.ITERATION_STARTED(every=10), closing_event_name=Events.EPOCH_COMPLETED)
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch: [90/100]  90%|█████████  [00:00<00:00]'
+    assert actual == expected

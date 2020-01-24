@@ -1,30 +1,47 @@
-from __future__ import division
+import warnings
 
 import torch
 
 from ignite.metrics.accuracy import _BaseClassification
 from ignite.exceptions import NotComputableError
 from ignite.utils import to_onehot
+from ignite.metrics.metric import reinit__is_reduced
 
 
 class _BasePrecisionRecall(_BaseClassification):
 
-    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            if (not average) and is_multilabel:
+                warnings.warn("Precision/Recall metrics do not work in distributed setting when average=False "
+                              "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
+                              "corresponds to the local rank's (single GPU) result.", RuntimeWarning)
+
         self._average = average
         self._true_positives = None
         self._positives = None
         self.eps = 1e-20
-        super(_BasePrecisionRecall, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel)
+        super(_BasePrecisionRecall, self).__init__(output_transform=output_transform,
+                                                   is_multilabel=is_multilabel,
+                                                   device=device)
 
+    @reinit__is_reduced
     def reset(self):
-        self._true_positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
-        self._positives = torch.DoubleTensor(0) if (self._is_multilabel and not self._average) else 0
+        dtype = torch.float64
+        self._true_positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
+        self._positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
         super(_BasePrecisionRecall, self).reset()
 
     def compute(self):
         if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
             raise NotComputableError("{} must have at least one example before"
                                      " it can be computed.".format(self.__class__.__name__))
+
+        if not (self._type == "multilabel" and not self._average):
+            if not self._is_reduced:
+                self._true_positives = self._sync_all_reduce(self._true_positives)
+                self._positives = self._sync_all_reduce(self._positives)
+                self._is_reduced = True
 
         result = self._true_positives / (self._positives + self.eps)
 
@@ -38,7 +55,7 @@ class Precision(_BasePrecisionRecall):
     """
     Calculates precision for binary and multiclass data.
 
-    - `update` must receive output of the form `(y_pred, y)`.
+    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
 
@@ -70,6 +87,12 @@ class Precision(_BasePrecisionRecall):
         as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
         than available RAM.
 
+    .. warning::
+
+        In multilabel cases, if average is False, current implementation does not work with distributed computations.
+        Results are not reduced across the GPUs. Computed result corresponds to the local rank's (single GPU) result.
+
+
     Args:
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
@@ -79,12 +102,18 @@ class Precision(_BasePrecisionRecall):
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
+        device (str of torch.device, optional): device specification in case of distributed computation usage.
+            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+            initialized and available, device is set to `cuda`.
+
     """
 
-    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False):
+    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
         super(Precision, self).__init__(output_transform=output_transform,
-                                        average=average, is_multilabel=is_multilabel)
+                                        average=average, is_multilabel=is_multilabel, device=device)
 
+    @reinit__is_reduced
     def update(self, output):
         y_pred, y = output
         self._check_shape(output)
@@ -107,7 +136,7 @@ class Precision(_BasePrecisionRecall):
             y_pred = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
             y = torch.transpose(y, 1, 0).reshape(num_classes, -1)
 
-        y = y.type_as(y_pred)
+        y = y.to(y_pred)
         correct = y * y_pred
         all_positives = y_pred.sum(dim=0).type(torch.DoubleTensor)  # Convert from int cuda/cpu to double cpu
 

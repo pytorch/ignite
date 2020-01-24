@@ -1,9 +1,15 @@
+import os
+
+import numpy as np
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+import torch
+
 from ignite.engine import Engine
 from ignite.metrics import Metric, MetricsLambda, Precision, Recall
+
+import pytest
 from pytest import approx
-from sklearn.metrics import precision_score, recall_score, f1_score
-import numpy as np
-import torch
 
 
 class ListGatherMetric(Metric):
@@ -195,7 +201,7 @@ def test_state_metrics():
             yield (y_pred[i], y[i])
 
     d = data(y_pred, y)
-    state = evaluator.run(d, max_epochs=1)
+    state = evaluator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
     assert set(state.metrics.keys()) == set(["precision", "recall", "f1"])
 
@@ -223,7 +229,7 @@ def test_state_metrics_ingredients_not_attached():
             yield (y_pred[i], y[i])
 
     d = data(y_pred, y)
-    state = evaluator.run(d, max_epochs=1)
+    state = evaluator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
     assert set(state.metrics.keys()) == set(["F1"])
 
@@ -253,7 +259,7 @@ def test_recursive_attachment():
                 yield (y_pred[i], y[i])
 
         d = data(y_pred, y)
-        state = validator.run(d, max_epochs=1)
+        state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
         assert set(state.metrics.keys()) == set([metric_name, ])
         np_y_pred = y_pred.numpy().ravel()
@@ -292,3 +298,87 @@ def test_recursive_attachment():
         return 2.0 + 0.2 * (p1 * p2 + p1 - p2) ** 0.5
 
     _test(some_metric, "some metric", compute_true_somemetric)
+
+
+def _test_distrib_integration(device):
+
+    import torch.distributed as dist
+    rank = dist.get_rank()
+    np.random.seed(12)
+
+    n_iters = 10
+    batch_size = 10
+    n_classes = 10
+
+    def _test():
+        y_true = np.arange(0, n_iters * batch_size * dist.get_world_size()) % n_classes
+        y_pred = 0.2 * np.random.rand(n_iters * batch_size * dist.get_world_size(), n_classes)
+        for i in range(n_iters * batch_size * dist.get_world_size()):
+            if np.random.rand() > 0.4:
+                y_pred[i, y_true[i]] = 1.0
+            else:
+                j = np.random.randint(0, n_classes)
+                y_pred[i, j] = 0.7
+
+        y_true = y_true.reshape(n_iters * dist.get_world_size(), batch_size)
+        y_pred = y_pred.reshape(n_iters * dist.get_world_size(), batch_size, n_classes)
+
+        def update_fn(engine, i):
+            y_true_batch = y_true[i + rank * n_iters, ...]
+            y_pred_batch = y_pred[i + rank * n_iters, ...]
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+
+        evaluator = Engine(update_fn)
+
+        precision = Precision(average=False, device=device)
+        recall = Recall(average=False, device=device)
+
+        def Fbeta(r, p, beta):
+            return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+
+        F1 = MetricsLambda(Fbeta, recall, precision, 1)
+        F1.attach(evaluator, "f1")
+
+        another_f1 = (1.0 + precision * recall * 2 / (precision + recall + 1e-20)).mean().item()
+        another_f1.attach(evaluator, "ff1")
+
+        data = list(range(n_iters))
+        state = evaluator.run(data, max_epochs=1)
+
+        assert 'f1' in state.metrics
+        assert 'ff1' in state.metrics
+        f1_true = f1_score(y_true.ravel(), np.argmax(y_pred.reshape(-1, n_classes), axis=-1), average='macro')
+        assert f1_true == approx(state.metrics['f1'])
+        assert 1.0 + f1_true == approx(state.metrics['ff1'])
+
+    for _ in range(5):
+        _test()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
+
+    device = "cpu"
+    _test_distrib_integration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_integration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    _test_distrib_integration(device)

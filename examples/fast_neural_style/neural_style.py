@@ -120,11 +120,11 @@ def train(args):
 
     trainer = Engine(step)
     checkpoint_handler = ModelCheckpoint(args.checkpoint_model_dir, 'checkpoint',
-                                         save_interval=args.checkpoint_interval,
                                          n_saved=10, require_empty=False, create_dir=True)
     progress_bar = Progbar(loader=train_loader, metrics=running_avgs)
 
-    trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
+    trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED(every=args.checkpoint_interval),
+                              handler=checkpoint_handler,
                               to_save={'net': transformer})
     trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=progress_bar)
     trainer.run(train_loader, max_epochs=args.epochs)

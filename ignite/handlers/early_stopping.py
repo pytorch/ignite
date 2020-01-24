@@ -3,7 +3,7 @@ import logging
 from ignite.engine import Engine
 
 
-class EarlyStopping(object):
+class EarlyStopping:
     """EarlyStopping handler can be used to stop the training if no improvement after a given number of events.
 
     Args:
@@ -14,6 +14,12 @@ class EarlyStopping(object):
             and return a score `float`. An improvement is considered if the score is higher.
         trainer (Engine):
             trainer engine to stop the run if no improvement.
+        min_delta (float, optional):
+            A minimum increase in the score to qualify as an improvement,
+            i.e. an increase of less than or equal to `min_delta`, will count as no improvement.
+        cumulative_delta (bool, optional):
+            It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
+            it defines an increase after the last event. Default value is False.
 
     Examples:
 
@@ -31,7 +37,8 @@ class EarlyStopping(object):
         evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
-    def __init__(self, patience, score_function, trainer):
+
+    def __init__(self, patience, score_function, trainer, min_delta=0., cumulative_delta=False):
 
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -39,27 +46,33 @@ class EarlyStopping(object):
         if patience < 1:
             raise ValueError("Argument patience should be positive integer.")
 
+        if min_delta < 0.:
+            raise ValueError("Argument min_delta should not be a negative number.")
+
         if not isinstance(trainer, Engine):
             raise TypeError("Argument trainer should be an instance of Engine.")
 
         self.score_function = score_function
         self.patience = patience
+        self.min_delta = min_delta
+        self.cumulative_delta = cumulative_delta
         self.trainer = trainer
         self.counter = 0
         self.best_score = None
-        self._logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self._logger.addHandler(logging.NullHandler())
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def __call__(self, engine):
         score = self.score_function(engine)
 
         if self.best_score is None:
             self.best_score = score
-        elif score <= self.best_score:
+        elif score <= self.best_score + self.min_delta:
+            if not self.cumulative_delta and score > self.best_score:
+                self.best_score = score
             self.counter += 1
-            self._logger.debug("EarlyStopping: %i / %i" % (self.counter, self.patience))
+            self.logger.debug("EarlyStopping: %i / %i" % (self.counter, self.patience))
             if self.counter >= self.patience:
-                self._logger.info("EarlyStopping: Stop training")
+                self.logger.info("EarlyStopping: Stop training")
                 self.trainer.terminate()
         else:
             self.best_score = score

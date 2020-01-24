@@ -6,7 +6,7 @@ from ignite.engine import Engine, State
 from ignite.contrib.metrics import GpuInfo
 
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from mock import MagicMock, call, ANY, Mock
+from unittest.mock import MagicMock, call, ANY, patch
 
 import torch
 
@@ -187,6 +187,40 @@ def test_output_handler_with_wrong_global_step_transform_output():
 
     with pytest.raises(TypeError, match="global_step must be int"):
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+
+def test_output_handler_with_global_step_from_engine():
+
+    mock_another_engine = MagicMock()
+    mock_another_engine.state = State()
+    mock_another_engine.state.epoch = 10
+    mock_another_engine.state.output = 12.345
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x},
+                            global_step_transform=global_step_from_engine(mock_another_engine))
+
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 1
+    mock_engine.state.output = 0.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.writer.add_scalar.call_count == 1
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss",
+                                                         mock_engine.state.output,
+                                                         mock_another_engine.state.epoch)])
+
+    mock_another_engine.state.epoch = 11
+    mock_engine.state.output = 1.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.writer.add_scalar.call_count == 2
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss",
+                                                         mock_engine.state.output,
+                                                         mock_another_engine.state.epoch)])
 
 
 def test_output_handler_with_global_step_transform():
@@ -560,44 +594,21 @@ def test_integration_as_context_manager(dirname):
     assert len(written_files) > 0
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-    tensorboardX_module = sys.modules['tensorboardX']
-    del sys.modules['tensorboardX']
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules['tensorboardX'] = tensorboardX_module
+def test_no_tensorboardX_package(dirname):
+    from torch.utils.tensorboard import SummaryWriter
+    with patch.dict('sys.modules', {'tensorboardX': None}):
+        tb_logger = TensorboardLogger(log_dir=dirname)
+        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
-def test_no_tensorboardX(dirname, no_site_packages):
-
-    with pytest.raises(RuntimeError, match=r"This contrib module requires tensorboardX to be installed"):
-        TensorboardLogger(log_dir=dirname)
-
-
-@pytest.fixture
-def mock_tb_module():
-    import sys
-    import types
-
-    module_name = 'tensorboardX'
-    tb_module = types.ModuleType(module_name)
-    prev_tb_module = sys.modules[module_name]
-    sys.modules[module_name] = tb_module
-
-    yield tb_module
-    sys.modules[module_name] = prev_tb_module
+def test_no_torch_utils_tensorboard_package(dirname):
+    from tensorboardX import SummaryWriter
+    with patch.dict('sys.modules', {'torch.utils.tensorboard': None}):
+        tb_logger = TensorboardLogger(log_dir=dirname)
+        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
-def test_init_typeerror_exception(mock_tb_module):
-
-    def side_effect(*args, **kwargs):
-        raise TypeError("a problem")
-
-    mock_tb_module.SummaryWriter = Mock(name='tensorboardX.SummaryWriter', side_effect=side_effect)
-
-    with pytest.raises(TypeError, match=r'a problem'):
-        TensorboardLogger(log_dir=None)
+def test_no_tensorboardX_nor_torch_utils_tensorboard():
+    with patch.dict('sys.modules', {'tensorboardX': None, 'torch.utils.tensorboard': None}):
+        with pytest.raises(RuntimeError, match=r'This contrib module requires either tensorboardX or torch'):
+            TensorboardLogger(log_dir=None)

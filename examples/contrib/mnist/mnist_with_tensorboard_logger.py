@@ -2,7 +2,7 @@
  MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
 
  Requirements:
-    TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+    Optionally TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
     Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
 
  Usage:
@@ -34,7 +34,6 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.contrib.handlers.tensorboard_logger import *
-from ignite.contrib.metrics.gpu_info import GpuInfo
 
 
 LOG_INTERVAL = 10
@@ -83,6 +82,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
 
     if sys.version_info > (3,):
+        from ignite.contrib.metrics.gpu_info import GpuInfo
         try:
             GpuInfo().attach(trainer)
         except RuntimeError:
@@ -109,7 +109,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
                      log_handler=OutputHandler(tag="training",
                                                output_transform=lambda loss: {'batchloss': loss},
                                                metric_names='all'),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(train_evaluator,
                      log_handler=OutputHandler(tag="training",
@@ -125,23 +125,23 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
 
     tb_logger.attach(trainer,
                      log_handler=OptimizerParamsHandler(optimizer),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=WeightsScalarHandler(model),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=WeightsHistHandler(model),
-                     event_name=Events.EPOCH_COMPLETED)
+                     event_name=Events.EPOCH_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=GradsScalarHandler(model),
-                     event_name=Events.ITERATION_COMPLETED)
+                     event_name=Events.ITERATION_COMPLETED(every=100))
 
     tb_logger.attach(trainer,
                      log_handler=GradsHistHandler(model),
-                     event_name=Events.EPOCH_COMPLETED)
+                     event_name=Events.EPOCH_COMPLETED(every=100))
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
