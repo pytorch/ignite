@@ -6,6 +6,16 @@ from ignite.metrics import Metric, MetricsLambda
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
+__all__ = [
+    'ConfusionMatrix',
+    'mIoU',
+    'IoU',
+    'DiceCoefficient',
+    'cmAccuracy',
+    'cmPrecision',
+    'cmRecall'
+]
+
 
 class ConfusionMatrix(Metric):
     """Calculates confusion matrix for multi-class data.

@@ -2,6 +2,10 @@ from ignite.engine import Events
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
+__all__ = [
+    'RunningAverage'
+]
+
 
 class RunningAverage(Metric):
     """Compute running average of a metric or the output of process function.

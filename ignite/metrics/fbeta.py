@@ -1,5 +1,9 @@
 from ignite.metrics import Precision, Recall
 
+__all__ = [
+    'Fbeta'
+]
+
 
 def Fbeta(beta, average=True, precision=None, recall=None, output_transform=None, device=None):
     """Calculates F-beta score
