@@ -10,7 +10,7 @@ import warnings
 import torch
 
 from ignite.engine.events import Events, State, EventWithFilter, RemovableEventHandle
-from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader
+from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
 
@@ -135,7 +135,7 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        Engine._check_signature(self, process_function, 'process_function', None)
+        _check_signature(self, process_function, 'process_function', None)
 
     def register_events(self, *event_names, **kwargs):
         """Add events that can be fired.
@@ -256,7 +256,7 @@ class Engine:
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
-        Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
+        _check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
