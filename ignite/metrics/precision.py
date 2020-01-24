@@ -13,6 +13,7 @@ __all__ = [
     'Precision'
 ]
 
+
 class _BasePrecisionRecall(_BaseClassification):
 
     def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
