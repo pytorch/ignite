@@ -4,6 +4,7 @@ import weakref
 
 from ignite.engine.utils import _check_signature
 
+
 class EventWithFilter:
 
     def __init__(self, event, filter):
