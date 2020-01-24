@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 from torch.nn.functional import pairwise_distance
 
