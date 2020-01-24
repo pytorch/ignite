@@ -1,4 +1,5 @@
 from typing import Sequence, Union, Optional, Callable, Dict, Any, Tuple
+
 import torch
 
 from ignite.engine.engine import Engine
@@ -19,16 +20,15 @@ def _prepare_batch(batch: Sequence[torch.Tensor], device: Optional[Union[str, to
     """Prepare batch for training: pass to a device with options.
 
     """
-    x, y = batch
-    return (convert_tensor(x, device=device, non_blocking=non_blocking),
-            convert_tensor(y, device=device, non_blocking=non_blocking))
+    return convert_tensor(batch, device=device, non_blocking=non_blocking)
 
 
 def create_supervised_trainer(model: torch.nn.Module, optimizer: torch.optim.Optimizer,
                               loss_fn: Union[Callable, torch.nn.Module],
                               device: Optional[Union[str, torch.device]] = None, non_blocking: bool = False,
                               prepare_batch: Callable = _prepare_batch,
-                              output_transform: Callable = lambda x, y, y_pred, loss: loss.item()) -> Engine:
+                              output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+                              get_data: Callable = lambda batch: (batch[0], batch[1])) -> Engine:
     """
     Factory function for creating a trainer for supervised models.
 
@@ -44,9 +44,13 @@ def create_supervised_trainer(model: torch.nn.Module, optimizer: torch.optim.Opt
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
+        get_data (callable) : function that receives a batch (as a mapping or a sequence) and returns 'x' and 'y'
 
     Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
         of the processed batch by default.
+
+    Note: The type of the batch received by `get_data` is the same as returned by the `__getitem__` of the used
+        dataset but with batched tensors
 
     Returns:
         Engine: a trainer engine with supervised update function.
@@ -57,7 +61,7 @@ def create_supervised_trainer(model: torch.nn.Module, optimizer: torch.optim.Opt
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         optimizer.zero_grad()
-        x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+        x, y = get_data(prepare_batch(batch, device=device, non_blocking=non_blocking))
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
@@ -70,7 +74,8 @@ def create_supervised_trainer(model: torch.nn.Module, optimizer: torch.optim.Opt
 def create_supervised_evaluator(model: torch.nn.Module, metrics: Optional[Dict[str, Metric]] = None,
                                 device: Optional[Union[str, torch.device]] = None, non_blocking: bool = False,
                                 prepare_batch: Callable = _prepare_batch,
-                                output_transform: Callable = lambda x, y, y_pred: (y_pred, y,)) -> Engine:
+                                output_transform: Callable = lambda x, y, y_pred: (y_pred, y,),
+                                get_data: Callable = lambda batch: (batch[0], batch[1])) -> Engine:
     """
     Factory function for creating an evaluator for supervised models.
 
@@ -86,9 +91,13 @@ def create_supervised_evaluator(model: torch.nn.Module, metrics: Optional[Dict[s
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
+        get_data (callable) : function that receives a batch (as a mapping or a sequence) and returns 'x' and 'y'
 
     Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
+
+    Note: The type of the batch received by `get_data` is the same as returned by the `__getitem__` of the used
+        dataset but with batched tensors
 
     Returns:
         Engine: an evaluator engine with supervised inference function.
@@ -101,7 +110,7 @@ def create_supervised_evaluator(model: torch.nn.Module, metrics: Optional[Dict[s
     def _inference(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.eval()
         with torch.no_grad():
-            x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+            x, y = get_data(prepare_batch(batch, device=device, non_blocking=non_blocking))
             y_pred = model(x)
             return output_transform(x, y, y_pred)
 
