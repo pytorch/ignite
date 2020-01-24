@@ -68,13 +68,13 @@ class MetricsLambda(Metric):
             if isinstance(metric, MetricsLambda):
                 metric._internal_attach(engine)
             elif isinstance(metric, Metric):
-                if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
-                    engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
-                if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
-                    engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
+                if not engine.has_event_handler(metric.started, self.started_event):
+                    engine.add_event_handler(self.started_event, metric.started)
+                if not engine.has_event_handler(metric.iteration_completed, self.iteration_completed_event):
+                    engine.add_event_handler(self.iteration_completed_event, metric.iteration_completed)
 
     def attach(self, engine, name):
         # recursively attach all its dependencies
         self._internal_attach(engine)
         # attach only handler on EPOCH_COMPLETED
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
+        engine.add_event_handler(self.completed_event, self.completed, name)

@@ -28,12 +28,25 @@ class Metric(metaclass=ABCMeta):
             In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
             if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
             initialized and available, device is set to `cuda`.
+        started_event (<enum Events>): event from which the metric should start the calculation.
+        iteration_completed_event (<enum Events>): event at which intermediate metric calculations (`self.update()`)
+            are executed from current model outputs, e.g. for a mean loss metric this would refer to adding
+            the current model loss output after each iteration to a summed loss and increasing to count of losses added.
+        completed_event (<enum Events>): event at which the metric value is calculated and written to
+            `engine.state.metrics[metric_name]`. For example, for mean loss metric calculation the summed output losses
+            of each iterations is divided by the number of iterations and written to `trainer.state.metrics['loss']`.
 
     """
     _required_output_keys = ("y_pred", "y")
 
-    def __init__(self, output_transform=lambda x: x, device=None):
+    def __init__(self, output_transform=lambda x: x, device=None, 
+                 started_event=Events.EPOCH_STARTED,
+                 iteration_completed_event=Events.ITERATION_COMPLETED, 
+                 completed_event=Events.EPOCH_COMPLETED):
         self._output_transform = output_transform
+        self.started_event = started_event
+        self.iteration_completed_event = iteration_completed_event
+        self.completed_event = completed_event
 
         # Check device if distributed is initialized:
         if dist.is_available() and dist.is_initialized():
@@ -135,11 +148,12 @@ class Metric(metaclass=ABCMeta):
         engine.state.metrics[name] = result
 
     def attach(self, engine, name):
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
-        if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
-            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
+        if not engine.has_event_handler(self.started, self.started_event):
+            engine.add_event_handler(self.started_event, self.started)
+        if not engine.has_event_handler(self.iteration_completed, self.iteration_completed_event):
+            engine.add_event_handler(self.iteration_completed_event, self.iteration_completed)
+        # `self.completed()` is always executed at the end, so it should be added to `engine` at the end
+        engine.add_event_handler(self.completed_event, self.completed, name)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
