@@ -3,6 +3,14 @@ import logging
 
 import torch
 
+__all__ = [
+    'convert_tensor',
+    'apply_to_tensor',
+    'apply_to_type',
+    'to_onehot',
+    'setup_logger'
+]
+
 
 def convert_tensor(input_, device=None, non_blocking=False):
     """Move tensors to relevant device."""

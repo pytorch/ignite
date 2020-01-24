@@ -5,6 +5,10 @@ import torch
 
 from ignite.utils import apply_to_type
 
+__all__ = [
+    'TerminateOnNan'
+]
+
 
 class TerminateOnNan:
     """TerminateOnNan handler can be used to stop the training if the `process_function`'s output
