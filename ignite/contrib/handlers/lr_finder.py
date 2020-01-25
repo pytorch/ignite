@@ -5,11 +5,11 @@ from ignite.engine import Events
 from ignite.contrib.handlers import LRScheduler, PiecewiseLinear
 from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
+import contextlib
 import torch
 import copy
 import os
 import logging
-import weakref
 import warnings
 
 
@@ -100,7 +100,7 @@ class FastaiLRFinder(object):
         self._best_loss = None
         self._lr_schedule = None
 
-        self._engine = None
+        # self._engine = None
         self._model = None
         self._optimizer = None
         self._output_transform = None
@@ -191,7 +191,7 @@ class FastaiLRFinder(object):
             warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
                           " at lr_finder.plot()", UserWarning)
 
-    def attach(self, engine, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
+    def _attach(self, engine, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
                step_mode="exp", smooth_f=0.05, diverge_th=5):
         """
         Attaches lr_finder to engine.
@@ -222,7 +222,6 @@ class FastaiLRFinder(object):
         Returns:
             self
         """
-        self._engine = weakref.ref(engine)
 
         if smooth_f < 0 or smooth_f >= 1:
             raise ValueError("smooth_f is outside the range [0, 1]")
@@ -313,25 +312,51 @@ class FastaiLRFinder(object):
         min_grad_idx = np.argmin(grads) + 1
         return self._history["lr"][int(min_grad_idx)]
 
-    def __enter__(self):
-        if self._engine is not None:
-            engine = self._engine()
-            if not engine.has_event_handler(self._run):
-                engine.add_event_handler(Events.STARTED, self._run, self._num_iter, self._end_lr, self._step_mode,
-                                         self._smooth_f, self._diverge_th)
-            if not engine.has_event_handler(self._warning):
-                engine.add_event_handler(Events.COMPLETED, self._warning)
-            if not engine.has_event_handler(self._reset):
-                engine.add_event_handler(Events.COMPLETED, self._reset)
-            if not engine.has_event_handler(self._detach):
-                engine.add_event_handler(Events.COMPLETED, self._detach)
-        else:
-            warnings.warn("LR finder needs to be attached to engine")
+    @contextlib.contextmanager
+    def attach(self, engine, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
+               step_mode="exp", smooth_f=0.05, diverge_th=5):
+        """
+        Attaches lr_finder to engine.
+        It is used with:
+        `with lr_finder.attach(engine) as trainer_to_find_lr:
+            trainer_to_find_lr.run(dataloader)`
+        Args:
+            engine: lr_finder is attached to this engine
+            model (`torch.nn.Module`): the model to train.
+            optimizer (`torch.optim.Optimizer`): the optimizer to use, the
+            defined optimizer learning rate is assumed to be the lower boundary
+            of the range test.
+            output_transform (callable, optional): function that transform the
+                engine's state.output after each iteration. It must return the
+                loss of that iteration.
+            num_iter (int): number of iterations for lr schedule between base lr
+                and end_lr. If `None` it will run for
+                `len(dataloader) * trainer.state.max_epochs`
+            end_lr (float): upper bound for lr search.
+            step_mode (str): "exp" or "linear", which way should the lr be
+                increased from optimizer's initial lr to end_lr
+            smooth_f (float): loss smoothing factor in range [0, 1)
+            diverge_th (float): Used for stopping the search when
+                `current loss > diverge_th * best_loss`
 
-    def __exit__(self, enginetype, val, tb):
-        if self._engine is not None:
-            engine = self._engine()
-            self._detach(engine)
+        Notes:
+            lr_finder cannot be attached to more than one engine at a time
+
+        Returns:
+            engine: trainer used for finding the lr
+        """
+        self._attach(engine, model, optimizer, output_transform, num_iter, end_lr, step_mode, smooth_f, diverge_th)
+        if not engine.has_event_handler(self._run):
+            engine.add_event_handler(Events.STARTED, self._run, self._num_iter, self._end_lr, self._step_mode,
+                                     self._smooth_f, self._diverge_th)
+        if not engine.has_event_handler(self._warning):
+            engine.add_event_handler(Events.COMPLETED, self._warning)
+        if not engine.has_event_handler(self._reset):
+            engine.add_event_handler(Events.COMPLETED, self._reset)
+        if not engine.has_event_handler(self._detach):
+            engine.add_event_handler(Events.COMPLETED, self._detach)
+        yield engine
+        self._detach(engine)
 
 
 class _ExponentialLR(_LRScheduler):

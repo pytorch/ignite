@@ -11,7 +11,6 @@ from torch.optim import SGD
 from ignite.engine import create_supervised_trainer, Events
 import copy
 import os
-from mock import patch
 
 
 @pytest.fixture
@@ -62,34 +61,18 @@ def dataloader():
     yield torch.rand(100, 2, 1)
 
 
-def test_with_without_attach(lr_finder, dummy_engine, dataloader):
-    with pytest.warns(UserWarning):
-        with lr_finder:
-            dummy_engine.run(dataloader)
-    assert lr_finder.get_results() is None
+def test_attach_without_with(lr_finder, dummy_engine, dataloader):
+    _ = lr_finder.attach(dummy_engine, model, optimizer)
+    for event in dummy_engine._event_handlers:
+        assert len(dummy_engine._event_handlers[event]) == 0
 
-
-def test_attach_without_with(lr_finder, model, optimizer, dummy_engine, dataloader):
-    lr_finder.attach(dummy_engine, model, optimizer)
-    dummy_engine.run(dataloader)
-    assert lr_finder.get_results() is None
-
-
-def test_attach_out_of_context(lr_finder, model, optimizer, dummy_engine, dataloader):
-    lr_finder.attach(dummy_engine, model, optimizer)
-    with lr_finder:
-        dummy_engine.run(dataloader)
-    first_results = lr_finder.get_results()
-    assert first_results is not None
-    with lr_finder:
-        dummy_engine.run(dataloader)
-    second_results = lr_finder.get_results()
-    assert first_results == second_results
+    with lr_finder.attach(dummy_engine, model, optimizer) as _:
+        assert any([len(dummy_engine._event_handlers[event]) != 0 for event in dummy_engine._event_handlers])
 
 
 def test_with_attach(lr_finder, model, optimizer, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, model, optimizer):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
     assert lr_finder.get_results() is not None
 
     for event in dummy_engine._event_handlers:
@@ -112,8 +95,8 @@ def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloa
         for v1, v2 in zip(init_model.values(), mid_model.values()):
             assert any(v1 != v2)
 
-    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
 
     end_optimizer = lr_finder._optimizer.state_dict()
     end_model = lr_finder._model.state_dict()
@@ -144,8 +127,8 @@ def test_in_dir_model_optimizer_reset(model, optimizer, dummy_engine, dataloader
 
         assert tmpdir_num_files != len(os.listdir(temp_dir))
 
-    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
 
     end_optimizer = lr_finder._optimizer.state_dict()
     end_model = lr_finder._model.state_dict()
@@ -158,13 +141,13 @@ def test_in_dir_model_optimizer_reset(model, optimizer, dummy_engine, dataloader
 
 
 def test_lr_policy(lr_finder, model, optimizer, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, model, optimizer, step_mode="linear"):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer, step_mode="linear") as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
     lr = lr_finder.get_results()["lr"]
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
 
-    with lr_finder.attach(dummy_engine, model, optimizer, step_mode="exp"):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer, step_mode="exp") as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
     lr = lr_finder.get_results()["lr"]
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
 
@@ -178,16 +161,16 @@ def assert_output_sizes(lr_finder, dummy_engine):
 
 def test_num_iter_is_none(model, optimizer, dummy_engine, dataloader):
     lr_finder = FastaiLRFinder()
-    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
     assert_output_sizes(lr_finder, dummy_engine)
     assert dummy_engine.state.iteration == len(dataloader)
 
 
 def test_num_iter_is_enough(model, optimizer, dummy_engine, dataloader):
     lr_finder = FastaiLRFinder()
-    with lr_finder.attach(dummy_engine, model, optimizer, num_iter=50, diverge_th=np.inf):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer, num_iter=50, diverge_th=np.inf) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
     assert_output_sizes(lr_finder, dummy_engine)
     # -1 because it terminates when state.iteration > num_iter
     assert dummy_engine.state.iteration - 1 == 50
@@ -195,18 +178,18 @@ def test_num_iter_is_enough(model, optimizer, dummy_engine, dataloader):
 
 def test_num_iter_is_not_enough(model, optimizer, dummy_engine, dataloader):
     lr_finder = FastaiLRFinder()
-    with lr_finder.attach(dummy_engine, model, optimizer, num_iter=150, diverge_th=np.inf):
+    with lr_finder.attach(dummy_engine, model, optimizer, num_iter=150, diverge_th=np.inf) as trainer_with_finder:
         with pytest.warns(UserWarning):
-            dummy_engine.run(dataloader)
+            trainer_with_finder.run(dataloader)
     assert_output_sizes(lr_finder, dummy_engine)
     assert dummy_engine.state.iteration == len(dataloader)
 
 
 def test_detach_terminates(model, optimizer, dummy_engine, dataloader):
     lr_finder = FastaiLRFinder()
-    with lr_finder.attach(dummy_engine, model, optimizer, end_lr=100, diverge_th=2):
+    with lr_finder.attach(dummy_engine, model, optimizer, end_lr=100, diverge_th=2) as trainer_with_finder:
         with pytest.warns(None) as record:
-            dummy_engine.run(dataloader)
+            trainer_with_finder.run(dataloader)
             assert len(record) == 0
 
     dummy_engine.run(dataloader, max_epochs=3)
@@ -214,8 +197,8 @@ def test_detach_terminates(model, optimizer, dummy_engine, dataloader):
 
 
 def test_lr_suggestion(lr_finder, model, optimizer, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, model, optimizer):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
 
     assert 1e-4 <= lr_finder.lr_suggestion() <= 10
 
@@ -223,22 +206,28 @@ def test_lr_suggestion(lr_finder, model, optimizer, dummy_engine, dataloader):
 def test_bad_input(lr_finder, model, optimizer, dummy_engine, dataloader):
 
     with pytest.raises(ValueError):
-        lr_finder.attach(dummy_engine, model, optimizer, step_mode="bla")
+        with lr_finder.attach(dummy_engine, model, optimizer, step_mode="bla") as trainer_with_finder:
+            pass
 
     with pytest.raises(ValueError):
-        lr_finder.attach(dummy_engine, model, optimizer, diverge_th=0.5)
+        with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=0.5) as trainer_with_finder:
+            pass
 
     with pytest.raises(ValueError):
-        lr_finder.attach(dummy_engine, model, optimizer, smooth_f=-0.5)
+        with lr_finder.attach(dummy_engine, model, optimizer, smooth_f=-0.5) as trainer_with_finder:
+            pass
 
     with pytest.raises(ValueError):
-        lr_finder.attach(dummy_engine, model, optimizer, smooth_f=1.5)
+        with lr_finder.attach(dummy_engine, model, optimizer, smooth_f=1.5) as trainer_with_finder:
+            pass
 
     with pytest.raises(ValueError):
-        lr_finder.attach(dummy_engine, model, optimizer, num_iter=1.5)
+        with lr_finder.attach(dummy_engine, model, optimizer, num_iter=1.5) as trainer_with_finder:
+            pass
 
     with pytest.raises(ValueError):
-        lr_finder.attach(dummy_engine, model, optimizer, num_iter=0)
+        with lr_finder.attach(dummy_engine, model, optimizer, num_iter=0) as trainer_with_finder:
+            pass
 
     with pytest.raises(ValueError):
         st = _StateCacher(False, "not a dir")
@@ -255,8 +244,8 @@ def test_bad_input(lr_finder, model, optimizer, dummy_engine, dataloader):
         os.remove(path)
         st.retrieve(key)
 
-    with lr_finder.attach(dummy_engine, model, optimizer):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
 
     with pytest.raises(ValueError):
         lr_finder.plot(skip_start=-1)
@@ -266,8 +255,8 @@ def test_bad_input(lr_finder, model, optimizer, dummy_engine, dataloader):
 
 def test_plot(lr_finder, model, optimizer, dummy_engine, dataloader):
 
-    with lr_finder.attach(dummy_engine, model, optimizer):
-        dummy_engine.run(dataloader)
+    with lr_finder.attach(dummy_engine, model, optimizer) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
 
     lr_finder.plot()
     lr_finder.plot(skip_end=0)
