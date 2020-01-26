@@ -12,6 +12,10 @@
     ```
 
     Go to https://neptune.ai and explore your experiment.
+
+Note:
+    You can see an example experiment here:
+    https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-20/charts
 """
 from __future__ import print_function
 

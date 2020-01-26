@@ -440,7 +440,8 @@ class NeptuneLogger(BaseLogger):
             # We need to close the logger when we are done
             npt_logger.close()
 
-        Explore an experiment with neptune tracking here: TODO
+        Explore an experiment with neptune tracking here:
+        https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-20/charts
 
         It is also possible to use the logger as context manager:
 
@@ -468,7 +469,7 @@ class NeptuneLogger(BaseLogger):
         try:
             import neptune
         except ImportError:
-            raise RuntimeError("This contrib module requires either neptune"
+            raise RuntimeError("This contrib module requires neptune ",
                                "You may install neptune with command: \n pip install neptune-client \n")
 
         if kwargs.get("offline_mode", False):
