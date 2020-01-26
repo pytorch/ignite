@@ -82,15 +82,7 @@ class FastaiLRFinder(object):
         self._history = None
         self._best_loss = None
         self._lr_schedule = None
-
-        self._model = None
-        self._optimizer = None
-        self._output_transform = None
-        self._num_iter = None
-        self._end_lr = None
-        self._step_mode = None
-        self._smooth_f = None
-        self._diverge_th = None
+        self._reset_params()
 
         self._logger = logging.getLogger(__name__)
         self._logger.addHandler(logging.NullHandler())
@@ -143,6 +135,16 @@ class FastaiLRFinder(object):
         engine.remove_event_handler(self._lr_schedule, Events.ITERATION_COMPLETED)
         engine.remove_event_handler(self._log_lr_and_loss, Events.ITERATION_COMPLETED)
         engine.remove_event_handler(self._reached_num_iterations, Events.ITERATION_COMPLETED)
+
+    def _reset_params(self):
+        self._model = None
+        self._optimizer = None
+        self._output_transform = None
+        self._num_iter = None
+        self._end_lr = None
+        self._step_mode = None
+        self._smooth_f = None
+        self._diverge_th = None
 
     def _log_lr_and_loss(self, engine, smooth_f, diverge_th):
         output = engine.state.output
@@ -211,14 +213,7 @@ class FastaiLRFinder(object):
         if engine.has_event_handler(self._reset, Events.COMPLETED):
             engine.remove_event_handler(self._reset, Events.COMPLETED)
 
-        self._model = None
-        self._optimizer = None
-        self._output_transform = None
-        self._num_iter = None
-        self._end_lr = None
-        self._step_mode = None
-        self._smooth_f = None
-        self._diverge_th = None
+        self._reset_params()
 
     def get_results(self):
         """
