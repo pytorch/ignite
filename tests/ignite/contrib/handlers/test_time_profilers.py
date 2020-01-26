@@ -55,7 +55,7 @@ def test_dataflow_timer():
 
 
 def test_processing_timer():
-    true_processing_time = 1
+    true_processing_time = 0.1
     true_max_epochs = 2
     true_num_iters = 2
 
@@ -80,7 +80,7 @@ def test_processing_timer():
 
 
 def test_event_handler_started():
-    true_event_handler_time = 1
+    true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 2
 
@@ -102,7 +102,7 @@ def test_event_handler_started():
 
 
 def test_event_handler_completed():
-    true_event_handler_time = 1
+    true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 2
 
@@ -124,7 +124,7 @@ def test_event_handler_completed():
 
 
 def test_event_handler_epoch_started():
-    true_event_handler_time = 1
+    true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 1
 
@@ -151,7 +151,7 @@ def test_event_handler_epoch_started():
 
 
 def test_event_handler_epoch_completed():
-    true_event_handler_time = 1
+    true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 1
 
@@ -178,7 +178,7 @@ def test_event_handler_epoch_completed():
 
 
 def test_event_handler_iteration_started():
-    true_event_handler_time = 1
+    true_event_handler_time = 0.1
     true_max_epochs = 1
     true_num_iters = 2
 
@@ -205,7 +205,7 @@ def test_event_handler_iteration_started():
 
 
 def test_event_handler_iteration_completed():
-    true_event_handler_time = 1
+    true_event_handler_time = 0.1
     true_max_epochs = 1
     true_num_iters = 2
 
