@@ -54,7 +54,12 @@ class BasicTimeProfiler(object):
         }
 
     def _as_first_started(self, engine):
-        num_iters = engine.state.max_epochs * len(engine.state.dataloader)
+        if hasattr(engine.state.dataloader, "__len__"):
+            num_iters_per_epoch = len(engine.state.dataloader)
+        else:
+            num_iters_per_epoch = engine.state.epoch_length
+
+        num_iters = engine.state.max_epochs * num_iters_per_epoch
         self._reset(engine.state.max_epochs, num_iters)
 
         self.event_handlers_names = {
