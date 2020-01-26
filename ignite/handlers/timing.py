@@ -2,6 +2,10 @@ from time import perf_counter
 
 from ignite.engine import Events
 
+__all__ = [
+    'Timer'
+]
+
 
 class Timer:
     """ Timer object can be used to measure (average) time between events.

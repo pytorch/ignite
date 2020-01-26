@@ -1,8 +1,10 @@
-from __future__ import division
-
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+
+__all__ = [
+    'Loss'
+]
 
 
 class Loss(Metric):

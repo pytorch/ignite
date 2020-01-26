@@ -1,5 +1,3 @@
-from __future__ import division
-
 import warnings
 
 import torch
@@ -8,6 +6,10 @@ from ignite.metrics.accuracy import _BaseClassification
 from ignite.exceptions import NotComputableError
 from ignite.utils import to_onehot
 from ignite.metrics.metric import reinit__is_reduced
+
+__all__ = [
+    'Precision'
+]
 
 
 class _BasePrecisionRecall(_BaseClassification):

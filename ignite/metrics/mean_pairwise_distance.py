@@ -1,11 +1,13 @@
-from __future__ import division
-
 import torch
 from torch.nn.functional import pairwise_distance
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+
+__all__ = [
+    'MeanPairwiseDistance'
+]
 
 
 class MeanPairwiseDistance(Metric):

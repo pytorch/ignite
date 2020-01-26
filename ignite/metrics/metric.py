@@ -9,6 +9,10 @@ import torch.distributed as dist
 
 from ignite.engine import Events
 
+__all__ = [
+    'Metric'
+]
+
 
 class Metric(metaclass=ABCMeta):
     """
