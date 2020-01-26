@@ -1,11 +1,6 @@
-import os
-import warnings
 import time
 
-import torch
-import torch.nn as nn
-
-from ignite.engine import Engine, Events, State
+from ignite.engine import Engine, Events
 from ignite.handlers import Timer
 from ignite.contrib.handlers.time_profilers import BasicTimeProfiler
 
