@@ -11,6 +11,7 @@ from ignite.engine import Events
 
 __all__ = [
     'Checkpoint',
+    'DiskSaver',
     'ModelCheckpoint'
 ]
 
