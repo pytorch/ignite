@@ -20,6 +20,40 @@ def _equal(lhs, rhs, round_to=1):
     return round(lhs, round_to) == round(rhs, round_to)
 
 
+def test_dataflow_timer():
+    true_dataflow_time_per_ele = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    def dummy_data_loader(data):
+        while True:
+            for d in data:
+                time.sleep(true_dataflow_time_per_ele)
+                yield d
+
+    dummy_data = range(true_num_iters)
+
+    profiler = BasicTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+    dummy_trainer.run(
+        dummy_data_loader(dummy_data),
+        max_epochs=true_max_epochs,
+        epoch_length=true_num_iters
+    )
+    results = profiler.get_results()
+    dataflow_results = results['dataflow_stats']
+
+    assert _equal(dataflow_results['min/index'][0], true_dataflow_time_per_ele)
+    assert _equal(dataflow_results['max/index'][0], true_dataflow_time_per_ele)
+    assert _equal(dataflow_results['mean'], true_dataflow_time_per_ele)
+    assert _equal(dataflow_results['std'], 0)
+    assert _equal(
+        dataflow_results['total'],
+        true_num_iters * true_dataflow_time_per_ele
+    )
+
+
 def test_processing_timer():
     true_processing_time = 1
     true_max_epochs = 2
