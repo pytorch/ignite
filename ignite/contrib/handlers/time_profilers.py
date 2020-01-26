@@ -7,6 +7,34 @@ from ignite.handlers import Timer
 
 
 class BasicTimeProfiler(object):
+    """
+    BasicTimeProfiler can be used to profile the handlers,
+    events, data loading and data processing times.
+
+    Args:
+        None
+
+    Attributes:
+        data_flow_times (torch.Tensor): tile elapsed during data loading
+            for each iteration
+        processing_times (torch.Tensor): time elapsed during data processing
+            for each iteration
+        event_handler_times (dict): time elapsed during execution
+            of each event handler attached to the engine
+
+    Example usage:
+        Create an object of the profiler and attach an engine to it
+
+        >>> profiler = BasicTimeProfiler()
+        >>> trainer = Engine(train_updater)
+        >>> profiler.attach(trainer)
+        >>> trainer.run(dataloader, max_epochs=3)
+
+        Once the engine is run, we can fetch the profiler stats using,
+
+        >>> results = profiler.get_results()
+        >>> profiler.print_results(results)
+    """
 
     def __init__(self):
         self._dataflow_timer = Timer()
