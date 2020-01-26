@@ -3,6 +3,10 @@ import itertools
 from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.engine import Events
 
+__all__ = [
+    'MetricsLambda'
+]
+
 
 class MetricsLambda(Metric):
     """

@@ -4,6 +4,10 @@ import torch
 
 from ignite.metrics.metric import Metric
 
+__all__ = [
+    'EpochMetric'
+]
+
 
 class EpochMetric(Metric):
     """Class for metrics that should be computed on the entire output history of a model.

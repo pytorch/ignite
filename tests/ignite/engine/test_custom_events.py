@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.engine import CallableEvents, EventWithFilter
+from ignite.engine.events import CallableEvents, EventWithFilter
 
 import pytest
 
