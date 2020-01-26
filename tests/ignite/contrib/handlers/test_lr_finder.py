@@ -68,6 +68,10 @@ def test_attach_without_with(lr_finder, dummy_engine, dataloader):
 
     with lr_finder.attach(dummy_engine, model, optimizer) as _:
         assert any([len(dummy_engine._event_handlers[event]) != 0 for event in dummy_engine._event_handlers])
+        with pytest.raises(RuntimeError):
+            lr_finder.lr_suggestion()
+        with pytest.raises(RuntimeError):
+            lr_finder.plot()
 
 
 def test_with_attach(lr_finder, model, optimizer, dummy_engine, dataloader):
@@ -97,9 +101,9 @@ def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloa
 
     with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
+        end_optimizer = lr_finder._optimizer.state_dict()
+        end_model = lr_finder._model.state_dict()
 
-    end_optimizer = lr_finder._optimizer.state_dict()
-    end_model = lr_finder._model.state_dict()
     assert init_optimizer["param_groups"][0]["params"] == end_optimizer["param_groups"][0]["params"]
 
     for v1, v2 in zip(init_model.values(), end_model.values()):
@@ -129,9 +133,9 @@ def test_in_dir_model_optimizer_reset(model, optimizer, dummy_engine, dataloader
 
     with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
+        end_optimizer = lr_finder._optimizer.state_dict()
+        end_model = lr_finder._model.state_dict()
 
-    end_optimizer = lr_finder._optimizer.state_dict()
-    end_model = lr_finder._model.state_dict()
     assert init_optimizer["param_groups"][0]["params"] == end_optimizer["param_groups"][0]["params"]
 
     for v1, v2 in zip(init_model.values(), end_model.values()):

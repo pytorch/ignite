@@ -33,8 +33,8 @@ class FastaiLRFinder(object):
             and optimizer will be cached in memory. Otherwise, they will be
             saved to files under the `cache_dir`.
         cache_dir (str): path for storing temporary files. If no path is
-            specified, system-wide temporary directory is used. Notice that this
-             parameter will be ignored if `memory_cache` is True.
+            specified, system-wide temporary directory is used. Notice that
+            this parameter will be ignored if `memory_cache` is True.
 
     Examples:
 
@@ -46,13 +46,9 @@ class FastaiLRFinder(object):
             lr_finder = LRFinder(model, optimizer)
 
             # Attach the lr_finder to the trainer
-            lr_finder.attach(trainer)
-
-            # Run trainer
-            trainer.run(dataloader)
-
-            # Detach lr_finder
-            lr_finder.detach()
+            with lr_finder.attach(trainer, model, optimizer) as
+            trainer_with_lr_finder:
+                trainer_with_lr_finder.run(dataloader)
 
             # Get lr_finder results
             lr_finder.get_results()
@@ -62,19 +58,6 @@ class FastaiLRFinder(object):
 
             # get lr_finder suggestion for lr
             lr_finder.lr_suggestion()
-
-        It is recommended to use the lr_finder.attach as context manager:
-
-        .. code-block:: python
-
-            from ignite.contrib.handlers import LRFinder
-
-            lr_finder = LRFinder(model, optimizer)
-
-            with lr_finder.attach(trainer):
-                trainer.run(dataloader)
-
-            lr_finder.plot()
 
 
     References:
@@ -100,7 +83,6 @@ class FastaiLRFinder(object):
         self._best_loss = None
         self._lr_schedule = None
 
-        # self._engine = None
         self._model = None
         self._optimizer = None
         self._output_transform = None
@@ -191,37 +173,8 @@ class FastaiLRFinder(object):
             warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
                           " at lr_finder.plot()", UserWarning)
 
-    def _attach(self, engine, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
-               step_mode="exp", smooth_f=0.05, diverge_th=5):
-        """
-        Attaches lr_finder to engine.
-        It is recommended to use `with lr_finder.attach(engine)` instead of
-        explicitly detaching using `lr_finder.detach()`
-        Args:
-            engine: lr_finder is attached to this engine
-            model (`torch.nn.Module`): the model to train.
-            optimizer (`torch.optim.Optimizer`): the optimizer to use, the
-            defined optimizer learning rate is assumed to be the lower boundary
-            of the range test.
-            output_transform (callable, optional): function that transform the
-                engine's state.output after each iteration. It must return the
-                loss of that iteration.
-            num_iter (int): number of iterations for lr schedule between base lr
-                and end_lr. If `None` it will run for
-                `len(dataloader) * trainer.state.max_epochs`
-            end_lr (float): upper bound for lr search.
-            step_mode (str): "exp" or "linear", which way should the lr be
-                increased from optimizer's initial lr to end_lr
-            smooth_f (float): loss smoothing factor in range [0, 1)
-            diverge_th (float): Used for stopping the search when
-                `current loss > diverge_th * best_loss`
-
-        Notes:
-            lr_finder cannot be attached to more than one engine at a time
-
-        Returns:
-            self
-        """
+    def _attach(self, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
+                step_mode="exp", smooth_f=0.05, diverge_th=5):
 
         if smooth_f < 0 or smooth_f >= 1:
             raise ValueError("smooth_f is outside the range [0, 1]")
@@ -257,8 +210,15 @@ class FastaiLRFinder(object):
             engine.remove_event_handler(self._warning, Events.COMPLETED)
         if engine.has_event_handler(self._reset, Events.COMPLETED):
             engine.remove_event_handler(self._reset, Events.COMPLETED)
-        if engine.has_event_handler(self._detach):
-            engine.remove_event_handler(self._detach, Events.COMPLETED)
+
+        self._model = None
+        self._optimizer = None
+        self._output_transform = None
+        self._num_iter = None
+        self._end_lr = None
+        self._step_mode = None
+        self._smooth_f = None
+        self._diverge_th = None
 
     def get_results(self):
         """
@@ -277,6 +237,8 @@ class FastaiLRFinder(object):
             log_lr (bool, optional): True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
         """
+        if self._history is None:
+            raise RuntimeError("learning rate finder didn't run yet so results can't be plotted")
 
         if skip_start < 0:
             raise ValueError("skip_start cannot be negative")
@@ -307,19 +269,22 @@ class FastaiLRFinder(object):
         """
         Returns: learning rate at the minimum numerical gradient
         """
+        if self._history is None:
+            raise RuntimeError("learning rate finder didn't run yet so lr_suggestion can't be returned")
         loss = self._history["loss"]
         grads = [loss[i] - loss[i - 1] for i in range(1, len(loss))]
         min_grad_idx = np.argmin(grads) + 1
         return self._history["lr"][int(min_grad_idx)]
 
     @contextlib.contextmanager
-    def attach(self, engine, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
-               step_mode="exp", smooth_f=0.05, diverge_th=5):
+    def attach(self, engine, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10.,
+               step_mode="exp", smooth_f=0.05, diverge_th=5.):
         """
-        Attaches lr_finder to engine.
+        Attaches lr_finder to a given trainer. It also resets model and
+        optimizer at the end of the run.
         It is used with:
-        `with lr_finder.attach(engine) as trainer_to_find_lr:
-            trainer_to_find_lr.run(dataloader)`
+        `with lr_finder.attach(engine, model, optimizer) as trainer_with_lr_finder:
+            trainer_with_lr_finder.run(dataloader)`
         Args:
             engine: lr_finder is attached to this engine
             model (`torch.nn.Module`): the model to train.
@@ -329,8 +294,8 @@ class FastaiLRFinder(object):
             output_transform (callable, optional): function that transform the
                 engine's state.output after each iteration. It must return the
                 loss of that iteration.
-            num_iter (int): number of iterations for lr schedule between base lr
-                and end_lr. If `None` it will run for
+            num_iter (int): number of iterations for lr schedule between base
+                lr and end_lr. If `None` it will run for
                 `len(dataloader) * trainer.state.max_epochs`
             end_lr (float): upper bound for lr search.
             step_mode (str): "exp" or "linear", which way should the lr be
@@ -343,9 +308,9 @@ class FastaiLRFinder(object):
             lr_finder cannot be attached to more than one engine at a time
 
         Returns:
-            engine: trainer used for finding the lr
+            trainer_with_lr_finder: trainer used for finding the lr
         """
-        self._attach(engine, model, optimizer, output_transform, num_iter, end_lr, step_mode, smooth_f, diverge_th)
+        self._attach(model, optimizer, output_transform, num_iter, end_lr, step_mode, smooth_f, diverge_th)
         if not engine.has_event_handler(self._run):
             engine.add_event_handler(Events.STARTED, self._run, self._num_iter, self._end_lr, self._step_mode,
                                      self._smooth_f, self._diverge_th)
@@ -353,8 +318,7 @@ class FastaiLRFinder(object):
             engine.add_event_handler(Events.COMPLETED, self._warning)
         if not engine.has_event_handler(self._reset):
             engine.add_event_handler(Events.COMPLETED, self._reset)
-        if not engine.has_event_handler(self._detach):
-            engine.add_event_handler(Events.COMPLETED, self._detach)
+
         yield engine
         self._detach(engine)
 
