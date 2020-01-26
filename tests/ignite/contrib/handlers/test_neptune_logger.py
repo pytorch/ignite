@@ -1,10 +1,7 @@
-import os
 import math
 
 import pytest
-
-from mock import MagicMock, call, ANY, patch
-
+from unittest.mock import MagicMock, call, ANY
 import torch
 
 from ignite.engine import Engine, Events, State
