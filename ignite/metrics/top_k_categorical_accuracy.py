@@ -4,6 +4,10 @@ from ignite.metrics.metric import Metric
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
+__all__ = [
+    'TopKCategoricalAccuracy'
+]
+
 
 class TopKCategoricalAccuracy(Metric):
     """
