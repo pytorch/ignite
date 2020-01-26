@@ -13,6 +13,9 @@ Ignite
 .. image:: https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v
     :target: https://pytorch.org/ignite/index.html
     
+.. image:: https://img.shields.io/badge/Optuna-integrated-blue
+    :target: https://optuna.org
+    
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
 - ignite helps you write compact but full-featured training loops in a few lines of code

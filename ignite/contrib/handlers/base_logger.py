@@ -6,11 +6,10 @@ import torch
 
 from ignite.engine import State, Engine
 from ignite.engine.engine import EventWithFilter
-from ignite._six import with_metaclass
 from ignite.handlers import global_step_from_engine
 
 
-class BaseLogger(object):
+class BaseLogger:
     """
     Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
 
@@ -44,7 +43,7 @@ class BaseLogger(object):
         pass
 
 
-class BaseHandler(with_metaclass(ABCMeta, object)):
+class BaseHandler(metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self, *args, **kwargs):

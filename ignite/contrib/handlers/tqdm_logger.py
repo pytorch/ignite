@@ -39,6 +39,16 @@ class ProgressBar(BaseLogger):
             # Progress bar will looks like
             # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
 
+        Log output to a file instead of stderr (tqdm's default output)
+
+        .. code-block:: python
+
+            trainer = create_supervised_trainer(model, optimizer, loss)
+
+            log_file = open("output.log", "w")
+            pbar = ProgressBar(file=log_file)
+            pbar.attach(trainer)
+
         Attach metrics that already have been computed at :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
         (such as :class:`~ignite.metrics.RunningAverage`)
 
@@ -127,8 +137,7 @@ class ProgressBar(BaseLogger):
         i2 = ProgressBar._events_order.index(event2)
         return i1 < i2
 
-    @staticmethod
-    def log_message(message):
+    def log_message(self, message):
         """
         Logs a message, preserving the progress bar correct output format.
 
@@ -136,7 +145,7 @@ class ProgressBar(BaseLogger):
             message (str): string you wish to log.
         """
         from tqdm import tqdm
-        tqdm.write(message)
+        tqdm.write(message, **self.tqdm_kwargs)
 
     def attach(self, engine, metric_names=None, output_transform=None,
                event_name=Events.ITERATION_COMPLETED,
@@ -172,8 +181,8 @@ class ProgressBar(BaseLogger):
                              .format(event_name, closing_event_name))
 
         log_handler = _OutputHandler(desc, metric_names, output_transform,
-                                     event_name=event_name,
                                      closing_event_name=closing_event_name)
+        # if event_name is EventWithFilter, filter is passed here
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 
@@ -189,29 +198,22 @@ class _OutputHandler(BaseOutputHandler):
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
             with corresponding keys.
-        event_name: event's name on which the progress bar advances. Valid events are from
-            :class:`~ignite.engine.Events` or any `event_name` added by
-            :meth:`~ignite.engine.Engine.register_events`.
         closing_event_name: event's name on which the progress bar is closed. Valid events are from
             :class:`~ignite.engine.Events` or any `event_name` added by
             :meth:`~ignite.engine.Engine.register_events`.
 
     """
     def __init__(self, description, metric_names=None, output_transform=None,
-                 event_name=Events.ITERATION_COMPLETED,
                  closing_event_name=Events.EPOCH_COMPLETED):
         if metric_names is None and output_transform is None:
             # This helps to avoid 'Either metric_names or output_transform should be defined' of BaseOutputHandler
             metric_names = []
         super(_OutputHandler, self).__init__(description, metric_names, output_transform,
                                              another_engine=None, global_step_transform=None)
-        self.event_name = event_name
         self.closing_event_name = closing_event_name
 
     @staticmethod
     def get_max_number_events(event_name, engine):
-        if isinstance(event_name, EventWithFilter):
-            event_name = event_name.event
         if event_name in (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED):
             return len(engine.state.dataloader)
         if event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED):
@@ -220,7 +222,7 @@ class _OutputHandler(BaseOutputHandler):
 
     def __call__(self, engine, logger, event_name):
 
-        pbar_total = self.get_max_number_events(self.event_name, engine)
+        pbar_total = self.get_max_number_events(event_name, engine)
         if logger.pbar is None:
             logger._reset(pbar_total=pbar_total)
 

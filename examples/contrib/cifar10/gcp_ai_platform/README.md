@@ -27,8 +27,12 @@ By default, we use `n1-standard-4` and `nvidia-tesla-k80` for the training. For 
 To start training, simply execute :
 ```bash
 sh gcp_ai_platform/submit_job.sh your-project region num_nodes num_gpus_per_node
-# sh gcp_ai_platform/submit_job.sh ignite-distrib us-east1
+# sh gcp_ai_platform/submit_job.sh ignite-distrib us-east1 1 2
 ```
+
+### Training options modifications
+
+Training command line is defined in `entrypoint.sh`. To add/remove options, user should edit this file.
 
 ### Logs visualization - Tensorboard
 

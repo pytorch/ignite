@@ -1,23 +1,21 @@
 import os
 import tempfile
+
 from collections import namedtuple
+import collections.abc as collections
 import warnings
-
-import sys
-
-IS_PYTHON2 = sys.version_info[0] < 3
-
-if IS_PYTHON2:
-    import collections
-else:
-    import collections.abc as collections
 
 import torch
 
 from ignite.engine import Events
 
+__all__ = [
+    'Checkpoint',
+    'ModelCheckpoint'
+]
 
-class Checkpoint(object):
+
+class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
     storage, etc.
@@ -34,7 +32,8 @@ class Checkpoint(object):
             retained.
         score_name (str, optional): If `score_function` not None, it is possible to store its absolute value using
             `score_name`. See Notes for more details.
-        n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed.
+        n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
+            `None`, all objects are kept.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
@@ -90,7 +89,7 @@ class Checkpoint(object):
             optimizer = ...
             lr_scheduler = ...
 
-            to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+            to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'trainer': trainer}
             handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2)
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
             trainer.run(data_loader, max_epochs=6)
@@ -144,7 +143,7 @@ class Checkpoint(object):
             raise TypeError("global_step_transform should be a function, got {} instead."
                             .format(type(global_step_transform)))
 
-        self._check_objects(to_save)
+        self._check_objects(to_save, "state_dict")
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = save_handler
         self.to_save = to_save
@@ -161,6 +160,11 @@ class Checkpoint(object):
             return None
         return self._saved[0].filename
 
+    def _check_lt_n_saved(self, or_equal=False):
+        if self._n_saved is None:
+            return True
+        return len(self._saved) < self._n_saved + int(or_equal)
+
     def __call__(self, engine):
 
         suffix = ""
@@ -173,8 +177,7 @@ class Checkpoint(object):
         else:
             priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
 
-        if len(self._saved) < self._n_saved or \
-                self._saved[0].priority < priority:
+        if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
             if self._score_name is not None:
                 if len(suffix) > 0:
@@ -201,7 +204,7 @@ class Checkpoint(object):
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
 
-        if len(self._saved) > self._n_saved:
+        if not self._check_lt_n_saved(or_equal=True):
             item = self._saved.pop(0)
             self.save_handler.remove(item.filename)
 
@@ -212,20 +215,21 @@ class Checkpoint(object):
         return checkpoint
 
     @staticmethod
-    def _check_objects(to_save_or_load):
-        for k, obj in to_save_or_load.items():
-            if not (hasattr(obj, "state_dict") and hasattr(obj, "load_state_dict")):
-                raise TypeError("Object {} should have `state_dict` and `load_state_dict` methods".format(type(obj)))
+    def _check_objects(objs, attr):
+        for k, obj in objs.items():
+            if not hasattr(obj, attr):
+                raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
     def load_objects(to_load, checkpoint):
-        """Method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
+        """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Args:
-            to_load (Mapping):
-            checkpoint (Mapping):
+            to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
+                "optimizer": opt_state_dict}`
         """
-        Checkpoint._check_objects(to_load)
+        Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
         for k, obj in to_load.items():
@@ -234,7 +238,7 @@ class Checkpoint(object):
             obj.load_state_dict(checkpoint[k])
 
 
-class DiskSaver(object):
+class DiskSaver:
     """Handler that saves input checkpoint on a disk.
 
     Args:
@@ -287,7 +291,8 @@ class DiskSaver(object):
 
 
 class ModelCheckpoint(Checkpoint):
-    """ModelCheckpoint handler can be used to periodically save objects to disk.
+    """ModelCheckpoint handler can be used to periodically save objects to disk only. If needed to store checkpoints to
+    another storage type, please consider :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     This handler expects two arguments:
 
@@ -321,7 +326,8 @@ class ModelCheckpoint(Checkpoint):
             retained.
         score_name (str, optional): if `score_function` not None, it is possible to store its absolute value using
             `score_name`. See Notes for more details.
-        n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed.
+        n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
+            `None`, all objects are kept.
         atomic (bool, optional): If True, objects are serialized to a temporary file, and then moved to final
             destination, so that files are guaranteed to not be damaged (for example if exception
             occurs during saving).
@@ -401,6 +407,6 @@ class ModelCheckpoint(Checkpoint):
         if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")
 
-        self._check_objects(to_save)
+        self._check_objects(to_save, "state_dict")
         self.to_save = to_save
         super(ModelCheckpoint, self).__call__(engine)

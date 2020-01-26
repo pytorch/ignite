@@ -11,7 +11,7 @@ from ignite.handlers import TerminateOnNan
 from ignite.contrib.handlers.tensorboard_logger import OutputHandler, OptimizerParamsHandler
 
 import pytest
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 
 class DummyModel(nn.Module):

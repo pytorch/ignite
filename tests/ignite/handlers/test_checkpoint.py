@@ -8,7 +8,7 @@ from ignite.engine import Engine, Events, State
 from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver
 
 import pytest
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 _PREFIX = 'PREFIX'
 
@@ -403,6 +403,27 @@ def test_last_k(dirname):
     assert sorted(os.listdir(dirname)) == expected, "{} vs {}".format(sorted(os.listdir(dirname)), expected)
 
 
+def test_disabled_n_saved(dirname):
+
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=None)
+    engine = Engine(lambda e, b: None)
+    engine.state = State(epoch=0, iteration=0)
+
+    model = DummyModel()
+    to_save = {'model': model}
+
+    num_iters = 100
+    for i in range(num_iters):
+        engine.state.iteration = i
+        h(engine, to_save)
+
+    saved_files = sorted(os.listdir(dirname))
+    assert len(saved_files) == num_iters, "{}".format(saved_files)
+
+    expected = sorted(['{}_{}_{}.pth'.format(_PREFIX, 'model', i) for i in range(num_iters)])
+    assert saved_files == expected, "{} vs {}".format(saved_files, expected)
+
+
 def test_best_k(dirname):
     scores = iter([1.2, -2., 3.1, -4.0])
 
@@ -505,7 +526,7 @@ def test_valid_state_dict_save(dirname):
     engine.state = State(epoch=0, iteration=0)
 
     to_save = {'name': 42}
-    with pytest.raises(TypeError, match=r"should have `state_dict` and `load_state_dict` methods"):
+    with pytest.raises(TypeError, match=r"should have `state_dict` method"):
         h(engine, to_save)
     to_save = {'name': model}
     try:
@@ -581,6 +602,9 @@ def test_checkpoint_load_objects():
 
     with pytest.raises(TypeError, match=r"Argument checkpoint should be a dictionary"):
         Checkpoint.load_objects({}, [])
+
+    with pytest.raises(TypeError, match=r"should have `load_state_dict` method"):
+        Checkpoint.load_objects({"a": None}, {"a": None})
 
     model = DummyModel()
     to_load = {'model': model}

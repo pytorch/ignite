@@ -36,8 +36,9 @@ def test_pbar(capsys):
 
 
 def test_pbar_log_message(capsys):
+    pbar = ProgressBar()
 
-    ProgressBar.log_message("test")
+    pbar.log_message("test")
 
     captured = capsys.readouterr()
     out = captured.out.split('\r')

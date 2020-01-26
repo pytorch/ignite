@@ -6,6 +6,12 @@ from ignite.exceptions import NotComputableError
 
 import torch
 
+__all__ = [
+    'VariableAccumulation',
+    'GeometricAverage',
+    'Average'
+]
+
 
 class VariableAccumulation(Metric):
     """Single variable accumulator helper to compute (arithmetic, geometric, harmonic) average of a single variable.
@@ -35,6 +41,7 @@ class VariableAccumulation(Metric):
             initialized and available, device is set to `cuda`.
 
     """
+    _required_output_keys = None
 
     def __init__(self, op, output_transform=lambda x: x, device=None):
         if not callable(op):

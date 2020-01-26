@@ -1,6 +1,9 @@
+import os
+import logging
 import pytest
 import torch
-from ignite.utils import convert_tensor, to_onehot
+
+from ignite.utils import convert_tensor, to_onehot, setup_logger
 
 
 def test_convert_tensor():
@@ -16,11 +19,17 @@ def test_convert_tensor():
     tensor = convert_tensor(x, device='cpu', non_blocking=False)
     assert torch.is_tensor(tensor)
 
-    x = (torch.tensor([0.0]), torch.tensor([0.0]))
+    x = [torch.tensor([0.0]), torch.tensor([0.0])]
     list_ = convert_tensor(x)
     assert isinstance(list_, list)
     assert torch.is_tensor(list_[0])
     assert torch.is_tensor(list_[1])
+
+    x = (torch.tensor([0.0]), torch.tensor([0.0]))
+    tuple_ = convert_tensor(x)
+    assert isinstance(tuple_, tuple)
+    assert torch.is_tensor(tuple_[0])
+    assert torch.is_tensor(tuple_[1])
 
     x = {'a': torch.tensor([0.0]), 'b': torch.tensor([0.0])}
     dict_ = convert_tensor(x)
@@ -54,3 +63,45 @@ def test_to_onehot():
     y_ohe = to_onehot(y, num_classes=21)
     y2 = torch.argmax(y_ohe, dim=1)
     assert y.equal(y2)
+
+
+def test_dist_setup_logger():
+
+    logger = setup_logger("trainer", level=logging.CRITICAL, distributed_rank=1)
+    assert logger.level != logging.CRITICAL
+
+
+def test_setup_logger(capsys, dirname):
+
+    from ignite.engine import Engine, Events
+
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+
+    fp = os.path.join(dirname, "log")
+    assert len(trainer.logger.handlers) == 0
+    trainer.logger.addHandler(logging.NullHandler())
+    trainer.logger.addHandler(logging.NullHandler())
+    trainer.logger.addHandler(logging.NullHandler())
+
+    trainer.logger = setup_logger("trainer", filepath=fp)
+    evaluator.logger = setup_logger("evaluator", filepath=fp)
+
+    assert len(trainer.logger.handlers) == 2
+    assert len(evaluator.logger.handlers) == 2
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def _(_):
+        evaluator.run([0, 1, 2])
+
+    trainer.run([0, 1, 2, 3, 4, 5], max_epochs=5)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\n')
+
+    with open(fp, "r") as h:
+        data = h.readlines()
+
+    for source in [err, data]:
+        assert "trainer INFO: Engine run starting with max_epochs=5." in source[0]
+        assert "evaluator INFO: Engine run starting with max_epochs=1." in source[2]

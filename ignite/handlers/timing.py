@@ -1,9 +1,10 @@
+from time import perf_counter
+
 from ignite.engine import Events
 
-try:
-    from time import perf_counter
-except ImportError:
-    from time import time as perf_counter
+__all__ = [
+    'Timer'
+]
 
 
 class Timer:

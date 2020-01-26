@@ -57,7 +57,7 @@ run a script with a configuration. Training logic is setup inside `training` met
 
 ### Configurations
 
-- [baseline_r50.py](configs/train/baseline_r50.py) : trains ResNet50
+- [baseline_resnet50.py](configs/train/baseline_resnet50.py) : trains ResNet50
 
 
 ### Results

@@ -73,11 +73,14 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
         }
 
     trainer = Engine(train_update_function)
-    common.setup_common_distrib_training_handlers(
+
+    lr_scheduler = config.lr_scheduler
+    to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'trainer': trainer}
+    common.setup_common_training_handlers(
         trainer, train_sampler,
-        to_save={'model': model, 'optimizer': optimizer},
+        to_save=to_save,
         save_every_iters=1000, output_path=config.output_path.as_posix(),
-        lr_scheduler=config.lr_scheduler, with_gpu_stats=True,
+        lr_scheduler=lr_scheduler, with_gpu_stats=True,
         output_names=['supervised batch loss', ],
         with_pbars=True, with_pbar_on_iters=with_mlflow_logging,
         log_every_iters=1

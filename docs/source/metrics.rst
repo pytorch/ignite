@@ -17,7 +17,7 @@ value is then computed using the output of the engine's `process_function`:
     metric = Accuracy()
     metric.attach(engine, "accuracy")
 
-If the engine's output is not in the format `y_pred, y`, the user can
+If the engine's output is not in the format `(y_pred, y)` or `{'y_pred': y_pred, 'y': y, ...}`, the user can
 use the `output_transform` argument to transform it:
 
 .. code-block:: python
@@ -187,6 +187,7 @@ Complete list of metrics
     - :class:`~ignite.metrics.Accuracy`
     - :class:`~ignite.metrics.Average`
     - :class:`~ignite.metrics.ConfusionMatrix`
+    - :meth:`~ignite.metrics.DiceCoefficient`
     - :class:`~ignite.metrics.EpochMetric`
     - :meth:`~ignite.metrics.Fbeta`
     - :class:`~ignite.metrics.GeometricAverage`
@@ -213,6 +214,8 @@ Complete list of metrics
 .. autoclass:: Average
 
 .. autoclass:: ConfusionMatrix
+
+.. autofunction:: DiceCoefficient
 
 .. autoclass:: EpochMetric
 

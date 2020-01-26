@@ -2,6 +2,10 @@ from ignite.engine import Events
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
+__all__ = [
+    'RunningAverage'
+]
+
 
 class RunningAverage(Metric):
     """Compute running average of a metric or the output of process function.
@@ -37,6 +41,7 @@ class RunningAverage(Metric):
             print("running avg loss:", engine.state.metrics['running_avg_loss'])
 
     """
+    _required_output_keys = None
 
     def __init__(self, src=None, alpha=0.98, output_transform=None, epoch_bound=True, device=None):
         if not (isinstance(src, Metric) or src is None):

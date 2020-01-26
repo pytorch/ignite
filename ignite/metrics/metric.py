@@ -1,21 +1,20 @@
 import numbers
 from abc import ABCMeta, abstractmethod
 from functools import wraps
+from collections.abc import Mapping
 import warnings
-
-try:
-    from collections.abc import Sequence
-except ImportError:  # Python 2.7 compatibility
-    from collections import Sequence
 
 import torch
 import torch.distributed as dist
 
-from ignite._six import with_metaclass
 from ignite.engine import Events
 
+__all__ = [
+    'Metric'
+]
 
-class Metric(with_metaclass(ABCMeta, object)):
+
+class Metric(metaclass=ABCMeta):
     """
     Base class for all Metrics.
 
@@ -24,12 +23,14 @@ class Metric(with_metaclass(ABCMeta, object)):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+            By default, metrics require the output as `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
         device (str of torch.device, optional): device specification in case of distributed computation usage.
             In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
             if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
             initialized and available, device is set to `cuda`.
 
     """
+    _required_output_keys = ("y_pred", "y")
 
     def __init__(self, output_transform=lambda x: x, device=None):
         self._output_transform = output_transform
@@ -116,6 +117,15 @@ class Metric(with_metaclass(ABCMeta, object)):
     @torch.no_grad()
     def iteration_completed(self, engine):
         output = self._output_transform(engine.state.output)
+        if isinstance(output, Mapping):
+            if self._required_output_keys is None:
+                raise TypeError("Transformed engine output for {} metric should be a tuple/list, but given {}"
+                                .format(self.__class__.__name__, type(output)))
+            if not all([k in output for k in self._required_output_keys]):
+                raise ValueError("When transformed engine's output is a mapping, "
+                                 "it should contain {} keys, but given {}".format(self._required_output_keys,
+                                                                                  list(output.keys())))
+            output = tuple(output[k] for k in self._required_output_keys)
         self.update(output)
 
     def completed(self, engine, name):
