@@ -283,7 +283,8 @@ class FastaiLRFinder(object):
         Attaches lr_finder to a given trainer. It also resets model and
         optimizer at the end of the run.
         It is used with:
-        `with lr_finder.attach(engine, model, optimizer) as trainer_with_lr_finder:
+        `with lr_finder.attach(engine, model, optimizer) as
+        trainer_with_lr_finder:
             trainer_with_lr_finder.run(dataloader)`
         Args:
             engine: lr_finder is attached to this engine
