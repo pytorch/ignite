@@ -469,7 +469,7 @@ class NeptuneLogger(BaseLogger):
         try:
             import neptune
         except ImportError:
-            raise RuntimeError("This contrib module requires neptune ",
+            raise RuntimeError("This contrib module requires neptune-client to be installed. "
                                "You may install neptune with command: \n pip install neptune-client \n")
 
         if kwargs.get("offline_mode", False):

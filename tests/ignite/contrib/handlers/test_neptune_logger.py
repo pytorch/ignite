@@ -449,5 +449,6 @@ def no_site_packages():
 
 
 def test_no_neptune_client(no_site_packages):
+
     with pytest.raises(RuntimeError, match=r"This contrib module requires neptune-client to be installed."):
-        NeptuneLogger(offline_mode=True)
+        NeptuneLogger()
