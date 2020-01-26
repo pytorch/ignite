@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 from torch.nn.functional import pairwise_distance
 
@@ -7,12 +5,16 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
+__all__ = [
+    'MeanPairwiseDistance'
+]
+
 
 class MeanPairwiseDistance(Metric):
     """
     Calculates the mean pairwise distance: average of pairwise distances computed on provided batches.
 
-    - `update` must receive output of the form `(y_pred, y)`.
+    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
     """
     def __init__(self, p=2, eps=1e-6, output_transform=lambda x: x, device=None):
         super(MeanPairwiseDistance, self).__init__(output_transform, device=device)

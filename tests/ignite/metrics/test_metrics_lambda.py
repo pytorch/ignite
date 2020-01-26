@@ -201,7 +201,7 @@ def test_state_metrics():
             yield (y_pred[i], y[i])
 
     d = data(y_pred, y)
-    state = evaluator.run(d, max_epochs=1)
+    state = evaluator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
     assert set(state.metrics.keys()) == set(["precision", "recall", "f1"])
 
@@ -229,7 +229,7 @@ def test_state_metrics_ingredients_not_attached():
             yield (y_pred[i], y[i])
 
     d = data(y_pred, y)
-    state = evaluator.run(d, max_epochs=1)
+    state = evaluator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
     assert set(state.metrics.keys()) == set(["F1"])
 
@@ -259,7 +259,7 @@ def test_recursive_attachment():
                 yield (y_pred[i], y[i])
 
         d = data(y_pred, y)
-        state = validator.run(d, max_epochs=1)
+        state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
         assert set(state.metrics.keys()) == set([metric_name, ])
         np_y_pred = y_pred.numpy().ravel()

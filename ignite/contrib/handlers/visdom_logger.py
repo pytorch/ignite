@@ -12,7 +12,7 @@ __all__ = ['VisdomLogger', 'OptimizerParamsHandler', 'OutputHandler',
            'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
 
 
-class _BaseVisDrawer(object):
+class _BaseVisDrawer:
 
     def __init__(self, show_legend=False):
         self.windows = {}

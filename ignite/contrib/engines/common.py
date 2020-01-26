@@ -1,10 +1,7 @@
 from functools import partial
 import warnings
 
-try:
-    from collections.abc import Sequence, Mapping
-except ImportError:  # Python 2.7 compatibility
-    from collections import Sequence, Mapping
+from collections.abc import Sequence, Mapping
 
 import torch
 import torch.distributed as dist
@@ -24,7 +21,7 @@ import ignite.contrib.handlers.polyaxon_logger as polyaxon_logger_module
 
 def setup_common_training_handlers(trainer, train_sampler=None,
                                    to_save=None, save_every_iters=1000, output_path=None,
-                                   lr_scheduler=None, with_gpu_stats=True,
+                                   lr_scheduler=None, with_gpu_stats=False,
                                    output_names=None, with_pbars=True, with_pbar_on_iters=True, log_every_iters=100,
                                    device='cuda'):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
@@ -47,7 +44,7 @@ def setup_common_training_handlers(trainer, train_sampler=None,
         lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
         with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
-            trainer
+            trainer. This requires `pynvml` package to be installed.
         output_names (list/tuple): list of names associated with `update_function` output dictionary.
         with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached
         with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.

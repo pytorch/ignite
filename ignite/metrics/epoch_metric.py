@@ -4,6 +4,10 @@ import torch
 
 from ignite.metrics.metric import Metric
 
+__all__ = [
+    'EpochMetric'
+]
+
 
 class EpochMetric(Metric):
     """Class for metrics that should be computed on the entire output history of a model.
@@ -20,7 +24,7 @@ class EpochMetric(Metric):
         Current implementation does not work with distributed computations. Results are not gather across all devices
         and computed results are valid for a single device only.
 
-    - `update` must receive output of the form `(y_pred, y)`.
+    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
 
     If target shape is `(batch_size, n_classes)` and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`.
 

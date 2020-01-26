@@ -7,20 +7,15 @@ import math
 import numbers
 
 from abc import ABCMeta, abstractmethod
-from ignite._six import with_metaclass
 
-try:
-    from collections.abc import Sequence, Mapping
-except ImportError:  # Python 2.7 compatibility
-    from collections import Sequence, Mapping
-    from itertools import izip as zip
+from collections.abc import Sequence, Mapping
 
 import torch
 from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 
-class ParamScheduler(with_metaclass(ABCMeta, object)):
+class ParamScheduler(metaclass=ABCMeta):
     """An abstract class for updating an optimizer's parameter value during
     training.
 
@@ -798,7 +793,7 @@ class PiecewiseLinear(ParamScheduler):
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
 
-class ParamGroupScheduler(object):
+class ParamGroupScheduler:
     """
     Scheduler helper to group multiple schedulers into one.
 

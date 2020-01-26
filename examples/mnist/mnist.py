@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
 
+import torch
 from torch import nn
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-import torch
 import torch.nn.functional as F
 from torchvision.transforms import Compose, ToTensor, Normalize
 from torchvision.datasets import MNIST

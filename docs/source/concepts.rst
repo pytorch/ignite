@@ -10,9 +10,18 @@ provided data, executes a processing function and returns a result:
 .. code-block:: python
 
     while epoch < max_epochs:
-        # run once on data
-        for batch in data:
-            output = process_function(batch)
+        # run an epoch on data
+        data_iter = iter(data)
+        while True:
+            try:
+                batch = next(data_iter)
+                output = process_function(batch)
+                iter_counter += 1
+            except StopIteration:
+                data_iter = iter(data)
+
+            if iter_counter == epoch_length:
+                break
 
 Thus, a model trainer is simply an engine that loops multiple times over the training dataset and updates model parameters.
 Similarly, model evaluation can be done with an engine that runs a single time over the validation dataset and computes metrics.
@@ -32,6 +41,16 @@ For example, model trainer for a supervised task:
 
     trainer = Engine(update_model)
     trainer.run(data, max_epochs=100)
+
+.. Note ::
+
+    By default, epoch length is defined by `len(data)`. However, user can also manually define the epoch length as a
+    number of iterations to loop. In this way the input data can be an iterator.
+
+    .. code-block:: python
+
+        trainer.run(data, max_epochs=100, epoch_length=200)
+
 
 Events and Handlers
 -------------------
@@ -172,10 +191,14 @@ A state is introduced in :class:`~ignite.engine.Engine` to store the output of t
 iteration and other helpful information. Each :class:`~ignite.engine.Engine` contains a :class:`~ignite.engine.State`, 
 which includes the following:
 
-- **engine.state.epoch**: Number of epochs the engine has completed. Initializated as 0. 
-- **engine.state.max_epochs**: Number of epochs to run for. Initializated as 1. 
-- **engine.state.iteration**: Number of iterations the engine has completed. Initialized as 0.
+- **engine.state.seed**: Seed to set at each data "epoch".
+- **engine.state.epoch**: Number of epochs the engine has completed. Initializated as 0 and the first epoch is 1.
+- **engine.state.iteration**: Number of iterations the engine has completed. Initialized as 0 and the first iteration is 1.
+- **engine.state.max_epochs**: Number of epochs to run for. Initializated as 1.
 - **engine.state.output**: The output of the `process_function` defined for the :class:`~ignite.engine.Engine`. See below.
+- etc
+
+Other attributes can be found in the docs of :class:`~ignite.engine.State`.
 
 In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at 
 every iteration.
@@ -265,3 +288,71 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
 
       def user_handler_function(engine):
           engine.state.new_attribute = 12345
+
+
+Resume training
+---------------
+
+Engine provides two methods to serialize and deserialize its internal state :meth:`~ignite.engine.Engine.state_dict` and
+:meth:`~ignite.engine.Engine.load_state_dict`. In addition
+with serializing model, optimizer, lr scheduler etc user can store the trainer and then resume the training from
+an **iteration**. For example, using :class:`~ignite.handlers.Checkpoint` handler we can easily save checkpoints
+containing serialized trainer, model, optimizer, etc
+
+.. code-block:: python
+
+    from ignite.engine import Engine, Events
+    from ignite.handlers import Checkpoint, DiskSaver
+
+    trainer = ...
+    model = ...
+    optimizer = ...
+    lr_scheduler = ...
+    data_loader = ...
+
+    to_save = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+    handler = Checkpoint(to_save, DiskSaver('/tmp/training', create_dir=True))
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
+    trainer.run(data_loader, max_epochs=100)
+
+.. code-block:: bash
+
+    ls /tmp/training
+    > "checkpoint_50000.pth"
+
+We can then restore the training from the last checkpoint.
+
+.. code-block:: python
+
+    from ignite.handlers import Checkpoint
+
+    trainer = ...
+    model = ...
+    optimizer = ...
+    lr_scheduler = ...
+    data_loader = ...
+
+    to_load = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+    checkpoint = torch.load(checkpoint_file)
+    Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+
+    trainer.run(train_loader, max_epochs=100)
+
+Please, note that trainer can continue the training from the checkpoint iteration.
+In case when input data is `torch.utils.data.DataLoader`, previous batches are skipped and the first provided batch
+corresponds to the batch after the checkpoint iteration. Internally, while resuming, previous datapoint indices are just
+skipped without fetching the data.
+
+.. warning::
+
+    However, while resuming from iteration, random data augmentations are not synchronized in the middle of the epoch and
+    thus batches remaining until the end of en epoch can effectively be different of those from the initial run.
+
+
+Complete examples that simulates a crash on a defined iteration and resumes the training from a checkpoint can be found
+here:
+
+- `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume>`_
+- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/engine_refactor/examples/contrib/cifar10#check-resume-training>`_
+
+
