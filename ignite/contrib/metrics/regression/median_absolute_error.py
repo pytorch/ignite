@@ -30,5 +30,6 @@ class MedianAbsoluteError(_BaseRegressionEpoch):
     __ https://arxiv.org/abs/1809.03006
 
     """
+
     def __init__(self, output_transform=lambda x: x):
         super(MedianAbsoluteError, self).__init__(median_absolute_error_compute_fn, output_transform)

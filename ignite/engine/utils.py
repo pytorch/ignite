@@ -23,7 +23,8 @@ def _check_signature(engine: Engine, fn: Callable, fn_description: str, *args, *
                          "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))
 
 
-def _update_dataloader(dataloader: torch.utils.data.DataLoader, new_batch_sampler: torch.utils.data.sampler.BatchSampler) -> torch.utils.data.DataLoader:
+def _update_dataloader(dataloader: torch.utils.data.DataLoader,
+                       new_batch_sampler: torch.utils.data.sampler.BatchSampler) -> torch.utils.data.DataLoader:
     params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
     for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler', 'dataset_kind']:
         if k in params_keys:
@@ -41,6 +42,7 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
             `torch.utils.data.DataLoader`
         start_iteration (int, optional): optional start iteration
     """
+
     def __init__(self, batch_sampler: torch.utils.data.sampler.BatchSampler, start_iteration: Optional[int] = None):
         if not isinstance(batch_sampler, torch.utils.data.sampler.BatchSampler):
             raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")

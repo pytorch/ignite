@@ -7,7 +7,6 @@ import torch
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
     BaseWeightsScalarHandler, global_step_from_engine
 
-
 __all__ = ['VisdomLogger', 'OptimizerParamsHandler', 'OutputHandler',
            'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
 
@@ -142,6 +141,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 return engine.state.get_event_attrib_value(event_name)
 
     """
+
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None,
                  show_legend=False):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
@@ -473,7 +473,6 @@ class VisdomLogger(BaseLogger):
 
 
 class _DummyExecutor:
-
     class _DummyFuture:
 
         def __init__(self, result):

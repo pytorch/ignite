@@ -17,6 +17,7 @@ class MeanAbsoluteError(Metric):
 
     - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
     """
+
     @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_absolute_errors = 0.0

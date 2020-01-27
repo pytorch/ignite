@@ -126,7 +126,6 @@ def _setup_common_distrib_training_handlers(trainer, train_sampler=None,
                                             lr_scheduler=None, with_gpu_stats=True,
                                             output_names=None, with_pbars=True, with_pbar_on_iters=True,
                                             log_every_iters=100, device='cuda'):
-
     if not (dist.is_available() and dist.is_initialized()):
         raise RuntimeError("Distributed setting is not initialized, please call `dist.init_process_group` before.")
 
@@ -162,7 +161,6 @@ def empty_cuda_cache(_):
 
 
 def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters):
-
     if optimizers is not None:
         from torch.optim.optimizer import Optimizer
 
@@ -279,7 +277,6 @@ def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters
 
 
 def get_default_score_fn(metric_name):
-
     def wrapper(engine):
         score = engine.state.metrics[metric_name]
         return score

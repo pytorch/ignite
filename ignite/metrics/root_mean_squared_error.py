@@ -16,6 +16,7 @@ class RootMeanSquaredError(MeanSquaredError):
 
     - `update` must receive output of the form (y_pred, y) or `{'y_pred': y_pred, 'y': y}`.
     """
+
     def compute(self) -> Union[torch.Tensor, float]:
         mse = super(RootMeanSquaredError, self).compute()
         return math.sqrt(mse)

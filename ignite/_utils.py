@@ -1,6 +1,5 @@
 from typing import Union, Tuple
 
-
 # For compatibilty
 from ignite.utils import convert_tensor, apply_to_tensor, apply_to_type, to_onehot
 

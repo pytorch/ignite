@@ -6,7 +6,6 @@ import torch
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler, \
     global_step_from_engine
 
-
 __all__ = ['PolyaxonLogger', 'OutputHandler', 'OptimizerParamsHandler', 'global_step_from_engine']
 
 
@@ -91,6 +90,7 @@ class OutputHandler(BaseOutputHandler):
                 return engine.state.get_event_attrib_value(event_name)
 
     """
+
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
 
@@ -225,4 +225,5 @@ class PolyaxonLogger(BaseLogger):
     def __getattr__(self, attr):
         def wrapper(*args, **kwargs):
             return getattr(self.experiment, attr)(*args, **kwargs)
+
         return wrapper

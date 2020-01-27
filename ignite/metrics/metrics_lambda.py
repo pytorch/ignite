@@ -40,6 +40,7 @@ class MetricsLambda(Metric):
         F3 = MetricsLambda(Fbeta, recall, precision, 3)
         F4 = MetricsLambda(Fbeta, recall, precision, 4)
     """
+
     def __init__(self, f: Callable, *args, **kwargs):
         self.function = f
         self.args = args

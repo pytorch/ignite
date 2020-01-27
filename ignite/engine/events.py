@@ -46,10 +46,11 @@ class CallableEvents:
             # do something
 
     """
-    def __call__(self, event_filter:Optional[Callable] =None,
-                 every:Optional[int]=None, once: Optional[int]=None) -> Union[CallableEvents, EventWithFilter]:
 
-        if not((event_filter is not None) ^ (every is not None) ^ (once is not None)):
+    def __call__(self, event_filter: Optional[Callable] = None,
+                 every: Optional[int] = None, once: Optional[int] = None) -> Union[CallableEvents, EventWithFilter]:
+
+        if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
             raise ValueError("Only one of the input arguments should be specified")
 
         if (event_filter is not None) and not callable(event_filter):
@@ -81,6 +82,7 @@ class CallableEvents:
             if event % every == 0:
                 return True
             return False
+
         return wrapper
 
     @staticmethod
@@ -89,6 +91,7 @@ class CallableEvents:
             if event == once:
                 return True
             return False
+
         return wrapper
 
 

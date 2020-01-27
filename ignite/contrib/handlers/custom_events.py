@@ -76,7 +76,7 @@ class CustomPeriodicEvent:
         setattr(self, "Events", Enum("Events", " ".join([
             "{}_STARTED".format(event_name),
             "{}_COMPLETED".format(event_name)])
-        ))
+                                     ))
         # Update State.event_to_attr
         for e in self.Events:
             State.event_to_attr[e] = self.custom_state_attr

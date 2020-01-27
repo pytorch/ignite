@@ -38,6 +38,7 @@ class EpochMetric(Metric):
             you want to compute the metric with respect to one of the outputs.
 
     """
+
     def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x):
 
         if not callable(compute_fn):
