@@ -180,17 +180,16 @@ class Checkpoint:
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
-            priority_str = '{:.4f}'.format(priority)
             if self._score_name is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{}={}".format(suffix, self._score_name, priority_str)
+                suffix = "{}{}={:.4f}".format(suffix, self._score_name, priority)
             elif self._score_function is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{}".format(suffix, priority_str)
+                suffix = "{}{:.4f}".format(suffix, priority)
             elif len(suffix) == 0:
-                suffix = "{}".format(priority_str)
+                suffix = "{}".format(priority)
 
             checkpoint = self._setup_checkpoint()
 
