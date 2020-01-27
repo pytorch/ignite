@@ -2,6 +2,7 @@ import os
 import torch
 
 from ignite.metrics import EpochMetric
+from ignite.metrics.epoch_metric import EpochMetricWarning
 
 import pytest
 
@@ -113,7 +114,7 @@ def test_bad_compute_fn():
 
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 4), dtype=torch.long))
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
         em.update(output1)
 
 
