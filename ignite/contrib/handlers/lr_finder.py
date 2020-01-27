@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from ignite.engine import Events
+from ignite.engine import Events, Engine
 from ignite.contrib.handlers import LRScheduler, PiecewiseLinear
 from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
@@ -19,21 +19,13 @@ class FastaiLRFinder(object):
     While attached, the handler increases the learning rate in between two
     boundaries in a linear or exponential manner. It provides valuable
     information on how well the network can be trained over a range of learning
-    rates and what is the optimal learning rate.
+    rates and what can be an optimal learning rate.
 
-    This class requires `matplotlib` package to be installed:
+    This class may require `matplotlib` package to be installed to plot learning rate range test:
 
     .. code-block:: bash
 
         pip install matplotlib
-
-    Args:
-        memory_cache (bool): if this flag is set to True, `state_dict` of model
-            and optimizer will be cached in memory. Otherwise, they will be
-            saved to files under the `cache_dir`.
-        cache_dir (str): path for storing temporary files. If no path is
-            specified, system-wide temporary directory is used. Notice that
-            this parameter will be ignored if `memory_cache` is True.
 
     Examples:
 
@@ -42,11 +34,10 @@ class FastaiLRFinder(object):
             from ignite.contrib.handlers import LRFinder
 
             # Create a lr_finder
-            lr_finder = LRFinder(model, optimizer)
+            lr_finder = LRFinder()
 
             # Attach the lr_finder to the trainer
-            with lr_finder.attach(trainer, model, optimizer) as
-            trainer_with_lr_finder:
+            with lr_finder.attach(trainer, model, optimizer) as trainer_with_lr_finder:
                 trainer_with_lr_finder.run(dataloader)
 
             # Get lr_finder results
@@ -58,24 +49,15 @@ class FastaiLRFinder(object):
             # get lr_finder suggestion for lr
             lr_finder.lr_suggestion()
 
-
     References:
+
         Cyclical Learning Rates for Training Neural Networks:
         https://arxiv.org/abs/1506.01186
 
         fastai/lr_find: https://github.com/fastai/fastai
     """
 
-    def __init__(self, memory_cache=True, cache_dir=None):
-        try:
-            from matplotlib import pyplot as plt
-            self._plt = plt
-        except ImportError:
-            raise RuntimeError("This contrib module requires matplotlib to be installed. "
-                               "Please install it with command: \n pip install matplotlib")
-
-        self._memory_cache = memory_cache
-        self._cache_dir = cache_dir
+    def __init__(self):
 
         self._diverge_flag = False
         self._history = None
@@ -83,8 +65,7 @@ class FastaiLRFinder(object):
         self._lr_schedule = None
         self._reset_params()
 
-        self._logger = logging.getLogger(__name__)
-        self._logger.addHandler(logging.NullHandler())
+        self.logger = logging.getLogger(__name__)
 
     def _run(self, engine, num_iter, end_lr, step_mode, smooth_f, diverge_th):
         engine.state.state_cache = _StateCacher(self._memory_cache, cache_dir=self._cache_dir)
@@ -102,7 +83,7 @@ class FastaiLRFinder(object):
             dataloader_len = len(engine.state.dataloader)
             required_epochs = np.ceil(num_iter / dataloader_len)
             if engine.state.max_epochs < required_epochs:
-                warnings.warn("to reach the desired num_iter {} with current dataloader length {}, you mudt run "
+                warnings.warn("to reach the desired num_iter {} with current dataloader length {}, you must run "
                               "trainer for {} epochs".format(num_iter, dataloader_len, required_epochs),
                               UserWarning)
 
@@ -174,8 +155,8 @@ class FastaiLRFinder(object):
             warnings.warn("Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
                           " at lr_finder.plot()", UserWarning)
 
-    def _attach(self, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
-                step_mode="exp", smooth_f=0.05, diverge_th=5):
+    def _setup(self, model, optimizer, output_transform=lambda output: output, num_iter=None, end_lr=10,
+               step_mode="exp", smooth_f=0.05, diverge_th=5):
 
         if smooth_f < 0 or smooth_f >= 1:
             raise ValueError("smooth_f is outside the range [0, 1]")
@@ -223,6 +204,12 @@ class FastaiLRFinder(object):
     def plot(self, skip_start=10, skip_end=5, log_lr=True):
         """Plots the learning rate range test.
 
+        This method requires `matplotlib` package to be installed:
+
+        .. code-block:: bash
+
+            pip install matplotlib
+
         Args:
             skip_start (int, optional): number of batches to trim from the start.
                 Default: 10.
@@ -231,6 +218,12 @@ class FastaiLRFinder(object):
             log_lr (bool, optional): True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
         """
+        try:
+            from matplotlib import pyplot as plt
+        except ImportError:
+            raise RuntimeError("This method requires matplotlib to be installed. "
+                               "Please install it with command: \n pip install matplotlib")
+
         if self._history is None:
             raise RuntimeError("learning rate finder didn't run yet so results can't be plotted")
 
@@ -252,12 +245,12 @@ class FastaiLRFinder(object):
             losses = losses[skip_start:-skip_end]
 
         # Plot loss as a function of the learning rate
-        self._plt.plot(lrs, losses)
+        plt.plot(lrs, losses)
         if log_lr:
-            self._plt.xscale("log")
-        self._plt.xlabel("Learning rate")
-        self._plt.ylabel("Loss")
-        self._plt.show()
+            plt.xscale("log")
+        plt.xlabel("Learning rate")
+        plt.ylabel("Loss")
+        plt.show()
 
     def lr_suggestion(self):
         """
@@ -281,23 +274,20 @@ class FastaiLRFinder(object):
         trainer_with_lr_finder:
             trainer_with_lr_finder.run(dataloader)`
         Args:
-            engine: lr_finder is attached to this engine
-            model (`torch.nn.Module`): the model to train.
-            optimizer (`torch.optim.Optimizer`): the optimizer to use, the
-            defined optimizer learning rate is assumed to be the lower boundary
-            of the range test.
-            output_transform (callable, optional): function that transform the
-                engine's state.output after each iteration. It must return the
-                loss of that iteration.
-            num_iter (int): number of iterations for lr schedule between base
-                lr and end_lr. If `None` it will run for
-                `len(dataloader) * trainer.state.max_epochs`
-            end_lr (float): upper bound for lr search.
-            step_mode (str): "exp" or "linear", which way should the lr be
-                increased from optimizer's initial lr to end_lr
-            smooth_f (float): loss smoothing factor in range [0, 1)
-            diverge_th (float): Used for stopping the search when
-                `current loss > diverge_th * best_loss`
+            engine (Engine): lr_finder is attached to this engine
+            model (torch.nn.Module): the model to train.
+            optimizer (torch.optim.Optimizer): the optimizer to use, the defined optimizer learning rate is assumed to
+                be the lower boundary of the range test.
+            output_transform (callable, optional): function that transforms the engine's `state.output` after each
+                iteration. It must return the loss of that iteration.
+            num_iter (int, optional): number of iterations for lr schedule between base lr and end_lr. Default, it will
+                run for `len(dataloader) * trainer.state.max_epochs`.
+            end_lr (float, optional): upper bound for lr search. Default, 10.0.
+            step_mode (str, optional): "exp" or "linear", which way should the lr be increased from optimizer's initial lr
+                to `end_lr`. Default, "exp".
+            smooth_f (float, optional): loss smoothing factor in range `[0, 1)`. Default, 0.05
+            diverge_th (float, optional): Used for stopping the search when `current loss > diverge_th * best_loss`.
+                Default, 5.0.
 
         Notes:
             lr_finder cannot be attached to more than one engine at a time
@@ -305,7 +295,12 @@ class FastaiLRFinder(object):
         Returns:
             trainer_with_lr_finder: trainer used for finding the lr
         """
-        self._attach(model, optimizer, output_transform, num_iter, end_lr, step_mode, smooth_f, diverge_th)
+        # create new engine:
+        copy_engine = Engine(engine._process_function)
+
+        self._setup(model, optimizer, output_transform, num_iter, end_lr, step_mode, smooth_f, diverge_th)
+
+        # Attach handlers
         if not engine.has_event_handler(self._run):
             engine.add_event_handler(Events.STARTED, self._run, self._num_iter, self._end_lr, self._step_mode,
                                      self._smooth_f, self._diverge_th)
@@ -343,47 +338,47 @@ class _ExponentialLR(_LRScheduler):
         return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
 
 
-class _StateCacher(object):
-
-    def __init__(self, in_memory, cache_dir=None):
-        self.in_memory = in_memory
-        self.cache_dir = cache_dir
-        self.cached = {}
-
-        if self.cache_dir is None:
-            import tempfile
-            self.cache_dir = tempfile.gettempdir()
-        else:
-            if not os.path.isdir(self.cache_dir):
-                raise ValueError('Given `cache_dir` is not a valid directory.')
-
-    def store(self, key, state_dict):
-        if self.in_memory:
-            self.cached.update({key: copy.deepcopy(state_dict)})
-        else:
-            fn = os.path.join(self.cache_dir, 'state_{}_{}.pt'.format(key, id(self)))
-            self.cached.update({key: fn})
-            torch.save(state_dict, fn)
-
-    def retrieve(self, key):
-        if key not in self.cached:
-            raise KeyError('Target {} was not cached.'.format(key))
-
-        if self.in_memory:
-            return self.cached.get(key)
-        else:
-            fn = self.cached.get(key)
-            if not os.path.exists(fn):
-                raise RuntimeError('Failed to load state in {}. File does not exist anymore.'.format(fn))
-            state_dict = torch.load(fn, map_location=lambda storage, location: storage)
-            return state_dict
-
-    def __del__(self):
-        """Check whether there are unused cached files existing in `cache_dir` before
-        this instance being destroyed."""
-        if self.in_memory:
-            return
-
-        for k in self.cached:
-            if os.path.exists(self.cached[k]):
-                os.remove(self.cached[k])
+# class _StateCacher(object):
+#
+#     def __init__(self, in_memory, cache_dir=None):
+#         self.in_memory = in_memory
+#         self.cache_dir = cache_dir
+#         self.cached = {}
+#
+#         if self.cache_dir is None:
+#             import tempfile
+#             self.cache_dir = tempfile.gettempdir()
+#         else:
+#             if not os.path.isdir(self.cache_dir):
+#                 raise ValueError('Given `cache_dir` is not a valid directory.')
+#
+#     def store(self, key, state_dict):
+#         if self.in_memory:
+#             self.cached.update({key: copy.deepcopy(state_dict)})
+#         else:
+#             fn = os.path.join(self.cache_dir, 'state_{}_{}.pt'.format(key, id(self)))
+#             self.cached.update({key: fn})
+#             torch.save(state_dict, fn)
+#
+#     def retrieve(self, key):
+#         if key not in self.cached:
+#             raise KeyError('Target {} was not cached.'.format(key))
+#
+#         if self.in_memory:
+#             return self.cached.get(key)
+#         else:
+#             fn = self.cached.get(key)
+#             if not os.path.exists(fn):
+#                 raise RuntimeError('Failed to load state in {}. File does not exist anymore.'.format(fn))
+#             state_dict = torch.load(fn, map_location=lambda storage, location: storage)
+#             return state_dict
+#
+#     def __del__(self):
+#         """Check whether there are unused cached files existing in `cache_dir` before
+#         this instance being destroyed."""
+#         if self.in_memory:
+#             return
+#
+#         for k in self.cached:
+#             if os.path.exists(self.cached[k]):
+#                 os.remove(self.cached[k])
