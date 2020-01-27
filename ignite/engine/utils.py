@@ -56,7 +56,6 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
 
 
 def _check_signature(engine, fn: Callable, fn_description: str, *args, **kwargs) -> None:
-    exception_msg = None
 
     signature = inspect.signature(fn)
     try:
@@ -64,8 +63,6 @@ def _check_signature(engine, fn: Callable, fn_description: str, *args, **kwargs)
     except TypeError as exc:
         fn_params = list(signature.parameters)
         exception_msg = str(exc)
-
-    if exception_msg:
         passed_params = [engine] + list(args) + list(kwargs)
         raise ValueError("Error adding {} '{}': "
                          "takes parameters {} but will be called with {} "
