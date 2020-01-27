@@ -80,7 +80,11 @@ class EpochMetric(Metric):
                 self.compute_fn(self._predictions, self._targets)
             except Exception as e:
                 warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e),
-                              RuntimeWarning)
+                              EpochMetricWarning)
 
     def compute(self):
         return self.compute_fn(self._predictions, self._targets)
+
+
+class EpochMetricWarning(UserWarning):
+    pass
