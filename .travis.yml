@@ -27,7 +27,7 @@ before_install: &before_install
   - conda create -q -n test-environment pytorch cpuonly torchvision python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
   - source activate test-environment
   # Test contrib dependencies
-  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow tensorboard pynvml
+  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard pynvml
 
 install:
   - python setup.py install
