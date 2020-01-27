@@ -15,7 +15,7 @@
 
 Note:
     You can see an example experiment here:
-    https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-20/charts
+    https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-26/charts
 """
 from __future__ import print_function
 

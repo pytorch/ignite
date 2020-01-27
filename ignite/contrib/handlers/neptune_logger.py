@@ -367,7 +367,7 @@ class NeptuneLogger(BaseLogger):
             npt_logger.close()
 
         Explore an experiment with neptune tracking here:
-        https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-20/charts
+        https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-26/charts
 
         It is also possible to use the logger as context manager:
 
