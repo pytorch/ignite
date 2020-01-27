@@ -12,7 +12,7 @@ from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsH
     BaseWeightsScalarHandler, global_step_from_engine
 
 __all__ = ['NeptuneLogger', 'OptimizerParamsHandler', 'OutputHandler',
-           'WeightsScalarHandler', 'GradsScalarHandler', 'ModelCheckpointHandler', 'global_step_from_engine']
+           'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
 
 
 class OutputHandler(BaseOutputHandler):
@@ -277,80 +277,6 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             logger.experiment.log_metric("{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name),
                                          x=global_step,
                                          y=self.reduction(p.grad))
-
-
-class ModelCheckpointHandler:
-    """Checkpoint handler can be used to periodically save objects which have attribute
-     `state_dict` to Neptune server.
-
-     Args:
-         to_save (dict): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
-             load_state_dict` methods.
-         score_function (callable, optional): If not None, it should be a function taking a single argument,
-             :class:`~ignite.engine.Engine` object, and returning a score (`float`). Objects with highest scores will be
-             retained.
-        temp_directory (str, optional): If not None, it is a directory on disk where checkpoint files will be saved
-             temporarily before being sent to Neptune server.
-
-    Note:
-        It only saves objects for the best checkpoint and overwrites old objects on Neptune server.
-
-     Examples:
-
-         Attach the handler to evaluattor to save checkpoints during training:
-
-
-         .. code-block:: python
-
-            from ignite.contrib.handlers.neptune_logger import *
-
-            # Create a logger
-            npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                       project_name="USER_NAME/PROJECT_NAME",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
-                                       )
-
-            # Attach the logger to the trainer to log model's weights norm after each iteration
-            to_save = {'model': model,
-                       'optimizer': optimizer}
-
-            def score_function(engine):
-                return engine.state.metrics['accuracy']
-
-            npt_logger.attach(validation_evaluator,
-                              log_handler=ModelCheckpointHandler(to_save=to_save,
-                                                                 score_function=score_function),
-                              event_name=Events.EPOCH_COMPLETED)
-
-
-     """
-
-    def __init__(self, to_save, score_function, temp_directory=None):
-
-        self._to_save = to_save
-        self._score_function = score_function
-        self._temp_directory = temp_directory
-        self._best_score = None
-
-    def __call__(self, engine, logger, event_name):
-        score = self._score_function(engine)
-
-        if self._best_score is None:
-            self._best_score = score
-
-        if score > self._best_score:
-            self._best_score = score
-
-            for name, obj in self._to_save.items():
-                filename = "best_checkpoint_{}.pth".format(name)
-                self._save(obj, logger, filename)
-
-    def _save(self, obj, logger, filename):
-        with tempfile.NamedTemporaryFile(dir=self._temp_directory) as tmp:
-            torch.save(obj.state_dict(), tmp.name)
-            logger.experiment.log_artifact(tmp.name, destination=filename)
 
 
 class NeptuneLogger(BaseLogger):

@@ -142,17 +142,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, neptune_project)
                       log_handler=GradsScalarHandler(model),
                       event_name=Events.ITERATION_COMPLETED(every=100))
 
-    to_save = {'model': model,
-               'optimizer': optimizer}
-
-    def score_function(engine):
-        return engine.state.metrics['accuracy']
-
-    npt_logger.attach(validation_evaluator,
-                      log_handler=ModelCheckpointHandler(to_save=to_save,
-                                                         score_function=score_function),
-                      event_name=Events.EPOCH_COMPLETED)
-
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
     npt_logger.close()
