@@ -1,9 +1,12 @@
-from typing import Callable, Optional, Generator
+from __future__ import annotations
+
+from typing import Callable, Optional, Generator, TYPE_CHECKING
 import inspect
 
 import torch
 
-from ignite.engine.engine import Engine
+with TYPE_CHECKING:
+    from ignite.engine.engine import Engine
 
 
 def _check_signature(engine: Engine, fn: Callable, fn_description: str, *args, **kwargs) -> None:
