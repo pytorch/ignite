@@ -13,7 +13,7 @@ def _update_dataloader(dataloader: torch.utils.data.DataLoader,
             params_keys.remove(k)
     params = {k: getattr(dataloader, k) for k in params_keys}
     params['batch_sampler'] = new_batch_sampler
-    return torch.utils.data.DataLoader(**params)
+    return type(dataloader)(**params)
 
 
 class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
