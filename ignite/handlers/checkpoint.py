@@ -64,8 +64,8 @@ class Checkpoint:
         be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If `global_step_transform` is provided, then
         the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}`
 
-        For example, `score_name="neg_val_loss"` and `score_function` that returns `-loss` (as objects with
-        highest scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pth`.
+        For example, `score_name="neg_val_loss"` and `score_function` that returns `-loss` (as objects with highest
+        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pth`.
 
         To get the last stored filename, handler exposes attribute `last_checkpoint`:
 
