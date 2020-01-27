@@ -14,7 +14,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, \
 import torch
 
 from ignite.engine.events import Events, State, EventWithFilter, RemovableEventHandle
-from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader
+from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
 __all__ = [
@@ -734,20 +734,3 @@ class Engine:
 
         self._dataloader_iter = self._dataloader_len = None
         return self.state
-
-
-def _check_signature(engine: Engine, fn: Callable, fn_description: str, *args, **kwargs) -> None:
-    exception_msg = None
-
-    signature = inspect.signature(fn)
-    try:
-        signature.bind(engine, *args, **kwargs)
-    except TypeError as exc:
-        fn_params = list(signature.parameters)
-        exception_msg = str(exc)
-
-    if exception_msg:
-        passed_params = [engine] + list(args) + list(kwargs)
-        raise ValueError("Error adding {} '{}': "
-                         "takes parameters {} but will be called with {} "
-                         "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))

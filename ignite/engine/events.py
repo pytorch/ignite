@@ -6,7 +6,8 @@ from enum import Enum
 import numbers
 import weakref
 
-from ignite.engine.engine import Engine, _check_signature
+from ignite.engine.utils import _check_signature
+
 
 __all__ = [
     'Events',
@@ -77,7 +78,7 @@ class CallableEvents:
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
-        def wrapper(engine: Engine, event: bool):
+        def wrapper(engine, event: bool):
             if event % every == 0:
                 return True
             return False
@@ -86,7 +87,7 @@ class CallableEvents:
 
     @staticmethod
     def once_event_filter(once: int) -> Callable:
-        def wrapper(engine: Engine, event: int) -> bool:
+        def wrapper(engine, event: int) -> bool:
             if event == once:
                 return True
             return False
@@ -231,7 +232,7 @@ class RemovableEventHandle:
         # print_epoch handler is now unregistered
     """
 
-    def __init__(self, event_name: Union[EventWithFilter, CallableEvents, Enum], handler: Callable, engine: Engine):
+    def __init__(self, event_name: Union[EventWithFilter, CallableEvents, Enum], handler: Callable, engine):
         self.event_name = event_name
         self.handler = weakref.ref(handler)
         self.engine = weakref.ref(engine)

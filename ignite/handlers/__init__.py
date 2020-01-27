@@ -2,7 +2,7 @@ from typing import Callable, Any, Union
 from enum import Enum
 
 from ignite.engine import Engine
-from ignite.engine.engine import EventWithFilter, CallableEvents
+from ignite.engine.events import EventWithFilter, CallableEvents
 
 from ignite.handlers.checkpoint import ModelCheckpoint, Checkpoint, DiskSaver
 from ignite.handlers.timing import Timer
