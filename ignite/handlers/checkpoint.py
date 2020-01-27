@@ -5,7 +5,7 @@ from collections import namedtuple
 import collections.abc as collections
 import warnings
 
-from typing import Optional, Callable, Mapping
+from typing import Optional, Callable, Mapping, Union
 
 import torch
 
