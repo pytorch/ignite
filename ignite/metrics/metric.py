@@ -1,13 +1,16 @@
+from __future__ import annotations
 import numbers
 from abc import ABCMeta, abstractmethod
 from functools import wraps
 from collections.abc import Mapping
 import warnings
 
+from typing import Callable, Union, Optional, Any
+
 import torch
 import torch.distributed as dist
 
-from ignite.engine import Events
+from ignite.engine import Events, Engine
 
 __all__ = [
     'Metric'
@@ -32,7 +35,8 @@ class Metric(metaclass=ABCMeta):
     """
     _required_output_keys = ("y_pred", "y")
 
-    def __init__(self, output_transform=lambda x: x, device=None):
+    def __init__(self, output_transform: Callable = lambda x: x,
+                 device: Optional[Union[str, torch.device]] = None):
         self._output_transform = output_transform
 
         # Check device if distributed is initialized:
@@ -51,7 +55,7 @@ class Metric(metaclass=ABCMeta):
         self.reset()
 
     @abstractmethod
-    def reset(self):
+    def reset(self) -> None:
         """
         Resets the metric to it's initial state.
 
@@ -60,7 +64,7 @@ class Metric(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def update(self, output):
+    def update(self, output) -> None:
         """
         Updates the metric's state using the passed batch output.
 
@@ -72,7 +76,7 @@ class Metric(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def compute(self):
+    def compute(self) -> Any:
         """
         Computes the metric based on it's accumulated state.
 
@@ -86,7 +90,10 @@ class Metric(metaclass=ABCMeta):
         """
         pass
 
-    def _sync_all_reduce(self, tensor):
+    def _sync_all_reduce(
+            self,
+            tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor,
+                                                                  numbers.Number]:
         if not (dist.is_available() and dist.is_initialized()):
             # Nothing to reduce
             return tensor
@@ -111,11 +118,11 @@ class Metric(metaclass=ABCMeta):
             return tensor.item()
         return tensor
 
-    def started(self, engine):
+    def started(self, engine: Engine) -> None:
         self.reset()
 
     @torch.no_grad()
-    def iteration_completed(self, engine):
+    def iteration_completed(self, engine: Engine) -> None:
         output = self._output_transform(engine.state.output)
         if isinstance(output, Mapping):
             if self._required_output_keys is None:
@@ -128,76 +135,76 @@ class Metric(metaclass=ABCMeta):
             output = tuple(output[k] for k in self._required_output_keys)
         self.update(output)
 
-    def completed(self, engine, name):
+    def completed(self, engine: Engine, name: str) -> None:
         result = self.compute()
         if torch.is_tensor(result) and len(result.shape) == 0:
             result = result.item()
         engine.state.metrics[name] = result
 
-    def attach(self, engine, name):
+    def attach(self, engine: Engine, name: str) -> None:
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
         if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
             engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
 
-    def __add__(self, other):
+    def __add__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x + y, self, other)
 
-    def __radd__(self, other):
+    def __radd__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x + y, other, self)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x - y, self, other)
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x - y, other, self)
 
-    def __mul__(self, other):
+    def __mul__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x * y, self, other)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x * y, other, self)
 
-    def __pow__(self, other):
+    def __pow__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x ** y, self, other)
 
-    def __rpow__(self, other):
+    def __rpow__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x ** y, other, self)
 
-    def __mod__(self, other):
+    def __mod__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x % y, self, other)
 
-    def __div__(self, other):
+    def __div__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__div__(y), self, other)
 
-    def __rdiv__(self, other):
+    def __rdiv__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__div__(y), other, self)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__truediv__(y), self, other)
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__truediv__(y), other, self)
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: Metric) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x // y, self, other)
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Callable:
         from ignite.metrics import MetricsLambda
 
         def fn(x, *args, **kwargs):
@@ -205,19 +212,19 @@ class Metric(metaclass=ABCMeta):
 
         def wrapper(*args, **kwargs):
             return MetricsLambda(fn, self, *args, **kwargs)
+
         return wrapper
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: Any) -> Metric:
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x: x[index], self)
 
 
-def sync_all_reduce(*attrs):
-
-    def wrapper(func):
+def sync_all_reduce(*attrs) -> Callable:
+    def wrapper(func: Callable) -> Callable:
 
         @wraps(func)
-        def another_wrapper(self, *args, **kwargs):
+        def another_wrapper(self: Metric, *args, **kwargs) -> Callable:
             if not isinstance(self, Metric):
                 raise RuntimeError("Decorator sync_all_reduce should be used on "
                                    "ignite.metric.Metric class methods only")
@@ -238,8 +245,7 @@ def sync_all_reduce(*attrs):
     return wrapper
 
 
-def reinit__is_reduced(func):
-
+def reinit__is_reduced(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)

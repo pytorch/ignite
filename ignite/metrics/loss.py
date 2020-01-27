@@ -1,3 +1,7 @@
+from typing import Callable, Union, Optional, Sequence
+
+import torch
+
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
@@ -33,19 +37,19 @@ class Loss(Metric):
     """
     _required_output_keys = None
 
-    def __init__(self, loss_fn, output_transform=lambda x: x,
-                 batch_size=lambda x: len(x), device=None):
+    def __init__(self, loss_fn: Callable, output_transform: Callable = lambda x: x,
+                 batch_size: Callable = lambda x: len(x), device: Optional[Union[str, torch.device]] = None):
         super(Loss, self).__init__(output_transform, device=device)
         self._loss_fn = loss_fn
         self._batch_size = batch_size
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._sum = 0
         self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output):
+    def update(self, output: Sequence[Union[torch.Tensor, dict]]) -> None:
         if len(output) == 2:
             y_pred, y = output
             kwargs = {}
@@ -61,7 +65,7 @@ class Loss(Metric):
         self._num_examples += N
 
     @sync_all_reduce("_sum", "_num_examples")
-    def compute(self):
+    def compute(self) -> None:
         if self._num_examples == 0:
             raise NotComputableError(
                 'Loss must have at least one example before it can be computed.')
