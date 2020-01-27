@@ -137,7 +137,7 @@ def test_checkpoint_with_score_function():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_0.77.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_0.7700.pth".format(name))
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
@@ -145,10 +145,10 @@ def test_checkpoint_with_score_function():
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_0.78.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_0.7800.pth".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_0.77.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_0.78.pth".format(name)
+        save_handler.remove.assert_called_with("{}_0.7700.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_0.7800.pth".format(name)
 
     model = DummyModel()
     to_save = {'model': model}
@@ -176,7 +176,7 @@ def test_checkpoint_with_score_name_and_function():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_loss=-0.77.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_loss=-0.7700.pth".format(name))
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
@@ -184,10 +184,10 @@ def test_checkpoint_with_score_name_and_function():
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_loss=-0.76.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_loss=-0.7600.pth".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_loss=-0.77.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_loss=-0.76.pth".format(name)
+        save_handler.remove.assert_called_with("{}_loss=-0.7700.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_loss=-0.7600.pth".format(name)
 
     model = DummyModel()
     to_save = {'model': model}
@@ -218,17 +218,17 @@ def test_checkpoint_with_score_function_and_trainer_epoch():
         checkpointer(evaluator)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_11_0.77.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_11_0.7700.pth".format(name))
 
         trainer.state.epoch = 12
         evaluator.state.metrics['val_acc'] = 0.78
 
         checkpointer(evaluator)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_12_0.78.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_12_0.7800.pth".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_11_0.77.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_12_0.78.pth".format(name)
+        save_handler.remove.assert_called_with("{}_11_0.7700.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_12_0.7800.pth".format(name)
 
     model = DummyModel()
     to_save = {'model': model}
@@ -256,17 +256,17 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
         checkpointer(evaluator)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_11_val_acc=0.77.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_11_val_acc=0.7700.pth".format(name))
 
         trainer.state.epoch = 12
         evaluator.state.metrics['val_acc'] = 0.78
 
         checkpointer(evaluator)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_12_val_acc=0.78.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_12_val_acc=0.7800.pth".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_11_val_acc=0.77.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_12_val_acc=0.78.pth".format(name)
+        save_handler.remove.assert_called_with("{}_11_val_acc=0.7700.pth".format(name))
+        assert checkpointer.last_checkpoint == "{}_12_val_acc=0.7800.pth".format(name)
 
     model = DummyModel()
     to_save = {'model': model}
@@ -440,7 +440,7 @@ def test_best_k(dirname):
     for _ in range(4):
         h(engine, to_save)
 
-    expected = ['{}_{}_{}.pth'.format(_PREFIX, 'model', i) for i in [1.2, 3.1]]
+    expected = ['{}_{}_{:.4f}.pth'.format(_PREFIX, 'model', i) for i in [1.2, 3.1]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -464,7 +464,7 @@ def test_best_k_with_suffix(dirname):
         engine.state.epoch += 1
         h(engine, to_save)
 
-    expected = ['{}_{}_val_loss={:.7}.pth'.format(_PREFIX, 'model', scores[e - 1]) for e in [1, 3]]
+    expected = ['{}_{}_val_loss={:.4}.pth'.format(_PREFIX, 'model', scores[e - 1]) for e in [1, 3]]
 
     assert sorted(os.listdir(dirname)) == expected
 
