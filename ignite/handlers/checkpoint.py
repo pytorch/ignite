@@ -33,7 +33,7 @@ class Checkpoint:
         score_function (callable, optional): If not None, it should be a function taking a single argument,
             :class:`~ignite.engine.Engine` object, and returning a score (`float`). Objects with highest scores will be
             retained.
-        score_name (str, optional): If `score_function` not None, it is possible to store its absolute value using
+        score_name (str, optional): If `score_function` not None, it is possible to store its value using
             `score_name`. See Notes for more details.
         n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
@@ -63,11 +63,11 @@ class Checkpoint:
         The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pth`.
 
         If defined `score_function` and `score_name`, then the filename will
-        be `{filename_prefix}_{name}_{score_name}={abs(score)}.{ext}`. If `global_step_transform` is provided, then
-        the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={abs(score)}.{ext}`
+        be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If `global_step_transform` is provided, then
+        the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}`
 
-        For example, `score_name="val_loss"` and `score_function` that returns `-loss` (as objects with
-        highest scores will be retained), then saved filename will be `{filename_prefix}_{name}_val_loss=0.1234.pth`.
+        For example, `score_name="neg_val_loss"` and `score_function` that returns `-loss` (as objects with highest
+        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pth`.
 
         To get the last stored filename, handler exposes attribute `last_checkpoint`:
 
@@ -185,11 +185,11 @@ class Checkpoint:
             if self._score_name is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{}={}".format(suffix, self._score_name, priority)
+                suffix = "{}{}={:.4f}".format(suffix, self._score_name, priority)
             elif self._score_function is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{}".format(suffix, priority)
+                suffix = "{}{:.4f}".format(suffix, priority)
             elif len(suffix) == 0:
                 suffix = "{}".format(priority)
 
@@ -327,7 +327,7 @@ class ModelCheckpoint(Checkpoint):
         score_function (callable, optional): if not None, it should be a function taking a single argument, an
             :class:`~ignite.engine.Engine` object, and return a score (`float`). Objects with highest scores will be
             retained.
-        score_name (str, optional): if `score_function` not None, it is possible to store its absolute value using
+        score_name (str, optional): if `score_function` not None, it is possible to store its value using
             `score_name`. See Notes for more details.
         n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
