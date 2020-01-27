@@ -323,23 +323,6 @@ class Engine:
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
 
-    @staticmethod
-    def _check_signature(self, fn, fn_description, *args, **kwargs):
-        exception_msg = None
-
-        signature = inspect.signature(fn)
-        try:
-            signature.bind(self, *args, **kwargs)
-        except TypeError as exc:
-            fn_params = list(signature.parameters)
-            exception_msg = str(exc)
-
-        if exception_msg:
-            passed_params = [self] + list(args) + list(kwargs)
-            raise ValueError("Error adding {} '{}': "
-                             "takes parameters {} but will be called with {} "
-                             "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))
-
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler.
 
