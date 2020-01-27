@@ -6,8 +6,7 @@ from enum import Enum
 import numbers
 import weakref
 
-from ignite.engine.utils import _check_signature
-from ignite.engine.engine import Engine
+from ignite.engine.engine import Engine, _check_signature
 
 __all__ = [
     'Events',

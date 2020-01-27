@@ -1,29 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Generator, TYPE_CHECKING
-import inspect
-
+from typing import Optional, Generator
 import torch
-
-with TYPE_CHECKING:
-    from ignite.engine.engine import Engine
-
-
-def _check_signature(engine: Engine, fn: Callable, fn_description: str, *args, **kwargs) -> None:
-    exception_msg = None
-
-    signature = inspect.signature(fn)
-    try:
-        signature.bind(engine, *args, **kwargs)
-    except TypeError as exc:
-        fn_params = list(signature.parameters)
-        exception_msg = str(exc)
-
-    if exception_msg:
-        passed_params = [engine] + list(args) + list(kwargs)
-        raise ValueError("Error adding {} '{}': "
-                         "takes parameters {} but will be called with {} "
-                         "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))
 
 
 def _update_dataloader(dataloader: torch.utils.data.DataLoader,
