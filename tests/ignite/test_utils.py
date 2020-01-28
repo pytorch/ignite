@@ -3,6 +3,7 @@ import logging
 import pytest
 import torch
 
+from collections import namedtuple
 from ignite.utils import convert_tensor, to_onehot, setup_logger
 
 
