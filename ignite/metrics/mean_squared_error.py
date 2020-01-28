@@ -1,7 +1,5 @@
 from typing import Union, Sequence
 
-from typing import Union, Sequence
-
 import torch
 
 from ignite.exceptions import NotComputableError
