@@ -52,6 +52,8 @@ def apply_to_type(input_: Union[Any, collections.Sequence,
         return input_
     elif isinstance(input_, collections.Mapping):
         return type(input_)({k: apply_to_type(sample, input_type, func) for k, sample in input_.items()})
+    elif isinstance(input_, tuple) and hasattr(input_, '_fields'):  # namedtuple
+        return type(input_)(*(apply_to_type(sample, input_type, func) for sample in input_))
     elif isinstance(input_, collections.Sequence):
         return type(input_)([apply_to_type(sample, input_type, func) for sample in input_])
     else:
