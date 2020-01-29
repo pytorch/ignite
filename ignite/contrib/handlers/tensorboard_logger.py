@@ -6,7 +6,6 @@ import torch
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
     BaseWeightsScalarHandler, BaseWeightsHistHandler, global_step_from_engine
 
-
 __all__ = ['TensorboardLogger', 'OptimizerParamsHandler', 'OutputHandler',
            'WeightsScalarHandler', 'WeightsHistHandler', 'GradsScalarHandler',
            'GradsHistHandler', 'global_step_from_engine']
@@ -87,6 +86,7 @@ class OutputHandler(BaseOutputHandler):
                 return engine.state.get_event_attrib_value(event_name)
 
     """
+
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
 
@@ -179,6 +179,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
         tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
+
     def __init__(self, model, reduction=torch.norm, tag=None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
@@ -266,6 +267,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
         tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
+
     def __init__(self, model, reduction=torch.norm, tag=None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
@@ -307,6 +309,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
         tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
+
     def __init__(self, model, tag=None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 

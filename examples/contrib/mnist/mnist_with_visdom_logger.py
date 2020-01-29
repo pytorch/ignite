@@ -17,8 +17,6 @@
     python mnist_with_visdom_logger.py
     ```
 """
-from __future__ import print_function
-
 from argparse import ArgumentParser
 import logging
 

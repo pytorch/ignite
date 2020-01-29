@@ -21,6 +21,7 @@ class ManhattanDistance(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
 
     """
+
     def reset(self):
         self._sum_of_errors = 0.0
 

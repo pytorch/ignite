@@ -5,9 +5,11 @@ from collections import namedtuple
 import collections.abc as collections
 import warnings
 
+from typing import Optional, Callable, Mapping, Union
+
 import torch
 
-from ignite.engine import Events
+from ignite.engine import Events, Engine
 
 __all__ = [
     'Checkpoint',
@@ -123,9 +125,9 @@ class Checkpoint:
 
     Item = namedtuple("Item", ["priority", "filename"])
 
-    def __init__(self, to_save, save_handler, filename_prefix="",
-                 score_function=None, score_name=None, n_saved=1,
-                 global_step_transform=None, archived=False):
+    def __init__(self, to_save: dict, save_handler: Callable, filename_prefix: str = "",
+                 score_function: Optional[Callable] = None, score_name: Optional[str] = None, n_saved: int = 1,
+                 global_step_transform: Callable = None, archived: bool = False):
 
         if not isinstance(to_save, collections.Mapping):
             raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
@@ -156,7 +158,7 @@ class Checkpoint:
         self.global_step_transform = global_step_transform
 
     @property
-    def last_checkpoint(self):
+    def last_checkpoint(self) -> str:
         if len(self._saved) < 1:
             return None
         return self._saved[0].filename
@@ -166,7 +168,7 @@ class Checkpoint:
             return True
         return len(self._saved) < self._n_saved + int(or_equal)
 
-    def __call__(self, engine):
+    def __call__(self, engine: Engine) -> None:
 
         suffix = ""
         if self.global_step_transform is not None:
@@ -209,20 +211,20 @@ class Checkpoint:
             item = self._saved.pop(0)
             self.save_handler.remove(item.filename)
 
-    def _setup_checkpoint(self):
+    def _setup_checkpoint(self) -> dict:
         checkpoint = {}
         for k, obj in self.to_save.items():
             checkpoint[k] = obj.state_dict()
         return checkpoint
 
     @staticmethod
-    def _check_objects(objs, attr):
+    def _check_objects(objs: dict, attr: str) -> None:
         for k, obj in objs.items():
             if not hasattr(obj, attr):
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
-    def load_objects(to_load, checkpoint):
+    def load_objects(to_load: Mapping, checkpoint: Mapping) -> None:
         """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Args:
@@ -251,7 +253,7 @@ class DiskSaver:
         require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
     """
 
-    def __init__(self, dirname, atomic=True, create_dir=True, require_empty=True):
+    def __init__(self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
         if create_dir:
@@ -269,7 +271,7 @@ class DiskSaver:
                                  "directory anyway, pass `require_empty=False`."
                                  "".format(matched, dirname))
 
-    def __call__(self, checkpoint, filename):
+    def __call__(self, checkpoint: Mapping, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
 
         if not self._atomic:
@@ -286,7 +288,7 @@ class DiskSaver:
                 tmp.close()
                 os.rename(tmp.name, path)
 
-    def remove(self, filename):
+    def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
         os.remove(path)
 
@@ -357,13 +359,14 @@ class ModelCheckpoint(Checkpoint):
         ['/tmp/models/myprefix_mymodel_6.pth']
     """
 
-    def __init__(self, dirname, filename_prefix,
-                 save_interval=None,
-                 score_function=None, score_name=None,
-                 n_saved=1,
-                 atomic=True, require_empty=True,
-                 create_dir=True,
-                 save_as_state_dict=True, global_step_transform=None, archived=False):
+    def __init__(self, dirname: str, filename_prefix: str,
+                 save_interval: Optional[Callable] = None,
+                 score_function: Optional[Callable] = None, score_name: Optional[str] = None,
+                 n_saved: int = 1,
+                 atomic: bool = True, require_empty: bool = True,
+                 create_dir: bool = True,
+                 save_as_state_dict: bool = True, global_step_transform: Optional[Callable] = None,
+                 archived: bool = False):
 
         if not save_as_state_dict:
             raise ValueError("Argument save_as_state_dict is deprecated and should be True")
@@ -398,12 +401,12 @@ class ModelCheckpoint(Checkpoint):
         self.global_step_transform = global_step_transform
 
     @property
-    def last_checkpoint(self):
+    def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
             return None
         return os.path.join(self.save_handler.dirname, self._saved[0].filename)
 
-    def __call__(self, engine, to_save):
+    def __call__(self, engine: Engine, to_save: Mapping) -> None:
 
         if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")

@@ -1,4 +1,8 @@
-from ignite.engine import Events
+from typing import Optional, Union, Callable, Sequence
+
+import torch
+
+from ignite.engine import Events, Engine
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
@@ -43,7 +47,8 @@ class RunningAverage(Metric):
     """
     _required_output_keys = None
 
-    def __init__(self, src=None, alpha=0.98, output_transform=None, epoch_bound=True, device=None):
+    def __init__(self, src: Optional[Metric] = None, alpha: float = 0.98, output_transform: Optional[Callable] = None,
+                 epoch_bound: bool = True, device: Optional[Union[str, torch.device]] = None):
         if not (isinstance(src, Metric) or src is None):
             raise TypeError("Argument src should be a Metric or None.")
         if not (0.0 < alpha <= 1.0):
@@ -69,15 +74,15 @@ class RunningAverage(Metric):
         super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._value = None
 
     @reinit__is_reduced
-    def update(self, output):
+    def update(self, output: Sequence) -> None:
         # Implement abstract method
         pass
 
-    def compute(self):
+    def compute(self) -> Union[torch.Tensor, float]:
         if self._value is None:
             self._value = self._get_src_value()
         else:
@@ -85,7 +90,7 @@ class RunningAverage(Metric):
 
         return self._value
 
-    def attach(self, engine, name):
+    def attach(self, engine: Engine, name: str):
         if self.epoch_bound:
             # restart average every epoch
             engine.add_event_handler(Events.EPOCH_STARTED, self.started)
@@ -94,17 +99,17 @@ class RunningAverage(Metric):
         # apply running average
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.completed, name)
 
-    def _get_metric_value(self):
+    def _get_metric_value(self) -> Union[torch.Tensor, float]:
         return self.src.compute()
 
     @sync_all_reduce("src")
-    def _get_output_value(self):
+    def _get_output_value(self) -> Metric:
         return self.src
 
-    def _metric_iteration_completed(self, engine):
+    def _metric_iteration_completed(self, engine: Engine) -> None:
         self.src.started(engine)
         self.src.iteration_completed(engine)
 
     @reinit__is_reduced
-    def _output_update(self, output):
+    def _output_update(self, output: Metric) -> None:
         self.src = output

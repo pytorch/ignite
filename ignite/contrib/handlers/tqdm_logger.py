@@ -203,6 +203,7 @@ class _OutputHandler(BaseOutputHandler):
             :meth:`~ignite.engine.Engine.register_events`.
 
     """
+
     def __init__(self, description, metric_names=None, output_transform=None,
                  closing_event_name=Events.EPOCH_COMPLETED):
         if metric_names is None and output_transform is None:

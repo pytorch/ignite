@@ -14,7 +14,6 @@
     ```
 """
 
-from __future__ import print_function
 from argparse import ArgumentParser
 import torch
 from torch.utils.data import DataLoader

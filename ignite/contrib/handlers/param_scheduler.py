@@ -782,8 +782,8 @@ class PiecewiseLinear(ParamScheduler):
         elif self.milestones[-1] <= self.event_index:
             return self.event_index, self.event_index + 1, self.values[-1], self.values[-1],
         elif self.milestones[self._index] <= self.event_index < self.milestones[self._index + 1]:
-            return self.milestones[self._index], self.milestones[self._index + 1], \
-                self.values[self._index], self.values[self._index + 1]
+            return (self.milestones[self._index], self.milestones[self._index + 1],
+                    self.values[self._index], self.values[self._index + 1])
         else:
             self._index += 1
             return self._get_start_end()
