@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Union
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from typing import Callable, Optional, Union, Tuple, Dict
 
 from enum import Enum
 import numbers
@@ -8,16 +10,38 @@ import weakref
 
 from ignite.engine.utils import _check_signature
 
-
 __all__ = [
     'Events',
     'State'
 ]
 
 
+class AbstactFilter(ABC):
+
+    @abstractmethod
+    def __call__(self, engine):
+        raise NotImplementedError
+
+    @abstractmethod
+    def __contains__(self, item):
+        raise NotImplementedError
+
+
+class Filter(AbstactFilter):
+    def __init__(self, event_name, filter_fn):
+        self.event_name = event_name
+        self.filter_fn = filter_fn
+
+    def __call__(self, engine):
+        return self.filter_fn(engine, engine.state.get_event_attrib_value(self.event_name))
+
+    def __contains__(self, item):
+        return item == self.event_name
+
+
 class EventWithFilter:
 
-    def __init__(self, event: CallableEvents, filter: Callable):
+    def __init__(self, event: Union[Tuple, CallableEvents], filter: Filter):
         if not callable(filter):
             raise TypeError("Argument filter should be callable")
         self.event = event
@@ -33,7 +57,7 @@ class CallableEvents:
 
     .. code-block:: python
 
-        from ignite.engine.engine import CallableEvents
+        from ignite.engine.events import CallableEvents
 
         class CustomEvents(CallableEvents, Enum):
             TEST_EVENT = "test_event"
@@ -63,9 +87,6 @@ class CallableEvents:
             raise ValueError("Argument every should be integer and positive")
 
         if every is not None:
-            if every == 1:
-                # Just return the event itself
-                return self
             event_filter = CallableEvents.every_event_filter(every)
 
         if once is not None:
@@ -74,7 +95,7 @@ class CallableEvents:
         # check signature:
         _check_signature("engine", event_filter, "event_filter", "event")
 
-        return EventWithFilter(self, event_filter)
+        return EventWithFilter(self, Filter(self, event_filter))
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
@@ -232,7 +253,7 @@ class RemovableEventHandle:
         # print_epoch handler is now unregistered
     """
 
-    def __init__(self, event_name: Union[EventWithFilter, CallableEvents, Enum], handler: Callable, engine):
+    def __init__(self, event_name: Union[Filter, CallableEvents, Enum], handler: Callable, engine):
         self.event_name = event_name
         self.handler = weakref.ref(handler)
         self.engine = weakref.ref(engine)

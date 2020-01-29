@@ -13,7 +13,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, \
 
 import torch
 
-from ignite.engine.events import Events, State, EventWithFilter, RemovableEventHandle
+from ignite.engine.events import Events, State, Filter, RemovableEventHandle, EventWithFilter
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -179,7 +179,8 @@ class Engine:
         .. code-block:: python
 
             from enum import Enum
-            from ignite.engine.engine import Engine, CallableEvents
+            from ignite.engine.engine import Engine
+            from ignite.engine.events import CallableEvents
 
             class TBPTT_Events(CallableEvents, Enum):
                 TIME_ITERATION_STARTED = "time_iteration_started"
@@ -210,8 +211,7 @@ class Engine:
     def _handler_wrapper(handler: Callable, event_name: str, event_filter: Callable) -> Callable:
 
         def wrapper(engine: Engine, *args, **kwargs) -> Any:
-            event = engine.state.get_event_attrib_value(event_name)
-            if event_filter(engine, event):
+            if event_filter(engine):
                 return handler(engine, *args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
