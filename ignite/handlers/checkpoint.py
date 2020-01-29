@@ -126,8 +126,8 @@ class Checkpoint:
     Item = namedtuple("Item", ["priority", "filename"])
 
     def __init__(self, to_save: dict, save_handler: Callable, filename_prefix: str = "",
-                 score_function: Optional[Callable] = None, score_name: Optional[str] = None, n_saved: int = 1,
-                 global_step_transform: Callable = None, archived: bool = False):
+                 score_function: Optional[Callable] = None, score_name: Optional[str] = None,
+                 n_saved: Optional[int] = 1, global_step_transform: Callable = None, archived: bool = False):
 
         if not isinstance(to_save, collections.Mapping):
             raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))

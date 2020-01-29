@@ -273,6 +273,43 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
     _test(to_save, model.state_dict(), 'model')
 
 
+def test_checkpoint_last_checkpoint():
+    save_handler = MagicMock()
+    save_handler.remove = MagicMock()
+    to_save = {'model': DummyModel()}
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None)
+
+    trainer = Engine(lambda e, b: None)
+
+    for i in range(10):
+        trainer.state = State(epoch=1, iteration=i)
+        checkpointer(trainer)
+
+    assert save_handler.call_count == 10
+    assert checkpointer.last_checkpoint == "{}_9.pth".format('model')
+
+
+def test_checkpoint_last_checkpoint_on_score():
+    save_handler = MagicMock()
+    save_handler.remove = MagicMock()
+    to_save = {'model': DummyModel()}
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None,
+                              score_name="val_acc", score_function=lambda e: e.state.metrics['val_acc'])
+
+    trainer = Engine(lambda e, b: None)
+
+    val_acc = 0.0
+    for i in range(10):
+        val_acc = i * 0.1
+        trainer.state = State(epoch=1, iteration=i, metrics={"val_acc": val_acc})
+        checkpointer(trainer)
+
+    assert save_handler.call_count == 10
+    assert checkpointer.last_checkpoint == "{}_val_acc=0.9000.pth".format('model')
+
+
 def test_model_checkpoint_args_validation(dirname):
     existing = os.path.join(dirname, 'existing_dir')
     nonempty = os.path.join(dirname, 'nonempty')
