@@ -4,7 +4,7 @@ import warnings
 import torch
 
 from ignite.engine import Events
-from ignite.engine.engine import EventWithFilter
+from ignite.engine.events import EventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 
 
