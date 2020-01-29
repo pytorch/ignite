@@ -161,7 +161,7 @@ class Checkpoint:
     def last_checkpoint(self) -> str:
         if len(self._saved) < 1:
             return None
-        return self._saved[0].filename
+        return self._saved[-1].filename
 
     def _check_lt_n_saved(self, or_equal=False):
         if self._n_saved is None:
@@ -404,7 +404,7 @@ class ModelCheckpoint(Checkpoint):
     def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
             return None
-        return os.path.join(self.save_handler.dirname, self._saved[0].filename)
+        return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
 
     def __call__(self, engine: Engine, to_save: Mapping) -> None:
 
