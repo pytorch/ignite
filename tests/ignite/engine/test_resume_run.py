@@ -6,7 +6,7 @@ from collections.abc import Mapping
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.engine.engine import ReproducibleBatchSampler, _update_dataloader
+from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader
 
 
 def test_state_dict():

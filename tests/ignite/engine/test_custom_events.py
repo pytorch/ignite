@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEvents, EventWithFilter
+from ignite.engine.events import CallableEvents, EventWithFilter, Filter
 
 import pytest
 
@@ -104,7 +104,8 @@ def test_callable_events():
     ret = Events.ITERATION_STARTED(event_filter=foo)
     assert isinstance(ret, EventWithFilter)
     assert ret.event == Events.ITERATION_STARTED
-    assert ret.filter == foo
+    assert isinstance(ret.filter, Filter)
+    assert ret.filter.filter_fn == foo
     assert isinstance(Events.ITERATION_STARTED.value, str)
 
     # assert ret in Events
@@ -114,7 +115,8 @@ def test_callable_events():
     ret = Events.ITERATION_STARTED(every=10)
     assert isinstance(ret, EventWithFilter)
     assert ret.event == Events.ITERATION_STARTED
-    assert ret.filter is not None
+    assert isinstance(ret.filter, Filter)
+    assert ret.filter.filter_fn is not None
 
     # assert ret in Events
     assert Events.ITERATION_STARTED.name in "{}".format(ret)
@@ -123,7 +125,8 @@ def test_callable_events():
     ret = Events.ITERATION_STARTED(once=10)
     assert isinstance(ret, EventWithFilter)
     assert ret.event == Events.ITERATION_STARTED
-    assert ret.filter is not None
+    assert isinstance(ret.filter, Filter)
+    assert ret.filter.filter_fn is not None
 
     # assert ret in Events
     assert Events.ITERATION_STARTED.name in "{}".format(ret)
@@ -137,8 +140,7 @@ def test_callable_events():
 
 def test_callable_events_every_eq_one():
     e = Events.ITERATION_STARTED(every=1)
-    assert not isinstance(e, EventWithFilter)
-    assert isinstance(e, Events)
+    assert isinstance(e, EventWithFilter)
 
 
 def test_has_handler_on_callable_events():
