@@ -1,4 +1,3 @@
-from __future__ import annotations
 import numbers
 from abc import ABCMeta, abstractmethod
 from functools import wraps
@@ -148,59 +147,59 @@ class Metric(metaclass=ABCMeta):
         if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
 
-    def __add__(self, other: Metric) -> Metric:
+    def __add__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x + y, self, other)
 
-    def __radd__(self, other: Metric) -> Metric:
+    def __radd__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x + y, other, self)
 
-    def __sub__(self, other: Metric) -> Metric:
+    def __sub__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x - y, self, other)
 
-    def __rsub__(self, other: Metric) -> Metric:
+    def __rsub__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x - y, other, self)
 
-    def __mul__(self, other: Metric) -> Metric:
+    def __mul__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x * y, self, other)
 
-    def __rmul__(self, other: Metric) -> Metric:
+    def __rmul__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x * y, other, self)
 
-    def __pow__(self, other: Metric) -> Metric:
+    def __pow__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x ** y, self, other)
 
-    def __rpow__(self, other: Metric) -> Metric:
+    def __rpow__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x ** y, other, self)
 
-    def __mod__(self, other: Metric) -> Metric:
+    def __mod__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x % y, self, other)
 
-    def __div__(self, other: Metric) -> Metric:
+    def __div__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__div__(y), self, other)
 
-    def __rdiv__(self, other: Metric) -> Metric:
+    def __rdiv__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__div__(y), other, self)
 
-    def __truediv__(self, other: Metric) -> Metric:
+    def __truediv__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__truediv__(y), self, other)
 
-    def __rtruediv__(self, other: Metric) -> Metric:
+    def __rtruediv__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x.__truediv__(y), other, self)
 
-    def __floordiv__(self, other: Metric) -> Metric:
+    def __floordiv__(self, other):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x, y: x // y, self, other)
 
@@ -215,7 +214,7 @@ class Metric(metaclass=ABCMeta):
 
         return wrapper
 
-    def __getitem__(self, index: Any) -> Metric:
+    def __getitem__(self, index: Any):
         from ignite.metrics import MetricsLambda
         return MetricsLambda(lambda x: x[index], self)
 
