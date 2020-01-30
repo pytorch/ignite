@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from time import perf_counter
 from typing import Optional
@@ -89,7 +88,7 @@ class Timer:
         self.running = True
 
     def attach(self, engine: Engine, start: str = Events.STARTED,
-               pause: str = Events.COMPLETED, resume: Optional[str] = None, step: Optional[str] = None) -> Timer:
+               pause: str = Events.COMPLETED, resume: Optional[str] = None, step: Optional[str] = None):
         """ Register callbacks to control the timer.
 
         Args:
@@ -120,7 +119,7 @@ class Timer:
 
         return self
 
-    def reset(self, *args) -> Timer:
+    def reset(self, *args):
         self.__init__(self._average)
         return self
 
