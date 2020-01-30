@@ -1,6 +1,4 @@
-from __future__ import annotations
 
-import inspect
 import logging
 import time
 from collections import defaultdict, OrderedDict
@@ -8,8 +6,7 @@ from collections.abc import Mapping
 import weakref
 import random
 import warnings
-from typing import Union, Optional, Callable, Iterable, Iterator, Any, \
-    Tuple
+from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 

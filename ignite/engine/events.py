@@ -1,6 +1,5 @@
-from __future__ import annotations
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Any
 
 from enum import Enum
 import numbers
@@ -17,7 +16,7 @@ __all__ = [
 
 class EventWithFilter:
 
-    def __init__(self, event: CallableEvents, filter: Callable):
+    def __init__(self, event: Any, filter: Callable):
         if not callable(filter):
             raise TypeError("Argument filter should be callable")
         self.event = event
@@ -48,7 +47,7 @@ class CallableEvents:
     """
 
     def __call__(self, event_filter: Optional[Callable] = None,
-                 every: Optional[int] = None, once: Optional[int] = None) -> Union[CallableEvents, EventWithFilter]:
+                 every: Optional[int] = None, once: Optional[int] = None):
 
         if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
             raise ValueError("Only one of the input arguments should be specified")
@@ -248,7 +247,7 @@ class RemovableEventHandle:
         if engine.has_event_handler(handler, self.event_name):
             engine.remove_event_handler(handler, self.event_name)
 
-    def __enter__(self) -> RemovableEventHandle:
+    def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs) -> None:
