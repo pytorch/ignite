@@ -78,7 +78,7 @@ class CallableEvents:
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
-        def wrapper(engine, event: bool):
+        def wrapper(engine, event: bool) -> bool:
             if event % every == 0:
                 return True
             return False
