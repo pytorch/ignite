@@ -1,11 +1,42 @@
 language: python
 
-python:
-  - "3.7"
+matrix:
+    include:
+        - name: "Unittests Python 3.5 Stable PyTorch"
+          python: 3.5
+          dist: xenial
+          env:
+              - PYTORCH_CHANNEL="pytorch"
+              
+         - name: "Unittests Python 3.6 Stable PyTorch"
+          python: 3.6
+          dist: xenial
+          env:
+              - PYTORCH_CHANNEL="pytorch"    
+              
+        - name: "Unittests Python 3.7 Stable PyTorch"
+          python: 3.7
+          dist: xenial
+          env:
+              - PYTORCH_CHANNEL="pytorch"
 
-env:
-  - PYTORCH_CHANNEL=pytorch
-  - PYTORCH_CHANNEL=pytorch-nightly
+        - name: "Unittests Python 3.5 Nightly PyTorch"
+          python: 3.5
+          dist: xenial
+          env:
+              - PYTORCH_CHANNEL="pytorch-nightly"
+              
+         - name: "Unittests Python 3.6 Nightly PyTorch"
+          python: 3.6
+          dist: xenial
+          env:
+              - PYTORCH_CHANNEL="pytorch-nightly"    
+              
+        - name: "Unittests Python 3.7 Nightly PyTorch"
+          python: 3.7
+          dist: xenial
+          env:
+              - PYTORCH_CHANNEL="pytorch-nightly"
 
 stages:
   - Lint check
