@@ -8,13 +8,22 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.5, 3.6, 3.7]
+        pytorch-channel: [pytorch, pytorch-nightly]
 
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
+    - name: Setup Conda
+      run: |
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b -p $HOME/miniconda
+        export PATH="$HOME/miniconda/bin:$PATH"
+        conda config --set always_yes yes --set changeps1 no
+        conda update -q conda
+        # Useful for debugging any issues with conda
+        conda info -a
+        conda create -q -n test-environment pytorch cpuonly torchvision python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
+        source activate test-environment
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
