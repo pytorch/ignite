@@ -4,10 +4,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      max-parallel: 10
       fail-fast: false
       matrix:
-        python-version: [3.5, 3.6, 3.7]
+        python-version: [3.5, 3.6, 3.7, 3.8]
         pytorch-channel: [pytorch, pytorch-nightly]
 
     steps:
