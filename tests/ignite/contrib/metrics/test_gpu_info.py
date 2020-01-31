@@ -75,7 +75,7 @@ def _test_gpu_info(device='cpu'):
     assert int(util_report['gpu_util']) == engine.state.metrics['gpu:0 util(%)']
 
 
-@pytest.mark.skipif(python_below36 or not (torch.cuda.is_available()),
+@pytest.mark.skipif(python_below_36 or not (torch.cuda.is_available()),
                     reason="No pynvml for python < 3.6 and no GPU")
 def test_gpu_info():
     _test_gpu_info(device='cuda')
