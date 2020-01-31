@@ -22,11 +22,10 @@ jobs:
         # Useful for debugging any issues with conda
         conda info -a
         conda create -q -n test-environment pytorch cpuonly torchvision python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
-        source activate test-environment
         
     - name: Install dependencies
       run: |
-        conda info -a
+        source activate test-environment
         pip install -U pip wheel;
         # Contrib dependencies
         pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard
