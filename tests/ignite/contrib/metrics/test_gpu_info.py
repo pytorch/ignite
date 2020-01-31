@@ -24,7 +24,7 @@ def no_site_packages():
     sys.modules['pynvml'] = pynvml_module
 
 
-@pytest.mark.skipif(python_below_36
+@pytest.mark.skipif(python_below_36,
                     reason="No pynvml for python < 3.6")
 def test_no_pynvml_package(no_site_packages):
 
