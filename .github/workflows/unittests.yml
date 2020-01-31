@@ -20,7 +20,7 @@ jobs:
         pip install -U pip wheel;
         # Contrib dependencies
         pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard
-        if [[ $TRAVIS_PYTHON_VERSION != 3.5 ]]; then pip install pynvml; fi
+        if [[ ${{ matrix.python-version }} != 3.5 ]]; then pip install pynvml; fi
         pip install numpy pytest codecov pytest-cov pytest-xdist
         pip install .
         # example dependencies
