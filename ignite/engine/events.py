@@ -1,8 +1,12 @@
+
+from typing import Callable, Optional, Union, Any
+
 from enum import Enum
 import numbers
 import weakref
 
 from ignite.engine.utils import _check_signature
+
 
 __all__ = [
     'Events',
@@ -12,13 +16,13 @@ __all__ = [
 
 class EventWithFilter:
 
-    def __init__(self, event, filter):
+    def __init__(self, event: Any, filter: Callable):
         if not callable(filter):
             raise TypeError("Argument filter should be callable")
         self.event = event
         self.filter = filter
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "<%s event=%s, filter=%r>" % (self.__class__.__name__, self.event, self.filter)
 
 
@@ -41,9 +45,11 @@ class CallableEvents:
             # do something
 
     """
-    def __call__(self, event_filter=None, every=None, once=None):
 
-        if not((event_filter is not None) ^ (every is not None) ^ (once is not None)):
+    def __call__(self, event_filter: Optional[Callable] = None,
+                 every: Optional[int] = None, once: Optional[int] = None):
+
+        if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
             raise ValueError("Only one of the input arguments should be specified")
 
         if (event_filter is not None) and not callable(event_filter):
@@ -70,19 +76,21 @@ class CallableEvents:
         return EventWithFilter(self, event_filter)
 
     @staticmethod
-    def every_event_filter(every):
-        def wrapper(engine, event):
+    def every_event_filter(every: int) -> Callable:
+        def wrapper(engine, event: int) -> bool:
             if event % every == 0:
                 return True
             return False
+
         return wrapper
 
     @staticmethod
-    def once_event_filter(once):
-        def wrapper(engine, event):
+    def once_event_filter(once: int) -> Callable:
+        def wrapper(engine, event: int) -> bool:
             if event == once:
                 return True
             return False
+
         return wrapper
 
 
@@ -178,14 +186,14 @@ class State:
             if not hasattr(self, value):
                 setattr(self, value, 0)
 
-    def get_event_attrib_value(self, event_name):
+    def get_event_attrib_value(self, event_name: Union[EventWithFilter, CallableEvents, Enum]) -> int:
         if isinstance(event_name, EventWithFilter):
             event_name = event_name.event
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "State:\n"
         for attr, value in self.__dict__.items():
             if not isinstance(value, (numbers.Number, str)):
@@ -223,12 +231,12 @@ class RemovableEventHandle:
         # print_epoch handler is now unregistered
     """
 
-    def __init__(self, event_name, handler, engine):
+    def __init__(self, event_name: Union[EventWithFilter, CallableEvents, Enum], handler: Callable, engine):
         self.event_name = event_name
         self.handler = weakref.ref(handler)
         self.engine = weakref.ref(engine)
 
-    def remove(self):
+    def remove(self) -> None:
         """Remove handler from engine."""
         handler = self.handler()
         engine = self.engine()
@@ -242,5 +250,5 @@ class RemovableEventHandle:
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, tb):
+    def __exit__(self, *args, **kwargs) -> None:
         self.remove()

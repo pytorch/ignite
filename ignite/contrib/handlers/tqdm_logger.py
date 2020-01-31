@@ -196,13 +196,14 @@ class _OutputHandler(BaseOutputHandler):
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
         closing_event_name: event's name on which the progress bar is closed. Valid events are from
             :class:`~ignite.engine.Events` or any `event_name` added by
             :meth:`~ignite.engine.Engine.register_events`.
 
     """
+
     def __init__(self, description, metric_names=None, output_transform=None,
                  closing_event_name=Events.EPOCH_COMPLETED):
         if metric_names is None and output_transform is None:

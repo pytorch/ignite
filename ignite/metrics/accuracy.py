@@ -1,3 +1,5 @@
+from typing import Callable, Union, Optional, Sequence
+
 from ignite.metrics import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 from ignite.exceptions import NotComputableError
@@ -11,17 +13,18 @@ __all__ = [
 
 class _BaseClassification(Metric):
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False, device=None):
+    def __init__(self, output_transform: Callable = lambda x: x, is_multilabel: bool = False,
+                 device: Optional[Union[str, torch.device]] = None):
         self._is_multilabel = is_multilabel
         self._type = None
         self._num_classes = None
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
 
-    def reset(self):
+    def reset(self) -> None:
         self._type = None
         self._num_classes = None
 
-    def _check_shape(self, output):
+    def _check_shape(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
@@ -41,7 +44,7 @@ class _BaseClassification(Metric):
         if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
             raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
 
-    def _check_binary_multilabel_cases(self, output):
+    def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
 
         if not torch.equal(y, y ** 2):
@@ -50,7 +53,7 @@ class _BaseClassification(Metric):
         if not torch.equal(y_pred, y_pred ** 2):
             raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
 
-    def _check_type(self, output):
+    def _check_type(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
 
         if y.ndimension() + 1 == y_pred.ndimension():
@@ -118,7 +121,9 @@ class Accuracy(_BaseClassification):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, is_multilabel=False, device=None):
+    def __init__(self, output_transform: Callable = lambda x: x,
+                 is_multilabel: bool = False,
+                 device: Optional[Union[str, torch.device]] = None):
         self._num_correct = None
         self._num_examples = None
         super(Accuracy, self).__init__(output_transform=output_transform,
@@ -126,13 +131,13 @@ class Accuracy(_BaseClassification):
                                        device=device)
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._num_correct = 0
         self._num_examples = 0
         super(Accuracy, self).reset()
 
     @reinit__is_reduced
-    def update(self, output):
+    def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
         self._check_shape((y_pred, y))
         self._check_type((y_pred, y))
@@ -154,7 +159,7 @@ class Accuracy(_BaseClassification):
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
-    def compute(self):
+    def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError('Accuracy must have at least one example before it can be computed.')
         return self._num_correct / self._num_examples

@@ -47,6 +47,17 @@ def test_checkpoint_wrong_input():
         Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", global_step_transform=123)
 
 
+def test_checkpoint_score_function_wrong_output():
+    model = DummyModel()
+    to_save = {'model': model}
+
+    checkpointer = Checkpoint(to_save, lambda x: x, score_function=lambda e: {"1": 1}, score_name="acc")
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+    with pytest.raises(ValueError, match=r"Output of score_function should be a number"):
+        checkpointer(trainer)
+
+
 def test_checkpoint_default():
 
     def _test(to_save, obj, name):
@@ -199,6 +210,51 @@ def test_checkpoint_with_score_name_and_function():
     _test(to_save, {'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, 'checkpoint')
 
 
+def test_checkpoint_with_int_score():
+
+    def _test(to_save, obj, name, score_name=None):
+        save_handler = MagicMock()
+        save_handler.remove = MagicMock()
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler,
+                                  score_name=score_name,
+                                  score_function=lambda e: e.state.epoch)
+
+        if score_name is None:
+            score_name = ""
+        else:
+            score_name += "="
+
+        trainer = Engine(lambda e, b: None)
+        trainer.state = State(epoch=1, iteration=1)
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 1
+
+        save_handler.assert_called_with(obj, "{}_{}1.pth".format(name, score_name))
+
+        trainer.state.epoch = 12
+        trainer.state.iteration = 1234
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 2
+        save_handler.assert_called_with(obj, "{}_{}12.pth".format(name, score_name))
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with("{}_{}1.pth".format(name, score_name))
+        assert checkpointer.last_checkpoint == "{}_{}12.pth".format(name, score_name)
+
+    model = DummyModel()
+    to_save = {'model': model}
+    _test(to_save, model.state_dict(), 'model')
+    _test(to_save, model.state_dict(), 'model', "epoch")
+
+    model = DummyModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    to_save = {'model': model, 'optimizer': optimizer}
+    _test(to_save, {'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, 'checkpoint')
+    _test(to_save, {'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, 'checkpoint', "epoch")
+
+
 def test_checkpoint_with_score_function_and_trainer_epoch():
 
     def _test(to_save, obj, name):
@@ -271,6 +327,43 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
     model = DummyModel()
     to_save = {'model': model}
     _test(to_save, model.state_dict(), 'model')
+
+
+def test_checkpoint_last_checkpoint():
+    save_handler = MagicMock()
+    save_handler.remove = MagicMock()
+    to_save = {'model': DummyModel()}
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None)
+
+    trainer = Engine(lambda e, b: None)
+
+    for i in range(10):
+        trainer.state = State(epoch=1, iteration=i)
+        checkpointer(trainer)
+
+    assert save_handler.call_count == 10
+    assert checkpointer.last_checkpoint == "{}_9.pth".format('model')
+
+
+def test_checkpoint_last_checkpoint_on_score():
+    save_handler = MagicMock()
+    save_handler.remove = MagicMock()
+    to_save = {'model': DummyModel()}
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None,
+                              score_name="val_acc", score_function=lambda e: e.state.metrics['val_acc'])
+
+    trainer = Engine(lambda e, b: None)
+
+    val_acc = 0.0
+    for i in range(10):
+        val_acc = i * 0.1
+        trainer.state = State(epoch=1, iteration=i, metrics={"val_acc": val_acc})
+        checkpointer(trainer)
+
+    assert save_handler.call_count == 10
+    assert checkpointer.last_checkpoint == "{}_val_acc=0.9000.pth".format('model')
 
 
 def test_model_checkpoint_args_validation(dirname):

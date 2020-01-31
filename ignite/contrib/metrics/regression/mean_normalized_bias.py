@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import torch
 
@@ -22,6 +22,7 @@ class MeanNormalizedBias(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
 
     """
+
     def reset(self):
         self._sum_of_errors = 0.0
         self._num_examples = 0

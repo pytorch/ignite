@@ -1,11 +1,17 @@
-from ignite.metrics import Precision, Recall
+from typing import Optional, Union, Callable
 
 __all__ = [
     'Fbeta'
 ]
 
+import torch
 
-def Fbeta(beta, average=True, precision=None, recall=None, output_transform=None, device=None):
+from ignite.metrics import Precision, Recall, MetricsLambda
+
+
+def Fbeta(beta: float, average: bool = True, precision: Optional[Precision] = None,
+          recall: Optional[Recall] = None, output_transform: Optional[Callable] = None,
+          device: Optional[Union[str, torch.device]] = None) -> MetricsLambda:
     """Calculates F-beta score
 
     Args:

@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import torch
 
@@ -32,6 +32,7 @@ class MedianAbsolutePercentageError(_BaseRegressionEpoch):
     __ https://arxiv.org/abs/1809.03006
 
     """
+
     def __init__(self, output_transform=lambda x: x):
         super(MedianAbsolutePercentageError, self).__init__(median_absolute_percentage_error_compute_fn,
                                                             output_transform)
