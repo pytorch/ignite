@@ -66,7 +66,7 @@ jobs:
         # 3) mnist_with_tensorboardx.py
         python examples/mnist/mnist_with_tensorboardx.py --epochs=1
         # 4) mnist_save_resume_engine.py
-        if [[ ! python examples/mnist/mnist_save_resume_engine.py --epochs=1 --crash_iteration 700 ]]; then python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pth; fi
+        if [[ python examples/mnist/mnist_save_resume_engine.py --epochs=1 --crash_iteration 700 == 1 ]]; then python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pth; fi
         
         # DCGAN
         python examples/gan/dcgan.py --dataset fake --dataroot /tmp/fakedata --output-dir /tmp/outputs-dcgan --batch-size 2 --epochs 2  --workers 0
