@@ -26,7 +26,7 @@ jobs:
         
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        conda info -a
         pip install -U pip wheel;
         # Contrib dependencies
         pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard
