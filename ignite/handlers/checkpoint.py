@@ -1,5 +1,6 @@
 import os
 import tempfile
+import numbers
 
 from collections import namedtuple
 import collections.abc as collections
@@ -177,21 +178,26 @@ class Checkpoint:
 
         if self._score_function is not None:
             priority = self._score_function(engine)
+            if not isinstance(priority, numbers.Number):
+                raise ValueError("Output of score_function should be a number")
         else:
             priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
+            priority_str = "{}".format(priority) if isinstance(priority, numbers.Integral) \
+                else "{:.4f}".format(priority)
+
             if self._score_name is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{}={:.4f}".format(suffix, self._score_name, priority)
+                suffix = "{}{}={}".format(suffix, self._score_name, priority_str)
             elif self._score_function is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{:.4f}".format(suffix, priority)
+                suffix = "{}{}".format(suffix, priority_str)
             elif len(suffix) == 0:
-                suffix = "{}".format(priority)
+                suffix = "{}".format(priority_str)
 
             checkpoint = self._setup_checkpoint()
 
