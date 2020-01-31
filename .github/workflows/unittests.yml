@@ -25,7 +25,7 @@ jobs:
         
     - name: Install dependencies
       run: |
-        source activate $/HOME/miniconda/envs/test-environment
+        source activate $HOME/miniconda/envs/test-environment
         pip install -U pip wheel;
         # Contrib dependencies
         pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard
