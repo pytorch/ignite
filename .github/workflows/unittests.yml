@@ -38,7 +38,7 @@ jobs:
         
     - name: Run Tests
       run: |
-        CUDA_VISIBLE_DEVICES="" py.test --tx 4*popen//python=python${{ matrix.python-version }} --cov ignite --cov-report term-missing -vvv tests/
+        CUDA_VISIBLE_DEVICES="" pytest --tx 4*popen//python=python${{ matrix.python-version }} --cov ignite --cov-report term-missing -vvv tests/
         
     # - name: Upload coverage to Codecov
     #  uses: codecov/codecov-action@v1.0.2
