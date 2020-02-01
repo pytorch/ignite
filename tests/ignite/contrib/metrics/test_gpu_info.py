@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 python_below_36 = (sys.version[0] == '3' and int(sys.version[2]) < 6) or int(sys.version[0]) < 2
 
+
 @pytest.fixture
 def no_site_packages():
     import pynvml
