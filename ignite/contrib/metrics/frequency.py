@@ -12,8 +12,7 @@ class FrequencyMetric(Metric):
 
             # Compute number of tokens processed
             wps_metric = FrequencyMetric(output_transformer=lambda x: x['ntokens'])
-            average_wps_metric = RunningAverage(wps_metric, alpha=1.0)
-            average_wps_metric.attach(trainer, name='wps')
+            wps_metric.attach(trainer, name='wps')
             # Logging with TQDM
             ProgressBar(persist=True).attach(trainer, metric_names=['wps'])
             # Progress bar will looks like
@@ -38,3 +37,9 @@ class FrequencyMetric(Metric):
     @sync_all_reduce("_n")
     def compute(self):
         return self._n / self.timer.value()
+
+    def completed(self, engine, name):
+        engine.state.metrics[name] = int(self.compute())
+
+    def attach(self, engine, name, event_name=Events.ITERATION_COMPLETED):
+        engine.add_event_handler(event_name, self.completed, name)
