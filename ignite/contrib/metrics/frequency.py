@@ -2,8 +2,9 @@ from ignite.metrics import Metric
 from ignite.handlers.timing import Timer
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
+
 class FrequencyMetric(Metric):
-    """Provides metrics for the number of examples processed per second. 
+    """Provides metrics for the number of examples processed per second.
 
     Examples:
 
@@ -12,7 +13,7 @@ class FrequencyMetric(Metric):
             # Compute number of tokens processed
             wps_metric = FrequencyMetric(output_transformer=lambda x: x['ntokens'])
             average_wps_metric = RunningAverage(wps_metric, alpha=1.0)
-            average_wps_metric.attach(trainer, name='wps') 
+            average_wps_metric.attach(trainer, name='wps')
             # Logging with TQDM
             ProgressBar(persist=True).attach(trainer, metric_names=['wps'])
             # Progress bar will looks like
