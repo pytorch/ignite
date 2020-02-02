@@ -25,7 +25,8 @@ def _test_frequency_with_engine(device, workers):
     artificial_time = 2  # seconds
     batch_size = 4
     n_tokens = 10000
-    average_upper_bound = n_tokens / artificial_time * workers
+    time_per_iteration = batch_size * n_tokens / artificial_time
+    average_upper_bound = time_per_iteration * workers
     average_lower_bound = average_upper_bound * 0.9
 
     def update_fn(engine, batch):
