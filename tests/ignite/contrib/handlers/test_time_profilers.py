@@ -214,6 +214,57 @@ def test_event_handler_iteration_completed():
     )
 
 
+def test_event_handler_get_batch_started():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    profiler = BasicTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.GET_BATCH_STARTED)
+    def delay_get_batch_started(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results['event_handlers_stats']['Events_GET_BATCH_STARTED']
+
+    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results['std'] == approx(0., abs=1e-1)
+    assert event_results['total'] == approx(
+        true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1
+    )
+
+
+def test_event_handler_get_batch_completed():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    profiler = BasicTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
+    def delay_get_batch_started(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results['event_handlers_stats']['Events_GET_BATCH_COMPLETED']
+
+    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results['std'] == approx(0., abs=1e-1)
+    assert event_results['total'] == approx(
+        true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1
+    )
+
 def test_event_handler_total_time():
     true_event_handler_time = 0.5
     true_max_epochs = 1
