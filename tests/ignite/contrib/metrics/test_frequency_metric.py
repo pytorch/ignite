@@ -38,6 +38,11 @@ def _test_frequency_with_engine(device):
     assert average_lower_bound < wps < average_upper_bound
 
 
+def test_frequency_with_engine_nondistributed():
+    device = "cpu"
+    _test_frequency_with_engine(device)
+
+
 @pytest.mark.distributed
 def test_frequency_with_engine_distributed(distributed_context_single_node_gloo):
     device = "cpu"
