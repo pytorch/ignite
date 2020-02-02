@@ -26,24 +26,24 @@ def test_nondistributed_average():
 def test_frequency_with_engine():
  
     artificial_time = 2 # seconds
-    size = 100
-    batch_size = 10
+
+    batch_size = 4
+    n_tokens = 10000
 
     def update_fn(engine, batch):
-        print(batch)
         time.sleep(artificial_time)
-        return { "ntokens": size }
+        return { "ntokens": len(batch) }
 
     engine = Engine(update_fn)
 
     wps_metric = FrequencyMetric(output_transform=lambda x: x["ntokens"])
     wps_metric.attach(engine, 'wps')
  
-    data = list(range(size // batch_size))
+    data = [list(range(n_tokens))] * batch_size
     
     wps = engine.run(data, max_epochs=1).metrics['wps']
-    
-    average_upper_bound = num_tokens / artificial_time
+
+    average_upper_bound = n_tokens / artificial_time
     average_lower_bound = average_upper_bound * 0.9
-    
+
     assert average_lower_bound < wps < average_upper_bound

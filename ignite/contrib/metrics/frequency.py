@@ -41,10 +41,14 @@ class FrequencyMetric(Metric):
     @sync_all_reduce("_n")
     def compute(self):
         elapsed = torch.tensor(self.timer.value(), device=self._device)
+
+        if not (dist.is_available() and dist.is_initialized()):
+            return self._n / elapsed.item()
+
         dist.barrier()
         dist.all_reduce(elapsed)
-        elapsed = elapsed.item()
-        return self._n / elapsed
+        return self._n / elapsed.item()
+
 
     def completed(self, engine, name):
         engine.state.metrics[name] = int(self.compute())
