@@ -46,8 +46,10 @@ class Frequency(Metric):
             return self._n / elapsed.item()
 
         dist.barrier()
+        # Reduces the time across all workers into `elapsed`
         dist.all_reduce(elapsed)
-        return self._n / elapsed.item()
+        # Returns the average processed objects per second across all workers
+        return self._n / elapsed.item() * dist.get_world_size()
 
     def completed(self, engine, name):
         engine.state.metrics[name] = int(self.compute())
