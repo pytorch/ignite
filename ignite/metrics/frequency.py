@@ -25,31 +25,34 @@ class Frequency(Metric):
 
     def __init__(self, output_transform=lambda x: x, device=None):
         self._timer = None
+        self._acc = None
         self._n = None
+        self._elapsed = None
         super(Frequency, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
     def reset(self):
-        self.timer = Timer()
+        self._timer = Timer()
+        self._acc = 0
         self._n = 0
+        self._elapsed = 0.0
         super(Frequency, self).reset()
 
     @reinit__is_reduced
     def update(self, output):
-        self._n += output
+        self._acc += output
+        self._n = self._acc
+        self._elapsed = torch.tensor(self._timer.value(), device=self._device)
 
-    @sync_all_reduce("_n")
+    @sync_all_reduce("_n", "_elapsed")
     def compute(self):
-        elapsed = torch.tensor(self.timer.value(), device=self._device)
+        time_divisor = 1.0
 
-        if not (dist.is_available() and dist.is_initialized()):
-            return self._n / elapsed.item()
+        if dist.is_available() and dist.is_initialized():
+            time_divisor *= dist.get_world_size()
 
-        dist.barrier()
-        # Reduces the time across all workers into `elapsed`
-        dist.all_reduce(elapsed)
         # Returns the average processed objects per second across all workers
-        return self._n / elapsed.item() * dist.get_world_size()
+        return self._n / self._elapsed.item() * time_divisor
 
     def completed(self, engine, name):
         engine.state.metrics[name] = int(self.compute())
