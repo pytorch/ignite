@@ -19,7 +19,7 @@ def test_nondistributed_average():
     assert average_lower_bound < average < average_upper_bound
 
 
-def test_frequency_with_engine():
+def _test_frequency_with_engine(device):
     artificial_time = 2  # seconds
     batch_size = 4
     n_tokens = 10000
@@ -31,7 +31,7 @@ def test_frequency_with_engine():
         return {"ntokens": len(batch)}
 
     engine = Engine(update_fn)
-    wps_metric = FrequencyMetric(output_transform=lambda x: x["ntokens"])
+    wps_metric = FrequencyMetric(output_transform=lambda x: x["ntokens"], device=device)
     wps_metric.attach(engine, 'wps')
     data = [list(range(n_tokens))] * batch_size
     wps = engine.run(data, max_epochs=1).metrics['wps']
@@ -40,19 +40,5 @@ def test_frequency_with_engine():
 
 @pytest.mark.distributed
 def test_frequency_with_engine_distributed(distributed_context_single_node_gloo):
-    artificial_time = 2  # seconds
-    batch_size = 4
-    n_tokens = 10000
-    average_upper_bound = n_tokens / artificial_time
-    average_lower_bound = average_upper_bound * 0.9
-
-    def update_fn(engine, batch):
-        time.sleep(artificial_time)
-        return {"ntokens": len(batch)}
-
-    engine = Engine(update_fn)
-    wps_metric = FrequencyMetric(output_transform=lambda x: x["ntokens"])
-    wps_metric.attach(engine, 'wps')
-    data = [list(range(n_tokens))] * batch_size
-    wps = engine.run(data, max_epochs=1).metrics['wps']
-    assert average_lower_bound < wps < average_upper_bound
+    device = "cpu"
+    _test_frequency_with_engine(device)
