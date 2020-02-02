@@ -38,14 +38,17 @@ class BasicTimeProfiler(object):
         Also optionally, you could choose to store the profiling results
         into a file using,
 
-        >>> dump_results = profiler.dump_results()
-        >>> profiler.write_results(dump_results, 'path_to_store/profiler_results.csv')
+        >>> profiler.write_results('path_to_store/profiler_results.csv')
     """
 
     def __init__(self):
         self._dataflow_timer = Timer()
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()
+
+        self.dataflow_times = None
+        self.processing_times = None
+        self.event_handlers_times = None
 
         self._events = [
             Events.EPOCH_STARTED,
@@ -230,7 +233,13 @@ class BasicTimeProfiler(object):
                                       for e, v in self.event_handlers_names.items()})
         ])
 
-    def dump_results(self):
+    def write_results(self, output_path):
+        try:
+            import pandas as pd
+        except ImportError:
+            print("Need pandas to write results as files")
+            return
+
         iters_per_epoch = self.total_num_iters // self.max_epochs
 
         epochs = torch.arange(self.max_epochs, dtype=torch.float32)\
@@ -254,12 +263,24 @@ class BasicTimeProfiler(object):
         event_batch_started = self.event_handlers_times[Events.GET_BATCH_STARTED]
         event_batch_completed = self.event_handlers_times[Events.GET_BATCH_COMPLETED]
 
-        return torch.stack([
+        results_dump = torch.stack([
             epochs, iterations, processing_stats, dataflow_stats,
             event_started, event_completed, event_epoch_started,
             event_epoch_completed, event_iter_started, event_iter_completed,
             event_batch_started, event_batch_completed
         ], dim=1).numpy()
+
+        results_df = pd.DataFrame(
+            data=results_dump,
+            columns=[
+                'epoch', 'iteration', 'processing_stats', 'dataflow_stats',
+                'Event_STARTED', 'Event_COMPLETED',
+                'Event_EPOCH_STARTED', 'Event_EPOCH_COMPLETED',
+                'Event_ITERATION_STARTED', 'Event_ITERATION_COMPLETED',
+                'Event_GET_BATCH_STARTED', 'Event_GET_BATCH_COMPLETED'
+            ]
+        )
+        results_df.to_csv(output_path, index=False)
 
     @staticmethod
     def print_results(results):
@@ -325,23 +346,3 @@ Handlers names:
            **others)
         print(output_message)
         return output_message
-
-    @staticmethod
-    def write_results(results_dump, output_path):
-        try:
-            import pandas as pd
-        except ImportError:
-            print("Need pandas to write results as files")
-            return
-
-        results_df = pd.DataFrame(
-            data=results_dump,
-            columns=[
-                'epoch', 'iteration', 'processing_stats', 'dataflow_stats',
-                'Event_STARTED', 'Event_COMPLETED',
-                'Event_EPOCH_STARTED', 'Event_EPOCH_COMPLETED',
-                'Event_ITERATION_STARTED', 'Event_ITERATION_COMPLETED',
-                'Event_GET_BATCH_STARTED', 'Event_GET_BATCH_COMPLETED'
-            ]
-        )
-        results_df.to_csv(output_path, index=False)
