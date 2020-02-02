@@ -1,4 +1,6 @@
 import time
+import os
+import shutil
 
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
@@ -250,7 +252,7 @@ def test_event_handler_get_batch_completed():
     profiler.attach(dummy_trainer)
 
     @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
-    def delay_get_batch_started(engine):
+    def delay_get_batch_completed(engine):
         time.sleep(true_event_handler_time)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
@@ -267,7 +269,7 @@ def test_event_handler_get_batch_completed():
 
 
 def test_event_handler_total_time():
-    true_event_handler_time = 0.5
+    true_event_handler_time = 0.125
     true_max_epochs = 1
     true_num_iters = 1
 
@@ -299,9 +301,80 @@ def test_event_handler_total_time():
     def delay_iter_complete(engine):
         time.sleep(true_event_handler_time)
 
+    @dummy_trainer.on(Events.GET_BATCH_STARTED)
+    def delay_get_batch_started(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
+    def delay_get_batch_completed(engine):
+        time.sleep(true_event_handler_time)
+
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
     event_results = results['event_handlers_stats']
 
     assert event_results['total_time'].item() == approx(
-        true_event_handler_time * 6, abs=1e-1)
+        true_event_handler_time * 8, abs=1e-1)
+
+
+def test_write_results():
+    true_event_handler_time = 0.125
+    true_max_epochs = 3
+    true_num_iters = 2
+    test_folder = './test_log_folder'
+
+    if os.path.exists(test_folder):
+        shutil.rmtree(test_folder)
+    os.makedirs(test_folder)
+
+    profiler = BasicTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.STARTED)
+    def delay_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.COMPLETED)
+    def delay_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.EPOCH_STARTED)
+    def delay_epoch_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.EPOCH_COMPLETED)
+    def delay_epoch_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.ITERATION_STARTED)
+    def delay_iter_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.ITERATION_COMPLETED)
+    def delay_iter_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.GET_BATCH_STARTED)
+    def delay_get_batch_started(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
+    def delay_get_batch_completed(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results_dump = profiler.dump_results()
+    profiler.write_results(results_dump, test_folder + '/test_log.csv')
+
+    assert os.path.isfile(test_folder + '/test_log.csv')
+
+    file_length = 0
+    with open(test_folder + '/test_log.csv') as f:
+        for l in f:
+            file_length += 1
+
+    assert file_length == (true_max_epochs * true_num_iters) + 1
+
+    # cleanup test log directory
+    shutil.rmtree(test_folder)
