@@ -89,8 +89,9 @@ class BasicTimeProfiler(object):
         else:
             num_iters_per_epoch = engine.state.epoch_length
 
-        num_iters = engine.state.max_epochs * num_iters_per_epoch
-        self._reset(engine.state.max_epochs, num_iters)
+        self.max_epochs = engine.state.max_epochs
+        self.total_num_iters = self.max_epochs * num_iters_per_epoch
+        self._reset(self.max_epochs, self.total_num_iters)
 
         self.event_handlers_names = {
             e: [h.__qualname__ if hasattr(h, "__qualname__") else h.__class__.__name__
@@ -209,9 +210,7 @@ class BasicTimeProfiler(object):
 
     def get_results(self):
         events_to_ignore = [
-            Events.EXCEPTION_RAISED,
-            # Events.GET_BATCH_COMPLETED,
-            # Events.GET_BATCH_STARTED
+            Events.EXCEPTION_RAISED
         ]
         total_eh_time = sum([sum(self.event_handlers_times[e]) for e in Events if e not in events_to_ignore])
         return OrderedDict([
@@ -224,6 +223,37 @@ class BasicTimeProfiler(object):
             ("event_handlers_names", {str(e).replace(".", "_") + "_names": v
                                       for e, v in self.event_handlers_names.items()})
         ])
+
+    def dump_results(self):
+        iters_per_epoch = self.total_num_iters // self.max_epochs
+
+        epochs = torch.arange(self.max_epochs, dtype=torch.float32)\
+            .repeat_interleave(iters_per_epoch) + 1
+        iterations = torch.arange(self.total_num_iters,
+                                  dtype=torch.float32) + 1
+        processing_stats = self.processing_times
+        dataflow_stats = self.dataflow_times
+
+        event_started = self.event_handlers_times[Events.STARTED]\
+            .repeat_interleave(self.total_num_iters)
+        event_completed = self.event_handlers_times[Events.COMPLETED]\
+            .repeat_interleave(self.total_num_iters)
+        event_epoch_started = self.event_handlers_times[Events.EPOCH_STARTED]\
+            .repeat_interleave(iters_per_epoch)
+        event_epoch_completed = self.event_handlers_times[Events.EPOCH_COMPLETED]\
+            .repeat_interleave(iters_per_epoch)
+
+        event_iter_started = self.event_handlers_times[Events.ITERATION_STARTED]
+        event_iter_completed = self.event_handlers_times[Events.ITERATION_COMPLETED]
+        event_batch_started = self.event_handlers_times[Events.GET_BATCH_STARTED]
+        event_batch_completed = self.event_handlers_times[Events.GET_BATCH_COMPLETED]
+
+        return torch.stack([
+            epochs, iterations, processing_stats, dataflow_stats,
+            event_started, event_completed, event_epoch_started,
+            event_epoch_completed, event_iter_started, event_iter_completed,
+            event_batch_started, event_batch_completed
+        ], dim=1).numpy()
 
     @staticmethod
     def print_results(results):
@@ -291,11 +321,21 @@ Handlers names:
         return output_message
 
     @staticmethod
-    def write_results(output_path):
+    def write_results(results_dump, output_path):
         try:
             import pandas as pd
         except ImportError:
             print("Need pandas to write results as files")
             return
 
-        raise NotImplementedError("")
+        results_df = pd.DataFrame(
+            data=results_dump,
+            columns=[
+                'epoch', 'iteration', 'processing_stats', 'dataflow_stats',
+                'Event_STARTED', 'Event_COMPLETED',
+                'Event_EPOCH_STARTED', 'Event_EPOCH_COMPLETED',
+                'Event_ITERATION_STARTED', 'Event_ITERATION_COMPLETED',
+                'Event_GET_BATCH_STARTED', 'Event_GET_BATCH_COMPLETED'
+            ]
+        )
+        results_df.to_csv(output_path, index=False)
