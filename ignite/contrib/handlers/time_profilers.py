@@ -125,11 +125,10 @@ class BasicTimeProfiler(object):
         e = engine.state.epoch - 1
         self.event_handlers_times[Events.EPOCH_STARTED][e] = t
 
-        self._dataflow_timer.reset()
-
     def _as_first_get_batch_started(self, engine):
         # breakpoint()
         self._event_handlers_timer.reset()
+        self._dataflow_timer.reset()
 
     def _as_last_get_batch_started(self, engine):
         # breakpoint()
@@ -147,12 +146,13 @@ class BasicTimeProfiler(object):
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.GET_BATCH_COMPLETED][i] = t
 
+        d = self._dataflow_timer.value()
+        self.dataflow_times[i] = d
+
+        self._dataflow_timer.reset()
+
     def _as_first_iter_started(self, engine):
         # breakpoint()
-        t = self._dataflow_timer.value()
-        i = engine.state.iteration - 1
-        self.dataflow_times[i] = t
-
         self._event_handlers_timer.reset()
 
     def _as_last_iter_started(self, engine):
@@ -176,8 +176,6 @@ class BasicTimeProfiler(object):
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.ITERATION_COMPLETED][i] = t
-
-        self._dataflow_timer.reset()
 
     def _as_first_epoch_completed(self, engine):
         # breakpoint()
