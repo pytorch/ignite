@@ -3,7 +3,7 @@ import time
 import pytest
 
 from ignite.engine import Engine
-from ignite.contrib.metrics import Frequency
+from ignite.metrics import Frequency
 
 
 def test_nondistributed_average():
