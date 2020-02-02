@@ -1,3 +1,6 @@
+import torch
+import torch.distributed as dist
+
 from ignite.metrics import Metric
 from ignite.handlers.timing import Timer
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
@@ -36,10 +39,15 @@ class FrequencyMetric(Metric):
 
     @sync_all_reduce("_n")
     def compute(self):
-        return self._n / self.timer.value()
+        elapsed = torch.tensor(self.timer.value(), device=self._device)
+        dist.barrier()
+        dist.all_reduce(elapsed)
+        elapsed = elapsed.item()
+        return self._n / elapsed
 
     def completed(self, engine, name):
         engine.state.metrics[name] = int(self.compute())
 
     def attach(self, engine, name, event_name=Events.ITERATION_COMPLETED):
+        engine.add_event_handler(event_name, self.iteration_completed)
         engine.add_event_handler(event_name, self.completed, name)
