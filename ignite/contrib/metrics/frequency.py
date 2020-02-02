@@ -7,7 +7,7 @@ from ignite.handlers.timing import Timer
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
 
-class FrequencyMetric(Metric):
+class Frequency(Metric):
     """Provides metrics for the number of examples processed per second.
 
     Examples:
@@ -15,7 +15,7 @@ class FrequencyMetric(Metric):
         .. code-block:: python
 
             # Compute number of tokens processed
-            wps_metric = FrequencyMetric(output_transformer=lambda x: x['ntokens'])
+            wps_metric = Frequency(output_transformer=lambda x: x['ntokens'])
             wps_metric.attach(trainer, name='wps')
             # Logging with TQDM
             ProgressBar(persist=True).attach(trainer, metric_names=['wps'])
@@ -26,13 +26,13 @@ class FrequencyMetric(Metric):
     def __init__(self, output_transform=lambda x: x, device=None):
         self._timer = None
         self._n = None
-        super(FrequencyMetric, self).__init__(output_transform=output_transform, device=device)
+        super(Frequency, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
     def reset(self):
         self.timer = Timer()
         self._n = 0
-        super(FrequencyMetric, self).reset()
+        super(Frequency, self).reset()
 
     @reinit__is_reduced
     def update(self, output):

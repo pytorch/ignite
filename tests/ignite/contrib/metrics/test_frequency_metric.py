@@ -3,7 +3,7 @@ import time
 import pytest
 
 from ignite.engine import Engine
-from ignite.contrib.metrics import FrequencyMetric
+from ignite.contrib.metrics import Frequency
 
 
 def test_nondistributed_average():
@@ -11,7 +11,7 @@ def test_nondistributed_average():
     num_tokens = 100
     average_upper_bound = num_tokens / artificial_time
     average_lower_bound = average_upper_bound * 0.9
-    freq_metric = FrequencyMetric()
+    freq_metric = Frequency()
     freq_metric.reset()
     freq_metric.update(num_tokens)
     time.sleep(artificial_time)
@@ -31,7 +31,7 @@ def _test_frequency_with_engine(device):
         return {"ntokens": len(batch)}
 
     engine = Engine(update_fn)
-    wps_metric = FrequencyMetric(output_transform=lambda x: x["ntokens"], device=device)
+    wps_metric = Frequency(output_transform=lambda x: x["ntokens"], device=device)
     wps_metric.attach(engine, 'wps')
     data = [list(range(n_tokens))] * batch_size
     wps = engine.run(data, max_epochs=1).metrics['wps']
