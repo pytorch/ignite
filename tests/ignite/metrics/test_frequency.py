@@ -2,6 +2,8 @@ import time
 
 import pytest
 
+import torch.distributed as dist
+
 from ignite.engine import Engine
 from ignite.metrics import Frequency
 
@@ -19,11 +21,11 @@ def test_nondistributed_average():
     assert average_lower_bound < average < average_upper_bound
 
 
-def _test_frequency_with_engine(device):
+def _test_frequency_with_engine(device, workers):
     artificial_time = 2  # seconds
     batch_size = 4
     n_tokens = 10000
-    average_upper_bound = n_tokens / artificial_time
+    average_upper_bound = n_tokens / artificial_time * workers
     average_lower_bound = average_upper_bound * 0.9
 
     def update_fn(engine, batch):
@@ -40,10 +42,10 @@ def _test_frequency_with_engine(device):
 
 def test_frequency_with_engine_nondistributed():
     device = "cpu"
-    _test_frequency_with_engine(device)
+    _test_frequency_with_engine(device, workers=1)
 
 
 @pytest.mark.distributed
 def test_frequency_with_engine_distributed(distributed_context_single_node_gloo):
     device = "cpu"
-    _test_frequency_with_engine(device)
+    _test_frequency_with_engine(device, workers=dist.get_world_size())
