@@ -265,6 +265,7 @@ def test_event_handler_get_batch_completed():
         true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1
     )
 
+
 def test_event_handler_total_time():
     true_event_handler_time = 0.5
     true_max_epochs = 1
