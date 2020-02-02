@@ -1,6 +1,6 @@
 import time
 
-import torch
+import pytest
 
 from ignite.engine import Engine
 from ignite.contrib.metrics import FrequencyMetric
@@ -20,6 +20,26 @@ def test_nondistributed_average():
 
 
 def test_frequency_with_engine():
+    artificial_time = 2  # seconds
+    batch_size = 4
+    n_tokens = 10000
+    average_upper_bound = n_tokens / artificial_time
+    average_lower_bound = average_upper_bound * 0.9
+
+    def update_fn(engine, batch):
+        time.sleep(artificial_time)
+        return {"ntokens": len(batch)}
+
+    engine = Engine(update_fn)
+    wps_metric = FrequencyMetric(output_transform=lambda x: x["ntokens"])
+    wps_metric.attach(engine, 'wps')
+    data = [list(range(n_tokens))] * batch_size
+    wps = engine.run(data, max_epochs=1).metrics['wps']
+    assert average_lower_bound < wps < average_upper_bound
+
+
+@pytest.mark.distributed
+def test_frequency_with_engine_distributed(distributed_context_single_node_gloo):
     artificial_time = 2  # seconds
     batch_size = 4
     n_tokens = 10000
