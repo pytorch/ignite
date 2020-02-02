@@ -49,7 +49,6 @@ class FrequencyMetric(Metric):
         dist.all_reduce(elapsed)
         return self._n / elapsed.item()
 
-
     def completed(self, engine, name):
         engine.state.metrics[name] = int(self.compute())
 
