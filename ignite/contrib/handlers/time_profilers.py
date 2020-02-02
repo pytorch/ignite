@@ -41,6 +41,34 @@ class BasicTimeProfiler(object):
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()
 
+        self._events = [
+            Events.EPOCH_STARTED,
+            Events.EPOCH_COMPLETED,
+            Events.ITERATION_STARTED,
+            Events.ITERATION_COMPLETED,
+            Events.GET_BATCH_STARTED,
+            Events.GET_BATCH_COMPLETED,
+            Events.COMPLETED
+        ]
+        self._fmethods = [
+            self._as_first_epoch_started,
+            self._as_first_epoch_completed,
+            self._as_first_iter_started,
+            self._as_first_iter_completed,
+            self._as_first_get_batch_started,
+            self._as_first_get_batch_completed,
+            self._as_first_completed
+        ]
+        self._lmethods = [
+            self._as_last_epoch_started,
+            self._as_last_epoch_completed,
+            self._as_last_iter_started,
+            self._as_last_iter_completed,
+            self._as_last_get_batch_started,
+            self._as_last_get_batch_completed,
+            self._as_last_completed
+        ]
+
     def _reset(self, num_epochs, total_num_iters):
         self.dataflow_times = torch.zeros(total_num_iters)
         self.processing_times = torch.zeros(total_num_iters)
@@ -50,10 +78,13 @@ class BasicTimeProfiler(object):
             Events.EPOCH_STARTED: torch.zeros(num_epochs),
             Events.EPOCH_COMPLETED: torch.zeros(num_epochs),
             Events.ITERATION_STARTED: torch.zeros(total_num_iters),
-            Events.ITERATION_COMPLETED: torch.zeros(total_num_iters)
+            Events.ITERATION_COMPLETED: torch.zeros(total_num_iters),
+            Events.GET_BATCH_COMPLETED: torch.zeros(total_num_iters),
+            Events.GET_BATCH_STARTED: torch.zeros(total_num_iters)
         }
 
     def _as_first_started(self, engine):
+        # breakpoint()
         if hasattr(engine.state.dataloader, "__len__"):
             num_iters_per_epoch = len(engine.state.dataloader)
         else:
@@ -70,123 +101,109 @@ class BasicTimeProfiler(object):
 
         # Setup all other handlers:
         engine._event_handlers[Events.STARTED].append((self._as_last_started, (), {}))
-        #  - add the first handlers
-        events = [
-            Events.EPOCH_STARTED,
-            Events.EPOCH_COMPLETED,
-            Events.ITERATION_STARTED,
-            Events.ITERATION_COMPLETED,
-            Events.COMPLETED
-        ]
-        fmethods = [
-            self._as_first_epoch_started,
-            self._as_first_epoch_completed,
-            self._as_first_iter_started,
-            self._as_first_iter_completed,
-            self._as_first_completed
-        ]
-        lmethods = [
-            self._as_last_epoch_started,
-            self._as_last_epoch_completed,
-            self._as_last_iter_started,
-            self._as_last_iter_completed,
-            self._as_last_completed
-        ]
 
-        for e, m in zip(events, fmethods):
+        for e, m in zip(self._events, self._fmethods):
             engine._event_handlers[e].insert(0, (m, (), {}))
 
-        for e, m in zip(events, lmethods):
+        for e, m in zip(self._events, self._lmethods):
             engine._event_handlers[e].append((m, (), {}))
 
         # Let's go
         self._event_handlers_timer.reset()
 
-    def _as_first_epoch_started(self, engine):
-        self._event_handlers_timer.reset()
-
-    def _as_first_iter_started(self, engine):
-        t = self._dataflow_timer.value()
-        i = engine.state.iteration - 1
-        self.dataflow_times[i] = t
-
-        self._event_handlers_timer.reset()
-
-    def _as_first_iter_completed(self, engine):
-        t = self._processing_timer.value()
-        i = engine.state.iteration - 1
-        self.processing_times[i] = t
-
-        self._event_handlers_timer.reset()
-
-    def _as_first_epoch_completed(self, engine):
-        self._event_handlers_timer.reset()
-
-    def _as_first_completed(self, engine):
-        self._event_handlers_timer.reset()
-
     def _as_last_started(self, engine):
+        # breakpoint()
         self.event_handlers_times[Events.STARTED][0] = self._event_handlers_timer.value()
 
+    def _as_first_epoch_started(self, engine):
+        # breakpoint()
+        self._event_handlers_timer.reset()
+
     def _as_last_epoch_started(self, engine):
+        # breakpoint()
         t = self._event_handlers_timer.value()
         e = engine.state.epoch - 1
         self.event_handlers_times[Events.EPOCH_STARTED][e] = t
 
         self._dataflow_timer.reset()
 
+    def _as_first_get_batch_started(self, engine):
+        # breakpoint()
+        self._event_handlers_timer.reset()
+
+    def _as_last_get_batch_started(self, engine):
+        # breakpoint()
+        t = self._event_handlers_timer.value()
+        i = engine.state.iteration - 1
+        self.event_handlers_times[Events.GET_BATCH_STARTED][i] = t
+
+    def _as_first_get_batch_completed(self, engine):
+        # breakpoint()
+        self._event_handlers_timer.reset()
+
+    def _as_last_get_batch_completed(self, engine):
+        # breakpoint()
+        t = self._event_handlers_timer.value()
+        i = engine.state.iteration - 1
+        self.event_handlers_times[Events.GET_BATCH_COMPLETED][i] = t
+
+    def _as_first_iter_started(self, engine):
+        # breakpoint()
+        t = self._dataflow_timer.value()
+        i = engine.state.iteration - 1
+        self.dataflow_times[i] = t
+
+        self._event_handlers_timer.reset()
+
     def _as_last_iter_started(self, engine):
+        # breakpoint()
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.ITERATION_STARTED][i] = t
 
         self._processing_timer.reset()
 
+    def _as_first_iter_completed(self, engine):
+        # breakpoint()
+        t = self._processing_timer.value()
+        i = engine.state.iteration - 1
+        self.processing_times[i] = t
+
+        self._event_handlers_timer.reset()
+
     def _as_last_iter_completed(self, engine):
+        # breakpoint()
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.ITERATION_COMPLETED][i] = t
 
         self._dataflow_timer.reset()
 
+    def _as_first_epoch_completed(self, engine):
+        # breakpoint()
+        self._event_handlers_timer.reset()
+
     def _as_last_epoch_completed(self, engine):
+        # breakpoint()
         t = self._event_handlers_timer.value()
         e = engine.state.epoch - 1
         self.event_handlers_times[Events.EPOCH_COMPLETED][e] = t
 
+    def _as_first_completed(self, engine):
+        # breakpoint()
+        self._event_handlers_timer.reset()
+
     def _as_last_completed(self, engine):
+        # breakpoint()
         self.event_handlers_times[Events.COMPLETED][0] = self._event_handlers_timer.value()
 
         # Remove added handlers:
         engine.remove_event_handler(self._as_last_started, Events.STARTED)
 
-        #  - add the first handlers
-        events = [
-            Events.EPOCH_STARTED,
-            Events.EPOCH_COMPLETED,
-            Events.ITERATION_STARTED,
-            Events.ITERATION_COMPLETED,
-            Events.COMPLETED
-        ]
-        fmethods = [
-            self._as_first_epoch_started,
-            self._as_first_epoch_completed,
-            self._as_first_iter_started,
-            self._as_first_iter_completed,
-            self._as_first_completed
-        ]
-        lmethods = [
-            self._as_last_epoch_started,
-            self._as_last_epoch_completed,
-            self._as_last_iter_started,
-            self._as_last_iter_completed,
-            self._as_last_completed
-        ]
-
-        for e, m in zip(events, fmethods):
+        for e, m in zip(self._events, self._fmethods):
             engine.remove_event_handler(m, e)
 
-        for e, m in zip(events, lmethods):
+        for e, m in zip(self._events, self._lmethods):
             engine.remove_event_handler(m, e)
 
     def attach(self, engine):
@@ -211,8 +228,8 @@ class BasicTimeProfiler(object):
     def get_results(self):
         events_to_ignore = [
             Events.EXCEPTION_RAISED,
-            Events.GET_BATCH_COMPLETED,
-            Events.GET_BATCH_STARTED
+            # Events.GET_BATCH_COMPLETED,
+            # Events.GET_BATCH_STARTED
         ]
         total_eh_time = sum([sum(self.event_handlers_times[e]) for e in Events if e not in events_to_ignore])
         return OrderedDict([
