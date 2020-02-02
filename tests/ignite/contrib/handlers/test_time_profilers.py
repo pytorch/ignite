@@ -364,8 +364,7 @@ def test_write_results():
         time.sleep(true_event_handler_time)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
-    results_dump = profiler.dump_results()
-    profiler.write_results(results_dump, test_folder + '/test_log.csv')
+    profiler.write_results(test_folder + '/test_log.csv')
 
     assert os.path.isfile(test_folder + '/test_log.csv')
 
