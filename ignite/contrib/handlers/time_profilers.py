@@ -34,6 +34,12 @@ class BasicTimeProfiler(object):
 
         >>> results = profiler.get_results()
         >>> profiler.print_results(results)
+
+        Also optionally, you could choose to store the profiling results
+        into a file using,
+
+        >>> dump_results = profiler.dump_results()
+        >>> profiler.write_results(dump_results, 'path_to_store/profiler_results.csv')
     """
 
     def __init__(self):
