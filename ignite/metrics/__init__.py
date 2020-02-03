@@ -14,6 +14,7 @@ from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.confusion_matrix import ConfusionMatrix, IoU, mIoU, DiceCoefficient
 from ignite.metrics.accumulation import VariableAccumulation, Average, GeometricAverage
 from ignite.metrics.fbeta import Fbeta
+from ignite.metrics.frequency import Frequency
 
 __all__ = [
     'Metric',
@@ -36,5 +37,6 @@ __all__ = [
     'Recall',
     'RootMeanSquaredError',
     'RunningAverage',
-    'VariableAccumulation'
+    'VariableAccumulation',
+    'Frequency'
 ]
