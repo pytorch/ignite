@@ -58,5 +58,6 @@ class Frequency(Metric):
         engine.state.metrics[name] = int(self.compute())
 
     def attach(self, engine, name, event_name=Events.ITERATION_COMPLETED):
+        engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         engine.add_event_handler(event_name, self.iteration_completed)
         engine.add_event_handler(event_name, self.completed, name)
