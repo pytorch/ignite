@@ -15,7 +15,7 @@ class BasicTimeProfiler(object):
         None
 
     Attributes:
-        data_flow_times (torch.Tensor): tile elapsed during data loading
+        data_flow_times (torch.Tensor): time elapsed during data loading
             for each iteration
         processing_times (torch.Tensor): time elapsed during data processing
             for each iteration
@@ -35,10 +35,56 @@ class BasicTimeProfiler(object):
         >>> results = profiler.get_results()
         >>> profiler.print_results(results)
 
+        The results would look as follows:
+        --------------------------------------------
+        - Time profiling results:
+        --------------------------------------------
+
+        Processing function time stats (in seconds):
+            min/index: (2.9754010029137135e-05, 0)
+            max/index: (2.9754010029137135e-05, 0)
+            mean: 2.9754010029137135e-05
+            std: nan
+            total: 2.9754010029137135e-05
+
+
+        Dataflow time stats (in seconds):
+            min/index: (0.2523871660232544, 0)
+            max/index: (0.2523871660232544, 0)
+            mean: 0.2523871660232544
+            std: nan
+            total: 0.2523871660232544
+
+
+        Time stats of event handlers (in seconds):
+        - Total time spent:
+            1.0080009698867798
+
+        - Events.STARTED:
+            min/index: (0.1256754994392395, 0)
+            max/index: (0.1256754994392395, 0)
+            mean: 0.1256754994392395
+            std: nan
+            total: 0.1256754994392395
+
+        Handlers names:
+        ['BasicTimeProfiler._as_first_started', 'delay_start']
+        --------------------------------------------
+
         Also optionally, you could choose to store the profiling results
         into a file using,
 
         >>> profiler.write_results('path_to_store/profiler_results.csv')
+
+        The CSV file contains the unaggregated profiler values for each
+        event type, processing stats and dataflow stats and may look as
+        follows:
+
+        --------------------------------------------
+        epoch iteration processing_stats dataflow_stats Event_STARTED ...
+        1.0     1.0        0.00003         0.252387        0.125676
+        1.0     2.0        0.00029         0.252342        0.125123
+
     """
 
     def __init__(self):
