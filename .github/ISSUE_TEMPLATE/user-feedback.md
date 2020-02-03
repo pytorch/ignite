@@ -1,5 +1,5 @@
 ---
-name: 'User feedback '
+name: 'User feedback'
 about: Say thanks or why you don't like
 title: ''
 labels: ''
