@@ -204,7 +204,9 @@ class BasicTimeProfiler(object):
         """
         Method to fetch the aggregated profiler results after the engine is run
 
-        >>> results = profiler.get_results()
+        .. code-block:: python
+
+            results = profiler.get_results()
 
         """
         events_to_ignore = [
@@ -226,7 +228,9 @@ class BasicTimeProfiler(object):
         """
         Method to store the unaggregated profiling results to a csv file
 
-        >>> profiler.write_results('path_to_dir/awesome_filename.csv')
+        .. code-block:: python
+
+            profiler.write_results('path_to_dir/awesome_filename.csv')
 
         Example output:
 
@@ -291,7 +295,9 @@ class BasicTimeProfiler(object):
         """
         Method to print the aggregated results from the profiler
 
-        >>> profiler.print_results(results)
+        .. code-block:: python
+
+            profiler.print_results(results)
 
         Example output:
 
