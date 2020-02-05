@@ -17,6 +17,9 @@ DALI does a lot of things that are useful on the data loading and augmentation s
 Google Colabs give users access to free GPU Jupyter environments - the notebook works in those!
 https://colab.research.google.com/notebooks/welcome.ipynb
 
+Specifically, there is a Colab friendly version of the notebook here:
+https://colab.research.google.com/drive/1F_7DihE8YUzirvWV8xn1aMe0EMAP9iB6
+
 You can also skip a lot of the environment/setup stuff if it is giving you trouble with Docker. There is a PyTorch image that works with this notebook here 
 https://ngc.nvidia.com/catalog/containers/nvidia:pytorch
 
@@ -43,4 +46,4 @@ A custom trainer that allows for MovingAverage metrics and prepare_batch logic t
 
 # Thanks:
 
-Great work and many thanks to user chicham, who put together the excellent DALI transformation utilities this example pulls from in [Ignite Pull 493] (https://github.com/pytorch/ignite/pull/493)!
+Great work and many thanks to user chicham, who put together the excellent DALI transformation utilities this example pulls from in Ignite pull 493 (https://github.com/pytorch/ignite/pull/493)!
