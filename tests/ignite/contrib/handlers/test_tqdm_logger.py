@@ -52,10 +52,8 @@ def test_pbar_file(tmp_path):
     file = open(str(file_path), "r")
     lines = file.readlines()
 
-    # Depending on the speed and timing of tqdm, different outputs may be written.
-    expected1 = u"Epoch [2/2]: [1/2]  50%|#####     , a=1 [00:00<00:00]\n"
-    expected2 = u"Epoch [2/2]: [1/2]  50%|#####     , a=1 [00:00<?]\n"
-    assert lines[-2] == expected1 or lines[-2] == expected2
+    expected = u"Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
+    assert lines[-2] == expected
 
 
 def test_pbar_log_message(capsys):
