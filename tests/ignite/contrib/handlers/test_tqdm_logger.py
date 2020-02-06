@@ -48,6 +48,16 @@ def test_pbar_log_message(capsys):
     assert out[-1] == expected
 
 
+def test_pbar_log_message_file(tmp_path):
+    file = tmp_path / "temp.txt"
+
+    pbar = ProgressBar(file=open(file, "w+"))
+    pbar.log_message("test")
+
+    expected = "test"
+    assert file.read_text() == expected
+
+
 def test_attach_fail_with_string():
     engine = Engine(update_fn)
     pbar = ProgressBar()
