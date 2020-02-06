@@ -35,6 +35,29 @@ def test_pbar(capsys):
     assert err[-1] == expected
 
 
+def test_pbar_file(tmp_path):
+    n_epochs = 2
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    file_path = tmp_path / "temp.txt"
+    file = open(str(file_path), "w+")
+
+    pbar = ProgressBar(file=file)
+    pbar.attach(engine, ['a'])
+    engine.run(loader, max_epochs=n_epochs)
+
+    file.close()  # Force a flush of the buffer. file.flush() does not work.
+
+    file = open(str(file_path), "r")
+    lines = file.readlines()
+
+    # Depending on the speed and timing of tqdm, different outputs may be written.
+    expected1 = u"Epoch [2/2]: [1/2]  50%|#####     , a=1 [00:00<00:00]\n"
+    expected2 = u"Epoch [2/2]: [1/2]  50%|#####     , a=1 [00:00<?]\n"
+    assert lines[-2] == expected1 or lines[-2] == expected2
+
+
 def test_pbar_log_message(capsys):
     pbar = ProgressBar()
 
