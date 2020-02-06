@@ -49,13 +49,19 @@ def test_pbar_log_message(capsys):
 
 
 def test_pbar_log_message_file(tmp_path):
-    file = tmp_path / "temp.txt"
+    file_path = tmp_path / "temp.txt"
+    file = open(str(file_path), "w+")
 
-    pbar = ProgressBar(file=open(file, "w+"))
+    pbar = ProgressBar(file=file)
     pbar.log_message("test")
 
-    expected = "test"
-    assert file.read_text() == expected
+    file.close()  # Force a flush of the buffer. file.flush() does not work.
+
+    file = open(str(file_path), "r")
+    lines = file.readlines()
+
+    expected = u"test\n"
+    assert lines[0] == expected
 
 
 def test_attach_fail_with_string():
