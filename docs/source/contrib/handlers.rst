@@ -16,6 +16,11 @@ param_scheduler
 .. automodule:: ignite.contrib.handlers.param_scheduler
    :members:
 
+time_profilers
+---------------
+
+.. automodule:: ignite.contrib.handlers.time_profilers
+   :members:
 
 tensorboard_logger
 ------------------
