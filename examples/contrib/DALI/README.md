@@ -39,7 +39,7 @@ The main example notebook. Walks through construction of a DALI pipeline the sam
 
 __dali_transform_utilities.py__
 
-Some useful DALI utilities that let you ComposeOps() DALI operations easily, and then turn it into a DALI graph. Specifically, ComposeOps, TransformPipeline, DALILoader.
+Some useful DALI utilities that let you `ComposeOps()` DALI operations easily, and then turn it into a DALI graph. Specifically, `ComposeOps`, `TransformPipeline`, `DALILoader`.
 
 __dali_example_utilities.py__
 
