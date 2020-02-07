@@ -26,7 +26,7 @@ https://ngc.nvidia.com/catalog/containers/nvidia:pytorch
 The one liner to get into Jupyter (once nvidia-docker is installed) looks like:
 ```bash
 nvidia-docker run -it --net=host -v $(pwd):/workspace/content nvcr.io/nvia/pytorch:20.01-py3 jupyter notebook --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_origin='*' content/
-
+```
 
 (the 'nvidia-docker' part may be different based on your nvidia-docker version, e.x. "docker run --gpus all" or similar)
 
