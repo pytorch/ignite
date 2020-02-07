@@ -163,7 +163,7 @@ class Engine:
             from enum import Enum
             from ignite.engine import Engine
 
-            class CustomEvents(CallableEvents, Enum):
+            class CustomEvents(CallableEventWithFilter, Enum):
                 FOO_EVENT = "foo_event"
                 BAR_EVENT = "bar_event"
 
@@ -176,9 +176,9 @@ class Engine:
         .. code-block:: python
 
             from enum import Enum
-            from ignite.engine.engine import Engine, CallableEvents
+            from ignite.engine.engine import Engine, CallableEventWithFilter
 
-            class TBPTT_Events(CallableEvents, Enum):
+            class TBPTT_Events(CallableEventWithFilter, Enum):
                 TIME_ITERATION_STARTED = "time_iteration_started"
                 TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
@@ -215,7 +215,7 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name: Union[str, Enum, CallableEvent], handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Union[str, Enum, CallableEventWithFilter], handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
