@@ -2,8 +2,8 @@ import nvidia.dali.types as types
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
 from nvidia.dali import pipeline
 import nvidia.dali.ops as ops
-
 from typing import Sequence
+
 
 def _pipelines_sizes(pipes):
     for p in pipes:
