@@ -2,7 +2,7 @@ from typing import Callable, Any, Union
 from enum import Enum
 
 from ignite.engine import Engine
-from ignite.engine.events import EventWithFilter, CallableEvents
+from ignite.engine.events import CallableEventWithFilter
 
 from ignite.handlers.checkpoint import ModelCheckpoint, Checkpoint, DiskSaver
 from ignite.handlers.timing import Timer
@@ -31,7 +31,7 @@ def global_step_from_engine(engine: Engine) -> Callable:
         global step
     """
 
-    def wrapper(_: Any, event_name: Union[EventWithFilter, CallableEvents, Enum]):
+    def wrapper(_: Any, event_name: Union[CallableEventWithFilter, str, Enum]):
         return engine.state.get_event_attrib_value(event_name)
 
     return wrapper

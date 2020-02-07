@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from enum import Enum
 import logging
 import time
 from collections import defaultdict, OrderedDict
@@ -13,7 +14,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, \
 
 import torch
 
-from ignite.engine.events import Events, State, EventWithFilter, RemovableEventHandle
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -218,7 +219,7 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name: str, handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Union[str, Enum, CallableEvent], handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
@@ -255,8 +256,9 @@ class Engine:
             See :class:`~ignite.engine.Events` for more details.
 
         """
-        if isinstance(event_name, EventWithFilter):
-            event_name, event_filter = event_name.event, event_name.filter
+
+        if isinstance(event_name, CallableEventWithFilter):
+            event_filter = event_name.filter
             handler = Engine._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
@@ -271,11 +273,11 @@ class Engine:
 
         return RemovableEventHandle(event_name, handler, self)
 
-    @staticmethod
-    def _assert_non_callable_event(event_name: str):
-        if isinstance(event_name, EventWithFilter):
-            raise TypeError("Argument event_name should not be a callable event, "
-                            "please use event without any event filtering")
+    # @staticmethod
+    # def _assert_non_callable_event(event_name: str):
+    #     if isinstance(event_name, EventWithFilter):
+    #         raise TypeError("Argument event_name should not be a callable event, "
+    #                         "please use event without any event filtering")
 
     def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
         """Check if the specified event has the specified handler.
@@ -286,7 +288,6 @@ class Engine:
                 to ``None`` to search all events.
         """
         if event_name is not None:
-            self._assert_non_callable_event(event_name)
 
             if event_name not in self._event_handlers:
                 return False
