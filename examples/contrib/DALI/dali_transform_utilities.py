@@ -46,6 +46,7 @@ class DALILoader(DALIGenericIterator):
     def __len__(self):
         return self._size // self.batch_size
 
+
 class TransformPipeline(pipeline.Pipeline):
     """
     Pipeline for coco with data augrmentation
