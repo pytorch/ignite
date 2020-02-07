@@ -215,7 +215,7 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name: Union[str, Enum, CallableEventWithFilter], handler: Callable, 
+    def add_event_handler(self, event_name: Union[str, Enum, CallableEventWithFilter], handler: Callable,
                           *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
