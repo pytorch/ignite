@@ -15,6 +15,7 @@ def _pipelines_sizes(pipes):
         else:
             yield len(p)
 
+
 class ComposeOps(object):
     """
     Composes several `ops` together
@@ -122,4 +123,3 @@ class TransformPipeline(pipeline.Pipeline):
     def reset(self):
         if self._iter_setup:
             self.slice = slice(0, self.batch_size)
-
