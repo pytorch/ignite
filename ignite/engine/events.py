@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from typing import Callable, Optional, Union, Any
 
@@ -67,6 +66,7 @@ class CallableEventWithFilter:
         Returns:
             CallableEventWithFilter: A new event having the same value but a different filter function
         """
+
         if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
             raise ValueError("Only one of the input arguments should be specified")
 
@@ -97,7 +97,7 @@ class CallableEventWithFilter:
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
-        def wrapper(engine, event: bool):
+        def wrapper(engine, event: int) -> bool:
             if event % every == 0:
                 return True
             return False
@@ -271,7 +271,7 @@ class RemovableEventHandle:
         if engine.has_event_handler(handler, self.event_name):
             engine.remove_event_handler(handler, self.event_name)
 
-    def __enter__(self) -> RemovableEventHandle:
+    def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs) -> None:

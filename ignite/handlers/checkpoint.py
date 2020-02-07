@@ -1,5 +1,6 @@
 import os
 import tempfile
+import numbers
 
 from collections import namedtuple
 import collections.abc as collections
@@ -126,8 +127,8 @@ class Checkpoint:
     Item = namedtuple("Item", ["priority", "filename"])
 
     def __init__(self, to_save: dict, save_handler: Callable, filename_prefix: str = "",
-                 score_function: Optional[Callable] = None, score_name: Optional[str] = None, n_saved: int = 1,
-                 global_step_transform: Callable = None, archived: bool = False):
+                 score_function: Optional[Callable] = None, score_name: Optional[str] = None,
+                 n_saved: Optional[int] = 1, global_step_transform: Callable = None, archived: bool = False):
 
         if not isinstance(to_save, collections.Mapping):
             raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
@@ -161,7 +162,7 @@ class Checkpoint:
     def last_checkpoint(self) -> str:
         if len(self._saved) < 1:
             return None
-        return self._saved[0].filename
+        return self._saved[-1].filename
 
     def _check_lt_n_saved(self, or_equal=False):
         if self._n_saved is None:
@@ -177,21 +178,26 @@ class Checkpoint:
 
         if self._score_function is not None:
             priority = self._score_function(engine)
+            if not isinstance(priority, numbers.Number):
+                raise ValueError("Output of score_function should be a number")
         else:
             priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
+            priority_str = "{}".format(priority) if isinstance(priority, numbers.Integral) \
+                else "{:.4f}".format(priority)
+
             if self._score_name is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{}={:.4f}".format(suffix, self._score_name, priority)
+                suffix = "{}{}={}".format(suffix, self._score_name, priority_str)
             elif self._score_function is not None:
                 if len(suffix) > 0:
                     suffix += "_"
-                suffix = "{}{:.4f}".format(suffix, priority)
+                suffix = "{}{}".format(suffix, priority_str)
             elif len(suffix) == 0:
-                suffix = "{}".format(priority)
+                suffix = "{}".format(priority_str)
 
             checkpoint = self._setup_checkpoint()
 
@@ -404,7 +410,7 @@ class ModelCheckpoint(Checkpoint):
     def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
             return None
-        return os.path.join(self.save_handler.dirname, self._saved[0].filename)
+        return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
 
     def __call__(self, engine: Engine, to_save: Mapping) -> None:
 
