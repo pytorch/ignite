@@ -270,12 +270,6 @@ class Engine:
 
         return RemovableEventHandle(event_name, handler, self)
 
-    # @staticmethod
-    # def _assert_non_callable_event(event_name: str):
-    #     if isinstance(event_name, CallableEventWithFilter):
-    #         raise TypeError("Argument event_name should not be a callable event, "
-    #                         "please use event without any event filtering")
-
     def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
         """Check if the specified event has the specified handler.
 

@@ -4,7 +4,6 @@ from typing import Callable, Optional, Union, Any
 from enum import Enum
 import numbers
 import weakref
-from copy import deepcopy
 
 from ignite.engine.utils import _check_signature
 
