@@ -29,6 +29,7 @@ class ComposeOps(object):
             img = t(img)
         return img
 
+
 class DALILoader(DALIGenericIterator):
     """
     Class to make a `DALIGenericIterator` because `ProgressBar` wants an object with a
