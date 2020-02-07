@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Any
 
 from enum import Enum
 import numbers
@@ -51,8 +51,9 @@ class CallableEventWithFilter:
             raise ValueError('The given event filter is not a callable: %r' % new_event_filter)
         self._filter = new_event_filter
 
+    # Will return CallableEventWithFilter but can't annotate that way due to python <= 3.7
     def __call__(self, event_filter: Optional[Callable] = None,
-                 every: Optional[int] = None, once: Optional[int] = None) -> CallableEventWithFilter:
+                 every: Optional[int] = None, once: Optional[int] = None) -> Any:
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
         (which must take in the engine and current event value and return a boolean) or an every or once value
