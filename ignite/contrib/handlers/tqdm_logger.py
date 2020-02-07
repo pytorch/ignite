@@ -174,7 +174,11 @@ class ProgressBar(BaseLogger):
             raise ValueError("Logging event should be only `ignite.engine.Events`")
 
         if isinstance(closing_event_name, CallableEventWithFilter):
-            raise ValueError("Closing event should not use any event filter")
+            try:
+                if not closing_event_name.filter(None, None):
+                    raise AttributeError
+            except AttributeError:
+                raise ValueError("The closing event should only use filters which always return True")
 
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError("Logging event {} should be called before closing event {}"

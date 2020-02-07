@@ -305,7 +305,6 @@ class Engine:
             event_name: The event the handler attached to.
 
         """
-        self._assert_non_callable_event(event_name)
         if event_name not in self._event_handlers:
             raise ValueError("Input event name '{}' does not exist".format(event_name))
 
