@@ -272,7 +272,7 @@ class Engine:
 
     # @staticmethod
     # def _assert_non_callable_event(event_name: str):
-    #     if isinstance(event_name, EventWithFilter):
+    #     if isinstance(event_name, CallableEventWithFilter):
     #         raise TypeError("Argument event_name should not be a callable event, "
     #                         "please use event without any event filtering")
 

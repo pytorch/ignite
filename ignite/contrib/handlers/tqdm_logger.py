@@ -4,7 +4,7 @@ import warnings
 import torch
 
 from ignite.engine import Events
-from ignite.engine.engine import EventWithFilter
+from ignite.engine.engine import CallableEventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 
 
@@ -129,9 +129,9 @@ class ProgressBar(BaseLogger):
 
     @staticmethod
     def _compare_lt(event1, event2):
-        if isinstance(event1, EventWithFilter):
+        if isinstance(event1, CallableEventWithFilter):
             event1 = event1.event
-        if isinstance(event2, EventWithFilter):
+        if isinstance(event2, CallableEventWithFilter):
             event2 = event2.event
         i1 = ProgressBar._events_order.index(event1)
         i2 = ProgressBar._events_order.index(event2)
@@ -170,10 +170,10 @@ class ProgressBar(BaseLogger):
         """
         desc = self.tqdm_kwargs.get("desc", "Epoch")
 
-        if not isinstance(event_name, (Events, EventWithFilter)):
+        if not isinstance(event_name, (Events, CallableEventWithFilter)):
             raise ValueError("Logging event should be only `ignite.engine.Events`")
 
-        if isinstance(closing_event_name, EventWithFilter):
+        if isinstance(closing_event_name, CallableEventWithFilter):
             raise ValueError("Closing event should not use any event filter")
 
         if not self._compare_lt(event_name, closing_event_name):
@@ -182,7 +182,7 @@ class ProgressBar(BaseLogger):
 
         log_handler = _OutputHandler(desc, metric_names, output_transform,
                                      closing_event_name=closing_event_name)
-        # if event_name is EventWithFilter, filter is passed here
+        # if event_name is CallableEventWithFilter, filter is passed here
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 

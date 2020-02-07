@@ -5,7 +5,7 @@ import warnings
 import torch
 
 from ignite.engine import State, Engine
-from ignite.engine.engine import EventWithFilter
+from ignite.engine.engine import CallableEventWithFilter
 from ignite.handlers import global_step_from_engine
 
 
@@ -26,7 +26,7 @@ class BaseLogger:
 
         """
         name = event_name
-        if isinstance(event_name, EventWithFilter):
+        if isinstance(event_name, CallableEventWithFilter):
             name = event_name.event
 
         if name not in State.event_to_attr:

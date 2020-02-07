@@ -102,7 +102,7 @@ def test_callable_events():
         return True
 
     ret = Events.ITERATION_STARTED(event_filter=foo)
-    assert isinstance(ret, CallableCallableEventWithFilter)
+    assert isinstance(ret, CallableEventWithFilter)
     assert ret.event == Events.ITERATION_STARTED
     assert ret.filter == foo
     assert isinstance(Events.ITERATION_STARTED.value, str)
@@ -324,7 +324,7 @@ def test_custom_callable_events():
     with pytest.raises(TypeError, match=r"object is not callable"):
         CustomEvents.TEST_EVENT(every=10)
 
-    class CustomEvents2(CallableEvents, Enum):
+    class CustomEvents2(CallableEventWithFilter, Enum):
         TEST_EVENT = "test_event"
 
     CustomEvents2.TEST_EVENT(every=10)
@@ -332,7 +332,7 @@ def test_custom_callable_events():
 
 def test_custom_callable_events_with_engine():
 
-    class CustomEvents(CallableEvents, Enum):
+    class CustomEvents(CallableEventWithFilter, Enum):
         TEST_EVENT = "test_event"
 
     event_to_attr = {
