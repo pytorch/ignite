@@ -236,11 +236,20 @@ class Checkpoint:
         Args:
             to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
-                "optimizer": opt_state_dict}`
+                "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
+                corresponding state_dict.
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
+        if len(to_load) == 1:
+            # single object and checkpoint is directly a state_dict
+            key, obj = list(to_load.items())[0]
+            if key not in checkpoint:
+                obj.load_state_dict(checkpoint)
+                return
+
+        # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint:
                 raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
