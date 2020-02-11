@@ -1,253 +1,22 @@
-import inspect
+
 import logging
 import time
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
-from enum import Enum
 import weakref
-import numbers
 import random
 import warnings
+from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
+from ignite.engine.events import Events, State, EventWithFilter, RemovableEventHandle
+from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
-
-class EventWithFilter:
-
-    def __init__(self, event, filter):
-        if not callable(filter):
-            raise TypeError("Argument filter should be callable")
-        self.event = event
-        self.filter = filter
-
-    def __str__(self):
-        return "<%s event=%s, filter=%r>" % (self.__class__.__name__, self.event, self.filter)
-
-
-class CallableEvents:
-    """Base class for Events implementing call operator and storing event filter. This class should be inherited
-    for any custom events with event filtering feature:
-
-    .. code-block:: python
-
-        from ignite.engine.engine import CallableEvents
-
-        class CustomEvents(CallableEvents, Enum):
-            TEST_EVENT = "test_event"
-
-        engine = ...
-        engine.register_events(*CustomEvents, event_to_attr={CustomEvents.TEST_EVENT: "test_event"})
-
-        @engine.on(CustomEvents.TEST_EVENT(every=5))
-        def call_on_test_event_every(engine):
-            # do something
-
-    """
-    def __call__(self, event_filter=None, every=None, once=None):
-
-        if not((event_filter is not None) ^ (every is not None) ^ (once is not None)):
-            raise ValueError("Only one of the input arguments should be specified")
-
-        if (event_filter is not None) and not callable(event_filter):
-            raise TypeError("Argument event_filter should be a callable")
-
-        if (every is not None) and not (isinstance(every, numbers.Integral) and every > 0):
-            raise ValueError("Argument every should be integer and greater than zero")
-
-        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
-            raise ValueError("Argument every should be integer and positive")
-
-        if every is not None:
-            if every == 1:
-                # Just return the event itself
-                return self
-            event_filter = CallableEvents.every_event_filter(every)
-
-        if once is not None:
-            event_filter = CallableEvents.once_event_filter(once)
-
-        # check signature:
-        Engine._check_signature("engine", event_filter, "event_filter", "event")
-
-        return EventWithFilter(self, event_filter)
-
-    @staticmethod
-    def every_event_filter(every):
-        def wrapper(engine, event):
-            if event % every == 0:
-                return True
-            return False
-        return wrapper
-
-    @staticmethod
-    def once_event_filter(once):
-        def wrapper(engine, event):
-            if event == once:
-                return True
-            return False
-        return wrapper
-
-
-class Events(CallableEvents, Enum):
-    """Events that are fired by the :class:`~ignite.engine.Engine` during execution.
-
-    Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:
-
-    .. code-block:: python
-
-        engine = Engine()
-
-        # a) custom event filter
-        def custom_event_filter(engine, event):
-            if event in [1, 2, 5, 10, 50, 100]:
-                return True
-            return False
-
-        @engine.on(Events.ITERATION_STARTED(event_filter=custom_event_filter))
-        def call_on_special_event(engine):
-             # do something on 1, 2, 5, 10, 50, 100 iterations
-
-        # b) "every" event filter
-        @engine.on(Events.ITERATION_STARTED(every=10))
-        def call_every(engine):
-            # do something every 10th iteration
-
-        # c) "once" event filter
-        @engine.on(Events.ITERATION_STARTED(once=50))
-        def call_once(engine):
-            # do something on 50th iteration
-
-    Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
-    Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
-
-    """
-    EPOCH_STARTED = "epoch_started"
-    EPOCH_COMPLETED = "epoch_completed"
-    STARTED = "started"
-    COMPLETED = "completed"
-    ITERATION_STARTED = "iteration_started"
-    ITERATION_COMPLETED = "iteration_completed"
-    EXCEPTION_RAISED = "exception_raised"
-
-    GET_BATCH_STARTED = "get_batch_started"
-    GET_BATCH_COMPLETED = "get_batch_completed"
-
-
-class State:
-    """An object that is used to pass internal and user-defined state between event handlers. By default, state
-    contains the following attributes:
-
-    .. code-block:: python
-
-        state.iteration         # 1-based, the first iteration is 1
-        state.epoch             # 1-based, the first epoch is 1
-        state.seed              # seed to set at each epoch
-        state.dataloader        # data passed to engine
-        state.epoch_length      # optional length of an epoch
-        state.max_epochs        # number of epochs to run
-        state.batch             # batch passed to `process_function`
-        state.output            # output of `process_function` after a single iteration
-        state.metrics           # dictionary with defined metrics if any
-
-    """
-
-    event_to_attr = {
-        Events.GET_BATCH_STARTED: "iteration",
-        Events.GET_BATCH_COMPLETED: "iteration",
-        Events.ITERATION_STARTED: "iteration",
-        Events.ITERATION_COMPLETED: "iteration",
-        Events.EPOCH_STARTED: "epoch",
-        Events.EPOCH_COMPLETED: "epoch",
-        Events.STARTED: "epoch",
-        Events.COMPLETED: "epoch",
-    }
-
-    def __init__(self, **kwargs):
-        self.iteration = 0
-        self.epoch = 0
-        self.epoch_length = None
-        self.max_epochs = None
-        self.output = None
-        self.batch = None
-        self.metrics = {}
-        self.dataloader = None
-        self.seed = None
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-        for value in self.event_to_attr.values():
-            if not hasattr(self, value):
-                setattr(self, value, 0)
-
-    def get_event_attrib_value(self, event_name):
-        if isinstance(event_name, EventWithFilter):
-            event_name = event_name.event
-        if event_name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(event_name))
-        return getattr(self, State.event_to_attr[event_name])
-
-    def __repr__(self):
-        s = "State:\n"
-        for attr, value in self.__dict__.items():
-            if not isinstance(value, (numbers.Number, str)):
-                value = type(value)
-            s += "\t{}: {}\n".format(attr, value)
-        return s
-
-
-class RemovableEventHandle:
-    """A weakref handle to remove a registered event.
-
-    A handle that may be used to remove a registered event handler via the
-    remove method, with-statement, or context manager protocol. Returned from
-    :meth:`~ignite.engine.Engine.add_event_handler`.
-
-
-    Args:
-        event_name: Registered event name.
-        handler: Registered event handler, stored as weakref.
-        engine: Target engine, stored as weakref.
-
-    Example usage:
-
-    .. code-block:: python
-
-        engine = Engine()
-
-        def print_epoch(engine):
-            print("Epoch: {}".format(engine.state.epoch))
-
-        with engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch):
-            # print_epoch handler registered for a single run
-            engine.run(data)
-
-        # print_epoch handler is now unregistered
-    """
-
-    def __init__(self, event_name, handler, engine):
-        self.event_name = event_name
-        self.handler = weakref.ref(handler)
-        self.engine = weakref.ref(engine)
-
-    def remove(self):
-        """Remove handler from engine."""
-        handler = self.handler()
-        engine = self.engine()
-
-        if handler is None or engine is None:
-            return
-
-        if engine.has_event_handler(handler, self.event_name):
-            engine.remove_event_handler(handler, self.event_name)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, tb):
-        self.remove()
+__all__ = [
+    'Engine'
+]
 
 
 class Engine:
@@ -353,7 +122,7 @@ class Engine:
     _state_dict_all_req_keys = ("seed", "epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
-    def __init__(self, process_function):
+    def __init__(self, process_function: Callable):
         self._event_handlers = defaultdict(list)
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
@@ -371,9 +140,9 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        Engine._check_signature(self, process_function, 'process_function', None)
+        _check_signature(self, process_function, 'process_function', None)
 
-    def register_events(self, *event_names, **kwargs):
+    def register_events(self, *event_names: Union[str, int, Any], **kwargs) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -435,9 +204,9 @@ class Engine:
                 State.event_to_attr[e] = event_to_attr[e]
 
     @staticmethod
-    def _handler_wrapper(handler, event_name, event_filter):
+    def _handler_wrapper(handler: Callable, event_name: str, event_filter: Callable) -> Callable:
 
-        def wrapper(engine, *args, **kwargs):
+        def wrapper(engine: Engine, *args, **kwargs) -> Any:
             event = engine.state.get_event_attrib_value(event_name)
             if event_filter(engine, event):
                 return handler(engine, *args, **kwargs)
@@ -446,7 +215,7 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name, handler, *args, **kwargs):
+    def add_event_handler(self, event_name: str, handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
@@ -491,8 +260,8 @@ class Engine:
             self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
-        event_args = (Exception(), ) if event_name == Events.EXCEPTION_RAISED else ()
-        Engine._check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
+        event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
+        _check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
@@ -500,12 +269,12 @@ class Engine:
         return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
-    def _assert_non_callable_event(event_name):
+    def _assert_non_callable_event(event_name: str):
         if isinstance(event_name, EventWithFilter):
             raise TypeError("Argument event_name should not be a callable event, "
                             "please use event without any event filtering")
 
-    def has_event_handler(self, handler, event_name=None):
+    def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
         """Check if the specified event has the specified handler.
 
         Args:
@@ -528,12 +297,12 @@ class Engine:
         return False
 
     @staticmethod
-    def _compare_handlers(user_handler, registered_handler):
+    def _compare_handlers(user_handler: Callable, registered_handler: Callable) -> bool:
         if hasattr(registered_handler, "_parent"):
             registered_handler = registered_handler._parent()
         return registered_handler == user_handler
 
-    def remove_event_handler(self, handler, event_name):
+    def remove_event_handler(self, handler: Callable, event_name: str):
         """Remove event handler `handler` from registered handlers of the engine
 
         Args:
@@ -551,23 +320,6 @@ class Engine:
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
 
-    @staticmethod
-    def _check_signature(self, fn, fn_description, *args, **kwargs):
-        exception_msg = None
-
-        signature = inspect.signature(fn)
-        try:
-            signature.bind(self, *args, **kwargs)
-        except TypeError as exc:
-            fn_params = list(signature.parameters)
-            exception_msg = str(exc)
-
-        if exception_msg:
-            passed_params = [self] + list(args) + list(kwargs)
-            raise ValueError("Error adding {} '{}': "
-                             "takes parameters {} but will be called with {} "
-                             "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))
-
     def on(self, event_name, *args, **kwargs):
         """Decorator shortcut for add_event_handler.
 
@@ -578,12 +330,14 @@ class Engine:
             **kwargs: optional keyword args to be passed to `handler`.
 
         """
-        def decorator(f):
+
+        def decorator(f: Callable) -> Callable:
             self.add_event_handler(event_name, f, *args, **kwargs)
             return f
+
         return decorator
 
-    def _fire_event(self, event_name, *event_args, **event_kwargs):
+    def _fire_event(self, event_name: str, *event_args, **event_kwargs) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -606,7 +360,7 @@ class Engine:
                 kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
 
-    def fire_event(self, event_name):
+    def fire_event(self, event_name: str) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -629,20 +383,20 @@ class Engine:
         """
         return self._fire_event(event_name)
 
-    def terminate(self):
+    def terminate(self) -> None:
         """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration.
         """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
-    def terminate_epoch(self):
+    def terminate_epoch(self) -> None:
         """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
         """
         self.logger.info("Terminate current epoch is signaled. "
                          "Current epoch iteration will stop after current iteration is finished.")
         self.should_terminate_single_epoch = True
 
-    def _run_once_on_dataset(self):
+    def _run_once_on_dataset(self) -> Tuple[int, int, int]:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
@@ -709,13 +463,13 @@ class Engine:
 
         return hours, mins, secs
 
-    def _handle_exception(self, e):
+    def _handle_exception(self, e: Exception) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
             self._fire_event(Events.EXCEPTION_RAISED, e)
         else:
             raise e
 
-    def state_dict(self):
+    def state_dict(self) -> OrderedDict:
         """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration"
 
         Returns:
@@ -725,10 +479,10 @@ class Engine:
         """
         if self.state is None:
             return OrderedDict()
-        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0], )
+        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
@@ -773,10 +527,11 @@ class Engine:
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
     @staticmethod
-    def _is_done(state):
+    def _is_done(state: State) -> bool:
         return state.iteration == state.epoch_length * state.max_epochs
 
-    def run(self, data, max_epochs=None, epoch_length=None, seed=None):
+    def run(self, data: Iterable, max_epochs: Optional[int] = None, epoch_length: Optional[int] = None,
+            seed: Optional[int] = None) -> State:
         """Runs the `process_function` over the passed data.
 
         Engine has a state and the following logic is applied in this function:
@@ -849,7 +604,7 @@ class Engine:
         self.state.dataloader = data
         return self._internal_run()
 
-    def _setup_engine(self):
+    def _setup_engine(self) -> None:
 
         try:
             self._dataloader_len = len(self.state.dataloader) if hasattr(self.state.dataloader, "__len__") else None
@@ -884,7 +639,7 @@ class Engine:
         self._init_iter.append(iteration)
 
     @staticmethod
-    def _from_iteration(data, iteration):
+    def _from_iteration(data: Union[Iterable, torch.utils.data.DataLoader], iteration: int) -> Iterator:
         if isinstance(data, torch.utils.data.DataLoader):
             try:
                 # following is unsafe for IterableDatasets
@@ -911,7 +666,7 @@ class Engine:
         return data_iter
 
     @staticmethod
-    def _manual_seed(seed, epoch):
+    def _manual_seed(seed: int, epoch: int) -> None:
         random.seed(seed + epoch)
         torch.manual_seed(seed + epoch)
         try:
@@ -920,7 +675,7 @@ class Engine:
         except ImportError:
             pass
 
-    def setup_seed(self):
+    def setup_seed(self) -> None:
         # seed value should be related to input data iterator length -> iteration at data iterator restart
         # - seed can not be epoch because during a single epoch we can have multiple `_dataloader_len`
         # - seed can not be iteration because when resuming from iteration we need to set the seed from the start of the
@@ -928,7 +683,7 @@ class Engine:
         le = self._dataloader_len if self._dataloader_len is not None else 1
         self._manual_seed(self.state.seed, self.state.iteration // le)
 
-    def _internal_run(self):
+    def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False
         try:
             start_time = time.time()
@@ -959,51 +714,3 @@ class Engine:
 
         self._dataloader_iter = self._dataloader_len = None
         return self.state
-
-
-def _update_dataloader(dataloader, new_batch_sampler):
-    params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
-    for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler', 'dataset_kind']:
-        if k in params_keys:
-            params_keys.remove(k)
-    params = {k: getattr(dataloader, k) for k in params_keys}
-    params['batch_sampler'] = new_batch_sampler
-    return torch.utils.data.DataLoader(**params)
-
-
-class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
-    """Reproducible batch sampler. Internally, this class iterates and stores indices of the input batch sampler.
-
-    Args:
-        batch_sampler (torch.utils.data.sampler.BatchSampler): batch sampler same as used with
-            `torch.utils.data.DataLoader`
-        start_iteration (int, optional): optional start iteration
-    """
-    def __init__(self, batch_sampler, start_iteration=None):
-        if not isinstance(batch_sampler, torch.utils.data.sampler.BatchSampler):
-            raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
-
-        self.batch_indices = None
-        self.batch_sampler = batch_sampler
-        self.start_iteration = start_iteration
-        self.sampler = self.batch_sampler.sampler
-
-    def setup_batch_indices(self):
-        self.batch_indices = []
-        for batch in self.batch_sampler:
-            self.batch_indices.append(batch)
-
-        if self.start_iteration is not None:
-            self.batch_indices = self.batch_indices[self.start_iteration:]
-            self.start_iteration = None
-
-    def __iter__(self):
-        if self.batch_indices is None:
-            self.setup_batch_indices()
-        for batch in self.batch_indices:
-            yield batch
-
-        self.batch_indices = None
-
-    def __len__(self):
-        return len(self.batch_sampler)

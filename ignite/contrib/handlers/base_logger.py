@@ -14,6 +14,7 @@ class BaseLogger:
     Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
 
     """
+
     def attach(self, engine, log_handler, event_name):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 

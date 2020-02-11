@@ -7,7 +7,6 @@ import torch
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
     BaseWeightsScalarHandler, global_step_from_engine
 
-
 __all__ = ['VisdomLogger', 'OptimizerParamsHandler', 'OutputHandler',
            'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
 
@@ -81,20 +80,15 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                                                        global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
-        Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
+        Another example, where model is evaluated every 500 iterations:
 
         .. code-block:: python
 
-            from ignite.contrib.handlers import CustomPeriodicEvent
+            from ignite.contrib.handlers.visdom_logger import *
 
-            cpe = CustomPeriodicEvent(n_iterations=500)
-            cpe.attach(trainer)
-
-            @trainer.on(cpe.Events.ITERATIONS_500_COMPLETED)
+            @trainer.on(Events.ITERATION_COMPLETED(every=500))
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
-
-            from ignite.contrib.handlers.visdom_logger import *
 
             vd_logger = VisdomLogger()
 
@@ -102,7 +96,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 return trainer.state.iteration
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # every 500 iterations. Since evaluator engine does not have CustomPeriodicEvent attached to it, we
+            # every 500 iterations. Since evaluator engine does not have access to the training iteration, we
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Visdom.
 
@@ -119,7 +113,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
             value of event. Typically, user can provide
@@ -142,6 +136,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 return engine.state.get_event_attrib_value(event_name)
 
     """
+
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None,
                  show_legend=False):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
@@ -473,7 +468,6 @@ class VisdomLogger(BaseLogger):
 
 
 class _DummyExecutor:
-
     class _DummyFuture:
 
         def __init__(self, result):

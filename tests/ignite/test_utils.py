@@ -3,6 +3,7 @@ import logging
 import pytest
 import torch
 
+from collections import namedtuple
 from ignite.utils import convert_tensor, to_onehot, setup_logger
 
 
@@ -19,11 +20,24 @@ def test_convert_tensor():
     tensor = convert_tensor(x, device='cpu', non_blocking=False)
     assert torch.is_tensor(tensor)
 
-    x = (torch.tensor([0.0]), torch.tensor([0.0]))
+    x = [torch.tensor([0.0]), torch.tensor([0.0])]
     list_ = convert_tensor(x)
     assert isinstance(list_, list)
     assert torch.is_tensor(list_[0])
     assert torch.is_tensor(list_[1])
+
+    x = (torch.tensor([0.0]), torch.tensor([0.0]))
+    tuple_ = convert_tensor(x)
+    assert isinstance(tuple_, tuple)
+    assert torch.is_tensor(tuple_[0])
+    assert torch.is_tensor(tuple_[1])
+
+    Point = namedtuple("Point", ['x', 'y'])
+    x = Point(torch.tensor([0.0]), torch.tensor([0.0]))
+    tuple_ = convert_tensor(x)
+    assert isinstance(tuple_, Point)
+    assert torch.is_tensor(tuple_[0])
+    assert torch.is_tensor(tuple_[1])
 
     x = {'a': torch.tensor([0.0]), 'b': torch.tensor([0.0])}
     dict_ = convert_tensor(x)

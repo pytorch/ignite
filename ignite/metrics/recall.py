@@ -1,10 +1,14 @@
-from __future__ import division
+from typing import Sequence, Callable, Optional, Union
 
 import torch
 
 from ignite.metrics.precision import _BasePrecisionRecall
 from ignite.utils import to_onehot
 from ignite.metrics.metric import reinit__is_reduced
+
+__all__ = [
+    'Recall'
+]
 
 
 class Recall(_BasePrecisionRecall):
@@ -65,12 +69,13 @@ class Recall(_BasePrecisionRecall):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, average=False, is_multilabel=False, device=None):
+    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False,
+                 device: Optional[Union[str, torch.device]] = None):
         super(Recall, self).__init__(output_transform=output_transform,
                                      average=average, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
-    def update(self, output):
+    def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
         self._check_shape(output)
         self._check_type((y_pred, y))

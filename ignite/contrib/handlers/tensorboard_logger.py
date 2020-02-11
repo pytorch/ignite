@@ -6,7 +6,6 @@ import torch
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
     BaseWeightsScalarHandler, BaseWeightsHistHandler, global_step_from_engine
 
-
 __all__ = ['TensorboardLogger', 'OptimizerParamsHandler', 'OutputHandler',
            'WeightsScalarHandler', 'WeightsHistHandler', 'GradsScalarHandler',
            'GradsHistHandler', 'global_step_from_engine']
@@ -33,20 +32,15 @@ class OutputHandler(BaseOutputHandler):
                                                        global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
-        Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
+        Another example, where model is evaluated every 500 iterations:
 
         .. code-block:: python
 
-            from ignite.contrib.handlers import CustomPeriodicEvent
+            from ignite.contrib.handlers.tensorboard_logger import *
 
-            cpe = CustomPeriodicEvent(n_iterations=500)
-            cpe.attach(trainer)
-
-            @trainer.on(cpe.Events.ITERATIONS_500_COMPLETED)
+            @trainer.on(Events.ITERATION_COMPLETED(every=500))
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
-
-            from ignite.contrib.handlers.tensorboard_logger import *
 
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
@@ -54,7 +48,7 @@ class OutputHandler(BaseOutputHandler):
                 return trainer.state.iteration
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # every 500 iterations. Since evaluator engine does not have CustomPeriodicEvent attached to it, we
+            # every 500 iterations. Since evaluator engine does not have access to the training iteration, we
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Tensorboard.
 
@@ -70,7 +64,7 @@ class OutputHandler(BaseOutputHandler):
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
             value of event. Typically, user can provide
@@ -92,6 +86,7 @@ class OutputHandler(BaseOutputHandler):
                 return engine.state.get_event_attrib_value(event_name)
 
     """
+
     def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
 
@@ -184,6 +179,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
         tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
+
     def __init__(self, model, reduction=torch.norm, tag=None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
@@ -271,6 +267,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
         tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
+
     def __init__(self, model, reduction=torch.norm, tag=None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
@@ -312,6 +309,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
         tag (str, optional): common title for all produced plots. For example, 'generator'
 
     """
+
     def __init__(self, model, tag=None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 

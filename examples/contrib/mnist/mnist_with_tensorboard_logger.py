@@ -17,8 +17,6 @@
     python mnist_with_tensorboard_logger.py --log_dir=/tmp/tensorboard_logs
     ```
 """
-from __future__ import print_function
-
 import sys
 from argparse import ArgumentParser
 import logging

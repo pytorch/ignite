@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import torch
 
@@ -19,6 +19,7 @@ class R2Score(_BaseRegression):
         - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
         - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
     """
+
     def reset(self):
         self._num_examples = 0
         self._sum_of_errors = 0
