@@ -119,6 +119,7 @@ class ProgressBar(BaseLogger):
             total=pbar_total,
             leave=self.persist,
             bar_format=self.bar_format,
+            initial=1,
             **self.tqdm_kwargs
         )
 

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 import numpy as np
 import pytest
 import torch
@@ -54,6 +55,24 @@ def test_attach_fail_with_string():
 
     with pytest.raises(TypeError):
         pbar.attach(engine, 'a')
+
+
+def test_pbar_batch_indeces(capsys):
+    engine = Engine(lambda e, b: time.sleep(0.1))
+    @engine.on(Events.ITERATION_STARTED)
+    def print_iter(_):
+        print("iteration: ", engine.state.iteration)
+
+    ProgressBar(persist=True).attach(engine)
+    engine.run(list(range(4)), max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    printed_batch_indeces = set(map(lambda x: int(x.split('/')[0][-1]), err))
+    expected_batch_indeces = list(range(1, 5))
+    assert sorted(list(printed_batch_indeces)) == expected_batch_indeces
 
 
 def test_pbar_with_metric(capsys):
