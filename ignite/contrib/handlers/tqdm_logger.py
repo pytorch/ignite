@@ -146,7 +146,8 @@ class ProgressBar(BaseLogger):
             message (str): string you wish to log.
         """
         from tqdm import tqdm
-        tqdm.write(message, **self.tqdm_kwargs)
+
+        tqdm.write(message, file=self.tqdm_kwargs.get("file", None))
 
     def attach(self, engine, metric_names=None, output_transform=None,
                event_name=Events.ITERATION_COMPLETED,
