@@ -109,9 +109,12 @@ class Checkpoint:
 
             trainer = ...
             evaluator = ...
+            # Setup Accuracy metric computation on evaluator
+            # Run evaluation on epoch completed event
+            # ...
 
             def score_function(engine):
-                engine.state.metrics['accuracy']
+                return engine.state.metrics['accuracy']
 
             to_save = {'model': model}
             handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2,
@@ -119,6 +122,7 @@ class Checkpoint:
                                  global_step_transform=global_step_from_engine(trainer))
 
             evaluator.add_event_handler(Events.COMPLETED, handler)
+
             trainer.run(data_loader, max_epochs=10)
             > ["best_model_9_val_acc=0.77.pth", "best_model_10_val_acc=0.78.pth", ]
 
