@@ -734,10 +734,11 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
         }
         return to_save
 
-    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
     trainer = Engine(lambda e, b: None)
     trainer.state = State(epoch=0, iteration=0)
+
     # case: multiple objects
+    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
     to_save = _get_multiple_objs_to_save()
     handler(trainer, to_save)
     fname = handler.last_checkpoint
@@ -746,6 +747,19 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     assert os.path.exists(fname)
     loaded_objects = torch.load(fname)
     Checkpoint.load_objects(to_save, loaded_objects)
+    os.remove(fname)
+
+    # case: saved multiple objects, loaded single object
+    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
+    to_save = _get_multiple_objs_to_save()
+    handler(trainer, to_save)
+    fname = handler.last_checkpoint
+    assert isinstance(fname, str)
+    assert os.path.join(dirname, _PREFIX) in fname
+    assert os.path.exists(fname)
+    loaded_objects = torch.load(fname)
+    to_load = {'model': to_save['model']}
+    Checkpoint.load_objects(to_load, loaded_objects)
     os.remove(fname)
 
     # case: single object
