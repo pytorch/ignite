@@ -1,9 +1,10 @@
 
 from typing import Callable, Optional, Union, Any
 
-from enum import Enum
+from enum import Enum, EnumMeta
 import numbers
 import weakref
+from types import DynamicClassAttribute
 
 from ignite.engine.utils import _check_signature
 
@@ -26,12 +27,16 @@ class CallableEventWithFilter:
 
     """
 
-    def __init__(self, value: str, event_filter: Optional[Callable] = None):
+    def __init__(self, value: str, event_filter: Optional[Callable] = None,
+                 name=None):
         self._filter = lambda _, __: True
         self.filter = event_filter
 
-        if not hasattr(self, 'value'):
-            self.value = value
+        if not hasattr(self, '_value_'):
+            self._value_ = value
+
+        if not hasattr(self, '_name_') and name is not None:
+            self._name_ = name
 
     @property
     def filter(self):
@@ -48,6 +53,17 @@ class CallableEventWithFilter:
         if not callable(new_event_filter):
             raise ValueError('The given event filter is not a callable: %r' % new_event_filter)
         self._filter = new_event_filter
+
+    # copied to be compatible to enum
+    @DynamicClassAttribute
+    def name(self):
+        """The name of the Enum member."""
+        return self._name_
+
+    @DynamicClassAttribute
+    def value(self):
+        """The value of the Enum member."""
+        return self._value_
 
     # Will return CallableEventWithFilter but can't annotate that way due to python <= 3.7
     def __call__(self, event_filter: Optional[Callable] = None,
@@ -92,7 +108,7 @@ class CallableEventWithFilter:
         if event_filter is not None:
             _check_signature("engine", event_filter, "event_filter", "event")
 
-        return CallableEventWithFilter(self.value, event_filter)
+        return CallableEventWithFilter(self.value, event_filter, self.name)
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
@@ -115,9 +131,24 @@ class CallableEventWithFilter:
     def __str__(self) -> str:
         return "<event=%s, filter=%r>" % (self.__class__.__name__, self.filter)
 
+    def __eq__(self, other):
+        if isinstance(other, CallableEventWithFilter):
+            return self.name == other.name
+        elif isinstance(other, str):
+            return self.name == other
+        else:
+            raise NotImplementedError
 
-#
-class Events(CallableEventWithFilter, Enum):
+    def __hash__(self):
+        return hash(self._name_)
+
+
+class EventEnum(CallableEventWithFilter, Enum):
+    pass
+
+
+
+class Events(EventEnum):
     """Events that are fired by the :class:`~ignite.engine.Engine` during execution.
 
     Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:

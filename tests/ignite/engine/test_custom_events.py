@@ -5,13 +5,13 @@ from unittest.mock import MagicMock
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEventWithFilter
+from ignite.engine.events import CallableEventWithFilter, EventEnum
 
 import pytest
 
 
 def test_custom_events():
-    class CustomEvents(Enum):
+    class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
     # Dummy engine
@@ -40,7 +40,7 @@ def test_custom_events():
 
 def test_custom_events_with_event_to_attr():
 
-    class CustomEvents(Enum):
+    class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
     custom_event_to_attr = {CustomEvents.TEST_EVENT: 'test_event'}

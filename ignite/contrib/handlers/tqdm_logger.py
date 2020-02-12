@@ -130,9 +130,9 @@ class ProgressBar(BaseLogger):
     @staticmethod
     def _compare_lt(event1, event2):
         if isinstance(event1, CallableEventWithFilter):
-            event1 = event1.event
+            event1 = event1.value
         if isinstance(event2, CallableEventWithFilter):
-            event2 = event2.event
+            event2 = event2.value
         i1 = ProgressBar._events_order.index(event1)
         i2 = ProgressBar._events_order.index(event2)
         return i1 < i2

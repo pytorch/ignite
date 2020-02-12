@@ -26,8 +26,6 @@ class BaseLogger:
 
         """
         name = event_name
-        if isinstance(event_name, CallableEventWithFilter):
-            name = event_name.event
 
         if name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(name))
