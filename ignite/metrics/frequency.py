@@ -15,7 +15,7 @@ class Frequency(Metric):
         .. code-block:: python
 
             # Compute number of tokens processed
-            wps_metric = Frequency(output_transformer=lambda x: x['ntokens'])
+            wps_metric = Frequency(output_transform=lambda x: x['ntokens'])
             wps_metric.attach(trainer, name='wps')
             # Logging with TQDM
             ProgressBar(persist=True).attach(trainer, metric_names=['wps'])
