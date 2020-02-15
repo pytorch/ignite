@@ -424,3 +424,19 @@ def test_pbar_on_callable_events(capsys):
     actual = err[-1]
     expected = u'Epoch: [90/100]  90%|█████████  [00:00<00:00]'
     assert actual == expected
+
+
+def test_tqdm_logger_epoch_length(capsys):
+    loader = list(range(100))
+    engine = Engine(update_fn)
+    pbar = ProgressBar(persist=True)
+    pbar.attach(engine)
+    engine.run(loader, epoch_length=50)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch: [50/50] 100%|██████████ [00:00<00:00]'
+    assert actual == expected
