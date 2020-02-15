@@ -218,7 +218,7 @@ class _OutputHandler(BaseOutputHandler):
     @staticmethod
     def get_max_number_events(event_name, engine):
         if event_name in (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED):
-            return len(engine.state.dataloader)
+            return engine.state.epoch_length
         if event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED):
             return engine.state.max_epochs
         return 1
