@@ -40,7 +40,7 @@ def test_custom_events():
 
 def test_custom_events_with_event_to_attr():
 
-    class CustomEvents(Enum):
+    class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
     custom_event_to_attr = {CustomEvents.TEST_EVENT: 'test_event'}
@@ -137,8 +137,7 @@ def test_callable_events():
 
 def test_callable_events_every_eq_one():
     e = Events.ITERATION_STARTED(every=1)
-    assert not isinstance(e, CallableEventWithFilter)
-    assert isinstance(e, Events)
+    assert isinstance(e, CallableEventWithFilter)
 
 
 def test_has_handler_on_callable_events():
@@ -159,7 +158,7 @@ def test_has_handler_on_callable_events():
     assert engine.has_event_handler(bar)
     assert engine.has_event_handler(bar, Events.EPOCH_COMPLETED)
 
-    with pytest.raises(TypeError, match=r"Argument event_name should not be a callable event"):
+    with pytest.raises(TypeError, match=r"Argument event_name should not be a filtered event"):
         engine.has_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
 
 
@@ -185,7 +184,7 @@ def test_remove_event_handler_on_callable_events():
     engine.remove_event_handler(bar, Events.EPOCH_COMPLETED)
     assert not engine.has_event_handler(foo)
 
-    with pytest.raises(TypeError, match=r"Argument event_name should not be a callable event"):
+    with pytest.raises(TypeError, match=r"Argument event_name should not be a filtered event"):
         engine.remove_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
 
 
