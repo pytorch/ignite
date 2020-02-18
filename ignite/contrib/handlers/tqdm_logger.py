@@ -171,8 +171,6 @@ class ProgressBar(BaseLogger):
         if not isinstance(event_name, (Events, CallableEventWithFilter)):
             raise ValueError("Logging event should be only `ignite.engine.Events`")
 
-        Engine._assert_non_filtered_event(event_name)
-
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError("Logging event {} should be called before closing event {}"
                              .format(event_name, closing_event_name))

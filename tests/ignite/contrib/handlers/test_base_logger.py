@@ -2,7 +2,6 @@ import math
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.engine.engine import CallableEventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, global_step_from_engine
 from ignite.contrib.handlers import CustomPeriodicEvent
 
