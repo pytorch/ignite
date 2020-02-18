@@ -160,10 +160,9 @@ class Engine:
 
         .. code-block:: python
 
-            from enum import Enum
-            from ignite.engine import Engine
+            from ignite.engine import Engine, EvenEnum
 
-            class CustomEvents(CallableEvents, Enum):
+            class CustomEvents(EventEnum):
                 FOO_EVENT = "foo_event"
                 BAR_EVENT = "bar_event"
 
@@ -176,9 +175,9 @@ class Engine:
         .. code-block:: python
 
             from enum import Enum
-            from ignite.engine.engine import Engine, CallableEvents
+            from ignite.engine import Engine, EventEnum
 
-            class TBPTT_Events(CallableEvents, Enum):
+            class TBPTT_Events(EventEnum):
                 TIME_ITERATION_STARTED = "time_iteration_started"
                 TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
@@ -271,8 +270,8 @@ class Engine:
     @staticmethod
     def _assert_non_filtered_event(event_name: str):
         if (isinstance(event_name, CallableEventWithFilter)
-                and event_name.filter == CallableEventWithFilter.default_event_filter):
-            raise TypeError("Argument event_name should not be a callable event, "
+                and event_name.filter != CallableEventWithFilter.default_event_filter):
+            raise TypeError("Argument event_name should not be a filtered event, "
                             "please use event without any event filtering")
 
     def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):

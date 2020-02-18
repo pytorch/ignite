@@ -2,7 +2,7 @@ import math
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.engine.engine import EventWithFilter
+from ignite.engine.engine import CallableEventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, global_step_from_engine
 from ignite.contrib.handlers import CustomPeriodicEvent
 
@@ -113,9 +113,6 @@ def test_attach():
 
         trainer.run(data, max_epochs=n_epochs)
 
-        if isinstance(event, EventWithFilter):
-            event = event.event
-
         mock_log_handler.assert_called_with(trainer, logger, event)
         assert mock_log_handler.call_count == n_calls
 
@@ -220,9 +217,6 @@ def test_as_context_manager():
                           event_name=event)
 
             trainer.run(data, max_epochs=n_epochs)
-
-            if isinstance(event, EventWithFilter):
-                event = event.event
 
             mock_log_handler.assert_called_with(trainer, logger, event)
             assert mock_log_handler.call_count == n_calls
