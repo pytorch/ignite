@@ -88,8 +88,10 @@ jobs:
     - stage: Lint check
       python: "3.7"
       before_install: # Nothing to do
-      install: pip install flake8
-      script: flake8
+      install: pip install flake8 black
+      script:
+        - flake8 .
+        - black .
       after_success: # Nothing to do
 
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
