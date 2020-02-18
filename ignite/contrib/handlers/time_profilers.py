@@ -217,10 +217,10 @@ class BasicTimeProfiler(object):
             ("processing_stats", self._compute_basic_stats(self.processing_times)),
             ("dataflow_stats", self._compute_basic_stats(self.dataflow_times)),
             ("event_handlers_stats",
-                dict([(str(e).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
+                dict([(str(e.name).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
                       for e in Events if e not in events_to_ignore] + [("total_time", total_eh_time)])
              ),
-            ("event_handlers_names", {str(e).replace(".", "_") + "_names": v
+            ("event_handlers_names", {str(e.name).replace(".", "_") + "_names": v
                                       for e, v in self.event_handlers_names.items()})
         ])
 

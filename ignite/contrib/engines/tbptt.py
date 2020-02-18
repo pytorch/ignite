@@ -1,14 +1,12 @@
 # coding: utf-8
 
-from enum import Enum
-
 import torch
 
 from ignite.utils import apply_to_tensor
-from ignite.engine import Engine, _prepare_batch
+from ignite.engine import Engine, _prepare_batch, EventEnum
 
 
-class Tbptt_Events(Enum):
+class Tbptt_Events(EventEnum):
     """Aditional tbptt events.
 
     Additional events for truncated backpropagation throught time dedicated
