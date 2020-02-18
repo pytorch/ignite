@@ -1,4 +1,3 @@
-
 import logging
 import time
 from collections import defaultdict, OrderedDict
@@ -251,7 +250,8 @@ class Engine:
             See :class:`~ignite.engine.Events` for more details.
 
         """
-        if isinstance(event_name, CallableEventWithFilter):
+        if (isinstance(event_name, CallableEventWithFilter)
+                and event_name.filter != CallableEventWithFilter.default_event_filter):
             event_filter = event_name.filter
             handler = Engine._handler_wrapper(handler, event_name, event_filter)
 
