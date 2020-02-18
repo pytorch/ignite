@@ -21,9 +21,9 @@ def _getvocpallete(num_cls):
         pallete[j * 3 + 2] = 0
         i = 0
         while lab > 0:
-            pallete[j * 3 + 0] |= (((lab >> 0) & 1) << (7 - i))
-            pallete[j * 3 + 1] |= (((lab >> 1) & 1) << (7 - i))
-            pallete[j * 3 + 2] |= (((lab >> 2) & 1) << (7 - i))
+            pallete[j * 3 + 0] |= ((lab >> 0) & 1) << (7 - i)
+            pallete[j * 3 + 1] |= ((lab >> 1) & 1) << (7 - i)
+            pallete[j * 3 + 2] |= ((lab >> 2) & 1) << (7 - i)
             i = i + 1
             lab >>= 3
     return pallete
@@ -36,7 +36,7 @@ def render_mask(mask: Union[np.ndarray, Image.Image]) -> Image.Image:
     if isinstance(mask, np.ndarray):
         mask = Image.fromarray(mask)
     mask.putpalette(vocpallete)
-    mask = mask.convert(mode='RGB')
+    mask = mask.convert(mode="RGB")
     return mask
 
 
@@ -45,10 +45,12 @@ def tensor_to_rgb(t: torch.Tensor) -> np.ndarray:
     return img.astype(np.uint8)
 
 
-def make_grid(batch_img: torch.Tensor,
-              batch_mask: torch.Tensor,
-              img_denormalize_fn: Callable,
-              batch_gt_mask: Optional[torch.Tensor] = None):
+def make_grid(
+    batch_img: torch.Tensor,
+    batch_mask: torch.Tensor,
+    img_denormalize_fn: Callable,
+    batch_gt_mask: Optional[torch.Tensor] = None,
+):
     """Create a grid from batch image and mask as
 
         img1  | img2  | img3  | img4  | ...
@@ -78,7 +80,7 @@ def make_grid(batch_img: torch.Tensor,
     h, w = batch_img.shape[2:]
 
     le = 3 if batch_gt_mask is None else 3 + 2
-    out_image = np.zeros((h * le, w * b, 3), dtype='uint8')
+    out_image = np.zeros((h * le, w * b, 3), dtype="uint8")
 
     for i in range(b):
         img = batch_img[i]
@@ -89,19 +91,15 @@ def make_grid(batch_img: torch.Tensor,
         mask = mask.cpu().numpy()
         mask = render_mask(mask)
 
-        out_image[0:h, i * w:(i + 1) * w, :] = img
-        out_image[1 * h:2 * h, i * w:(i + 1) * w, :] = render_datapoint(img,
-                                                                        mask,
-                                                                        blend_alpha=0.4)
-        out_image[2 * h:3 * h, i * w:(i + 1) * w, :] = mask
+        out_image[0:h, i * w : (i + 1) * w, :] = img
+        out_image[1 * h : 2 * h, i * w : (i + 1) * w, :] = render_datapoint(img, mask, blend_alpha=0.4)
+        out_image[2 * h : 3 * h, i * w : (i + 1) * w, :] = mask
 
         if batch_gt_mask is not None:
             gt_mask = batch_gt_mask[i]
             gt_mask = gt_mask.cpu().numpy()
             gt_mask = render_mask(gt_mask)
-            out_image[3 * h:4 * h, i * w:(i + 1) * w, :] = render_datapoint(img,
-                                                                            gt_mask,
-                                                                            blend_alpha=0.4)
-            out_image[4 * h:5 * h, i * w:(i + 1) * w, :] = gt_mask
+            out_image[3 * h : 4 * h, i * w : (i + 1) * w, :] = render_datapoint(img, gt_mask, blend_alpha=0.4)
+            out_image[4 * h : 5 * h, i * w : (i + 1) * w, :] = gt_mask
 
     return out_image

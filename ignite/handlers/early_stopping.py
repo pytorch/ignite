@@ -3,9 +3,7 @@ from typing import Callable
 
 from ignite.engine import Engine
 
-__all__ = [
-    'EarlyStopping'
-]
+__all__ = ["EarlyStopping"]
 
 
 class EarlyStopping:
@@ -43,8 +41,14 @@ class EarlyStopping:
 
     """
 
-    def __init__(self, patience: int, score_function: Callable, trainer: Engine, min_delta: float = 0.,
-                 cumulative_delta: bool = False):
+    def __init__(
+        self,
+        patience: int,
+        score_function: Callable,
+        trainer: Engine,
+        min_delta: float = 0.0,
+        cumulative_delta: bool = False,
+    ):
 
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -52,7 +56,7 @@ class EarlyStopping:
         if patience < 1:
             raise ValueError("Argument patience should be positive integer.")
 
-        if min_delta < 0.:
+        if min_delta < 0.0:
             raise ValueError("Argument min_delta should not be a negative number.")
 
         if not isinstance(trainer, Engine):

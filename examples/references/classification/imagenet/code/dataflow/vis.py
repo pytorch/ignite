@@ -14,10 +14,12 @@ def tensor_to_numpy(t: torch.Tensor) -> np.ndarray:
     return img.astype(np.uint8)
 
 
-def make_grid(batch_img: torch.Tensor,
-              batch_preds: torch.Tensor,
-              img_denormalize_fn: Callable,
-              batch_gt: Optional[torch.Tensor] = None):
+def make_grid(
+    batch_img: torch.Tensor,
+    batch_preds: torch.Tensor,
+    img_denormalize_fn: Callable,
+    batch_gt: Optional[torch.Tensor] = None,
+):
     """Create a grid from batch image and mask as
 
         i+l1+gt1  | i+l2+gt2  | i+l3+gt3  | i+l4+gt4  | ...
@@ -43,7 +45,7 @@ def make_grid(batch_img: torch.Tensor,
     h, w = batch_img.shape[2:]
 
     le = 1
-    out_image = np.zeros((h * le, w * b, 3), dtype='uint8')
+    out_image = np.zeros((h * le, w * b, 3), dtype="uint8")
 
     for i in range(b):
         img = batch_img[i]
@@ -60,6 +62,6 @@ def make_grid(batch_img: torch.Tensor,
             gt_label = gt_label.cpu().item()
             target += " | gt={}".format(gt_label)
 
-        out_image[0:h, i * w:(i + 1) * w, :] = render_datapoint(img, target, text_size=12)
+        out_image[0:h, i * w : (i + 1) * w, :] = render_datapoint(img, target, text_size=12)
 
     return out_image

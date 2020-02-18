@@ -4,12 +4,11 @@ from dataflow.vis import make_grid, tensor_to_rgb
 
 
 def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_engine=None, prefix_tag=None):
-
     def wrapper(engine, logger, event_name):
         batch = engine.state.batch
         output = engine.state.output
-        x = batch['image']
-        y = batch['mask']
+        x = batch["image"]
+        y = batch["mask"]
         y_pred = output[0]
 
         if y.shape == y_pred.shape and y.ndim == 4:
@@ -31,6 +30,6 @@ def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_eng
         tag = "predictions_with_gt"
         if prefix_tag is not None:
             tag = "{}: {}".format(prefix_tag, tag)
-        logger.writer.add_image(tag=tag, img_tensor=grid_pred_gt, global_step=global_step, dataformats='HWC')
+        logger.writer.add_image(tag=tag, img_tensor=grid_pred_gt, global_step=global_step, dataformats="HWC")
 
     return wrapper

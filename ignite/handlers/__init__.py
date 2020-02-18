@@ -10,13 +10,13 @@ from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.terminate_on_nan import TerminateOnNan
 
 __all__ = [
-    'ModelCheckpoint',
-    'Checkpoint',
-    'DiskSaver',
-    'Timer',
-    'EarlyStopping',
-    'TerminateOnNan',
-    'global_step_from_engine'
+    "ModelCheckpoint",
+    "Checkpoint",
+    "DiskSaver",
+    "Timer",
+    "EarlyStopping",
+    "TerminateOnNan",
+    "global_step_from_engine",
 ]
 
 

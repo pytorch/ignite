@@ -29,20 +29,15 @@ def test_dataflow_timer():
     profiler = BasicTimeProfiler()
     dummy_trainer = Engine(_do_nothing_update_fn)
     profiler.attach(dummy_trainer)
-    dummy_trainer.run(
-        dummy_data_loader(dummy_data),
-        max_epochs=true_max_epochs,
-        epoch_length=true_num_iters
-    )
+    dummy_trainer.run(dummy_data_loader(dummy_data), max_epochs=true_max_epochs, epoch_length=true_num_iters)
     results = profiler.get_results()
-    dataflow_results = results['dataflow_stats']
+    dataflow_results = results["dataflow_stats"]
 
-    assert dataflow_results['min/index'][0] == approx(true_dataflow_time_per_ele, abs=1e-1)
-    assert dataflow_results['max/index'][0] == approx(true_dataflow_time_per_ele, abs=1e-1)
-    assert dataflow_results['mean'] == approx(true_dataflow_time_per_ele, abs=1e-1)
-    assert dataflow_results['std'] == approx(0., abs=1e-1)
-    assert dataflow_results['total']\
-        == approx(true_num_iters * true_dataflow_time_per_ele, abs=1e-1)
+    assert dataflow_results["min/index"][0] == approx(true_dataflow_time_per_ele, abs=1e-1)
+    assert dataflow_results["max/index"][0] == approx(true_dataflow_time_per_ele, abs=1e-1)
+    assert dataflow_results["mean"] == approx(true_dataflow_time_per_ele, abs=1e-1)
+    assert dataflow_results["std"] == approx(0.0, abs=1e-1)
+    assert dataflow_results["total"] == approx(true_num_iters * true_dataflow_time_per_ele, abs=1e-1)
 
 
 def test_processing_timer():
@@ -58,14 +53,13 @@ def test_processing_timer():
     profiler.attach(dummy_trainer)
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    processing_results = results['processing_stats']
+    processing_results = results["processing_stats"]
 
-    assert processing_results['min/index'][0] == approx(true_processing_time, abs=1e-1)
-    assert processing_results['max/index'][0] == approx(true_processing_time, abs=1e-1)
-    assert processing_results['mean'] == approx(true_processing_time, abs=1e-1)
-    assert processing_results['std'] == approx(0., abs=1e-1)
-    assert processing_results['total']\
-        == approx(true_max_epochs * true_num_iters * true_processing_time, abs=1e-1)
+    assert processing_results["min/index"][0] == approx(true_processing_time, abs=1e-1)
+    assert processing_results["max/index"][0] == approx(true_processing_time, abs=1e-1)
+    assert processing_results["mean"] == approx(true_processing_time, abs=1e-1)
+    assert processing_results["std"] == approx(0.0, abs=1e-1)
+    assert processing_results["total"] == approx(true_max_epochs * true_num_iters * true_processing_time, abs=1e-1)
 
 
 def test_event_handler_started():
@@ -83,11 +77,11 @@ def test_event_handler_started():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_STARTED']
+    event_results = results["event_handlers_stats"]["Events_STARTED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_completed():
@@ -105,11 +99,11 @@ def test_event_handler_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_COMPLETED']
+    event_results = results["event_handlers_stats"]["Events_COMPLETED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_epoch_started():
@@ -127,15 +121,13 @@ def test_event_handler_epoch_started():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_EPOCH_STARTED']
+    event_results = results["event_handlers_stats"]["Events_EPOCH_STARTED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['std'] == approx(0., abs=1e-1)
-    assert event_results['total'] == approx(
-        true_max_epochs * true_event_handler_time, abs=1e-1
-    )
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["std"] == approx(0.0, abs=1e-1)
+    assert event_results["total"] == approx(true_max_epochs * true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_epoch_completed():
@@ -153,15 +145,13 @@ def test_event_handler_epoch_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_EPOCH_COMPLETED']
+    event_results = results["event_handlers_stats"]["Events_EPOCH_COMPLETED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['std'] == approx(0., abs=1e-1)
-    assert event_results['total'] == approx(
-        true_max_epochs * true_event_handler_time, abs=1e-1
-    )
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["std"] == approx(0.0, abs=1e-1)
+    assert event_results["total"] == approx(true_max_epochs * true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_iteration_started():
@@ -179,15 +169,13 @@ def test_event_handler_iteration_started():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_ITERATION_STARTED']
+    event_results = results["event_handlers_stats"]["Events_ITERATION_STARTED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['std'] == approx(0., abs=1e-1)
-    assert event_results['total'] == approx(
-        true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1
-    )
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["std"] == approx(0.0, abs=1e-1)
+    assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_iteration_completed():
@@ -205,15 +193,13 @@ def test_event_handler_iteration_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_ITERATION_COMPLETED']
+    event_results = results["event_handlers_stats"]["Events_ITERATION_COMPLETED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['std'] == approx(0., abs=1e-1)
-    assert event_results['total'] == approx(
-        true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1
-    )
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["std"] == approx(0.0, abs=1e-1)
+    assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_get_batch_started():
@@ -231,15 +217,13 @@ def test_event_handler_get_batch_started():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_GET_BATCH_STARTED']
+    event_results = results["event_handlers_stats"]["Events_GET_BATCH_STARTED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['std'] == approx(0., abs=1e-1)
-    assert event_results['total'] == approx(
-        true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1
-    )
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["std"] == approx(0.0, abs=1e-1)
+    assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_get_batch_completed():
@@ -257,15 +241,13 @@ def test_event_handler_get_batch_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_GET_BATCH_COMPLETED']
+    event_results = results["event_handlers_stats"]["Events_GET_BATCH_COMPLETED"]
 
-    assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['mean'] == approx(true_event_handler_time, abs=1e-1)
-    assert event_results['std'] == approx(0., abs=1e-1)
-    assert event_results['total'] == approx(
-        true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1
-    )
+    assert event_results["min/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["max/index"][0] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
+    assert event_results["std"] == approx(0.0, abs=1e-1)
+    assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
 def test_event_handler_total_time():
@@ -311,17 +293,16 @@ def test_event_handler_total_time():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']
+    event_results = results["event_handlers_stats"]
 
-    assert event_results['total_time'].item() == approx(
-        true_event_handler_time * 8, abs=1e-1)
+    assert event_results["total_time"].item() == approx(true_event_handler_time * 8, abs=1e-1)
 
 
 def test_write_results():
     true_event_handler_time = 0.125
     true_max_epochs = 3
     true_num_iters = 2
-    test_folder = './test_log_folder'
+    test_folder = "./test_log_folder"
 
     if os.path.exists(test_folder):
         shutil.rmtree(test_folder)
@@ -364,12 +345,12 @@ def test_write_results():
         time.sleep(true_event_handler_time)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
-    profiler.write_results(test_folder + '/test_log.csv')
+    profiler.write_results(test_folder + "/test_log.csv")
 
-    assert os.path.isfile(test_folder + '/test_log.csv')
+    assert os.path.isfile(test_folder + "/test_log.csv")
 
     file_length = 0
-    with open(test_folder + '/test_log.csv') as f:
+    with open(test_folder + "/test_log.csv") as f:
         for l in f:
             file_length += 1
 

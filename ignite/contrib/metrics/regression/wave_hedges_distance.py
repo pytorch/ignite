@@ -1,5 +1,3 @@
-
-
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression

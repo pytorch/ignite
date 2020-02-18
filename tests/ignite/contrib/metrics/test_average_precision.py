@@ -31,7 +31,7 @@ def test_ap_score_2():
     size = 100
     np_y_pred = np.random.rand(size, 1)
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2:] = 1
+    np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
     np_ap = average_precision_score(np_y, np_y_pred)
 
@@ -44,7 +44,7 @@ def test_ap_score_2():
     batch_size = size // n_iters
     for i in range(n_iters):
         idx = i * batch_size
-        ap_metric.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+        ap_metric.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
     ap = ap_metric.compute()
 
@@ -57,7 +57,7 @@ def test_integration_ap_score_with_output_transform():
     size = 100
     np_y_pred = np.random.rand(size, 1)
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2:] = 1
+    np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
     np_ap = average_precision_score(np_y, np_y_pred)
@@ -66,17 +66,17 @@ def test_integration_ap_score_with_output_transform():
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx:idx + batch_size]
-        y_pred_batch = np_y_pred[idx:idx + batch_size]
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
     ap_metric = AveragePrecision(output_transform=lambda x: (x[1], x[2]))
-    ap_metric.attach(engine, 'ap')
+    ap_metric.attach(engine, "ap")
 
     data = list(range(size // batch_size))
-    ap = engine.run(data, max_epochs=1).metrics['ap']
+    ap = engine.run(data, max_epochs=1).metrics["ap"]
 
     assert ap == np_ap
 
@@ -88,7 +88,7 @@ def test_integration_ap_score_with_activated_output_transform():
     np_y_pred = np.random.rand(size, 1)
     np_y_pred_softmax = torch.softmax(torch.from_numpy(np_y_pred), dim=1).numpy()
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2:] = 1
+    np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
     np_ap = average_precision_score(np_y, np_y_pred_softmax)
@@ -97,16 +97,16 @@ def test_integration_ap_score_with_activated_output_transform():
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx:idx + batch_size]
-        y_pred_batch = np_y_pred[idx:idx + batch_size]
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
     ap_metric = AveragePrecision(output_transform=lambda x: (torch.softmax(x[1], dim=1), x[2]))
-    ap_metric.attach(engine, 'ap')
+    ap_metric.attach(engine, "ap")
 
     data = list(range(size // batch_size))
-    ap = engine.run(data, max_epochs=1).metrics['ap']
+    ap = engine.run(data, max_epochs=1).metrics["ap"]
 
     assert ap == np_ap

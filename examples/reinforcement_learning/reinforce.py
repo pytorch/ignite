@@ -102,36 +102,44 @@ def main(env, args):
     @trainer.on(EPISODE_COMPLETED(every=args.log_interval))
     def log_episode(engine):
         i_episode = engine.state.epoch
-        print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
-            i_episode, engine.state.timestep, engine.state.running_reward))
+        print(
+            "Episode {}\tLast length: {:5d}\tAverage length: {:.2f}".format(
+                i_episode, engine.state.timestep, engine.state.running_reward
+            )
+        )
 
     @trainer.on(EPISODE_COMPLETED)
     def should_finish_training(engine):
         running_reward = engine.state.running_reward
         if running_reward > env.spec.reward_threshold:
-            print("Solved! Running reward is now {} and "
-                  "the last episode runs to {} time steps!".format(running_reward, engine.state.timestep))
+            print(
+                "Solved! Running reward is now {} and "
+                "the last episode runs to {} time steps!".format(running_reward, engine.state.timestep)
+            )
             engine.should_terminate = True
 
     trainer.run(timesteps, max_epochs=args.max_episodes)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
-    parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
-                        help='discount factor (default: 0.99)')
-    parser.add_argument('--seed', type=int, default=543, metavar='N',
-                        help='random seed (default: 543)')
-    parser.add_argument('--render', action='store_true',
-                        help='render the environment')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='interval between training status logs (default: 10)')
-    parser.add_argument('--max-episodes', type=int, default=1000000, metavar='N',
-                        help='Number of episodes for the training (default: 1000000)')
+    parser = argparse.ArgumentParser(description="PyTorch REINFORCE example")
+    parser.add_argument("--gamma", type=float, default=0.99, metavar="G", help="discount factor (default: 0.99)")
+    parser.add_argument("--seed", type=int, default=543, metavar="N", help="random seed (default: 543)")
+    parser.add_argument("--render", action="store_true", help="render the environment")
+    parser.add_argument(
+        "--log-interval", type=int, default=10, metavar="N", help="interval between training status logs (default: 10)"
+    )
+    parser.add_argument(
+        "--max-episodes",
+        type=int,
+        default=1000000,
+        metavar="N",
+        help="Number of episodes for the training (default: 1000000)",
+    )
     args = parser.parse_args()
 
-    env = gym.make('CartPole-v0')
+    env = gym.make("CartPole-v0")
     env.seed(args.seed)
     torch.manual_seed(args.seed)
 

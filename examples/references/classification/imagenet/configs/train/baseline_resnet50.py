@@ -20,7 +20,7 @@ from dataflow.transforms import denormalize
 # ##############################
 
 seed = 19
-device = 'cuda'
+device = "cuda"
 debug = False
 
 # config to measure time passed to prepare batches and report measured time before the training
@@ -41,28 +41,32 @@ num_workers = 10  # num_workers per local rank
 # Setup Dataflow
 # ##############################
 
-assert 'DATASET_PATH' in os.environ
-data_path = os.environ['DATASET_PATH']
+assert "DATASET_PATH" in os.environ
+data_path = os.environ["DATASET_PATH"]
 
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
 
-train_transforms = A.Compose([
-    A.RandomResizedCrop(train_crop_size, train_crop_size, scale=(0.08, 1.0)),
-    A.HorizontalFlip(),
-    A.CoarseDropout(max_height=32, max_width=32),
-    A.HueSaturationValue(),
-    A.Normalize(mean=mean, std=std),
-    ToTensor(),
-])
+train_transforms = A.Compose(
+    [
+        A.RandomResizedCrop(train_crop_size, train_crop_size, scale=(0.08, 1.0)),
+        A.HorizontalFlip(),
+        A.CoarseDropout(max_height=32, max_width=32),
+        A.HueSaturationValue(),
+        A.Normalize(mean=mean, std=std),
+        ToTensor(),
+    ]
+)
 
-val_transforms = A.Compose([
-    # https://github.com/facebookresearch/FixRes/blob/b27575208a7c48a3a6e0fa9efb57baa4021d1305/imnet_resnet50_scratch/transforms.py#L76
-    A.Resize(int((256 / 224) * val_crop_size), int((256 / 224) * val_crop_size)),
-    A.CenterCrop(val_crop_size, val_crop_size),
-    A.Normalize(mean=mean, std=std),
-    ToTensor(),
-])
+val_transforms = A.Compose(
+    [
+        # https://github.com/facebookresearch/FixRes/blob/b27575208a7c48a3a6e0fa9efb57baa4021d1305/imnet_resnet50_scratch/transforms.py#L76
+        A.Resize(int((256 / 224) * val_crop_size), int((256 / 224) * val_crop_size)),
+        A.CenterCrop(val_crop_size, val_crop_size),
+        A.Normalize(mean=mean, std=std),
+        ToTensor(),
+    ]
+)
 
 train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     data_path,
@@ -72,8 +76,8 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     num_workers=num_workers,
     val_batch_size=batch_size,
     pin_memory=True,
-    train_sampler='distributed',
-    val_sampler='distributed'
+    train_sampler="distributed",
+    val_sampler="distributed",
 )
 
 # Image denormalization function to plot predictions with images

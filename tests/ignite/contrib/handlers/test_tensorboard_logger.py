@@ -92,12 +92,9 @@ def test_output_handler_metric_names(dirname):
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("tag/a", 12.23, 5),
-        call("tag/b", 23.45, 5),
-    ], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True)
 
-    wrapper = OutputHandler("tag", metric_names=["a", ])
+    wrapper = OutputHandler("tag", metric_names=["a",])
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
@@ -109,12 +106,10 @@ def test_output_handler_metric_names(dirname):
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 4
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("tag/a/0", 0.0, 5),
-        call("tag/a/1", 1.0, 5),
-        call("tag/a/2", 2.0, 5),
-        call("tag/a/3", 3.0, 5),
-    ], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/a/0", 0.0, 5), call("tag/a/1", 1.0, 5), call("tag/a/2", 2.0, 5), call("tag/a/3", 3.0, 5),],
+        any_order=True,
+    )
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
 
@@ -129,9 +124,7 @@ def test_output_handler_metric_names(dirname):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 1
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("tag/a", 55.56, 7),
-    ], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 55.56, 7),], any_order=True)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
@@ -145,10 +138,7 @@ def test_output_handler_metric_names(dirname):
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("tag/a", 12.23, 5),
-        call("tag/b", 23.45, 5),
-    ], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True)
 
 
 def test_output_handler_both(dirname):
@@ -165,16 +155,14 @@ def test_output_handler_both(dirname):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 3
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("tag/a", 12.23, 5),
-        call("tag/b", 23.45, 5),
-        call("tag/loss", 12345, 5)
-    ], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/a", 12.23, 5), call("tag/b", 23.45, 5), call("tag/loss", 12345, 5)], any_order=True
+    )
 
 
 def test_output_handler_with_wrong_global_step_transform_output():
     def global_step_transform(*args, **kwargs):
-        return 'a'
+        return "a"
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -196,8 +184,11 @@ def test_output_handler_with_global_step_from_engine():
     mock_another_engine.state.epoch = 10
     mock_another_engine.state.output = 12.345
 
-    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x},
-                            global_step_transform=global_step_from_engine(mock_another_engine))
+    wrapper = OutputHandler(
+        "tag",
+        output_transform=lambda x: {"loss": x},
+        global_step_transform=global_step_from_engine(mock_another_engine),
+    )
 
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
@@ -209,18 +200,18 @@ def test_output_handler_with_global_step_from_engine():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     assert mock_logger.writer.add_scalar.call_count == 1
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss",
-                                                         mock_engine.state.output,
-                                                         mock_another_engine.state.epoch)])
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/loss", mock_engine.state.output, mock_another_engine.state.epoch)]
+    )
 
     mock_another_engine.state.epoch = 11
     mock_engine.state.output = 1.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss",
-                                                         mock_engine.state.output,
-                                                         mock_another_engine.state.epoch)])
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/loss", mock_engine.state.output, mock_another_engine.state.epoch)]
+    )
 
 
 def test_output_handler_with_global_step_transform():
@@ -279,12 +270,15 @@ def test_weights_scalar_handler(dummy_model_factory):
         tag_prefix = "{}/".format(tag) if tag else ""
 
         assert mock_logger.writer.add_scalar.call_count == 4
-        mock_logger.writer.add_scalar.assert_has_calls([
-            call(tag_prefix + "weights_norm/fc1/weight", 0.0, 5),
-            call(tag_prefix + "weights_norm/fc1/bias", 0.0, 5),
-            call(tag_prefix + "weights_norm/fc2/weight", 12.0, 5),
-            call(tag_prefix + "weights_norm/fc2/bias", math.sqrt(12.0), 5),
-        ], any_order=True)
+        mock_logger.writer.add_scalar.assert_has_calls(
+            [
+                call(tag_prefix + "weights_norm/fc1/weight", 0.0, 5),
+                call(tag_prefix + "weights_norm/fc1/bias", 0.0, 5),
+                call(tag_prefix + "weights_norm/fc2/weight", 12.0, 5),
+                call(tag_prefix + "weights_norm/fc2/bias", math.sqrt(12.0), 5),
+            ],
+            any_order=True,
+        )
 
     _test()
     _test(tag="tag")
@@ -304,16 +298,15 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("weights_norm/fc2/weight", 12.0, 5),
-        call("weights_norm/fc2/bias", math.sqrt(12.0), 5),
-    ], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("weights_norm/fc2/weight", 12.0, 5), call("weights_norm/fc2/bias", math.sqrt(12.0), 5),], any_order=True
+    )
 
     with pytest.raises(AssertionError):
-        mock_logger.writer.add_scalar.assert_has_calls([
-            call("weights_norm/fc1/weight", 12.0, 5),
-            call("weights_norm/fc1/bias", math.sqrt(12.0), 5),
-        ], any_order=True)
+        mock_logger.writer.add_scalar.assert_has_calls(
+            [call("weights_norm/fc1/weight", 12.0, 5), call("weights_norm/fc1/bias", math.sqrt(12.0), 5),],
+            any_order=True,
+        )
 
     assert mock_logger.writer.add_scalar.call_count == 2
 
@@ -350,12 +343,15 @@ def test_weights_hist_handler(dummy_model_factory):
         tag_prefix = "{}/".format(tag) if tag else ""
 
         assert mock_logger.writer.add_histogram.call_count == 4
-        mock_logger.writer.add_histogram.assert_has_calls([
-            call(tag=tag_prefix + "weights/fc1/weight", values=ANY, global_step=5),
-            call(tag=tag_prefix + "weights/fc1/bias", values=ANY, global_step=5),
-            call(tag=tag_prefix + "weights/fc2/weight", values=ANY, global_step=5),
-            call(tag=tag_prefix + "weights/fc2/bias", values=ANY, global_step=5),
-        ], any_order=True)
+        mock_logger.writer.add_histogram.assert_has_calls(
+            [
+                call(tag=tag_prefix + "weights/fc1/weight", values=ANY, global_step=5),
+                call(tag=tag_prefix + "weights/fc1/bias", values=ANY, global_step=5),
+                call(tag=tag_prefix + "weights/fc2/weight", values=ANY, global_step=5),
+                call(tag=tag_prefix + "weights/fc2/bias", values=ANY, global_step=5),
+            ],
+            any_order=True,
+        )
 
     _test()
     _test(tag="tag")
@@ -375,16 +371,22 @@ def test_weights_hist_handler_frozen_layers(dummy_model_factory):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_histogram.assert_has_calls([
-        call(tag="weights/fc2/weight", values=ANY, global_step=5),
-        call(tag="weights/fc2/bias", values=ANY, global_step=5),
-    ], any_order=True)
+    mock_logger.writer.add_histogram.assert_has_calls(
+        [
+            call(tag="weights/fc2/weight", values=ANY, global_step=5),
+            call(tag="weights/fc2/bias", values=ANY, global_step=5),
+        ],
+        any_order=True,
+    )
 
     with pytest.raises(AssertionError):
-        mock_logger.writer.add_histogram.assert_has_calls([
-            call(tag="weights/fc1/weight", values=ANY, global_step=5),
-            call(tag="weights/fc1/bias", values=ANY, global_step=5),
-        ], any_order=True)
+        mock_logger.writer.add_histogram.assert_has_calls(
+            [
+                call(tag="weights/fc1/weight", values=ANY, global_step=5),
+                call(tag="weights/fc1/bias", values=ANY, global_step=5),
+            ],
+            any_order=True,
+        )
     assert mock_logger.writer.add_histogram.call_count == 2
 
 
@@ -422,12 +424,15 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
         tag_prefix = "{}/".format(tag) if tag else ""
 
-        mock_logger.writer.add_scalar.assert_has_calls([
-            call(tag_prefix + "grads_norm/fc1/weight", ANY, 5),
-            call(tag_prefix + "grads_norm/fc1/bias", ANY, 5),
-            call(tag_prefix + "grads_norm/fc2/weight", ANY, 5),
-            call(tag_prefix + "grads_norm/fc2/bias", ANY, 5),
-        ], any_order=True)
+        mock_logger.writer.add_scalar.assert_has_calls(
+            [
+                call(tag_prefix + "grads_norm/fc1/weight", ANY, 5),
+                call(tag_prefix + "grads_norm/fc1/bias", ANY, 5),
+                call(tag_prefix + "grads_norm/fc2/weight", ANY, 5),
+                call(tag_prefix + "grads_norm/fc2/bias", ANY, 5),
+            ],
+            any_order=True,
+        )
         assert mock_logger.writer.add_scalar.call_count == 4
         assert norm_mock.call_count == 4
 
@@ -449,16 +454,14 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls([
-        call("grads_norm/fc2/weight", ANY, 5),
-        call("grads_norm/fc2/bias", ANY, 5),
-    ], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("grads_norm/fc2/weight", ANY, 5), call("grads_norm/fc2/bias", ANY, 5),], any_order=True
+    )
 
     with pytest.raises(AssertionError):
-        mock_logger.writer.add_scalar.assert_has_calls([
-            call("grads_norm/fc1/weight", ANY, 5),
-            call("grads_norm/fc1/bias", ANY, 5),
-        ], any_order=True)
+        mock_logger.writer.add_scalar.assert_has_calls(
+            [call("grads_norm/fc1/weight", ANY, 5), call("grads_norm/fc1/bias", ANY, 5),], any_order=True
+        )
     assert mock_logger.writer.add_scalar.call_count == 2
     assert norm_mock.call_count == 2
 
@@ -494,12 +497,15 @@ def test_grads_hist_handler(dummy_model_factory):
         tag_prefix = "{}/".format(tag) if tag else ""
 
         assert mock_logger.writer.add_histogram.call_count == 4
-        mock_logger.writer.add_histogram.assert_has_calls([
-            call(tag=tag_prefix + "grads/fc1/weight", values=ANY, global_step=5),
-            call(tag=tag_prefix + "grads/fc1/bias", values=ANY, global_step=5),
-            call(tag=tag_prefix + "grads/fc2/weight", values=ANY, global_step=5),
-            call(tag=tag_prefix + "grads/fc2/bias", values=ANY, global_step=5),
-        ], any_order=True)
+        mock_logger.writer.add_histogram.assert_has_calls(
+            [
+                call(tag=tag_prefix + "grads/fc1/weight", values=ANY, global_step=5),
+                call(tag=tag_prefix + "grads/fc1/bias", values=ANY, global_step=5),
+                call(tag=tag_prefix + "grads/fc2/weight", values=ANY, global_step=5),
+                call(tag=tag_prefix + "grads/fc2/bias", values=ANY, global_step=5),
+            ],
+            any_order=True,
+        )
 
     _test()
     _test(tag="tag")
@@ -519,16 +525,22 @@ def test_grads_hist_frozen_layers(dummy_model_factory):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     assert mock_logger.writer.add_histogram.call_count == 2
-    mock_logger.writer.add_histogram.assert_has_calls([
-        call(tag="grads/fc2/weight", values=ANY, global_step=5),
-        call(tag="grads/fc2/bias", values=ANY, global_step=5),
-    ], any_order=True)
+    mock_logger.writer.add_histogram.assert_has_calls(
+        [
+            call(tag="grads/fc2/weight", values=ANY, global_step=5),
+            call(tag="grads/fc2/bias", values=ANY, global_step=5),
+        ],
+        any_order=True,
+    )
 
     with pytest.raises(AssertionError):
-        mock_logger.writer.add_histogram.assert_has_calls([
-            call(tag="grads/fc1/weight", values=ANY, global_step=5),
-            call(tag="grads/fc1/bias", values=ANY, global_step=5),
-        ], any_order=True)
+        mock_logger.writer.add_histogram.assert_has_calls(
+            [
+                call(tag="grads/fc1/weight", values=ANY, global_step=5),
+                call(tag="grads/fc1/bias", values=ANY, global_step=5),
+            ],
+            any_order=True,
+        )
 
 
 def test_integration(dirname):
@@ -550,9 +562,7 @@ def test_integration(dirname):
         global_step = engine.state.get_event_attrib_value(event_name)
         logger.writer.add_scalar("test_value", global_step, global_step)
 
-    tb_logger.attach(trainer,
-                     log_handler=dummy_handler,
-                     event_name=Events.EPOCH_COMPLETED)
+    tb_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
     trainer.run(data, max_epochs=n_epochs)
     tb_logger.close()
@@ -582,9 +592,7 @@ def test_integration_as_context_manager(dirname):
             global_step = engine.state.get_event_attrib_value(event_name)
             logger.writer.add_scalar("test_value", global_step, global_step)
 
-        tb_logger.attach(trainer,
-                         log_handler=dummy_handler,
-                         event_name=Events.EPOCH_COMPLETED)
+        tb_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
         trainer.run(data, max_epochs=n_epochs)
 
@@ -596,19 +604,21 @@ def test_integration_as_context_manager(dirname):
 
 def test_no_tensorboardX_package(dirname):
     from torch.utils.tensorboard import SummaryWriter
-    with patch.dict('sys.modules', {'tensorboardX': None}):
+
+    with patch.dict("sys.modules", {"tensorboardX": None}):
         tb_logger = TensorboardLogger(log_dir=dirname)
         assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
 def test_no_torch_utils_tensorboard_package(dirname):
     from tensorboardX import SummaryWriter
-    with patch.dict('sys.modules', {'torch.utils.tensorboard': None}):
+
+    with patch.dict("sys.modules", {"torch.utils.tensorboard": None}):
         tb_logger = TensorboardLogger(log_dir=dirname)
         assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
 
 
 def test_no_tensorboardX_nor_torch_utils_tensorboard():
-    with patch.dict('sys.modules', {'tensorboardX': None, 'torch.utils.tensorboard': None}):
-        with pytest.raises(RuntimeError, match=r'This contrib module requires either tensorboardX or torch'):
+    with patch.dict("sys.modules", {"tensorboardX": None, "torch.utils.tensorboard": None}):
+        with pytest.raises(RuntimeError, match=r"This contrib module requires either tensorboardX or torch"):
             TensorboardLogger(log_dir=None)

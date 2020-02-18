@@ -1,5 +1,3 @@
-
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -36,5 +34,5 @@ class R2Score(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('R2Score must have at least one example before it can be computed.')
+            raise NotComputableError("R2Score must have at least one example before it can be computed.")
         return 1 - self._sum_of_errors / (self._y_sq_sum - (self._y_sum ** 2) / self._num_examples)

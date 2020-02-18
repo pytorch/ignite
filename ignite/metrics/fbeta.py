@@ -1,17 +1,20 @@
 from typing import Optional, Union, Callable
 
-__all__ = [
-    'Fbeta'
-]
+__all__ = ["Fbeta"]
 
 import torch
 
 from ignite.metrics import Precision, Recall, MetricsLambda
 
 
-def Fbeta(beta: float, average: bool = True, precision: Optional[Precision] = None,
-          recall: Optional[Recall] = None, output_transform: Optional[Callable] = None,
-          device: Optional[Union[str, torch.device]] = None) -> MetricsLambda:
+def Fbeta(
+    beta: float,
+    average: bool = True,
+    precision: Optional[Precision] = None,
+    recall: Optional[Recall] = None,
+    output_transform: Optional[Callable] = None,
+    device: Optional[Union[str, torch.device]] = None,
+) -> MetricsLambda:
     """Calculates F-beta score
 
     Args:
@@ -41,14 +44,20 @@ def Fbeta(beta: float, average: bool = True, precision: Optional[Precision] = No
         raise ValueError("If recall argument is provided, output_transform should be None")
 
     if precision is None:
-        precision = Precision(output_transform=(lambda x: x) if output_transform is None else output_transform,
-                              average=False, device=device)
+        precision = Precision(
+            output_transform=(lambda x: x) if output_transform is None else output_transform,
+            average=False,
+            device=device,
+        )
     elif precision._average:
         raise ValueError("Input precision metric should have average=False")
 
     if recall is None:
-        recall = Recall(output_transform=(lambda x: x) if output_transform is None else output_transform,
-                        average=False, device=device)
+        recall = Recall(
+            output_transform=(lambda x: x) if output_transform is None else output_transform,
+            average=False,
+            device=device,
+        )
     elif recall._average:
         raise ValueError("Input recall metric should have average=False")
 
