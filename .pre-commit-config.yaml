@@ -9,4 +9,4 @@ repos:
     rev: 3.7.7
     hooks:
         - id: flake8
-          additional_dependencies: [flake8-comprehensions>=3.1.0]
+          args: [--append-config=tox.ini]
