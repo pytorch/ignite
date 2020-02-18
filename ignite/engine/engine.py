@@ -250,8 +250,8 @@ class Engine:
             See :class:`~ignite.engine.Events` for more details.
 
         """
-        if (isinstance(event_name, CallableEventWithFilter)
-                and event_name.filter != CallableEventWithFilter.default_event_filter):
+        if (isinstance(event_name,
+                       CallableEventWithFilter) and event_name.filter != CallableEventWithFilter.default_event_filter):
             event_filter = event_name.filter
             handler = Engine._handler_wrapper(handler, event_name, event_filter)
 
@@ -269,8 +269,8 @@ class Engine:
 
     @staticmethod
     def _assert_non_filtered_event(event_name: str):
-        if (isinstance(event_name, CallableEventWithFilter)
-                and event_name.filter != CallableEventWithFilter.default_event_filter):
+        if (isinstance(event_name,
+                       CallableEventWithFilter) and event_name.filter != CallableEventWithFilter.default_event_filter):
             raise TypeError("Argument event_name should not be a filtered event, "
                             "please use event without any event filtering")
 
