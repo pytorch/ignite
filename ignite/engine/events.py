@@ -131,7 +131,7 @@ class CallableEventWithFilter:
         return True
 
     def __str__(self) -> str:
-        return "<event=%s, filter=%r>" % (self.__class__.__name__, self.filter)
+        return "<event=%s, filter=%r>" % (self.name, self.filter)
 
     def __eq__(self, other):
         if isinstance(other, CallableEventWithFilter):
