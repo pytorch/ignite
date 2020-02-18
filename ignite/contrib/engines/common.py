@@ -37,7 +37,7 @@ def setup_common_training_handlers(trainer, train_sampler=None,
         train_sampler (torch.utils.data.DistributedSampler, optional): Optional distributed sampler used to call
             `set_epoch` method on epoch started event.
         to_save (dict, optional): dictionary with objects to save in the checkpoint. This is used with
-            :class:`~ignite.handlers.ModelCheckpoint`.
+            :class:`~ignite.handlers.ModelCheckpoint`. By default, stored checkpoints are compressed as `.pth.tar`.
         save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
             each 1000 iterations.
         output_path (str, optional): output path to indicate where `to_save` objects are stored.
@@ -286,7 +286,7 @@ def get_default_score_fn(metric_name):
 
 def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3, trainer=None, tag="val"):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
-    provided by `evaluator`.
+    provided by `evaluator`. By default, stored model weights are compressed as `.pth.tar`.
 
     Args:
         output_path (str): output path to indicate where to save best models
