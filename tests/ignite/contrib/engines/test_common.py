@@ -111,6 +111,7 @@ def test_save_best_model_by_val_score(dirname, capsys):
     trainer = Engine(lambda e, b: None)
     evaluator = Engine(lambda e, b: None)
     model = DummyModel()
+    true_model_state_dict = model.state_dict()
 
     acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.5, 0.6, 0.61, 0.7, 0.5]
 
@@ -127,7 +128,12 @@ def test_save_best_model_by_val_score(dirname, capsys):
     data = [0, ]
     trainer.run(data, max_epochs=len(acc_scores))
 
-    assert set(os.listdir(dirname)) == set(['best_model_8_val_acc=0.6100.pth', 'best_model_9_val_acc=0.7000.pth'])
+    best_models = list(os.listdir(dirname))
+    assert set(best_models) == set(['best_model_8_val_acc=0.6100.pth.tar',
+                                    'best_model_9_val_acc=0.7000.pth.tar'])
+
+    state_dict = torch.load(os.path.join(dirname, best_models[0]))
+    assert state_dict == true_model_state_dict
 
 
 def test_add_early_stopping_by_val_score():

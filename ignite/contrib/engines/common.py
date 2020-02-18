@@ -88,7 +88,7 @@ def _setup_common_training_handlers(trainer,
     if to_save is not None:
         if output_path is None:
             raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training")
+        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training", archived=True)
         trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
 
     if with_gpu_stats:
@@ -308,7 +308,8 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
                                          n_saved=n_saved,
                                          global_step_transform=global_step_transform,
                                          score_name="{}_{}".format(tag, metric_name.lower()),
-                                         score_function=get_default_score_fn(metric_name))
+                                         score_function=get_default_score_fn(metric_name),
+                                         archived=True)
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {'model': model, })
 
 
