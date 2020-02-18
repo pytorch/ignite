@@ -105,7 +105,7 @@ def test_event_handler_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_COMPLETED']
+    event_results = results['event_handlers_stats']['COMPLETED']
 
     assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
     assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
@@ -127,7 +127,7 @@ def test_event_handler_epoch_started():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_EPOCH_STARTED']
+    event_results = results['event_handlers_stats']['EPOCH_STARTED']
 
     assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
     assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
@@ -153,7 +153,7 @@ def test_event_handler_epoch_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_EPOCH_COMPLETED']
+    event_results = results['event_handlers_stats']['EPOCH_COMPLETED']
 
     assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
     assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
@@ -179,7 +179,7 @@ def test_event_handler_iteration_started():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_ITERATION_STARTED']
+    event_results = results['event_handlers_stats']['ITERATION_STARTED']
 
     assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
     assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
@@ -205,7 +205,7 @@ def test_event_handler_iteration_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_ITERATION_COMPLETED']
+    event_results = results['event_handlers_stats']['ITERATION_COMPLETED']
 
     assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
     assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
@@ -231,7 +231,7 @@ def test_event_handler_get_batch_started():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_GET_BATCH_STARTED']
+    event_results = results['event_handlers_stats']['GET_BATCH_STARTED']
 
     assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
     assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)
@@ -257,7 +257,7 @@ def test_event_handler_get_batch_completed():
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results['event_handlers_stats']['Events_GET_BATCH_COMPLETED']
+    event_results = results['event_handlers_stats']['GET_BATCH_COMPLETED']
 
     assert event_results['min/index'][0] == approx(true_event_handler_time, abs=1e-1)
     assert event_results['max/index'][0] == approx(true_event_handler_time, abs=1e-1)

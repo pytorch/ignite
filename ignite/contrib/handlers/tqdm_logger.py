@@ -168,8 +168,8 @@ class ProgressBar(BaseLogger):
         """
         desc = self.tqdm_kwargs.get("desc", "Epoch")
 
-        if not isinstance(event_name, (Events, CallableEventWithFilter)):
-            raise ValueError("Logging event should be only `ignite.engine.Events`")
+        if event_name not in engine._allowed_events:
+            raise ValueError('Logging event {} is not in allowed events for this engine'.format(event_name.name))
 
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError("Logging event {} should be called before closing event {}"
