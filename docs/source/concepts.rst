@@ -353,6 +353,6 @@ Complete examples that simulates a crash on a defined iteration and resumes the 
 here:
 
 - `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume>`_
-- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/engine_refactor/examples/contrib/cifar10#check-resume-training>`_
+- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#check-resume-training>`_
 
 

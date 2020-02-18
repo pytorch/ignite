@@ -12,7 +12,13 @@ Ignite
 
 .. image:: https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v
     :target: https://pytorch.org/ignite/index.html
-    
+
+.. image:: https://anaconda.org/pytorch/ignite/badges/version.svg
+    :target: https://anaconda.org/pytorch/ignite
+
+.. image:: https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v
+    :target: https://pypi.org/project/pytorch-ignite/
+
 .. image:: https://img.shields.io/badge/Optuna-integrated-blue
     :target: https://optuna.org
     
@@ -177,3 +183,17 @@ See other projects at `"Used by" <https://github.com/pytorch/ignite/network/depe
 If your project implements a paper, represents other use-cases not covered in our official tutorials,
 Kaggle competition's code or just your code presents interesting results and uses Ignite. We would like to add your project
 in this list, so please send a PR with brief description of the project.
+
+
+User feedback
+=============
+
+We have created a form for `"user feedback" <https://github.com/pytorch/ignite/issues/new/choose>`_.
+We appreciate any type of feedback and this is how we would like to see our community:
+
+- If you like the project and want to say thanks, this the right place. 
+
+- If you do not like something, please, share it with us and we can see how to improve it.
+
+Thank you !
+

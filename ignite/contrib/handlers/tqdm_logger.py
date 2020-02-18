@@ -119,6 +119,7 @@ class ProgressBar(BaseLogger):
             total=pbar_total,
             leave=self.persist,
             bar_format=self.bar_format,
+            initial=1,
             **self.tqdm_kwargs
         )
 
@@ -145,7 +146,8 @@ class ProgressBar(BaseLogger):
             message (str): string you wish to log.
         """
         from tqdm import tqdm
-        tqdm.write(message, **self.tqdm_kwargs)
+
+        tqdm.write(message, file=self.tqdm_kwargs.get("file", None))
 
     def attach(self, engine, metric_names=None, output_transform=None,
                event_name=Events.ITERATION_COMPLETED,
@@ -196,7 +198,7 @@ class _OutputHandler(BaseOutputHandler):
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
         closing_event_name: event's name on which the progress bar is closed. Valid events are from
             :class:`~ignite.engine.Events` or any `event_name` added by
@@ -216,7 +218,7 @@ class _OutputHandler(BaseOutputHandler):
     @staticmethod
     def get_max_number_events(event_name, engine):
         if event_name in (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED):
-            return len(engine.state.dataloader)
+            return engine.state.epoch_length
         if event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED):
             return engine.state.max_epochs
         return 1

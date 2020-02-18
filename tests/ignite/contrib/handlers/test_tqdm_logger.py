@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 import numpy as np
 import pytest
 import torch
@@ -35,6 +36,27 @@ def test_pbar(capsys):
     assert err[-1] == expected
 
 
+def test_pbar_file(tmp_path):
+    n_epochs = 2
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    file_path = tmp_path / "temp.txt"
+    file = open(str(file_path), "w+")
+
+    pbar = ProgressBar(file=file)
+    pbar.attach(engine, ['a'])
+    engine.run(loader, max_epochs=n_epochs)
+
+    file.close()  # Force a flush of the buffer. file.flush() does not work.
+
+    file = open(str(file_path), "r")
+    lines = file.readlines()
+
+    expected = u"Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
+    assert lines[-2] == expected
+
+
 def test_pbar_log_message(capsys):
     pbar = ProgressBar()
 
@@ -48,12 +70,46 @@ def test_pbar_log_message(capsys):
     assert out[-1] == expected
 
 
+def test_pbar_log_message_file(tmp_path):
+    file_path = tmp_path / "temp.txt"
+    file = open(str(file_path), "w+")
+
+    pbar = ProgressBar(file=file)
+    pbar.log_message("test")
+
+    file.close()  # Force a flush of the buffer. file.flush() does not work.
+
+    file = open(str(file_path), "r")
+    lines = file.readlines()
+
+    expected = u"test\n"
+    assert lines[0] == expected
+
+
 def test_attach_fail_with_string():
     engine = Engine(update_fn)
     pbar = ProgressBar()
 
     with pytest.raises(TypeError):
         pbar.attach(engine, 'a')
+
+
+def test_pbar_batch_indeces(capsys):
+    engine = Engine(lambda e, b: time.sleep(0.1))
+    @engine.on(Events.ITERATION_STARTED)
+    def print_iter(_):
+        print("iteration: ", engine.state.iteration)
+
+    ProgressBar(persist=True).attach(engine)
+    engine.run(list(range(4)), max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    printed_batch_indeces = set(map(lambda x: int(x.split('/')[0][-1]), err))
+    expected_batch_indeces = list(range(1, 5))
+    assert sorted(list(printed_batch_indeces)) == expected_batch_indeces
 
 
 def test_pbar_with_metric(capsys):
@@ -367,4 +423,20 @@ def test_pbar_on_callable_events(capsys):
     err = list(filter(None, err))
     actual = err[-1]
     expected = u'Epoch: [90/100]  90%|█████████  [00:00<00:00]'
+    assert actual == expected
+
+
+def test_tqdm_logger_epoch_length(capsys):
+    loader = list(range(100))
+    engine = Engine(update_fn)
+    pbar = ProgressBar(persist=True)
+    pbar.attach(engine)
+    engine.run(loader, epoch_length=50)
+
+    captured = capsys.readouterr()
+    err = captured.err.split('\r')
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = u'Epoch: [50/50] 100%|██████████ [00:00<00:00]'
     assert actual == expected
