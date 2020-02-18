@@ -29,7 +29,8 @@ class CallableEventWithFilter:
 
     def __init__(self, value: str, event_filter: Optional[Callable] = None,
                  name=None):
-        self._filter = lambda _, __: True
+        if event_filter is None:
+            event_filter = CallableEventWithFilter.default_event_filter
         self.filter = event_filter
 
         if not hasattr(self, '_value_'):
@@ -37,20 +38,6 @@ class CallableEventWithFilter:
 
         if not hasattr(self, '_name_') and name is not None:
             self._name_ = name
-
-    @property
-    def filter(self):
-        return self._filter
-
-    @filter.setter
-    def filter(self, new_event_filter: Optional[Callable]):
-        if new_event_filter is None:
-
-            new_event_filter = self.default_event_filter
-
-        if not callable(new_event_filter):
-            raise ValueError('The given event filter is not a callable: %r' % new_event_filter)
-        self._filter = new_event_filter
 
     # copied to be compatible to enum
     @DynamicClassAttribute
