@@ -18,9 +18,9 @@ In both cases, you will also need to code some tests to ensure the correct behav
 New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests, please run lint checking and tests:
 
 #### pre-commit
-To ensure the codebase complies with a style guide, we use [black]() and [flake8]() to format and check codebase for compliance with PEP8. 
+To ensure the codebase complies with a style guide, we use [black](https://black.readthedocs.io/en/stable/) and [flake8](https://flake8.pycqa.org/en/latest/) to format and check codebase for compliance with PEP8. 
 
-To automate the process, we have configured the repo with [pre-commit hooks]() to use black to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
+To automate the process, we have configured the repo with [pre-commit hooks](https://pre-commit.com/) to use black to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
 
 1. Install pre-commit in your python environment.
 2. Run pre-commit install that configures a virtual environment to invoke black and flake8 on commits.
