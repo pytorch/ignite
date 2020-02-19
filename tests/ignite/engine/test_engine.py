@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from ignite.engine import Engine, Events, State
+from ignite.metrics import Average
 
 
 def test_terminate():
@@ -529,3 +530,35 @@ def test_engine_with_iterable_dataloader():
     engine.run(data_loader, epoch_length=10, max_epochs=5)
 
     assert counter[0] == 50
+
+
+def test_engine_random_state():
+    def random_data_generator():
+        while True:
+            yield torch.randint(0, 100, size=(5,))
+
+    def sum_data(engine, batch):
+        result = torch.sum(batch)
+        return result
+
+    def get_engine():
+        engine = Engine(sum_data)
+        average = Average()
+        average.attach(engine, "average")
+        return engine
+
+    torch.manual_seed(34)
+    engine = get_engine()
+    state1 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2)
+
+    torch.manual_seed(34)
+    engine = get_engine()
+    state2 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2)
+
+    torch.manual_seed(42)
+    engine = get_engine()
+    state3 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2)
+
+    assert state1.metrics["average"] == pytest.approx(state2.metrics["average"])
+    assert state1.metrics["average"] != pytest.approx(state3.metrics["average"])
+    assert state2.metrics["average"] != pytest.approx(state3.metrics["average"])
