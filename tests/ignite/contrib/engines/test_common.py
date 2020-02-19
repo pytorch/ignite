@@ -9,10 +9,12 @@ from ignite.contrib.engines.common import (
     save_best_model_by_val_score,
     add_early_stopping_by_val_score,
     setup_tb_logging,
+    setup_visdom_logging,
 )
 
 from ignite.handlers import TerminateOnNan
-from ignite.contrib.handlers.tensorboard_logger import OutputHandler, OptimizerParamsHandler
+import ignite.contrib.handlers.tensorboard_logger as tb_logger_module
+import ignite.contrib.handlers.visdom_logger as visdom_logger_module
 
 import pytest
 from unittest.mock import MagicMock
@@ -25,6 +27,24 @@ class DummyModel(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
+
+@pytest.fixture
+def visdom_server():
+
+    import time
+    import subprocess
+
+    from visdom.server import download_scripts
+
+    download_scripts()
+
+    hostname = "localhost"
+    port = 8099
+    p = subprocess.Popen("visdom --hostname {} -port {}".format(hostname, port), shell=True)
+    time.sleep(5)
+    yield (hostname, port)
+    p.terminate()
 
 
 def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False):
@@ -206,21 +226,21 @@ def test_setup_tb_logging(dirname):
 
         handlers = trainer._event_handlers[Events.ITERATION_COMPLETED]
         for cls in [
-            OutputHandler,
+            tb_logger_module.OutputHandler,
         ]:
             assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
 
         if with_optim:
             handlers = trainer._event_handlers[Events.ITERATION_STARTED]
             for cls in [
-                OptimizerParamsHandler,
+                tb_logger_module.OptimizerParamsHandler,
             ]:
                 assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
 
         if with_eval:
             handlers = evaluator._event_handlers[Events.COMPLETED]
             for cls in [
-                OutputHandler,
+                tb_logger_module.OutputHandler,
             ]:
                 assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
 
@@ -236,6 +256,76 @@ def test_setup_tb_logging(dirname):
 
     _test(with_eval=False, with_optim=False)
     _test(with_eval=True, with_optim=True)
+
+
+def test_setup_visdom_logging(visdom_server):
+    def _test(with_eval, with_optim):
+        trainer = Engine(lambda e, b: b)
+        evaluators = None
+        optimizers = None
+
+        if with_eval:
+            evaluator = Engine(lambda e, b: None)
+            acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.3, 0.2, 0.1, 0.1, 0.0]
+
+            @trainer.on(Events.EPOCH_COMPLETED)
+            def validate(engine):
+                evaluator.run(
+                    [0,]
+                )
+
+            @evaluator.on(Events.EPOCH_COMPLETED)
+            def set_eval_metric(engine):
+                engine.state.metrics = {"acc": acc_scores[trainer.state.epoch - 1]}
+
+            evaluators = {"validation": evaluator}
+
+        if with_optim:
+            t = torch.tensor([0,])
+            optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
+
+        # import os
+        # os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
+        # os.environ["VISDOM_PORT"] = str(visdom_server[1])
+
+        vis_logger = setup_visdom_logging(
+            trainer,
+            optimizers=optimizers,
+            evaluators=evaluators,
+            log_every_iters=1,
+            server=visdom_server[0],
+            port=str(visdom_server[1]),
+        )
+
+        handlers = trainer._event_handlers[Events.ITERATION_COMPLETED]
+        for cls in [
+            visdom_logger_module.OutputHandler,
+        ]:
+            assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+
+        if with_optim:
+            handlers = trainer._event_handlers[Events.ITERATION_STARTED]
+            for cls in [
+                visdom_logger_module.OptimizerParamsHandler,
+            ]:
+                assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+
+        if with_eval:
+            handlers = evaluator._event_handlers[Events.COMPLETED]
+            for cls in [
+                visdom_logger_module.OutputHandler,
+            ]:
+                assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+
+        data = [0, 1, 2]
+        trainer.run(data, max_epochs=10)
+        return vis_logger
+
+    vis_logger_optim = _test(with_eval=False, with_optim=False)
+    vis_logger_all = _test(with_eval=True, with_optim=True)
+
+    vis_logger_optim.close()
+    vis_logger_all.close()
 
 
 @pytest.mark.distributed

@@ -11,8 +11,10 @@ from ignite.metrics import RunningAverage
 from ignite.handlers import TerminateOnNan, ModelCheckpoint, EarlyStopping
 from ignite.contrib.metrics import GpuInfo
 from ignite.contrib.handlers import ProgressBar
+from ignite.contrib.handlers import VisdomLogger
 from ignite.contrib.handlers import TensorboardLogger, global_step_from_engine
 import ignite.contrib.handlers.tensorboard_logger as tb_logger_module
+import ignite.contrib.handlers.visdom_logger as visdom_logger_module
 from ignite.contrib.handlers import MLflowLogger
 import ignite.contrib.handlers.mlflow_logger as mlflow_logger_module
 from ignite.contrib.handlers import PolyaxonLogger
@@ -273,6 +275,31 @@ def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log
     tb_logger = TensorboardLogger(log_dir=output_path)
     setup_any_logging(tb_logger, tb_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters)
     return tb_logger
+
+
+def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+    """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
+        - Training metrics, e.g. running average loss values
+        - Learning rate(s)
+        - Evaluation metrics
+    Args:
+        trainer (Engine): trainer engine
+        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+            torch optimizers. If a dictionary, keys are used as tags arguments for logging.
+        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+            keys are used as tags arguments for logging.
+        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+            value can be set to 1 or None.
+        **kwargs: kwargs to pass into VisdomLogger
+
+    Returns:
+        VisdomLogger
+    """
+    vis_logger = VisdomLogger(**kwargs)
+    setup_any_logging(
+        vis_logger, visdom_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters
+    )
+    return vis_logger
 
 
 def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
