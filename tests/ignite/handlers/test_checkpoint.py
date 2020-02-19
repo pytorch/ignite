@@ -858,4 +858,3 @@ def test_distributed_parallel_checkpoint_load(distributed_context_single_node_gl
     # not used to run cpu tests!
     local_rank = distributed_context_single_node_gloo['local_rank']
     _test_checkpoint_load(torch.nn.parallel.DistributedDataParallel)
-
