@@ -1,4 +1,3 @@
-
 from typing import Callable, Optional, Union, Any
 
 from enum import Enum
@@ -8,14 +7,10 @@ import weakref
 from ignite.engine.utils import _check_signature
 
 
-__all__ = [
-    'Events',
-    'State'
-]
+__all__ = ["Events", "State"]
 
 
 class EventWithFilter:
-
     def __init__(self, event: Any, filter: Callable):
         if not callable(filter):
             raise TypeError("Argument filter should be callable")
@@ -46,8 +41,9 @@ class CallableEvents:
 
     """
 
-    def __call__(self, event_filter: Optional[Callable] = None,
-                 every: Optional[int] = None, once: Optional[int] = None):
+    def __call__(
+        self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
+    ):
 
         if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
             raise ValueError("Only one of the input arguments should be specified")
@@ -127,6 +123,7 @@ class Events(CallableEvents, Enum):
     Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
 
     """
+
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
     STARTED = "started"

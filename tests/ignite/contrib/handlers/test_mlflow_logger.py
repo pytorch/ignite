@@ -39,7 +39,9 @@ def test_output_handler_output_transform():
     mock_logger.log_metrics = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log_metrics.assert_called_once_with({"another_tag loss": 12345}, step=123,)
+    mock_logger.log_metrics.assert_called_once_with(
+        {"another_tag loss": 12345}, step=123,
+    )
 
 
 def test_output_handler_metric_names():
@@ -56,13 +58,10 @@ def test_output_handler_metric_names():
 
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_called_once_with(
-        {"tag a": 12.23,
-         "tag b": 23.45,
-         "tag c": 10.0},
-        step=5,
+        {"tag a": 12.23, "tag b": 23.45, "tag c": 10.0}, step=5,
     )
 
-    wrapper = OutputHandler("tag", metric_names=["a", ])
+    wrapper = OutputHandler("tag", metric_names=["a",])
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
@@ -74,13 +73,9 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metrics.call_count == 1
-    mock_logger.log_metrics.assert_has_calls([
-        call({"tag a 0": 0.0,
-              "tag a 1": 1.0,
-              "tag a 2": 2.0,
-              "tag a 3": 3.0},
-             step=5),
-    ], any_order=True)
+    mock_logger.log_metrics.assert_has_calls(
+        [call({"tag a 0": 0.0, "tag a 1": 1.0, "tag a 2": 2.0, "tag a 3": 3.0}, step=5),], any_order=True
+    )
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
 
@@ -95,9 +90,7 @@ def test_output_handler_metric_names():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metrics.call_count == 1
-    mock_logger.log_metrics.assert_has_calls([
-        call({"tag a": 55.56}, step=7)
-    ], any_order=True)
+    mock_logger.log_metrics.assert_has_calls([call({"tag a": 55.56}, step=7)], any_order=True)
 
 
 def test_output_handler_both():
@@ -115,16 +108,13 @@ def test_output_handler_both():
 
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_called_once_with(
-        {"tag a": 12.23,
-         "tag b": 23.45,
-         "tag loss": 12345},
-        step=5,
+        {"tag a": 12.23, "tag b": 23.45, "tag loss": 12345}, step=5,
     )
 
 
 def test_output_handler_with_wrong_global_step_transform_output():
     def global_step_transform(*args, **kwargs):
-        return 'a'
+        return "a"
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
     mock_logger = MagicMock(spec=MLflowLogger)
@@ -163,8 +153,11 @@ def test_output_handler_with_global_step_from_engine():
     mock_another_engine.state.epoch = 10
     mock_another_engine.state.output = 12.345
 
-    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x},
-                            global_step_transform=global_step_from_engine(mock_another_engine))
+    wrapper = OutputHandler(
+        "tag",
+        output_transform=lambda x: {"loss": x},
+        global_step_transform=global_step_from_engine(mock_another_engine),
+    )
 
     mock_logger = MagicMock(spec=MLflowLogger)
     mock_logger.log_metrics = MagicMock()
@@ -176,16 +169,18 @@ def test_output_handler_with_global_step_from_engine():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     assert mock_logger.log_metrics.call_count == 1
-    mock_logger.log_metrics.assert_has_calls([call({"tag loss": mock_engine.state.output},
-                                                   step=mock_another_engine.state.epoch)])
+    mock_logger.log_metrics.assert_has_calls(
+        [call({"tag loss": mock_engine.state.output}, step=mock_another_engine.state.epoch)]
+    )
 
     mock_another_engine.state.epoch = 11
     mock_engine.state.output = 1.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     assert mock_logger.log_metrics.call_count == 2
-    mock_logger.log_metrics.assert_has_calls([call({"tag loss": mock_engine.state.output},
-                                                   step=mock_another_engine.state.epoch)])
+    mock_logger.log_metrics.assert_has_calls(
+        [call({"tag loss": mock_engine.state.output}, step=mock_another_engine.state.epoch)]
+    )
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -246,9 +241,7 @@ def test_integration(dirname):
         true_values.append(v)
         logger.log_metrics({"{}".format("test_value"): v}, step=global_step)
 
-    mlflow_logger.attach(trainer,
-                         log_handler=dummy_handler,
-                         event_name=Events.EPOCH_COMPLETED)
+    mlflow_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
     import mlflow
 
@@ -289,11 +282,10 @@ def test_integration_as_context_manager(dirname):
             true_values.append(v)
             logger.log_metrics({"{}".format("test_value"): v}, step=global_step)
 
-        mlflow_logger.attach(trainer,
-                             log_handler=dummy_handler,
-                             event_name=Events.EPOCH_COMPLETED)
+        mlflow_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
         import mlflow
+
         active_run = mlflow.active_run()
 
         trainer.run(data, max_epochs=n_epochs)
@@ -317,10 +309,7 @@ def test_mlflow_bad_metric_name_handling(dirname):
 
         handler = OutputHandler(tag="training", metric_names="all")
         engine = Engine(lambda e, b: None)
-        engine.state = State(metrics={
-            "metric:0 in %": 123.0,
-            "metric 0": 1000.0,
-        })
+        engine.state = State(metrics={"metric:0 in %": 123.0, "metric 0": 1000.0,})
 
         with pytest.warns(UserWarning, match=r"MLflowLogger output_handler encountered an invalid metric name"):
 
@@ -329,7 +318,7 @@ def test_mlflow_bad_metric_name_handling(dirname):
 
             for i, v in enumerate(true_values):
                 engine.state.epoch += 1
-                engine.state.metrics['metric 0'] = v
+                engine.state.metrics["metric 0"] = v
                 handler(engine, mlflow_logger, event_name=Events.EPOCH_COMPLETED)
 
     from mlflow.tracking import MlflowClient
@@ -337,7 +326,7 @@ def test_mlflow_bad_metric_name_handling(dirname):
     client = MlflowClient(tracking_uri=os.path.join(dirname, "mlruns"))
     stored_values = client.get_metric_history(active_run.info.run_id, "training metric 0")
 
-    for t, s in zip([1000.0, ] + true_values, stored_values):
+    for t, s in zip([1000.0,] + true_values, stored_values):
         assert t == s.value
 
 

@@ -8,11 +8,22 @@ import torch
 
 import ignite
 from ignite.engine import Events
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
-    BaseWeightsScalarHandler, global_step_from_engine
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOptimizerParamsHandler,
+    BaseOutputHandler,
+    BaseWeightsScalarHandler,
+    global_step_from_engine,
+)
 
-__all__ = ['NeptuneLogger', 'OptimizerParamsHandler', 'OutputHandler',
-           'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
+__all__ = [
+    "NeptuneLogger",
+    "OptimizerParamsHandler",
+    "OutputHandler",
+    "WeightsScalarHandler",
+    "GradsScalarHandler",
+    "global_step_from_engine",
+]
 
 
 class OutputHandler(BaseOutputHandler):
@@ -114,19 +125,19 @@ class OutputHandler(BaseOutputHandler):
         global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
-            raise TypeError("global_step must be int, got {}."
-                            " Please check the output of global_step_transform.".format(type(global_step)))
+            raise TypeError(
+                "global_step must be int, got {}."
+                " Please check the output of global_step_transform.".format(type(global_step))
+            )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or \
-                    isinstance(value, torch.Tensor) and value.ndimension() == 0:
+            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 logger.experiment.log_metric("{}/{}".format(self.tag, key), x=global_step, y=value)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
                     logger.experiment.log_metric("{}/{}/{}".format(self.tag, key, i), x=global_step, y=v.item())
             else:
-                warnings.warn("NeptuneLogger output_handler can not log "
-                              "metrics value type {}".format(type(value)))
+                warnings.warn("NeptuneLogger output_handler can not log " "metrics value type {}".format(type(value)))
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -166,8 +177,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
-        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
-                  for i, param_group in enumerate(self.optimizer.param_groups)}
+        params = {
+            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            for i, param_group in enumerate(self.optimizer.param_groups)
+        }
 
         for k, v in params.items():
             logger.experiment.log_metric(k, x=global_step, y=v)
@@ -218,10 +231,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             if p.grad is None:
                 continue
 
-            name = name.replace('.', '/')
-            logger.experiment.log_metric("{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name),
-                                         x=global_step,
-                                         y=self.reduction(p.data))
+            name = name.replace(".", "/")
+            logger.experiment.log_metric(
+                "{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name),
+                x=global_step,
+                y=self.reduction(p.data),
+            )
 
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
@@ -268,10 +283,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             if p.grad is None:
                 continue
 
-            name = name.replace('.', '/')
-            logger.experiment.log_metric("{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name),
-                                         x=global_step,
-                                         y=self.reduction(p.grad))
+            name = name.replace(".", "/")
+            logger.experiment.log_metric(
+                "{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name),
+                x=global_step,
+                y=self.reduction(p.grad),
+            )
 
 
 class NeptuneLogger(BaseLogger):
@@ -389,20 +406,21 @@ class NeptuneLogger(BaseLogger):
         try:
             import neptune
         except ImportError:
-            raise RuntimeError("This contrib module requires neptune-client to be installed. "
-                               "You may install neptune with command: \n pip install neptune-client \n")
+            raise RuntimeError(
+                "This contrib module requires neptune-client to be installed. "
+                "You may install neptune with command: \n pip install neptune-client \n"
+            )
 
         if kwargs.get("offline_mode", False):
             self.mode = "offline"
-            neptune.init(project_qualified_name="dry-run/project",
-                         backend=neptune.OfflineBackend())
+            neptune.init(project_qualified_name="dry-run/project", backend=neptune.OfflineBackend())
         else:
             self.mode = "online"
-            neptune.init(api_token=kwargs["api_token"],
-                         project_qualified_name=kwargs["project_name"])
+            neptune.init(api_token=kwargs["api_token"], project_qualified_name=kwargs["project_name"])
 
-        self._experiment_kwargs = {k: v for k, v in kwargs.items()
-                                   if k not in ["api_token", "project_name", "offline_mode"]}
+        self._experiment_kwargs = {
+            k: v for k, v in kwargs.items() if k not in ["api_token", "project_name", "offline_mode"]
+        }
 
         self.experiment = neptune.create_experiment(**self._experiment_kwargs)
 

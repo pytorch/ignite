@@ -74,12 +74,14 @@ def test_add_event_handler():
 
     def handle_iteration_started(engine, counter):
         counter.count += 1
+
     engine.add_event_handler(Events.STARTED, handle_iteration_started, started_counter)
 
     completed_counter = Counter()
 
     def handle_iteration_completed(engine, counter):
         counter.count += 1
+
     engine.add_event_handler(Events.COMPLETED, handle_iteration_completed, completed_counter)
 
     engine.run(15)
@@ -202,7 +204,7 @@ def test_has_event_handler():
 def test_remove_event_handler():
     engine = DummyEngine()
 
-    with pytest.raises(ValueError, match=r'Input event name'):
+    with pytest.raises(ValueError, match=r"Input event name"):
         engine.remove_event_handler(lambda x: x, "an event")
 
     def on_started(engine):
@@ -210,7 +212,7 @@ def test_remove_event_handler():
 
     engine.add_event_handler(Events.STARTED, on_started)
 
-    with pytest.raises(ValueError, match=r'Input handler'):
+    with pytest.raises(ValueError, match=r"Input handler"):
         engine.remove_event_handler(lambda x: x, Events.STARTED)
 
     h1 = MagicMock(spec_set=True)
@@ -233,7 +235,7 @@ def test_remove_event_handler():
 
 def test_args_and_kwargs_are_passed_to_event():
     engine = DummyEngine()
-    kwargs = {'a': 'a', 'b': 'b'}
+    kwargs = {"a": "a", "b": "b"}
     args = (1, 2, 3)
     handlers = []
     for event in [Events.STARTED, Events.COMPLETED]:
@@ -255,6 +257,7 @@ def test_args_and_kwargs_are_passed_to_event():
 def test_on_decorator_raises_with_invalid_event():
     engine = DummyEngine()
     with pytest.raises(ValueError):
+
         @engine.on("incorrect")
         def f(engine):
             pass
@@ -287,7 +290,7 @@ def test_on_decorator():
 
 def test_returns_state():
     engine = Engine(MagicMock(return_value=1))
-    state = engine.run([0, ])
+    state = engine.run([0,])
 
     assert isinstance(state, State)
 

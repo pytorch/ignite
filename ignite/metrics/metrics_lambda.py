@@ -4,9 +4,7 @@ from typing import Callable, Any
 from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.engine import Events, Engine
 
-__all__ = [
-    'MetricsLambda'
-]
+__all__ = ["MetricsLambda"]
 
 
 class MetricsLambda(Metric):
@@ -45,7 +43,7 @@ class MetricsLambda(Metric):
         self.function = f
         self.args = args
         self.kwargs = kwargs
-        super(MetricsLambda, self).__init__(device='cpu')
+        super(MetricsLambda, self).__init__(device="cpu")
 
     @reinit__is_reduced
     def reset(self) -> None:

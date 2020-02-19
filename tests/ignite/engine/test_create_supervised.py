@@ -36,7 +36,7 @@ def test_create_supervised_trainer_with_cpu():
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
-    trainer = create_supervised_trainer(model, optimizer, mse_loss, device='cpu')
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device="cpu")
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -62,7 +62,7 @@ def test_create_supervised_trainer_traced_with_cpu():
 
     optimizer = SGD(traced_model.parameters(), 0.1)
 
-    trainer = create_supervised_trainer(traced_model, optimizer, mse_loss, device='cpu')
+    trainer = create_supervised_trainer(traced_model, optimizer, mse_loss, device="cpu")
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -84,7 +84,7 @@ def test_create_supervised_trainer_on_cuda():
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
-    trainer = create_supervised_trainer(model, optimizer, mse_loss, device='cuda')
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device="cuda")
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -128,7 +128,7 @@ def test_create_supervised_on_cpu():
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    evaluator = create_supervised_evaluator(model, device='cpu')
+    evaluator = create_supervised_evaluator(model, device="cpu")
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -154,7 +154,7 @@ def test_create_supervised_evaluator_traced_on_cpu():
     example_input = torch.randn(1, 1)
     traced_model = torch.jit.trace(model, example_input)
 
-    evaluator = create_supervised_evaluator(traced_model, device='cpu')
+    evaluator = create_supervised_evaluator(traced_model, device="cpu")
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -178,7 +178,7 @@ def test_create_supervised_on_cuda():
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    evaluator = create_supervised_evaluator(model, device='cuda')
+    evaluator = create_supervised_evaluator(model, device="cuda")
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -201,11 +201,11 @@ def test_create_supervised_with_metrics():
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    evaluator = create_supervised_evaluator(model, metrics={'mse': MeanSquaredError()})
+    evaluator = create_supervised_evaluator(model, metrics={"mse": MeanSquaredError()})
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [4.0]])
     data = [(x, y)]
 
     state = evaluator.run(data)
-    assert state.metrics['mse'] == 12.5
+    assert state.metrics["mse"] == 12.5

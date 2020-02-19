@@ -15,8 +15,7 @@ class _BaseRegression(Metric):
     def update(self, output):
         y_pred, y = output
         if y_pred.shape != y.shape:
-            raise ValueError("Input data shapes should be the same, but given {} and {}"
-                             .format(y_pred.shape, y.shape))
+            raise ValueError("Input data shapes should be the same, but given {} and {}".format(y_pred.shape, y.shape))
 
         c1 = y_pred.ndimension() == 2 and y_pred.shape[1] == 1
         if not (y_pred.ndimension() == 1 or c1):
@@ -64,5 +63,4 @@ class _BaseRegressionEpoch(_BaseRegression, EpochMetric):
             try:
                 self.compute_fn(self._predictions, self._targets)
             except Exception as e:
-                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}".format(e),
-                              RuntimeWarning)
+                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}".format(e), RuntimeWarning)
