@@ -1,7 +1,7 @@
 
 from typing import Callable, Optional, Union, Any
 
-from enum import Enum, EnumMeta
+from enum import Enum
 import numbers
 import weakref
 from types import DynamicClassAttribute
