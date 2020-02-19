@@ -564,8 +564,8 @@ class Engine:
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
                 This argument should be `None` if run is resuming from a state.
-            seed (int, optional): Seed to setup at each epoch for reproducible runs.
-                This argument should be `None` if run is resuming from a state.
+            seed (int, optional): Seed to use for dataflow consistency, by default it
+                will respect the global random state. This argument should be `None` if run is resuming from a state.
 
         Returns:
             State: output state.
