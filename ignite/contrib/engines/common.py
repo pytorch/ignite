@@ -290,10 +290,12 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
             keys are used as tags arguments for logging.
         log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        **kwargs: kwargs to pass into VisdomLogger
+
     Returns:
         VisdomLogger
     """
-    vis_logger = VisdomLogger(*kwargs)
+    vis_logger = VisdomLogger(**kwargs)
     setup_any_logging(
         vis_logger, visdom_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters
     )
