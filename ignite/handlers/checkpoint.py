@@ -128,7 +128,7 @@ class Checkpoint:
 
     def __init__(
         self,
-        to_save: dict,
+        to_save: Mapping,
         save_handler: Callable,
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
@@ -233,7 +233,7 @@ class Checkpoint:
         return checkpoint
 
     @staticmethod
-    def _check_objects(objs: dict, attr: str) -> None:
+    def _check_objects(objs: Mapping, attr: str) -> None:
         for k, obj in objs.items():
             if not hasattr(obj, attr):
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
