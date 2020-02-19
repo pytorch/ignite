@@ -284,12 +284,18 @@ def test_setup_visdom_logging(visdom_server):
             t = torch.tensor([0,])
             optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
 
-        import os
+        # import os
+        # os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
+        # os.environ["VISDOM_PORT"] = str(visdom_server[1])
 
-        os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
-        os.environ["VISDOM_PORT"] = str(visdom_server[1])
-
-        setup_visdom_logging(trainer, optimizers=optimizers, evaluators=evaluators, log_every_iters=1)
+        vis_logger = setup_visdom_logging(
+            trainer,
+            optimizers=optimizers,
+            evaluators=evaluators,
+            log_every_iters=1,
+            server=visdom_server[0],
+            port=str(visdom_server[1]),
+        )
 
         handlers = trainer._event_handlers[Events.ITERATION_COMPLETED]
         for cls in [
@@ -313,9 +319,13 @@ def test_setup_visdom_logging(visdom_server):
 
         data = [0, 1, 2]
         trainer.run(data, max_epochs=10)
+        return vis_logger
 
-    _test(with_eval=False, with_optim=False)
-    _test(with_eval=True, with_optim=True)
+    vis_logger_optim = _test(with_eval=False, with_optim=False)
+    vis_logger_all = _test(with_eval=True, with_optim=True)
+
+    vis_logger_optim.close()
+    vis_logger_all.close()
 
 
 @pytest.mark.distributed
