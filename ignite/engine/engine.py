@@ -594,7 +594,7 @@ class Engine:
             if max_epochs is None:
                 max_epochs = 1
             if seed is None:
-                seed = 12
+                seed = torch.randint(0, int(1e9), (1,)).item()
             if epoch_length is None:
                 if hasattr(data, "__len__"):
                     epoch_length = len(data)
