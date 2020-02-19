@@ -277,7 +277,7 @@ def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log
     return tb_logger
 
 
-def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -293,7 +293,7 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
     Returns:
         VisdomLogger
     """
-    vis_logger = VisdomLogger()
+    vis_logger = VisdomLogger(*kwargs)
     setup_any_logging(
         vis_logger, visdom_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters
     )

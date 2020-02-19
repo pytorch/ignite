@@ -29,6 +29,24 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
+@pytest.fixture
+def visdom_server():
+
+    import time
+    import subprocess
+
+    from visdom.server import download_scripts
+
+    download_scripts()
+
+    hostname = "localhost"
+    port = 8099
+    p = subprocess.Popen("visdom --hostname {} -port {}".format(hostname, port), shell=True)
+    time.sleep(5)
+    yield (hostname, port)
+    p.terminate()
+
+
 def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False):
 
     lr = 0.01
@@ -240,7 +258,7 @@ def test_setup_tb_logging(dirname):
     _test(with_eval=True, with_optim=True)
 
 
-def test_setup_visdom_logging():
+def test_setup_visdom_logging(visdom_server):
     def _test(with_eval, with_optim):
         trainer = Engine(lambda e, b: b)
         evaluators = None
@@ -265,6 +283,11 @@ def test_setup_visdom_logging():
         if with_optim:
             t = torch.tensor([0,])
             optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
+
+        import os
+
+        os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
+        os.environ["VISDOM_PORT"] = str(visdom_server[1])
 
         setup_visdom_logging(trainer, optimizers=optimizers, evaluators=evaluators, log_every_iters=1)
 
