@@ -8,6 +8,7 @@ from ignite.engine import Engine, Events, State
 from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver
 
 import pytest
+from copy import deepcopy
 from unittest.mock import MagicMock
 
 _PREFIX = 'PREFIX'
@@ -22,8 +23,15 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def test_checkpoint_wrong_input():
+class DummySaveHandler:
+    def __init__(self):
+        self.state_dict = None
 
+    def __call__(self, checkpoint, file_name):
+        self.state_dict = checkpoint
+
+
+def test_checkpoint_wrong_input():
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
         Checkpoint(12, lambda x: x, "prefix", )
 
@@ -59,7 +67,6 @@ def test_checkpoint_score_function_wrong_output():
 
 
 def test_checkpoint_default():
-
     def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
@@ -95,7 +102,6 @@ def test_checkpoint_default():
 
 
 def test_checkpoint_with_global_step_transform():
-
     def _test(filename_prefix, to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
@@ -135,7 +141,6 @@ def test_checkpoint_with_global_step_transform():
 
 
 def test_checkpoint_with_score_function():
-
     def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
@@ -172,7 +177,6 @@ def test_checkpoint_with_score_function():
 
 
 def test_checkpoint_with_score_name_and_function():
-
     def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
@@ -211,7 +215,6 @@ def test_checkpoint_with_score_name_and_function():
 
 
 def test_checkpoint_with_int_score():
-
     def _test(to_save, obj, name, score_name=None):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
@@ -256,7 +259,6 @@ def test_checkpoint_with_int_score():
 
 
 def test_checkpoint_with_score_function_and_trainer_epoch():
-
     def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
@@ -292,7 +294,6 @@ def test_checkpoint_with_score_function_and_trainer_epoch():
 
 
 def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
-
     def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
@@ -418,7 +419,6 @@ def test_model_checkpoint_simple_recovery(dirname):
 
 
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
-
     def _test(ext, require_empty, archived):
         previous_fname = os.path.join(dirname, '{}_{}_{}{}'.format(_PREFIX, 'obj', 1, ext))
         with open(previous_fname, 'w') as f:
@@ -448,7 +448,6 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
 
 
 def test_disk_saver_atomic(dirname):
-
     model = DummyModel()
     to_save_serializable = {'model': model}
     to_save_non_serializable = {'model': lambda x: x}
@@ -478,7 +477,6 @@ def test_disk_saver_atomic(dirname):
 
 
 def test_last_k(dirname):
-
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2)
     engine = Engine(lambda e, b: None)
     engine.state = State(epoch=0, iteration=0)
@@ -497,7 +495,6 @@ def test_last_k(dirname):
 
 
 def test_disabled_n_saved(dirname):
-
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=None)
     engine = Engine(lambda e, b: None)
     engine.state = State(epoch=0, iteration=0)
@@ -563,7 +560,6 @@ def test_best_k_with_suffix(dirname):
 
 
 def test_with_engine(dirname):
-
     def update_fn(_1, _2):
         pass
 
@@ -582,7 +578,6 @@ def test_with_engine(dirname):
 
 
 def test_with_state_dict(dirname):
-
     def update_fn(_1, _2):
         pass
 
@@ -692,7 +687,6 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
 
 
 def test_checkpoint_load_objects():
-
     with pytest.raises(TypeError, match=r"Argument checkpoint should be a dictionary"):
         Checkpoint.load_objects({}, [])
 
@@ -715,7 +709,6 @@ def test_checkpoint_load_objects():
 
 
 def test_checkpoint_load_objects_from_saved_file(dirname):
-
     def _get_single_obj_to_save():
         model = DummyModel()
         to_save = {
@@ -775,7 +768,6 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
 
 
 def test_disksaver_wrong_input(dirname):
-
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
         DiskSaver("/tmp/non-existing-folder", create_dir=False)
 
@@ -789,3 +781,83 @@ def test_disksaver_wrong_input(dirname):
 
     _test(".pth")
     _test(".pth.tar")
+
+
+def _test_checkpoint_keys(wrapper_cls, **kwargs):
+    model = torch.nn.Conv2d(1, 1, 1)
+    if wrapper_cls is not None:
+        model = wrapper_cls(model, **kwargs)
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+    save_handler = DummySaveHandler()
+
+    checkpointer = Checkpoint({'model': model}, save_handler)
+    checkpointer(trainer)
+
+    state_dict = save_handler.state_dict
+    for key in state_dict.keys():
+        assert not key.startswith('module')
+
+
+def test_checkpoint_keys_parallel():
+    _test_checkpoint_keys(torch.nn.DataParallel)
+
+
+@pytest.mark.distributed
+def test_checkpoint_keys_distributed_parallel(distributed_context_single_node_gloo):
+    local_rank = distributed_context_single_node_gloo['local_rank']
+    _test_checkpoint_keys(torch.nn.parallel.DistributedDataParallel,
+                          device_ids=[local_rank, ],
+                          output_device=local_rank)
+
+
+def _test_checkpoint_load(wrapper_cls, **kwargs):
+    model = torch.nn.Conv2d(1, 1, 1)
+    if wrapper_cls is not None:
+        model = wrapper_cls(model, **kwargs)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+    save_handler = DummySaveHandler()
+    to_save_load = {'model': model}
+
+    checkpointer = Checkpoint(to_save_load, save_handler)
+
+    checkpointer(trainer)
+
+    old_checkpoint = deepcopy(save_handler.state_dict)
+
+    # change state_dict
+    opt = torch.optim.SGD(model.parameters(), lr=1e-1)
+    model(torch.rand(3, 1, 1, 1)).sum().backward()
+    opt.step()
+    state_dict_fn = model.state_dict if wrapper_cls is None else model.module.state_dict
+    for key, v in state_dict_fn().items():
+        assert not torch.allclose(v, old_checkpoint[key])
+
+    # load old state dict
+    checkpointer.load_objects(to_save_load, old_checkpoint)
+
+    # forward for param sync
+    model(torch.rand(3, 1, 1, 1))
+
+    if wrapper_cls is None:
+        for k, v in model.state_dict().items():
+            assert torch.allclose(v, old_checkpoint[k])
+    else:
+        for _module in model.modules():
+            for k, v in _module.state_dict().items():
+                assert torch.allclose(v, old_checkpoint[k.replace('module.', '')])
+
+
+def test_parallel_checkpoint_load():
+    _test_checkpoint_load(torch.nn.DataParallel)
+
+
+@pytest.mark.distributed
+def test_distributed_parallel_checkpoint_load(distributed_context_single_node_gloo):
+    local_rank = distributed_context_single_node_gloo['local_rank']
+    _test_checkpoint_load(torch.nn.parallel.DistributedDataParallel,
+                          device_ids=[local_rank, ],
+                          output_device=local_rank)
+

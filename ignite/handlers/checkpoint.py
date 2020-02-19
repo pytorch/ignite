@@ -224,7 +224,14 @@ class Checkpoint:
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
         for k, obj in self.to_save.items():
-            checkpoint[k] = obj.state_dict()
+            if isinstance(obj, torch.nn.parallel.DistributedDataParallel):
+                torch.distributed.barrier()
+                state_dict = obj.module.state_dict()
+            elif isinstance(obj, torch.nn.parallel.DataParallel):
+                state_dict = obj.module.state_dict()
+            else:
+                state_dict = obj.state_dict()
+            checkpoint[k] = state_dict
         return checkpoint
 
     @staticmethod
@@ -246,18 +253,31 @@ class Checkpoint:
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
+
+        def load_state_dict(obj, state_dict):
+            if isinstance(obj, torch.nn.parallel.DataParallel):
+                obj.module.load_state_dict(state_dict)
+            elif isinstance(obj, torch.nn.parallel.DistributedDataParallel):
+                torch.distributed.barrier()
+                obj.module.load_state_dict(state_dict)
+                obj.require_forward_param_sync = True
+                obj.require_backward_grad_sync = True
+                torch.distributed.barrier()
+            else:
+                obj.load_state_dict(state_dict)
+
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint:
-                obj.load_state_dict(checkpoint)
+                load_state_dict(obj, checkpoint)
                 return
 
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint:
                 raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
-            obj.load_state_dict(checkpoint[k])
+            load_state_dict(obj, checkpoint[k])
 
 
 class DiskSaver:
