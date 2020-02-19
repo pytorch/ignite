@@ -9,10 +9,12 @@ from ignite.contrib.engines.common import (
     save_best_model_by_val_score,
     add_early_stopping_by_val_score,
     setup_tb_logging,
+    setup_visdom_logging,
 )
 
 from ignite.handlers import TerminateOnNan
-from ignite.contrib.handlers.tensorboard_logger import OutputHandler, OptimizerParamsHandler
+import ignite.contrib.handlers.tensorboard_logger as tb_logger_module
+import ignite.contrib.handlers.visdom_logger as visdom_logger_module
 
 import pytest
 from unittest.mock import MagicMock
@@ -206,21 +208,21 @@ def test_setup_tb_logging(dirname):
 
         handlers = trainer._event_handlers[Events.ITERATION_COMPLETED]
         for cls in [
-            OutputHandler,
+            tb_logger_module.OutputHandler,
         ]:
             assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
 
         if with_optim:
             handlers = trainer._event_handlers[Events.ITERATION_STARTED]
             for cls in [
-                OptimizerParamsHandler,
+                tb_logger_module.OptimizerParamsHandler,
             ]:
                 assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
 
         if with_eval:
             handlers = evaluator._event_handlers[Events.COMPLETED]
             for cls in [
-                OutputHandler,
+                tb_logger_module.OutputHandler,
             ]:
                 assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
 
@@ -233,6 +235,61 @@ def test_setup_tb_logging(dirname):
             "events",
         ]:
             assert any([v in c for c in tb_files]), "{}".format(tb_files)
+
+    _test(with_eval=False, with_optim=False)
+    _test(with_eval=True, with_optim=True)
+
+
+def test_setup_visdom_logging():
+    def _test(with_eval, with_optim):
+        trainer = Engine(lambda e, b: b)
+        evaluators = None
+        optimizers = None
+
+        if with_eval:
+            evaluator = Engine(lambda e, b: None)
+            acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.3, 0.2, 0.1, 0.1, 0.0]
+
+            @trainer.on(Events.EPOCH_COMPLETED)
+            def validate(engine):
+                evaluator.run(
+                    [0,]
+                )
+
+            @evaluator.on(Events.EPOCH_COMPLETED)
+            def set_eval_metric(engine):
+                engine.state.metrics = {"acc": acc_scores[trainer.state.epoch - 1]}
+
+            evaluators = {"validation": evaluator}
+
+        if with_optim:
+            t = torch.tensor([0,])
+            optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
+
+        setup_visdom_logging(trainer, optimizers=optimizers, evaluators=evaluators, log_every_iters=1)
+
+        handlers = trainer._event_handlers[Events.ITERATION_COMPLETED]
+        for cls in [
+            visdom_logger_module.OutputHandler,
+        ]:
+            assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+
+        if with_optim:
+            handlers = trainer._event_handlers[Events.ITERATION_STARTED]
+            for cls in [
+                visdom_logger_module.OptimizerParamsHandler,
+            ]:
+                assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+
+        if with_eval:
+            handlers = evaluator._event_handlers[Events.COMPLETED]
+            for cls in [
+                visdom_logger_module.OutputHandler,
+            ]:
+                assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+
+        data = [0, 1, 2]
+        trainer.run(data, max_epochs=10)
 
     _test(with_eval=False, with_optim=False)
     _test(with_eval=True, with_optim=True)
