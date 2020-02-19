@@ -1,10 +1,9 @@
 from time import perf_counter
+from typing import Optional
 
-from ignite.engine import Events
+from ignite.engine import Events, Engine
 
-__all__ = [
-    'Timer'
-]
+__all__ = ["Timer"]
 
 
 class Timer:
@@ -77,15 +76,22 @@ class Timer:
         ...              step=Events.ITERATION_COMPLETED)
     """
 
-    def __init__(self, average=False):
+    def __init__(self, average: bool = False):
         self._average = average
         self._t0 = perf_counter()
 
-        self.total = 0.
-        self.step_count = 0.
+        self.total = 0.0
+        self.step_count = 0.0
         self.running = True
 
-    def attach(self, engine, start=Events.STARTED, pause=Events.COMPLETED, resume=None, step=None):
+    def attach(
+        self,
+        engine: Engine,
+        start: str = Events.STARTED,
+        pause: str = Events.COMPLETED,
+        resume: Optional[str] = None,
+        step: Optional[str] = None,
+    ):
         """ Register callbacks to control the timer.
 
         Args:
@@ -120,30 +126,30 @@ class Timer:
         self.__init__(self._average)
         return self
 
-    def pause(self, *args):
+    def pause(self, *args) -> None:
         if self.running:
             self.total += self._elapsed()
             self.running = False
 
-    def resume(self, *args):
+    def resume(self, *args) -> None:
         if not self.running:
             self.running = True
             self._t0 = perf_counter()
 
-    def value(self):
+    def value(self) -> float:
         total = self.total
         if self.running:
             total += self._elapsed()
 
         if self._average:
-            denominator = max(self.step_count, 1.)
+            denominator = max(self.step_count, 1.0)
         else:
-            denominator = 1.
+            denominator = 1.0
 
         return total / denominator
 
-    def step(self, *args):
-        self.step_count += 1.
+    def step(self, *args) -> None:
+        self.step_count += 1.0
 
-    def _elapsed(self):
+    def _elapsed(self) -> float:
         return perf_counter() - self._t0

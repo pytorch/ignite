@@ -1,4 +1,3 @@
-from __future__ import print_function
 from argparse import ArgumentParser
 
 import torch
@@ -9,6 +8,7 @@ from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
 import numpy as np
+
 try:
     import visdom
 except ImportError:
@@ -40,11 +40,13 @@ class Net(nn.Module):
 def get_data_loaders(train_batch_size, val_batch_size):
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
-    train_loader = DataLoader(MNIST(download=True, root=".", transform=data_transform, train=True),
-                              batch_size=train_batch_size, shuffle=True)
+    train_loader = DataLoader(
+        MNIST(download=True, root=".", transform=data_transform, train=True), batch_size=train_batch_size, shuffle=True
+    )
 
-    val_loader = DataLoader(MNIST(download=False, root=".", transform=data_transform, train=False),
-                            batch_size=val_batch_size, shuffle=False)
+    val_loader = DataLoader(
+        MNIST(download=False, root=".", transform=data_transform, train=False), batch_size=val_batch_size, shuffle=False
+    )
     return train_loader, val_loader
 
 
@@ -60,57 +62,67 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
 
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    device = 'cpu'
+    device = "cpu"
 
     if torch.cuda.is_available():
-        device = 'cuda'
+        device = "cuda"
 
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
-    evaluator = create_supervised_evaluator(model,
-                                            metrics={'accuracy': Accuracy(),
-                                                     'nll': Loss(F.nll_loss)},
-                                            device=device)
+    evaluator = create_supervised_evaluator(
+        model, metrics={"accuracy": Accuracy(), "nll": Loss(F.nll_loss)}, device=device
+    )
 
-    train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss')
-    train_avg_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Average Loss')
-    train_avg_accuracy_window = create_plot_window(vis, '#Iterations', 'Accuracy', 'Training Average Accuracy')
-    val_avg_loss_window = create_plot_window(vis, '#Epochs', 'Loss', 'Validation Average Loss')
-    val_avg_accuracy_window = create_plot_window(vis, '#Epochs', 'Accuracy', 'Validation Average Accuracy')
+    train_loss_window = create_plot_window(vis, "#Iterations", "Loss", "Training Loss")
+    train_avg_loss_window = create_plot_window(vis, "#Iterations", "Loss", "Training Average Loss")
+    train_avg_accuracy_window = create_plot_window(vis, "#Iterations", "Accuracy", "Training Average Accuracy")
+    val_avg_loss_window = create_plot_window(vis, "#Epochs", "Loss", "Validation Average Loss")
+    val_avg_accuracy_window = create_plot_window(vis, "#Epochs", "Accuracy", "Validation Average Accuracy")
 
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
-        print("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-              "".format(engine.state.epoch, engine.state.iteration, len(train_loader), engine.state.output))
-        vis.line(X=np.array([engine.state.iteration]),
-                 Y=np.array([engine.state.output]),
-                 update='append', win=train_loss_window)
+        print(
+            "Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
+            "".format(engine.state.epoch, engine.state.iteration, len(train_loader), engine.state.output)
+        )
+        vis.line(
+            X=np.array([engine.state.iteration]),
+            Y=np.array([engine.state.output]),
+            update="append",
+            win=train_loss_window,
+        )
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['nll']
-        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]),
-                 win=train_avg_accuracy_window, update='append')
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]),
-                 win=train_avg_loss_window, update='append')
+        avg_accuracy = metrics["accuracy"]
+        avg_nll = metrics["nll"]
+        print(
+            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
+                engine.state.epoch, avg_accuracy, avg_nll
+            )
+        )
+        vis.line(
+            X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]), win=train_avg_accuracy_window, update="append"
+        )
+        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]), win=train_avg_loss_window, update="append")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
-        avg_accuracy = metrics['accuracy']
-        avg_nll = metrics['nll']
-        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(engine.state.epoch, avg_accuracy, avg_nll))
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]),
-                 win=val_avg_accuracy_window, update='append')
-        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]),
-                 win=val_avg_loss_window, update='append')
+        avg_accuracy = metrics["accuracy"]
+        avg_nll = metrics["nll"]
+        print(
+            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
+                engine.state.epoch, avg_accuracy, avg_nll
+            )
+        )
+        vis.line(
+            X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]), win=val_avg_accuracy_window, update="append"
+        )
+        vis.line(X=np.array([engine.state.epoch]), Y=np.array([avg_nll]), win=val_avg_loss_window, update="append")
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
@@ -118,18 +130,16 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=64,
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--val_batch_size', type=int, default=1000,
-                        help='input batch size for validation (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=10,
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01,
-                        help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.5,
-                        help='SGD momentum (default: 0.5)')
-    parser.add_argument('--log_interval', type=int, default=10,
-                        help='how many batches to wait before logging training status')
+    parser.add_argument("--batch_size", type=int, default=64, help="input batch size for training (default: 64)")
+    parser.add_argument(
+        "--val_batch_size", type=int, default=1000, help="input batch size for validation (default: 1000)"
+    )
+    parser.add_argument("--epochs", type=int, default=10, help="number of epochs to train (default: 10)")
+    parser.add_argument("--lr", type=float, default=0.01, help="learning rate (default: 0.01)")
+    parser.add_argument("--momentum", type=float, default=0.5, help="SGD momentum (default: 0.5)")
+    parser.add_argument(
+        "--log_interval", type=int, default=10, help="how many batches to wait before logging training status"
+    )
     parser.add_argument("--log_file", type=str, default=None, help="log file to log output to")
 
     args = parser.parse_args()

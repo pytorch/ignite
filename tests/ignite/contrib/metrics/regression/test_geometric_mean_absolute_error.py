@@ -15,20 +15,16 @@ def test_wrong_input_shapes():
     m = GeometricMeanAbsoluteError()
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4, 1)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4,)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4,),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
 
 
 def test_compute():

@@ -1,12 +1,11 @@
 import warnings
+from typing import Callable, Sequence
 
 import torch
 
 from ignite.metrics.metric import Metric
 
-__all__ = [
-    'EpochMetric'
-]
+__all__ = ["EpochMetric"]
 
 
 class EpochMetric(Metric):
@@ -37,19 +36,20 @@ class EpochMetric(Metric):
             you want to compute the metric with respect to one of the outputs.
 
     """
-    def __init__(self, compute_fn, output_transform=lambda x: x):
+
+    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x):
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
-        super(EpochMetric, self).__init__(output_transform=output_transform, device='cpu')
+        super(EpochMetric, self).__init__(output_transform=output_transform, device="cpu")
         self.compute_fn = compute_fn
 
-    def reset(self):
+    def reset(self) -> None:
         self._predictions = torch.tensor([], dtype=torch.float32)
         self._targets = torch.tensor([], dtype=torch.long)
 
-    def update(self, output):
+    def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
 
         if y_pred.ndimension() not in (1, 2):
@@ -79,8 +79,11 @@ class EpochMetric(Metric):
             try:
                 self.compute_fn(self._predictions, self._targets)
             except Exception as e:
-                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e),
-                              RuntimeWarning)
+                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
-    def compute(self):
+    def compute(self) -> None:
         return self.compute_fn(self._predictions, self._targets)
+
+
+class EpochMetricWarning(UserWarning):
+    pass

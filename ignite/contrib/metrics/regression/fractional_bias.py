@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -22,6 +20,7 @@ class FractionalBias(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
 
     """
+
     def reset(self):
         self._sum_of_errors = 0.0
         self._num_examples = 0
@@ -34,5 +33,5 @@ class FractionalBias(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('FractionalBias must have at least one example before it can be computed.')
+            raise NotComputableError("FractionalBias must have at least one example before it can be computed.")
         return self._sum_of_errors / self._num_examples

@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -34,6 +32,7 @@ class GeometricMeanAbsoluteError(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('GeometricMeanAbsoluteError must have at '
-                                     'least one example before it can be computed.')
+            raise NotComputableError(
+                "GeometricMeanAbsoluteError must have at " "least one example before it can be computed."
+            )
         return torch.exp(self._sum_of_errors / self._num_examples).item()

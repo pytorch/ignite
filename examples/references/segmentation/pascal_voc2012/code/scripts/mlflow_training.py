@@ -22,8 +22,9 @@ def run(config, logger=None, local_rank=0, **kwargs):
     dist.init_process_group("nccl", init_method="env://")
 
     # As we passed config with option --manual_config_load
-    assert hasattr(config, "setup"), "We need to manually setup the configuration, please set --manual_config_load " \
-                                     "to py_config_runner"
+    assert hasattr(config, "setup"), (
+        "We need to manually setup the configuration, please set --manual_config_load " "to py_config_runner"
+    )
 
     config = config.setup()
 
@@ -40,10 +41,9 @@ def run(config, logger=None, local_rank=0, **kwargs):
     config.output_path = Path(output_path)
 
     if dist.get_rank() == 0:
-        mlflow.log_params({
-            "pytorch version": torch.__version__,
-            "ignite version": ignite.__version__,
-        })
+        mlflow.log_params(
+            {"pytorch version": torch.__version__, "ignite version": ignite.__version__,}
+        )
         mlflow.log_params(get_params(config, TRAINVAL_CONFIG))
 
     try:

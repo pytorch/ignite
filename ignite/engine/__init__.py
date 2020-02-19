@@ -1,30 +1,36 @@
+from typing import Sequence, Union, Optional, Callable, Dict, Any, Tuple
 import torch
 
 from ignite.engine.engine import Engine
 from ignite.engine.events import State, Events
 from ignite.utils import convert_tensor
+from ignite.metrics import Metric
 
-__all__ = [
-    'create_supervised_trainer',
-    'create_supervised_evaluator',
-    'Engine',
-    'Events'
-]
+__all__ = ["create_supervised_trainer", "create_supervised_evaluator", "Engine", "Events"]
 
 
-def _prepare_batch(batch, device=None, non_blocking=False):
+def _prepare_batch(
+    batch: Sequence[torch.Tensor], device: Optional[Union[str, torch.device]] = None, non_blocking: bool = False
+):
     """Prepare batch for training: pass to a device with options.
 
     """
     x, y = batch
-    return (convert_tensor(x, device=device, non_blocking=non_blocking),
-            convert_tensor(y, device=device, non_blocking=non_blocking))
+    return (
+        convert_tensor(x, device=device, non_blocking=non_blocking),
+        convert_tensor(y, device=device, non_blocking=non_blocking),
+    )
 
 
-def create_supervised_trainer(model, optimizer, loss_fn,
-                              device=None, non_blocking=False,
-                              prepare_batch=_prepare_batch,
-                              output_transform=lambda x, y, y_pred, loss: loss.item()):
+def create_supervised_trainer(
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    loss_fn: Union[Callable, torch.nn.Module],
+    device: Optional[Union[str, torch.device]] = None,
+    non_blocking: bool = False,
+    prepare_batch: Callable = _prepare_batch,
+    output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+) -> Engine:
     """
     Factory function for creating a trainer for supervised models.
 
@@ -50,7 +56,7 @@ def create_supervised_trainer(model, optimizer, loss_fn,
     if device:
         model.to(device)
 
-    def _update(engine, batch):
+    def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
@@ -63,10 +69,14 @@ def create_supervised_trainer(model, optimizer, loss_fn,
     return Engine(_update)
 
 
-def create_supervised_evaluator(model, metrics=None,
-                                device=None, non_blocking=False,
-                                prepare_batch=_prepare_batch,
-                                output_transform=lambda x, y, y_pred: (y_pred, y,)):
+def create_supervised_evaluator(
+    model: torch.nn.Module,
+    metrics: Optional[Dict[str, Metric]] = None,
+    device: Optional[Union[str, torch.device]] = None,
+    non_blocking: bool = False,
+    prepare_batch: Callable = _prepare_batch,
+    output_transform: Callable = lambda x, y, y_pred: (y_pred, y,),
+) -> Engine:
     """
     Factory function for creating an evaluator for supervised models.
 
@@ -94,7 +104,7 @@ def create_supervised_evaluator(model, metrics=None,
     if device:
         model.to(device)
 
-    def _inference(engine, batch):
+    def _inference(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)

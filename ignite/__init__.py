@@ -5,4 +5,4 @@ import ignite.exceptions
 import ignite.contrib
 import ignite.utils
 
-__version__ = '0.4.0'
+__version__ = "0.4.0"

@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
@@ -22,6 +20,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
 
     """
+
     def reset(self):
         self._sum_y = 0.0
         self._num_examples = 0
@@ -38,6 +37,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('GeometricMeanRelativeAbsoluteError must have at least '
-                                     'one example before it can be computed.')
+            raise NotComputableError(
+                "GeometricMeanRelativeAbsoluteError must have at least " "one example before it can be computed."
+            )
         return torch.exp(torch.mean(self._sum_of_errors / self._num_examples)).item()

@@ -33,6 +33,7 @@ def test_compute():
 
 def top_k_accuracy(y_true, y_pred, k=5, normalize=True):
     import numpy as np
+
     # Taken from
     # https://github.com/scikit-learn/scikit-learn/blob/4685cb5c50629aba4429f6701585f82fc3eee5f7/
     # sklearn/metrics/classification.py#L187
@@ -44,7 +45,7 @@ def top_k_accuracy(y_true, y_pred, k=5, normalize=True):
     counter = 0.0
     argsorted = np.argsort(y_pred, axis=1)
     for i in range(num_obs):
-        if y_true[i] in argsorted[i, idx + 1:]:
+        if y_true[i] in argsorted[i, idx + 1 :]:
             counter += 1.0
     if normalize:
         return counter * 1.0 / num_obs
@@ -55,6 +56,7 @@ def top_k_accuracy(y_true, y_pred, k=5, normalize=True):
 def _test_distrib_itegration(device):
     import torch.distributed as dist
     from ignite.engine import Engine
+
     rank = dist.get_rank()
     torch.manual_seed(12)
 
@@ -64,14 +66,16 @@ def _test_distrib_itegration(device):
         n_classes = 10
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
         y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
 
         print("{}: y_true={} | y_preds={}".format(rank, y_true[:5], y_preds[:5, :2]))
 
         def update(engine, i):
-            return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, :], \
-                y_true[i * s + rank * offset:(i + 1) * s + rank * offset]
+            return (
+                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+            )
 
         engine = Engine(update)
 
@@ -83,12 +87,11 @@ def _test_distrib_itegration(device):
         engine.run(data=data, max_epochs=n_epochs)
 
         assert "acc" in engine.state.metrics
-        res = engine.state.metrics['acc']
+        res = engine.state.metrics["acc"]
         if isinstance(res, torch.Tensor):
             res = res.cpu().numpy()
 
-        true_res = top_k_accuracy(y_true.cpu().numpy(),
-                                  y_preds.cpu().numpy(), k=k)
+        true_res = top_k_accuracy(y_true.cpu().numpy(), y_preds.cpu().numpy(), k=k)
 
         assert pytest.approx(res) == true_res
 
@@ -111,14 +114,14 @@ def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_itegration(device)
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_itegration(device)
