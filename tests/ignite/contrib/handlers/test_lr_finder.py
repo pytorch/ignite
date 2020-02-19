@@ -1,28 +1,29 @@
-import matplotlib
-matplotlib.use('agg')
+import copy
 
-import pytest
+import matplotlib
+
+matplotlib.use("agg")
+
 import torch
 from torch import nn
-import numpy as np
 from ignite.contrib.handlers import FastaiLRFinder
-from ignite.contrib.handlers.lr_finder import _StateCacher
 from torch.optim import SGD
 from ignite.engine import create_supervised_trainer, Events
-import copy
-import os
+
+import pytest
 
 
 @pytest.fixture
 def no_site_packages():
     import sys
-    matplotlib = sys.modules['matplotlib']
-    del sys.modules['matplotlib']
+
+    matplotlib = sys.modules["matplotlib"]
+    del sys.modules["matplotlib"]
     prev_path = list(sys.path)
     sys.path = [p for p in sys.path if "site-packages" not in p]
     yield "no_site_packages"
     sys.path = prev_path
-    sys.modules['matplotlib'] = matplotlib
+    sys.modules["matplotlib"] = matplotlib
 
 
 class DummyModel(nn.Module):
@@ -61,12 +62,41 @@ def dataloader():
     yield torch.rand(100, 2, 1)
 
 
-def test_attach_without_with(lr_finder, dummy_engine, dataloader):
-    _ = lr_finder.attach(dummy_engine, model, optimizer)
+def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer):
+
+    with pytest.raises(TypeError, match=r"Argument to_save should be a mapping"):
+        with lr_finder.attach(dummy_engine, to_save=123) as f:
+            pass
+
+    with pytest.raises(TypeError, match=r"Object <class 'int'> should have `state_dict` method"):
+        with lr_finder.attach(dummy_engine, to_save={1: 2}) as f:
+            pass
+
+    with pytest.raises(ValueError, match=r"Mapping to_save should contain 'optimizer' key"):
+        with lr_finder.attach(dummy_engine, to_save={"model": model}) as f:
+            pass
+
+    to_save = {"model": model, "optimizer": optimizer}
+    with pytest.raises(ValueError, match=r"smooth_f is outside the range \[0, 1\]"):
+        with lr_finder.attach(dummy_engine, to_save=to_save, smooth_f=234) as f:
+            pass
+
+    with pytest.raises(ValueError, match=r"diverge_th should be larger than 1"):
+        with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=0.0) as f:
+            pass
+
+    with pytest.raises(ValueError, match=r"if provided, num_iter should be a positive integer"):
+        with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0.0) as f:
+            pass
+
+
+def test_attach_without_with(lr_finder, dummy_engine, model, optimizer):
+    to_save = {"model": model, "optimizer": optimizer}
+    _ = lr_finder.attach(dummy_engine, to_save=to_save)
     for event in dummy_engine._event_handlers:
         assert len(dummy_engine._event_handlers[event]) == 0
 
-    with lr_finder.attach(dummy_engine, model, optimizer) as _:
+    with lr_finder.attach(dummy_engine, to_save=to_save) as _:
         assert any([len(dummy_engine._event_handlers[event]) != 0 for event in dummy_engine._event_handlers])
         with pytest.raises(RuntimeError):
             lr_finder.lr_suggestion()
@@ -75,73 +105,29 @@ def test_attach_without_with(lr_finder, dummy_engine, dataloader):
 
 
 def test_with_attach(lr_finder, model, optimizer, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, model, optimizer) as trainer_with_finder:
+    to_save = {"model": model, "optimizer": optimizer}
+    with lr_finder.attach(dummy_engine, to_save=to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
+
     assert lr_finder.get_results() is not None
 
     for event in dummy_engine._event_handlers:
         assert len(dummy_engine._event_handlers[event]) == 0
 
 
-def test_in_memory_model_optimizer_reset(model, optimizer, dummy_engine, dataloader):
-    lr_finder = FastaiLRFinder()
+def test_model_optimizer_reset(lr_finder, model, optimizer, dummy_engine, dataloader):
+    to_save = {"model": model, "optimizer": optimizer}
 
     init_optimizer = copy.deepcopy(optimizer.state_dict())
     init_model = copy.deepcopy(model.state_dict())
 
-    @dummy_engine.on(Events.EPOCH_COMPLETED)
-    def compare_states(engine):
-        mid_optimizer = lr_finder._optimizer.state_dict()
-        mid_model = lr_finder._model.state_dict()
-
-        assert init_optimizer["param_groups"][0]["params"] == mid_optimizer["param_groups"][0]["params"]
-
-        for v1, v2 in zip(init_model.values(), mid_model.values()):
-            assert any(v1 != v2)
-
-    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=1e10) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
-        end_optimizer = lr_finder._optimizer.state_dict()
-        end_model = lr_finder._model.state_dict()
 
-    assert init_optimizer["param_groups"][0]["params"] == end_optimizer["param_groups"][0]["params"]
+    assert init_optimizer["param_groups"][0]["params"] == optimizer.param_groups[0]["params"]
 
-    for v1, v2 in zip(init_model.values(), end_model.values()):
+    for v1, v2 in zip(init_model.values(), model.parameters()):
         assert all(v1 == v2)
-
-
-def test_in_dir_model_optimizer_reset(model, optimizer, dummy_engine, dataloader):
-    import tempfile
-    temp_dir = tempfile.gettempdir()
-    tmpdir_num_files = len(os.listdir(temp_dir))
-    lr_finder = FastaiLRFinder(memory_cache=False, cache_dir=temp_dir)
-
-    init_optimizer = copy.deepcopy(optimizer.state_dict())
-    init_model = copy.deepcopy(model.state_dict())
-
-    @dummy_engine.on(Events.EPOCH_COMPLETED)
-    def compare_states(engine):
-        mid_optimizer = lr_finder._optimizer.state_dict()
-        mid_model = lr_finder._model.state_dict()
-
-        assert init_optimizer["param_groups"][0]["params"] == mid_optimizer["param_groups"][0]["params"]
-
-        for v1, v2 in zip(init_model.values(), mid_model.values()):
-            assert any(v1 != v2)
-
-        assert tmpdir_num_files != len(os.listdir(temp_dir))
-
-    with lr_finder.attach(dummy_engine, model, optimizer, diverge_th=np.inf) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
-        end_optimizer = lr_finder._optimizer.state_dict()
-        end_model = lr_finder._model.state_dict()
-
-    assert init_optimizer["param_groups"][0]["params"] == end_optimizer["param_groups"][0]["params"]
-
-    for v1, v2 in zip(init_model.values(), end_model.values()):
-        assert all(v1 == v2)
-
-    assert tmpdir_num_files == len(os.listdir(temp_dir))
 
 
 def test_lr_policy(lr_finder, model, optimizer, dummy_engine, dataloader):
