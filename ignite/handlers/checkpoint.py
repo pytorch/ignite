@@ -12,11 +12,7 @@ import torch
 
 from ignite.engine import Events, Engine
 
-__all__ = [
-    'Checkpoint',
-    'DiskSaver',
-    'ModelCheckpoint'
-]
+__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint"]
 
 
 class Checkpoint:
@@ -130,9 +126,17 @@ class Checkpoint:
 
     Item = namedtuple("Item", ["priority", "filename"])
 
-    def __init__(self, to_save: dict, save_handler: Callable, filename_prefix: str = "",
-                 score_function: Optional[Callable] = None, score_name: Optional[str] = None,
-                 n_saved: Optional[int] = 1, global_step_transform: Callable = None, archived: bool = False):
+    def __init__(
+        self,
+        to_save: dict,
+        save_handler: Callable,
+        filename_prefix: str = "",
+        score_function: Optional[Callable] = None,
+        score_name: Optional[str] = None,
+        n_saved: Optional[int] = 1,
+        global_step_transform: Callable = None,
+        archived: bool = False,
+    ):
 
         if not isinstance(to_save, collections.Mapping):
             raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
@@ -144,12 +148,12 @@ class Checkpoint:
             raise TypeError("Argument `save_handler` should be callable")
 
         if score_function is None and score_name is not None:
-            raise ValueError("If `score_name` is provided, then `score_function` "
-                             "should be also provided.")
+            raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
 
         if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError("global_step_transform should be a function, got {} instead."
-                            .format(type(global_step_transform)))
+            raise TypeError(
+                "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
+            )
 
         self._check_objects(to_save, "state_dict")
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
@@ -189,8 +193,9 @@ class Checkpoint:
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
-            priority_str = "{}".format(priority) if isinstance(priority, numbers.Integral) \
-                else "{:.4f}".format(priority)
+            priority_str = (
+                "{}".format(priority) if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
+            )
 
             if self._score_name is not None:
                 if len(suffix) > 0:
@@ -210,7 +215,7 @@ class Checkpoint:
                 for k in checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
-            filename = '{}{}_{}{}'.format(self._fname_prefix, name, suffix, self._ext)
+            filename = "{}{}_{}{}".format(self._fname_prefix, name, suffix, self._ext)
 
             self.save_handler(checkpoint, filename)
 
@@ -285,10 +290,12 @@ class DiskSaver:
         if require_empty:
             matched = [fname for fname in os.listdir(dirname) if fname.endswith(".pth") or fname.endswith(".pth.tar")]
             if len(matched) > 0:
-                raise ValueError("Files {} with extension '.pth' or '.pth.tar' are already present "
-                                 "in the directory {}. If you want to use this "
-                                 "directory anyway, pass `require_empty=False`."
-                                 "".format(matched, dirname))
+                raise ValueError(
+                    "Files {} with extension '.pth' or '.pth.tar' are already present "
+                    "in the directory {}. If you want to use this "
+                    "directory anyway, pass `require_empty=False`."
+                    "".format(matched, dirname)
+                )
 
     def __call__(self, checkpoint: Mapping, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
@@ -378,20 +385,29 @@ class ModelCheckpoint(Checkpoint):
         ['/tmp/models/myprefix_mymodel_6.pth']
     """
 
-    def __init__(self, dirname: str, filename_prefix: str,
-                 save_interval: Optional[Callable] = None,
-                 score_function: Optional[Callable] = None, score_name: Optional[str] = None,
-                 n_saved: int = 1,
-                 atomic: bool = True, require_empty: bool = True,
-                 create_dir: bool = True,
-                 save_as_state_dict: bool = True, global_step_transform: Optional[Callable] = None,
-                 archived: bool = False):
+    def __init__(
+        self,
+        dirname: str,
+        filename_prefix: str,
+        save_interval: Optional[Callable] = None,
+        score_function: Optional[Callable] = None,
+        score_name: Optional[str] = None,
+        n_saved: int = 1,
+        atomic: bool = True,
+        require_empty: bool = True,
+        create_dir: bool = True,
+        save_as_state_dict: bool = True,
+        global_step_transform: Optional[Callable] = None,
+        archived: bool = False,
+    ):
 
         if not save_as_state_dict:
             raise ValueError("Argument save_as_state_dict is deprecated and should be True")
         if save_interval is not None:
-            msg = "Argument save_interval is deprecated and should be None. " \
-                  "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
+            msg = (
+                "Argument save_interval is deprecated and should be None. "
+                "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
+            )
             if save_interval == 1:
                 # Do not break for old version who used `save_interval=1`
                 warnings.warn(msg)
@@ -402,12 +418,12 @@ class ModelCheckpoint(Checkpoint):
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty)
 
         if score_function is None and score_name is not None:
-            raise ValueError("If `score_name` is provided, then `score_function` "
-                             "should be also provided.")
+            raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
 
         if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError("global_step_transform should be a function, got {} instead."
-                            .format(type(global_step_transform)))
+            raise TypeError(
+                "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
+            )
 
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = disk_saver

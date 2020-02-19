@@ -13,7 +13,7 @@ from ignite.handlers import TerminateOnNan
 
 def update_fn(engine, batch):
     a = 1
-    engine.state.metrics['a'] = a
+    engine.state.metrics["a"] = a
     return a
 
 
@@ -24,15 +24,15 @@ def test_pbar(capsys):
     engine = Engine(update_fn)
 
     pbar = ProgressBar()
-    pbar.attach(engine, ['a'])
+    pbar.attach(engine, ["a"])
 
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]'
+    expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
     assert err[-1] == expected
 
 
@@ -45,7 +45,7 @@ def test_pbar_file(tmp_path):
     file = open(str(file_path), "w+")
 
     pbar = ProgressBar(file=file)
-    pbar.attach(engine, ['a'])
+    pbar.attach(engine, ["a"])
     engine.run(loader, max_epochs=n_epochs)
 
     file.close()  # Force a flush of the buffer. file.flush() does not work.
@@ -53,7 +53,7 @@ def test_pbar_file(tmp_path):
     file = open(str(file_path), "r")
     lines = file.readlines()
 
-    expected = u"Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
+    expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
     assert lines[-2] == expected
 
 
@@ -63,10 +63,10 @@ def test_pbar_log_message(capsys):
     pbar.log_message("test")
 
     captured = capsys.readouterr()
-    out = captured.out.split('\r')
+    out = captured.out.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
-    expected = u'test'
+    expected = "test"
     assert out[-1] == expected
 
 
@@ -82,7 +82,7 @@ def test_pbar_log_message_file(tmp_path):
     file = open(str(file_path), "r")
     lines = file.readlines()
 
-    expected = u"test\n"
+    expected = "test\n"
     assert lines[0] == expected
 
 
@@ -91,11 +91,12 @@ def test_attach_fail_with_string():
     pbar = ProgressBar()
 
     with pytest.raises(TypeError):
-        pbar.attach(engine, 'a')
+        pbar.attach(engine, "a")
 
 
 def test_pbar_batch_indeces(capsys):
     engine = Engine(lambda e, b: time.sleep(0.1))
+
     @engine.on(Events.ITERATION_STARTED)
     def print_iter(_):
         print("iteration: ", engine.state.iteration)
@@ -104,10 +105,10 @@ def test_pbar_batch_indeces(capsys):
     engine.run(list(range(4)), max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    printed_batch_indeces = set(map(lambda x: int(x.split('/')[0][-1]), err))
+    printed_batch_indeces = set(map(lambda x: int(x.split("/")[0][-1]), err))
     expected_batch_indeces = list(range(1, 5))
     assert sorted(list(printed_batch_indeces)) == expected_batch_indeces
 
@@ -127,16 +128,16 @@ def test_pbar_with_metric(capsys):
     RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
     pbar = ProgressBar()
-    pbar.attach(trainer, metric_names=['batchloss', ])
+    pbar.attach(trainer, metric_names=["batchloss",])
 
     trainer.run(data=data, max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]'
+    expected = "Epoch: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
     assert actual == expected
 
 
@@ -163,11 +164,11 @@ def test_pbar_with_all_metric(capsys):
     trainer.run(data=data, max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]'
+    expected = "Epoch: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
     assert actual == expected
 
 
@@ -183,11 +184,11 @@ def test_pbar_no_metric_names(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch [2/2]: [1/2]  50%|█████      [00:00<00:00]'
+    expected = "Epoch [2/2]: [1/2]  50%|█████      [00:00<00:00]"
     assert actual == expected
 
 
@@ -197,15 +198,15 @@ def test_pbar_with_output(capsys):
     engine = Engine(update_fn)
 
     pbar = ProgressBar()
-    pbar.attach(engine, output_transform=lambda x: {'a': x})
+    pbar.attach(engine, output_transform=lambda x: {"a": x})
 
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]'
+    expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
     assert err[-1] == expected
 
 
@@ -228,10 +229,10 @@ def test_pbar_with_scalar_output(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<00:00]'
+    expected = "Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<00:00]"
     assert err[-1] == expected
 
 
@@ -246,10 +247,10 @@ def test_pbar_with_str_output(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<00:00]'
+    expected = "Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<00:00]"
     assert err[-1] == expected
 
 
@@ -263,10 +264,10 @@ def test_pbar_with_tqdm_kwargs(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]'
+    expected = "My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]"
     assert err[-1] == expected
 
 
@@ -279,15 +280,14 @@ def test_pbar_for_validation(capsys):
     engine.run(loader, max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = u'Validation: [4/5]  80%|████████   [00:00<00:00]'
+    expected = "Validation: [4/5]  80%|████████   [00:00<00:00]"
     assert err[-1] == expected
 
 
 def test_pbar_output_tensor(capsys):
-
     def _test(out_tensor, out_msg):
         loader = [1, 2, 3, 4, 5]
 
@@ -301,10 +301,10 @@ def test_pbar_output_tensor(capsys):
         engine.run(loader, max_epochs=1)
 
         captured = capsys.readouterr()
-        err = captured.err.split('\r')
+        err = captured.err.split("\r")
         err = list(map(lambda x: x.strip(), err))
         err = list(filter(None, err))
-        expected = u'Output tensor: [4/5]  80%|████████  , {} [00:00<00:00]'.format(out_msg)
+        expected = "Output tensor: [4/5]  80%|████████  , {} [00:00<00:00]".format(out_msg)
         assert err[-1] == expected
 
     _test(out_tensor=torch.tensor([5, 0]), out_msg="output_0=5, output_1=0")
@@ -337,11 +337,11 @@ def test_pbar_on_epochs(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch: [9/10]  90%|█████████  [00:00<00:00]'
+    expected = "Epoch: [9/10]  90%|█████████  [00:00<00:00]"
     assert actual == expected
 
 
@@ -418,11 +418,11 @@ def test_pbar_on_callable_events(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch: [90/100]  90%|█████████  [00:00<00:00]'
+    expected = "Epoch: [90/100]  90%|█████████  [00:00<00:00]"
     assert actual == expected
 
 
@@ -434,9 +434,9 @@ def test_tqdm_logger_epoch_length(capsys):
     engine.run(loader, epoch_length=50)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\r')
+    err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = u'Epoch: [50/50] 100%|██████████ [00:00<00:00]'
+    expected = "Epoch: [50/50] 100%|██████████ [00:00<00:00]"
     assert actual == expected

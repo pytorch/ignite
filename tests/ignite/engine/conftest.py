@@ -21,7 +21,6 @@ class EpochCounter(object):
 
 @pytest.fixture()
 def counter_factory():
-
     def create(name, start_value=1):
         if name == "epoch":
             return EpochCounter(start_value)

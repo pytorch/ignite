@@ -7,9 +7,7 @@ import torch
 from ignite.utils import apply_to_type
 from ignite.engine import Engine
 
-__all__ = [
-    'TerminateOnNan'
-]
+__all__ = ["TerminateOnNan"]
 
 
 class TerminateOnNan:
@@ -53,6 +51,7 @@ class TerminateOnNan:
         try:
             apply_to_type(output, (numbers.Number, torch.Tensor), raise_error)
         except RuntimeError:
-            self.logger.warning("{}: Output '{}' contains NaN or Inf. Stop training"
-                                .format(self.__class__.__name__, output))
+            self.logger.warning(
+                "{}: Output '{}' contains NaN or Inf. Stop training".format(self.__class__.__name__, output)
+            )
             engine.terminate()

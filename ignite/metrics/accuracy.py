@@ -6,15 +6,16 @@ from ignite.exceptions import NotComputableError
 
 import torch
 
-__all__ = [
-    'Accuracy'
-]
+__all__ = ["Accuracy"]
 
 
 class _BaseClassification(Metric):
-
-    def __init__(self, output_transform: Callable = lambda x: x, is_multilabel: bool = False,
-                 device: Optional[Union[str, torch.device]] = None):
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        is_multilabel: bool = False,
+        device: Optional[Union[str, torch.device]] = None,
+    ):
         self._is_multilabel = is_multilabel
         self._type = None
         self._num_classes = None
@@ -28,9 +29,11 @@ class _BaseClassification(Metric):
         y_pred, y = output
 
         if not (y.ndimension() == y_pred.ndimension() or y.ndimension() + 1 == y_pred.ndimension()):
-            raise ValueError("y must have shape of (batch_size, ...) and y_pred must have "
-                             "shape of (batch_size, num_categories, ...) or (batch_size, ...), "
-                             "but given {} vs {}.".format(y.shape, y_pred.shape))
+            raise ValueError(
+                "y must have shape of (batch_size, ...) and y_pred must have "
+                "shape of (batch_size, num_categories, ...) or (batch_size, ...), "
+                "but given {} vs {}.".format(y.shape, y_pred.shape)
+            )
 
         y_shape = y.shape
         y_pred_shape = y_pred.shape
@@ -73,8 +76,10 @@ class _BaseClassification(Metric):
                 update_type = "binary"
                 num_classes = 1
         else:
-            raise RuntimeError("Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation."
-                               " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape))
+            raise RuntimeError(
+                "Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation."
+                " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape)
+            )
         if self._type is None:
             self._type = update_type
             self._num_classes = num_classes
@@ -82,8 +87,9 @@ class _BaseClassification(Metric):
             if self._type != update_type:
                 raise RuntimeError("Input data type has changed from {} to {}.".format(self._type, update_type))
             if self._num_classes != num_classes:
-                raise ValueError("Input data number of classes has changed from {} to {}"
-                                 .format(self._num_classes, num_classes))
+                raise ValueError(
+                    "Input data number of classes has changed from {} to {}".format(self._num_classes, num_classes)
+                )
 
 
 class Accuracy(_BaseClassification):
@@ -121,14 +127,15 @@ class Accuracy(_BaseClassification):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x,
-                 is_multilabel: bool = False,
-                 device: Optional[Union[str, torch.device]] = None):
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        is_multilabel: bool = False,
+        device: Optional[Union[str, torch.device]] = None,
+    ):
         self._num_correct = None
         self._num_examples = None
-        super(Accuracy, self).__init__(output_transform=output_transform,
-                                       is_multilabel=is_multilabel,
-                                       device=device)
+        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -161,5 +168,5 @@ class Accuracy(_BaseClassification):
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
-            raise NotComputableError('Accuracy must have at least one example before it can be computed.')
+            raise NotComputableError("Accuracy must have at least one example before it can be computed.")
         return self._num_correct / self._num_examples

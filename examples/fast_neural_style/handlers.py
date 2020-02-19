@@ -2,7 +2,6 @@ import sys
 
 
 class Progbar(object):
-
     def __init__(self, loader, metrics):
         self.num_iterations = len(loader)
         self.output_stream = sys.stdout
@@ -23,17 +22,17 @@ class Progbar(object):
         equal_to = int(percent_seen / 10)
         done = int(percent_seen) == 100
 
-        bar = '[' + '=' * equal_to + '>' * (not done) + ' ' * (10 - equal_to) + ']'
-        message = 'Epoch {epoch} | {percent_seen:.2f}% | {bar}'.format(epoch=engine.state.epoch,
-                                                                       percent_seen=percent_seen,
-                                                                       bar=bar)
+        bar = "[" + "=" * equal_to + ">" * (not done) + " " * (10 - equal_to) + "]"
+        message = "Epoch {epoch} | {percent_seen:.2f}% | {bar}".format(
+            epoch=engine.state.epoch, percent_seen=percent_seen, bar=bar
+        )
         for key, value in self.metrics.items():
-            message += ' | {name}: {value:.2e}'.format(name=key, value=value)
+            message += " | {name}: {value:.2e}".format(name=key, value=value)
 
-        message += '\r'
+        message += "\r"
 
         self.output_stream.write(message)
         self.output_stream.flush()
 
         if done:
-            self.output_stream.write('\n')
+            self.output_stream.write("\n")
