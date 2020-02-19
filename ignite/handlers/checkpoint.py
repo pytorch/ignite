@@ -205,6 +205,11 @@ class Checkpoint:
 
             checkpoint = self._setup_checkpoint()
 
+            # happens in distributed setting when not in first process.
+            # Avoids that all processes read (not necessary due to parameter syncing)
+            if checkpoint is None:
+                return
+
             name = "checkpoint"
             if len(checkpoint) == 1:
                 for k in checkpoint:
@@ -225,6 +230,9 @@ class Checkpoint:
         checkpoint = {}
         for k, obj in self.to_save.items():
             if isinstance(obj, torch.nn.parallel.DistributedDataParallel):
+                # only save in first process
+                if torch.distributed.get_rank() > 0:
+                    return
                 torch.distributed.barrier()
                 state_dict = obj.module.state_dict()
             elif isinstance(obj, torch.nn.parallel.DataParallel):
@@ -258,10 +266,13 @@ class Checkpoint:
             if isinstance(obj, torch.nn.parallel.DataParallel):
                 obj.module.load_state_dict(state_dict)
             elif isinstance(obj, torch.nn.parallel.DistributedDataParallel):
+                # only load in first process
+                if torch.distributed.get_rank() > 0:
+                    return
                 torch.distributed.barrier()
                 obj.module.load_state_dict(state_dict)
                 obj.require_forward_param_sync = True
-                obj.require_backward_grad_sync = True
+                obj.require_backward_grad_sync = torch.is_grad_enabled()
                 torch.distributed.barrier()
             else:
                 obj.load_state_dict(state_dict)
