@@ -805,10 +805,9 @@ def test_checkpoint_keys_parallel():
 
 @pytest.mark.distributed
 def test_checkpoint_keys_distributed_parallel(distributed_context_single_node_gloo):
+    # not used to run CPU tests!
     local_rank = distributed_context_single_node_gloo['local_rank']
-    _test_checkpoint_keys(torch.nn.parallel.DistributedDataParallel,
-                          device_ids=[local_rank, ],
-                          output_device=local_rank)
+    _test_checkpoint_keys(torch.nn.parallel.DistributedDataParallel)
 
 
 def _test_checkpoint_load(wrapper_cls, **kwargs):
@@ -856,8 +855,7 @@ def test_parallel_checkpoint_load():
 
 @pytest.mark.distributed
 def test_distributed_parallel_checkpoint_load(distributed_context_single_node_gloo):
+    # not used to run cpu tests!
     local_rank = distributed_context_single_node_gloo['local_rank']
-    _test_checkpoint_load(torch.nn.parallel.DistributedDataParallel,
-                          device_ids=[local_rank, ],
-                          output_device=local_rank)
+    _test_checkpoint_load(torch.nn.parallel.DistributedDataParallel)
 
