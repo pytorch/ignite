@@ -141,7 +141,7 @@ class Engine:
 
         _check_signature(self, process_function, 'process_function', None)
 
-    def register_events(self, *event_names: Union[str, int, Any], **kwargs) -> None:
+    def register_events(self, *event_names: Union[str, int, Any], event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -190,11 +190,8 @@ class Engine:
             engine.run(data)
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
-        # for python2 compatibility:
-        event_to_attr = kwargs.get('event_to_attr', None)
-        if event_to_attr is not None:
-            if not isinstance(event_to_attr, dict):
-                raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
+        if not (event_to_attr is None or isinstance(event_to_attr, dict)):
+            raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
 
         for e in event_names:
             self._allowed_events.append(e)
