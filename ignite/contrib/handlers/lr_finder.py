@@ -2,10 +2,9 @@
 import logging
 import warnings
 from collections.abc import Mapping
-from tempfile import gettempdir
+import tempfile
 import contextlib
 from pathlib import Path
-import shutil
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -72,12 +71,10 @@ class FastaiLRFinder(object):
     """
 
     def __init__(self):
-        # self._reset_params()
         self._diverge_flag = False
         self._history = None
         self._best_loss = None
         self._lr_schedule = None
-        self._tempdir = Path(gettempdir())
         self.logger = logging.getLogger(__name__)
 
     def _run(self, trainer, optimizer, output_transform, num_iter, end_lr, step_mode, smooth_f, diverge_th):
@@ -125,16 +122,6 @@ class FastaiLRFinder(object):
         trainer.remove_event_handler(self._log_lr_and_loss, Events.ITERATION_COMPLETED)
         trainer.remove_event_handler(self._reached_num_iterations, Events.ITERATION_COMPLETED)
 
-    # def _reset_params(self):
-    #     # self._model = None
-    #     # self._optimizer = None
-    #     # self._output_transform = None
-    #     # self._num_iter = None
-    #     # self._end_lr = None
-    #     # self._step_mode = None
-    #     # self._smooth_f = None
-    #     # self._diverge_th = None
-
     def _log_lr_and_loss(self, trainer, output_transform, smooth_f, diverge_th):
         output = trainer.state.output
         loss = output_transform(output)
@@ -167,29 +154,6 @@ class FastaiLRFinder(object):
                 UserWarning,
             )
 
-        # def _setup(self, to_save, output_transform=lambda output: output, num_iter=None, end_lr=10,
-        #            step_mode="exp", smooth_f=0.05, diverge_th=5):
-        #
-        #     if smooth_f < 0 or smooth_f >= 1:
-        #         raise ValueError("smooth_f is outside the range [0, 1]")
-        #     if diverge_th < 1:
-        #         raise ValueError("diverge_th should be larger than 1")
-        #     if step_mode not in ["exp", "linear"]:
-        #         raise ValueError("expected one of (exp, linear), got {}".format(step_mode))
-        #     if num_iter is not None and (not isinstance(num_iter, int) or num_iter <= 0):
-        #         raise ValueError("if provided, num_iter should be a positive int, got {}".format(num_iter))
-        #
-        #     self._model = model
-        #     self._optimizer = optimizer
-        #     self._output_transform = output_transform
-        #     self._num_iter = num_iter
-        #     self._end_lr = end_lr
-        #     self._step_mode = step_mode
-        #     self._smooth_f = smooth_f
-        #     self._diverge_th = diverge_th
-
-        return self
-
     def _detach(self, trainer):
         """
         Detaches lr_finder from trainer.
@@ -204,8 +168,6 @@ class FastaiLRFinder(object):
             trainer.remove_event_handler(self._warning, Events.COMPLETED)
         if trainer.has_event_handler(self._reset, Events.COMPLETED):
             trainer.remove_event_handler(self._reset, Events.COMPLETED)
-
-        # self._reset_params()
 
     def get_results(self):
         """
@@ -346,36 +308,36 @@ class FastaiLRFinder(object):
             raise ValueError("if provided, num_iter should be a positive integer, but given {}".format(num_iter))
 
         # store to_save
-        obj = {k: o.state_dict() for k, o in to_save.items()}
-        cache_filepath = self._tempdir / "ignite_lr_finder_cache.pt.tar"
-        torch.save(obj, cache_filepath)
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            obj = {k: o.state_dict() for k, o in to_save.items()}
+            cache_filepath = Path(tmpdirname) / "ignite_lr_finder_cache.pt.tar"
+            torch.save(obj, cache_filepath)
 
-        optimizer = to_save["optimizer"]
-        # Attach handlers
-        if not trainer.has_event_handler(self._run):
-            trainer.add_event_handler(
-                Events.STARTED,
-                self._run,
-                optimizer,
-                output_transform,
-                num_iter,
-                end_lr,
-                step_mode,
-                smooth_f,
-                diverge_th,
-            )
-        if not trainer.has_event_handler(self._warning):
-            trainer.add_event_handler(Events.COMPLETED, self._warning)
-        if not trainer.has_event_handler(self._reset):
-            trainer.add_event_handler(Events.COMPLETED, self._reset)
+            optimizer = to_save["optimizer"]
+            # Attach handlers
+            if not trainer.has_event_handler(self._run):
+                trainer.add_event_handler(
+                    Events.STARTED,
+                    self._run,
+                    optimizer,
+                    output_transform,
+                    num_iter,
+                    end_lr,
+                    step_mode,
+                    smooth_f,
+                    diverge_th,
+                )
+            if not trainer.has_event_handler(self._warning):
+                trainer.add_event_handler(Events.COMPLETED, self._warning)
+            if not trainer.has_event_handler(self._reset):
+                trainer.add_event_handler(Events.COMPLETED, self._reset)
 
-        yield trainer
-        self._detach(trainer)
-        # restore to_save
-        obj = torch.load(cache_filepath)
-        for k, o in obj.items():
-            to_save[k].load_state_dict(o)
-        shutil.rmtree(self._tempdir.as_posix())
+            yield trainer
+            self._detach(trainer)
+            # restore to_save
+            obj = torch.load(cache_filepath)
+            for k, o in obj.items():
+                to_save[k].load_state_dict(o)
 
 
 class _ExponentialLR(_LRScheduler):
