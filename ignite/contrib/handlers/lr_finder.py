@@ -334,8 +334,9 @@ class FastaiLRFinder(object):
 
             yield trainer
             self._detach(trainer)
-            # restore to_save
+            # restore to_save and reset trainer's state
             obj = torch.load(cache_filepath)
+            trainer.state = None
             for k, o in obj.items():
                 to_save[k].load_state_dict(o)
 

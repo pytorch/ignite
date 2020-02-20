@@ -136,12 +136,14 @@ def test_model_optimizer_reset(lr_finder, to_save, dummy_engine, dataloader):
 
     init_optimizer_sd = copy.deepcopy(optimizer.state_dict())
     init_model_sd = copy.deepcopy(model.state_dict())
+    init_trainer_sd = copy.deepcopy(dummy_engine.state_dict())
 
     with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=float("inf")) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
 
     assert init_optimizer_sd == optimizer.state_dict()
     assert init_model_sd == model.state_dict()
+    assert init_trainer_sd == dummy_engine.state_dict()
 
 
 def test_lr_policy(lr_finder, to_save, dummy_engine, dataloader):
