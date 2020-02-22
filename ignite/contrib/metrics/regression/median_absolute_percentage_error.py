@@ -1,5 +1,3 @@
-
-
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
@@ -34,5 +32,6 @@ class MedianAbsolutePercentageError(_BaseRegressionEpoch):
     """
 
     def __init__(self, output_transform=lambda x: x):
-        super(MedianAbsolutePercentageError, self).__init__(median_absolute_percentage_error_compute_fn,
-                                                            output_transform)
+        super(MedianAbsolutePercentageError, self).__init__(
+            median_absolute_percentage_error_compute_fn, output_transform
+        )

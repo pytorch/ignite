@@ -1,5 +1,3 @@
-
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -29,11 +27,11 @@ class MeanError(_BaseRegression):
 
     def _update(self, output):
         y_pred, y = output
-        errors = (y.view_as(y_pred) - y_pred)
+        errors = y.view_as(y_pred) - y_pred
         self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanError must have at least one example before it can be computed.')
+            raise NotComputableError("MeanError must have at least one example before it can be computed.")
         return self._sum_of_errors / self._num_examples

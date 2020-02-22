@@ -11,9 +11,7 @@ import torch.distributed as dist
 
 from ignite.engine import Events, Engine
 
-__all__ = [
-    'Metric'
-]
+__all__ = ["Metric"]
 
 
 class Metric(metaclass=ABCMeta):
@@ -32,10 +30,10 @@ class Metric(metaclass=ABCMeta):
             initialized and available, device is set to `cuda`.
 
     """
+
     _required_output_keys = ("y_pred", "y")
 
-    def __init__(self, output_transform: Callable = lambda x: x,
-                 device: Optional[Union[str, torch.device]] = None):
+    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None):
         self._output_transform = output_transform
 
         # Check device if distributed is initialized:
@@ -43,9 +41,11 @@ class Metric(metaclass=ABCMeta):
 
             # check if reset and update methods are decorated. Compute may not be decorated
             if not (hasattr(self.reset, "_decorated") and hasattr(self.update, "_decorated")):
-                warnings.warn("{} class does not support distributed setting. Computed result is not collected "
-                              "across all computing devices".format(self.__class__.__name__),
-                              RuntimeWarning)
+                warnings.warn(
+                    "{} class does not support distributed setting. Computed result is not collected "
+                    "across all computing devices".format(self.__class__.__name__),
+                    RuntimeWarning,
+                )
             if device is None:
                 device = "cuda"
             device = torch.device(device)
@@ -89,10 +89,7 @@ class Metric(metaclass=ABCMeta):
         """
         pass
 
-    def _sync_all_reduce(
-            self,
-            tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor,
-                                                                  numbers.Number]:
+    def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
         if not (dist.is_available() and dist.is_initialized()):
             # Nothing to reduce
             return tensor
@@ -125,12 +122,16 @@ class Metric(metaclass=ABCMeta):
         output = self._output_transform(engine.state.output)
         if isinstance(output, Mapping):
             if self._required_output_keys is None:
-                raise TypeError("Transformed engine output for {} metric should be a tuple/list, but given {}"
-                                .format(self.__class__.__name__, type(output)))
+                raise TypeError(
+                    "Transformed engine output for {} metric should be a tuple/list, but given {}".format(
+                        self.__class__.__name__, type(output)
+                    )
+                )
             if not all([k in output for k in self._required_output_keys]):
-                raise ValueError("When transformed engine's output is a mapping, "
-                                 "it should contain {} keys, but given {}".format(self._required_output_keys,
-                                                                                  list(output.keys())))
+                raise ValueError(
+                    "When transformed engine's output is a mapping, "
+                    "it should contain {} keys, but given {}".format(self._required_output_keys, list(output.keys()))
+                )
             output = tuple(output[k] for k in self._required_output_keys)
         self.update(output)
 
@@ -149,58 +150,72 @@ class Metric(metaclass=ABCMeta):
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x + y, self, other)
 
     def __radd__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x + y, other, self)
 
     def __sub__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x - y, self, other)
 
     def __rsub__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x - y, other, self)
 
     def __mul__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x * y, self, other)
 
     def __rmul__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x * y, other, self)
 
     def __pow__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x ** y, self, other)
 
     def __rpow__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x ** y, other, self)
 
     def __mod__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x % y, self, other)
 
     def __div__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x.__div__(y), self, other)
 
     def __rdiv__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x.__div__(y), other, self)
 
     def __truediv__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x.__truediv__(y), self, other)
 
     def __rtruediv__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x.__truediv__(y), other, self)
 
     def __floordiv__(self, other):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x, y: x // y, self, other)
 
     def __getattr__(self, attr: str) -> Callable:
@@ -216,17 +231,18 @@ class Metric(metaclass=ABCMeta):
 
     def __getitem__(self, index: Any):
         from ignite.metrics import MetricsLambda
+
         return MetricsLambda(lambda x: x[index], self)
 
 
 def sync_all_reduce(*attrs) -> Callable:
     def wrapper(func: Callable) -> Callable:
-
         @wraps(func)
         def another_wrapper(self: Metric, *args, **kwargs) -> Callable:
             if not isinstance(self, Metric):
-                raise RuntimeError("Decorator sync_all_reduce should be used on "
-                                   "ignite.metric.Metric class methods only")
+                raise RuntimeError(
+                    "Decorator sync_all_reduce should be used on " "ignite.metric.Metric class methods only"
+                )
 
             if len(attrs) > 0 and not self._is_reduced:
                 for attr in attrs:

@@ -1,4 +1,3 @@
-
 import numpy as np
 import pytest
 
@@ -11,6 +10,7 @@ from unittest.mock import Mock
 def norm_mock():
     def norm(x):
         return np.linalg.norm(x)
+
     norm_mock = Mock(side_effect=norm, spec=norm)
     norm_mock.configure_mock(**{"__name__": "norm"})
     norm_mock.reset_mock()

@@ -1,4 +1,3 @@
-
 import logging
 import time
 from collections import defaultdict, OrderedDict
@@ -14,9 +13,7 @@ from ignite.engine.events import Events, State, EventWithFilter, RemovableEventH
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
-__all__ = [
-    'Engine'
-]
+__all__ = ["Engine"]
 
 
 class Engine:
@@ -140,7 +137,7 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        _check_signature(self, process_function, 'process_function', None)
+        _check_signature(self, process_function, "process_function", None)
 
     def register_events(self, *event_names: Union[str, int, Any], **kwargs) -> None:
         """Add events that can be fired.
@@ -193,10 +190,10 @@ class Engine:
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         # for python2 compatibility:
-        event_to_attr = kwargs.get('event_to_attr', None)
+        event_to_attr = kwargs.get("event_to_attr", None)
         if event_to_attr is not None:
             if not isinstance(event_to_attr, dict):
-                raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
+                raise ValueError("Expected event_to_attr to be dictionary. Got {}.".format(type(event_to_attr)))
 
         for e in event_names:
             self._allowed_events.append(e)
@@ -205,7 +202,6 @@ class Engine:
 
     @staticmethod
     def _handler_wrapper(handler: Callable, event_name: str, event_filter: Callable) -> Callable:
-
         def wrapper(engine: Engine, *args, **kwargs) -> Any:
             event = engine.state.get_event_attrib_value(event_name)
             if event_filter(engine, event):
@@ -261,7 +257,7 @@ class Engine:
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
-        _check_signature(self, handler, 'handler', *(event_args + args), **kwargs)
+        _check_signature(self, handler, "handler", *(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
@@ -271,8 +267,9 @@ class Engine:
     @staticmethod
     def _assert_non_callable_event(event_name: str):
         if isinstance(event_name, EventWithFilter):
-            raise TypeError("Argument event_name should not be a callable event, "
-                            "please use event without any event filtering")
+            raise TypeError(
+                "Argument event_name should not be a callable event, " "please use event without any event filtering"
+            )
 
     def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
         """Check if the specified event has the specified handler.
@@ -314,8 +311,11 @@ class Engine:
         if event_name not in self._event_handlers:
             raise ValueError("Input event name '{}' does not exist".format(event_name))
 
-        new_event_handlers = [(h, args, kwargs) for h, args, kwargs in self._event_handlers[event_name]
-                              if not self._compare_handlers(handler, h)]
+        new_event_handlers = [
+            (h, args, kwargs)
+            for h, args, kwargs in self._event_handlers[event_name]
+            if not self._compare_handlers(handler, h)
+        ]
         if len(new_event_handlers) == len(self._event_handlers[event_name]):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
@@ -392,8 +392,10 @@ class Engine:
     def terminate_epoch(self) -> None:
         """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
         """
-        self.logger.info("Terminate current epoch is signaled. "
-                         "Current epoch iteration will stop after current iteration is finished.")
+        self.logger.info(
+            "Terminate current epoch is signaled. "
+            "Current epoch iteration will stop after current iteration is finished."
+        )
         self.should_terminate_single_epoch = True
 
     def _run_once_on_dataset(self) -> Tuple[int, int, int]:
@@ -421,11 +423,13 @@ class Engine:
                     # Should exit while loop if we can not iterate
                     if should_exit:
                         if not self._is_done(self.state):
-                            warnings.warn("Data iterator can not provide data anymore but required total number of "
-                                          "iterations to run is not reached. "
-                                          "Current iteration: {} vs Total iterations to run : {}"
-                                          .format(self.state.iteration,
-                                                  self.state.epoch_length * self.state.max_epochs))
+                            warnings.warn(
+                                "Data iterator can not provide data anymore but required total number of "
+                                "iterations to run is not reached. "
+                                "Current iteration: {} vs Total iterations to run : {}".format(
+                                    self.state.iteration, self.state.epoch_length * self.state.max_epochs
+                                )
+                            )
                         break
 
                     # set seed on restart of data iterator
@@ -509,29 +513,39 @@ class Engine:
 
         for k in self._state_dict_all_req_keys:
             if k not in state_dict:
-                raise ValueError("Required state attribute '{}' is absent in provided state_dict '{}'"
-                                 .format(k, state_dict.keys()))
+                raise ValueError(
+                    "Required state attribute '{}' is absent in provided state_dict '{}'".format(k, state_dict.keys())
+                )
 
         opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
         if (not any(opts)) or (all(opts)):
             raise ValueError("state_dict should contain only one of '{}' keys".format(self._state_dict_one_of_opt_keys))
 
-        self.state = State(seed=state_dict['seed'], max_epochs=state_dict['max_epochs'],
-                           epoch_length=state_dict['epoch_length'], metrics={})
+        self.state = State(
+            seed=state_dict["seed"],
+            max_epochs=state_dict["max_epochs"],
+            epoch_length=state_dict["epoch_length"],
+            metrics={},
+        )
 
         if "iteration" in state_dict:
-            self.state.iteration = state_dict['iteration']
+            self.state.iteration = state_dict["iteration"]
             self.state.epoch = self.state.iteration // self.state.epoch_length
         elif "epoch" in state_dict:
-            self.state.epoch = state_dict['epoch']
+            self.state.epoch = state_dict["epoch"]
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
     @staticmethod
     def _is_done(state: State) -> bool:
         return state.iteration == state.epoch_length * state.max_epochs
 
-    def run(self, data: Iterable, max_epochs: Optional[int] = None, epoch_length: Optional[int] = None,
-            seed: Optional[int] = None) -> State:
+    def run(
+        self,
+        data: Iterable,
+        max_epochs: Optional[int] = None,
+        epoch_length: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> State:
         """Runs the `process_function` over the passed data.
 
         Engine has a state and the following logic is applied in this function:
@@ -550,8 +564,8 @@ class Engine:
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
                 This argument should be `None` if run is resuming from a state.
-            seed (int, optional): Seed to setup at each epoch for reproducible runs.
-                This argument should be `None` if run is resuming from a state.
+            seed (int, optional): Seed to use for dataflow consistency, by default it
+                will respect the global random state. This argument should be `None` if run is resuming from a state.
 
         Returns:
             State: output state.
@@ -580,7 +594,7 @@ class Engine:
             if max_epochs is None:
                 max_epochs = 1
             if seed is None:
-                seed = 12
+                seed = torch.randint(0, int(1e9), (1,)).item()
             if epoch_length is None:
                 if hasattr(data, "__len__"):
                     epoch_length = len(data)
@@ -598,8 +612,11 @@ class Engine:
                 self.state.seed = seed
             if epoch_length is not None:
                 self.state.epoch_length = epoch_length
-            self.logger.info("Engine run resuming from iteration {}, epoch {} until {} epochs"
-                             .format(self.state.iteration, self.state.epoch, self.state.max_epochs))
+            self.logger.info(
+                "Engine run resuming from iteration {}, epoch {} until {} epochs".format(
+                    self.state.iteration, self.state.epoch, self.state.max_epochs
+                )
+            )
 
         self.state.dataloader = data
         return self._internal_run()
@@ -622,13 +639,16 @@ class Engine:
             if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
                 if (self._dataloader_len is not None) and hasattr(self.state.dataloader.sampler, "epoch"):
                     if self._dataloader_len != self.state.epoch_length:
-                        warnings.warn("When defined engine's epoch length is different of input dataloader length, "
-                                      "distributed sampler indices can not be setup in a reproducible manner")
+                        warnings.warn(
+                            "When defined engine's epoch length is different of input dataloader length, "
+                            "distributed sampler indices can not be setup in a reproducible manner"
+                        )
 
                 batch_sampler = self.state.dataloader.batch_sampler
                 if not isinstance(batch_sampler, ReproducibleBatchSampler):
-                    self.state.dataloader = _update_dataloader(self.state.dataloader,
-                                                               ReproducibleBatchSampler(batch_sampler))
+                    self.state.dataloader = _update_dataloader(
+                        self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
+                    )
 
         iteration = self.state.iteration
         self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
@@ -671,6 +691,7 @@ class Engine:
         torch.manual_seed(seed + epoch)
         try:
             import numpy as np
+
             np.random.seed(seed + epoch)
         except ImportError:
             pass

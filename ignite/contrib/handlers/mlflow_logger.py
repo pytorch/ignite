@@ -3,10 +3,14 @@ import numbers
 import warnings
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler, \
-    global_step_from_engine
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOutputHandler,
+    BaseOptimizerParamsHandler,
+    global_step_from_engine,
+)
 
-__all__ = ['MLflowLogger', 'OutputHandler', 'OptimizerParamsHandler', 'global_step_from_engine']
+__all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
 
 class OutputHandler(BaseOutputHandler):
@@ -98,8 +102,10 @@ class OutputHandler(BaseOutputHandler):
         global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
-            raise TypeError("global_step must be int, got {}."
-                            " Please check the output of global_step_transform.".format(type(global_step)))
+            raise TypeError(
+                "global_step must be int, got {}."
+                " Please check the output of global_step_transform.".format(type(global_step))
+            )
 
         rendered_metrics = {}
         for key, value in metrics.items():
@@ -111,16 +117,17 @@ class OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     rendered_metrics["{} {} {}".format(self.tag, key, i)] = v.item()
             else:
-                warnings.warn("MLflowLogger output_handler can not log "
-                              "metrics value type {}".format(type(value)))
+                warnings.warn("MLflowLogger output_handler can not log " "metrics value type {}".format(type(value)))
 
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
         from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES
 
         for key in list(rendered_metrics.keys()):
             if not _VALID_PARAM_AND_METRIC_NAMES.match(key):
-                warnings.warn("MLflowLogger output_handler encountered an invalid metric name '{}' that "
-                              "will be ignored and not logged to MLflow".format(key))
+                warnings.warn(
+                    "MLflowLogger output_handler encountered an invalid metric name '{}' that "
+                    "will be ignored and not logged to MLflow".format(key)
+                )
                 del rendered_metrics[key]
 
         logger.log_metrics(rendered_metrics, step=global_step)
@@ -160,8 +167,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{} ".format(self.tag) if self.tag else ""
-        params = {"{}{} group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
-                  for i, param_group in enumerate(self.optimizer.param_groups)}
+        params = {
+            "{}{} group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            for i, param_group in enumerate(self.optimizer.param_groups)
+        }
 
         logger.log_metrics(params, step=global_step)
 
@@ -224,8 +233,10 @@ class MLflowLogger(BaseLogger):
         try:
             import mlflow
         except ImportError:
-            raise RuntimeError("This contrib module requires mlflow to be installed. "
-                               "Please install it with command: \n pip install mlflow")
+            raise RuntimeError(
+                "This contrib module requires mlflow to be installed. "
+                "Please install it with command: \n pip install mlflow"
+            )
 
         if tracking_uri is not None:
             mlflow.set_tracking_uri(tracking_uri)
@@ -245,4 +256,5 @@ class MLflowLogger(BaseLogger):
 
     def close(self):
         import mlflow
+
         mlflow.end_run()

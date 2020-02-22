@@ -5,7 +5,6 @@ from ignite.contrib.metrics.regression._base import _BaseRegression, _BaseRegres
 
 
 def test_base_regression_shapes():
-
     class L1(_BaseRegression):
         def reset(self):
             self._sum_of_errors = 0.0
@@ -21,40 +20,31 @@ def test_base_regression_shapes():
     m = L1()
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4, 1)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4,)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4,),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 3),
-                  torch.rand(4, 1)))
+        m.update((torch.rand(4, 3), torch.rand(4, 1)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1),
-                  torch.rand(4, 3)))
+        m.update((torch.rand(4, 1), torch.rand(4, 3)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 7),
-                  torch.rand(4,)))
+        m.update((torch.rand(4, 7), torch.rand(4,)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4,),
-                  torch.rand(4, 7)))
+        m.update((torch.rand(4,), torch.rand(4, 7)))
 
 
 def test_base_regression_epoch_shapes():
-
     def compute_fn(y_pred, y):
         return 0.0
 
@@ -65,36 +55,28 @@ def test_base_regression_epoch_shapes():
     m = ZeroEpoch()
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4, 1)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4,)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4,),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 3),
-                  torch.rand(4, 1)))
+        m.update((torch.rand(4, 3), torch.rand(4, 1)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1),
-                  torch.rand(4, 3)))
+        m.update((torch.rand(4, 1), torch.rand(4, 3)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 7),
-                  torch.rand(4,)))
+        m.update((torch.rand(4, 7), torch.rand(4,)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4,),
-                  torch.rand(4, 7)))
+        m.update((torch.rand(4,), torch.rand(4, 7)))
 
 
 def test_base_regression_compute_fn():
