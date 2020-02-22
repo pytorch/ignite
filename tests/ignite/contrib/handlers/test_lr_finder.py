@@ -171,25 +171,24 @@ def test_num_iter_is_none(lr_finder, to_save, dummy_engine, dataloader):
 
     with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=float("inf")) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
-
-    assert_output_sizes(lr_finder, dummy_engine)
-    assert dummy_engine.state.iteration == len(dataloader)
+        assert_output_sizes(lr_finder, dummy_engine)
+        assert dummy_engine.state.iteration == len(dataloader)
 
 
 def test_num_iter_is_enough(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=50, diverge_th=float("inf")) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
-    assert_output_sizes(lr_finder, dummy_engine)
-    # -1 because it terminates when state.iteration > num_iter
-    assert dummy_engine.state.iteration - 1 == 50
+        assert_output_sizes(lr_finder, dummy_engine)
+        # -1 because it terminates when state.iteration > num_iter
+        assert dummy_engine.state.iteration - 1 == 50
 
 
 def test_num_iter_is_not_enough(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save, num_iter=150, diverge_th=float("inf")) as trainer_with_finder:
         with pytest.warns(UserWarning):
             trainer_with_finder.run(dataloader)
-    assert_output_sizes(lr_finder, dummy_engine)
-    assert dummy_engine.state.iteration == len(dataloader)
+        assert_output_sizes(lr_finder, dummy_engine)
+        assert dummy_engine.state.iteration == len(dataloader)
 
 
 def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader):

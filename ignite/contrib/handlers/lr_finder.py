@@ -311,7 +311,7 @@ class FastaiLRFinder:
         with tempfile.TemporaryDirectory() as tmpdirname:
             obj = {k: o.state_dict() for k, o in to_save.items()}
             cache_filepath = Path(tmpdirname) / "ignite_lr_finder_cache.pt.tar"
-            torch.save(obj, cache_filepath)
+            torch.save(obj, cache_filepath.as_posix())
 
             optimizer = to_save["optimizer"]
             # Attach handlers
@@ -335,7 +335,7 @@ class FastaiLRFinder:
             yield trainer
             self._detach(trainer)
             # restore to_save and reset trainer's state
-            obj = torch.load(cache_filepath)
+            obj = torch.load(cache_filepath.as_posix())
             trainer.state = None
             for k, o in obj.items():
                 to_save[k].load_state_dict(o)
