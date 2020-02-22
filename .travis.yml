@@ -118,7 +118,7 @@ jobs:
 
       # Deploy built docs : a) when PR is merged to master, b) when a tag is built
       deploy:
-        - edge: true
+        edge: true
         - provider: pages
           token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
           keep_history: false
