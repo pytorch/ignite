@@ -14,7 +14,7 @@ from ignite.handlers import Checkpoint
 from ignite.contrib.handlers import LRScheduler, PiecewiseLinear
 
 
-class FastaiLRFinder(object):
+class FastaiLRFinder:
     """Learning rate finder handler for supervised trainers.
 
     While attached, the handler increases the learning rate in between two
