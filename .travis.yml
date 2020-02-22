@@ -119,12 +119,14 @@ jobs:
       # Deploy built docs : a) when PR is merged to master, b) when a tag is built
       deploy:
         - provider: pages
+          edge: true
           token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
           keep_history: false
           local_dir: docs/build/html
           on:
             branch: master
         - provider: pages
+          edge: true
           token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
           keep_history: false
           local_dir: docs/build/html
@@ -165,6 +167,7 @@ jobs:
 
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
+        edge: true
         provider: pypi
 
         username: $PYPI_USER
@@ -208,6 +211,7 @@ jobs:
 
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
+        edge: true
         provider: pypi
         username: $PYPI_USER
         # If password contains non alphanumeric characters
