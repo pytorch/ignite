@@ -26,7 +26,7 @@ class FastaiLRFinder(object):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers import LRFinder
+        from ignite.contrib.handlers import FastaiLRFinder
 
         trainer = ...
         model = ...
