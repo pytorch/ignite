@@ -171,6 +171,11 @@ class ProgressBar(BaseLogger):
         if event_name not in engine._allowed_events:
             raise ValueError('Logging event {} is not in allowed events for this engine'.format(event_name.name))
 
+        if isinstance(closing_event_name,
+                      CallableEventWithFilter):
+            if closing_event_name.filter != CallableEventWithFilter.default_event_filter:
+                raise ValueError('Closing Event should not be a filtered event')
+
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError("Logging event {} should be called before closing event {}"
                              .format(event_name, closing_event_name))
