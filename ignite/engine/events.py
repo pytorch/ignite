@@ -19,11 +19,11 @@ class CallableEventWithFilter:
     be run at the current event (if the event type is correct)
 
     Args:
-        value (str): The value (will only be set if not yet set by other parent class). Necessary for usage with
-            :class:`enum.Enum`
+        value (str): The actual enum value. Only needed for internal use. Do not touch!
         event_filter (callable): A function taking the engine and the current event value as input and returning a
             boolean to indicate whether this event should be executed. Defaults to None, which will result to a
             function that always returns `True`
+        name (str, optional): The enum-name of the current object. Only needed for internal use. Do not touch!
 
     """
 
