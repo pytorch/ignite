@@ -24,8 +24,10 @@ before_install: &before_install
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda create -q -n test-environment pytorch torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
+  - conda create -q -n test-environment pytorch cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
   - source activate test-environment
+  # Temporary fix until https://github.com/pytorch/pytorch/issues/33103
+  - if [[ "$PYTORCH_CHANNEL" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL; fi
   # Test contrib dependencies
   - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard pynvml
 
