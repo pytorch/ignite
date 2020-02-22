@@ -1,5 +1,10 @@
 language: python
 
+os:
+  - linux
+  
+dist: bionic
+
 python:
   - "3.7"
 
@@ -114,16 +119,14 @@ jobs:
       # Deploy built docs : a) when PR is merged to master, b) when a tag is built
       deploy:
         - provider: pages
-          skip-cleanup: true
-          github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
-          keep-history: false
+          token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
+          keep_history: false
           local_dir: docs/build/html
           on:
             branch: master
         - provider: pages
-          skip-cleanup: true
-          github-token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
-          keep-history: false
+          token: $GITHUB_TOKEN # Set in the settings page of your repository, as a secure variable
+          keep_history: false
           local_dir: docs/build/html
           on:
             tags: true
@@ -164,7 +167,7 @@ jobs:
       deploy:
         provider: pypi
 
-        user: $PYPI_USER
+        username: $PYPI_USER
         # If password contains non alphanumeric characters
         # https://github.com/travis-ci/dpl/issues/377
         # pass it as secured variable
@@ -172,8 +175,6 @@ jobs:
         # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
         # `travis encrypt deploy.password="password"`
         #  secure: "secured_password"
-
-        skip_cleanup: true
 
         distributions: "sdist bdist_wheel"
 
@@ -208,7 +209,7 @@ jobs:
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
         provider: pypi
-        user: $PYPI_USER
+        username: $PYPI_USER
         # If password contains non alphanumeric characters
         # https://github.com/travis-ci/dpl/issues/377
         # pass it as secured variable
@@ -216,7 +217,6 @@ jobs:
         # otherwise, follow "How to encrypt the password": https://docs.travis-ci.com/user/encryption-keys/
         # `travis encrypt deploy.password="password"`
         #  secure: "secured_password"
-        skip_cleanup: true
         distributions: "sdist bdist_wheel"
         on:
           branch:
