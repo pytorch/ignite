@@ -6,7 +6,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import Timer
 
 
-class BasicTimeProfiler(object):
+class BasicTimeProfiler:
     """
     BasicTimeProfiler can be used to profile the handlers,
     events, data loading and data processing times.
