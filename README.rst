@@ -1,6 +1,7 @@
 Ignite
 ======
- 
+
+
 .. image:: https://travis-ci.org/pytorch/ignite.svg?branch=master
      :target: https://travis-ci.org/pytorch/ignite
 
@@ -40,6 +41,7 @@ Ignite
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     
+
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
 - ignite helps you write compact but full-featured training loops in a few lines of code
