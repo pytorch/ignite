@@ -40,8 +40,8 @@ def _test_frequency_with_engine(device, workers):
     @engine.on(Events.ITERATION_COMPLETED)
     def assert_wps(e):
         wps = e.state.metrics["wps"]
-        assert estimated_wps * 0.85 < wps < estimated_wps, "{}: {} < {} < {}".format(
-            e.state.iteration, estimated_wps * 0.85, wps, estimated_wps
+        assert estimated_wps * 0.80 < wps < estimated_wps, "{}: {} < {} < {}".format(
+            e.state.iteration, estimated_wps * 0.80, wps, estimated_wps
         )
 
     data = [[i] * batch_size for i in range(0, total_tokens, batch_size)]
