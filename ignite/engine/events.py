@@ -168,7 +168,7 @@ class Events(EventEnum):
     Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
     Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
 
-     """
+    """
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
 
