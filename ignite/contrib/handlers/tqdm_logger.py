@@ -3,8 +3,8 @@ import warnings
 
 import torch
 
-from ignite.engine import Events
-from ignite.engine.engine import EventWithFilter
+from ignite.engine import Events, Engine
+from ignite.engine.events import CallableEventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 
 
@@ -131,10 +131,6 @@ class ProgressBar(BaseLogger):
 
     @staticmethod
     def _compare_lt(event1, event2):
-        if isinstance(event1, EventWithFilter):
-            event1 = event1.event
-        if isinstance(event2, EventWithFilter):
-            event2 = event2.event
         i1 = ProgressBar._events_order.index(event1)
         i2 = ProgressBar._events_order.index(event2)
         return i1 < i2
@@ -178,19 +174,22 @@ class ProgressBar(BaseLogger):
         """
         desc = self.tqdm_kwargs.get("desc", "Epoch")
 
-        if not isinstance(event_name, (Events, EventWithFilter)):
-            raise ValueError("Logging event should be only `ignite.engine.Events`")
+        if event_name not in engine._allowed_events:
+            raise ValueError('Logging event {} is not in allowed events for this engine'.format(event_name.name))
 
-        if isinstance(closing_event_name, EventWithFilter):
-            raise ValueError("Closing event should not use any event filter")
+        if isinstance(closing_event_name,
+                      CallableEventWithFilter):
+            if closing_event_name.filter != CallableEventWithFilter.default_event_filter:
+                raise ValueError('Closing Event should not be a filtered event')
 
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError(
                 "Logging event {} should be called before closing event {}".format(event_name, closing_event_name)
             )
 
-        log_handler = _OutputHandler(desc, metric_names, output_transform, closing_event_name=closing_event_name)
-        # if event_name is EventWithFilter, filter is passed here
+        log_handler = _OutputHandler(desc, metric_names, output_transform,
+                                     closing_event_name=closing_event_name)
+
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 

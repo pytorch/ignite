@@ -5,13 +5,13 @@ from unittest.mock import MagicMock
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEvents, EventWithFilter
+from ignite.engine.events import CallableEventWithFilter, EventEnum
 
 import pytest
 
 
 def test_custom_events():
-    class CustomEvents(Enum):
+    class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
     # Dummy engine
@@ -39,7 +39,8 @@ def test_custom_events():
 
 
 def test_custom_events_with_event_to_attr():
-    class CustomEvents(Enum):
+
+    class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
     custom_event_to_attr = {CustomEvents.TEST_EVENT: "test_event"}
@@ -101,8 +102,8 @@ def test_callable_events():
         return True
 
     ret = Events.ITERATION_STARTED(event_filter=foo)
-    assert isinstance(ret, EventWithFilter)
-    assert ret.event == Events.ITERATION_STARTED
+    assert isinstance(ret, CallableEventWithFilter)
+    assert ret == Events.ITERATION_STARTED
     assert ret.filter == foo
     assert isinstance(Events.ITERATION_STARTED.value, str)
 
@@ -111,8 +112,8 @@ def test_callable_events():
     # assert ret in State.event_to_attr
 
     ret = Events.ITERATION_STARTED(every=10)
-    assert isinstance(ret, EventWithFilter)
-    assert ret.event == Events.ITERATION_STARTED
+    assert isinstance(ret, CallableEventWithFilter)
+    assert ret == Events.ITERATION_STARTED
     assert ret.filter is not None
 
     # assert ret in Events
@@ -120,8 +121,8 @@ def test_callable_events():
     # assert ret in State.event_to_attr
 
     ret = Events.ITERATION_STARTED(once=10)
-    assert isinstance(ret, EventWithFilter)
-    assert ret.event == Events.ITERATION_STARTED
+    assert isinstance(ret, CallableEventWithFilter)
+    assert ret == Events.ITERATION_STARTED
     assert ret.filter is not None
 
     # assert ret in Events
@@ -136,8 +137,7 @@ def test_callable_events():
 
 def test_callable_events_every_eq_one():
     e = Events.ITERATION_STARTED(every=1)
-    assert not isinstance(e, EventWithFilter)
-    assert isinstance(e, Events)
+    assert isinstance(e, CallableEventWithFilter)
 
 
 def test_has_handler_on_callable_events():
@@ -158,7 +158,7 @@ def test_has_handler_on_callable_events():
     assert engine.has_event_handler(bar)
     assert engine.has_event_handler(bar, Events.EPOCH_COMPLETED)
 
-    with pytest.raises(TypeError, match=r"Argument event_name should not be a callable event"):
+    with pytest.raises(TypeError, match=r"Argument event_name should not be a filtered event"):
         engine.has_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
 
 
@@ -184,7 +184,7 @@ def test_remove_event_handler_on_callable_events():
     engine.remove_event_handler(bar, Events.EPOCH_COMPLETED)
     assert not engine.has_event_handler(foo)
 
-    with pytest.raises(TypeError, match=r"Argument event_name should not be a callable event"):
+    with pytest.raises(TypeError, match=r"Argument event_name should not be a filtered event"):
         engine.remove_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
 
 
@@ -335,14 +335,14 @@ def test_custom_callable_events():
     with pytest.raises(TypeError, match=r"object is not callable"):
         CustomEvents.TEST_EVENT(every=10)
 
-    class CustomEvents2(CallableEvents, Enum):
+    class CustomEvents2(EventEnum):
         TEST_EVENT = "test_event"
 
     CustomEvents2.TEST_EVENT(every=10)
 
 
 def test_custom_callable_events_with_engine():
-    class CustomEvents(CallableEvents, Enum):
+    class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
     event_to_attr = {CustomEvents.TEST_EVENT: "test_event"}

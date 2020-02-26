@@ -9,7 +9,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
-from ignite.engine.events import Events, State, EventWithFilter, RemovableEventHandle
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -139,7 +139,7 @@ class Engine:
 
         _check_signature(self, process_function, "process_function", None)
 
-    def register_events(self, *event_names: Union[str, int, Any], **kwargs) -> None:
+    def register_events(self, *event_names: Union[str, int, Any], event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -157,10 +157,9 @@ class Engine:
 
         .. code-block:: python
 
-            from enum import Enum
-            from ignite.engine import Engine
+            from ignite.engine import Engine, EvenEnum
 
-            class CustomEvents(CallableEvents, Enum):
+            class CustomEvents(EventEnum):
                 FOO_EVENT = "foo_event"
                 BAR_EVENT = "bar_event"
 
@@ -173,9 +172,9 @@ class Engine:
         .. code-block:: python
 
             from enum import Enum
-            from ignite.engine.engine import Engine, CallableEvents
+            from ignite.engine import Engine, EventEnum
 
-            class TBPTT_Events(CallableEvents, Enum):
+            class TBPTT_Events(EventEnum):
                 TIME_ITERATION_STARTED = "time_iteration_started"
                 TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
@@ -189,11 +188,8 @@ class Engine:
             engine.run(data)
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
-        # for python2 compatibility:
-        event_to_attr = kwargs.get("event_to_attr", None)
-        if event_to_attr is not None:
-            if not isinstance(event_to_attr, dict):
-                raise ValueError("Expected event_to_attr to be dictionary. Got {}.".format(type(event_to_attr)))
+        if not (event_to_attr is None or isinstance(event_to_attr, dict)):
+            raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
 
         for e in event_names:
             self._allowed_events.append(e)
@@ -248,8 +244,9 @@ class Engine:
             See :class:`~ignite.engine.Events` for more details.
 
         """
-        if isinstance(event_name, EventWithFilter):
-            event_name, event_filter = event_name.event, event_name.filter
+        if (isinstance(event_name,
+                       CallableEventWithFilter) and event_name.filter != CallableEventWithFilter.default_event_filter):
+            event_filter = event_name.filter
             handler = Engine._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
@@ -265,11 +262,11 @@ class Engine:
         return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
-    def _assert_non_callable_event(event_name: str):
-        if isinstance(event_name, EventWithFilter):
-            raise TypeError(
-                "Argument event_name should not be a callable event, " "please use event without any event filtering"
-            )
+    def _assert_non_filtered_event(event_name: str):
+        if (isinstance(event_name,
+                       CallableEventWithFilter) and event_name.filter != CallableEventWithFilter.default_event_filter):
+            raise TypeError("Argument event_name should not be a filtered event, "
+                            "please use event without any event filtering")
 
     def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
         """Check if the specified event has the specified handler.
@@ -280,7 +277,7 @@ class Engine:
                 to ``None`` to search all events.
         """
         if event_name is not None:
-            self._assert_non_callable_event(event_name)
+            self._assert_non_filtered_event(event_name)
 
             if event_name not in self._event_handlers:
                 return False
@@ -307,7 +304,7 @@ class Engine:
             event_name: The event the handler attached to.
 
         """
-        self._assert_non_callable_event(event_name)
+        self._assert_non_filtered_event(event_name)
         if event_name not in self._event_handlers:
             raise ValueError("Input event name '{}' does not exist".format(event_name))
 
