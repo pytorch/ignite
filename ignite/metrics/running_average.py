@@ -6,9 +6,7 @@ from ignite.engine import Events, Engine
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
-__all__ = [
-    'RunningAverage'
-]
+__all__ = ["RunningAverage"]
 
 
 class RunningAverage(Metric):
@@ -45,10 +43,17 @@ class RunningAverage(Metric):
             print("running avg loss:", engine.state.metrics['running_avg_loss'])
 
     """
+
     _required_output_keys = None
 
-    def __init__(self, src: Optional[Metric] = None, alpha: float = 0.98, output_transform: Optional[Callable] = None,
-                 epoch_bound: bool = True, device: Optional[Union[str, torch.device]] = None):
+    def __init__(
+        self,
+        src: Optional[Metric] = None,
+        alpha: float = 0.98,
+        output_transform: Optional[Callable] = None,
+        epoch_bound: bool = True,
+        device: Optional[Union[str, torch.device]] = None,
+    ):
         if not (isinstance(src, Metric) or src is None):
             raise TypeError("Argument src should be a Metric or None.")
         if not (0.0 < alpha <= 1.0):
@@ -64,8 +69,10 @@ class RunningAverage(Metric):
             self.iteration_completed = self._metric_iteration_completed
         else:
             if output_transform is None:
-                raise ValueError("Argument output_transform should not be None if src corresponds "
-                                 "to the output of process function.")
+                raise ValueError(
+                    "Argument output_transform should not be None if src corresponds "
+                    "to the output of process function."
+                )
             self._get_src_value = self._get_output_value
             self.update = self._output_update
 

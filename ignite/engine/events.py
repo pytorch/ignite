@@ -1,4 +1,3 @@
-
 from typing import Callable, Optional, Union, Any
 
 from enum import Enum
@@ -169,6 +168,7 @@ class Events(EventEnum):
     Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
 
     """
+
     EPOCH_STARTED = "epoch_started"
     EPOCH_COMPLETED = "epoch_completed"
 

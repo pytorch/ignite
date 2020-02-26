@@ -4,14 +4,15 @@ from typing import Optional, Generator, Callable
 import torch
 
 
-def _update_dataloader(dataloader: torch.utils.data.DataLoader,
-                       new_batch_sampler: torch.utils.data.sampler.BatchSampler) -> torch.utils.data.DataLoader:
+def _update_dataloader(
+    dataloader: torch.utils.data.DataLoader, new_batch_sampler: torch.utils.data.sampler.BatchSampler
+) -> torch.utils.data.DataLoader:
     params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
-    for k in ['batch_size', 'sampler', 'drop_last', 'batch_sampler', 'dataset_kind']:
+    for k in ["batch_size", "sampler", "drop_last", "batch_sampler", "dataset_kind"]:
         if k in params_keys:
             params_keys.remove(k)
     params = {k: getattr(dataloader, k) for k in params_keys}
-    params['batch_sampler'] = new_batch_sampler
+    params["batch_sampler"] = new_batch_sampler
     return type(dataloader)(**params)
 
 
@@ -39,7 +40,7 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
             self.batch_indices.append(batch)
 
         if self.start_iteration is not None:
-            self.batch_indices = self.batch_indices[self.start_iteration:]
+            self.batch_indices = self.batch_indices[self.start_iteration :]
             self.start_iteration = None
 
     def __iter__(self) -> Generator:
@@ -63,6 +64,8 @@ def _check_signature(engine, fn: Callable, fn_description: str, *args, **kwargs)
         fn_params = list(signature.parameters)
         exception_msg = str(exc)
         passed_params = [engine] + list(args) + list(kwargs)
-        raise ValueError("Error adding {} '{}': "
-                         "takes parameters {} but will be called with {} "
-                         "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg))
+        raise ValueError(
+            "Error adding {} '{}': "
+            "takes parameters {} but will be called with {} "
+            "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg)
+        )

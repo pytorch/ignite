@@ -1,27 +1,47 @@
 Ignite
 ======
 
+
 .. image:: https://travis-ci.org/pytorch/ignite.svg?branch=master
-    :target: https://travis-ci.org/pytorch/ignite
+     :target: https://travis-ci.org/pytorch/ignite
+
+
+.. image:: https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master
+    :target: .github/workflows/unittests.yml
+
 
 .. image:: https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/pytorch/ignite
 
-.. image:: https://pepy.tech/badge/pytorch-ignite
-    :target: https://pepy.tech/project/pytorch-ignite
 
 .. image:: https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v
     :target: https://pytorch.org/ignite/index.html
 
+
 .. image:: https://anaconda.org/pytorch/ignite/badges/version.svg
     :target: https://anaconda.org/pytorch/ignite
+
+
+.. image:: https://anaconda.org/pytorch/ignite/badges/downloads.svg
+    :target: https://anaconda.org/pytorch/ignite
+
 
 .. image:: https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v
     :target: https://pypi.org/project/pytorch-ignite/
 
+
+.. image:: https://pepy.tech/badge/pytorch-ignite
+    :target: https://pepy.tech/project/pytorch-ignite
+
+
 .. image:: https://img.shields.io/badge/Optuna-integrated-blue
     :target: https://optuna.org
+
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
     
+
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
 - ignite helps you write compact but full-featured training loops in a few lines of code

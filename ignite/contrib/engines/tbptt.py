@@ -27,14 +27,7 @@ def _detach_hidden(hidden):
 
 
 def create_supervised_tbptt_trainer(
-        model,
-        optimizer,
-        loss_fn,
-        tbtt_step,
-        dim=0,
-        device=None,
-        non_blocking=False,
-        prepare_batch=_prepare_batch
+    model, optimizer, loss_fn, tbtt_step, dim=0, device=None, non_blocking=False, prepare_batch=_prepare_batch
 ):
     """Create a trainer for truncated backprop through time supervised models.
 

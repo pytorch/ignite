@@ -4,15 +4,25 @@ import numbers
 import warnings
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
-    BaseWeightsScalarHandler, global_step_from_engine
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOptimizerParamsHandler,
+    BaseOutputHandler,
+    BaseWeightsScalarHandler,
+    global_step_from_engine,
+)
 
-__all__ = ['VisdomLogger', 'OptimizerParamsHandler', 'OutputHandler',
-           'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
+__all__ = [
+    "VisdomLogger",
+    "OptimizerParamsHandler",
+    "OutputHandler",
+    "WeightsScalarHandler",
+    "GradsScalarHandler",
+    "global_step_from_engine",
+]
 
 
 class _BaseVisDrawer:
-
     def __init__(self, show_legend=False):
         self.windows = {}
         self.show_legend = show_legend
@@ -33,30 +43,25 @@ class _BaseVisDrawer:
         """
         if k not in self.windows:
             self.windows[k] = {
-                'win': None,
-                'opts': {
-                    'title': k,
-                    'xlabel': str(event_name),
-                    'ylabel': k,
-                    'showlegend': self.show_legend
-                }
+                "win": None,
+                "opts": {"title": k, "xlabel": str(event_name), "ylabel": k, "showlegend": self.show_legend},
             }
 
-        update = None if self.windows[k]['win'] is None else 'append'
+        update = None if self.windows[k]["win"] is None else "append"
 
         kwargs = {
-            "X": [global_step, ],
-            "Y": [v, ],
+            "X": [global_step,],
+            "Y": [v,],
             "env": logger.vis.env,
-            "win": self.windows[k]['win'],
+            "win": self.windows[k]["win"],
             "update": update,
-            "opts": self.windows[k]['opts'],
-            "name": k
+            "opts": self.windows[k]["opts"],
+            "name": k,
         }
 
         future = logger.executor.submit(logger.vis.line, **kwargs)
-        if self.windows[k]['win'] is None:
-            self.windows[k]['win'] = future.result()
+        if self.windows[k]["win"] is None:
+            self.windows[k]["win"] = future.result()
 
 
 class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
@@ -137,8 +142,15 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None,
-                 show_legend=False):
+    def __init__(
+        self,
+        tag,
+        metric_names=None,
+        output_transform=None,
+        another_engine=None,
+        global_step_transform=None,
+        show_legend=False,
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -152,23 +164,23 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
-            raise TypeError("global_step must be int, got {}."
-                            " Please check the output of global_step_transform.".format(type(global_step)))
+            raise TypeError(
+                "global_step must be int, got {}."
+                " Please check the output of global_step_transform.".format(type(global_step))
+            )
 
         for key, value in metrics.items():
 
             values = []
             keys = []
-            if isinstance(value, numbers.Number) or \
-                    isinstance(value, torch.Tensor) and value.ndimension() == 0:
+            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 values.append(value)
                 keys.append(key)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 values = value
                 keys = ["{}/{}".format(key, i) for i in range(len(value))]
             else:
-                warnings.warn("VisdomLogger output_handler can not log "
-                              "metrics value type {}".format(type(value)))
+                warnings.warn("VisdomLogger output_handler can not log " "metrics value type {}".format(type(value)))
 
             for k, v in zip(keys, values):
                 k = "{}/{}".format(self.tag, k)
@@ -211,8 +223,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
-        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
-                  for i, param_group in enumerate(self.optimizer.param_groups)}
+        params = {
+            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            for i, param_group in enumerate(self.optimizer.param_groups)
+        }
 
         for k, v in params.items():
             self.add_scalar(logger, k, v, event_name, global_step)
@@ -258,7 +272,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
-            name = name.replace('.', '/')
+            name = name.replace(".", "/")
             k = "{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name)
             v = float(self.reduction(p.data))
             self.add_scalar(logger, k, v, event_name, global_step)
@@ -304,7 +318,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
         for name, p in self.model.named_parameters():
-            name = name.replace('.', '/')
+            name = name.replace(".", "/")
             k = "{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name)
             v = float(self.reduction(p.grad))
             self.add_scalar(logger, k, v, event_name, global_step)
@@ -415,9 +429,11 @@ class VisdomLogger(BaseLogger):
         try:
             import visdom
         except ImportError:
-            raise RuntimeError("This contrib module requires visdom package. "
-                               "Please install it with command:\n"
-                               "pip install git+https://github.com/facebookresearch/visdom.git")
+            raise RuntimeError(
+                "This contrib module requires visdom package. "
+                "Please install it with command:\n"
+                "pip install git+https://github.com/facebookresearch/visdom.git"
+            )
 
         if num_workers > 0:
             # If visdom is installed, one of its dependencies `tornado`
@@ -426,12 +442,14 @@ class VisdomLogger(BaseLogger):
             try:
                 import concurrent.futures
             except ImportError:
-                raise RuntimeError("This contrib module requires concurrent.futures module"
-                                   "Please install it with command:\n"
-                                   "pip install futures")
+                raise RuntimeError(
+                    "This contrib module requires concurrent.futures module"
+                    "Please install it with command:\n"
+                    "pip install futures"
+                )
 
         if server is None:
-            server = os.environ.get("VISDOM_SERVER_URL", 'localhost')
+            server = os.environ.get("VISDOM_SERVER_URL", "localhost")
 
         if port is None:
             port = int(os.environ.get("VISDOM_PORT", 8097))
@@ -444,19 +462,17 @@ class VisdomLogger(BaseLogger):
             password = os.environ.get("VISDOM_PASSWORD", None)
             kwargs["password"] = password
 
-        self.vis = visdom.Visdom(
-            server=server,
-            port=port,
-            **kwargs
-        )
+        self.vis = visdom.Visdom(server=server, port=port, **kwargs)
 
         if not self.vis.check_connection():
-            raise RuntimeError("Failed to connect to Visdom server at {}. "
-                               "Did you run python -m visdom.server ?".format(server))
+            raise RuntimeError(
+                "Failed to connect to Visdom server at {}. " "Did you run python -m visdom.server ?".format(server)
+            )
 
         self.executor = _DummyExecutor()
         if num_workers > 0:
             from concurrent.futures import ThreadPoolExecutor
+
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
     def _save(self):
@@ -469,7 +485,6 @@ class VisdomLogger(BaseLogger):
 
 class _DummyExecutor:
     class _DummyFuture:
-
         def __init__(self, result):
             self._output = result
 

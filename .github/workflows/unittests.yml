@@ -21,12 +21,13 @@ jobs:
         conda update -q conda
         # Useful for debugging any issues with conda
         conda info -a
-        conda create -q -n test-environment pytorch cpuonly torchvision python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
+        conda create -q -n test-environment pytorch cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
         
     - name: Install dependencies
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
+        if [[ "${{ matrix.pytorch-channel }}" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}; fi
         pip install -U pip wheel;
         # Contrib dependencies
         pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard

@@ -36,7 +36,6 @@ def test_wrong_inputs():
 
 
 def test_integration():
-
     def _test(p, r, average, output_transform):
         np.random.seed(1)
 
@@ -60,10 +59,7 @@ def test_integration():
             y_true_batch = next(y_true_batch_values)
             y_pred_batch = next(y_pred_batch_values)
             if output_transform is not None:
-                return {
-                    'y_pred': torch.from_numpy(y_pred_batch),
-                    'y': torch.from_numpy(y_true_batch)
-                }
+                return {"y_pred": torch.from_numpy(y_pred_batch), "y": torch.from_numpy(y_true_batch)}
             return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         evaluator = Engine(update_fn)
@@ -74,18 +70,17 @@ def test_integration():
         data = list(range(n_iters))
         state = evaluator.run(data, max_epochs=1)
 
-        f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1),
-                              average='macro' if average else None, beta=2.0)
-        if isinstance(state.metrics['f2'], torch.Tensor):
-            np.testing.assert_allclose(f2_true, state.metrics['f2'].numpy())
+        f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1), average="macro" if average else None, beta=2.0)
+        if isinstance(state.metrics["f2"], torch.Tensor):
+            np.testing.assert_allclose(f2_true, state.metrics["f2"].numpy())
         else:
-            assert f2_true == pytest.approx(state.metrics['f2']), "{} vs {}".format(f2_true, state.metrics['f2'])
+            assert f2_true == pytest.approx(state.metrics["f2"]), "{} vs {}".format(f2_true, state.metrics["f2"])
 
     _test(None, None, False, output_transform=None)
     _test(None, None, True, output_transform=None)
 
     def output_transform(output):
-        return output['y_pred'], output['y']
+        return output["y_pred"], output["y"]
 
     _test(None, None, False, output_transform=output_transform)
     _test(None, None, True, output_transform=output_transform)
@@ -107,12 +102,14 @@ def _test_distrib_itegration(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(), )).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
         y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
 
         def update(engine, i):
-            return y_preds[i * s + rank * offset:(i + 1) * s + rank * offset, :], \
-                y_true[i * s + rank * offset:(i + 1) * s + rank * offset]
+            return (
+                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+            )
 
         engine = Engine(update)
 
@@ -123,12 +120,16 @@ def _test_distrib_itegration(device):
         engine.run(data=data, max_epochs=n_epochs)
 
         assert "f2.5" in engine.state.metrics
-        res = engine.state.metrics['f2.5']
+        res = engine.state.metrics["f2.5"]
         if isinstance(res, torch.Tensor):
             res = res.cpu().numpy()
 
-        true_res = fbeta_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), beta=2.5,
-                               average='macro' if average else None)
+        true_res = fbeta_score(
+            y_true.cpu().numpy(),
+            torch.argmax(y_preds, dim=1).cpu().numpy(),
+            beta=2.5,
+            average="macro" if average else None,
+        )
 
         assert pytest.approx(res) == true_res
 
@@ -154,14 +155,14 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_itegration(device)
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_itegration(device)

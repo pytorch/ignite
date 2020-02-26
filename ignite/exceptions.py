@@ -1,6 +1,4 @@
-__all__ = [
-    'NotComputableError'
-]
+__all__ = ["NotComputableError"]
 
 
 class NotComputableError(RuntimeError):

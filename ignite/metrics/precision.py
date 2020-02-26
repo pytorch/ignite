@@ -8,28 +8,33 @@ from ignite.exceptions import NotComputableError
 from ignite.utils import to_onehot
 from ignite.metrics.metric import reinit__is_reduced
 
-__all__ = [
-    'Precision'
-]
+__all__ = ["Precision"]
 
 
 class _BasePrecisionRecall(_BaseClassification):
-
-    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False,
-                 device: Optional[Union[str, torch.device]] = None):
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        average: bool = False,
+        is_multilabel: bool = False,
+        device: Optional[Union[str, torch.device]] = None,
+    ):
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             if (not average) and is_multilabel:
-                warnings.warn("Precision/Recall metrics do not work in distributed setting when average=False "
-                              "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
-                              "corresponds to the local rank's (single GPU) result.", RuntimeWarning)
+                warnings.warn(
+                    "Precision/Recall metrics do not work in distributed setting when average=False "
+                    "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
+                    "corresponds to the local rank's (single GPU) result.",
+                    RuntimeWarning,
+                )
 
         self._average = average
         self._true_positives = None
         self._positives = None
         self.eps = 1e-20
-        super(_BasePrecisionRecall, self).__init__(output_transform=output_transform,
-                                                   is_multilabel=is_multilabel,
-                                                   device=device)
+        super(_BasePrecisionRecall, self).__init__(
+            output_transform=output_transform, is_multilabel=is_multilabel, device=device
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -40,8 +45,9 @@ class _BasePrecisionRecall(_BaseClassification):
 
     def compute(self) -> torch.Tensor:
         if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
-            raise NotComputableError("{} must have at least one example before"
-                                     " it can be computed.".format(self.__class__.__name__))
+            raise NotComputableError(
+                "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
+            )
 
         if not (self._type == "multilabel" and not self._average):
             if not self._is_reduced:
@@ -115,10 +121,16 @@ class Precision(_BasePrecisionRecall):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, average: bool = False, is_multilabel: bool = False,
-                 device: Optional[Union[str, torch.device]] = None):
-        super(Precision, self).__init__(output_transform=output_transform,
-                                        average=average, is_multilabel=is_multilabel, device=device)
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        average: bool = False,
+        is_multilabel: bool = False,
+        device: Optional[Union[str, torch.device]] = None,
+    ):
+        super(Precision, self).__init__(
+            output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
+        )
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
@@ -132,8 +144,10 @@ class Precision(_BasePrecisionRecall):
         elif self._type == "multiclass":
             num_classes = y_pred.size(1)
             if y.max() + 1 > num_classes:
-                raise ValueError("y_pred contains less classes than y. Number of predicted classes is {}"
-                                 " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1))
+                raise ValueError(
+                    "y_pred contains less classes than y. Number of predicted classes is {}"
+                    " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1)
+                )
             y = to_onehot(y.view(-1), num_classes=num_classes)
             indices = torch.argmax(y_pred, dim=1).view(-1)
             y_pred = to_onehot(indices, num_classes=num_classes)

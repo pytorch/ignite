@@ -4,7 +4,6 @@ from dataflow.vis import make_grid
 
 
 def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_engine=None, prefix_tag=None):
-
     def wrapper(engine, logger, event_name):
         batch = engine.state.batch
         output = engine.state.output
@@ -30,6 +29,6 @@ def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_eng
         tag = "predictions_with_gt"
         if prefix_tag is not None:
             tag = "{}: {}".format(prefix_tag, tag)
-        logger.writer.add_image(tag=tag, img_tensor=grid_pred_gt, global_step=global_step, dataformats='HWC')
+        logger.writer.add_image(tag=tag, img_tensor=grid_pred_gt, global_step=global_step, dataformats="HWC")
 
     return wrapper

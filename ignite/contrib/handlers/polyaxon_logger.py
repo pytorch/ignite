@@ -3,10 +3,14 @@ import numbers
 import warnings
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler, \
-    global_step_from_engine
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOutputHandler,
+    BaseOptimizerParamsHandler,
+    global_step_from_engine,
+)
 
-__all__ = ['PolyaxonLogger', 'OutputHandler', 'OptimizerParamsHandler', 'global_step_from_engine']
+__all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
 
 class OutputHandler(BaseOutputHandler):
@@ -98,8 +102,10 @@ class OutputHandler(BaseOutputHandler):
         global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
-            raise TypeError("global_step must be int, got {}."
-                            " Please check the output of global_step_transform.".format(type(global_step)))
+            raise TypeError(
+                "global_step must be int, got {}."
+                " Please check the output of global_step_transform.".format(type(global_step))
+            )
 
         rendered_metrics = {"step": global_step}
         for key, value in metrics.items():
@@ -111,8 +117,7 @@ class OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     rendered_metrics["{}/{}/{}".format(self.tag, key, i)] = v.item()
             else:
-                warnings.warn("PolyaxonLogger output_handler can not log "
-                              "metrics value type {}".format(type(value)))
+                warnings.warn("PolyaxonLogger output_handler can not log " "metrics value type {}".format(type(value)))
 
         logger.log_metrics(**rendered_metrics)
 
@@ -149,9 +154,11 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
-        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
-                  for i, param_group in enumerate(self.optimizer.param_groups)}
-        params['step'] = global_step
+        params = {
+            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            for i, param_group in enumerate(self.optimizer.param_groups)
+        }
+        params["step"] = global_step
         logger.log_metrics(**params)
 
 
@@ -211,8 +218,10 @@ class PolyaxonLogger(BaseLogger):
         try:
             from polyaxon_client.tracking import Experiment
         except ImportError:
-            raise RuntimeError("This contrib module requires polyaxon-client to be installed. "
-                               "Please install it with command: \n pip install polyaxon-client")
+            raise RuntimeError(
+                "This contrib module requires polyaxon-client to be installed. "
+                "Please install it with command: \n pip install polyaxon-client"
+            )
 
         self.experiment = Experiment()
 

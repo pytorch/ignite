@@ -6,7 +6,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import Timer
 
 
-class BasicTimeProfiler(object):
+class BasicTimeProfiler:
     """
     BasicTimeProfiler can be used to profile the handlers,
     events, data loading and data processing times.
@@ -24,6 +24,7 @@ class BasicTimeProfiler(object):
         trainer.run(dataloader, max_epochs=3)
 
     """
+
     def __init__(self):
         self._dataflow_timer = Timer()
         self._processing_timer = Timer()
@@ -40,7 +41,7 @@ class BasicTimeProfiler(object):
             Events.ITERATION_COMPLETED,
             Events.GET_BATCH_STARTED,
             Events.GET_BATCH_COMPLETED,
-            Events.COMPLETED
+            Events.COMPLETED,
         ]
         self._fmethods = [
             self._as_first_epoch_started,
@@ -49,7 +50,7 @@ class BasicTimeProfiler(object):
             self._as_first_iter_completed,
             self._as_first_get_batch_started,
             self._as_first_get_batch_completed,
-            self._as_first_completed
+            self._as_first_completed,
         ]
         self._lmethods = [
             self._as_last_epoch_started,
@@ -58,7 +59,7 @@ class BasicTimeProfiler(object):
             self._as_last_iter_completed,
             self._as_last_get_batch_started,
             self._as_last_get_batch_completed,
-            self._as_last_completed
+            self._as_last_completed,
         ]
 
     def _reset(self, num_epochs, total_num_iters):
@@ -72,7 +73,7 @@ class BasicTimeProfiler(object):
             Events.ITERATION_STARTED: torch.zeros(total_num_iters),
             Events.ITERATION_COMPLETED: torch.zeros(total_num_iters),
             Events.GET_BATCH_COMPLETED: torch.zeros(total_num_iters),
-            Events.GET_BATCH_STARTED: torch.zeros(total_num_iters)
+            Events.GET_BATCH_STARTED: torch.zeros(total_num_iters),
         }
 
     def _as_first_started(self, engine):
@@ -86,9 +87,12 @@ class BasicTimeProfiler(object):
         self._reset(self.max_epochs, self.total_num_iters)
 
         self.event_handlers_names = {
-            e: [h.__qualname__ if hasattr(h, "__qualname__") else h.__class__.__name__
-                for (h, _, _) in engine._event_handlers[e]]
-            for e in Events if e != Events.EXCEPTION_RAISED
+            e: [
+                h.__qualname__ if hasattr(h, "__qualname__") else h.__class__.__name__
+                for (h, _, _) in engine._event_handlers[e]
+            ]
+            for e in Events
+            if e != Events.EXCEPTION_RAISED
         }
 
         # Setup all other handlers:
@@ -183,22 +187,22 @@ class BasicTimeProfiler(object):
 
     def attach(self, engine):
         if not isinstance(engine, Engine):
-            raise TypeError("Argument engine should be ignite.engine.Engine, "
-                            "but given {}".format(type(engine)))
+            raise TypeError("Argument engine should be ignite.engine.Engine, " "but given {}".format(type(engine)))
 
         if not engine.has_event_handler(self._as_first_started):
-            engine._event_handlers[Events.STARTED]\
-                .insert(0, (self._as_first_started, (), {}))
+            engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (), {}))
 
     @staticmethod
     def _compute_basic_stats(data):
-        return OrderedDict([
-            ('min/index', (torch.min(data).item(), torch.argmin(data).item())),
-            ('max/index', (torch.max(data).item(), torch.argmax(data).item())),
-            ('mean', torch.mean(data).item()),
-            ('std', torch.std(data).item()),
-            ('total', torch.sum(data).item())
-        ])
+        return OrderedDict(
+            [
+                ("min/index", (torch.min(data).item(), torch.argmin(data).item())),
+                ("max/index", (torch.max(data).item(), torch.argmax(data).item())),
+                ("mean", torch.mean(data).item()),
+                ("std", torch.std(data).item()),
+                ("total", torch.sum(data).item()),
+            ]
+        )
 
     def get_results(self):
         """
@@ -209,10 +213,9 @@ class BasicTimeProfiler(object):
             results = profiler.get_results()
 
         """
-        events_to_ignore = [
-            Events.EXCEPTION_RAISED
-        ]
+        events_to_ignore = [Events.EXCEPTION_RAISED]
         total_eh_time = sum([sum(self.event_handlers_times[e]) for e in Events if e not in events_to_ignore])
+
         return OrderedDict([
             ("processing_stats", self._compute_basic_stats(self.processing_times)),
             ("dataflow_stats", self._compute_basic_stats(self.dataflow_times)),
@@ -223,6 +226,7 @@ class BasicTimeProfiler(object):
             ("event_handlers_names", {str(e.name).replace(".", "_") + "_names": v
                                       for e, v in self.event_handlers_names.items()})
         ])
+
 
     def write_results(self, output_path):
         """
@@ -250,43 +254,55 @@ class BasicTimeProfiler(object):
 
         iters_per_epoch = self.total_num_iters // self.max_epochs
 
-        epochs = torch.arange(self.max_epochs, dtype=torch.float32)\
-            .repeat_interleave(iters_per_epoch) + 1
-        iterations = torch.arange(self.total_num_iters,
-                                  dtype=torch.float32) + 1
+        epochs = torch.arange(self.max_epochs, dtype=torch.float32).repeat_interleave(iters_per_epoch) + 1
+        iterations = torch.arange(self.total_num_iters, dtype=torch.float32) + 1
         processing_stats = self.processing_times
         dataflow_stats = self.dataflow_times
 
-        event_started = self.event_handlers_times[Events.STARTED]\
-            .repeat_interleave(self.total_num_iters)
-        event_completed = self.event_handlers_times[Events.COMPLETED]\
-            .repeat_interleave(self.total_num_iters)
-        event_epoch_started = self.event_handlers_times[Events.EPOCH_STARTED]\
-            .repeat_interleave(iters_per_epoch)
-        event_epoch_completed = self.event_handlers_times[Events.EPOCH_COMPLETED]\
-            .repeat_interleave(iters_per_epoch)
+        event_started = self.event_handlers_times[Events.STARTED].repeat_interleave(self.total_num_iters)
+        event_completed = self.event_handlers_times[Events.COMPLETED].repeat_interleave(self.total_num_iters)
+        event_epoch_started = self.event_handlers_times[Events.EPOCH_STARTED].repeat_interleave(iters_per_epoch)
+        event_epoch_completed = self.event_handlers_times[Events.EPOCH_COMPLETED].repeat_interleave(iters_per_epoch)
 
         event_iter_started = self.event_handlers_times[Events.ITERATION_STARTED]
         event_iter_completed = self.event_handlers_times[Events.ITERATION_COMPLETED]
         event_batch_started = self.event_handlers_times[Events.GET_BATCH_STARTED]
         event_batch_completed = self.event_handlers_times[Events.GET_BATCH_COMPLETED]
 
-        results_dump = torch.stack([
-            epochs, iterations, processing_stats, dataflow_stats,
-            event_started, event_completed, event_epoch_started,
-            event_epoch_completed, event_iter_started, event_iter_completed,
-            event_batch_started, event_batch_completed
-        ], dim=1).numpy()
+        results_dump = torch.stack(
+            [
+                epochs,
+                iterations,
+                processing_stats,
+                dataflow_stats,
+                event_started,
+                event_completed,
+                event_epoch_started,
+                event_epoch_completed,
+                event_iter_started,
+                event_iter_completed,
+                event_batch_started,
+                event_batch_completed,
+            ],
+            dim=1,
+        ).numpy()
 
         results_df = pd.DataFrame(
             data=results_dump,
             columns=[
-                'epoch', 'iteration', 'processing_stats', 'dataflow_stats',
-                'Event_STARTED', 'Event_COMPLETED',
-                'Event_EPOCH_STARTED', 'Event_EPOCH_COMPLETED',
-                'Event_ITERATION_STARTED', 'Event_ITERATION_COMPLETED',
-                'Event_GET_BATCH_STARTED', 'Event_GET_BATCH_COMPLETED'
-            ]
+                "epoch",
+                "iteration",
+                "processing_stats",
+                "dataflow_stats",
+                "Event_STARTED",
+                "Event_COMPLETED",
+                "Event_EPOCH_STARTED",
+                "Event_EPOCH_COMPLETED",
+                "Event_ITERATION_STARTED",
+                "Event_ITERATION_COMPLETED",
+                "Event_GET_BATCH_STARTED",
+                "Event_GET_BATCH_COMPLETED",
+            ],
         )
         results_df.to_csv(output_path, index=False)
 
@@ -335,16 +351,18 @@ class BasicTimeProfiler(object):
             ['BasicTimeProfiler._as_first_started', 'delay_start']
             --------------------------------------------
         """
+
         def odict_to_str(d):
             out = ""
             for k, v in d.items():
                 out += "\t{}: {}\n".format(k, v)
             return out
 
-        others = {k: odict_to_str(v) if isinstance(v, OrderedDict) else v
-                  for k, v in results['event_handlers_stats'].items()}
+        others = {
+            k: odict_to_str(v) if isinstance(v, OrderedDict) else v for k, v in results["event_handlers_stats"].items()
+        }
 
-        others.update(results['event_handlers_names'])
+        others.update(results["event_handlers_names"])
 
         output_message = """
 --------------------------------------------
@@ -391,8 +409,10 @@ Handlers names:
 Handlers names:
 {Events_COMPLETED_names}
 
-""".format(processing_stats=odict_to_str(results['processing_stats']),
-           dataflow_stats=odict_to_str(results['dataflow_stats']),
-           **others)
+""".format(
+            processing_stats=odict_to_str(results["processing_stats"]),
+            dataflow_stats=odict_to_str(results["dataflow_stats"]),
+            **others,
+        )
         print(output_message)
         return output_message

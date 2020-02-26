@@ -35,13 +35,14 @@ def _test_frequency_with_engine(device, workers):
 
     engine = Engine(update_fn)
     wps_metric = Frequency(output_transform=lambda x: x["ntokens"], device=device)
-    wps_metric.attach(engine, 'wps')
+    wps_metric.attach(engine, "wps")
 
     @engine.on(Events.ITERATION_COMPLETED)
     def assert_wps(e):
-        wps = e.state.metrics['wps']
-        assert estimated_wps * 0.85 < wps < estimated_wps, \
-            "{}: {} < {} < {}".format(e.state.iteration, estimated_wps * 0.85, wps, estimated_wps)
+        wps = e.state.metrics["wps"]
+        assert estimated_wps * 0.80 < wps < estimated_wps, "{}: {} < {} < {}".format(
+            e.state.iteration, estimated_wps * 0.80, wps, estimated_wps
+        )
 
     data = [[i] * batch_size for i in range(0, total_tokens, batch_size)]
     engine.run(data, max_epochs=1)

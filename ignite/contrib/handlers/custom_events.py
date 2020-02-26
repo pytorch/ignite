@@ -77,6 +77,7 @@ class CustomPeriodicEvent:
                           " ".join(["{}_STARTED".format(event_name),
                                     "{}_COMPLETED".format(event_name)])
                           ))
+
         # Update State.event_to_attr
         for e in self.Events:
             State.event_to_attr[e] = self.custom_state_attr
@@ -101,7 +102,9 @@ class CustomPeriodicEvent:
         engine.register_events(*self.Events)
 
         engine.add_event_handler(Events.STARTED, self._on_started)
-        engine.add_event_handler(getattr(Events, "{}_STARTED".format(self.state_attr.upper())),
-                                 self._on_periodic_event_started)
-        engine.add_event_handler(getattr(Events, "{}_COMPLETED".format(self.state_attr.upper())),
-                                 self._on_periodic_event_completed)
+        engine.add_event_handler(
+            getattr(Events, "{}_STARTED".format(self.state_attr.upper())), self._on_periodic_event_started
+        )
+        engine.add_event_handler(
+            getattr(Events, "{}_COMPLETED".format(self.state_attr.upper())), self._on_periodic_event_completed
+        )
