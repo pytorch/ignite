@@ -187,7 +187,6 @@ class ProgressBar(BaseLogger):
                 "Logging event {} should be called before closing event {}".format(event_name, closing_event_name)
             )
 
-
         log_handler = _OutputHandler(desc, metric_names, output_transform,
                                      closing_event_name=closing_event_name)
 

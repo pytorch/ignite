@@ -227,7 +227,6 @@ class BasicTimeProfiler:
                                       for e, v in self.event_handlers_names.items()})
         ])
 
-
     def write_results(self, output_path):
         """
         Method to store the unaggregated profiling results to a csv file

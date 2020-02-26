@@ -16,7 +16,6 @@ __all__ = [
 ]
 
 
-
 def _prepare_batch(
     batch: Sequence[torch.Tensor], device: Optional[Union[str, torch.device]] = None, non_blocking: bool = False
 ):
