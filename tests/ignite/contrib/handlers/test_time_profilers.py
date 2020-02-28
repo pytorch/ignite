@@ -358,3 +358,26 @@ def test_write_results():
 
     # cleanup test log directory
     shutil.rmtree(test_folder)
+
+
+def test_print_results(capsys):
+    true_event_handler_time = 0.
+    true_max_epochs = 1
+    true_num_iters = 1
+
+    profiler = BasicTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
+    def delay_get_batch_completed(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    BasicTimeProfiler.print_results(profiler.get_results())
+
+    captured = capsys.readouterr()
+    out = captured.out
+
+    assert out[0] == "\n"
