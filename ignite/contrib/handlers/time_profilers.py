@@ -379,34 +379,34 @@ Time stats of event handlers (in seconds):
 \t{total_time}
 
 - Events.STARTED:
-{Events_STARTED}
+{STARTED}
 Handlers names:
-{Events_STARTED_names}
+{STARTED_names}
 
 - Events.EPOCH_STARTED:
-{Events_EPOCH_STARTED}
+{EPOCH_STARTED}
 Handlers names:
-{Events_EPOCH_STARTED_names}
+{EPOCH_STARTED_names}
 
 - Events.ITERATION_STARTED:
-{Events_ITERATION_STARTED}
+{ITERATION_STARTED}
 Handlers names:
-{Events_ITERATION_STARTED_names}
+{ITERATION_STARTED_names}
 
 - Events.ITERATION_COMPLETED:
-{Events_ITERATION_COMPLETED}
+{ITERATION_COMPLETED}
 Handlers names:
-{Events_ITERATION_COMPLETED_names}
+{ITERATION_COMPLETED_names}
 
 - Events.EPOCH_COMPLETED:
-{Events_EPOCH_COMPLETED}
+{EPOCH_COMPLETED}
 Handlers names:
-{Events_EPOCH_COMPLETED_names}
+{EPOCH_COMPLETED_names}
 
 - Events.COMPLETED:
-{Events_COMPLETED}
+{COMPLETED}
 Handlers names:
-{Events_COMPLETED_names}
+{COMPLETED_names}
 
 """.format(
             processing_stats=odict_to_str(results["processing_stats"]),
