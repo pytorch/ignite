@@ -25,16 +25,18 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
 
     set_seed(config.seed + local_rank)
     torch.cuda.set_device(local_rank)
-    device = 'cuda'
+    device = "cuda"
 
     torch.backends.cudnn.benchmark = True
 
     train_loader = config.train_loader
     train_sampler = getattr(train_loader, "sampler", None)
-    assert train_sampler is not None, "Train loader of type '{}' " \
-                                      "should have attribute 'sampler'".format(type(train_loader))
-    assert hasattr(train_sampler, 'set_epoch') and callable(train_sampler.set_epoch), \
-        "Train sampler should have a callable method `set_epoch`"
+    assert train_sampler is not None, "Train loader of type '{}' " "should have attribute 'sampler'".format(
+        type(train_loader)
+    )
+    assert hasattr(train_sampler, "set_epoch") and callable(
+        train_sampler.set_epoch
+    ), "Train sampler should have a callable method `set_epoch`"
 
     train_eval_loader = config.train_eval_loader
     val_loader = config.val_loader
@@ -69,27 +71,32 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
             optimizer.zero_grad()
 
         return {
-            'supervised batch loss': loss.item(),
+            "supervised batch loss": loss.item(),
         }
 
     trainer = Engine(train_update_function)
 
     lr_scheduler = config.lr_scheduler
-    to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'trainer': trainer}
+    to_save = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler, "trainer": trainer}
     common.setup_common_training_handlers(
-        trainer, train_sampler,
+        trainer,
+        train_sampler,
         to_save=to_save,
-        save_every_iters=1000, output_path=config.output_path.as_posix(),
-        lr_scheduler=lr_scheduler, with_gpu_stats=True,
-        output_names=['supervised batch loss', ],
-        with_pbars=True, with_pbar_on_iters=with_mlflow_logging,
-        log_every_iters=1
+        save_every_iters=1000,
+        output_path=config.output_path.as_posix(),
+        lr_scheduler=lr_scheduler,
+        with_gpu_stats=True,
+        output_names=["supervised batch loss",],
+        with_pbars=True,
+        with_pbar_on_iters=with_mlflow_logging,
+        log_every_iters=1,
     )
 
     if getattr(config, "benchmark_dataflow", False):
         benchmark_dataflow_num_iters = getattr(config, "benchmark_dataflow_num_iters", 1000)
-        DataflowBenchmark(benchmark_dataflow_num_iters, prepare_batch=prepare_batch,
-                          device=device).attach(trainer, train_loader)
+        DataflowBenchmark(benchmark_dataflow_num_iters, prepare_batch=prepare_batch, device=device).attach(
+            trainer, train_loader
+        )
 
     # Setup evaluators
     val_metrics = {
@@ -103,8 +110,12 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
     model_output_transform = getattr(config, "model_output_transform", lambda x: x)
 
     evaluator_args = dict(
-        model=model, metrics=val_metrics, device=device, non_blocking=non_blocking, prepare_batch=prepare_batch,
-        output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y,)
+        model=model,
+        metrics=val_metrics,
+        device=device,
+        non_blocking=non_blocking,
+        prepare_batch=prepare_batch,
+        output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y,),
     )
     train_evaluator = create_supervised_evaluator(**evaluator_args)
     evaluator = create_supervised_evaluator(**evaluator_args)
@@ -129,39 +140,47 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
 
     if dist.get_rank() == 0:
 
-        tb_logger = common.setup_tb_logging(config.output_path.as_posix(), trainer, optimizer,
-                                            evaluators={"training": train_evaluator, "validation": evaluator})
+        tb_logger = common.setup_tb_logging(
+            config.output_path.as_posix(),
+            trainer,
+            optimizer,
+            evaluators={"training": train_evaluator, "validation": evaluator},
+        )
         if with_mlflow_logging:
-            common.setup_mlflow_logging(trainer, optimizer,
-                                        evaluators={"training": train_evaluator, "validation": evaluator})
+            common.setup_mlflow_logging(
+                trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
+            )
 
         if with_plx_logging:
-            common.setup_plx_logging(trainer, optimizer,
-                                     evaluators={"training": train_evaluator, "validation": evaluator})
+            common.setup_plx_logging(
+                trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
+            )
 
-        common.save_best_model_by_val_score(config.output_path.as_posix(), evaluator, model,
-                                            metric_name=score_metric_name, trainer=trainer)
+        common.save_best_model_by_val_score(
+            config.output_path.as_posix(), evaluator, model, metric_name=score_metric_name, trainer=trainer
+        )
 
         # Log train/val predictions:
-        tb_logger.attach(evaluator,
-                         log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
-                                                                   n_images=15,
-                                                                   another_engine=trainer,
-                                                                   prefix_tag="validation"),
-                         event_name=Events.ITERATION_COMPLETED(once=len(val_loader) // 2))
+        tb_logger.attach(
+            evaluator,
+            log_handler=predictions_gt_images_handler(
+                img_denormalize_fn=config.img_denormalize, n_images=15, another_engine=trainer, prefix_tag="validation"
+            ),
+            event_name=Events.ITERATION_COMPLETED(once=len(val_loader) // 2),
+        )
 
-        tb_logger.attach(train_evaluator,
-                         log_handler=predictions_gt_images_handler(img_denormalize_fn=config.img_denormalize,
-                                                                   n_images=15,
-                                                                   another_engine=trainer,
-                                                                   prefix_tag="training"),
-                         event_name=Events.ITERATION_COMPLETED(once=len(train_eval_loader) // 2))
+        tb_logger.attach(
+            train_evaluator,
+            log_handler=predictions_gt_images_handler(
+                img_denormalize_fn=config.img_denormalize, n_images=15, another_engine=trainer, prefix_tag="training"
+            ),
+            event_name=Events.ITERATION_COMPLETED(once=len(train_eval_loader) // 2),
+        )
 
     trainer.run(train_loader, max_epochs=config.num_epochs)
 
 
 class DataflowBenchmark:
-
     def __init__(self, num_iters=100, prepare_batch=None, device="cuda"):
 
         from ignite.handlers import Timer
@@ -178,16 +197,19 @@ class DataflowBenchmark:
             engine.terminate()
 
         if dist.is_available() and dist.get_rank() == 0:
+
             @self.benchmark_dataflow.on(Events.ITERATION_COMPLETED(every=num_iters // 100))
             def show_progress_benchmark_dataflow(engine):
                 print(".", end=" ")
 
         self.timer = Timer(average=False)
-        self.timer.attach(self.benchmark_dataflow,
-                          start=Events.EPOCH_STARTED,
-                          resume=Events.ITERATION_STARTED,
-                          pause=Events.ITERATION_COMPLETED,
-                          step=Events.ITERATION_COMPLETED)
+        self.timer.attach(
+            self.benchmark_dataflow,
+            start=Events.EPOCH_STARTED,
+            resume=Events.ITERATION_STARTED,
+            pause=Events.ITERATION_COMPLETED,
+            step=Events.ITERATION_COMPLETED,
+        )
 
     def attach(self, trainer, train_loader):
 

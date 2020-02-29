@@ -5,7 +5,6 @@ import warnings
 import torch
 
 from ignite.engine import State, Engine
-from ignite.engine.engine import EventWithFilter
 from ignite.handlers import global_step_from_engine
 
 
@@ -14,6 +13,7 @@ class BaseLogger:
     Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
 
     """
+
     def attach(self, engine, log_handler, event_name):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
@@ -25,8 +25,6 @@ class BaseLogger:
 
         """
         name = event_name
-        if isinstance(event_name, EventWithFilter):
-            name = event_name.event
 
         if name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(name))
@@ -44,7 +42,6 @@ class BaseLogger:
 
 
 class BaseHandler(metaclass=ABCMeta):
-
     @abstractmethod
     def __call__(self, *args, **kwargs):
         pass
@@ -57,8 +54,9 @@ class BaseOptimizerParamsHandler(BaseHandler):
 
     def __init__(self, optimizer, param_name="lr", tag=None):
         if not isinstance(optimizer, torch.optim.Optimizer):
-            raise TypeError("Argument optimizer should be of type torch.optim.Optimizer, "
-                            "but given {}".format(type(optimizer)))
+            raise TypeError(
+                "Argument optimizer should be of type torch.optim.Optimizer, " "but given {}".format(type(optimizer))
+            )
 
         self.optimizer = optimizer
         self.param_name = param_name
@@ -74,29 +72,35 @@ class BaseOutputHandler(BaseHandler):
 
         if metric_names is not None:
             if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
-                raise TypeError("metric_names should be either a list or equal 'all', "
-                                "got {} instead.".format(type(metric_names)))
+                raise TypeError(
+                    "metric_names should be either a list or equal 'all', " "got {} instead.".format(type(metric_names))
+                )
 
         if output_transform is not None and not callable(output_transform):
-            raise TypeError("output_transform should be a function, got {} instead."
-                            .format(type(output_transform)))
+            raise TypeError("output_transform should be a function, got {} instead.".format(type(output_transform)))
 
         if output_transform is None and metric_names is None:
             raise ValueError("Either metric_names or output_transform should be defined")
 
         if another_engine is not None:
             if not isinstance(another_engine, Engine):
-                raise TypeError("Argument another_engine should be of type Engine, "
-                                "but given {}".format(type(another_engine)))
-            warnings.warn("Use of another_engine is deprecated and will be removed in 0.4.0. "
-                          "Please use global_step_transform instead.", DeprecationWarning)
+                raise TypeError(
+                    "Argument another_engine should be of type Engine, " "but given {}".format(type(another_engine))
+                )
+            warnings.warn(
+                "Use of another_engine is deprecated and will be removed in 0.4.0. "
+                "Please use global_step_transform instead.",
+                DeprecationWarning,
+            )
             global_step_transform = global_step_from_engine(another_engine)
 
         if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError("global_step_transform should be a function, got {} instead."
-                            .format(type(global_step_transform)))
+            raise TypeError(
+                "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
+            )
 
         if global_step_transform is None:
+
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
@@ -115,8 +119,10 @@ class BaseOutputHandler(BaseHandler):
             else:
                 for name in self.metric_names:
                     if name not in engine.state.metrics:
-                        warnings.warn("Provided metric name '{}' is missing "
-                                      "in engine's state metrics: {}".format(name, list(engine.state.metrics.keys())))
+                        warnings.warn(
+                            "Provided metric name '{}' is missing "
+                            "in engine's state metrics: {}".format(name, list(engine.state.metrics.keys()))
+                        )
                         continue
                     metrics[name] = engine.state.metrics[name]
 
@@ -137,12 +143,10 @@ class BaseWeightsScalarHandler(BaseHandler):
 
     def __init__(self, model, reduction=torch.norm, tag=None):
         if not isinstance(model, torch.nn.Module):
-            raise TypeError("Argument model should be of type torch.nn.Module, "
-                            "but given {}".format(type(model)))
+            raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
         if not callable(reduction):
-            raise TypeError("Argument reduction should be callable, "
-                            "but given {}".format(type(reduction)))
+            raise TypeError("Argument reduction should be callable, " "but given {}".format(type(reduction)))
 
         def _is_0D_tensor(t):
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
@@ -164,8 +168,7 @@ class BaseWeightsHistHandler(BaseHandler):
 
     def __init__(self, model, tag=None):
         if not isinstance(model, torch.nn.Module):
-            raise TypeError("Argument model should be of type torch.nn.Module, "
-                            "but given {}".format(type(model)))
+            raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
         self.model = model
         self.tag = tag

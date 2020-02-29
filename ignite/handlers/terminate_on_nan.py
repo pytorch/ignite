@@ -1,13 +1,13 @@
 import logging
 import numbers
+from typing import Union, Callable
 
 import torch
 
 from ignite.utils import apply_to_type
+from ignite.engine import Engine
 
-__all__ = [
-    'TerminateOnNan'
-]
+__all__ = ["TerminateOnNan"]
 
 
 class TerminateOnNan:
@@ -32,15 +32,15 @@ class TerminateOnNan:
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform: Callable = lambda x: x):
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.logger.addHandler(logging.StreamHandler())
         self._output_transform = output_transform
 
-    def __call__(self, engine):
+    def __call__(self, engine: Engine) -> None:
         output = self._output_transform(engine.state.output)
 
-        def raise_error(x):
+        def raise_error(x: Union[numbers.Number, torch.Tensor]) -> None:
 
             if isinstance(x, numbers.Number):
                 x = torch.tensor(x)
@@ -51,6 +51,7 @@ class TerminateOnNan:
         try:
             apply_to_type(output, (numbers.Number, torch.Tensor), raise_error)
         except RuntimeError:
-            self.logger.warning("{}: Output '{}' contains NaN or Inf. Stop training"
-                                .format(self.__class__.__name__, output))
+            self.logger.warning(
+                "{}: Output '{}' contains NaN or Inf. Stop training".format(self.__class__.__name__, output)
+            )
             engine.terminate()

@@ -9,20 +9,16 @@ def test_wrong_input_shapes():
     m = MedianAbsolutePercentageError()
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4, 1)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2),
-                  torch.rand(4,)))
+        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
 
     with pytest.raises(ValueError):
-        m.update((torch.rand(4,),
-                  torch.rand(4, 1, 2)))
+        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
 
 
 def test_median_absolute_percentage_error():
@@ -65,7 +61,7 @@ def test_median_absolute_percentage_error_2():
     n_iters = size // batch_size + 1
     for i in range(n_iters):
         idx = i * batch_size
-        m.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+        m.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
     assert np_median_absolute_percentage_error == pytest.approx(m.compute())
 
@@ -83,16 +79,16 @@ def test_integration_median_absolute_percentage_error_with_output_transform():
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx:idx + batch_size]
-        y_pred_batch = np_y_pred[idx:idx + batch_size]
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
     m = MedianAbsolutePercentageError(output_transform=lambda x: (x[1], x[2]))
-    m.attach(engine, 'median_absolute_percentage_error')
+    m.attach(engine, "median_absolute_percentage_error")
 
     data = list(range(size // batch_size))
-    median_absolute_percentage_error = engine.run(data, max_epochs=1).metrics['median_absolute_percentage_error']
+    median_absolute_percentage_error = engine.run(data, max_epochs=1).metrics["median_absolute_percentage_error"]
 
     assert np_median_absolute_percentage_error == pytest.approx(median_absolute_percentage_error)

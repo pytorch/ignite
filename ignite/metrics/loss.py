@@ -1,10 +1,12 @@
+from typing import Callable, Union, Optional, Sequence
+
+import torch
+
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
-__all__ = [
-    'Loss'
-]
+__all__ = ["Loss"]
 
 
 class Loss(Metric):
@@ -31,21 +33,27 @@ class Loss(Metric):
             initialized and available, device is set to `cuda`.
 
     """
+
     _required_output_keys = None
 
-    def __init__(self, loss_fn, output_transform=lambda x: x,
-                 batch_size=lambda x: len(x), device=None):
+    def __init__(
+        self,
+        loss_fn: Callable,
+        output_transform: Callable = lambda x: x,
+        batch_size: Callable = lambda x: len(x),
+        device: Optional[Union[str, torch.device]] = None,
+    ):
         super(Loss, self).__init__(output_transform, device=device)
         self._loss_fn = loss_fn
         self._batch_size = batch_size
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._sum = 0
         self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output):
+    def update(self, output: Sequence[Union[torch.Tensor, dict]]) -> None:
         if len(output) == 2:
             y_pred, y = output
             kwargs = {}
@@ -54,15 +62,14 @@ class Loss(Metric):
         average_loss = self._loss_fn(y_pred, y, **kwargs)
 
         if len(average_loss.shape) != 0:
-            raise ValueError('loss_fn did not return the average loss.')
+            raise ValueError("loss_fn did not return the average loss.")
 
         N = self._batch_size(y)
         self._sum += average_loss.item() * N
         self._num_examples += N
 
     @sync_all_reduce("_sum", "_num_examples")
-    def compute(self):
+    def compute(self) -> None:
         if self._num_examples == 0:
-            raise NotComputableError(
-                'Loss must have at least one example before it can be computed.')
+            raise NotComputableError("Loss must have at least one example before it can be computed.")
         return self._sum / self._num_examples

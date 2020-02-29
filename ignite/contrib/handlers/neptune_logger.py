@@ -8,11 +8,22 @@ import torch
 
 import ignite
 from ignite.engine import Events
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler, \
-    BaseWeightsScalarHandler, global_step_from_engine
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOptimizerParamsHandler,
+    BaseOutputHandler,
+    BaseWeightsScalarHandler,
+    global_step_from_engine,
+)
 
-__all__ = ['NeptuneLogger', 'OptimizerParamsHandler', 'OutputHandler',
-           'WeightsScalarHandler', 'GradsScalarHandler', 'global_step_from_engine']
+__all__ = [
+    "NeptuneLogger",
+    "OptimizerParamsHandler",
+    "OutputHandler",
+    "WeightsScalarHandler",
+    "GradsScalarHandler",
+    "global_step_from_engine",
+]
 
 
 class OutputHandler(BaseOutputHandler):
@@ -41,35 +52,30 @@ class OutputHandler(BaseOutputHandler):
                                                        global_step_transform=global_step_from_engine(trainer)),
                              event_name=Events.EPOCH_COMPLETED)
 
-        Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
+        Another example, where model is evaluated every 500 iterations:
 
         .. code-block:: python
 
-            from ignite.contrib.handlers import CustomPeriodicEvent
+            from ignite.contrib.handlers.neptune_logger import *
 
-            cpe = CustomPeriodicEvent(n_iterations=500)
-            cpe.attach(trainer)
-
-            @trainer.on(cpe.Events.ITERATIONS_500_COMPLETED)
+            @trainer.on(Events.ITERATION_COMPLETED(every=500))
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
-
-            from ignite.contrib.handlers.neptune_logger import *
 
             npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
                                        project_name="USER_NAME/PROJECT_NAME",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
+                                       tags=["pytorch-ignite", "minst"] # Optional
                                        )
 
             def global_step_transform(*args, **kwargs):
                 return trainer.state.iteration
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # every 500 iterations. Since evaluator engine does not have CustomPeriodicEvent attached to it, we
+            # every 500 iterations. Since evaluator engine does not have access to the training iteration, we
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
-            # evaluator metrics are plotted on neptune.
+            # evaluator metrics are plotted on NeptuneML.
 
             npt_logger.attach(evaluator,
                              log_handler=OutputHandler(tag="validation",
@@ -83,7 +89,7 @@ class OutputHandler(BaseOutputHandler):
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
             value of event. Typically, user can provide
@@ -119,19 +125,19 @@ class OutputHandler(BaseOutputHandler):
         global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
-            raise TypeError("global_step must be int, got {}."
-                            " Please check the output of global_step_transform.".format(type(global_step)))
+            raise TypeError(
+                "global_step must be int, got {}."
+                " Please check the output of global_step_transform.".format(type(global_step))
+            )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or \
-                    isinstance(value, torch.Tensor) and value.ndimension() == 0:
+            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 logger.experiment.log_metric("{}/{}".format(self.tag, key), x=global_step, y=value)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
                     logger.experiment.log_metric("{}/{}/{}".format(self.tag, key, i), x=global_step, y=v.item())
             else:
-                warnings.warn("NeptuneLogger output_handler can not log "
-                              "metrics value type {}".format(type(value)))
+                warnings.warn("NeptuneLogger output_handler can not log " "metrics value type {}".format(type(value)))
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -171,8 +177,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
-        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
-                  for i, param_group in enumerate(self.optimizer.param_groups)}
+        params = {
+            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            for i, param_group in enumerate(self.optimizer.param_groups)
+        }
 
         for k, v in params.items():
             logger.experiment.log_metric(k, x=global_step, y=v)
@@ -223,10 +231,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             if p.grad is None:
                 continue
 
-            name = name.replace('.', '/')
-            logger.experiment.log_metric("{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name),
-                                         x=global_step,
-                                         y=self.reduction(p.data))
+            name = name.replace(".", "/")
+            logger.experiment.log_metric(
+                "{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name),
+                x=global_step,
+                y=self.reduction(p.data),
+            )
 
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
@@ -273,10 +283,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             if p.grad is None:
                 continue
 
-            name = name.replace('.', '/')
-            logger.experiment.log_metric("{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name),
-                                         x=global_step,
-                                         y=self.reduction(p.grad))
+            name = name.replace(".", "/")
+            logger.experiment.log_metric(
+                "{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name),
+                x=global_step,
+                y=self.reduction(p.grad),
+            )
 
 
 class NeptuneLogger(BaseLogger):
@@ -298,22 +310,21 @@ class NeptuneLogger(BaseLogger):
            You need to create the project in https://neptune.ai first.
         offline_mode (bool): Optional default False. If offline_mode=True no logs will be send to neptune.
            Usually used for debug purposes.
-        experiment_name (str|None): Optional. Editable name of the experiment.
+        experiment_name (str, optional): Optional. Editable name of the experiment.
            Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
-        upload_source_files (list|None): Optional. List of source files to be uploaded.
+        upload_source_files (list, optional): Optional. List of source files to be uploaded.
            Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
            If None is passed, Python file from which experiment was created will be uploaded.
-           Pass empty list ([]) to upload no files. Unix style pathname pattern expansion is supported.
-           For example, you can pass '*.py' to upload all python source files from the current directory.
-           For recursion lookup use '**/*.py' (for Python 3.5 and later). For more information see glob library.
-        params (dict|None): Optional. Parameters of the experiment. After experiment creation params are read-only.
+           Pass empty list (`[]`) to upload no files. Unix style pathname pattern expansion is supported.
+           For example, you can pass `*.py` to upload all python source files from the current directory.
+           For recursion lookup use `**/*.py` (for Python 3.5 and later). For more information see glob library.
+        params (dict, optional): Optional. Parameters of the experiment. After experiment creation params are read-only.
            Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
            viewed in experiments view as a column.
-        properties (dict|None): Optional default is {}. Properties of the experiment.
+        properties (dict, optional): Optional default is `{}`. Properties of the experiment.
            They are editable after experiment is created. Properties are displayed in the experiment’s Details and
            each key-value pair can be viewed in experiments view as a column.
-        tags (list|None): Optional default []. Must be list of str. Tags of the experiment.
-           They are editable after experiment is created (see: append_tag() and remove_tag()).
+        tags (list, optional): Optional default `[]`. Must be list of str. Tags of the experiment.
            Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
 
     Examples:
@@ -395,20 +406,21 @@ class NeptuneLogger(BaseLogger):
         try:
             import neptune
         except ImportError:
-            raise RuntimeError("This contrib module requires neptune-client to be installed. "
-                               "You may install neptune with command: \n pip install neptune-client \n")
+            raise RuntimeError(
+                "This contrib module requires neptune-client to be installed. "
+                "You may install neptune with command: \n pip install neptune-client \n"
+            )
 
         if kwargs.get("offline_mode", False):
             self.mode = "offline"
-            neptune.init(project_qualified_name="dry-run/project",
-                         backend=neptune.OfflineBackend())
+            neptune.init(project_qualified_name="dry-run/project", backend=neptune.OfflineBackend())
         else:
             self.mode = "online"
-            neptune.init(api_token=kwargs["api_token"],
-                         project_qualified_name=kwargs["project_name"])
+            neptune.init(api_token=kwargs["api_token"], project_qualified_name=kwargs["project_name"])
 
-        self._experiment_kwargs = {k: v for k, v in kwargs.items()
-                                   if k not in ["api_token", "project_name", "offline_mode"]}
+        self._experiment_kwargs = {
+            k: v for k, v in kwargs.items() if k not in ["api_token", "project_name", "offline_mode"]
+        }
 
         self.experiment = neptune.create_experiment(**self._experiment_kwargs)
 

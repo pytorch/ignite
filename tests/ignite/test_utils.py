@@ -3,6 +3,7 @@ import logging
 import pytest
 import torch
 
+from collections import namedtuple
 from ignite.utils import convert_tensor, to_onehot, setup_logger
 
 
@@ -12,11 +13,11 @@ def test_convert_tensor():
     assert torch.is_tensor(tensor)
 
     x = torch.tensor([0.0])
-    tensor = convert_tensor(x, device='cpu', non_blocking=True)
+    tensor = convert_tensor(x, device="cpu", non_blocking=True)
     assert torch.is_tensor(tensor)
 
     x = torch.tensor([0.0])
-    tensor = convert_tensor(x, device='cpu', non_blocking=False)
+    tensor = convert_tensor(x, device="cpu", non_blocking=False)
     assert torch.is_tensor(tensor)
 
     x = [torch.tensor([0.0]), torch.tensor([0.0])]
@@ -31,13 +32,20 @@ def test_convert_tensor():
     assert torch.is_tensor(tuple_[0])
     assert torch.is_tensor(tuple_[1])
 
-    x = {'a': torch.tensor([0.0]), 'b': torch.tensor([0.0])}
+    Point = namedtuple("Point", ["x", "y"])
+    x = Point(torch.tensor([0.0]), torch.tensor([0.0]))
+    tuple_ = convert_tensor(x)
+    assert isinstance(tuple_, Point)
+    assert torch.is_tensor(tuple_[0])
+    assert torch.is_tensor(tuple_[1])
+
+    x = {"a": torch.tensor([0.0]), "b": torch.tensor([0.0])}
     dict_ = convert_tensor(x)
     assert isinstance(dict_, dict)
-    assert torch.is_tensor(dict_['a'])
-    assert torch.is_tensor(dict_['b'])
+    assert torch.is_tensor(dict_["a"])
+    assert torch.is_tensor(dict_["b"])
 
-    assert convert_tensor('a') == 'a'
+    assert convert_tensor("a") == "a"
 
     with pytest.raises(TypeError):
         convert_tensor(12345)
@@ -97,7 +105,7 @@ def test_setup_logger(capsys, dirname):
     trainer.run([0, 1, 2, 3, 4, 5], max_epochs=5)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\n')
+    err = captured.err.split("\n")
 
     with open(fp, "r") as h:
         data = h.readlines()

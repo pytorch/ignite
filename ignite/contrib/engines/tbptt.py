@@ -1,14 +1,12 @@
 # coding: utf-8
 
-from enum import Enum
-
 import torch
 
 from ignite.utils import apply_to_tensor
-from ignite.engine import Engine, _prepare_batch
+from ignite.engine import Engine, _prepare_batch, EventEnum
 
 
-class Tbptt_Events(Enum):
+class Tbptt_Events(EventEnum):
     """Aditional tbptt events.
 
     Additional events for truncated backpropagation throught time dedicated
@@ -29,14 +27,7 @@ def _detach_hidden(hidden):
 
 
 def create_supervised_tbptt_trainer(
-    model,
-    optimizer,
-    loss_fn,
-    tbtt_step,
-    dim=0,
-    device=None,
-    non_blocking=False,
-    prepare_batch=_prepare_batch
+    model, optimizer, loss_fn, tbtt_step, dim=0, device=None, non_blocking=False, prepare_batch=_prepare_batch
 ):
     """Create a trainer for truncated backprop through time supervised models.
 

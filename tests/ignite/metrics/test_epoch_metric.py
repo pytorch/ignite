@@ -2,6 +2,7 @@ import os
 import torch
 
 from ignite.metrics import EpochMetric
+from ignite.metrics.epoch_metric import EpochMetricWarning
 
 import pytest
 
@@ -43,7 +44,7 @@ def test_epoch_metric():
     output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output2)
 
-    assert em._predictions.device.type == 'cpu' and em._targets.device.type == 'cpu'
+    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
     assert torch.equal(em._predictions[:4, :], output1[0])
     assert torch.equal(em._predictions[4:, :], output2[0])
     assert torch.equal(em._targets[:4, :], output1[1])
@@ -57,7 +58,7 @@ def test_epoch_metric():
     output2 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
     em.update(output2)
 
-    assert em._predictions.device.type == 'cpu' and em._targets.device.type == 'cpu'
+    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
     assert torch.equal(em._predictions[:4], output1[0][:, 0])
     assert torch.equal(em._predictions[4:], output2[0][:, 0])
     assert torch.equal(em._targets[:4], output1[1][:, 0])
@@ -66,7 +67,6 @@ def test_epoch_metric():
 
 
 def test_mse_epoch_metric():
-
     def compute_fn(y_preds, y_targets):
         return torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2)).item()
 
@@ -102,7 +102,6 @@ def test_mse_epoch_metric():
 
 
 def test_bad_compute_fn():
-
     def compute_fn(y_preds, y_targets):
         # Following will raise the error:
         # The size of tensor a (3) must match the size of tensor b (4)
@@ -113,12 +112,11 @@ def test_bad_compute_fn():
 
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 4), dtype=torch.long))
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
         em.update(output1)
 
 
 def _test_warning():
-
     def compute_fn(y_preds, y_targets):
         return 0.0
 
@@ -170,13 +168,13 @@ def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
     _test_warning()
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_warning()

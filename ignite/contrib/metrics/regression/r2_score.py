@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -19,6 +17,7 @@ class R2Score(_BaseRegression):
         - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
         - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
     """
+
     def reset(self):
         self._num_examples = 0
         self._sum_of_errors = 0
@@ -35,5 +34,5 @@ class R2Score(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('R2Score must have at least one example before it can be computed.')
+            raise NotComputableError("R2Score must have at least one example before it can be computed.")
         return 1 - self._sum_of_errors / (self._y_sq_sum - (self._y_sum ** 2) / self._num_examples)
