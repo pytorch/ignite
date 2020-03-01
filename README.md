@@ -43,7 +43,7 @@ your code when \"rolling your own\" training loop.
 # Table of Contents
 - [Installation](#installation)
   * [Nightly releases](#nightly-releases)
-- [Why Ignite?](#why-ignite-)
+- [Why Ignite?](#why-ignite)
 - [Documentation](#documentation)
 - [Structure](#structure)
 - [Examples](#examples)
