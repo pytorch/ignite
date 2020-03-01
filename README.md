@@ -153,18 +153,18 @@ Basic neural network training on MNIST dataset with/without `ignite.contrib` mod
 
 ## Tutorials
 
--   [Text Classification using Convolutional Neural
-    Networks](https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb)
--   [Variational Auto
-    Encoders](https://github.com/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb)
--   [Convolutional Neural Networks for Classifying Fashion-MNIST
-    Dataset](https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb)
--   [Training Cycle-GAN on Horses to
-    Zebras](https://github.com/pytorch/ignite/blob/master/examples/notebooks/CycleGAN.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/CycleGAN.ipynb)
--   [Finetuning EfficientNet-B0 on
-    CIFAR100](https://github.com/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb)
--   [Hyperparameters tuning with
-    Ax](https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb)
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb)  [Text Classification using Convolutional Neural
+    Networks](https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb) 
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb)  [Variational Auto
+    Encoders](https://github.com/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb) 
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb)  [Convolutional Neural Networks for Classifying Fashion-MNIST
+    Dataset](https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb)
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/CycleGAN.ipynb)  [Training Cycle-GAN on Horses to
+    Zebras](https://github.com/pytorch/ignite/blob/master/examples/notebooks/CycleGAN.ipynb) 
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb)  [Finetuning EfficientNet-B0 on
+    CIFAR100](https://github.com/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb)
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb)  [Hyperparameters tuning with
+    Ax](https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb) 
 
 ## Distributed CIFAR10 Example
 
