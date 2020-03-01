@@ -232,7 +232,7 @@ As always, PRs are welcome :)
     Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
 -   [Project MONAI -
     AI Toolkit for Healthcare Imaging
-    ](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
+    ](https://github.com/Project-MONAI/MONAI)
 
 See other projects at [\"Used
 by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
