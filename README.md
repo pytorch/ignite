@@ -45,6 +45,7 @@ your code when \"rolling your own\" training loop.
   * [Nightly releases](#nightly-releases)
 - [Why Ignite?](#why-ignite)
 - [Documentation](#documentation)
+  * [Additional Materials](#additional-materials)
 - [Structure](#structure)
 - [Examples](#examples)
   * [MNIST Example](#mnist-example)
@@ -53,7 +54,7 @@ your code when \"rolling your own\" training loop.
   * [Other Examples](#other-examples)
   * [Reproducible Training Examples](#reproducible-training-examples)
 - [Contributing](#contributing)
-- [They use Ignite](#they-use-ignite)
+- [Projects using Ignite](#projects-using-ignite)
 - [User feedback](#user-feedback)
 
 
@@ -110,6 +111,15 @@ finer granularity of events in the engine loop.
 API documentation and an overview of the library can be found
 [here](https://pytorch.org/ignite/index.html).
 
+## Additional Materials
+
+- [8 Creators and Core Contributors Talk About Their Model Training Libraries From PyTorch Ecosystem](https://neptune.ai/blog/model-training-libraries-pytorch-ecosystem?utm_source=reddit&utm_medium=post&utm_campaign=blog-model-training-libraries-pytorch-ecosystem)
+- Ignite Posters from Pytorch Developer Conferences
+    -  [2019](https://docs.google.com/presentation/d/1d5PtN1z7NVjQNu94IpQfEJfYeTnt6v66L5kaROUBvWI/edit?usp=sharing)
+    - [2018](https://docs.google.com/presentation/d/1GcYDF0TDYpbHkbrFB_hCF_UlfgUpFmVMRQc-hs4gzCU/edit?usp=sharing)
+
+
+
 # Structure
 
 -   **ignite**: Core of the library, contains an engine for training and
@@ -161,7 +171,7 @@ Basic neural network training on MNIST dataset with/without
 ## Distributed CIFAR10 Example
 
 Training a small variant of ResNet on CIFAR10 in various configurations:
-1) single gpu, 2) single node multiple gpus, 3) multiple nodes and
+1\) single gpu, 2) single node multiple gpus, 3) multiple nodes and
 multilple gpus.
 
 -   [CIFAR10](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
@@ -203,7 +213,7 @@ for more information.
 
 As always, PRs are welcome :)
 
-# They use Ignite
+# Projects using Ignite
 
 -   [State-of-the-Art Conversational AI with Transfer
     Learning](https://github.com/huggingface/transfer-learning-conv-ai)
@@ -222,6 +232,9 @@ As always, PRs are welcome :)
     PyTorch](https://github.com/vfdev-5/UDA-pytorch)
 -   [Hyperparameters tuning with
     Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
+-   [Project MONAI -
+    AI Toolkit for Healthcare Imaging
+    ](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
 
 See other projects at [\"Used
 by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
