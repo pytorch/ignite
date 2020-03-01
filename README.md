@@ -1,5 +1,6 @@
-Ignite
-======
+![Ignite Logo](assets/ignite_logo.svg)
+
+--------------------------------------------------------------------------------
 
 [![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
 [![image](https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master)](.github/workflows/unittests.yml)
@@ -11,6 +12,8 @@ Ignite
 [![image](https://pepy.tech/badge/pytorch-ignite)](https://pepy.tech/project/pytorch-ignite)
 [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+## TL;DR
 
 Ignite is a high-level library to help with training neural networks in
 PyTorch.
@@ -31,8 +34,24 @@ Furthermore, adding additional metrics, or things like early stopping is
 a breeze in ignite, but can start to rapidly increase the complexity of
 your code when \"rolling your own\" training loop.
 
-Installation
-============
+# Table of Contents
+- [Installation](#installation)
+  * [Nightly releases](#nightly-releases)
+- [Why Ignite?](#why-ignite-)
+- [Documentation](#documentation)
+- [Structure](#structure)
+- [Examples](#examples)
+  * [MNIST Example](#mnist-example)
+  * [Tutorials](#tutorials)
+  * [Distributed CIFAR10 Example](#distributed-cifar10-example)
+  * [Other Examples](#other-examples)
+  * [Reproducible Training Examples](#reproducible-training-examples)
+- [Contributing](#contributing)
+- [They use Ignite](#they-use-ignite)
+- [User feedback](#user-feedback)
+
+
+# Installation
 
 From [pip](https://pypi.org/project/pytorch-ignite/):
 
@@ -52,8 +71,7 @@ From source:
 pip install git+https://github.com/pytorch/ignite
 ```
 
-Nightly releases
-----------------
+## Nightly releases
 
 From pip:
 
@@ -69,8 +87,7 @@ version as dependency):
 conda install ignite -c pytorch-nightly
 ```
 
-Why Ignite?
-===========
+# Why Ignite?
 
 Ignite\'s high level of abstraction assumes less about the type of
 network (or networks) that you are training, and we require the user to
@@ -82,14 +99,12 @@ multiple losses and metrics in your training loop.
 Ignite also allows for multiple handlers to be attached to events, and a
 finer granularity of events in the engine loop.
 
-Documentation
-=============
+# Documentation
 
 API documentation and an overview of the library can be found
 [here](https://pytorch.org/ignite/index.html).
 
-Structure
-=========
+# Structure
 
 -   **ignite**: Core of the library, contains an engine for training and
     evaluating, all of the classic machine learning metrics and a
@@ -105,16 +120,14 @@ The code in **ignite.contrib** is not as fully maintained as the core
 part of the library. It may change or be removed at any time without
 notice.
 
-Examples
-========
+# Examples
 
 We provide several examples ported from
 [pytorch/examples](https://github.com/pytorch/examples) using
 [ignite]{.title-ref} to display how it helps to write compact and
 full-featured training loops in a few lines of code:
 
-MNIST example
--------------
+## MNIST Example
 
 Basic neural network training on MNIST dataset with/without
 [ignite.contrib]{.title-ref} module:
@@ -124,26 +137,7 @@ Basic neural network training on MNIST dataset with/without
 -   [MNIST with native TQDM/Tensorboard/Visdom
     logging](https://github.com/pytorch/ignite/tree/master/examples/mnist)
 
-Distributed CIFAR10 example
----------------------------
-
-Training a small variant of ResNet on CIFAR10 in various configurations:
-1) single gpu, 2) single node multiple gpus, 3) multiple nodes and
-multilple gpus.
-
--   [CIFAR10](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
-
-Other examples
---------------
-
--   [DCGAN](https://github.com/pytorch/ignite/tree/master/examples/gan)
--   [Reinforcement
-    Learning](https://github.com/pytorch/ignite/tree/master/examples/reinforcement_learning)
--   [Fast Neural
-    Style](https://github.com/pytorch/ignite/tree/master/examples/fast_neural_style)
-
-Notebooks
----------
+## Tutorials
 
 -   [Text Classification using Convolutional Neural
     Networks](https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb)
@@ -158,8 +152,23 @@ Notebooks
 -   [Hyperparameters tuning with
     Ax](https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb)
 
-[Reproducible trainings](examples/references)
----------------------------------------------
+## Distributed CIFAR10 Example
+
+Training a small variant of ResNet on CIFAR10 in various configurations:
+1) single gpu, 2) single node multiple gpus, 3) multiple nodes and
+multilple gpus.
+
+-   [CIFAR10](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
+
+## Other Examples
+
+-   [DCGAN](https://github.com/pytorch/ignite/tree/master/examples/gan)
+-   [Reinforcement
+    Learning](https://github.com/pytorch/ignite/tree/master/examples/reinforcement_learning)
+-   [Fast Neural
+    Style](https://github.com/pytorch/ignite/tree/master/examples/fast_neural_style)
+
+## Reproducible Training Examples
 
 Inspired by
 [torchvision/references](https://github.com/pytorch/vision/tree/master/references),
@@ -175,8 +184,7 @@ Features:
 -   Experiments tracking with [MLflow](https://mlflow.org/) or
     [Polyaxon](https://polyaxon.com/)
 
-Contributing
-============
+# Contributing
 
 We appreciate all contributions. If you are planning to contribute back
 bug-fixes, please do so without any further discussion. If you plan to
@@ -189,8 +197,7 @@ for more information.
 
 As always, PRs are welcome :)
 
-They use Ignite
-===============
+# They use Ignite
 
 -   [State-of-the-Art Conversational AI with Transfer
     Learning](https://github.com/huggingface/transfer-learning-conv-ai)
@@ -219,8 +226,7 @@ your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
 
-User feedback
-=============
+# User feedback
 
 We have created a form for [\"user
 feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
