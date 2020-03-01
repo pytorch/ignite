@@ -17,7 +17,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-readme = read("README.rst")
+readme = read("README.md")
 
 VERSION = find_version("ignite", "__init__.py")
 
@@ -33,6 +33,7 @@ setup(
     author_email="soumith@pytorch.org",
     url="https://github.com/pytorch/ignite",
     description="A lightweight library to help with training neural networks in PyTorch.",
+    long_description_content_type="text/markdown",
     long_description=readme,
     license="BSD",
     # Package info
