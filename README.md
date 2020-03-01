@@ -1,6 +1,7 @@
+<div align="center">
+
 ![Ignite Logo](assets/ignite_logo.svg)
 
---------------------------------------------------------------------------------
 
 [![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
 [![image](https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master)](.github/workflows/unittests.yml)
@@ -15,6 +16,8 @@
 
 [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+</div>
 
 ## TL;DR
 
