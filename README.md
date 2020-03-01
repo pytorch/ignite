@@ -115,8 +115,8 @@ API documentation and an overview of the library can be found
 
 - [8 Creators and Core Contributors Talk About Their Model Training Libraries From PyTorch Ecosystem](https://neptune.ai/blog/model-training-libraries-pytorch-ecosystem?utm_source=reddit&utm_medium=post&utm_campaign=blog-model-training-libraries-pytorch-ecosystem)
 - Ignite Posters from Pytorch Developer Conferences
-    -  [2019](https://docs.google.com/presentation/d/1d5PtN1z7NVjQNu94IpQfEJfYeTnt6v66L5kaROUBvWI/edit?usp=sharing)
-    - [2018](https://docs.google.com/presentation/d/1GcYDF0TDYpbHkbrFB_hCF_UlfgUpFmVMRQc-hs4gzCU/edit?usp=sharing)
+    -  [2019](https://drive.google.com/open?id=1bqIl-EM6GCCCoSixFZxhIbuF25F2qTZg)
+    - [2018](https://drive.google.com/open?id=1_2vzBJ0KeCjGv1srojMHiJRvceSVbVR5)
 
 
 
@@ -139,14 +139,12 @@ notice.
 # Examples
 
 We provide several examples ported from
-[pytorch/examples](https://github.com/pytorch/examples) using
-[ignite]{.title-ref} to display how it helps to write compact and
+[pytorch/examples](https://github.com/pytorch/examples) using `ignite` to display how it helps to write compact and
 full-featured training loops in a few lines of code:
 
 ## MNIST Example
 
-Basic neural network training on MNIST dataset with/without
-[ignite.contrib]{.title-ref} module:
+Basic neural network training on MNIST dataset with/without `ignite.contrib` module:
 
 -   [MNIST with ignite.contrib TQDM/Tensorboard/Visdom
     loggers](https://github.com/pytorch/ignite/tree/master/examples/contrib/mnist)
