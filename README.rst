@@ -40,7 +40,7 @@ Ignite
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-    
+
 
 Ignite is a high-level library to help with training neural networks in PyTorch.
 
@@ -115,9 +115,9 @@ API documentation and an overview of the library can be found `here <https://pyt
 
 Structure
 =========
-- **ignite**: Core of the library, contains an engine for training and evaluating, all of the classic machine learning metrics and a variety of handlers to ease the pain of training and validation of neural networks! 
+- **ignite**: Core of the library, contains an engine for training and evaluating, all of the classic machine learning metrics and a variety of handlers to ease the pain of training and validation of neural networks!
 
-- **ignite.contrib**: The Contrib directory contains additional modules contributed by Ignite users. Modules vary from TBPTT engine, various optimisation parameter schedulers, logging handlers and a metrics module containing many regression metrics (`ignite.contrib.metrics.regression <https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression>`_)! 
+- **ignite.contrib**: The Contrib directory contains additional modules contributed by Ignite users. Modules vary from TBPTT engine, various optimisation parameter schedulers, logging handlers and a metrics module containing many regression metrics (`ignite.contrib.metrics.regression <https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression>`_)!
 
 The code in **ignite.contrib** is not as fully maintained as the core part of the library. It may change or be removed at any time without notice.
 
@@ -155,11 +155,11 @@ Other examples
 Notebooks
 ---------
 
-- `Text Classification using Convolutional Neural Networks <https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb>`_
+- `Text Classification using Convolutional Neural Networks <https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb>`_ .. image:: https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master
 - `Variational Auto Encoders <https://github.com/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb>`_
+- `Convolutional Neural Networks for Classifying Fashion-MNIST Dataset <https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb>`_
 - `Training Cycle-GAN on Horses to Zebras <https://github.com/pytorch/ignite/blob/master/examples/notebooks/CycleGAN.ipynb>`_
 - `Finetuning EfficientNet-B0 on CIFAR100 <https://github.com/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb>`_
-- `Convolutional Neural Networks for Classifying Fashion-MNIST Dataset <https://github.com/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb>`_
 - `Hyperparameters tuning with Ax <https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb>`_
 
 
@@ -211,7 +211,7 @@ User feedback
 We have created a form for `"user feedback" <https://github.com/pytorch/ignite/issues/new/choose>`_.
 We appreciate any type of feedback and this is how we would like to see our community:
 
-- If you like the project and want to say thanks, this the right place. 
+- If you like the project and want to say thanks, this the right place.
 
 - If you do not like something, please, share it with us and we can see how to improve it.
 
