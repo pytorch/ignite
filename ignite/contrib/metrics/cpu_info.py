@@ -21,6 +21,7 @@ class CpuInfo(Thread):
         per_cpu (bool): log overall CPU-utilization (`False`) by default or each CPU separately (`True`)
         unit (['KB', 'MB', 'GB']): logging unit defaults to `'GB'`
     """
+
     def __init__(self, logger_directory, logger_name='CPULogger', log_interval_seconds=0.5, per_cpu=False, unit='GB'):
         super().__init__(name=logger_name, daemon=True)
         # CAUTION: Always avoid more than one `SummaryWriter` logging to the same directory
@@ -69,7 +70,7 @@ class CpuInfo(Thread):
         cpu_utilization = {}
         if self._per_cpu:
             for idx_cpu, cpu_percentage in enumerate(cpu_percentages):
-                        cpu_utilization['CPU{}'.format(idx_cpu)] = cpu_percentage
+                cpu_utilization['CPU{}'.format(idx_cpu)] = cpu_percentage
         else:
             cpu_utilization['overall'] = cpu_percentages
         # log CPU utilization to tensorboard

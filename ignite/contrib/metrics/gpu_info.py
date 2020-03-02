@@ -21,6 +21,7 @@ class GpuPynvmlLogger(Thread):
         reasonably increase (> ~5-30%) the GPU-utilization by the measurement task
         unit (['KB', 'MB', 'GB']): logging unit defaults to `'GB'`
     """
+
     def __init__(self, logger_directory, logger_name='GPULogger', log_interval_seconds=1, unit='GB'):
         super(GpuPynvmlLogger, self).__init__(name=logger_name, daemon=True)
         # CAUTION: Always avoid more than one `SummaryWriter` logging to the same directory
