@@ -388,7 +388,7 @@ class NeptuneLogger(BaseLogger):
             npt_logger.close()
 
         Explore an experiment with neptune tracking here:
-        https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-26/charts
+        https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-6/charts
 
         You can save model checkpoints to a Neptune server:
 
