@@ -7,10 +7,7 @@ from types import DynamicClassAttribute
 
 from ignite.engine.utils import _check_signature
 
-__all__ = [
-    'Events',
-    'State'
-]
+__all__ = ["Events", "State"]
 
 
 class CallableEventWithFilter:
@@ -26,16 +23,15 @@ class CallableEventWithFilter:
 
     """
 
-    def __init__(self, value: str, event_filter: Optional[Callable] = None,
-                 name=None):
+    def __init__(self, value: str, event_filter: Optional[Callable] = None, name=None):
         if event_filter is None:
             event_filter = CallableEventWithFilter.default_event_filter
         self.filter = event_filter
 
-        if not hasattr(self, '_value_'):
+        if not hasattr(self, "_value_"):
             self._value_ = value
 
-        if not hasattr(self, '_name_') and name is not None:
+        if not hasattr(self, "_name_") and name is not None:
             self._name_ = name
 
     # copied to be compatible to enum
@@ -50,8 +46,9 @@ class CallableEventWithFilter:
         return self._value_
 
     # Will return CallableEventWithFilter but can't annotate that way due to python <= 3.7
-    def __call__(self, event_filter: Optional[Callable] = None,
-                 every: Optional[int] = None, once: Optional[int] = None) -> Any:
+    def __call__(
+        self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
+    ) -> Any:
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
         (which must take in the engine and current event value and return a boolean) or an every or once value

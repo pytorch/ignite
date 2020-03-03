@@ -1,5 +1,6 @@
 from functools import partial
 import warnings
+import numbers
 
 from collections.abc import Sequence, Mapping
 
@@ -129,7 +130,7 @@ def _setup_common_training_handlers(
                 return x[name]
             elif isinstance(x, Sequence):
                 return x[index]
-            elif isinstance(x, torch.Tensor):
+            elif isinstance(x, (torch.Tensor, numbers.Number)):
                 return x
             else:
                 raise ValueError(

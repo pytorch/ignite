@@ -39,7 +39,6 @@ def test_custom_events():
 
 
 def test_custom_events_with_event_to_attr():
-
     class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
