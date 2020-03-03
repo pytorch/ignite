@@ -148,6 +148,14 @@ class Metric(metaclass=ABCMeta):
         if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
 
+    def detach(self, engine: Engine) -> None:
+        if engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED):
+            engine.remove_event_handler(self.completed, Events.EPOCH_COMPLETED)
+        if engine.has_event_handler(self.started, Events.EPOCH_STARTED):
+            engine.remove_event_handler(self.started, Events.EPOCH_STARTED)
+        if engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
+            engine.remove_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED)
+
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
 
