@@ -7,12 +7,12 @@ from ignite.utils import convert_tensor
 from ignite.metrics import Metric
 
 __all__ = [
-    'create_supervised_trainer',
-    'create_supervised_evaluator',
-    'Engine',
-    'Events',
-    'EventEnum',
-    'CallableEventWithFilter'
+    "create_supervised_trainer",
+    "create_supervised_evaluator",
+    "Engine",
+    "Events",
+    "EventEnum",
+    "CallableEventWithFilter",
 ]
 
 
