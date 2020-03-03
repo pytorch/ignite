@@ -283,6 +283,7 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
+
     Args:
         trainer (Engine): trainer engine
         optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
