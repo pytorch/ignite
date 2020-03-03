@@ -86,7 +86,7 @@ of stable version as dependency):
    :caption: Contrib Package Reference
     
    contrib/engines
-   contrib/common
+   contrib/engines/common
    contrib/metrics
    contrib/handlers
 
