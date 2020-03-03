@@ -1,11 +1,19 @@
 ignite.contrib.engines
 ======================
 
-Contribution module of engines
+Contribution module of engines and helper tools
 
 .. currentmodule:: ignite.contrib.engines
 
-.. automodule:: ignite.contrib.engines
+
+Truncated Backpropagation Throught Time
+---------------------------------------
+
+.. automodule:: ignite.contrib.engines.tbptt
    :members:
-   :undoc-members:
-   :imported-members:
+
+Helper methods to setup trainer/evaluator
+-----------------------------------------
+
+.. automodule:: ignite.contrib.engines.common
+   :members:
