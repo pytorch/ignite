@@ -155,7 +155,10 @@ class Metric(metaclass=ABCMeta):
             engine.remove_event_handler(self.started, Events.EPOCH_STARTED)
         if engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
             engine.remove_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED)
-
+        
+    def is_attached(self, engine: Engine) -> bool:
+        return engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED)
+            
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
 
