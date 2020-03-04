@@ -312,6 +312,9 @@ def test_attach():
     assert m2.compute_count == 10
     assert m2.update_count == 50
 
+    assert m1.is_attached(engine)
+    assert m2.is_attached(engine)
+    
 
 def test_detach():
     class DummyMetric(Metric):
@@ -342,6 +345,9 @@ def test_detach():
     assert 'm1' not in engine.state.metrics
     assert 'm2_1' not in engine.state.metrics
     assert 'm2_2' not in engine.state.metrics
+
+    assert not m1.is_attached(engine)
+    assert not m2.is_attached(engine)
 
 
 def test_integration():
