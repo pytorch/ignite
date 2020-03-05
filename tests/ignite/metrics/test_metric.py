@@ -314,7 +314,7 @@ def test_attach():
 
     assert m1.is_attached(engine)
     assert m2.is_attached(engine)
-    
+
 
 def test_detach():
     class DummyMetric(Metric):
