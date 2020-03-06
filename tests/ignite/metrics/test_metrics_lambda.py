@@ -54,6 +54,13 @@ def test_metrics_lambda():
 
     m0.detach(engine)
     assert not m0_plus_m1.is_attached(engine)
+    m0_plus_m1.attach(engine, "m0_plus_m1")
+    assert m0_plus_m1.is_attached(engine)
+    # not attached but usable
+    assert not m0.is_attached(engine)
+    m0_plus_m1.detach(engine)
+    assert not m0_plus_m1.is_attached(engine)
+    assert not m0.is_attached(engine)
 
 
 def test_metrics_lambda_reset():

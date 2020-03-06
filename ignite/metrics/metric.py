@@ -176,6 +176,7 @@ class Metric(metaclass=ABCMeta):
             engine.remove_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED)
         for metric in self._child:
             metric.detach(engine)
+        self._child = []
 
     def is_attached(self, engine: Engine) -> bool:
         """

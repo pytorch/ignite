@@ -44,9 +44,6 @@ class MetricsLambda(Metric):
         self.args = args
         self.kwargs = kwargs
         super(MetricsLambda, self).__init__(device="cpu")
-        for metric in itertools.chain(self.args, self.kwargs.values()):
-            if isinstance(metric, (Metric, MetricsLambda)):
-                metric._child.append(self)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -70,11 +67,13 @@ class MetricsLambda(Metric):
         for index, metric in enumerate(itertools.chain(self.args, self.kwargs.values())):
             if isinstance(metric, MetricsLambda):
                 metric._internal_attach(engine)
+                metric._child.append(self)
             elif isinstance(metric, Metric):
                 if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
                     engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
                 if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
                     engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
+                metric._child.append(self)
 
     def attach(self, engine: Engine, name: str) -> None:
         # recursively attach all its dependencies
