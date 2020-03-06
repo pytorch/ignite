@@ -44,6 +44,9 @@ class MetricsLambda(Metric):
         self.args = args
         self.kwargs = kwargs
         super(MetricsLambda, self).__init__(device="cpu")
+        for metric in itertools.chain(self.args, self.kwargs.values()):
+            if isinstance(metric, (Metric, MetricsLambda)):
+                metric._child.append(self)
 
     @reinit__is_reduced
     def reset(self) -> None:

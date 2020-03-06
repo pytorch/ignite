@@ -52,6 +52,9 @@ def test_metrics_lambda():
     assert engine.state.metrics["m0_plus_m1"] == 22
     assert engine.state.metrics["m2_plus_2"] == 202
 
+    m0.detach(engine)
+    assert not m0_plus_m1.is_attached(engine)
+
 
 def test_metrics_lambda_reset():
     m0 = ListGatherMetric(0)
