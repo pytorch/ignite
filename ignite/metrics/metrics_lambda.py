@@ -95,7 +95,10 @@ class MetricsLambda(Metric):
             return False
         need_detach = False
         for metric in itertools.chain(self.args, self.kwargs.values()):
-            if isinstance(metric, Metric):
+            if isinstance(metric, MetricsLambda):
+                if metric._detach_if_necessary(engine):
+                    need_detach = True
+            elif isinstance(metric, Metric):
                 if not engine().has_event_handler(metric.started, Events.EPOCH_STARTED):
                     need_detach = True
                 if not engine().has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
