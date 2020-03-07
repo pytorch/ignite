@@ -147,7 +147,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
 
     npt_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
 
-
     def score_function(engine):
         return engine.state.metrics['accuracy']
 
