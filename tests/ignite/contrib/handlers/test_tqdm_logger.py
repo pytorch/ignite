@@ -365,7 +365,7 @@ def test_pbar_wrong_events_order():
     with pytest.raises(ValueError, match="should be called before closing event"):
         pbar.attach(engine, event_name=Events.ITERATION_COMPLETED, closing_event_name=Events.ITERATION_STARTED)
 
-    with pytest.raises(ValueError, match='should not be a filtered event'):
+    with pytest.raises(ValueError, match="should not be a filtered event"):
         pbar.attach(engine, event_name=Events.ITERATION_STARTED, closing_event_name=Events.EPOCH_COMPLETED(every=10))
 
 

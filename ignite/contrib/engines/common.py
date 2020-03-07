@@ -1,5 +1,6 @@
 from functools import partial
 import warnings
+import numbers
 
 from collections.abc import Sequence, Mapping
 
@@ -129,7 +130,7 @@ def _setup_common_training_handlers(
                 return x[name]
             elif isinstance(x, Sequence):
                 return x[index]
-            elif isinstance(x, torch.Tensor):
+            elif isinstance(x, (torch.Tensor, numbers.Number)):
                 return x
             else:
                 raise ValueError(
@@ -282,6 +283,7 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
+
     Args:
         trainer (Engine): trainer engine
         optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of

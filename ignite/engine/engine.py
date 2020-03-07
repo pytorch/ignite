@@ -189,7 +189,7 @@ class Engine:
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
-            raise ValueError('Expected event_to_attr to be dictionary. Got {}.'.format(type(event_to_attr)))
+            raise ValueError("Expected event_to_attr to be dictionary. Got {}.".format(type(event_to_attr)))
 
         for e in event_names:
             self._allowed_events.append(e)
@@ -244,8 +244,10 @@ class Engine:
             See :class:`~ignite.engine.Events` for more details.
 
         """
-        if (isinstance(event_name,
-                       CallableEventWithFilter) and event_name.filter != CallableEventWithFilter.default_event_filter):
+        if (
+            isinstance(event_name, CallableEventWithFilter)
+            and event_name.filter != CallableEventWithFilter.default_event_filter
+        ):
             event_filter = event_name.filter
             handler = Engine._handler_wrapper(handler, event_name, event_filter)
 
@@ -263,10 +265,13 @@ class Engine:
 
     @staticmethod
     def _assert_non_filtered_event(event_name: str):
-        if (isinstance(event_name,
-                       CallableEventWithFilter) and event_name.filter != CallableEventWithFilter.default_event_filter):
-            raise TypeError("Argument event_name should not be a filtered event, "
-                            "please use event without any event filtering")
+        if (
+            isinstance(event_name, CallableEventWithFilter)
+            and event_name.filter != CallableEventWithFilter.default_event_filter
+        ):
+            raise TypeError(
+                "Argument event_name should not be a filtered event, " "please use event without any event filtering"
+            )
 
     def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
         """Check if the specified event has the specified handler.
