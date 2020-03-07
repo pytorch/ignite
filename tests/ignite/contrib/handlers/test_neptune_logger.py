@@ -435,19 +435,12 @@ def test_neptune_saver_serializable(dummy_model_factory, dirname):
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.experiment = MagicMock()
 
-    model = dummy_model_factory()
+    model = torch.nn.Module()
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
     fname = "test.pth"
-    try:
-        with warnings.catch_warnings():
-            # Ignore torch/serialization.py:292: UserWarning: Couldn't retrieve source code for container of type
-            # DummyModel. It won't be checked for correctness upon loading.
-            warnings.simplefilter("ignore", category=UserWarning)
-            saver(to_save_serializable, fname)
-    except Exception:
-        pass
+    saver(to_save_serializable, fname)
 
     assert mock_logger.experiment.log_artifact.call_count == 1
 
