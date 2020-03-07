@@ -430,12 +430,12 @@ def test_integration_as_context_manager():
         trainer.run(data, max_epochs=n_epochs)
 
 
-def test_neptune_saver_serializable(dirname):
+def test_neptune_saver_serializable(dummy_model_factory, dirname):
 
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.experiment = MagicMock()
 
-    model = MagicMock(spec=torch.nn.Module)
+    model = dummy_model_factory()
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
