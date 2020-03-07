@@ -63,6 +63,10 @@ def test_metrics_lambda():
     assert not m0.is_attached(engine)
 
 
+if __name__ == '__main__':
+    test_metrics_lambda()
+
+
 def test_metrics_lambda_reset():
     m0 = ListGatherMetric(0)
     m1 = ListGatherMetric(1)

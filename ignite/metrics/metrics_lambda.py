@@ -1,5 +1,6 @@
 import itertools
 from typing import Callable, Any
+import weakref
 
 from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.engine import Events, Engine
@@ -43,40 +44,62 @@ class MetricsLambda(Metric):
         self.function = f
         self.args = args
         self.kwargs = kwargs
+        self.engine = None
         super(MetricsLambda, self).__init__(device="cpu")
 
     @reinit__is_reduced
     def reset(self) -> None:
-        for i in itertools.chain(self.args, self.kwargs.values()):
-            if isinstance(i, Metric):
-                i.reset()
+        if not self._detach_if_necessary(self.engine):
+            for i in itertools.chain(self.args, self.kwargs.values()):
+                if isinstance(i, Metric):
+                    i.reset()
 
     @reinit__is_reduced
     def update(self, output) -> None:
         # NB: this method does not recursively update dependency metrics,
         # which might cause duplicate update issue. To update this metric,
         # users should manually update its dependencies.
-        pass
+        self._detach_if_necessary(self.engine)
 
     def compute(self) -> Any:
-        materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
-        materialized_kwargs = {k: (v.compute() if isinstance(v, Metric) else v) for k, v in self.kwargs.items()}
-        return self.function(*materialized, **materialized_kwargs)
+        if not self._detach_if_necessary(self.engine):
+            materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
+            materialized_kwargs = {k: (v.compute() if isinstance(v, Metric) else v) for k, v in self.kwargs.items()}
+            return self.function(*materialized, **materialized_kwargs)
 
     def _internal_attach(self, engine: Engine) -> None:
+        self.engine = weakref.ref(engine)
         for index, metric in enumerate(itertools.chain(self.args, self.kwargs.values())):
             if isinstance(metric, MetricsLambda):
                 metric._internal_attach(engine)
-                metric._child.append(self)
             elif isinstance(metric, Metric):
+                # NB : metrics is attached partially
+                # We must not use is_attached() but rather if these events exist
                 if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
                     engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
                 if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
                     engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
-                metric._child.append(self)
 
     def attach(self, engine: Engine, name: str) -> None:
-        # recursively attach all its dependencies
+        # recursively attach all its dependencies (partially)
         self._internal_attach(engine)
         # attach only handler on EPOCH_COMPLETED
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
+
+    def is_attached(self, engine: Engine) -> bool:
+        self._detach_if_necessary(weakref.ref(engine))
+        return super().is_attached(engine)
+
+    def _detach_if_necessary(self, engine: weakref) -> bool:
+        if engine is None or engine() is None:
+            return False
+        need_detach = False
+        for metric in itertools.chain(self.args, self.kwargs.values()):
+            if isinstance(metric, Metric):
+                if not engine().has_event_handler(metric.started, Events.EPOCH_STARTED):
+                    need_detach = True
+                if not engine().has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
+                    need_detach = True
+        if need_detach:
+            super().detach(engine())
+        return need_detach

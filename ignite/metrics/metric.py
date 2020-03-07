@@ -51,7 +51,6 @@ class Metric(metaclass=ABCMeta):
             device = torch.device(device)
         self._device = device
         self._is_reduced = False
-        self._child = []
         self.reset()
 
     @abstractmethod
@@ -174,9 +173,6 @@ class Metric(metaclass=ABCMeta):
             engine.remove_event_handler(self.started, Events.EPOCH_STARTED)
         if engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
             engine.remove_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED)
-        for metric in self._child:
-            metric.detach(engine)
-        self._child = []
 
     def is_attached(self, engine: Engine) -> bool:
         """
