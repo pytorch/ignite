@@ -16,6 +16,7 @@ from ignite.contrib.handlers.base_logger import (
 
 __all__ = [
     "NeptuneLogger",
+    "NeptuneSaver",
     "OptimizerParamsHandler",
     "OutputHandler",
     "WeightsScalarHandler",
@@ -388,8 +389,7 @@ class NeptuneLogger(BaseLogger):
             npt_logger.close()
 
         Explore an experiment with neptune tracking here:
-        https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-6/charts
-
+        https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
         You can save model checkpoints to a Neptune server:
 
         .. code-block:: python
@@ -465,42 +465,46 @@ class NeptuneSaver:
 
     Examples:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from ignite.contrib.handlers.neptune_logger import *
+            from ignite.contrib.handlers.neptune_logger import *
 
-        # Create a logger
-        # We are using the api_token for the anonymous user neptuner but you can use your own.
+            # Create a logger
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-        npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                   project_name="shared/pytorch-ignite-integration",
-                                   experiment_name="cnn-mnist", # Optional,
-                                   params={"max_epochs": 10}, # Optional,
-                                   tags=["pytorch-ignite","minst"] # Optional
-                                   )
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
+                                       experiment_name="cnn-mnist", # Optional,
+                                       params={"max_epochs": 10}, # Optional,
+                                       tags=["pytorch-ignite","minst"] # Optional
+                                       )
 
-        ...
-        evaluator = create_supervised_evaluator(model, metrics=metrics, ...)
-        ...
+            ...
+            evaluator = create_supervised_evaluator(model, metrics=metrics, ...)
+            ...
 
-        from ignite.handlers import Checkpoint
+            from ignite.handlers import Checkpoint
 
-        def score_function(engine):
-            return engine.state.metrics['accuracy']
+            def score_function(engine):
+                return engine.state.metrics['accuracy']
 
-        to_save = {'model': model}
+            to_save = {'model': model}
 
-        # pass neptune logger to NeptuneServer
+            # pass neptune logger to NeptuneServer
 
-        handler = Checkpoint(to_save, NeptuneSaver(npt_logger), n_saved=2,
-                             filename_prefix='best', score_function=score_function,
-                             score_name="validation_accuracy",
-                             global_step_transform=global_step_from_engine(trainer))
+            handler = Checkpoint(to_save, NeptuneSaver(npt_logger), n_saved=2,
+                                 filename_prefix='best', score_function=score_function,
+                                 score_name="validation_accuracy",
+                                 global_step_transform=global_step_from_engine(trainer))
 
-        evaluator.add_event_handler(Events.COMPLETED, handler)
+            evaluator.add_event_handler(Events.COMPLETED, handler)
 
-        # We need to close the logger when we are done
-        npt_logger.close()
+            # We need to close the logger when we are done
+            npt_logger.close()
+
+    For example, you can access model checkpoints and download them from here:
+    https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
+
     """
 
     def __init__(self, neptune_logger: NeptuneLogger):

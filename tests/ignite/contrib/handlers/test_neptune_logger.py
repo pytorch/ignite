@@ -435,7 +435,7 @@ def test_neptune_saver_serializable(dirname):
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.experiment = MagicMock()
 
-    model = DummyModel()
+    model = MagicMock(spec=torch.nn.Module)
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
