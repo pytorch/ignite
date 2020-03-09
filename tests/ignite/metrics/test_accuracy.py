@@ -329,7 +329,7 @@ def test_variable_multiclass_input_N_without_flag():
         acc = Accuracy()
 
         # vary total classes randomly
-        rand_num_classes = torch.randint(2, 30, (1,)).item()
+        rand_num_classes = torch.randint(2, 10, (1,)).item()
         y_pred = torch.rand(10, rand_num_classes)
         y = torch.randint(0, 4, size=(10,)).long()
         acc.update((y_pred, y))
@@ -340,12 +340,16 @@ def test_variable_multiclass_input_N_without_flag():
         assert isinstance(acc.compute(), float)
         assert np_acc == pytest.approx(acc.compute())
 
-        rand_num_classes = torch.randint(2, 30, (1,)).item()
+        rand_num_classes = torch.randint(11, 30, (1,)).item()
         y_pred = torch.rand(10, rand_num_classes)
         y = torch.randint(0, 4, size=(10,)).long()
         with pytest.raises(ValueError):
             # Input data number of classes has changed
             acc.update((y_pred, y))
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
 
 
 def test_variable_multiclass_input_N():
