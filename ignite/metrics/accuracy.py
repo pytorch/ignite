@@ -14,9 +14,11 @@ class _BaseClassification(Metric):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
+        is_variable_multiclass: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
         self._is_multilabel = is_multilabel
+        self._is_variable_multiclass = is_variable_multiclass
         self._type = None
         self._num_classes = None
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
@@ -87,9 +89,10 @@ class _BaseClassification(Metric):
             if self._type != update_type:
                 raise RuntimeError("Input data type has changed from {} to {}.".format(self._type, update_type))
             if self._num_classes != num_classes:
-                raise ValueError(
-                    "Input data number of classes has changed from {} to {}".format(self._num_classes, num_classes)
-                )
+                if not self._is_variable_multiclass:
+                    raise ValueError(
+                        "Input data number of classes has changed from {} to {}".format(self._num_classes, num_classes)
+                    )
 
 
 class Accuracy(_BaseClassification):
@@ -131,11 +134,17 @@ class Accuracy(_BaseClassification):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
+        is_variable_multiclass: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
         self._num_correct = None
         self._num_examples = None
-        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
+        super(Accuracy, self).__init__(
+            output_transform=output_transform,
+            is_multilabel=is_multilabel,
+            is_variable_multiclass=is_variable_multiclass,
+            device=device
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:
