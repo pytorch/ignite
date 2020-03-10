@@ -2,11 +2,12 @@ from typing import Sequence, Union, Optional, Callable, Dict, Any, Tuple
 import torch
 
 from ignite.engine.engine import Engine
-from ignite.engine.events import Events, EventEnum, CallableEventWithFilter
+from ignite.engine.events import State, Events, EventEnum, CallableEventWithFilter
 from ignite.utils import convert_tensor
 from ignite.metrics import Metric
 
 __all__ = [
+    "State",
     "create_supervised_trainer",
     "create_supervised_evaluator",
     "Engine",
