@@ -1,13 +1,11 @@
-import os
-
 import numbers
 import tempfile
+from typing import Mapping
 import warnings
 
 import torch
 
 import ignite
-from ignite.engine import Events
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
@@ -18,6 +16,7 @@ from ignite.contrib.handlers.base_logger import (
 
 __all__ = [
     "NeptuneLogger",
+    "NeptuneSaver",
     "OptimizerParamsHandler",
     "OutputHandler",
     "WeightsScalarHandler",
@@ -36,8 +35,10 @@ class OutputHandler(BaseOutputHandler):
             from ignite.contrib.handlers.neptune_logger import *
 
             # Create a logger
-            npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                       project_name="USER_NAME/PROJECT_NAME",
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
                                        tags=["pytorch-ignite","minst"] # Optional
@@ -62,8 +63,10 @@ class OutputHandler(BaseOutputHandler):
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
 
-            npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                       project_name="USER_NAME/PROJECT_NAME",
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
                                        tags=["pytorch-ignite", "minst"] # Optional
@@ -150,8 +153,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             from ignite.contrib.handlers.neptune_logger import *
 
             # Create a logger
-            npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                       project_name="USER_NAME/PROJECT_NAME",
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
                                        tags=["pytorch-ignite","minst"] # Optional
@@ -198,8 +203,10 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             from ignite.contrib.handlers.neptune_logger import *
 
             # Create a logger
-            npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                       project_name="USER_NAME/PROJECT_NAME",
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
                                        tags=["pytorch-ignite","minst"] # Optional
@@ -251,8 +258,10 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             from ignite.contrib.handlers.neptune_logger import *
 
             # Create a logger
-            npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                       project_name="USER_NAME/PROJECT_NAME",
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
                                        tags=["pytorch-ignite","minst"] # Optional
@@ -334,8 +343,10 @@ class NeptuneLogger(BaseLogger):
             from ignite.contrib.handlers.neptune_logger import *
 
             # Create a logger
-            npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                       project_name="USER_NAME/PROJECT_NAME",
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
                                        tags=["pytorch-ignite","minst"] # Optional
@@ -378,7 +389,22 @@ class NeptuneLogger(BaseLogger):
             npt_logger.close()
 
         Explore an experiment with neptune tracking here:
-        https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-26/charts
+        https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
+        You can save model checkpoints to a Neptune server:
+
+        .. code-block:: python
+
+            from ignite.handlers import Checkpoint
+
+            def score_function(engine):
+                return engine.state.metrics['accuracy']
+
+            to_save = {'model': model}
+            handler = Checkpoint(to_save, NeptuneSaver(npt_logger), n_saved=2,
+                                 filename_prefix='best', score_function=score_function,
+                                 score_name="validation_accuracy",
+                                 global_step_transform=global_step_from_engine(trainer))
+            validation_evaluator.add_event_handler(Events.COMPLETED, handler)
 
         It is also possible to use the logger as context manager:
 
@@ -386,8 +412,10 @@ class NeptuneLogger(BaseLogger):
 
             from ignite.contrib.handlers.neptune_logger import *
 
-            with npt_logger = NeptuneLogger(api_token=os.environ["NEPTUNE_API_TOKEN"],
-                                            project_name="USER_NAME/PROJECT_NAME",
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
                                             experiment_name="cnn-mnist", # Optional,
                                             params={"max_epochs": 10}, # Optional,
                                             tags=["pytorch-ignite","minst"] # Optional
@@ -426,3 +454,67 @@ class NeptuneLogger(BaseLogger):
 
     def close(self):
         self.experiment.stop()
+
+
+class NeptuneSaver:
+    """Handler that saves input checkpoint to the Neptune server.
+
+    Args:
+        neptune_logger (ignite.contrib.handlers.neptune_logger.NeptuneLogger): an instance of
+            NeptuneLogger class.
+
+    Examples:
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.neptune_logger import *
+
+            # Create a logger
+            # We are using the api_token for the anonymous user neptuner but you can use your own.
+
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
+                                       project_name="shared/pytorch-ignite-integration",
+                                       experiment_name="cnn-mnist", # Optional,
+                                       params={"max_epochs": 10}, # Optional,
+                                       tags=["pytorch-ignite","minst"] # Optional
+                                       )
+
+            ...
+            evaluator = create_supervised_evaluator(model, metrics=metrics, ...)
+            ...
+
+            from ignite.handlers import Checkpoint
+
+            def score_function(engine):
+                return engine.state.metrics['accuracy']
+
+            to_save = {'model': model}
+
+            # pass neptune logger to NeptuneServer
+
+            handler = Checkpoint(to_save, NeptuneSaver(npt_logger), n_saved=2,
+                                 filename_prefix='best', score_function=score_function,
+                                 score_name="validation_accuracy",
+                                 global_step_transform=global_step_from_engine(trainer))
+
+            evaluator.add_event_handler(Events.COMPLETED, handler)
+
+            # We need to close the logger when we are done
+            npt_logger.close()
+
+    For example, you can access model checkpoints and download them from here:
+    https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
+
+    """
+
+    def __init__(self, neptune_logger: NeptuneLogger):
+        self._experiment = neptune_logger.experiment
+
+    def __call__(self, checkpoint: Mapping, filename: str) -> None:
+
+        with tempfile.NamedTemporaryFile() as tmp:
+            torch.save(checkpoint, tmp.name)
+            self._experiment.log_artifact(tmp.name, filename)
+
+    def remove(self, filename: str) -> None:
+        self._experiment.delete_artifacts(filename)
