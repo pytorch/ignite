@@ -86,7 +86,7 @@ class MetricsLambda(Metric):
 
     def detach(self, engine: Engine) -> None:
         # remove from engine
-        super().detach(engine)
+        super(MetricsLambda, self).detach(engine)
         # invalidate weakref
         self.engine = None
 
