@@ -92,7 +92,7 @@ class MetricsLambda(Metric):
 
     def is_attached(self, engine: Engine) -> bool:
         # check recursively the dependencies
-        return super().is_attached(engine) and self._internal_is_attached(weakref.ref(engine))
+        return super(MetricsLambda, self).is_attached(engine) and self._internal_is_attached(weakref.ref(engine))
 
     def _internal_is_attached(self, engine: weakref) -> bool:
         # if no engine, metrics is not attached
