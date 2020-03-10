@@ -2,7 +2,7 @@ from typing import Sequence, Union, Optional, Callable, Dict, Any, Tuple
 import torch
 
 from ignite.engine.engine import Engine
-from ignite.engine.events import State, Events, EventEnum, CallableEventWithFilter
+from ignite.engine.events import Events, EventEnum, CallableEventWithFilter
 from ignite.utils import convert_tensor
 from ignite.metrics import Metric
 
@@ -60,10 +60,10 @@ def create_supervised_trainer(
     Returns:
         Engine: a trainer engine with supervised update function.
     """
-    if device:
-        model.to(device)
 
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+        if device is not None:
+            model.to(device)
         model.train()
         optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
@@ -82,7 +82,7 @@ def create_supervised_evaluator(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred: (y_pred, y,),
+    output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
 ) -> Engine:
     """
     Factory function for creating an evaluator for supervised models.
@@ -108,10 +108,9 @@ def create_supervised_evaluator(
     """
     metrics = metrics or {}
 
-    if device:
-        model.to(device)
-
     def _inference(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+        if device is not None:
+            model.to(device)
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
