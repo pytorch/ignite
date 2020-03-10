@@ -83,7 +83,6 @@ class MetricsLambda(Metric):
         self._internal_attach(engine)
         # attach only handler on EPOCH_COMPLETED
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
-        # is_attached(engne) is ok
 
     def detach(self, engine: Engine) -> None:
         # remove from engine
