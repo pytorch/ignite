@@ -118,28 +118,6 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu_after_init():
     trainer.run(data)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_with_model_on_cpu_in_between():
-    model = Linear(1, 1)
-    model.weight.data.zero_()
-    model.bias.data.zero_()
-    optimizer = SGD(model.parameters(), 0.1)
-
-    trainer = create_supervised_trainer(model, optimizer, mse_loss, device="cuda")
-
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def switch_device(engine):
-        model.to("cpu")
-
-    x1 = torch.tensor([[1.0], [2.0]])
-    x2 = x1.clone()
-    y1 = torch.tensor([[3.0], [5.0]])
-    y2 = y1.clone()
-    data = [(x1, y1), (x2, y2)]
-
-    trainer.run(data)
-
-
 def test_create_supervised_evaluator():
     model = Linear(1, 1)
     model.weight.data.zero_()
@@ -249,27 +227,6 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu_after_init():
     data = [(x, y)]
 
     model.to("cpu")
-    evaluator.run(data)
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_evaluator_on_cuda_with_model_on_cpu_in_between():
-    model = Linear(1, 1)
-    model.weight.data.zero_()
-    model.bias.data.zero_()
-
-    evaluator = create_supervised_evaluator(model, device="cuda")
-
-    @evaluator.on(Events.ITERATION_COMPLETED)
-    def switch_device(engine):
-        model.to("cpu")
-
-    x1 = torch.tensor([[1.0], [2.0]])
-    x2 = x1.clone()
-    y1 = torch.tensor([[3.0], [5.0]])
-    y2 = y1.clone()
-    data = [(x1, y1), (x2, y2)]
-
     evaluator.run(data)
 
 
