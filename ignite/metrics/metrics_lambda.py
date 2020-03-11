@@ -1,6 +1,5 @@
 import itertools
 from typing import Callable, Any
-import weakref
 
 from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.engine import Events, Engine
@@ -66,7 +65,7 @@ class MetricsLambda(Metric):
         return self.function(*materialized, **materialized_kwargs)
 
     def _internal_attach(self, engine: Engine) -> None:
-        self.engine = weakref.ref(engine)
+        self.engine = engine
         for index, metric in enumerate(itertools.chain(self.args, self.kwargs.values())):
             if isinstance(metric, MetricsLambda):
                 metric._internal_attach(engine)
@@ -87,16 +86,15 @@ class MetricsLambda(Metric):
     def detach(self, engine: Engine) -> None:
         # remove from engine
         super(MetricsLambda, self).detach(engine)
-        # invalidate weakref
         self.engine = None
 
     def is_attached(self, engine: Engine) -> bool:
         # check recursively the dependencies
-        return super(MetricsLambda, self).is_attached(engine) and self._internal_is_attached(weakref.ref(engine))
+        return super(MetricsLambda, self).is_attached(engine) and self._internal_is_attached(engine)
 
-    def _internal_is_attached(self, engine: weakref) -> bool:
+    def _internal_is_attached(self, engine: Engine) -> bool:
         # if no engine, metrics is not attached
-        if engine is None or engine() is None:
+        if engine is None:
             return False
         # check recursively if metrics are attached
         is_detached = False
@@ -105,8 +103,8 @@ class MetricsLambda(Metric):
                 if not metric._internal_is_attached(engine):
                     is_detached = True
             elif isinstance(metric, Metric):
-                if not engine().has_event_handler(metric.started, Events.EPOCH_STARTED):
+                if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
                     is_detached = True
-                if not engine().has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
+                if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
                     is_detached = True
         return not is_detached
