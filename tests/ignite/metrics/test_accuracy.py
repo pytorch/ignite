@@ -352,10 +352,21 @@ def test_variable_multiclass_input_N_without_flag():
         _test()
 
 
+def test_variable_multiclass_for_multilabel():
+    acc = Accuracy(is_multilabel=True, variable_classes=True)
+
+    y_pred = torch.randint(0, 2, size=(10, 4))
+    y = torch.randint(0, 2, size=(10, 4)).long()
+
+    with pytest.raises(RuntimeError):
+        # Input data number of classes has changed
+        acc.update((y_pred, y))
+
+
 def test_variable_multiclass_input_N():
     # Multiclass input data of shape (N, ) and (N, C)
     def _test():
-        acc = Accuracy(is_variable_multiclass=True)
+        acc = Accuracy(variable_classes=True)
 
         # vary total classes randomly
         rand_num_classes = torch.randint(2, 30, (1,)).item()
@@ -436,7 +447,7 @@ def test_multiclass_input_NL():
 def test_variable_multiclass_input_NL():
     # Multiclass input data of shape (N, L) and (N, C, L)
     def _test():
-        acc = Accuracy(is_variable_multiclass=True)
+        acc = Accuracy(variable_classes=True)
 
         # vary total classes randomly
         rand_num_classes = torch.randint(2, 30, (1,)).item()
@@ -517,7 +528,7 @@ def test_multiclass_input_NHW():
 def test_variable_multiclass_input_NHW():
     # Multiclass input data of shape (N, H, W, ...) and (N, C, H, W, ...)
     def _test():
-        acc = Accuracy(is_variable_multiclass=True)
+        acc = Accuracy(variable_classes=True)
 
         # vary total classes randomly
         rand_num_classes = torch.randint(2, 30, (1,)).item()
