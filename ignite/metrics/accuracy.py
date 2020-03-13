@@ -14,11 +14,11 @@ class _BaseClassification(Metric):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        is_variable_multiclass: bool = False,
+        variable_classes: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
         self._is_multilabel = is_multilabel
-        self._is_variable_multiclass = is_variable_multiclass
+        self._variable_classes = variable_classes
         self._type = None
         self._num_classes = None
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
@@ -74,6 +74,8 @@ class _BaseClassification(Metric):
             if self._is_multilabel:
                 update_type = "multilabel"
                 num_classes = y_pred.shape[1]
+                if self._variable_classes:
+                    raise RuntimeError("variable_classes flag cannot be set to True for multi-label type")
             else:
                 update_type = "binary"
                 num_classes = 1
@@ -89,7 +91,7 @@ class _BaseClassification(Metric):
             if self._type != update_type:
                 raise RuntimeError("Input data type has changed from {} to {}.".format(self._type, update_type))
             if self._num_classes != num_classes:
-                if not self._is_variable_multiclass:
+                if not self._variable_classes:
                     raise ValueError(
                         "Input data number of classes has changed from {} to {}".format(self._num_classes, num_classes)
                     )
@@ -123,8 +125,9 @@ class Accuracy(_BaseClassification):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
-        is_variable_multiclass (bool, optional): flag to use in variable multi-class
-            (aka. multi-choice) case. By default, False.
+        variable_classes (bool, optional): flag to use in variable multi-class
+            (aka. multi-choice) case. If the metric type is multi-label, this flag must be set to
+            False. By default, False.
         device (str of torch.device, optional): device specification in case of distributed computation usage.
             In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
             if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
@@ -136,7 +139,7 @@ class Accuracy(_BaseClassification):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        is_variable_multiclass: bool = False,
+        variable_classes: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
         self._num_correct = None
@@ -144,7 +147,7 @@ class Accuracy(_BaseClassification):
         super(Accuracy, self).__init__(
             output_transform=output_transform,
             is_multilabel=is_multilabel,
-            is_variable_multiclass=is_variable_multiclass,
+            variable_classes=variable_classes,
             device=device
         )
 
