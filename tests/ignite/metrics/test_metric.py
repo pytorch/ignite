@@ -312,6 +312,43 @@ def test_attach():
     assert m2.compute_count == 10
     assert m2.update_count == 50
 
+    assert m1.is_attached(engine)
+    assert m2.is_attached(engine)
+
+
+def test_detach():
+    class DummyMetric(Metric):
+        _required_output_keys = None
+
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            pass
+
+    def process_function(*args, **kwargs):
+        return 1
+
+    engine = Engine(process_function)
+    m1 = DummyMetric()
+    m2 = DummyMetric()
+    m1.attach(engine, "m1")
+    m2.attach(engine, "m2_1")
+    m2.attach(engine, "m2_2")
+    m1.detach(engine)
+    m2.detach(engine)
+    engine.run(range(10), 5)
+
+    assert 'm1' not in engine.state.metrics
+    assert 'm2_1' not in engine.state.metrics
+    assert 'm2_2' not in engine.state.metrics
+
+    assert not m1.is_attached(engine)
+    assert not m2.is_attached(engine)
+
 
 def test_integration():
     np.random.seed(1)

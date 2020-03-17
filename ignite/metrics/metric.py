@@ -142,11 +142,69 @@ class Metric(metaclass=ABCMeta):
         engine.state.metrics[name] = result
 
     def attach(self, engine: Engine, name: str) -> None:
+        """
+        Attaches current metric to provided engine. On the end of engine's run,
+        `engine.state.metrics` dictionary will contain computed metric's value under provided name.
+
+        Args:
+            engine (Engine): the engine to which the metric must be attached
+            name (str): the name of the metric to attach
+
+        Example:
+
+        .. code-block:: python
+
+            metric = ...
+            metric.attach(engine, "mymetric")
+
+            assert "mymetric" in engine.run(data).metrics
+
+            assert metric.is_attached(engine)
+        """
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
         if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
             engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
             engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
+
+    def detach(self, engine: Engine) -> None:
+        """
+        Detaches current metric from the engine and no metric's computation is done during the run.
+        This method in conjunction with :meth:`~ignite.metrics.Metric.attach` can be useful if several
+        metrics need to be computed with different periods. For example, one metric is computed every training epoch
+        and another metric (e.g. more expensive one) is done every n-th training epoch.
+
+        Args:
+            engine (Engine): the engine from which the metric must be detached
+
+        Example:
+
+        .. code-block:: python
+
+            metric = ...
+            engine = ...
+            metric.detach(engine)
+
+            assert "mymetric" not in engine.run(data).metrics
+
+            assert not metric.is_attached(engine)
+        """
+        if engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED):
+            engine.remove_event_handler(self.completed, Events.EPOCH_COMPLETED)
+        if engine.has_event_handler(self.started, Events.EPOCH_STARTED):
+            engine.remove_event_handler(self.started, Events.EPOCH_STARTED)
+        if engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
+            engine.remove_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED)
+
+    def is_attached(self, engine: Engine) -> bool:
+        """
+        Checks if current metric is attached to provided engine. If attached, metric's computed
+        value is written to `engine.state.metrics` dictionary.
+
+        Args:
+            engine (Engine): the engine checked from which the metric should be attached
+        """
+        return engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
