@@ -15,7 +15,9 @@ class MetricsLambda(Metric):
 
     When update, this metric does not recursively update the metrics
     it depends on. When reset, all its dependency metrics would be
-    resetted. When attach, all its dependencies would be automatically
+    resetted. When attach, all its dependency metrics would be attached
+    automatically but partially. It means that all its dependency
+    metrics are partially attached but not considered to be fully
     attached.
 
     Args:
@@ -37,6 +39,29 @@ class MetricsLambda(Metric):
         F2 = MetricsLambda(Fbeta, recall, precision, 2)
         F3 = MetricsLambda(Fbeta, recall, precision, 3)
         F4 = MetricsLambda(Fbeta, recall, precision, 4)
+
+    When check if the metric is attached, if one of its dependency
+    metrics is detached, the metric is considered detached too.
+
+    .. code-block:: python
+
+        engine = ...
+        precision = Precision(average=False)
+
+        aP = precision.mean()
+
+        aP.attach(engine, "aP")
+
+        assert aP.is_attached(engine)
+        # partially attached
+        assert not precision.is_attached(engine)
+
+        precision.detach(engine)
+
+        assert not aP.is_attached(engine)
+        # fully attached
+        assert not precision.is_attached(engine)
+
     """
 
     def __init__(self, f: Callable, *args, **kwargs):

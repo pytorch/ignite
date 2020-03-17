@@ -146,6 +146,12 @@ class Metric(metaclass=ABCMeta):
         Attaches current metric to provided engine. On the end of engine's run,
         `engine.state.metrics` dictionary will contain computed metric's value under provided name.
 
+        Args:
+            engine (Engine): the engine to which the metric must be attached
+            name (str): the name of the metric to attach
+
+        Example:
+
         .. code-block:: python
 
             metric = ...
@@ -153,6 +159,7 @@ class Metric(metaclass=ABCMeta):
 
             assert "mymetric" in engine.run(data).metrics
 
+            assert metric.is_attached(engine)
         """
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
         if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
@@ -166,6 +173,21 @@ class Metric(metaclass=ABCMeta):
         This method in conjunction with :meth:`~ignite.metrics.Metric.attach` can be useful if several
         metrics need to be computed with different periods. For example, one metric is computed every training epoch
         and another metric (e.g. more expensive one) is done every n-th training epoch.
+
+        Args:
+            engine (Engine): the engine from which the metric must be detached
+
+        Example:
+
+        .. code-block:: python
+
+            metric = ...
+            engine = ...
+            metric.detach(engine)
+
+            assert "mymetric" not in engine.run(data).metrics
+
+            assert not metric.is_attached(engine)
         """
         if engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED):
             engine.remove_event_handler(self.completed, Events.EPOCH_COMPLETED)
@@ -177,6 +199,9 @@ class Metric(metaclass=ABCMeta):
     def is_attached(self, engine: Engine) -> bool:
         """
         Checks if current metric is attached to provided engine
+
+        Args:
+            engine (Engine): the engine checked from which the metric should be attached
         """
         return engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED)
 
