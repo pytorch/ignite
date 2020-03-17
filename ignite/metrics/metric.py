@@ -198,7 +198,8 @@ class Metric(metaclass=ABCMeta):
 
     def is_attached(self, engine: Engine) -> bool:
         """
-        Checks if current metric is attached to provided engine
+        Checks if current metric is attached to provided engine. If attached, metric's computed
+        value is written to `engine.state.metrics` dictionary.
 
         Args:
             engine (Engine): the engine checked from which the metric should be attached
