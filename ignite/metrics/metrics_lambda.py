@@ -16,9 +16,7 @@ class MetricsLambda(Metric):
     When update, this metric does not recursively update the metrics
     it depends on. When reset, all its dependency metrics would be
     resetted. When attach, all its dependency metrics would be attached
-    automatically but partially. It means that all its dependency
-    metrics are partially attached but not considered to be fully
-    attached.
+    automatically (but partially, e.g `is_attached()` will return False).
 
     Args:
         f (callable): the function that defines the computation
