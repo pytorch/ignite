@@ -465,11 +465,19 @@ def test_cm_with_average():
     res = cm.compute().numpy().diagonal()
     np.testing.assert_almost_equal(true_re, res)
 
+    res = cm.compute().numpy()
+    true_res = confusion_matrix(np_y, np_y_pred, normalize="true")
+    np.testing.assert_almost_equal(true_res, res)
+
     cm = ConfusionMatrix(num_classes=num_classes, average="precision")
     cm.update((y_pred, y))
     true_pr = precision_score(np_y, np_y_pred, average=None, labels=list(range(num_classes)))
     res = cm.compute().numpy().diagonal()
     np.testing.assert_almost_equal(true_pr, res)
+
+    res = cm.compute().numpy()
+    true_res = confusion_matrix(np_y, np_y_pred, normalize="pred")
+    np.testing.assert_almost_equal(true_res, res)
 
 
 def test_dice_coefficient_wrong_input():
