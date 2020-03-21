@@ -120,7 +120,7 @@ class ConfusionMatrix(Metric):
             if self.average == "samples":
                 return self.confusion_matrix / self._num_examples
             elif self.average == "recall":
-                return self.confusion_matrix / (self.confusion_matrix.sum(dim=1) + 1e-15)
+                return self.confusion_matrix / (self.confusion_matrix.sum(dim=1).unsqueeze(1) + 1e-15)
             elif self.average == "precision":
                 return self.confusion_matrix / (self.confusion_matrix.sum(dim=0) + 1e-15)
         return self.confusion_matrix
