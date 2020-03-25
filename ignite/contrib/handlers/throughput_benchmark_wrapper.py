@@ -1,31 +1,9 @@
-import torch
+from typing import Callable, Optional
 import contextlib
-from typing import Callable
+
+import torch
+
 from ignite.engine import Events, Engine
-
-
-class ExecutionStats(object):
-    # Abstracted from
-    # https://github.com/pytorch/pytorch/blob/v1.2.0/torch/utils/throughput_benchmark.py#L27
-    # for linting support
-    def __init__(self):
-        ...
-
-    @property
-    def latency_avg_ms(self) -> float:
-        ...
-
-    @property
-    def num_iters(self) -> int:
-        ...
-
-    @property
-    def iters_per_second(self) -> float:
-        ...
-
-    @property
-    def total_time_seconds(self) -> float:
-        ...
 
 
 # TODO: Discuss device implications
@@ -62,6 +40,12 @@ class ThroughputBenchmarkWrapper:
             stats.num_iters where stats is the result of this function.
             Defaults to 100.
 
+    Attributes:
+        execution_stats (ExecutionStats): Wraps all the important stats into
+            a single object, which includes a nice print output.
+            For more information see
+            :ref:`ExecutionStats<https://github.com/pytorch/pytorch/blob/v1.2.0/torch/utils/throughput_benchmark.py#L27>`
+
     Examples:
 
         .. code-block:: python
@@ -81,7 +65,7 @@ class ThroughputBenchmarkWrapper:
             with throughput_benchmark.attach(evaluator, max_batches=max_batches) as evaluator_with_benchmark:
                 evaluator_with_benchmark.run(dataloader)
             # get the results
-            stats = throughput_benchmark.stats
+            stats = throughput_benchmark.execution_stats
             # print the results
             print(stats)
 
@@ -98,6 +82,7 @@ class ThroughputBenchmarkWrapper:
     ):
         try:
             from torch.utils import ThroughputBenchmark
+            from torch.utils.throughput_benchmark import ExecutionStats  # for typing
         except ImportError:
             raise RuntimeError("This method requires at least pytorch version  1.2.0 to be installed")
 
@@ -117,11 +102,11 @@ class ThroughputBenchmarkWrapper:
             raise ValueError("Warmup iterations has to be larger or equal to 0. Given {}".format(num_warmup_iters))
         if num_iters < 1:
             raise ValueError("Number of iterations has to be larger than 0! Given {}".format(num_iters))
+        self.execution_stats: Optional[ExecutionStats] = None
         self._bench = ThroughputBenchmark(model)
         self._num_calling_threads = num_calling_threads
         self._num_warmup_iters = num_warmup_iters
         self._num_iters = num_iters
-        self._stats = None
 
     def _batch_logger(self, engine: Engine, input_transform: Callable) -> None:
         """
@@ -145,7 +130,7 @@ class ThroughputBenchmarkWrapper:
         Args:
             engine (Engine): Given from event handler (not used)
         """
-        self._stats = self._bench.benchmark(
+        self.execution_stats = self._bench.benchmark(
             num_calling_threads=self._num_calling_threads,
             num_warmup_iters=self._num_warmup_iters,
             num_iters=self._num_iters,
@@ -227,18 +212,3 @@ class ThroughputBenchmarkWrapper:
 
         yield engine
         self._detach(engine)
-
-    @property
-    def stats(self) -> ExecutionStats:
-        """
-        If benchmark was attached and run, the
-        execution stats results are returned.
-
-        Returns:
-            ExecutionStats:
-                Wraps all the important stats int
-                a single object, which includes a nice print output.
-        """
-        if self._stats is None:
-            raise RuntimeError("Benchmark wrapper hasn't run yet so results can't be retrieved.")
-        return self._stats

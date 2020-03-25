@@ -71,13 +71,6 @@ def test_attach_inputs(model, throughput_benchmark_wrapper, dummy_cpu_engine):
             pass
 
 
-def test_no_run(model, throughput_benchmark_wrapper, dummy_cpu_engine):
-    with throughput_benchmark_wrapper.attach(dummy_cpu_engine) as t:
-        pass
-    with pytest.raises(RuntimeError):
-        throughput_benchmark_wrapper.stats
-
-
 def test_detach(model, throughput_benchmark_wrapper, dummy_cpu_engine, dataloader):
     with throughput_benchmark_wrapper.attach(dummy_cpu_engine) as t:
         t.run(dataloader)
@@ -90,5 +83,5 @@ def test_working_cpu_model(model, throughput_benchmark_wrapper, dataloader, dumm
     with throughput_benchmark_wrapper.attach(dummy_cpu_engine) as bench_wrapper:
         bench_wrapper.run(dataloader)
 
-    assert throughput_benchmark_wrapper.stats.num_iters == NUM_ITERS
-    assert throughput_benchmark_wrapper.stats.latency_avg_ms < 100
+    assert throughput_benchmark_wrapper.execution_stats.num_iters == NUM_ITERS
+    assert throughput_benchmark_wrapper.execution_stats.latency_avg_ms < 100
