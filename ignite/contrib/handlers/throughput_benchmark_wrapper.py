@@ -1,10 +1,31 @@
 import torch
-import torch.jit
 import contextlib
-from typing import Callable, Union
+from typing import Callable
 from ignite.engine import Events, Engine
-from torch.utils import ThroughputBenchmark
-from torch.utils.throughput_benchmark import ExecutionStats  # for linting
+
+
+class ExecutionStats(object):
+    # Abstracted from
+    # https://github.com/pytorch/pytorch/blob/v1.2.0/torch/utils/throughput_benchmark.py#L27
+    # for linting support
+    def __init__(self):
+        ...
+
+    @property
+    def latency_avg_ms(self) -> float:
+        ...
+
+    @property
+    def num_iters(self) -> int:
+        ...
+
+    @property
+    def iters_per_second(self) -> float:
+        ...
+
+    @property
+    def total_time_seconds(self) -> float:
+        ...
 
 
 # TODO: Discuss device implications
@@ -23,7 +44,7 @@ class ThroughputBenchmarkWrapper:
     benchmark.
 
     Args:
-        model (Union[torch.nn.Module, torch.jit.ScriptModule]): model which will
+        model (torch.nn.Module): model which will
             be used to run the benchmark on. Please keep in mind that most reliable
             test results will be achieved with a `ScriptModule`.
         num_calling_threads (int, optional): Number of threads that will call the model.
@@ -54,6 +75,7 @@ class ThroughputBenchmarkWrapper:
             throughput_benchmark = ThroughputBenchmarkWrapper(model)
 
             # We decide that 10 batches of the datasampler are enough different samples for benchmark
+            # Engine will be stopped after these 10 batches!
             max_batches = 10
             # batch are of type (X, y) -> default input_transform is can be used
             with throughput_benchmark.attach(evaluator, max_batches=max_batches) as evaluator_with_benchmark:
@@ -64,7 +86,7 @@ class ThroughputBenchmarkWrapper:
             print(stats)
 
     Note:
-        Please, also keep in mind that all other handlers attached the trainer will be executed during LR finder's run.
+        Please, also keep in mind that all other handlers attached the trainer will be executed during benchmark run.
 
     References:
 
@@ -72,12 +94,13 @@ class ThroughputBenchmarkWrapper:
     """
 
     def __init__(
-        self,
-        model: Union[torch.nn.Module, torch.jit.ScriptModule],
-        num_calling_threads: int = 1,
-        num_warmup_iters: int = 10,
-        num_iters: int = 100,
+        self, model: torch.nn.Module, num_calling_threads: int = 1, num_warmup_iters: int = 10, num_iters: int = 100,
     ):
+        try:
+            from torch.utils import ThroughputBenchmark
+        except ImportError:
+            raise RuntimeError("This method requires at least pytorch version  1.2.0 to be installed")
+
         # These error messages are a bit more clear than the ones from
         # the C++ file in my opinion.
         if not isinstance(num_calling_threads, int):
@@ -155,7 +178,10 @@ class ThroughputBenchmarkWrapper:
         Args:
             engine (Engine): throughput_benchmark is attached to this engine. Please, keep in mind that all
                 attached handlers will be executed.
-            max_batches (int, optional): Number of batches to use for the benchmark. Defaults to 10.
+            max_batches (int, optional): Number of batches to use for the benchmark. After sampling
+                this many batches, the engine will terminate early if there are remaining iterations.
+                To sample complete dataset use: `len(dataloader)`.
+                Defaults to 10.
             input_transform (Callable, optional): function that transform the batch from the dataloader
                 to the input required for the model input. Defaults to lambda input_batch:input_batch[0].
 
@@ -176,9 +202,11 @@ class ThroughputBenchmarkWrapper:
 
         """
 
-        def under_max_batches(engine: Engine, event: Events):
+        def stop_after_max_batches(engine: Engine, event: Events):
             # Events start with 1
             if event <= max_batches:
+                if event == max_batches:
+                    engine.terminate()
                 return True
             return False
 
@@ -191,7 +219,7 @@ class ThroughputBenchmarkWrapper:
 
         if not engine.has_event_handler(self._run):
             engine.add_event_handler(
-                Events.ITERATION_STARTED(event_filter=under_max_batches), self._batch_logger, input_transform,
+                Events.ITERATION_STARTED(event_filter=stop_after_max_batches), self._batch_logger, input_transform,
             )
             engine.add_event_handler(
                 Events.COMPLETED, self._run,
