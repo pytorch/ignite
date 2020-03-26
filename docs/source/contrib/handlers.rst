@@ -71,13 +71,6 @@ mlflow_logger
    :inherited-members:
 
 
-throughput_benchmark_wrapper
--------------
-
-.. automodule:: ignite.contrib.handlers.throughput_benchmark_wrapper
-   :members:
-   :inherited-members:
-
 tqdm_logger
 -----------
 
