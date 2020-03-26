@@ -70,12 +70,14 @@ class Recall(_BasePrecisionRecall):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
+        logit_to_label_fn: Callable = lambda x: torch.argmax(x, dim=1),
         average: bool = False,
         is_multilabel: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
         super(Recall, self).__init__(
-            output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
+            output_transform=output_transform, logit_to_label_fn=logit_to_label_fn,
+            average=average, is_multilabel=is_multilabel, device=device
         )
 
     @reinit__is_reduced
@@ -95,7 +97,8 @@ class Recall(_BasePrecisionRecall):
                     " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1)
                 )
             y = to_onehot(y.view(-1), num_classes=num_classes)
-            indices = torch.argmax(y_pred, dim=1).view(-1)
+            # indices = torch.argmax(y_pred, dim=1).view(-1)
+            indices = self._logit_to_label_fn(y_pred).view(-1)
             y_pred = to_onehot(indices, num_classes=num_classes)
         elif self._type == "multilabel":
             # if y, y_pred shape is (N, C, ...) -> (C, N x ...)

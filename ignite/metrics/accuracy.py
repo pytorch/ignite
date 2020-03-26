@@ -13,12 +13,14 @@ class _BaseClassification(Metric):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
+        logit_to_label_fn: Callable = lambda x: torch.argmax(x, dim=1),
         is_multilabel: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
         self._is_multilabel = is_multilabel
         self._type = None
         self._num_classes = None
+        self._logit_to_label_fn = logit_to_label_fn
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
@@ -130,12 +132,14 @@ class Accuracy(_BaseClassification):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
+        logits_to_label_fn: Callable = lambda x: torch.argmax(x, dim=1),
         is_multilabel: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
         self._num_correct = None
         self._num_examples = None
-        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
+        super(Accuracy, self).__init__(output_transform=output_transform, logit_to_label_fn=logits_to_label_fn,
+                                       is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -152,7 +156,8 @@ class Accuracy(_BaseClassification):
         if self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
         elif self._type == "multiclass":
-            indices = torch.argmax(y_pred, dim=1)
+            # indices = torch.argmax(y_pred, dim=1)
+            indices = self._logits_to_label_fn(y_pred)
             correct = torch.eq(indices, y).view(-1)
         elif self._type == "multilabel":
             # if y, y_pred shape is (N, C, ...) -> (N x ..., C)
