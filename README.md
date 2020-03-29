@@ -203,6 +203,29 @@ Features:
 -   Experiments tracking with [MLflow](https://mlflow.org/) or
     [Polyaxon](https://polyaxon.com/)
 
+# Communication
+
+- [GitHub issues](https://github.com/pytorch/ignite/issues): questions, bug reports, feature requests, etc.
+
+- [Discuss.PyTorch](https://discuss.pytorch.org/c/ignite), category "Ignite".
+
+- [PyTorch Slack](pytorch.slack.com) at #pytorch-ignite channel. [Request access](https://bit.ly/ptslack).
+
+## User feedback
+
+We have created a form for [\"user
+feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
+appreciate any type of feedback and this is how we would like to see our
+community:
+
+-   If you like the project and want to say thanks, this the right
+    place.
+-   If you do not like something, please, share it with us and we can
+    see how to improve it.
+
+Thank you !
+
+
 # Contributing
 
 We appreciate all contributions. If you are planning to contribute back
@@ -248,16 +271,3 @@ your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
 
-# User feedback
-
-We have created a form for [\"user
-feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
-appreciate any type of feedback and this is how we would like to see our
-community:
-
--   If you like the project and want to say thanks, this the right
-    place.
--   If you do not like something, please, share it with us and we can
-    see how to improve it.
-
-Thank you !
