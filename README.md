@@ -209,7 +209,7 @@ Features:
 
 - [Discuss.PyTorch](https://discuss.pytorch.org/c/ignite), category "Ignite".
 
-- [PyTorch Slack](pytorch.slack.com) at #pytorch-ignite channel. [Request access](https://bit.ly/ptslack).
+- [PyTorch Slack](https://pytorch.slack.com) at #pytorch-ignite channel. [Request access](https://bit.ly/ptslack).
 
 ## User feedback
 
