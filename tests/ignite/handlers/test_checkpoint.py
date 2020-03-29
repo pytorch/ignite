@@ -34,18 +34,6 @@ class DummyPretrainedModel(nn.Module):
         return x
 
 
-class DummyPretrainedModel2(nn.Module):
-    def __init__(self):
-        super(DummyPretrainedModel2, self).__init__()
-        self.features = nn.Linear(4, 2, bias=False)
-        self.fc = nn.Linear(2, 2)
-
-    def forward(self, x):
-        x = self.features(x)
-        x = self.fc(x)
-        return x
-
-
 def test_checkpoint_wrong_input():
 
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
