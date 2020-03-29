@@ -828,7 +828,9 @@ def test_load_checkpoint_with_different_num_classes(dirname):
     with pytest.raises(RuntimeError):
         Checkpoint.load_objects(to_load_single_object, loaded_checkpoint)
 
-    Checkpoint.load_objects(to_load_single_object, loaded_checkpoint, strict=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        Checkpoint.load_objects(to_load_single_object, loaded_checkpoint, strict=False, blah="blah")
 
     loaded_weights = to_load_single_object["pretrained_features"].state_dict()["weight"]
 

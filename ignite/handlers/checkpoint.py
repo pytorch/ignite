@@ -250,12 +250,17 @@ class Checkpoint:
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
                 "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
                 corresponding state_dict.
+            **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+                the user to load part of the pretrained model (useful for example, in Transfer Learning)
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
 
-        is_state_dict_strict = kwargs.get('strict', True)
+        if len(kwargs) > 1 or any(k for k in kwargs.keys() if k not in ["strict"]):
+            warnings.warn("kwargs contains keys other than strict and these will be ignored")
+
+        is_state_dict_strict = kwargs.get("strict", True)
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
