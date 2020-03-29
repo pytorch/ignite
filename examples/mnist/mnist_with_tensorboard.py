@@ -11,7 +11,7 @@
     ```
     Run the example:
     ```bash
-    python mnist_with_tensorboardx.py --log_dir=/tmp/tensorboard_logs
+    python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
     ```
 """
 
