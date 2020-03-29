@@ -217,6 +217,9 @@ class Checkpoint:
                 checkpoint = checkpoint[name]
             filename = "{}{}_{}{}".format(self._fname_prefix, name, suffix, self._ext)
 
+            if any(item.filename == filename for item in self._saved):
+                return
+
             self.save_handler(checkpoint, filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))

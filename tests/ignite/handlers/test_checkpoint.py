@@ -583,6 +583,28 @@ def test_best_k_with_suffix(dirname):
     assert sorted(os.listdir(dirname)) == expected
 
 
+def test_removes_each_score_at_most_once(dirname):
+    scores = [0, 1, 1, 2, 3]
+    scores_iter = iter(scores)
+
+    def score_function(_):
+        return next(scores_iter)
+
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2, score_function=score_function)
+
+    engine = Engine(lambda e, b: None)
+    engine.state = State(epoch=0, iteration=0)
+
+    model = DummyModel()
+    to_save = {"model": model}
+    for _ in range(len(scores)):
+        h(engine, to_save)
+
+    # If a score was removed multiple times, the code above would have raise a
+    # FileNotFoundError. So this just tests the absence of such a failure
+    # without futher assertions.
+
+
 def test_with_engine(dirname):
     def update_fn(_1, _2):
         pass
