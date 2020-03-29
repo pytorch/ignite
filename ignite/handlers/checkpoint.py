@@ -242,7 +242,7 @@ class Checkpoint:
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Mapping) -> None:
+    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
         """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Args:
@@ -250,22 +250,32 @@ class Checkpoint:
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
                 "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
                 corresponding state_dict.
+            **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+                the user to load part of the pretrained model (useful for example, in Transfer Learning)
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
+
+        if len(kwargs) > 1 or any(k for k in kwargs.keys() if k not in ["strict"]):
+            warnings.warn("kwargs contains keys other than strict and these will be ignored")
+
+        is_state_dict_strict = kwargs.get("strict", True)
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint:
-                obj.load_state_dict(checkpoint)
+                obj.load_state_dict(checkpoint, strict=is_state_dict_strict)
                 return
 
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint:
                 raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
-            obj.load_state_dict(checkpoint[k])
+            if isinstance(obj, torch.nn.Module):
+                obj.load_state_dict(checkpoint[k], strict=is_state_dict_strict)
+            else:
+                obj.load_state_dict(checkpoint[k])
 
 
 class DiskSaver:
