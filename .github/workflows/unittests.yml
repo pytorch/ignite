@@ -34,7 +34,8 @@ jobs:
         pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard
         if [[ ${{ matrix.python-version }} != 3.5 ]]; then pip install pynvml; fi
         pip install numpy pytest codecov pytest-cov pytest-xdist
-        pip install .
+        # install ignite
+        python setup.py install
         # example dependencies
         pip install pandas gym
         
