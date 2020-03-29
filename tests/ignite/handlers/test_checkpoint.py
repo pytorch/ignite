@@ -25,12 +25,10 @@ class DummyModel(nn.Module):
 def test_checkpoint_wrong_input():
 
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
-        Checkpoint(
-            12, lambda x: x, "prefix",
-        )
+        Checkpoint(12, lambda x: x, "prefix")
 
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
-        Checkpoint([12,], lambda x: x, "prefix")
+        Checkpoint([12], lambda x: x, "prefix")
 
     with pytest.raises(ValueError, match=r"No objects to checkpoint."):
         Checkpoint({}, lambda x: x, "prefix")
@@ -675,7 +673,7 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
     handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
 
     engine.add_event_handler(
-        Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler,}
+        Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
     )
     engine.run([0], max_epochs=4)
 
@@ -742,20 +740,14 @@ def test_checkpoint_load_objects():
 def test_checkpoint_load_objects_from_saved_file(dirname):
     def _get_single_obj_to_save():
         model = DummyModel()
-        to_save = {
-            "model": model,
-        }
+        to_save = {"model": model}
         return to_save
 
     def _get_multiple_objs_to_save():
         model = DummyModel()
         optim = torch.optim.SGD(model.parameters(), lr=0.001)
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
-        to_save = {
-            "model": model,
-            "optimizer": optim,
-            "lr_scheduler": lr_scheduler,
-        }
+        to_save = {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
         return to_save
 
     trainer = Engine(lambda e, b: None)
