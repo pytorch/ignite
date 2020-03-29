@@ -961,7 +961,7 @@ def test_create_lr_scheduler_with_warmup():
     )
     _test(lr_scheduler, optimizer, 0.01, 0.8, 2, 0.8 - (0.8 / 5.0))
 
-    # E) warmup_end_value is None: fallas back to case B)
+    # E) warmup_end_value is None: fall back to case B)
     optimizer = torch.optim.SGD([t1], lr=0.2)
     torch_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
     _test(torch_lr_scheduler, optimizer, 0.01, None, 10, 0.2 * 0.98)
