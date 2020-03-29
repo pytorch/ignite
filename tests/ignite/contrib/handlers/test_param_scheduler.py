@@ -889,6 +889,9 @@ def test_create_lr_scheduler_with_warmup():
             warmup_duration=warmup_duration,
             output_simulated_values=simulated_values,
         )
+        if warmup_end_value is None:
+            warmup_end_value = optimizer.param_groups[0]["lr"]
+
         state_dict = scheduler.state_dict()
         trainer = Engine(lambda engine, batch: None)
 
@@ -958,6 +961,10 @@ def test_create_lr_scheduler_with_warmup():
     )
     _test(lr_scheduler, optimizer, 0.01, 0.8, 2, 0.8 - (0.8 / 5.0))
 
+    # E) warmup_end_value is None: fallas back to case B)
+    optimizer = torch.optim.SGD([t1], lr=0.2)
+    torch_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
+    _test(torch_lr_scheduler, optimizer, 0.01, None, 10, 0.2 * 0.98)
 
 def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
     # Test with a complex scheduler

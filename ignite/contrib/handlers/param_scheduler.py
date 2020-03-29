@@ -716,6 +716,9 @@ def create_lr_scheduler_with_warmup(
     if not (isinstance(warmup_duration, numbers.Integral) and warmup_duration > 1):
         raise ValueError("Argument warmup_duration should be at least 2 events, but given {}".format(warmup_duration))
 
+    if warmup_end_value is None:
+        warmup_end_value = lr_scheduler.optimizer.param_groups[0]["lr"]
+
     milestones_values = [(0, warmup_start_value), (warmup_duration - 1, warmup_end_value)]
 
     if isinstance(lr_scheduler, _LRScheduler):
