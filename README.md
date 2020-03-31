@@ -109,10 +109,7 @@ multiple losses and metrics in your training loop.
 
 ## Power of Events & Handlers
 
-The cool thing with handlers (vs “callback” interfaces) is that it can be any function 
-with the correct signature (we only require the first argument to be engine), e.g. lambda, simple 
-function, class method etc. We do not require to inherit from an interface and override possibly 
-its abstract methods.
+The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be any function (e.g. lambda, simple function, class method etc.) with the correct signature, we only require that the first argument be `engine`. Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk up your code and its complexity.
 
 ### Execute any number of functions whenever you wish
 
