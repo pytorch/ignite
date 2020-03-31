@@ -244,6 +244,10 @@ class Engine:
             See :class:`~ignite.engine.Events` for more details.
 
         """
+        if isinstance(event_name, EventList):
+            for e in event_name:
+                self.add_event_handler(e, handler, *args, **kwargs)
+            return
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -334,11 +338,7 @@ class Engine:
         """
 
         def decorator(f: Callable) -> Callable:
-            if type(event_name) is EventList:
-                for e in event_name:
-                    self.add_event_handler(e, f, *args, **kwargs)
-            else:
-                self.add_event_handler(event_name, f, *args, **kwargs)
+            self.add_event_handler(event_name, f, *args, **kwargs)
             return f
 
         return decorator
