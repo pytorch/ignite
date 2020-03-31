@@ -114,26 +114,31 @@ with the correct signature (we only require the first argument to be engine), e.
 function, class method etc. We do not require to inherit from an interface and override possibly 
 its abstract methods.
 
-- Execute any function whenever you wish
+#### Execute any number of functions whenever you wish
 ```python
 trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
 
 # attach handler with args, kwargs
 mydata = [1, 2, 3, 4]
-
+logger = ...
 
 def on_training_ended(engine, data):
     print("Training is ended. mydata={}".format(data))
+    # User can use variables from another scope  
+    logger.info("Training is ended")
+
 
 trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
-
+# call any number of functions on a single event
+trainer.add_event_handler(Events.COMPLETED, lambda engine: print("OK"))
 
 @trainer.on(Events.ITERATION_COMPLETED)
 def log_something(engine):
     print(engine.state.output)
 ```
 
-- Built-in events filtering
+#### Built-in events filtering
+
 ```python
 # run the validation every 5 epochs
 @trainer.on(Events.EPOCH_COMPLETED(every=5))
@@ -151,32 +156,43 @@ def log_gradients(_):
     # ...
 ```
 
-- Custom events
+#### Custom events to go beyond standard events
+
+For example, custom events related to backward and optimizer step calls:
 ```python
-class CustomEvents(EventEnum):
-    FOO_EVENT = "foo_event"
-    BAR_EVENT = "bar_event"
+class BackpropEvents(Enum):
+    BACKWARD_STARTED = 'backward_started'
+    BACKWARD_COMPLETED = 'backward_completed'
+    OPTIM_STEP_COMPLETED = 'optim_step_completed'
 
-trainer.register_events(*CustomEvents)
-
-
-@trainer.on(CustomEvents.FOO_EVENT)
-def handle_foo_event(_):
+def update(engine, batch):
     # ...
+    loss = criterion(y_pred, y)
+    engine.fire_event(BackpropEvents.BACKWARD_STARTED)
+    loss.backward()
+    engine.fire_event(BackpropEvents.BACKWARD_COMPLETED)
+    optimizer.step()
+    engine.fire_event(BackpropEvents.OPTIM_STEP_COMPLETED)
+    # ...    
 
-@trainer.on(Events.ITERATION_COMPLETED)
-def check_loss(_):
-    if trainer.state.output['foo'] < 0.0:
-        trainer.fire_event(CustomEvents.FOO_EVENT)
+trainer = Engine(update)
+trainer.register_events(*BackpropEvents)
+
+@trainer.on(BackpropEvents.BACKWARD_STARTED)
+def function_before_backprop(engine):
+    # ...
 ```
+- Complete snippet can be found [here](https://pytorch.org/ignite/faq.html#creating-custom-events-based-on-forward-backward-pass).
+- Another use-case of custom events: [trainer for Truncated Backprop Through Time](https://pytorch.org/ignite/contrib/engines.html#ignite.contrib.engines.create_supervised_tbptt_trainer).  
 
 
 ## Out-of-the-box metrics
 
-- Metrics for various tasks: Precision, Recall, Accuracy, Confusion Matrix, 
-IoU etc, ~20 regression metrics.
+- [Metrics](https://pytorch.org/ignite/metrics.html#complete-list-of-metrics) for various tasks: 
+Precision, Recall, Accuracy, Confusion Matrix, IoU etc, ~20 [regression metrics](https://pytorch.org/ignite/contrib/metrics.html#regression-metrics).
 
-- Users can compose its own metric by using basic arithmetical operations or torch methods:
+- Users can also [compose their own metrics](https://pytorch.org/ignite/metrics.html#metric-arithmetics) with ease from 
+existing ones using arithmetic operations or torch methods:
 ```python
 precision = Precision(average=False)
 recall = Recall(average=False)
