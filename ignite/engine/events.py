@@ -322,7 +322,7 @@ class RemovableEventHandler:
         # print_epoch handler is now unregistered
     """
 
-    def __init__(self, event_name: Union[CallableEventWithFilter, Enum], handler: Callable, engine):
+    def __init__(self, event_name: Union[CallableEventWithFilter, Enum, EventsList], handler: Callable, engine):
         self.event_name = event_name
         self.handler = weakref.ref(handler)
         self.engine = weakref.ref(engine)
@@ -335,8 +335,13 @@ class RemovableEventHandler:
         if handler is None or engine is None:
             return
 
-        if engine.has_event_handler(handler, self.event_name):
-            engine.remove_event_handler(handler, self.event_name)
+        if isinstance(self.event_name, EventsList):
+            for e in self.event_name:
+                if engine.has_event_handler(handler, e):
+                    engine.remove_event_handler(handler, e)
+        else:
+            if engine.has_event_handler(handler, self.event_name):
+                engine.remove_event_handler(handler, self.event_name)
 
     def __enter__(self):
         return self
