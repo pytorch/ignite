@@ -57,6 +57,7 @@ your code when \"rolling your own\" training loop.
   * [Distributed CIFAR10 Example](#distributed-cifar10-example)
   * [Other Examples](#other-examples)
   * [Reproducible Training Examples](#reproducible-training-examples)
+- [Communication](#communication)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
 - [User feedback](#user-feedback)
