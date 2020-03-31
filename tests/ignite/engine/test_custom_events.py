@@ -452,17 +452,26 @@ def test_event_list():
 
 def test_union_of_events():
 
-    def fn(e, b):
-        pass
+    def _test(event_list, true_iterations):
 
-    engine = Engine(fn)
+        engine = Engine(lambda e, b: b)
 
-    iterations = []
+        iterations = []
 
-    @engine.on(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3) | Events.COMPLETED)
-    def execute_some_handler(e):
-        iterations.append(e.state.iteration)
+        num_calls = [
+            0
+        ]
 
-    engine.run(range(3), max_epochs=5)
+        @engine.on(event_list)
+        def execute_some_handler(e):
+            iterations.append(e.state.iteration)
+            num_calls[0] += 1
 
-    assert iterations == [1, 3, 6, 9, 12, 15, 15]
+        engine.run(range(3), max_epochs=5)
+
+        assert iterations == true_iterations
+        assert num_calls[0] == len(true_iterations)
+
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3), [1, 3, 6, 9, 12, 15])
