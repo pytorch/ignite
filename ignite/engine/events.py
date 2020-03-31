@@ -128,7 +128,7 @@ class CallableEventWithFilter:
         return hash(self._name_)
 
     def __or__(self, other):
-        return EventList() | self | other
+        return EventsList() | self | other
 
 
 class EventEnum(CallableEventWithFilter, Enum):
@@ -183,15 +183,37 @@ class Events(EventEnum):
     GET_BATCH_COMPLETED = "get_batch_completed"
 
     def __or__(self, other):
-        return EventList() | self | other
+        return EventsList() | self | other
 
 
-class EventList:
+class EventsList:
+    """Collection of events stacked by operator `__or__`.
+
+    .. code-block:: python
+
+        events = Events.STARTED | Events.COMPLETED
+        events |= Events.ITERATION_STARTED(every=3)
+
+        engine = ...
+
+        @engine.on(events)
+        def call_on_events(engine):
+            # do something
+
+    or
+
+     .. code-block:: python
+
+        @engine.on(Events.STARTED | Events.COMPLETED | Events.ITERATION_STARTED(every=3))
+        def call_on_events(engine):
+            # do something
+
+    """
 
     def __init__(self):
         self._events = []
 
-    def append(self, event: Union[Events, CallableEventWithFilter]):
+    def _append(self, event: Union[Events, CallableEventWithFilter]):
         if not isinstance(event, (Events, CallableEventWithFilter)):
             raise ValueError("argument event should be Events or CallableEventWithFilter, got: {}".format(type(event)))
         self._events.append(event)
@@ -206,7 +228,7 @@ class EventList:
         return len(self._events)
 
     def __or__(self, other: Union[Events, CallableEventWithFilter]):
-        self.append(event=other)
+        self._append(event=other)
         return self
 
 

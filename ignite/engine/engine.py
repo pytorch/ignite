@@ -9,7 +9,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
-from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventList
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -207,11 +207,41 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
+    def add_eventlist_handler(self, eventlist: EventsList, handler: Callable, *args, **kwargs):
+        """Add a collection of event handlers to be executed when the related events are fired.
+
+        See :meth:`~ignite.engine.Engine.add_event_handler`.
+
+        Args:
+            eventlist: A collection of events to attach the handler.
+            handler (callable): the callable event handler that should be invoked
+            *args: optional args to be passed to `handler`.
+            **kwargs: optional keyword args to be passed to `handler`.
+
+        Returns:
+            list of :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handlers.
+
+        Example usage:
+
+        .. code-block:: python
+
+            engine = Engine(process_function)
+
+            def print_epoch(engine):
+                print("Epoch: {}".format(engine.state.epoch))
+
+            eventlist = Events.EPOCH_STARTED | Events.EPOCH_COMPLETED
+
+            engine.add_eventlist_handler(eventlist, print_epoch)
+
+        """
+        return [self.add_event_handler(e, handler, *args, **kwargs) for e in eventlist]
+
     def add_event_handler(self, event_name: str, handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
-            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
+            event_name: An event to attach the handler. Valid events are from :class:`~ignite.engine.Events`
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`.
@@ -244,10 +274,6 @@ class Engine:
             See :class:`~ignite.engine.Events` for more details.
 
         """
-        if isinstance(event_name, EventList):
-            for e in event_name:
-                self.add_event_handler(e, handler, *args, **kwargs)
-            return
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -338,7 +364,10 @@ class Engine:
         """
 
         def decorator(f: Callable) -> Callable:
-            self.add_event_handler(event_name, f, *args, **kwargs)
+            if isinstance(event_name, EventsList):
+                self.add_eventlist_handler(event_name, f, *args, **kwargs)
+            else:
+                self.add_event_handler(event_name, f, *args, **kwargs)
             return f
 
         return decorator

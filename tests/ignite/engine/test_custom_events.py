@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEventWithFilter, EventEnum, EventList
+from ignite.engine.events import CallableEventWithFilter, EventEnum, EventsList
 
 import pytest
 
@@ -443,14 +443,14 @@ def test_event_list():
 
     event_list = e1 | e2 | e3
 
-    assert type(event_list) == EventList
+    assert type(event_list) == EventsList
     assert len(event_list) == 3
     assert event_list[0] == e1
     assert event_list[1] == e2
     assert event_list[2] == e3
 
 
-def test_union_of_events():
+def test_list_of_events():
 
     def _test(event_list, true_iterations):
 
@@ -472,6 +472,6 @@ def test_union_of_events():
         assert iterations == true_iterations
         assert num_calls[0] == len(true_iterations)
 
-    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=1), [1, 1])
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3), [1, 3, 6, 9, 12, 15])
