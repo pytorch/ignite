@@ -114,7 +114,13 @@ with the correct signature (we only require the first argument to be engine), e.
 function, class method etc. We do not require to inherit from an interface and override possibly 
 its abstract methods.
 
-#### Execute any number of functions whenever you wish
+### Execute any number of functions whenever you wish
+
+<details>
+<summary>
+Examples
+</summary>
+
 ```python
 trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
 
@@ -137,7 +143,14 @@ def log_something(engine):
     print(engine.state.output)
 ```
 
-#### Built-in events filtering
+</details>
+
+### Built-in events filtering
+
+<details>
+<summary>
+Examples
+</summary>
 
 ```python
 # run the validation every 5 epochs
@@ -156,9 +169,16 @@ def log_gradients(_):
     # ...
 ```
 
-#### Custom events to go beyond standard events
+</details>
 
-For example, custom events related to backward and optimizer step calls:
+### Custom events to go beyond standard events
+
+<details>
+<summary>
+Examples
+</summary>
+
+Custom events related to backward and optimizer step calls:
 ```python
 class BackpropEvents(Enum):
     BACKWARD_STARTED = 'backward_started'
@@ -185,6 +205,7 @@ def function_before_backprop(engine):
 - Complete snippet can be found [here](https://pytorch.org/ignite/faq.html#creating-custom-events-based-on-forward-backward-pass).
 - Another use-case of custom events: [trainer for Truncated Backprop Through Time](https://pytorch.org/ignite/contrib/engines.html#ignite.contrib.engines.create_supervised_tbptt_trainer).  
 
+</details>
 
 ## Out-of-the-box metrics
 
