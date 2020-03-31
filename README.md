@@ -107,8 +107,84 @@ level of abstraction allows for a great deal more of flexibility, such
 as co-training multiple models (i.e. GANs) and computing/tracking
 multiple losses and metrics in your training loop.
 
-Ignite also allows for multiple handlers to be attached to events, and a
-finer granularity of events in the engine loop.
+## Power of Events & Handlers
+
+The cool thing with handlers (vs “callback” interfaces) is that it can be any function 
+with the correct signature (we only require the first argument to be engine), e.g. lambda, simple 
+function, class method etc. We do not require to inherit from an interface and override possibly 
+its abstract methods.
+
+- Execute any function whenever you wish
+```python
+trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
+
+# attach handler with args, kwargs
+mydata = [1, 2, 3, 4]
+
+
+def on_training_ended(engine, data):
+    print("Training is ended. mydata={}".format(data))
+
+trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
+
+
+@trainer.on(Events.ITERATION_COMPLETED)
+def log_something(engine):
+    print(engine.state.output)
+```
+
+- Built-in events filtering
+```python
+# run the validation every 5 epochs
+@trainer.on(Events.EPOCH_COMPLETED(every=5))
+def run_validation(_):
+    # run validation
+
+# change some training variable once on 20th epoch
+@trainer.on(Events.EPOCH_STARTED(once=20))
+def change_training_variable(_):
+    # ...
+
+# Trigger handler with customly defined frequency
+@trainer.on(Events.ITERATION_COMPLETED(event_filter=first_x_iters))
+def log_gradients(_):
+    # ...
+```
+
+- Custom events
+```python
+class CustomEvents(EventEnum):
+    FOO_EVENT = "foo_event"
+    BAR_EVENT = "bar_event"
+
+trainer.register_events(*CustomEvents)
+
+
+@trainer.on(CustomEvents.FOO_EVENT)
+def handle_foo_event(_):
+    # ...
+
+@trainer.on(Events.ITERATION_COMPLETED)
+def check_loss(_):
+    if trainer.state.output['foo'] < 0.0:
+        trainer.fire_event(CustomEvents.FOO_EVENT)
+```
+
+
+## Out-of-the-box metrics
+
+- Metrics for various tasks: Precision, Recall, Accuracy, Confusion Matrix, 
+IoU etc, ~20 regression metrics.
+
+- Users can compose its own metric by using basic arithmetical operations or torch methods:
+```python
+precision = Precision(average=False)
+recall = Recall(average=False)
+F1_per_class = (precision * recall * 2 / (precision + recall))
+F1_mean = F1_per_class.mean()  # torch mean method
+F1_mean.attach(engine, "F1")
+```
+
 
 # Documentation
 
@@ -121,7 +197,6 @@ API documentation and an overview of the library can be found
 - Ignite Posters from Pytorch Developer Conferences:
     - [2019](https://drive.google.com/open?id=1bqIl-EM6GCCCoSixFZxhIbuF25F2qTZg)
     - [2018](https://drive.google.com/open?id=1_2vzBJ0KeCjGv1srojMHiJRvceSVbVR5)
-
 
 
 # Structure
