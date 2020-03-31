@@ -293,7 +293,7 @@ class State:
         return s
 
 
-class RemovableEventHandle:
+class RemovableEventHandler:
     """A weakref handle to remove a registered event.
 
     A handle that may be used to remove a registered event handler via the
