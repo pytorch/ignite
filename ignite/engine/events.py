@@ -127,6 +127,9 @@ class CallableEventWithFilter:
     def __hash__(self):
         return hash(self._name_)
 
+    def __or__(self, other):
+        return EventList() | self | other
+
 
 class EventEnum(CallableEventWithFilter, Enum):
     pass
@@ -178,6 +181,33 @@ class Events(EventEnum):
 
     GET_BATCH_STARTED = "get_batch_started"
     GET_BATCH_COMPLETED = "get_batch_completed"
+
+    def __or__(self, other):
+        return EventList() | self | other
+
+
+class EventList:
+
+    def __init__(self):
+        self._events = []
+
+    def append(self, event: Union[Events, CallableEventWithFilter]):
+        if not isinstance(event, (Events, CallableEventWithFilter)):
+            raise ValueError(f"argument event should be Events or CallableEventWithFilter, got: {type(event)}")
+        self._events.append(event)
+
+    def __getitem__(self, item):
+        return self._events[item]
+
+    def __iter__(self):
+        return iter(self._events)
+
+    def __len__(self):
+        return len(self._events)
+
+    def __or__(self, other: Union[Events, CallableEventWithFilter]):
+        self.append(event=other)
+        return self
 
 
 class State:

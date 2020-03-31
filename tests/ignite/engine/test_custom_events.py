@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEventWithFilter, EventEnum
+from ignite.engine.events import CallableEventWithFilter, EventEnum, EventList
 
 import pytest
 
@@ -433,3 +433,36 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
     _test_every_event_filter_with_engine(device)
     _test_every_event_filter_with_engine_with_dataloader(device)
+
+
+def test_event_list():
+
+    e1 = Events.ITERATION_STARTED(once=1)
+    e2 = Events.ITERATION_STARTED(every=3)
+    e3 = Events.COMPLETED
+
+    event_list = e1 | e2 | e3
+
+    assert type(event_list) == EventList
+    assert len(event_list) == 3
+    assert event_list[0] == e1
+    assert event_list[1] == e2
+    assert event_list[2] == e3
+
+
+def test_union_of_events():
+
+    def fn(e, b):
+        pass
+
+    engine = Engine(fn)
+
+    iterations = []
+
+    @engine.on(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3) | Events.COMPLETED)
+    def execute_some_handler(e):
+        iterations.append(e.state.iteration)
+
+    engine.run(range(3), max_epochs=5)
+
+    assert iterations == [1, 3, 6, 9, 12, 15, 15]

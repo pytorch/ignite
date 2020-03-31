@@ -9,7 +9,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
-from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventList
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -334,7 +334,11 @@ class Engine:
         """
 
         def decorator(f: Callable) -> Callable:
-            self.add_event_handler(event_name, f, *args, **kwargs)
+            if type(event_name) is EventList:
+                for e in event_name:
+                    self.add_event_handler(e, f, *args, **kwargs)
+            else:
+                self.add_event_handler(event_name, f, *args, **kwargs)
             return f
 
         return decorator
