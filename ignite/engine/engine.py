@@ -435,7 +435,8 @@ class Engine:
                         break
 
                     # set seed on restart of data iterator
-                    self.setup_seed()
+                    if self.state.seed is not None:
+                        self.setup_seed()
                     self._dataloader_iter = iter(self.state.dataloader)
 
                     should_exit = True
@@ -453,7 +454,8 @@ class Engine:
 
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self.should_terminate_single_epoch = False
-                    self._manual_seed(self.state.seed, self.state.iteration // iter_counter)
+                    if self.state.seed is not None:
+                        self._manual_seed(self.state.seed, self.state.iteration // iter_counter)
                     self._dataloader_iter = iter(self.state.dataloader)
                     break
 
@@ -493,6 +495,7 @@ class Engine:
 
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
         `seed`. Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+        If seed is None, this implies engine's run with `deterministic=False` flag.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -507,7 +510,7 @@ class Engine:
 
             trainer = Engine(...)
             trainer.load_state_dict(state_dict)
-            trainer.run(data)
+            trainer.run(data, deterministic=True)
 
         """
         if not isinstance(state_dict, Mapping):
@@ -547,6 +550,7 @@ class Engine:
         max_epochs: Optional[int] = None,
         epoch_length: Optional[int] = None,
         seed: Optional[int] = None,
+        deterministic: Optional[bool] = False,
     ) -> State:
         """Runs the `process_function` over the passed data.
 
@@ -568,6 +572,9 @@ class Engine:
                 This argument should be `None` if run is resuming from a state.
             seed (int, optional): Seed to use for dataflow consistency, by default it
                 will respect the global random state. This argument should be `None` if run is resuming from a state.
+                This argument is unused if `deterministic` argument is False.
+            deterministic (bool, optional): Flag to enable or disable random state synchronization every epoch.
+                Please, see Notes for the implications of enabling this option.
 
         Returns:
             State: output state.
@@ -584,18 +591,64 @@ class Engine:
                 def switch_batch(engine):
                     engine.state.batch = preprocess_batch(engine.state.batch)
 
+
         Note:
-            In order to perform a reproducible run, if input `data` is `torch.utils.data.DataLoader`, its batch sampler
+            Flag `deterministic` controls random state synchronization which helps to perform "reproducible" runs.
+            If True, there are two additional procedures applied during the run:
+
+            1) Seed is used to make random state synchronization at each data provider restart (it corresponds in most
+            of the cases to the epoch size). In this way, for a given iteration/epoch the dataflow can be the same
+            (for a given seed). More precisely it is something like
+
+            .. code-block:: python
+
+                for e in range(num_epochs):
+                    set_seed(seed + e)
+                    do_single_epoch_iterations(dataloader)
+
+            2) If input `data` is `torch.utils.data.DataLoader`, its batch sampler
             is replaced by a batch sampler (:class:`~ignite.engine.engine.ReproducibleBatchSampler`) such that random
             sampling indices are reproducible by prefetching them before data iteration.
 
+            .. warning::
+
+                There can be a potential issue with random state synchronization on every epoch if user's handler
+                synchronizes the random state, for example, by calling periodically `torch.manual_seed(seed)` during
+                the run. This can have an impact on the dataflow:
+
+                .. code-block:: python
+
+                    def user_handler():
+                        # handler synchronizes the random state
+                        torch.manual_seed(12)
+                        # do something ...
+
+                    for e in range(num_epochs):
+                        set_seed(seed + e)
+                        for i in range(epoch_length):
+                            batch = get_random_batch()
+
+                            if i % my_period == 0:
+                                user_handler()
+
+                Initially, the function `get_random_batch()` generates randomly data batches using the random state set
+                up by `set_seed(seed + e)`. This is intended behaviour until `user_handler()` is called.
+                After `user_handler()` execution, random state is altered and thus `get_random_batch()` will produce
+                random batches based on altered random state.
+
+                Ultimately, to deal with this situation in  general case we should synchronize the random state on
+                each iteration, such that fetched batch is fully determined, but this can introduce a significant
+                overhead.
+
         """
+        if (seed is not None) and (not deterministic):
+            warnings.warn("Argument seed is ignored if deterministic is False")
 
         if self.state is None or self._is_done(self.state):
             # Create new state
             if max_epochs is None:
                 max_epochs = 1
-            if seed is None:
+            if deterministic and seed is None:
                 seed = torch.randint(0, int(1e9), (1,)).item()
             if epoch_length is None:
                 if hasattr(data, "__len__"):
@@ -610,7 +663,7 @@ class Engine:
             # Keep actual state and override it if input args provided
             if max_epochs is not None:
                 self.state.max_epochs = max_epochs
-            if seed is not None:
+            if deterministic and seed is not None:
                 self.state.seed = seed
             if epoch_length is not None:
                 self.state.epoch_length = epoch_length
@@ -631,26 +684,27 @@ class Engine:
             # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
             self._dataloader_len = None
 
-        # setup seed here, as iter(data) can start prefetching
-        self.setup_seed()
+        if self.state.seed is not None:
+            # setup seed here, as iter(data) can start prefetching
+            self.setup_seed()
 
-        # if input data is torch dataloader we replace batch sampler by a batch sampler
-        # such that its random sampling indices are reproducible by prefetching them before data iteration
-        if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
-            _dataloader_kind = self.state.dataloader._dataset_kind
-            if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
-                if (self._dataloader_len is not None) and hasattr(self.state.dataloader.sampler, "epoch"):
-                    if self._dataloader_len != self.state.epoch_length:
-                        warnings.warn(
-                            "When defined engine's epoch length is different of input dataloader length, "
-                            "distributed sampler indices can not be setup in a reproducible manner"
+            # if input data is torch dataloader we replace batch sampler by a batch sampler
+            # such that its random sampling indices are reproducible by prefetching them before data iteration
+            if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
+                _dataloader_kind = self.state.dataloader._dataset_kind
+                if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
+                    if (self._dataloader_len is not None) and hasattr(self.state.dataloader.sampler, "epoch"):
+                        if self._dataloader_len != self.state.epoch_length:
+                            warnings.warn(
+                                "When defined engine's epoch length is different of input dataloader length, "
+                                "distributed sampler indices can not be setup in a reproducible manner"
+                            )
+
+                    batch_sampler = self.state.dataloader.batch_sampler
+                    if not isinstance(batch_sampler, ReproducibleBatchSampler):
+                        self.state.dataloader = _update_dataloader(
+                            self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
                         )
-
-                batch_sampler = self.state.dataloader.batch_sampler
-                if not isinstance(batch_sampler, ReproducibleBatchSampler):
-                    self.state.dataloader = _update_dataloader(
-                        self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
-                    )
 
         iteration = self.state.iteration
         self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
@@ -663,15 +717,16 @@ class Engine:
     @staticmethod
     def _from_iteration(data: Union[Iterable, torch.utils.data.DataLoader], iteration: int) -> Iterator:
         if isinstance(data, torch.utils.data.DataLoader):
-            try:
-                # following is unsafe for IterableDatasets
-                iteration %= len(data.batch_sampler)
-                if iteration > 0:
-                    # batch sampler is ReproducibleBatchSampler
-                    data.batch_sampler.start_iteration = iteration
-            except TypeError:
-                # Probably we can do nothing with DataLoader built upon IterableDatasets
-                pass
+            if hasattr(data.batch_sampler, "start_iteration"):
+                try:
+                    # following is unsafe for IterableDatasets
+                    iteration %= len(data.batch_sampler)
+                    if iteration > 0:
+                        # batch sampler is ReproducibleBatchSampler
+                        data.batch_sampler.start_iteration = iteration
+                except TypeError:
+                    # Probably we can do nothing with DataLoader built upon IterableDatasets
+                    pass
             data_iter = iter(data)
         else:
             if hasattr(data, "__len__"):
@@ -703,6 +758,9 @@ class Engine:
         # - seed can not be epoch because during a single epoch we can have multiple `_dataloader_len`
         # - seed can not be iteration because when resuming from iteration we need to set the seed from the start of the
         #   dataloader and then rewind to required iteration
+        if self.state.seed is None:
+            raise RuntimeError("Setup seed can not be called if run is called with deterministic=False")
+
         le = self._dataloader_len if self._dataloader_len is not None else 1
         self._manual_seed(self.state.seed, self.state.iteration // le)
 

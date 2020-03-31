@@ -405,7 +405,7 @@ def _test_every_event_filter_with_engine_with_dataloader(device):
             pass
 
         engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo)
-        engine.run(dataloader, max_epochs=max_epochs, seed=12)
+        engine.run(dataloader, max_epochs=max_epochs, seed=12, deterministic=True)
         engine = None
 
         import gc

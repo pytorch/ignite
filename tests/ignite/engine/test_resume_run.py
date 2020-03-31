@@ -30,13 +30,15 @@ def test_state_dict():
 def test_state_dict_integration():
     engine = Engine(lambda e, b: 1)
     data = list(range(100))
-    engine.run(data, max_epochs=10, seed=17)
-    sd = engine.state_dict()
-    assert isinstance(sd, Mapping) and len(sd) == 4
-    assert sd["seed"] == engine.state.seed
-    assert sd["iteration"] == engine.state.iteration == 10 * 100
-    assert sd["epoch_length"] == engine.state.epoch_length == 100
-    assert sd["max_epochs"] == engine.state.max_epochs == 10
+    for deterministic in [True, False]:
+        seed = 17 if deterministic else None
+        engine.run(data, max_epochs=10, seed=seed, deterministic=deterministic)
+        sd = engine.state_dict()
+        assert isinstance(sd, Mapping) and len(sd) == 4
+        assert sd["seed"] == engine.state.seed == seed
+        assert sd["iteration"] == engine.state.iteration == 10 * 100
+        assert sd["epoch_length"] == engine.state.epoch_length == 100
+        assert sd["max_epochs"] == engine.state.max_epochs == 10
 
 
 def test_load_state_dict_asserts():
@@ -299,6 +301,9 @@ def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
     torch.manual_seed(0)
 
     def _test(epoch_length=None):
+
+        deterministic = True
+        seed = 13
         max_epochs = 5
         batch_size = 4
         num_iters = 21
@@ -333,7 +338,13 @@ def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
                 def _(engine):
                     sampler.set_epoch(engine.state.epoch - 1)
 
-            engine.run(orig_dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+            engine.run(
+                orig_dataloader,
+                max_epochs=max_epochs,
+                seed=seed,
+                epoch_length=epoch_length,
+                deterministic=deterministic,
+            )
 
             for resume_epoch in range(1, max_epochs):
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
@@ -363,7 +374,9 @@ def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
                     def _(engine):
                         sampler.set_epoch(engine.state.epoch - 1)
 
-                resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length, seed=12)
+                resume_state_dict = dict(
+                    epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length, seed=seed
+                )
                 engine.load_state_dict(resume_state_dict)
                 engine.run(resume_dataloader)
                 assert engine.state.epoch == max_epochs
@@ -399,6 +412,8 @@ def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
     torch.manual_seed(0)
 
     def _test(epoch_length=None):
+        deterministic = True
+        seed = 13
         max_epochs = 3
         batch_size = 4
         num_iters = 17
@@ -433,7 +448,13 @@ def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
                 def _(engine):
                     sampler.set_epoch(engine.state.epoch)
 
-            engine.run(orig_dataloader, max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+            engine.run(
+                orig_dataloader,
+                max_epochs=max_epochs,
+                seed=seed,
+                epoch_length=epoch_length,
+                deterministic=deterministic,
+            )
 
             for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
@@ -464,7 +485,11 @@ def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
                         sampler.set_epoch(engine.state.epoch)
 
                 resume_state_dict = dict(
-                    iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length, seed=12
+                    iteration=resume_iteration,
+                    max_epochs=max_epochs,
+                    epoch_length=epoch_length,
+                    seed=seed,
+                    deterministic=deterministic,
                 )
                 engine.load_state_dict(resume_state_dict)
                 engine.run(resume_dataloader)
@@ -526,6 +551,8 @@ def test_reproducible_batch_sampler():
 
 def _test_resume_random_data_iterator_from_epoch(device):
     def _test(epoch_length=None):
+        deterministic = True
+        seed = 13
         max_epochs = 5
         batch_size = 4
         num_iters = 21
@@ -546,7 +573,13 @@ def _test_resume_random_data_iterator_from_epoch(device):
             seen_batchs.append(batch)
 
         engine = Engine(update_fn)
-        engine.run(infinite_data_iterator(), max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+        engine.run(
+            infinite_data_iterator(),
+            max_epochs=max_epochs,
+            seed=seed,
+            epoch_length=epoch_length,
+            deterministic=deterministic,
+        )
 
         for resume_epoch in range(1, max_epochs):
             batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
@@ -557,7 +590,7 @@ def _test_resume_random_data_iterator_from_epoch(device):
                 )
 
             engine = Engine(update_fn)
-            resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length, seed=12)
+            resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length, seed=seed,)
             engine.load_state_dict(resume_state_dict)
             engine.run(infinite_data_iterator())
             assert engine.state.epoch == max_epochs
@@ -574,6 +607,8 @@ def test_resume_random_data_iterator_from_epoch():
 
 def _test_resume_random_data_iterator_from_iter(device):
     def _test(epoch_length=None):
+        deterministic = True
+        seed = 13
         max_epochs = 3
         batch_size = 4
         num_iters = 17
@@ -594,7 +629,13 @@ def _test_resume_random_data_iterator_from_iter(device):
             seen_batchs.append(batch)
 
         engine = Engine(update_fn)
-        engine.run(infinite_data_iterator(), max_epochs=max_epochs, seed=12, epoch_length=epoch_length)
+        engine.run(
+            infinite_data_iterator(),
+            max_epochs=max_epochs,
+            seed=seed,
+            epoch_length=epoch_length,
+            deterministic=deterministic,
+        )
 
         for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
             batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
@@ -606,7 +647,7 @@ def _test_resume_random_data_iterator_from_iter(device):
 
             engine = Engine(update_fn)
             resume_state_dict = dict(
-                iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length, seed=12
+                iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length, seed=seed,
             )
             engine.load_state_dict(resume_state_dict)
             engine.run(infinite_data_iterator())

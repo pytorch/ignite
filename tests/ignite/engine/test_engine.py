@@ -337,6 +337,9 @@ def test_run_asserts():
     with pytest.raises(ValueError, match=r"Argument `epoch_length` should be defined if `data` is an iterator"):
         engine.run(iter([0, 1, 2, 3]))
 
+    with pytest.warns(UserWarning, match="Argument seed is ignored if deterministic is False"):
+        engine.run([0, 1, 2, 3, 4], seed=1234, deterministic=False)
+
 
 def test_state_get_event_attrib_value():
     state = State()
@@ -562,3 +565,71 @@ def test_engine_random_state():
     assert state1.metrics["average"] == pytest.approx(state2.metrics["average"])
     assert state1.metrics["average"] != pytest.approx(state3.metrics["average"])
     assert state2.metrics["average"] != pytest.approx(state3.metrics["average"])
+
+
+def test_altered_random_state():
+
+    size = 1
+
+    def random_train_data_generator(size):
+        while True:
+            yield torch.randint(0, 100, size=(size,))
+
+    def random_val_data_generator(size):
+        while True:
+            yield torch.randint(0, 100, size=(size,)) + 100
+
+    for deterministic in [True, False]:
+        seed = 1 if deterministic else None
+        train_only_batches = []
+
+        def train_fn(engine, batch):
+            train_only_batches.append(batch[0].item())
+
+        if not deterministic:
+            torch.manual_seed(1)
+        epoch_length = 6
+        trainer = Engine(train_fn)
+        trainer.run(
+            random_train_data_generator(size),
+            max_epochs=4,
+            epoch_length=epoch_length,
+            seed=seed,
+            deterministic=deterministic,
+        )
+
+        def val_fn(engine, batch):
+            pass
+
+        evaluator = Engine(val_fn)
+        train_batches = []
+
+        def train_fn2(engine, batch):
+            train_batches.append(batch[0].item())
+
+        trainer = Engine(train_fn2)
+
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def run_evaluation(_):
+            eval_seed = seed + 1 if seed is not None else None
+            evaluator.run(random_val_data_generator(size), epoch_length=4, seed=eval_seed, deterministic=deterministic)
+
+        if not deterministic:
+            torch.manual_seed(1)
+        trainer.run(
+            random_train_data_generator(size),
+            max_epochs=4,
+            epoch_length=epoch_length,
+            seed=seed,
+            deterministic=deterministic,
+        )
+
+        if deterministic:
+            # compare 2nd and 3rd epochs and they should be the same (intended bad behaviour)
+            for i in range(epoch_length):
+                assert train_batches[epoch_length + i] == train_batches[2 * epoch_length + i]
+                assert train_batches[i] == train_only_batches[i]
+        else:
+            for i in range(epoch_length):
+                assert train_batches[epoch_length + i] != train_batches[2 * epoch_length + i]
+                assert train_batches[i] == train_only_batches[i]
