@@ -1,7 +1,8 @@
 """
- MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
+ MNIST example with training and validation monitoring using Tensorboard.
  Requirements:
     TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+    or PyTorch >= 1.2 which supports Tensorboard
     Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
  Usage:
     Start tensorboard:
@@ -10,7 +11,7 @@
     ```
     Run the example:
     ```bash
-    python mnist_with_tensorboardx.py --log_dir=/tmp/tensorboard_logs
+    python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
     ```
 """
 
@@ -26,7 +27,14 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 try:
     from tensorboardX import SummaryWriter
 except ImportError:
-    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
+    try:
+        from torch.utils.tensorboard import SummaryWriter
+    except ImportError:
+        raise RuntimeError(
+            "This module requires either tensorboardX or torch >= 1.2.0. "
+            "You may install tensorboardX with command: \n pip install tensorboardX \n"
+            "or upgrade PyTorch using your package manager of choice (pip or conda)."
+        )
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss

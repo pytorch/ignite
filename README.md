@@ -5,16 +5,20 @@
 
 [![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
 [![image](https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master)](https://github.com/pytorch/ignite/actions)
+[![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://circleci.com/gh/pytorch/ignite)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://circleci.com/gh/pytorch/ignite)
 [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite)
 [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html)
 
 
-[![image](https://anaconda.org/pytorch/ignite/badges/version.svg)](https://anaconda.org/pytorch/ignite)
+![image](https://img.shields.io/badge/-Stable%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch/ignite/badges/version.svg)](https://anaconda.org/pytorch/ignite)
 [![image](https://anaconda.org/pytorch/ignite/badges/downloads.svg)](https://anaconda.org/pytorch/ignite)
 [![image](https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pypi.org/project/pytorch-ignite/)
 [![image](https://pepy.tech/badge/pytorch-ignite)](https://pepy.tech/project/pytorch-ignite)
 
-[![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org)
+![image](https://img.shields.io/badge/-Nightly%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch-nightly/ignite/badges/version.svg)](https://anaconda.org/pytorch-nightly/ignite)
+[![image](https://img.shields.io/badge/PyPI-pre%20releases-brightgreen)](https://pypi.org/project/pytorch-ignite/#history)
+
+![image](https://img.shields.io/badge/-Features:-black?style=flat-square) [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 </div>
@@ -53,6 +57,7 @@ your code when \"rolling your own\" training loop.
   * [Distributed CIFAR10 Example](#distributed-cifar10-example)
   * [Other Examples](#other-examples)
   * [Reproducible Training Examples](#reproducible-training-examples)
+- [Communication](#communication)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
 - [User feedback](#user-feedback)
@@ -199,6 +204,29 @@ Features:
 -   Experiments tracking with [MLflow](https://mlflow.org/) or
     [Polyaxon](https://polyaxon.com/)
 
+# Communication
+
+- [GitHub issues](https://github.com/pytorch/ignite/issues): questions, bug reports, feature requests, etc.
+
+- [Discuss.PyTorch](https://discuss.pytorch.org/c/ignite), category "Ignite".
+
+- [PyTorch Slack](https://pytorch.slack.com) at #pytorch-ignite channel. [Request access](https://bit.ly/ptslack).
+
+## User feedback
+
+We have created a form for [\"user
+feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
+appreciate any type of feedback and this is how we would like to see our
+community:
+
+-   If you like the project and want to say thanks, this the right
+    place.
+-   If you do not like something, please, share it with us and we can
+    see how to improve it.
+
+Thank you !
+
+
 # Contributing
 
 We appreciate all contributions. If you are planning to contribute back
@@ -244,16 +272,3 @@ your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
 
-# User feedback
-
-We have created a form for [\"user
-feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
-appreciate any type of feedback and this is how we would like to see our
-community:
-
--   If you like the project and want to say thanks, this the right
-    place.
--   If you do not like something, please, share it with us and we can
-    see how to improve it.
-
-Thank you !
