@@ -193,7 +193,7 @@ class EventList:
 
     def append(self, event: Union[Events, CallableEventWithFilter]):
         if not isinstance(event, (Events, CallableEventWithFilter)):
-            raise ValueError(f"argument event should be Events or CallableEventWithFilter, got: {type(event)}")
+            raise ValueError("argument event should be Events or CallableEventWithFilter, got: {}".format(type(event)))
         self._events.append(event)
 
     def __getitem__(self, item):
