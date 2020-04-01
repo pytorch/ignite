@@ -169,6 +169,22 @@ def log_gradients(_):
 
 </details>
 
+### Stack events to share some actions
+
+<details>
+<summary>
+Examples
+</summary>
+
+Events can be stacked together to enable multiple calls:
+```python
+@trainer.on(Events.COMPLETED | Events.EPOCH_COMPLETED(every=10))
+def do_some_validation(engine):
+    # ...
+```
+
+</details>
+
 ### Custom events to go beyond standard events
 
 <details>
@@ -202,24 +218,6 @@ def function_before_backprop(engine):
 ```
 - Complete snippet can be found [here](https://pytorch.org/ignite/faq.html#creating-custom-events-based-on-forward-backward-pass).
 - Another use-case of custom events: [trainer for Truncated Backprop Through Time](https://pytorch.org/ignite/contrib/engines.html#ignite.contrib.engines.create_supervised_tbptt_trainer).  
-
-</details>
-
-</details>
-
-### Stack events to share some actions
-
-<details>
-<summary>
-Examples
-</summary>
-
-Events can be stacked together to enable multiple calls:
-```python
-@trainer.on(Events.COMPLETED | Events.EPOCH_COMPLETED(every=10))
-def do_some_validation(engine):
-    # ...
-```
 
 </details>
 
