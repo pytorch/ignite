@@ -169,6 +169,22 @@ def log_gradients(_):
 
 </details>
 
+### Stack events to share some actions
+
+<details>
+<summary>
+Examples
+</summary>
+
+Events can be stacked together to enable multiple calls:
+```python
+@trainer.on(Events.COMPLETED | Events.EPOCH_COMPLETED(every=10))
+def do_some_validation(engine):
+    # ...
+```
+
+</details>
+
 ### Custom events to go beyond standard events
 
 <details>

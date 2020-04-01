@@ -9,7 +9,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
-from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -157,7 +157,7 @@ class Engine:
 
         .. code-block:: python
 
-            from ignite.engine import Engine, EvenEnum
+            from ignite.engine import Engine, EventEnum
 
             class CustomEvents(EventEnum):
                 FOO_EVENT = "foo_event"
@@ -211,8 +211,9 @@ class Engine:
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
-            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: An event or a list of events to attach the handler. Valid events are
+                from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
@@ -225,7 +226,7 @@ class Engine:
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handler.
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
 
         Example usage:
 
@@ -238,12 +239,22 @@ class Engine:
 
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
+            events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
+
+            def execute_validation(engine):
+                # do some validations
+
+            engine.add_event_handler(events_list, execute_validation)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
             See :class:`~ignite.engine.Events` for more details.
 
         """
+        if isinstance(event_name, EventsList):
+            for e in event_name:
+                self.add_event_handler(e, handler, *args, **kwargs)
+            return RemovableEventHandle(event_name, handler, self)
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
