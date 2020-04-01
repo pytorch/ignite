@@ -1,6 +1,9 @@
 import inspect
 
 from typing import Optional, Generator, Callable
+from functools import wraps
+import random
+
 import torch
 
 
@@ -69,3 +72,44 @@ def _check_signature(engine, fn: Callable, fn_description: str, *args, **kwargs)
             "takes parameters {} but will be called with {} "
             "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg)
         )
+
+
+def _get_rng_states():
+    output = [random.getstate(), torch.get_rng_state()]
+    try:
+        import numpy as np
+
+        output.append(np.random.get_state())
+    except ImportError:
+        pass
+
+    return output
+
+
+def _set_rng_states(rng_states):
+    random.setstate(rng_states[0])
+    torch.set_rng_state(rng_states[1])
+    try:
+        import numpy as np
+
+        np.random.set_state(rng_states[2])
+    except ImportError:
+        pass
+
+
+def keep_random_state(func):
+    """Helper decorator to keep random state of torch, numpy and random intact
+    while executing a function. For more details on usage, please see
+    `"Concepts/Random state synchronization" <https://pytorch.org/ignite/concepts.html#random-state-synchronization>`_.
+
+    Args:
+        func (callable): function to decorate
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        rng_states = _get_rng_states()
+        func(*args, **kwargs)
+        _set_rng_states(rng_states)
+
+    return wrapper

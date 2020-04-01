@@ -566,7 +566,6 @@ class Engine:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
             max_epochs (int, optional): Max epochs to run for (default: None).
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
-                This argument should be `None` if run is resuming from a state.
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
                 This argument should be `None` if run is resuming from a state.
@@ -604,7 +603,7 @@ class Engine:
 
                 for e in range(num_epochs):
                     set_seed(seed + e)
-                    do_single_epoch_iterations(dataloader)
+                    do_single_epoch_iterations(data)
 
             2) If input `data` is `torch.utils.data.DataLoader`, its batch sampler
             is replaced by a batch sampler (:class:`~ignite.engine.engine.ReproducibleBatchSampler`) such that random
@@ -662,11 +661,20 @@ class Engine:
         else:
             # Keep actual state and override it if input args provided
             if max_epochs is not None:
+                if max_epochs < self.state.epoch:
+                    raise ValueError(
+                        "Argument max_epochs should be larger than the start epoch "
+                        "defined in the state: {} vs {}".format(max_epochs, self.state.epoch)
+                    )
                 self.state.max_epochs = max_epochs
             if deterministic and seed is not None:
-                self.state.seed = seed
+                raise ValueError("Argument seed should be None if run is resuming from a state, given {}".format(seed))
             if epoch_length is not None:
-                self.state.epoch_length = epoch_length
+                raise ValueError(
+                    "Argument epoch_length should be None if run is resuming from a state, given {}".format(
+                        epoch_length
+                    )
+                )
             self.logger.info(
                 "Engine run resuming from iteration {}, epoch {} until {} epochs".format(
                     self.state.iteration, self.state.epoch, self.state.max_epochs

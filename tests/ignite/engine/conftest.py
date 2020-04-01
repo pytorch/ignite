@@ -1,3 +1,5 @@
+import torch
+
 import pytest
 
 
@@ -30,3 +32,33 @@ def counter_factory():
             raise RuntimeError()
 
     return create
+
+
+@pytest.fixture()
+def setup_sampler_fn():
+    def _setup_sampler(sampler_type, num_iters, batch_size):
+        if sampler_type is None:
+            return None
+
+        if sampler_type == "weighted":
+            from torch.utils.data.sampler import WeightedRandomSampler
+
+            w = torch.ones(num_iters * batch_size, dtype=torch.float)
+            for i in range(num_iters):
+                w[batch_size * i : batch_size * (i + 1)] += i * 1.0
+            return WeightedRandomSampler(w, num_samples=num_iters * batch_size, replacement=True)
+
+        if sampler_type == "distributed":
+            from torch.utils.data.distributed import DistributedSampler
+            import torch.distributed as dist
+
+            num_replicas = 1
+            rank = 0
+            if dist.is_available() and dist.is_initialized():
+                num_replicas = dist.get_world_size()
+                rank = dist.get_rank()
+
+            dataset = torch.zeros(num_iters * batch_size)
+            return DistributedSampler(dataset, num_replicas=num_replicas, rank=rank)
+
+    return _setup_sampler

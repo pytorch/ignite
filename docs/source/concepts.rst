@@ -290,8 +290,151 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
           engine.state.new_attribute = 12345
 
 
-Resume training
----------------
+Deterministic training
+----------------------
+
+In general, it is rather difficult task to achieve deterministic and reproducible trainings as it relies on multiple
+aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch documentation <https://pytorch.org/docs/stable/notes/randomness.html>`_:
+there are some steps to take in order to make computations deterministic on your specific problem on one specific
+platform and PyTorch release:
+
+- setup random state seed
+
+- set `cudnn to deterministic <https://pytorch.org/docs/stable/notes/randomness.html#cudnn>`_ if applicable
+
+In addition to that, Ignite's engine provides an option to control the dataflow by synchronizing random state on epoch.
+If data provider is `torch.utils.data.DataLoader`, batch data indices can be made completely deterministic. Thus,
+dataflow is _almost_ completely controlled. If model's computations are deterministic, then trainings can be reproducible.
+Moreover, resuming the training from a checkpoint can _almost_ repeat original training's behaviour.
+
+Random state synchronization
+````````````````````````````
+
+Engine's method :meth:`~ignite.engine.Engine.run` accepts `deterministic` as argument which enables or disables
+random state synchronization on every data provider's restart which corresponds in most of the cases to the epoch size.
+In this way, for a given iteration/epoch the dataflow can be the same for a given seed. More precisely it is something
+like
+
+.. code-block:: python
+
+    for e in range(num_epochs):
+        set_seed(seed + e)
+        do_single_epoch_iterations(dataloader)
+
+
+If input `dataloader` is `torch.utils.data.DataLoader`, its batch sampler is replaced by a batch sampler
+(:class:`~ignite.engine.engine.ReproducibleBatchSampler`) such that random sampling indices are reproducible
+by prefetching them before data iteration.
+
+Here is a trivial example of usage:
+
+.. code-block:: python
+
+    import torch
+    from torch.utils.data import DataLoader
+    from ignite.engine import Engine, Events
+
+
+    def random_train_data_loader(size):
+        data = torch.arange(0, size)
+        return DataLoader(data, batch_size=4, shuffle=True)
+
+
+    def print_train_data(engine, batch):
+        i = engine.state.iteration
+        e = engine.state.epoch
+        print("train", e, i, batch.tolist())
+
+
+    trainer = Engine(print_train_data)
+
+    print("Original Run")
+    trainer.run(random_train_data_loader(40), max_epochs=2, epoch_length=5, seed=7, deterministic=True)
+
+    print("Resumed Run")
+    trainer.load_state_dict({"epoch": 1, "seed": 7, "epoch_length": 5, "max_epochs": 2})
+    trainer.run(random_train_data_loader(40))
+
+.. code-block:: text
+
+    Original Run
+    train 1 1 [1, 18, 9, 28]
+    train 1 2 [39, 34, 30, 2]
+    train 1 3 [22, 7, 0, 12]
+    train 1 4 [14, 17, 38, 37]
+    train 1 5 [31, 5, 11, 29]
+    train 2 6 [35, 25, 10, 15]
+    train 2 7 [20, 32, 36, 24]
+    train 2 8 [16, 8, 26, 21]
+    train 2 9 [23, 3, 13, 33]
+    train 2 10 [27, 4, 6, 19]
+    Resumed Run
+    train 2 6 [35, 25, 10, 15]
+    train 2 7 [20, 32, 36, 24]
+    train 2 8 [16, 8, 26, 21]
+    train 2 9 [23, 3, 13, 33]
+    train 2 10 [27, 4, 6, 19]
+
+
+However, please, keep in mind that there can be an issue with random state synchronization on every epoch
+if user's handler synchronizes the random state, for example, by calling periodically `torch.manual_seed(seed)` during
+the run. This can have an impact on the dataflow:
+
+.. code-block:: python
+
+    def random_train_data_generator():
+        while True:
+            yield torch.randint(0, 100, size=(1, ))
+
+    trainer = Engine(print_train_data)
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=3))
+    def user_handler(_):
+        # handler synchronizes the random state
+        torch.manual_seed(12)
+        a = torch.rand(1)
+
+    trainer.run(random_train_data_generator(), max_epochs=3, epoch_length=5, seed=7, deterministic=True);
+
+.. code-block:: text
+
+    train 1 1 [15]
+    train 1 2 [92]
+    train 1 3 [21]
+    train 1 4 [3]  <---
+    train 1 5 [22]
+    train 2 6 [77]
+    train 2 7 [3]  <---
+    train 2 8 [22]
+    train 2 9 [77]
+    train 2 10 [3] <---
+    train 3 11 [22]
+    train 3 12 [77]
+    train 3 13 [3] <---
+    train 3 14 [22]
+    train 3 15 [77]
+
+Initially, the function `random_train_data_generator()` generates randomly data batches using the random state set
+up by `trainer`. This is intended behaviour until `user_handler()` is called.
+After `user_handler()` execution, random state is altered and thus `random_train_data_generator()` will produce
+random batches based on altered random state.
+
+We provide helper decorators to save and restore random states for `torch`, `numpy` and `random`, therefore
+
+.. code-block:: python
+
+    from ignite.engine.utils import keep_random_state
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=3))
+    @keep_random_state
+    def user_handler(_):
+        # handler synchronizes the random state
+        torch.manual_seed(12)
+        a = torch.rand(1)
+
+
+Resuming the training
+`````````````````````
 
 Engine provides two methods to serialize and deserialize its internal state :meth:`~ignite.engine.Engine.state_dict` and
 :meth:`~ignite.engine.Engine.load_state_dict`. In addition

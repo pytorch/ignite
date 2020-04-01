@@ -1,12 +1,12 @@
 import os
 import pytest
 
+from collections import defaultdict
 from collections.abc import Mapping
 
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.engine.engine import ReproducibleBatchSampler, _update_dataloader
 
 
 def test_state_dict():
@@ -84,6 +84,35 @@ def test_load_state_dict_integration(counter_factory):
     engine.add_event_handler(Events.EPOCH_COMPLETED, counter_factory("epoch", 6))
     data = list(range(120))
     engine.run(data)
+
+
+def test_load_state_dict_with_params_overriding_integration(counter_factory):
+
+    state_dict = {"seed": 0, "max_epochs": 100, "epoch_length": 120, "epoch": 5}
+    data = list(range(120))
+
+    # Override max_epochs
+    new_max_epochs = 10
+    engine = Engine(lambda e, b: 1)
+    engine.load_state_dict(state_dict)
+    state = engine.run(data, max_epochs=new_max_epochs)
+    assert state.max_epochs == new_max_epochs
+    assert state.iteration == state_dict["epoch_length"] * new_max_epochs
+    assert state.epoch == new_max_epochs
+
+    with pytest.raises(ValueError, match=r"Argument max_epochs should be larger than the start epoch"):
+        engine.load_state_dict(state_dict)
+        engine.run(data, max_epochs=4)
+
+    # Override epoch_length
+    with pytest.raises(ValueError, match=r"Argument epoch_length should be None if run is resuming from a state"):
+        engine.load_state_dict(state_dict)
+        engine.run(data, epoch_length=90)
+
+    # Override seed
+    with pytest.raises(ValueError, match=r"Argument seed should be None if run is resuming from a state"):
+        engine.load_state_dict(state_dict)
+        engine.run(data, seed=90, deterministic=True)
 
 
 class BatchChecker:
@@ -210,93 +239,7 @@ def test_strict_resume_from_epoch():
     _test(15)
 
 
-def _setup_sampler(sampler_type, num_iters, batch_size):
-    if sampler_type is None:
-        return None
-
-    if sampler_type == "weighted":
-        from torch.utils.data.sampler import WeightedRandomSampler
-
-        w = torch.ones(num_iters * batch_size, dtype=torch.float)
-        for i in range(num_iters):
-            w[batch_size * i : batch_size * (i + 1)] += i * 1.0
-        return WeightedRandomSampler(w, num_samples=num_iters * batch_size, replacement=True)
-
-    if sampler_type == "distributed":
-        from torch.utils.data.distributed import DistributedSampler
-        import torch.distributed as dist
-
-        num_replicas = 1
-        rank = 0
-        if dist.is_available() and dist.is_initialized():
-            num_replicas = dist.get_world_size()
-            rank = dist.get_rank()
-
-        dataset = torch.zeros(num_iters * batch_size)
-        return DistributedSampler(dataset, num_replicas=num_replicas, rank=rank)
-
-
-def test__update_dataloader():
-    def _test(sampler_type=None):
-        num_epochs = 3
-        batch_size = 4
-        num_iters = 17
-        data = torch.randint(0, 1000, size=(num_iters * batch_size,))
-        num_workers = 4
-
-        sampler = _setup_sampler(sampler_type, num_iters, batch_size)
-        dataloader = torch.utils.data.DataLoader(
-            data,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            pin_memory=False,
-            sampler=sampler,
-            drop_last=True,
-            shuffle=sampler is None,
-        )
-
-        torch.manual_seed(12)
-        seen_batches = []
-        for i in range(num_epochs):
-            t = []
-            if sampler_type == "distributed":
-                sampler.set_epoch(i)
-            for b in dataloader:
-                t.append(b)
-            seen_batches.append(t)
-
-        sampler = _setup_sampler(sampler_type, num_iters, batch_size)
-        dataloader = torch.utils.data.DataLoader(
-            data,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            pin_memory=False,
-            sampler=sampler,
-            drop_last=True,
-            shuffle=sampler is None,
-        )
-        batch_sampler = dataloader.batch_sampler
-        new_dataloader = _update_dataloader(dataloader, ReproducibleBatchSampler(batch_sampler))
-
-        torch.manual_seed(12)
-        new_batches = []
-        for i in range(num_epochs):
-            t = []
-            if sampler_type == "distributed":
-                sampler.set_epoch(i)
-            for b in new_dataloader:
-                t.append(b)
-            new_batches.append(t)
-
-        for i in range(num_epochs):
-            assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[i], new_batches[i])])
-
-    _test()
-    _test("weighted")
-    _test("distributed")
-
-
-def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
+def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_type=None):
 
     torch.manual_seed(0)
 
@@ -388,10 +331,10 @@ def _test_resume_random_dataloader_from_epoch(device, sampler_type=None):
         _test(15)
 
 
-def test_resume_random_dataloader_from_epoch():
-    _test_resume_random_dataloader_from_epoch("cpu")
-    _test_resume_random_dataloader_from_epoch("cpu", sampler_type="weighted")
-    _test_resume_random_dataloader_from_epoch("cpu", sampler_type="distributed")
+def test_resume_random_dataloader_from_epoch(setup_sampler_fn):
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler_fn)
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler_fn, sampler_type="weighted")
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler_fn, sampler_type="distributed")
 
 
 class AugmentedData:
@@ -407,7 +350,7 @@ class AugmentedData:
         return len(self.data)
 
 
-def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
+def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_type=None):
 
     torch.manual_seed(0)
 
@@ -485,11 +428,7 @@ def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
                         sampler.set_epoch(engine.state.epoch)
 
                 resume_state_dict = dict(
-                    iteration=resume_iteration,
-                    max_epochs=max_epochs,
-                    epoch_length=epoch_length,
-                    seed=seed,
-                    deterministic=deterministic,
+                    iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length, seed=seed,
                 )
                 engine.load_state_dict(resume_state_dict)
                 engine.run(resume_dataloader)
@@ -510,43 +449,10 @@ def _test_resume_random_dataloader_from_iter(device, sampler_type=None):
                 _test(40)
 
 
-def test_resume_random_dataloader_from_iter():
-    _test_resume_random_dataloader_from_iter("cpu")
-    # _test_resume_random_dataloader_from_iter("cpu", sampler_type='weighted')
-    # _test_resume_random_dataloader_from_iter("cpu", sampler_type='distributed')
-
-
-def test_reproducible_batch_sampler():
-    import torch
-    from torch.utils.data import DataLoader
-
-    data = list(range(100))
-    dataloader = DataLoader(data, batch_size=12, num_workers=0, shuffle=True, drop_last=True)
-
-    torch.manual_seed(12 + 0)
-    dataloader_ = _update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
-
-    seen_batches = []
-    num_epochs = 3
-    for i in range(num_epochs):
-        t = []
-        for b in dataloader_:
-            t.append(b)
-        seen_batches.append(t)
-        torch.manual_seed(12 + i + 1)
-
-    for i in range(num_epochs - 1):
-        for j in range(i + 1, num_epochs):
-            assert not all([(b1 == b2).all() for b1, b2 in zip(seen_batches[i], seen_batches[j])])
-
-    for resume_epoch in range(num_epochs):
-        torch.manual_seed(12 + resume_epoch)
-        dataloader_ = _update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
-        resumed_seen_batches = []
-        for b in dataloader_:
-            resumed_seen_batches.append(b)
-
-        assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
+def test_resume_random_dataloader_from_iter(setup_sampler_fn):
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler_fn)
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler_fn, sampler_type="weighted")
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler_fn, sampler_type="distributed")
 
 
 def _test_resume_random_data_iterator_from_epoch(device):
@@ -667,38 +573,38 @@ def test_resume_random_data_iterator_from_iter():
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
+def test_distrib_gpu(distributed_context_single_node_nccl, setup_sampler_fn):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device)
-    _test_resume_random_dataloader_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
 
 
 @pytest.mark.distributed
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_cpu(distributed_context_single_node_gloo, setup_sampler_fn):
     device = "cpu"
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device)
-    _test_resume_random_dataloader_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo, setup_sampler_fn):
     device = "cpu"
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device)
-    _test_resume_random_dataloader_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl, setup_sampler_fn):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device)
-    _test_resume_random_dataloader_from_epoch(device)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
