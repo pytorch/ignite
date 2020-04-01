@@ -75,6 +75,23 @@ def test_custom_events_with_event_to_attr():
         engine.register_events(*CustomEvents, event_to_attr=custom_event_to_attr)
 
 
+def test_custom_events_with_events_list():
+    class CustomEvents(EventEnum):
+        TEST_EVENT = "test_event"
+
+    def process_func(engine, batch):
+        engine.fire_event(CustomEvents.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*CustomEvents)
+
+    # Handle should be called
+    handle = MagicMock()
+    engine.add_event_handler(CustomEvents.TEST_EVENT | Events.STARTED, handle)
+    engine.run(range(1))
+    assert handle.called
+
+
 def test_callable_events_with_wrong_inputs():
 
     with pytest.raises(ValueError, match=r"Only one of the input arguments should be specified"):
@@ -451,16 +468,13 @@ def test_event_list():
 
 
 def test_list_of_events():
-
     def _test(event_list, true_iterations):
 
         engine = Engine(lambda e, b: b)
 
         iterations = []
 
-        num_calls = [
-            0
-        ]
+        num_calls = [0]
 
         @engine.on(event_list)
         def execute_some_handler(e):

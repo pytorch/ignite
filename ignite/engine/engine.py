@@ -157,7 +157,7 @@ class Engine:
 
         .. code-block:: python
 
-            from ignite.engine import Engine, EvenEnum
+            from ignite.engine import Engine, EventEnum
 
             class CustomEvents(EventEnum):
                 FOO_EVENT = "foo_event"
