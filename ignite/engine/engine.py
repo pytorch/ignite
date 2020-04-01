@@ -239,12 +239,12 @@ class Engine:
 
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
-            events_list = Events.STARTED | Events.EPOCH_STARTED
+            events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
 
-            def execute_some_handler(engine):
-                pass
+            def execute_validation(engine):
+                # do some validations
 
-            engine.add_event_handler(events_list, execute_some_handler)
+            engine.add_event_handler(events_list, execute_validation)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.

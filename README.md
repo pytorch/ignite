@@ -205,6 +205,24 @@ def function_before_backprop(engine):
 
 </details>
 
+</details>
+
+### Stack events to share some actions
+
+<details>
+<summary>
+Examples
+</summary>
+
+Events can be stacked together to enable multiple calls:
+```python
+@trainer.on(Events.COMPLETED | Events.EPOCH_COMPLETED(every=10))
+def do_some_validation(engine):
+    # ...
+```
+
+</details>
+
 ## Out-of-the-box metrics
 
 - [Metrics](https://pytorch.org/ignite/metrics.html#complete-list-of-metrics) for various tasks: 
