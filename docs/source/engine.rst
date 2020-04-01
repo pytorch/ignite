@@ -17,6 +17,6 @@ ignite.engine
 
 .. currentmodule:: ignite.engine.engine
 
-.. autoclass:: RemovableEventHandler
+.. autoclass:: RemovableEventHandle
    :members:
    :undoc-members:

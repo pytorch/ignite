@@ -9,7 +9,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
-from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandler, EventsList
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -226,7 +226,7 @@ class Engine:
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handler.
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
 
         Example usage:
 
@@ -248,7 +248,7 @@ class Engine:
         if isinstance(event_name, EventsList):
             for e in event_name:
                 self.add_event_handler(e, handler, *args, **kwargs)
-            return RemovableEventHandler(event_name, handler, self)
+            return RemovableEventHandle(event_name, handler, self)
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -266,7 +266,7 @@ class Engine:
         self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
-        return RemovableEventHandler(event_name, handler, self)
+        return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
     def _assert_non_filtered_event(event_name: str):
