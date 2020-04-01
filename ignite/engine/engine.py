@@ -207,13 +207,13 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-
     def add_event_handler(self, event_name: str, handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
-            event_name: An event to attach the handler. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: An event or a list of events to attach the handler. Valid events are
+                from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
@@ -239,6 +239,12 @@ class Engine:
 
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
+            events_list = Events.STARTED | Events.EPOCH_STARTED
+
+            def execute_some_handler(engine):
+                pass
+
+            engine.add_event_handler(events_list, execute_some_handler)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
