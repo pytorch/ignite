@@ -6,6 +6,7 @@ import pytest
 from pytest import raises
 
 from ignite.engine import Engine, Events, State
+from ignite.engine.events import EventsList
 
 
 class DummyEngine(Engine):
@@ -281,6 +282,12 @@ def test_events_list_removable_handle():
 
     assert removable_handle.engine() is None
     assert removable_handle.handler() is None
+
+
+def test_eventslist__append_raises():
+    ev_list = EventsList()
+    with pytest.raises(ValueError, match=r"Argument event should be Events or CallableEventWithFilter"):
+        ev_list._append("abc")
 
 
 def test_has_event_handler():
