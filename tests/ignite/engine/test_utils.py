@@ -6,6 +6,9 @@ from ignite.engine import Engine
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader
 from ignite.engine.utils import keep_random_state
 
+from unittest.mock import patch
+import pytest
+
 
 def test__update_dataloader(setup_sampler_fn):
     def _test(sampler_type=None):
@@ -67,6 +70,11 @@ def test__update_dataloader(setup_sampler_fn):
     _test("distributed")
 
 
+def test_reproducible_batch_sampler_wrong_input():
+    with pytest.raises(TypeError, match=r"Argument batch_sampler should be torch.utils.data.sampler.BatchSampler"):
+        ReproducibleBatchSampler("abc")
+
+
 def test_reproducible_batch_sampler():
     import torch
     from torch.utils.data import DataLoader
@@ -100,24 +108,49 @@ def test_reproducible_batch_sampler():
         assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
 
 
-def test_keep_random_state():
-
+def _test_keep_random_state(with_numpy):
     Engine._manual_seed(54, 0)
     true_values = []
     for _ in range(5):
-        true_values.append([torch.tensor([random.random()]), torch.rand(2), torch.from_numpy(np.random.rand(2))])
+        t = [
+            torch.tensor([random.random()]),
+            torch.rand(2),
+        ]
+        if with_numpy:
+            t.append(torch.from_numpy(np.random.rand(2)))
+        true_values.append(t)
 
     @keep_random_state
     def user_handler():
         Engine._manual_seed(22, 0)
-        _ = [random.random(), torch.rand(2), np.random.rand(2)]
+        _ = [
+            random.random(),
+            torch.rand(2),
+        ]
+        if with_numpy:
+            _ = np.random.rand(2)
 
     Engine._manual_seed(54, 0)
     res_values = []
     for _ in range(5):
-        res_values.append([torch.tensor([random.random()]), torch.rand(2), torch.from_numpy(np.random.rand(2))])
+        r = [
+            torch.tensor([random.random()]),
+            torch.rand(2),
+        ]
+        if with_numpy:
+            r.append(torch.from_numpy(np.random.rand(2)))
+        res_values.append(r)
         user_handler()
 
     for a, b in zip(true_values, res_values):
         for i, j in zip(a, b):
             assert (i == j).all()
+
+
+def test_keep_random_state():
+    _test_keep_random_state(with_numpy=True)
+
+
+def test_keep_random_state_without_numpy():
+    with patch.dict("sys.modules", {"numpy": None}):
+        _test_keep_random_state(with_numpy=False)
