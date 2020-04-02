@@ -3,7 +3,6 @@ import time
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
 import weakref
-import random
 import warnings
 from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
@@ -106,9 +105,9 @@ class Engine:
         .. code-block:: python
 
             # Restore from an epoch
-            state_dict = {"seed": 0, "epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
+            state_dict = {"epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
             # or an iteration
-            # state_dict = {"seed": 0, "iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
+            # state_dict = {"iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
 
             trainer = Engine(...)
             trainer.load_state_dict(state_dict)
@@ -116,7 +115,7 @@ class Engine:
 
     """
 
-    _state_dict_all_req_keys = ("seed", "epoch_length", "max_epochs")
+    _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
     def __init__(self, process_function: Callable):
@@ -580,11 +579,6 @@ class Engine:
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
                 This argument should be `None` if run is resuming from a state.
-            seed (int, optional): Seed to use for dataflow consistency, by default it
-                will respect the global random state. This argument should be `None` if run is resuming from a state.
-                This argument is unused if `deterministic` argument is False.
-            deterministic (bool, optional): Flag to enable or disable random state synchronization every epoch.
-                Please, see Notes for the implications of enabling this option.
 
         Returns:
             State: output state.
@@ -600,65 +594,6 @@ class Engine:
                 @trainer.on(Events.ITERATION_STARTED)
                 def switch_batch(engine):
                     engine.state.batch = preprocess_batch(engine.state.batch)
-
-
-        Note:
-            Flag `deterministic` controls random state synchronization which helps to perform "reproducible" runs.
-            If True, there are two additional procedures applied during the run:
-
-            1) Seed is used to make random state synchronization at each data provider restart (it corresponds in most
-            of the cases to the epoch size). In this way, for a given iteration/epoch the dataflow can be the same
-            (for a given seed). More precisely it is something like
-
-            .. code-block:: python
-
-                for e in range(num_epochs):
-                    set_seed(seed + e)
-                    do_single_epoch_iterations(data)
-
-            2) If input `data` is `torch.utils.data.DataLoader`, its batch sampler
-            is replaced by a batch sampler (:class:`~ignite.engine.engine.ReproducibleBatchSampler`) such that random
-            sampling indices are reproducible by prefetching them before data iteration.
-
-            .. warning::
-
-                There can be a potential issue with random state synchronization on every epoch if user's handler
-                synchronizes the random state, for example, by calling periodically `torch.manual_seed(seed)` during
-                the run. This can have an impact on the dataflow:
-
-                .. code-block:: python
-
-                    def user_handler():
-                        # handler synchronizes the random state
-                        torch.manual_seed(12)
-                        # do something ...
-
-                    for e in range(num_epochs):
-                        set_seed(seed + e)
-                        for i in range(epoch_length):
-                            batch = get_random_batch()
-
-                            if i % my_period == 0:
-                                user_handler()
-
-                Initially, the function `get_random_batch()` generates randomly data batches using the random state set
-                up by `set_seed(seed + e)`. This is intended behaviour until `user_handler()` is called.
-                After `user_handler()` execution, random state is altered and thus `get_random_batch()` will produce
-                random batches based on altered random state.
-
-                We provide helper decorator `:meth:~ignite.engine.utils.keep_random_state` to save and restore random
-                states for `torch`, `numpy` and `random`. It can be used to overcome described issue:
-
-                .. code-block:: python
-
-                    from ignite.engine.utils import keep_random_state
-
-                    @trainer.on(Events.ITERATION_COMPLETED(every=3))
-                    @keep_random_state
-                    def user_handler(_):
-                        # handler synchronizes the random state
-                        torch.manual_seed(12)
-                        a = torch.rand(1)
 
         """
         if (seed is not None) and (not deterministic):
@@ -771,27 +706,16 @@ class Engine:
 
         return data_iter
 
-    @staticmethod
-    def _manual_seed(seed: int, epoch: int) -> None:
-        random.seed(seed + epoch)
-        torch.manual_seed(seed + epoch)
-        try:
-            import numpy as np
-
-            np.random.seed(seed + epoch)
-        except ImportError:
-            pass
-
-    def setup_seed(self) -> None:
-        # seed value should be related to input data iterator length -> iteration at data iterator restart
-        # - seed can not be epoch because during a single epoch we can have multiple `_dataloader_len`
-        # - seed can not be iteration because when resuming from iteration we need to set the seed from the start of the
-        #   dataloader and then rewind to required iteration
-        if self.state.seed is None:
-            raise RuntimeError("Setup seed can not be called if run is called with deterministic=False")
-
-        le = self._dataloader_len if self._dataloader_len is not None else 1
-        self._manual_seed(self.state.seed, self.state.iteration // le)
+    # def setup_seed(self) -> None:
+    #     # seed value should be related to input data iterator length -> iteration at data iterator restart
+    #     # - seed can not be epoch because during a single epoch we can have multiple `_dataloader_len`
+    #     # - seed can not be iteration because when resuming from iteration we need to set the seed from the start of
+    #     the dataloader and then rewind to required iteration
+    #     if self.state.seed is None:
+    #         raise RuntimeError("Setup seed can not be called if run is called with deterministic=False")
+    #
+    #     le = self._dataloader_len if self._dataloader_len is not None else 1
+    #     self._manual_seed(self.state.seed, self.state.iteration // le)
 
     def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False

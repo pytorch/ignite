@@ -1,3 +1,4 @@
+import random
 import collections.abc as collections
 import logging
 from typing import Union, Optional, Callable, Any, Type, Tuple
@@ -125,3 +126,20 @@ def setup_logger(
         logger.addHandler(fh)
 
     return logger
+
+
+def manual_seed(seed: int) -> None:
+    """Setup random state from a seed for `torch`, `random` and optionally `numpy` (if can be imported).
+
+    Args:
+        seed (int): Random state seed
+
+    """
+    random.seed(seed)
+    torch.manual_seed(seed)
+    try:
+        import numpy as np
+
+        np.random.seed(seed)
+    except ImportError:
+        pass
