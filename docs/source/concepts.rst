@@ -419,7 +419,8 @@ up by `trainer`. This is intended behaviour until `user_handler()` is called.
 After `user_handler()` execution, random state is altered and thus `random_train_data_generator()` will produce
 random batches based on altered random state.
 
-We provide helper decorators to save and restore random states for `torch`, `numpy` and `random`, therefore
+We provide helper decorator `:meth:~ignite.engine.utils.keep_random_state` to save and restore random states for
+`torch`, `numpy` and `random`. Therefore, we can deal with described issue using this decorator:
 
 .. code-block:: python
 

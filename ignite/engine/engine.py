@@ -646,9 +646,19 @@ class Engine:
                 After `user_handler()` execution, random state is altered and thus `get_random_batch()` will produce
                 random batches based on altered random state.
 
-                Ultimately, to deal with this situation in  general case we should synchronize the random state on
-                each iteration, such that fetched batch is fully determined, but this can introduce a significant
-                overhead.
+                We provide helper decorator `:meth:~ignite.engine.utils.keep_random_state` to save and restore random
+                states for `torch`, `numpy` and `random`. It can be used to overcome described issue:
+
+                .. code-block:: python
+
+                    from ignite.engine.utils import keep_random_state
+
+                    @trainer.on(Events.ITERATION_COMPLETED(every=3))
+                    @keep_random_state
+                    def user_handler(_):
+                        # handler synchronizes the random state
+                        torch.manual_seed(12)
+                        a = torch.rand(1)
 
         """
         if (seed is not None) and (not deterministic):
