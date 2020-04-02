@@ -107,7 +107,7 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
-Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandler`
+Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandle`
 reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
 
 .. code-block:: python
