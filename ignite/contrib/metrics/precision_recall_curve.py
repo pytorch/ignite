@@ -24,8 +24,8 @@ class PrecisionRecallCurve(EpochMetric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
 
-    PrecisionRecallCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
-    values. To apply an activation to y_pred, use output_transform as shown below:
+    PrecisionRecallCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates
+    or confidence values. To apply an activation to y_pred, use output_transform as shown below:
 
     .. code-block:: python
 
