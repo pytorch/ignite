@@ -167,7 +167,7 @@ def test_save_best_model_by_val_score(dirname, capsys):
     ]
     trainer.run(data, max_epochs=len(acc_scores))
 
-    assert set(os.listdir(dirname)) == set(["best_model_8_val_acc=0.6100.pth", "best_model_9_val_acc=0.7000.pth"])
+    assert set(os.listdir(dirname)) == set(["best_model_8_val_acc=0.6100.pt", "best_model_9_val_acc=0.7000.pt"])
 
 
 def test_add_early_stopping_by_val_score():
