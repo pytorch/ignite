@@ -3,7 +3,7 @@ from sklearn.metrics import roc_curve
 
 import torch
 
-from ignite.contrib.metrics.roc_curve import RocCurve
+from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine
 
 
