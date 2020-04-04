@@ -31,7 +31,7 @@ jobs:
         # if [[ "${{ matrix.pytorch-channel }}" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}; fi
         conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
         # Contrib dependencies
-        pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard
+        pip install tqdm scikit-learn matplotlib visdom polyaxon-client mlflow neptune-client tensorboard
         if [[ ${{ matrix.python-version }} != 3.5 ]]; then pip install pynvml; fi
         pip install numpy pytest codecov pytest-cov pytest-xdist
         # install ignite
@@ -73,7 +73,7 @@ jobs:
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
-        python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pth
+        python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pt
 
     - name: Run GAN example
       run: |
