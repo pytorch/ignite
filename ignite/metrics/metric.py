@@ -292,6 +292,13 @@ class Metric(metaclass=ABCMeta):
 
         return MetricsLambda(lambda x: x[index], self)
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+
 
 def sync_all_reduce(*attrs) -> Callable:
     def wrapper(func: Callable) -> Callable:
