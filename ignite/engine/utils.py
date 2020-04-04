@@ -7,9 +7,19 @@ import random
 import torch
 
 
-def _update_dataloader(
+def update_dataloader(
     dataloader: torch.utils.data.DataLoader, new_batch_sampler: torch.utils.data.sampler.BatchSampler
 ) -> torch.utils.data.DataLoader:
+    """Helper function to replace current batch sampler of the dataloader by a new batch sampler. Function returns new
+    dataloader with new batch sampler.
+
+    Args:
+        dataloader (torch.utils.data.DataLoader): input dataloader
+        new_batch_sampler (torch.utils.data.sampler.BatchSampler): new batch sampler to use
+
+    Returns:
+        torch.utils.data.DataLoader
+    """
     params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
     for k in ["batch_size", "sampler", "drop_last", "batch_sampler", "dataset_kind"]:
         if k in params_keys:
@@ -20,7 +30,20 @@ def _update_dataloader(
 
 
 class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
-    """Reproducible batch sampler. Internally, this class iterates and stores indices of the input batch sampler.
+    """Reproducible batch sampler. This class internally iterates and stores indices of the input batch sampler.
+    This helps to start providing data batches from an iteration in a deterministic way.
+
+    Usage:
+
+        Setup dataloader with `ReproducibleBatchSampler` and start providing data batches from an iteration:
+
+        .. code-block:: python
+
+            from ignite.engine.utils import update_dataloader
+
+            dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+            # rewind dataloader to a specific iteration:
+            dataloader.batch_sampler.start_iteration = start_iteration
 
     Args:
         batch_sampler (torch.utils.data.sampler.BatchSampler): batch sampler same as used with
@@ -47,12 +70,9 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
             self.start_iteration = None
 
     def __iter__(self) -> Generator:
-        if self.batch_indices is None:
-            self.setup_batch_indices()
+        self.setup_batch_indices()
         for batch in self.batch_indices:
             yield batch
-
-        self.batch_indices = None
 
     def __len__(self) -> int:
         return len(self.batch_sampler)

@@ -82,7 +82,7 @@ def test_terminate_at_end_of_epoch_stops_run():
 
         assert not engine.should_terminate
 
-        state = engine.run([1], max_epochs=max_epochs, deterministic=deterministic)
+        state = engine.run([1], max_epochs=max_epochs)
 
         assert state.epoch == last_epoch_to_run
         assert engine.should_terminate
@@ -93,61 +93,58 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration():
     epoch_to_terminate_on = 3
     batches_per_epoch = [1, 2, 3]
 
-    for deterministic in [True, False]:
-        engine = Engine(MagicMock(return_value=1))
+    engine = Engine(MagicMock(return_value=1))
 
-        def start_of_epoch_handler(engine):
-            if engine.state.epoch == epoch_to_terminate_on:
-                engine.terminate()
+    def start_of_epoch_handler(engine):
+        if engine.state.epoch == epoch_to_terminate_on:
+            engine.terminate()
 
-        engine.add_event_handler(Events.EPOCH_STARTED, start_of_epoch_handler)
+    engine.add_event_handler(Events.EPOCH_STARTED, start_of_epoch_handler)
 
-        assert not engine.should_terminate
+    assert not engine.should_terminate
 
-        state = engine.run(batches_per_epoch, max_epochs=max_epochs, deterministic=deterministic)
+    state = engine.run(batches_per_epoch, max_epochs=max_epochs)
 
-        # epoch is not completed so counter is not incremented
-        assert state.epoch == epoch_to_terminate_on
-        assert engine.should_terminate
-        # completes first iteration
-        assert state.iteration == ((epoch_to_terminate_on - 1) * len(batches_per_epoch)) + 1
+    # epoch is not completed so counter is not incremented
+    assert state.epoch == epoch_to_terminate_on
+    assert engine.should_terminate
+    # completes first iteration
+    assert state.iteration == ((epoch_to_terminate_on - 1) * len(batches_per_epoch)) + 1
 
 
 def test_terminate_stops_run_mid_epoch():
     num_iterations_per_epoch = 10
     iteration_to_stop = num_iterations_per_epoch + 3
 
-    for deterministic in [True, False]:
-        engine = Engine(MagicMock(return_value=1))
+    engine = Engine(MagicMock(return_value=1))
 
-        def start_of_iteration_handler(engine):
-            if engine.state.iteration == iteration_to_stop:
-                engine.terminate()
+    def start_of_iteration_handler(engine):
+        if engine.state.iteration == iteration_to_stop:
+            engine.terminate()
 
-        engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-        state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=3, deterministic=deterministic)
-        # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
-        assert state.iteration == iteration_to_stop
-        assert state.epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
+    engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
+    state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=3)
+    # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
+    assert state.iteration == iteration_to_stop
+    assert state.epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
 
 
 def test_terminate_epoch_stops_mid_epoch():
     num_iterations_per_epoch = 10
     iteration_to_stop = num_iterations_per_epoch + 4
 
-    for deterministic in [True, False]:
-        engine = Engine(MagicMock(return_value=1))
+    engine = Engine(MagicMock(return_value=1))
 
-        def start_of_iteration_handler(engine):
-            if engine.state.iteration == iteration_to_stop:
-                engine.terminate_epoch()
+    def start_of_iteration_handler(engine):
+        if engine.state.iteration == iteration_to_stop:
+            engine.terminate_epoch()
 
-        max_epochs = 3
-        engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-        state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs, deterministic=deterministic)
-        # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
-        true_value = num_iterations_per_epoch * (max_epochs - 1) + iteration_to_stop % num_iterations_per_epoch
-        assert state.iteration == true_value
+    max_epochs = 3
+    engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
+    state = engine.run(data=[None] * num_iterations_per_epoch, max_epochs=max_epochs)
+    # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
+    true_value = num_iterations_per_epoch * (max_epochs - 1) + iteration_to_stop % num_iterations_per_epoch
+    assert state.iteration == true_value
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -243,7 +240,7 @@ def test_batch_values():
         counter = [0]
         num_iters = len(data)
 
-        def update_fn(engine, batch):
+        def update_fn(_, batch):
             assert batch == data[counter[0] % num_iters]
             counter[0] += 1
 
@@ -314,7 +311,7 @@ def test_alter_batch():
 
     num_epochs = 5
     num_iters = 25
-    data = list(range(num_iters))
+    data = range(num_iters)
     trainer.run(data, num_epochs)
 
 
@@ -328,7 +325,7 @@ def test__is_done():
 
 def test__setup_engine():
     engine = Engine(lambda e, b: 1)
-    engine.state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100, seed=12)
+    engine.state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100)
 
     data = list(range(100))
     engine.state.dataloader = data
@@ -345,12 +342,8 @@ def test_run_asserts():
     with pytest.raises(ValueError, match=r"Argument `epoch_length` should be defined if `data` is an iterator"):
         engine.run(iter([0, 1, 2, 3]))
 
-    with pytest.warns(UserWarning, match="Argument seed is ignored if deterministic is False"):
-        engine.run([0, 1, 2, 3, 4], seed=1234, deterministic=False)
-
-    with pytest.raises(RuntimeError, match=r"Setup seed can not be called if run is called with deterministic=False"):
-        with engine.add_event_handler(Events.ITERATION_COMPLETED, lambda e: e.setup_seed()):
-            engine.run([0, 1, 2, 3, 4], deterministic=False)
+    with pytest.warns(UserWarning, match="Argument seed is deprecated"):
+        engine.run([0, 1, 2, 3, 4], seed=1234)
 
 
 def test_state_get_event_attrib_value():
@@ -421,7 +414,6 @@ def _test_run_check_triggered_events():
 
 
 def test_run_check_triggered_events():
-
     _test_run_check_triggered_events()
 
 
@@ -552,7 +544,7 @@ def test_engine_random_state():
         while True:
             yield torch.randint(0, 100, size=(5,))
 
-    def sum_data(engine, batch):
+    def sum_data(_, batch):
         result = torch.sum(batch)
         return result
 
@@ -562,22 +554,21 @@ def test_engine_random_state():
         average.attach(engine, "average")
         return engine
 
-    for deterministic in [True, False]:
-        torch.manual_seed(34)
-        engine = get_engine()
-        state1 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2, deterministic=deterministic)
+    torch.manual_seed(34)
+    engine = get_engine()
+    state1 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2)
 
-        torch.manual_seed(34)
-        engine = get_engine()
-        state2 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2, deterministic=deterministic)
+    torch.manual_seed(34)
+    engine = get_engine()
+    state2 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2)
 
-        torch.manual_seed(42)
-        engine = get_engine()
-        state3 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2, deterministic=deterministic)
+    torch.manual_seed(42)
+    engine = get_engine()
+    state3 = engine.run(random_data_generator(), max_epochs=2, epoch_length=2)
 
-        assert state1.metrics["average"] == pytest.approx(state2.metrics["average"])
-        assert state1.metrics["average"] != pytest.approx(state3.metrics["average"])
-        assert state2.metrics["average"] != pytest.approx(state3.metrics["average"])
+    assert state1.metrics["average"] == pytest.approx(state2.metrics["average"])
+    assert state1.metrics["average"] != pytest.approx(state3.metrics["average"])
+    assert state2.metrics["average"] != pytest.approx(state3.metrics["average"])
 
 
 def test_altered_random_state():
@@ -592,57 +583,39 @@ def test_altered_random_state():
         while True:
             yield torch.randint(0, 100, size=(size,)) + 100
 
-    for deterministic in [True, False]:
-        seed = 1 if deterministic else None
-        train_only_batches = []
+    train_only_batches = []
 
-        def train_fn(engine, batch):
-            train_only_batches.append(batch[0].item())
+    def train_fn(engine, batch):
+        train_only_batches.append(batch[0].item())
 
-        if not deterministic:
-            torch.manual_seed(1)
-        epoch_length = 6
-        trainer = Engine(train_fn)
-        trainer.run(
-            random_train_data_generator(size),
-            max_epochs=4,
-            epoch_length=epoch_length,
-            seed=seed,
-            deterministic=deterministic,
-        )
+    torch.manual_seed(1)
+    epoch_length = 6
+    trainer = Engine(train_fn)
+    trainer.run(
+        random_train_data_generator(size), max_epochs=4, epoch_length=epoch_length,
+    )
 
-        def val_fn(engine, batch):
-            pass
+    def val_fn(engine, batch):
+        pass
 
-        evaluator = Engine(val_fn)
-        train_batches = []
+    evaluator = Engine(val_fn)
+    train_batches = []
 
-        def train_fn2(engine, batch):
-            train_batches.append(batch[0].item())
+    def train_fn2(engine, batch):
+        train_batches.append(batch[0].item())
 
-        trainer = Engine(train_fn2)
+    trainer = Engine(train_fn2)
 
-        @trainer.on(Events.EPOCH_COMPLETED)
-        @keep_random_state
-        def run_evaluation(_):
-            eval_seed = seed + 1 if seed is not None else None
-            evaluator.run(random_val_data_generator(size), epoch_length=4, seed=eval_seed, deterministic=deterministic)
+    @trainer.on(Events.EPOCH_COMPLETED)
+    @keep_random_state
+    def run_evaluation(_):
+        evaluator.run(random_val_data_generator(size), epoch_length=4)
 
-        if not deterministic:
-            torch.manual_seed(1)
-        trainer.run(
-            random_train_data_generator(size),
-            max_epochs=4,
-            epoch_length=epoch_length,
-            seed=seed,
-            deterministic=deterministic,
-        )
+    torch.manual_seed(1)
+    trainer.run(
+        random_train_data_generator(size), max_epochs=4, epoch_length=epoch_length,
+    )
 
-        if deterministic:
-            for i in range(epoch_length):
-                assert train_batches[epoch_length + i] != train_batches[2 * epoch_length + i]
-                assert train_batches[i] == train_only_batches[i]
-        else:
-            for i in range(epoch_length):
-                assert train_batches[epoch_length + i] != train_batches[2 * epoch_length + i]
-                assert train_batches[i] == train_only_batches[i]
+    for i in range(epoch_length):
+        assert train_batches[epoch_length + i] != train_batches[2 * epoch_length + i]
+        assert train_batches[i] == train_only_batches[i]

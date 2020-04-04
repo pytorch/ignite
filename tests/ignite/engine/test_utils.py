@@ -3,14 +3,15 @@ import numpy as np
 import torch
 
 from ignite.engine import Engine
-from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader
+from ignite.engine.utils import ReproducibleBatchSampler, update_dataloader
 from ignite.engine.utils import keep_random_state
+from ignite.utils import manual_seed
 
 from unittest.mock import patch
 import pytest
 
 
-def test__update_dataloader(setup_sampler_fn):
+def test_update_dataloader(setup_sampler_fn):
     def _test(sampler_type=None):
         num_epochs = 3
         batch_size = 4
@@ -50,7 +51,7 @@ def test__update_dataloader(setup_sampler_fn):
             shuffle=sampler is None,
         )
         batch_sampler = dataloader.batch_sampler
-        new_dataloader = _update_dataloader(dataloader, ReproducibleBatchSampler(batch_sampler))
+        new_dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(batch_sampler))
 
         torch.manual_seed(12)
         new_batches = []
@@ -83,7 +84,7 @@ def test_reproducible_batch_sampler():
     dataloader = DataLoader(data, batch_size=12, num_workers=0, shuffle=True, drop_last=True)
 
     torch.manual_seed(12 + 0)
-    dataloader_ = _update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+    dataloader_ = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
 
     seen_batches = []
     num_epochs = 3
@@ -100,7 +101,7 @@ def test_reproducible_batch_sampler():
 
     for resume_epoch in range(num_epochs):
         torch.manual_seed(12 + resume_epoch)
-        dataloader_ = _update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+        dataloader_ = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
         resumed_seen_batches = []
         for b in dataloader_:
             resumed_seen_batches.append(b)
@@ -109,7 +110,8 @@ def test_reproducible_batch_sampler():
 
 
 def _test_keep_random_state(with_numpy):
-    Engine._manual_seed(54, 0)
+
+    manual_seed(54)
     true_values = []
     for _ in range(5):
         t = [
@@ -122,7 +124,7 @@ def _test_keep_random_state(with_numpy):
 
     @keep_random_state
     def user_handler():
-        Engine._manual_seed(22, 0)
+        manual_seed(22)
         _ = [
             random.random(),
             torch.rand(2),
@@ -130,7 +132,7 @@ def _test_keep_random_state(with_numpy):
         if with_numpy:
             _ = np.random.rand(2)
 
-    Engine._manual_seed(54, 0)
+    manual_seed(54)
     res_values = []
     for _ in range(5):
         r = [

@@ -412,17 +412,17 @@ def _test_every_event_filter_with_engine_with_dataloader(device):
         )
         seen_batchs = []
 
-        def update_fn(engine, batch):
+        def update_fn(_, batch):
             batch_to_device = batch.to(device)
             seen_batchs.append(batch)
 
         engine = Engine(update_fn)
 
-        def foo(engine):
+        def foo(_):
             pass
 
         engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo)
-        engine.run(dataloader, max_epochs=max_epochs, seed=12, deterministic=True)
+        engine.run(dataloader, max_epochs=max_epochs)
         engine = None
 
         import gc
