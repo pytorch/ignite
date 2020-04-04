@@ -69,7 +69,7 @@ def run(
 
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = SummaryWriter(logdir=log_dir)
+    writer = SummaryWriter(log_dir=log_dir)
     device = "cpu"
 
     if torch.cuda.is_available():
