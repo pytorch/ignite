@@ -139,7 +139,7 @@ class Engine:
 
         _check_signature(self, process_function, "process_function", None)
 
-    def register_events(self, *event_names: Union[str, int, Any], event_to_attr: Optional[dict] = None) -> None:
+    def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -197,7 +197,7 @@ class Engine:
                 State.event_to_attr[e] = event_to_attr[e]
 
     @staticmethod
-    def _handler_wrapper(handler: Callable, event_name: str, event_filter: Callable) -> Callable:
+    def _handler_wrapper(handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
         def wrapper(engine: Engine, *args, **kwargs) -> Any:
             event = engine.state.get_event_attrib_value(event_name)
             if event_filter(engine, event):
@@ -207,7 +207,7 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name: str, handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Any, handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
@@ -275,7 +275,7 @@ class Engine:
         return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
-    def _assert_non_filtered_event(event_name: str):
+    def _assert_non_filtered_event(event_name: Any):
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -284,7 +284,7 @@ class Engine:
                 "Argument event_name should not be a filtered event, " "please use event without any event filtering"
             )
 
-    def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
+    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None):
         """Check if the specified event has the specified handler.
 
         Args:
@@ -312,7 +312,7 @@ class Engine:
             registered_handler = registered_handler._parent()
         return registered_handler == user_handler
 
-    def remove_event_handler(self, handler: Callable, event_name: str):
+    def remove_event_handler(self, handler: Callable, event_name: Any):
         """Remove event handler `handler` from registered handlers of the engine
 
         Args:
@@ -350,7 +350,7 @@ class Engine:
 
         return decorator
 
-    def _fire_event(self, event_name: str, *event_args, **event_kwargs) -> None:
+    def _fire_event(self, event_name: Any, *event_args, **event_kwargs) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -373,7 +373,7 @@ class Engine:
                 kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
 
-    def fire_event(self, event_name: str) -> None:
+    def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
