@@ -3,8 +3,9 @@ import logging
 from typing import Union, Optional, Callable, Any, Type, Tuple
 
 import torch
+import torch.distributed as dist
 
-__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger"]
+__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger", "one_rank_only"]
 
 
 def convert_tensor(
@@ -125,3 +126,38 @@ def setup_logger(
         logger.addHandler(fh)
 
     return logger
+
+
+def one_rank_only(*args, **kwargs):
+    """Decorator to filter handlers wrt a rank number
+
+    .. code-block:: python
+        engine = ...
+
+        @engine.on(...)
+        @one_rank_only # equivalent @one_rank_only(rank=0)
+        def some_handler(_):
+            ...
+
+        @engine.on(...)
+        @one_rank_only(rank=1)
+        def some_handler(_):
+            ...
+    """
+    def _one_rank_only(fun):
+        def wrapper(*args, **kwargs):
+            if dist.get_rank() == rank:
+                return fun(*args, **kwargs)
+        return wrapper
+    # @one_rank_only means *args=[handler]
+    # @one_rank_only(rank=...) means **kwargs={"rank", ...}
+    if len(args) == 1 and callable(args[0]):
+        rank = 0
+        # return wrapper with default rank=0
+        return _one_rank_only(args[0])
+    else:
+        if "rank" not in kwargs:
+            raise ValueError("rank parameter (int) is missing")
+        rank = kwargs["rank"]
+        # return decorator
+        return _one_rank_only
