@@ -73,7 +73,7 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 
 def create_summary_writer(model, data_loader, log_dir):
-    writer = SummaryWriter(logdir=log_dir)
+    writer = SummaryWriter(log_dir=log_dir)
     data_loader_iter = iter(data_loader)
     x, y = next(data_loader_iter)
     try:
