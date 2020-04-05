@@ -387,6 +387,7 @@ As always, PRs are welcome :)
 -   [Project MONAI -
     AI Toolkit for Healthcare Imaging
     ](https://github.com/Project-MONAI/MONAI)
+-   [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
 
 See other projects at [\"Used
 by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
