@@ -1,11 +1,13 @@
 import random
 import collections.abc as collections
 import logging
+from functools import wraps
 from typing import Union, Optional, Callable, Any, Type, Tuple
 
 import torch
+import torch.distributed as dist
 
-__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger"]
+__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger", "one_rank_only"]
 
 
 def convert_tensor(
@@ -16,7 +18,7 @@ def convert_tensor(
     """Move tensors to relevant device."""
 
     def _func(tensor: torch.Tensor) -> torch.Tensor:
-        return tensor.to(device=device, non_blocking=non_blocking) if device else tensor
+        return tensor.to(device=device, non_blocking=non_blocking) if device is not None else tensor
 
     return apply_to_tensor(input_, _func)
 
@@ -143,3 +145,39 @@ def manual_seed(seed: int) -> None:
         np.random.seed(seed)
     except ImportError:
         pass
+
+
+def one_rank_only(rank: int = 0, barrier: bool = False):
+    """Decorator to filter handlers wrt a rank number
+
+    Args:
+        rank (int): rank number of the handler (default: 0).
+        barrier (bool): synchronisation with a barrier (default: False).
+
+    .. code-block:: python
+        engine = ...
+
+        @engine.on(...)
+        @one_rank_only() # means @one_rank_only(rank=0)
+        def some_handler(_):
+            ...
+
+        @engine.on(...)
+        @one_rank_only(rank=1)
+        def some_handler(_):
+            ...
+    """
+
+    def _one_rank_only(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            ret = None
+            if dist.get_rank() == rank:
+                ret = func(*args, **kwargs)
+            if barrier:
+                dist.barrier()
+            return ret
+
+        return wrapper
+
+    return _one_rank_only

@@ -439,7 +439,7 @@ def test_neptune_saver_serializable(dummy_model_factory, dirname):
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = "test.pth"
+    fname = "test.pt"
     saver(to_save_serializable, fname)
 
     assert mock_logger.experiment.log_artifact.call_count == 1
@@ -453,7 +453,7 @@ def test_neptune_saver_non_serializable(dirname):
     to_save_non_serializable = {"model": lambda x: x}
 
     saver = NeptuneSaver(mock_logger)
-    fname = "test.pth"
+    fname = "test.pt"
     try:
         with warnings.catch_warnings():
             # Ignore torch/serialization.py:292: UserWarning: Couldn't retrieve source code for container of type

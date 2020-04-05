@@ -462,7 +462,7 @@ containing serialized trainer, model, optimizer, etc
 .. code-block:: bash
 
     ls /tmp/training
-    > "checkpoint_50000.pth"
+    > "checkpoint_50000.pt"
 
 We can then restore the training from the last checkpoint.
 

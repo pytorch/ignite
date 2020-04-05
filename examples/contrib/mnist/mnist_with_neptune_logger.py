@@ -148,13 +148,18 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     npt_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
 
     def score_function(engine):
-        return engine.state.metrics['accuracy']
+        return engine.state.metrics["accuracy"]
 
-    to_save = {'model': model}
-    handler = Checkpoint(to_save, NeptuneSaver(npt_logger), n_saved=2,
-                         filename_prefix='best', score_function=score_function,
-                         score_name="validation_accuracy",
-                         global_step_transform=global_step_from_engine(trainer))
+    to_save = {"model": model}
+    handler = Checkpoint(
+        to_save,
+        NeptuneSaver(npt_logger),
+        n_saved=2,
+        filename_prefix="best",
+        score_function=score_function,
+        score_name="validation_accuracy",
+        global_step_transform=global_step_from_engine(trainer),
+    )
     validation_evaluator.add_event_handler(Events.COMPLETED, handler)
 
     # kick everything off
