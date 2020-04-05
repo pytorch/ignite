@@ -5,12 +5,13 @@ from collections.abc import Mapping
 import weakref
 import random
 import warnings
+import inspect
 from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
-from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
+from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature, _check_partial_signature
 from ignite._utils import _to_hours_mins_secs
 
 __all__ = ["Engine"]
@@ -137,7 +138,7 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        _check_signature(self, process_function, "process_function", None)
+        _check_signature(process_function, "process_function", self, None)
 
     def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
@@ -267,7 +268,7 @@ class Engine:
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
-        _check_signature(self, handler, "handler", *(event_args + args), **kwargs)
+        _check_partial_signature(handler, "handler",*(event_args + args), **kwargs)
 
         self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
@@ -371,7 +372,12 @@ class Engine:
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
-                func(self, *(event_args + args), **kwargs)
+                signature = inspect.signature(func)
+                try:
+                    signature.bind(self, *(event_args + args), **kwargs)
+                    func(self, *(event_args + args), **kwargs)
+                except TypeError:
+                    func(*(event_args + args), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.

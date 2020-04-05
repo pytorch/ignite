@@ -55,15 +55,31 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
         return len(self.batch_sampler)
 
 
-def _check_signature(engine, fn: Callable, fn_description: str, *args, **kwargs) -> None:
+def _check_signature(fn: Callable, fn_description: str, *args, **kwargs) -> None:
 
     signature = inspect.signature(fn)
     try:
-        signature.bind(engine, *args, **kwargs)
+        signature.bind(*args, **kwargs)
     except TypeError as exc:
         fn_params = list(signature.parameters)
         exception_msg = str(exc)
-        passed_params = [engine] + list(args) + list(kwargs)
+        passed_params = list(args) + list(kwargs)
+        raise ValueError(
+            "Error adding {} '{}': "
+            "takes parameters {} but will be called with {} "
+            "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg)
+        )
+
+
+def _check_partial_signature(fn: Callable, fn_description: str, *args, **kwargs) -> None:
+
+    signature = inspect.signature(fn)
+    try:
+        signature.bind_partial(*args, **kwargs)
+    except TypeError as exc:
+        fn_params = list(signature.parameters)
+        exception_msg = str(exc)
+        passed_params = list(args) + list(kwargs)
         raise ValueError(
             "Error adding {} '{}': "
             "takes parameters {} but will be called with {} "

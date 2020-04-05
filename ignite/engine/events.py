@@ -87,7 +87,7 @@ class CallableEventWithFilter:
 
         # check signature:
         if event_filter is not None:
-            _check_signature("engine", event_filter, "event_filter", "event")
+            _check_signature(event_filter, "event_filter", ["engine", "event"])
 
         return CallableEventWithFilter(self.value, event_filter, self.name)
 

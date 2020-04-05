@@ -91,6 +91,33 @@ def test_add_event_handler():
     assert completed_counter.count == 15
 
 
+def test_add_event_handler_without_engine():
+    engine = DummyEngine()
+
+    class Counter(object):
+        def __init__(self, count=0):
+            self.count = count
+
+    started_counter = Counter()
+
+    def handle_iteration_started():
+        started_counter.count += 1
+
+    engine.add_event_handler(Events.STARTED, handle_iteration_started)
+
+    completed_counter = Counter()
+
+    def handle_iteration_completed(counter):
+        counter.count += 1
+
+    engine.add_event_handler(Events.COMPLETED, handle_iteration_completed, completed_counter)
+
+    engine.run(15)
+
+    assert started_counter.count == 15
+    assert completed_counter.count == 15
+
+
 def test_adding_multiple_event_handlers():
     engine = DummyEngine()
     handlers = [MagicMock(), MagicMock()]
