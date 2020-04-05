@@ -9,15 +9,14 @@ from ignite.engine import Engine, Events
 
 
 def _test_distrib_one_rank_only():
-
     # last rank
     rank = dist.get_world_size() - 1
 
-    value = torch.tensor([0])
+    value = torch.tensor(0)
 
     @one_rank_only(rank=rank)
     def initialize():
-        value[0] = 100
+        value.data = torch.tensor(100)
 
     initialize()
 
@@ -33,15 +32,14 @@ def _test_distrib_one_rank_only():
 
 
 def _test_distrib_one_rank_only_with_engine():
-
     engine = Engine(lambda e, b: b)
 
-    batch_sum = torch.tensor([0])
+    batch_sum = torch.tensor(0)
 
     @engine.on(Events.ITERATION_COMPLETED)
     @one_rank_only()  # ie rank == 0
     def _(_):
-        batch_sum[0] += engine.state.batch
+        batch_sum.data += torch.tensor(engine.state.batch)
 
     engine.run([1, 2, 3], max_epochs=2)
 
