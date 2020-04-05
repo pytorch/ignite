@@ -17,7 +17,7 @@ def convert_tensor(
     """Move tensors to relevant device."""
 
     def _func(tensor: torch.Tensor) -> torch.Tensor:
-        return tensor.to(device=device, non_blocking=non_blocking) if device else tensor
+        return tensor.to(device=device, non_blocking=non_blocking) if device is not None else tensor
 
     return apply_to_tensor(input_, _func)
 

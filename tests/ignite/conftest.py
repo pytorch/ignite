@@ -7,7 +7,7 @@ import torch.distributed as dist
 import pytest
 
 
-@pytest.fixture
+@pytest.fixture()
 def dirname():
     path = tempfile.mkdtemp()
     yield path
