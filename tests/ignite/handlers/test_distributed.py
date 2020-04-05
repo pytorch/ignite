@@ -9,49 +9,59 @@ from ignite.engine import Engine, Events
 
 
 def _test_distrib_one_rank_only():
-    # last rank
-    rank = dist.get_world_size() - 1
 
-    value = torch.tensor(0)
+    def _test(barrier):
+        # last rank
+        rank = dist.get_world_size() - 1
 
-    @one_rank_only(rank=rank)
-    def initialize():
-        value.data = torch.tensor(100)
+        value = torch.tensor(0)
 
-    initialize()
+        @one_rank_only(rank=rank, barrier=barrier)
+        def initialize():
+            value.data = torch.tensor(100)
 
-    value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
+        initialize()
 
-    dist.all_gather(tensor=value, tensor_list=value_list)
+        value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
 
-    for r in range(dist.get_world_size()):
-        if r == rank:
-            assert value_list[r].item() == 100
-        else:
-            assert value_list[r].item() == 0
+        dist.all_gather(tensor=value, tensor_list=value_list)
+
+        for r in range(dist.get_world_size()):
+            if r == rank:
+                assert value_list[r].item() == 100
+            else:
+                assert value_list[r].item() == 0
+
+    _test(barrier=True)
+    _test(barrier=False)
 
 
 def _test_distrib_one_rank_only_with_engine():
-    engine = Engine(lambda e, b: b)
 
-    batch_sum = torch.tensor(0)
+    def _test(barrier):
+        engine = Engine(lambda e, b: b)
 
-    @engine.on(Events.ITERATION_COMPLETED)
-    @one_rank_only()  # ie rank == 0
-    def _(_):
-        batch_sum.data += torch.tensor(engine.state.batch)
+        batch_sum = torch.tensor(0)
 
-    engine.run([1, 2, 3], max_epochs=2)
+        @engine.on(Events.ITERATION_COMPLETED)
+        @one_rank_only(barrier=barrier)  # ie rank == 0
+        def _(_):
+            batch_sum.data += torch.tensor(engine.state.batch)
 
-    value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
+        engine.run([1, 2, 3], max_epochs=2)
 
-    dist.all_gather(tensor=batch_sum, tensor_list=value_list)
+        value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
 
-    for r in range(dist.get_world_size()):
-        if r == 0:
-            assert value_list[r].item() == 12
-        else:
-            assert value_list[r].item() == 0
+        dist.all_gather(tensor=batch_sum, tensor_list=value_list)
+
+        for r in range(dist.get_world_size()):
+            if r == 0:
+                assert value_list[r].item() == 12
+            else:
+                assert value_list[r].item() == 0
+
+    _test(barrier=True)
+    _test(barrier=False)
 
 
 @pytest.mark.distributed
