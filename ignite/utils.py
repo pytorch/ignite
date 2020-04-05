@@ -145,10 +145,13 @@ def one_rank_only(rank=0):
         def some_handler(_):
             ...
     """
+
     def _one_rank_only(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if dist.get_rank() == rank:
                 return func(*args, **kwargs)
+
         return wrapper
+
     return _one_rank_only
