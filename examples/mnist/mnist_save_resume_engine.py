@@ -15,7 +15,14 @@ from tqdm import tqdm
 try:
     from tensorboardX import SummaryWriter
 except ImportError:
-    raise RuntimeError("No tensorboardX package is found. Please install with the command: \npip install tensorboardX")
+    try:
+        from torch.utils.tensorboard import SummaryWriter
+    except ImportError:
+        raise RuntimeError(
+            "This module requires either tensorboardX or torch >= 1.2.0. "
+            "You may install tensorboardX with command: \n pip install tensorboardX \n"
+            "or upgrade PyTorch using your package manager of choice (pip or conda)."
+        )
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
@@ -69,7 +76,7 @@ def run(
 
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = SummaryWriter(logdir=log_dir)
+    writer = SummaryWriter(log_dir=log_dir)
     device = "cpu"
 
     if torch.cuda.is_available():

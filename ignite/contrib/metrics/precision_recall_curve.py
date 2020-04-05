@@ -37,5 +37,6 @@ class PrecisionRecallCurve(EpochMetric):
         roc_auc = PrecisionRecallCurve(activated_output_transform)
 
     """
+
     def __init__(self, output_transform=lambda x: x):
         super(PrecisionRecallCurve, self).__init__(precision_recall_curve_compute_fn, output_transform=output_transform)
