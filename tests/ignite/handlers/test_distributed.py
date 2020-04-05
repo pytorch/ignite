@@ -51,9 +51,9 @@ def _test_distrib_one_rank_only_with_engine():
 
     for r in range(dist.get_world_size()):
         if r == 0:
-            assert value_list[r] == 12
+            assert value_list[r].item() == 12
         else:
-            assert value_list[r] == 0
+            assert value_list[r].item() == 0
 
 
 @pytest.mark.distributed
