@@ -45,9 +45,9 @@ def _test_distrib_one_rank_only_with_engine():
 
     engine.run([1, 2, 3], max_epochs=2)
 
-    value_list = [torch.tensor([0]) for _ in range(dist.get_world_size())]
+    value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
 
-    dist.all_gather(tensor=batch_sum[0], tensor_list=value_list)
+    dist.all_gather(tensor=batch_sum, tensor_list=value_list)
 
     for r in range(dist.get_world_size()):
         if r == 0:
