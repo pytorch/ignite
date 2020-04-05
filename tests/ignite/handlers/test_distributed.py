@@ -21,7 +21,7 @@ def _test_distrib_one_rank_only():
 
     initialize()
 
-    value_list = [torch.tensor([0]) for _ in range(dist.get_world_size())]
+    value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
 
     dist.all_gather(tensor=value, tensor_list=value_list)
 
