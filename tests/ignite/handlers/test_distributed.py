@@ -10,20 +10,26 @@ from ignite.engine import Engine, Events
 
 def _test_distrib_one_rank_only():
 
+    # last rank
+    rank = dist.get_world_size() - 1
+
     value = torch.tensor([0])
 
-    @one_rank_only(rank=1)
+    @one_rank_only(rank=rank)
     def initialize():
         value[0] = 100
 
     initialize()
 
-    value_list = [torch.tensor([0]), torch.tensor([0])]
+    value_list = [torch.tensor([0]) for _ in range(dist.get_world_size())]
 
     dist.all_gather(tensor=value, tensor_list=value_list)
 
-    assert value_list[0].item() == 0
-    assert value_list[1].item() == 100
+    for r in range(dist.get_world_size()):
+        if r == rank:
+            assert value_list[r].item() == 100
+        else:
+            assert value_list[r].item() == 0
 
 
 def _test_distrib_one_rank_only_with_engine():
@@ -39,12 +45,15 @@ def _test_distrib_one_rank_only_with_engine():
 
     engine.run([1, 2, 3], max_epochs=2)
 
-    value_list = [torch.tensor(0), torch.tensor(0)]
+    value_list = [torch.tensor([0]) for _ in range(dist.get_world_size())]
 
     dist.all_gather(tensor=batch_sum[0], tensor_list=value_list)
 
-    assert value_list[0] == 12
-    assert value_list[1] == 0
+    for r in range(dist.get_world_size()):
+        if r == 0:
+            assert value_list[r] == 12
+        else:
+            assert value_list[r] == 0
 
 
 @pytest.mark.distributed
