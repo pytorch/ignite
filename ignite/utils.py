@@ -1,5 +1,6 @@
 import collections.abc as collections
 import logging
+from functools import wraps
 from typing import Union, Optional, Callable, Any, Type, Tuple
 
 import torch
@@ -128,14 +129,14 @@ def setup_logger(
     return logger
 
 
-def one_rank_only(*args, **kwargs):
+def one_rank_only(rank=0):
     """Decorator to filter handlers wrt a rank number
 
     .. code-block:: python
         engine = ...
 
         @engine.on(...)
-        @one_rank_only # equivalent @one_rank_only(rank=0)
+        @one_rank_only() # equivalent @one_rank_only(rank=0)
         def some_handler(_):
             ...
 
@@ -144,20 +145,10 @@ def one_rank_only(*args, **kwargs):
         def some_handler(_):
             ...
     """
-    def _one_rank_only(fun):
+    def _one_rank_only(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             if dist.get_rank() == rank:
-                return fun(*args, **kwargs)
+                return func(*args, **kwargs)
         return wrapper
-    # @one_rank_only means *args=[handler]
-    # @one_rank_only(rank=...) means **kwargs={"rank", ...}
-    if len(args) == 1 and callable(args[0]):
-        rank = 0
-        # return wrapper with default rank=0
-        return _one_rank_only(args[0])
-    else:
-        if "rank" not in kwargs:
-            raise ValueError("rank parameter (int) is missing")
-        rank = kwargs["rank"]
-        # return decorator
-        return _one_rank_only
+    return _one_rank_only
