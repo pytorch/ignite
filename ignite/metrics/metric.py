@@ -293,8 +293,7 @@ class Metric(metaclass=ABCMeta):
         return MetricsLambda(lambda x: x[index], self)
 
     def __getstate__(self):
-        state = self.__dict__.copy()
-        return state
+        return self.__dict__
 
     def __setstate__(self, d):
         self.__dict__.update(d)
