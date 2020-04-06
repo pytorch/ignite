@@ -434,16 +434,16 @@ class Engine:
         """Setups engine from `state_dict`.
 
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length`.
-        Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+        Values for iteration or epoch are 1-based: first iteration and epoch are equal to 1.
 
         Args:
             state_dict (Mapping): a dict with parameters
 
         .. code-block:: python
 
-            # Restore from an epoch
+            # Restore from the 3rd epoch
             state_dict = {"epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
-            # or an iteration
+            # or 500th iteration
             # state_dict = {"iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
 
             trainer = Engine(...)
@@ -464,13 +464,13 @@ class Engine:
         if (not any(opts)) or (all(opts)):
             raise ValueError("state_dict should contain only one of '{}' keys".format(self._state_dict_one_of_opt_keys))
 
-        self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"], metrics={},)
+        self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"])
 
         if "iteration" in state_dict:
-            self.state.iteration = state_dict["iteration"]
+            self.state.iteration = state_dict["iteration"] - 1
             self.state.epoch = self.state.iteration // self.state.epoch_length
         elif "epoch" in state_dict:
-            self.state.epoch = state_dict["epoch"]
+            self.state.epoch = state_dict["epoch"] - 1
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
     @staticmethod
@@ -490,7 +490,8 @@ class Engine:
 
         - At the first call, new state is defined by `max_epochs`, `epoch_length` if provided.
         - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
-            provided, state is kept and used in the function.
+            provided, state is kept and used in the function. In this case, we also synchronize random states to the
+            provided iteration.
         - If state is defined and engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
         - If state is defined, engine is NOT "done", then input arguments if provided override defined state.
 
@@ -559,6 +560,13 @@ class Engine:
         self.state.dataloader = data
         return self._internal_run()
 
+    def sync_dataflow(self) -> None:
+        """Helper method to synchronize dataflow by setting random states according to current iteration and
+        resetting data loader iterator. This is helpful when used with training checkpoint.
+        """
+        manual_seed(self.state.iteration)
+        self._dataloader_iter = iter(self.state.dataloader)
+
     def _setup_engine(self) -> None:
 
         try:
@@ -573,51 +581,13 @@ class Engine:
             # synchronize random state here, as iter(data) can start prefetching
             manual_seed(iteration)
 
-        self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
+        # self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
+        self._dataloader_iter = iter(self.state.dataloader)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
             iteration %= self.state.epoch_length
         self._init_iter.append(iteration)
-
-    @staticmethod
-    def _from_iteration(data: Union[Iterable, torch.utils.data.DataLoader], iteration: int) -> Iterator:
-        if isinstance(data, torch.utils.data.DataLoader):
-            if hasattr(data.batch_sampler, "start_iteration"):
-                try:
-                    # following is unsafe for IterableDatasets
-                    iteration %= len(data.batch_sampler)
-                    if iteration > 0:
-                        # batch sampler is ReproducibleBatchSampler
-                        data.batch_sampler.start_iteration = iteration
-                except TypeError:
-                    # Probably we can do nothing with DataLoader built upon IterableDatasets
-                    pass
-            data_iter = iter(data)
-        else:
-            if hasattr(data, "__len__"):
-                iteration %= len(data)
-            data_iter = iter(data)
-            counter = 0
-            while counter < iteration:
-                try:
-                    next(data_iter)
-                    counter += 1
-                except StopIteration:
-                    data_iter = iter(data)
-
-        return data_iter
-
-    # def setup_seed(self) -> None:
-    #     # seed value should be related to input data iterator length -> iteration at data iterator restart
-    #     # - seed can not be epoch because during a single epoch we can have multiple `_dataloader_len`
-    #     # - seed can not be iteration because when resuming from iteration we need to set the seed from the start of
-    #     the dataloader and then rewind to required iteration
-    #     if self.state.seed is None:
-    #         raise RuntimeError("Setup seed can not be called if run is called with deterministic=False")
-    #
-    #     le = self._dataloader_len if self._dataloader_len is not None else 1
-    #     self._manual_seed(self.state.seed, self.state.iteration // le)
 
     def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False
