@@ -39,6 +39,8 @@ class Checkpoint:
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
+        sync_dataflow (bool, optional): if True, :meth:`~ignite.engine.Engine.sync_dataflow` is called after saving a
+            checkpoint. Please see `Concepts/ <URL_TO_INSERT>`_ for details. (default: False).
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -135,13 +137,17 @@ class Checkpoint:
         n_saved: Optional[int] = 1,
         global_step_transform: Callable = None,
         archived: bool = False,
+        sync_dataflow: bool = False,
     ):
 
-        if not isinstance(to_save, collections.Mapping):
-            raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
+        if to_save is not None:  # for compatibility with ModelCheckpoint
+            if not isinstance(to_save, collections.Mapping):
+                raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
 
-        if len(to_save) < 1:
-            raise ValueError("No objects to checkpoint.")
+            if len(to_save) < 1:
+                raise ValueError("No objects to checkpoint.")
+
+            self._check_objects(to_save, "state_dict")
 
         if not callable(save_handler):
             raise TypeError("Argument `save_handler` should be callable")
@@ -156,16 +162,16 @@ class Checkpoint:
         if archived:
             warnings.warn("Argument archived is deprecated")
 
-        self._check_objects(to_save, "state_dict")
+        self.to_save = to_save
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = save_handler
-        self.to_save = to_save
         self._score_function = score_function
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
         self._ext = ".pt"
         self.global_step_transform = global_step_transform
+        self._sync_dataflow = sync_dataflow
 
     @property
     def last_checkpoint(self) -> str:
@@ -225,6 +231,9 @@ class Checkpoint:
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
+
+            if self._sync_dataflow:
+                engine.sync_dataflow()
 
         if not self._check_lt_n_saved(or_equal=True):
             item = self._saved.pop(0)
@@ -358,7 +367,7 @@ class ModelCheckpoint(Checkpoint):
         `step_number` is replaced by current engine's epoch if `score_function` is specified and current iteration
         otherwise.
 
-        A single `pth` file is created instead of multiple files.
+        A single `pt` file is created instead of multiple files.
 
     Args:
         dirname (str): Directory path where objects will be saved.
@@ -406,7 +415,7 @@ class ModelCheckpoint(Checkpoint):
         save_interval: Optional[Callable] = None,
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
-        n_saved: int = 1,
+        n_saved: Union[int, None] = 1,
         atomic: bool = True,
         require_empty: bool = True,
         create_dir: bool = True,
@@ -431,26 +440,17 @@ class ModelCheckpoint(Checkpoint):
 
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty)
 
-        if score_function is None and score_name is not None:
-            raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
-
-        if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError(
-                "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
-            )
-
-        if archived:
-            warnings.warn("Argument archived is deprecated")
-
-        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
-        self.save_handler = disk_saver
-        self.to_save = None
-        self._score_function = score_function
-        self._score_name = score_name
-        self._n_saved = n_saved
-        self._saved = []
-        self._ext = ".pt"
-        self.global_step_transform = global_step_transform
+        super(ModelCheckpoint, self).__init__(
+            to_save=None,
+            save_handler=disk_saver,
+            filename_prefix=filename_prefix,
+            score_function=score_function,
+            score_name=score_name,
+            n_saved=n_saved,
+            global_step_transform=global_step_transform,
+            archived=archived,
+            sync_dataflow=False,
+        )
 
     @property
     def last_checkpoint(self) -> Union[str, None]:

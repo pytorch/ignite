@@ -6,8 +6,6 @@ from collections.abc import Mapping
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.utils import manual_seed
-from ignite.engine.utils import update_dataloader, ReproducibleBatchSampler
 
 
 def test_state_dict():
@@ -101,7 +99,7 @@ def test_load_state_dict_with_params_overriding_integration(counter_factory):
         engine.run(data, max_epochs=3)
 
     # Override epoch_length
-    with pytest.raises(ValueError, match=r"Argument epoch_length should be None if run is resuming from a state"):
+    with pytest.raises(ValueError, match=r"Argument epoch_length should be same as in the state"):
         engine.load_state_dict(state_dict)
         engine.run(data, epoch_length=90)
 

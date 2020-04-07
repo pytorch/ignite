@@ -315,6 +315,17 @@ def test_alter_batch():
     trainer.run(data, num_epochs)
 
 
+def test_sync_dataflow():
+
+    engine = Engine(lambda e, b: None)
+
+    with pytest.raises(RuntimeError, match=r"Can not call 'sync_dataflow' if Engine is not initialized"):
+        engine.sync_dataflow()
+
+    engine.state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100, dataloader=[0, 1, 2])
+    engine.sync_dataflow()
+
+
 def test__is_done():
     state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100)
     assert not Engine._is_done(state)

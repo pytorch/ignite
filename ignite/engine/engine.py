@@ -4,9 +4,7 @@ from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
 import weakref
 import warnings
-from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
-
-import torch
+from typing import Optional, Callable, Iterable, Any, Tuple
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import _check_signature
@@ -281,7 +279,7 @@ class Engine:
             and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             raise TypeError(
-                "Argument event_name should not be a filtered event, " "please use event without any event filtering"
+                "Argument event_name should not be a filtered event, please use event without any event filtering"
             )
 
     def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None):
@@ -289,8 +287,7 @@ class Engine:
 
         Args:
             handler (callable): the callable event handler.
-            event_name: The event the handler attached to. Set this
-                to ``None`` to search all events.
+            event_name: The event the handler attached to. Set this to ``None`` to search all events.
         """
         if event_name is not None:
             self._assert_non_filtered_event(event_name)
@@ -502,7 +499,8 @@ class Engine:
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
                 This argument should be `None` if run is resuming from a state.
-            seed (int, optional): Deprecated argument. Please, use torch.manual_seed or ignite.utils.manual_seed
+            seed (int, optional): Deprecated argument. Please, use `torch.manual_seed` or
+                :meth:`~ignite.utils.manual_seed`.
 
         Returns:
             State: output state.
@@ -521,7 +519,10 @@ class Engine:
 
         """
         if seed is not None:
-            warnings.warn("Argument seed is deprecated. Please, use torch.manual_seed or ignite.utils.manual_seed")
+            warnings.warn(
+                "Argument seed is deprecated. It will be removed in future releases. "
+                "Please, use torch.manual_seed or ignite.utils.manual_seed"
+            )
 
         if self.state is None or self._is_done(self.state):
             # Create new state
@@ -546,11 +547,12 @@ class Engine:
                     )
                 self.state.max_epochs = max_epochs
             if epoch_length is not None:
-                raise ValueError(
-                    "Argument epoch_length should be None if run is resuming from a state, given {}".format(
-                        epoch_length
+                if epoch_length != self.state.epoch_length:
+                    raise ValueError(
+                        "Argument epoch_length should be same as in the state, given {} vs {}".format(
+                            epoch_length, self.state.epoch_length
+                        )
                     )
-                )
             self.logger.info(
                 "Engine run resuming from iteration {}, epoch {} until {} epochs".format(
                     self.state.iteration, self.state.epoch, self.state.max_epochs
@@ -561,9 +563,12 @@ class Engine:
         return self._internal_run()
 
     def sync_dataflow(self) -> None:
-        """Helper method to synchronize dataflow by setting random states according to current iteration and
-        resetting data loader iterator. This is helpful when used with training checkpoint.
+        """Helper method to synchronize dataflow by setting random states according to the current iteration and
+        resetting data loader iterator. This method can be helpful when is used after saving a training checkpoint.
+        Please see `Concepts/ <URL_TO_INSERT>`_ for details.
         """
+        if self.state is None or self.state.dataloader is None:
+            raise RuntimeError("Can not call 'sync_dataflow' if Engine is not initialized")
         manual_seed(self.state.iteration)
         self._dataloader_iter = iter(self.state.dataloader)
 
@@ -581,7 +586,6 @@ class Engine:
             # synchronize random state here, as iter(data) can start prefetching
             manual_seed(iteration)
 
-        # self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
         self._dataloader_iter = iter(self.state.dataloader)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
@@ -677,7 +681,7 @@ class Engine:
                 if iter_counter == self.state.epoch_length:
                     break
 
-        except BaseException as e:
+        except Exception as e:
             self.logger.error("Current run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 

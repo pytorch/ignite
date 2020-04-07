@@ -75,15 +75,15 @@ def test_checkpoint_score_function_wrong_output():
 
 
 def test_checkpoint_default():
-    def _test(to_save, obj, name):
+    def _test(to_save, obj, name, sync_dataflow=False):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
-        checkpointer = Checkpoint(to_save, save_handler=save_handler)
+        checkpointer = Checkpoint(to_save, save_handler=save_handler, sync_dataflow=sync_dataflow)
         assert checkpointer.last_checkpoint is None
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=0, iteration=0)
+        trainer.state = State(epoch=0, iteration=0, dataloader=[0, 1, 2])
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -102,15 +102,17 @@ def test_checkpoint_default():
     model = DummyModel()
     to_save = {"model": model}
     _test(to_save, model.state_dict(), "model")
+    _test(to_save, model.state_dict(), "model", sync_dataflow=True)
 
     model = DummyModel()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
+    _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_global_step_transform():
-    def _test(filename_prefix, to_save, obj, name):
+    def _test(filename_prefix, to_save, obj, name, sync_dataflow=False):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
@@ -119,10 +121,11 @@ def test_checkpoint_with_global_step_transform():
             save_handler=save_handler,
             filename_prefix=filename_prefix,
             global_step_transform=lambda e, _: e.state.epoch,
+            sync_dataflow=sync_dataflow,
         )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1)
+        trainer.state = State(epoch=1, iteration=1, dataloader=[0, 1, 2])
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -145,22 +148,27 @@ def test_checkpoint_with_global_step_transform():
         model = DummyModel()
         to_save = {"model": model}
         _test(prefix, to_save, model.state_dict(), "model")
+        _test(prefix, to_save, model.state_dict(), "model", sync_dataflow=True)
 
         model = DummyModel()
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
         to_save = {"model": model, "optimizer": optimizer}
-        _test(prefix, to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
+        true_saved_sdicts = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
+        _test(prefix, to_save, true_saved_sdicts, "checkpoint")
+        _test(prefix, to_save, true_saved_sdicts, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_score_function():
-    def _test(to_save, obj, name):
+    def _test(to_save, obj, name, sync_dataflow=False):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
-        checkpointer = Checkpoint(to_save, save_handler=save_handler, score_function=lambda e: e.state.score)
+        checkpointer = Checkpoint(
+            to_save, save_handler=save_handler, score_function=lambda e: e.state.score, sync_dataflow=sync_dataflow
+        )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1, score=0.77)
+        trainer.state = State(epoch=1, iteration=1, score=0.77, dataloader=[0, 1, 2])
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -181,24 +189,31 @@ def test_checkpoint_with_score_function():
     model = DummyModel()
     to_save = {"model": model}
     _test(to_save, model.state_dict(), "model")
+    _test(to_save, model.state_dict(), "model", sync_dataflow=True)
 
     model = DummyModel()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
-    _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
+    true_saved_sdicts = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
+    _test(to_save, true_saved_sdicts, "checkpoint")
+    _test(to_save, true_saved_sdicts, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_score_name_and_function():
-    def _test(to_save, obj, name):
+    def _test(to_save, obj, name, sync_dataflow=False):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
         checkpointer = Checkpoint(
-            to_save, save_handler=save_handler, score_name="loss", score_function=lambda e: e.state.score
+            to_save,
+            save_handler=save_handler,
+            score_name="loss",
+            score_function=lambda e: e.state.score,
+            sync_dataflow=sync_dataflow,
         )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1, score=-0.77)
+        trainer.state = State(epoch=1, iteration=1, score=-0.77, dataloader=[0, 1, 2])
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -219,11 +234,14 @@ def test_checkpoint_with_score_name_and_function():
     model = DummyModel()
     to_save = {"model": model}
     _test(to_save, model.state_dict(), "model")
+    _test(to_save, model.state_dict(), "model", sync_dataflow=True)
 
     model = DummyModel()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
-    _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
+    true_saved_sdicts = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
+    _test(to_save, true_saved_sdicts, "checkpoint")
+    _test(to_save, true_saved_sdicts, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_int_score():
@@ -605,7 +623,7 @@ def test_removes_each_score_at_most_once(dirname):
 
     # If a score was removed multiple times, the code above would have raise a
     # FileNotFoundError. So this just tests the absence of such a failure
-    # without futher assertions.
+    # without further assertions.
 
 
 def test_with_engine(dirname):
