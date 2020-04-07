@@ -149,6 +149,7 @@ def one_rank_only(rank: int = 0, barrier: bool = False):
         def some_handler(_):
             ...
     """
+
     def _one_rank_only(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -158,6 +159,7 @@ def one_rank_only(rank: int = 0, barrier: bool = False):
             if barrier:
                 dist.barrier()
             return ret
+
         return wrapper
 
     return _one_rank_only
