@@ -82,5 +82,3 @@ def _check_signature(engine, fn: Callable, fn_description: str, *args, **kwargs)
                     "takes parameters {} but will be called with {} or {}"
                     "({}).".format(fn, fn_description, fn_params, passed_params, passed_params_engine, exception_msg)
                 )
-
-
