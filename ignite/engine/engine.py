@@ -138,7 +138,7 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        _check_signature(self, process_function, "process_function", None)
+        _check_signature(process_function, "process_function", self, None)
 
     def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
@@ -268,10 +268,12 @@ class Engine:
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
-        # check signature and return correct (args, kwargs)
-        full_args, full_kwargs = _check_signature(self, handler, "handler", *(event_args + args), **kwargs)
-        print(full_args, full_kwargs)
-        self._event_handlers[event_name].append((handler, full_args, full_kwargs))
+        try:
+            _check_signature(handler, "handler", self, *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, (self,) + event_args + args, kwargs))
+        except ValueError:
+            _check_signature(handler, "handler", *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, event_args + args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
@@ -372,11 +374,8 @@ class Engine:
             self.logger.debug("firing handlers for event %s ", event_name)
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
-                print(func, args, kwargs)
                 kwargs.update(event_kwargs)
                 first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
-                print(first, others)
-                print("OK", first, event_args + others, kwargs)
                 func(*first, *(event_args + others), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:
