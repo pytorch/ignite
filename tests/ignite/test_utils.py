@@ -118,7 +118,6 @@ def test_setup_logger(capsys, dirname):
 
 
 def _test_distrib_one_rank_only(device):
-
     def _test(barrier):
         # last rank
         rank = dist.get_world_size() - 1
@@ -146,7 +145,6 @@ def _test_distrib_one_rank_only(device):
 
 
 def _test_distrib_one_rank_only_with_engine(device):
-
     def _test(barrier):
         engine = Engine(lambda e, b: b)
 

@@ -66,7 +66,7 @@ jobs:
       install: pip install flake8 black
       script:
         - flake8 .
-        - black .
+        - black --check .
       after_success: # Nothing to do
 
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
