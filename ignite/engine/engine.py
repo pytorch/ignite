@@ -11,7 +11,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 import torch
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
-from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature, _check_partial_signature
+from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
 __all__ = ["Engine"]
@@ -138,7 +138,7 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        _check_signature(process_function, "process_function", self, None)
+        _check_signature(self, process_function, "process_function", None)
 
     def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
@@ -268,9 +268,10 @@ class Engine:
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
-        _check_partial_signature(handler, "handler",*(event_args + args), **kwargs)
-
-        self._event_handlers[event_name].append((handler, args, kwargs))
+        # check signature and return correct (args, kwargs)
+        full_args, full_kwargs = _check_signature(self, handler, "handler", *(event_args + args), **kwargs)
+        print(full_args, full_kwargs)
+        self._event_handlers[event_name].append((handler, full_args, full_kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
@@ -371,13 +372,12 @@ class Engine:
             self.logger.debug("firing handlers for event %s ", event_name)
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
+                print(func, args, kwargs)
                 kwargs.update(event_kwargs)
-                signature = inspect.signature(func)
-                try:
-                    signature.bind(self, *(event_args + args), **kwargs)
-                    func(self, *(event_args + args), **kwargs)
-                except TypeError:
-                    func(*(event_args + args), **kwargs)
+                first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
+                print(first, others)
+                print("OK", first, event_args + others, kwargs)
+                func(*first, *(event_args + others), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
