@@ -117,21 +117,20 @@ def test_setup_logger(capsys, dirname):
         assert "evaluator INFO: Engine run starting with max_epochs=1." in source[2]
 
 
-def _test_distrib_one_rank_only():
-
+def _test_distrib_one_rank_only(device):
     def _test(barrier):
         # last rank
         rank = dist.get_world_size() - 1
 
-        value = torch.tensor(0)
+        value = torch.tensor(0).to(device)
 
         @one_rank_only(rank=rank, barrier=barrier)
         def initialize():
-            value.data = torch.tensor(100)
+            value.data = torch.tensor(100).to(device)
 
         initialize()
 
-        value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
+        value_list = [torch.tensor(0).to(device) for _ in range(dist.get_world_size())]
 
         dist.all_gather(tensor=value, tensor_list=value_list)
 
@@ -145,21 +144,20 @@ def _test_distrib_one_rank_only():
     _test(barrier=False)
 
 
-def _test_distrib_one_rank_only_with_engine():
-
+def _test_distrib_one_rank_only_with_engine(device):
     def _test(barrier):
         engine = Engine(lambda e, b: b)
 
-        batch_sum = torch.tensor(0)
+        batch_sum = torch.tensor(0).to(device)
 
         @engine.on(Events.ITERATION_COMPLETED)
         @one_rank_only(barrier=barrier)  # ie rank == 0
         def _(_):
-            batch_sum.data += torch.tensor(engine.state.batch)
+            batch_sum.data += torch.tensor(engine.state.batch).to(device)
 
         engine.run([1, 2, 3], max_epochs=2)
 
-        value_list = [torch.tensor(0) for _ in range(dist.get_world_size())]
+        value_list = [torch.tensor(0).to(device) for _ in range(dist.get_world_size())]
 
         dist.all_gather(tensor=batch_sum, tensor_list=value_list)
 
@@ -175,26 +173,30 @@ def _test_distrib_one_rank_only_with_engine():
 
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo):
-    _test_distrib_one_rank_only()
-    _test_distrib_one_rank_only_with_engine()
+    device = "cpu"
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
-    _test_distrib_one_rank_only()
-    _test_distrib_one_rank_only_with_engine()
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    _test_distrib_one_rank_only()
-    _test_distrib_one_rank_only_with_engine()
+    device = "cpu"
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    _test_distrib_one_rank_only()
-    _test_distrib_one_rank_only_with_engine()
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
