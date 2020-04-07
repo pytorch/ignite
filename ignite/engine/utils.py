@@ -56,7 +56,6 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
 
 
 def _check_signature(fn: Callable, fn_description: str, *args, **kwargs) -> None:
-
     signature = inspect.signature(fn)
     try:  # try without engine
         signature.bind(*args, **kwargs)

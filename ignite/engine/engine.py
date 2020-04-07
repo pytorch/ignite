@@ -270,10 +270,10 @@ class Engine:
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
         try:
             _check_signature(handler, "handler", self, *(event_args + args), **kwargs)
-            self._event_handlers[event_name].append((handler, (self,) + event_args + args, kwargs))
+            self._event_handlers[event_name].append((handler, (self,) + args, kwargs))
         except ValueError:
             _check_signature(handler, "handler", *(event_args + args), **kwargs)
-            self._event_handlers[event_name].append((handler, event_args + args, kwargs))
+            self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
