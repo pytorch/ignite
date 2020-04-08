@@ -1,7 +1,7 @@
 name: Format python code
 on: 
   pull_request:
-    types: ['opened', 'edited', 'reopened', 'synchronize']
+    types: ['opened', 'reopened', 'synchronize']
 jobs:
   autopep8-black:
     runs-on: ubuntu-latest
