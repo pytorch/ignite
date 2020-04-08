@@ -152,7 +152,7 @@ def _setup_common_training_handlers(
         ProgressBar(persist=True, bar_format="").attach(
             trainer, event_name=Events.EPOCH_STARTED, closing_event_name=Events.COMPLETED
         )
-        
+
 
 def _setup_common_distrib_training_handlers(
     trainer,
