@@ -199,7 +199,7 @@ class MLflowLogger(BaseLogger):
             mlflow_logger = MLflowLogger()
 
             # Log experiment parameters:
-            mlflow_logger.log_params(**{
+            mlflow_logger.log_params({
                 "seed": seed,
                 "batch_size": batch_size,
                 "model": model.__class__.__name__,
