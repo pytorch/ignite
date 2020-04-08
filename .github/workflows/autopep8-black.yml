@@ -1,5 +1,8 @@
 name: Format python code
-on: push
+on: 
+  push:
+  pull_request:
+    types: ['opened', 'edited', 'reopened', 'synchronize']
 jobs:
   autopep8-black:
     runs-on: ubuntu-latest
