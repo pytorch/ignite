@@ -5,7 +5,6 @@ from collections.abc import Mapping
 import weakref
 import random
 import warnings
-import inspect
 from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch

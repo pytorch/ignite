@@ -1,6 +1,6 @@
 import inspect
 
-from typing import Optional, Generator, Callable, Tuple
+from typing import Optional, Generator, Callable
 import torch
 
 

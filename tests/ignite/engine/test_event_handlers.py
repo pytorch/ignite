@@ -35,9 +35,6 @@ def test_add_event_handler_raises_with_invalid_signature():
         pass
 
     engine.add_event_handler(Events.STARTED, handler)
-    # No longer an exception
-    # with pytest.raises(ValueError):
-    #     engine.add_event_handler(Events.STARTED, handler, 1)
     engine.add_event_handler(Events.STARTED, handler, 1)
 
     def handler_with_args(engine, a):
@@ -53,18 +50,12 @@ def test_add_event_handler_raises_with_invalid_signature():
     engine.add_event_handler(Events.STARTED, handler_with_kwargs, b=2)
     with pytest.raises(ValueError):
         engine.add_event_handler(Events.STARTED, handler_with_kwargs, c=3)
-    # No longer an exception
-    # with pytest.raises(ValueError):
-    #     engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
     engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
 
     def handler_with_args_and_kwargs(engine, a, b=42):
         pass
 
     engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2)
-    # No longer an exception
-    # with pytest.raises(ValueError):
-    #     engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
     engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
     with pytest.raises(ValueError):
         engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2, c=3)
