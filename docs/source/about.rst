@@ -40,6 +40,13 @@ The following people have been active contributors in the past, but are no longe
 - Jason Kriss `@jasonkriss <https://github.com/jasonkriss>`_
 
 
+Join Core Team
+--------------
+
+We are looking for motivated contributors to become collaborators and help out with the project.
+We can start considering a candidate after several successfully merged Github pull requests.
+If you are interested, for more details, please, contact Victor (@vfdev-5) on `PyTorch Slack <https://pytorch.slack.com>`_.
+
 
 Citing PyTorch-Ignite
 ---------------------
@@ -64,10 +71,11 @@ We gratefully acknowledge the contributions of `all open-source developers <http
 who helped get this project off of the ground and supported the project.
 
 We are also grateful to Soumith Chintala `@soumith <https://github.com/soumith>`_, Joe Spisak `@jspisak <https://github.com/jspisak>`_
-from Facebook their help and to `PyTorch group <https://github.com/pytorch>`_ for infrastructure support.
+from Facebook for their help and to `PyTorch group <https://github.com/pytorch>`_ for infrastructure support
+(GPU CI and hosting of conda releases and our documentation).
 
 In particular, Victor Fomin `@vfdev-5 <https://github.com/vfdev-5>`_ acknowledges `Magellium <https://www.magellium.com/>`_ for supporting project's development.
 
+
 We also acknowledge `scikit-learn project <https://scikit-learn.org>`_'s documentation on governance, author's presentation etc
 from which this project is highly inspired.
-

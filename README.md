@@ -26,7 +26,7 @@
 ## TL;DR
 
 Ignite is a high-level library to help with training neural networks in
-PyTorch.
+PyTorch:
 
 -   ignite helps you write compact but full-featured training loops in a
     few lines of code
@@ -46,10 +46,8 @@ your code when \"rolling your own\" training loop.
 
 # Table of Contents
 - [Installation](#installation)
-  * [Nightly releases](#nightly-releases)
 - [Why Ignite?](#why-ignite)
 - [Documentation](#documentation)
-  * [Additional Materials](#additional-materials)
 - [Structure](#structure)
 - [Examples](#examples)
   * [MNIST Example](#mnist-example)
@@ -60,7 +58,7 @@ your code when \"rolling your own\" training loop.
 - [Communication](#communication)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
-- [User feedback](#user-feedback)
+- [About the team](#about-the-team)
 
 
 # Installation
@@ -239,8 +237,9 @@ F1_mean.attach(engine, "F1")
 
 # Documentation
 
-API documentation and an overview of the library can be found
-[here](https://pytorch.org/ignite/index.html).
+- Stable API documentation and an overview of the library: https://pytorch.org/ignite/
+- Development version API documentation: https://pytorch.org/ignite/master/
+- [FAQ](https://pytorch.org/ignite/faq.html) and ["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+).
 
 ## Additional Materials
 
@@ -354,11 +353,6 @@ Thank you !
 
 # Contributing
 
-We appreciate all contributions. If you are planning to contribute back
-bug-fixes, please do so without any further discussion. If you plan to
-contribute new features, utility functions or extensions, please first
-open an issue and discuss the feature with us.
-
 Please see the [contribution
 guidelines](https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md)
 for more information.
@@ -398,3 +392,8 @@ your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
 
+
+# About the team
+
+Project is currently maintained by a team of volunteers.
+See the ["About us"](https://pytorch.org/ignite/about.html) page for a list of core contributors.
