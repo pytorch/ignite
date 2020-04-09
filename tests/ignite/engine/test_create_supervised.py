@@ -81,11 +81,13 @@ def test_create_supervised_trainer_traced_with_cpu():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda():
+    device = "cuda"
     model = Linear(1, 1)
+    model.to(device)
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
-    trainer = create_supervised_trainer(model, optimizer, mse_loss, device="cuda")
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device=device)
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -102,8 +104,9 @@ def test_create_supervised_trainer_on_cuda():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_with_model_on_cpu_after_init():
+def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
     model = Linear(1, 1)
+    # Not moving model to cuda!
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
@@ -114,8 +117,9 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu_after_init():
     y = torch.tensor([[3.0], [5.0]])
     data = [(x, y)]
 
-    model.to("cpu")
-    trainer.run(data)
+    with pytest.raises(RuntimeError) as runtime_exception:
+        trainer.run(data)
+    assert "device type" in str(runtime_exception.value)
 
 
 def test_create_supervised_evaluator():
@@ -192,11 +196,13 @@ def test_create_supervised_evaluator_traced_on_cpu():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_evaluator_on_cuda():
+    device = "cuda"
     model = Linear(1, 1)
+    model.to(device)
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    evaluator = create_supervised_evaluator(model, device="cuda")
+    evaluator = create_supervised_evaluator(model, device=device)
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -215,8 +221,9 @@ def test_create_supervised_evaluator_on_cuda():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_evaluator_on_cuda_with_model_on_cpu_after_init():
+def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     model = Linear(1, 1)
+    # Not moving model to cuda!
     model.weight.data.zero_()
     model.bias.data.zero_()
 
@@ -226,8 +233,9 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu_after_init():
     y = torch.tensor([[3.0], [5.0]])
     data = [(x, y)]
 
-    model.to("cpu")
-    evaluator.run(data)
+    with pytest.raises(RuntimeError) as runtime_error:
+        evaluator.run(data)
+    assert "device type" in str(runtime_exception.value)
 
 
 def test_create_supervised_evaluator_with_metrics():
