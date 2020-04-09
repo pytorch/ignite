@@ -397,4 +397,4 @@ description of the project.
 # About the team
 
 Project is currently maintained by a team of volunteers.
-See the ["About us"](https://pytorch.org/ignite/about.html) page for a list of core contributors.
+See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors.
