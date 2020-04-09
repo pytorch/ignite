@@ -117,9 +117,8 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
     y = torch.tensor([[3.0], [5.0]])
     data = [(x, y)]
 
-    with pytest.raises(RuntimeError) as runtime_exception:
+    with pytest.raises(RuntimeError, match=r"device type"):
         trainer.run(data)
-    assert "device type" in str(runtime_exception.value)
 
 
 def test_create_supervised_evaluator():
@@ -233,9 +232,8 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     y = torch.tensor([[3.0], [5.0]])
     data = [(x, y)]
 
-    with pytest.raises(RuntimeError) as runtime_error:
+    with pytest.raises(RuntimeError, match=r"device type"):
         evaluator.run(data)
-    assert "device type" in str(runtime_exception.value)
 
 
 def test_create_supervised_evaluator_with_metrics():
