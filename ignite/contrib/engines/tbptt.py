@@ -57,8 +57,8 @@ def create_supervised_tbptt_trainer(
         prepare_batch (callable, optional): function that receives `batch`, `device`,
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
 
-    .. warning:: 
-    
+    .. warning::
+
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.

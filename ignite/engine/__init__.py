@@ -55,12 +55,12 @@ def create_supervised_trainer(
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
-    Note: 
+    Note:
         `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
         of the processed batch by default.
-    
-    .. warning:: 
-    
+
+    .. warning::
+
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
@@ -113,11 +113,11 @@ def create_supervised_evaluator(
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
-    Note: 
+    Note:
         `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
 
-    .. warning:: 
+    .. warning::
 
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
