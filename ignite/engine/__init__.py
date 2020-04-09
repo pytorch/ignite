@@ -55,7 +55,8 @@ def create_supervised_trainer(
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
+    Note: 
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
         of the processed batch by default.
     
     .. warning:: 
@@ -63,9 +64,11 @@ def create_supervised_trainer(
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
+
         For more information see:
-            - [PyTorch Documentation](https://pytorch.org/docs/stable/optim.html#constructing-it)
-            - PyTorch's [Explanation](https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840)
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: a trainer engine with supervised update function.
@@ -110,17 +113,20 @@ def create_supervised_evaluator(
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
+    Note: 
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
 
     .. warning:: 
-    
+
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
+
         For more information see:
-            - [PyTorch Documentation](https://pytorch.org/docs/stable/optim.html#constructing-it)
-            - PyTorch's [Explanation](https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840)
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: an evaluator engine with supervised inference function.
