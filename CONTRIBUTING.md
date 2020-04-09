@@ -7,8 +7,8 @@ into the following categories:
 
 1. It helps us very much if you could 
     - Report issues you’re facing
-    - Give a \U0001F44D on issues that others reported and that are relevant to you
-    - Spread a word about the project or simply star to say "I use it" 
+    - Give a :+1: on issues that others reported and that are relevant to you
+    - Spread a word about the project or simply :star: to say "I use it" 
 
 2. Answering queries on the issue tracker, investigating bugs and reviewing other developers’ pull requests are 
 very valuable contributions that decrease the burden on the project maintainers.
@@ -45,7 +45,7 @@ git add .
 git commit -m "....."
 ```
 
-#### pre-commit
+#### with pre-commit
 
 To ensure the codebase complies with a style guide, we use [black](https://black.readthedocs.io/en/stable/) and [flake8](https://flake8.pycqa.org/en/latest/) to format and check codebase for compliance with PEP8. 
 
@@ -102,4 +102,4 @@ If you are not familiar with creating a Pull Request, here are some guides:
 ## Writing documentation
 
 Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
-for formatting docstrings. Length of line inside docstrings block must be limited to 80 characters to fit into Jupyter documentation popups.
+for formatting docstrings. Length of line inside docstrings block must be limited to 120 characters.
