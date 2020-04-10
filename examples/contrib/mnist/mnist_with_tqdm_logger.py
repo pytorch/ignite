@@ -54,6 +54,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info
     if torch.cuda.is_available():
         device = "cuda"
 
+    model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
     evaluator = create_supervised_evaluator(

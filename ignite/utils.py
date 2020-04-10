@@ -155,6 +155,7 @@ def one_rank_only(rank: int = 0, barrier: bool = False):
         barrier (bool): synchronisation with a barrier (default: False).
 
     .. code-block:: python
+
         engine = ...
 
         @engine.on(...)
