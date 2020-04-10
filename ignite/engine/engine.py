@@ -219,8 +219,8 @@ class Engine:
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
-            The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
-            was bound to.
+            The handler function's first argument could optionally be `self`, the :class:`~ignite.engine.Engine`
+            object it was bound to.
 
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
@@ -241,10 +241,11 @@ class Engine:
 
             events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
 
-            def execute_validation(engine):
-                # do some validations
+            def execute_something():
+                # do some thing not related to engine
+                pass
 
-            engine.add_event_handler(events_list, execute_validation)
+            engine.add_event_handler(events_list, execute_something)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
@@ -345,6 +346,20 @@ class Engine:
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
+        Example usage:
+
+        .. code-block:: python
+
+            engine = Engine(process_function)
+
+            @engine.on(Events.EPOCH_COMPLETED)
+            def print_epoch():
+                print("Epoch: {}".format(engine.state.epoch))
+
+            @engine.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
+            def execute_something():
+                # do some thing not related to engine
+                pass
         """
 
         def decorator(f: Callable) -> Callable:

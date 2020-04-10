@@ -98,17 +98,25 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
     @trainer.on(Events.STARTED)
     def on_training_started(engine):
         print("Another message of start training")
+    # or even simpler, use only what you need !
+    @trainer.on(Events.STARTED)
+    def on_training_started():
+        print("Another message of start training")
 
     # attach handler with args, kwargs
     mydata = [1, 2, 3, 4]
 
-    def on_training_ended(engine, data):
+    def on_training_ended(data):
         print("Training is ended. mydata={}".format(data))
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
 Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandle`
 reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
+
+.. Note ::
+
+   The handler function's first argument could optionally be the :class:`~ignite.engine.Engine` object it has been attached.
 
 .. code-block:: python
 
@@ -147,21 +155,21 @@ event filtering function:
     trainer = create_supervised_trainer(model, optimizer, loss)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=50))
-    def log_training_loss_every_50_iterations(engine):
+    def log_training_loss_every_50_iterations():
         print("{} / {} : {} - loss: {:.2f}"
-              .format(engine.state.epoch, engine.state.max_epochs, engine.state.iteration, engine.state.output))
+              .format(trainer.state.epoch, trainer.state.max_epochs, trainer.state.iteration, trainer.state.output))
 
     @trainer.on(Events.EPOCH_STARTED(once=25))
-    def do_something_once_on_25_epoch(engine):
+    def do_something_once_on_25_epoch():
         # do something
 
-    def custom_event_filter(engine, event):
+    def custom_event_filter(, event):
         if event in [1, 2, 5, 10, 50, 100]:
             return True
         return False
 
     @engine.on(Events.ITERATION_STARTED(event_filter=custom_event_filter))
-    def call_on_special_event(engine):
+    def call_on_special_event():
          # do something on 1, 2, 5, 10, 50, 100 iterations
 
     trainer.run(train_loader, max_epochs=100)
