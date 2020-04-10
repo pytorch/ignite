@@ -6,8 +6,10 @@ import numpy as np
 import torch
 
 from ignite.engine import Engine, Events, State
-from ignite.engine.utils import keep_random_state
+from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
+
+from tests.ignite.engine import IterationCounter, EpochCounter
 
 
 def test_terminate():
@@ -31,11 +33,11 @@ def test_invalid_process_raises_with_invalid_signature():
         Engine(lambda engine, batch, extra_arg: None)
 
 
-def test_current_epoch_counter_increases_every_epoch(counter_factory):
+def test_current_epoch_counter_increases_every_epoch():
     engine = Engine(MagicMock(return_value=1))
     max_epochs = 5
 
-    counter = counter_factory("epoch")
+    counter = EpochCounter()
     engine.add_event_handler(Events.EPOCH_STARTED, counter)
 
     state = engine.run([1, 2], max_epochs=max_epochs)
@@ -45,12 +47,12 @@ def test_current_epoch_counter_increases_every_epoch(counter_factory):
     assert state.epoch == max_epochs
 
 
-def test_current_iteration_counter_increases_every_iteration(counter_factory):
+def test_current_iteration_counter_increases_every_iteration():
     batches = [1, 2, 3]
     engine = Engine(MagicMock(return_value=1))
     max_epochs = 5
 
-    counter = counter_factory("iter")
+    counter = IterationCounter()
     engine.add_event_handler(Events.ITERATION_STARTED, counter)
 
     state = engine.run(batches, max_epochs=max_epochs)
@@ -313,17 +315,6 @@ def test_alter_batch():
     num_iters = 25
     data = range(num_iters)
     trainer.run(data, num_epochs)
-
-
-def test_sync_dataflow():
-
-    engine = Engine(lambda e, b: None)
-
-    with pytest.raises(RuntimeError, match=r"Can not call 'sync_dataflow' if Engine is not initialized"):
-        engine.sync_dataflow()
-
-    engine.state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100, dataloader=[0, 1, 2])
-    engine.sync_dataflow()
 
 
 def test__is_done():

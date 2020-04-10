@@ -39,8 +39,6 @@ class Checkpoint:
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
-        sync_dataflow (bool, optional): if True, :meth:`~ignite.engine.Engine.sync_dataflow` is called after saving a
-            checkpoint. Please see `Concepts/ <URL_TO_INSERT>`_ for details. (default: False).
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -137,7 +135,6 @@ class Checkpoint:
         n_saved: Optional[int] = 1,
         global_step_transform: Callable = None,
         archived: bool = False,
-        sync_dataflow: bool = False,
     ):
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
@@ -171,7 +168,6 @@ class Checkpoint:
         self._saved = []
         self._ext = ".pt"
         self.global_step_transform = global_step_transform
-        self._sync_dataflow = sync_dataflow
 
     @property
     def last_checkpoint(self) -> str:
@@ -231,9 +227,6 @@ class Checkpoint:
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
-
-            if self._sync_dataflow:
-                engine.sync_dataflow()
 
         if not self._check_lt_n_saved(or_equal=True):
             item = self._saved.pop(0)
@@ -449,7 +442,6 @@ class ModelCheckpoint(Checkpoint):
             n_saved=n_saved,
             global_step_transform=global_step_transform,
             archived=archived,
-            sync_dataflow=False,
         )
 
     @property

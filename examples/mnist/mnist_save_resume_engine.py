@@ -1,3 +1,4 @@
+from pathlib import Path
 from argparse import ArgumentParser
 
 import torch
@@ -27,6 +28,7 @@ except ImportError:
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.handlers import Checkpoint, DiskSaver
+from ignite.utils import manual_seed
 
 
 class Net(nn.Module):
@@ -59,6 +61,71 @@ def get_data_loaders(train_batch_size, val_batch_size):
         MNIST(download=False, root=".", transform=data_transform, train=False), batch_size=val_batch_size, shuffle=False
     )
     return train_loader, val_loader
+
+
+def log_model_weights(engine, model=None, fp=None, **kwargs):
+    assert model and fp
+    output = {'total': 0.0}
+    max_counter = 5
+    for name, p in model.named_parameters():
+        name = name.replace('.', '/')
+        n = torch.norm(p)
+        if max_counter > 0:
+            output[name] = n
+        output['total'] += n
+        max_counter -= 1
+
+    msg = "{} | {}: {}".format(
+        engine.state.epoch,
+        engine.state.iteration,
+        " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()]))
+
+    with open(fp, "a") as h:
+        h.write(msg)
+        h.write("\n")
+
+
+def log_model_grads(engine, model=None, fp=None, **kwargs):
+    assert model and fp
+    output = {'grads/total': 0.0}
+    max_counter = 5
+    for name, p in model.named_parameters():
+        if p.grad is None:
+            continue
+        name = name.replace('.', '/')
+        n = torch.norm(p.grad)
+        if max_counter > 0:
+            output['grads/{}'.format(name)] = n
+        output['grads/total'] += n
+        max_counter -= 1
+
+    msg = "{} | {}: {}".format(
+        engine.state.epoch,
+        engine.state.iteration,
+        " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()]))
+
+    with open(fp, "a") as h:
+        h.write(msg)
+        h.write("\n")
+
+
+def log_data_stats(engine, fp=None, **kwargs):
+    assert fp
+    x, y = engine.state.batch
+    output = {
+        'batch xmean': x.mean().item(),
+        'batch xstd': x.std().item(),
+        'batch ymedian': y.median().item(),
+    }
+
+    msg = "{} | {}: {}".format(
+        engine.state.epoch,
+        engine.state.iteration,
+        " - ".join(["{}:{:.7f}".format(m, v) for m, v in output.items()]))
+
+    with open(fp, "a") as h:
+        h.write(msg)
+        h.write("\n")
 
 
 def run(
@@ -156,16 +223,29 @@ def run(
 
     objects_to_checkpoint = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     training_checkpoint = Checkpoint(
-        to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir, require_empty=False)
+        to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir, require_empty=False), sync_dataflow=True
     )
 
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=checkpoint_every), training_checkpoint)
+    trainer.add_event_handler(Events.ITERATION_STARTED(every=checkpoint_every), training_checkpoint)
+
+    def log_event_filter(_, event):
+        if event in [1, 2, 3]:
+            return True
+        elif event % checkpoint_every in [0, 1, 2]:
+            return True
+        return False
+
+    fp = Path(log_dir) / ("run.log" if resume_from is None else "resume_run.log")
+
+    for h in [log_data_stats, log_model_weights, log_model_grads]:
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(event_filter=log_event_filter), h, model=model, fp=fp)
 
     if resume_from is not None:
         tqdm.write("Resume from a checkpoint: {}".format(resume_from))
-        checkpoint = torch.load(resume_from)
+        checkpoint = torch.load(resume_from, map_location="cpu")
         Checkpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
 
+    manual_seed(12)
     try:
         trainer.run(train_loader, max_epochs=epochs)
     except Exception as e:
@@ -194,7 +274,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--checkpoint_every", type=int, default=550, help="Checkpoint training every X iterations")
     parser.add_argument(
-        "--resume_from", type=str, default=None, help="Path to the checkpoint .pth file to resume training from"
+        "--resume_from", type=str, default=None, help="Path to the checkpoint .pt file to resume training from"
     )
     parser.add_argument("--crash_iteration", type=int, default=3000, help="Iteration at which to raise an exception")
 

@@ -1,167 +1,168 @@
 import os
 import pytest
+import random
+from unittest.mock import patch
 
-from collections.abc import Mapping
+import numpy as np
 
 import torch
 
-from ignite.engine import Engine, State, Events
+from ignite.engine import Engine, Events
+
+from ignite.engine.deterministic import ReproducibleBatchSampler, update_dataloader, keep_random_state, \
+    make_deterministic
+from ignite.utils import manual_seed, setup_logger
+
+from tests.ignite.engine import BatchChecker
 
 
-def test_state_dict():
-    engine = Engine(lambda e, b: 1)
-    sd = engine.state_dict()
-    assert isinstance(sd, Mapping) and len(sd) == 0
+def test_update_dataloader(setup_sampler_fn):
+    def _test(sampler_type=None):
+        num_epochs = 3
+        batch_size = 4
+        num_iters = 17
+        data = torch.randint(0, 1000, size=(num_iters * batch_size,))
+        num_workers = 4
 
-    def _test(state):
-        engine.state = state
-        sd = engine.state_dict()
-        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1
-        assert sd["iteration"] == engine.state.iteration
-        assert sd["epoch_length"] == engine.state.epoch_length
-        assert sd["max_epochs"] == engine.state.max_epochs
+        sampler = setup_sampler_fn(sampler_type, num_iters, batch_size)
+        dataloader = torch.utils.data.DataLoader(
+            data,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=False,
+            sampler=sampler,
+            drop_last=True,
+            shuffle=sampler is None,
+        )
 
-    _test(State(iteration=500, epoch_length=1000, max_epochs=100))
-    _test(State(epoch=5, epoch_length=1000, max_epochs=100))
+        torch.manual_seed(12)
+        seen_batches = []
+        for i in range(num_epochs):
+            t = []
+            if sampler_type == "distributed":
+                sampler.set_epoch(i)
+            for b in dataloader:
+                t.append(b)
+            seen_batches.append(t)
 
+        sampler = setup_sampler_fn(sampler_type, num_iters, batch_size)
+        dataloader = torch.utils.data.DataLoader(
+            data,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=False,
+            sampler=sampler,
+            drop_last=True,
+            shuffle=sampler is None,
+        )
+        batch_sampler = dataloader.batch_sampler
+        new_dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(batch_sampler))
 
-def test_state_dict_integration():
-    engine = Engine(lambda e, b: 1)
-    data = range(100)
-    engine.run(data, max_epochs=10)
-    sd = engine.state_dict()
-    assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1
-    assert sd["iteration"] == engine.state.iteration == 10 * 100
-    assert sd["epoch_length"] == engine.state.epoch_length == 100
-    assert sd["max_epochs"] == engine.state.max_epochs == 10
+        torch.manual_seed(12)
+        new_batches = []
+        for i in range(num_epochs):
+            t = []
+            if sampler_type == "distributed":
+                sampler.set_epoch(i)
+            for b in new_dataloader:
+                t.append(b)
+            new_batches.append(t)
 
+        for i in range(num_epochs):
+            assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[i], new_batches[i])])
 
-def test_load_state_dict_asserts():
-    engine = Engine(lambda e, b: 1)
-
-    with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary"):
-        engine.load_state_dict("123")
-
-    with pytest.raises(ValueError, match=r"is absent in provided state_dict"):
-        engine.load_state_dict({})
-
-    with pytest.raises(ValueError, match=r"state_dict should contain only one of"):
-        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120})
-
-    with pytest.raises(ValueError, match=r"state_dict should contain only one of"):
-        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12, "epoch": 123})
-
-
-def test_load_state_dict():
-    engine = Engine(lambda e, b: 1)
-
-    def _test(sd):
-        engine.load_state_dict(sd)
-        if "iteration" in sd:
-            assert sd["iteration"] == engine.state.iteration + 1
-        elif "epoch" in sd:
-            assert sd["epoch"] == engine.state.epoch + 1
-        assert sd["epoch_length"] == engine.state.epoch_length
-        assert sd["max_epochs"] == engine.state.max_epochs
-
-    _test({"max_epochs": 100, "epoch_length": 120, "iteration": 123})
-    _test({"max_epochs": 100, "epoch_length": 120, "epoch": 5})
-
-
-def test_load_state_dict_integration(counter_factory):
-    engine = Engine(lambda e, b: 1)
-
-    state_dict = {"max_epochs": 100, "epoch_length": 120, "epoch": 5}
-
-    engine.load_state_dict(state_dict)
-    engine.add_event_handler(Events.ITERATION_COMPLETED, counter_factory("iter", 4 * 120 + 1))
-    engine.add_event_handler(Events.EPOCH_COMPLETED, counter_factory("epoch", 5))
-    data = range(120)
-    engine.run(data)
+    _test()
+    _test("weighted")
+    _test("distributed")
 
 
-def test_load_state_dict_with_params_overriding_integration(counter_factory):
-
-    state_dict = {"max_epochs": 100, "epoch_length": 120, "epoch": 5}
-    data = range(120)
-
-    # Override max_epochs
-    new_max_epochs = 10
-    engine = Engine(lambda e, b: 1)
-    engine.load_state_dict(state_dict)
-    state = engine.run(data, max_epochs=new_max_epochs)
-    assert state.max_epochs == new_max_epochs
-    assert state.iteration == state_dict["epoch_length"] * new_max_epochs
-    assert state.epoch == new_max_epochs
-
-    with pytest.raises(ValueError, match=r"Argument max_epochs should be larger than the start epoch"):
-        engine.load_state_dict(state_dict)
-        engine.run(data, max_epochs=3)
-
-    # Override epoch_length
-    with pytest.raises(ValueError, match=r"Argument epoch_length should be same as in the state"):
-        engine.load_state_dict(state_dict)
-        engine.run(data, epoch_length=90)
+def test_reproducible_batch_sampler_wrong_input():
+    with pytest.raises(TypeError, match=r"Argument batch_sampler should be torch.utils.data.sampler.BatchSampler"):
+        ReproducibleBatchSampler("abc")
 
 
-class BatchChecker:
-    def __init__(self, data, init_counter=0):
-        self.counter = init_counter
-        self.data = data
-        self.true_batch = None
+def test_reproducible_batch_sampler():
+    import torch
+    from torch.utils.data import DataLoader
 
-    def check(self, batch):
-        self.true_batch = self.data[self.counter % len(self.data)]
-        self.counter += 1
-        return (self.true_batch == batch).all()
+    data = list(range(100))
+    dataloader = DataLoader(data, batch_size=12, num_workers=0, shuffle=True, drop_last=True)
 
+    torch.manual_seed(12 + 0)
+    dataloader_ = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
 
-def test_epoch_length():
-    def _test(data, max_epochs, num_iters):
+    seen_batches = []
+    num_epochs = 3
+    for i in range(num_epochs):
+        t = []
+        for b in dataloader_:
+            t.append(b)
+        seen_batches.append(t)
+        torch.manual_seed(12 + i + 1)
 
-        batch_checker = BatchChecker(data)
+    for i in range(num_epochs - 1):
+        for j in range(i + 1, num_epochs):
+            assert not all([(b1 == b2).all() for b1, b2 in zip(seen_batches[i], seen_batches[j])])
 
-        def update_fn(_, batch):
-            assert batch_checker.check(batch), "{}: {} vs {}".format(
-                batch_checker.counter, batch_checker.true_batch, batch
-            )
+    for resume_epoch in range(num_epochs):
+        torch.manual_seed(12 + resume_epoch)
+        dataloader_ = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+        resumed_seen_batches = []
+        for b in dataloader_:
+            resumed_seen_batches.append(b)
 
-        engine = Engine(update_fn)
-        engine.run(data, max_epochs=max_epochs, epoch_length=num_iters)
-        if num_iters is None:
-            num_iters = len(data)
-        assert engine.state.iteration == num_iters * max_epochs
-        assert engine.state.epoch == max_epochs
-
-    def _test_as_iter(data, max_epochs, num_iters):
-
-        batch_checker = BatchChecker(data)
-
-        def update_fn(_, batch):
-            assert batch_checker.check(batch), "{}: {} vs {}".format(
-                batch_checker.counter, batch_checker.true_batch, batch
-            )
-
-        engine = Engine(update_fn)
-        engine.run(iter(data), max_epochs=max_epochs, epoch_length=num_iters)
-        if num_iters is None:
-            num_iters = len(data)
-        assert engine.state.iteration == num_iters * max_epochs
-        assert engine.state.epoch == max_epochs
-
-    max_epochs = 10
-    num_iters = 21
-    data = torch.randint(0, 1000, size=(num_iters,))
-    _test(data, max_epochs, num_iters=None)
-    _test(data, max_epochs, num_iters)
-    _test(data, max_epochs, num_iters // 2)
-    _test(data, max_epochs, num_iters * 2)
-
-    _test_as_iter(data, 1, num_iters)
-    _test_as_iter(data, 2, num_iters // 2)
+        assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
 
 
-@pytest.mark.skip("There is no more resume from iteration")
+def _test_keep_random_state(with_numpy):
+
+    manual_seed(54)
+    true_values = []
+    for _ in range(5):
+        t = [
+            torch.tensor([random.random()]),
+            torch.rand(2),
+        ]
+        if with_numpy:
+            t.append(torch.from_numpy(np.random.rand(2)))
+        true_values.append(t)
+
+    @keep_random_state
+    def user_handler():
+        manual_seed(22)
+        _ = [
+            random.random(),
+            torch.rand(2),
+        ]
+        if with_numpy:
+            _ = np.random.rand(2)
+
+    manual_seed(54)
+    res_values = []
+    for _ in range(5):
+        r = [
+            torch.tensor([random.random()]),
+            torch.rand(2),
+        ]
+        if with_numpy:
+            r.append(torch.from_numpy(np.random.rand(2)))
+        res_values.append(r)
+        user_handler()
+
+    for a, b in zip(true_values, res_values):
+        for i, j in zip(a, b):
+            assert (i == j).all()
+
+
+def test_keep_random_state():
+    _test_keep_random_state(with_numpy=True)
+
+
+def test_keep_random_state_without_numpy():
+    with patch.dict("sys.modules", {"numpy": None}):
+        _test_keep_random_state(with_numpy=False)
+
+
 def test_strict_resume_from_iter():
     def _test(epoch_length=None):
 
@@ -172,6 +173,7 @@ def test_strict_resume_from_iter():
             epoch_length = num_iters
 
         for resume_iteration in range(2, min(num_iters * max_epochs, epoch_length * max_epochs), 4):
+            print("\n----", resume_iteration, epoch_length)
             batch_checker = BatchChecker(data, init_counter=resume_iteration - 1)
 
             def update_fn(_, batch):
@@ -180,6 +182,9 @@ def test_strict_resume_from_iter():
                 )
 
             engine = Engine(update_fn)
+            make_deterministic(engine)
+            # import logging
+            # engine.logger = setup_logger("trainer", level=logging.DEBUG)
 
             @engine.on(Events.EPOCH_COMPLETED)
             def check_iteration(engine):

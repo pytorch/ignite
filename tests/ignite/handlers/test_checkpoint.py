@@ -75,11 +75,11 @@ def test_checkpoint_score_function_wrong_output():
 
 
 def test_checkpoint_default():
-    def _test(to_save, obj, name, sync_dataflow=False):
+    def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
-        checkpointer = Checkpoint(to_save, save_handler=save_handler, sync_dataflow=sync_dataflow)
+        checkpointer = Checkpoint(to_save, save_handler=save_handler)
         assert checkpointer.last_checkpoint is None
 
         trainer = Engine(lambda e, b: None)
@@ -102,17 +102,15 @@ def test_checkpoint_default():
     model = DummyModel()
     to_save = {"model": model}
     _test(to_save, model.state_dict(), "model")
-    _test(to_save, model.state_dict(), "model", sync_dataflow=True)
 
     model = DummyModel()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
-    _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_global_step_transform():
-    def _test(filename_prefix, to_save, obj, name, sync_dataflow=False):
+    def _test(filename_prefix, to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
@@ -120,8 +118,7 @@ def test_checkpoint_with_global_step_transform():
             to_save,
             save_handler=save_handler,
             filename_prefix=filename_prefix,
-            global_step_transform=lambda e, _: e.state.epoch,
-            sync_dataflow=sync_dataflow,
+            global_step_transform=lambda e, _: e.state.epoch
         )
 
         trainer = Engine(lambda e, b: None)
@@ -148,23 +145,21 @@ def test_checkpoint_with_global_step_transform():
         model = DummyModel()
         to_save = {"model": model}
         _test(prefix, to_save, model.state_dict(), "model")
-        _test(prefix, to_save, model.state_dict(), "model", sync_dataflow=True)
 
         model = DummyModel()
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
         to_save = {"model": model, "optimizer": optimizer}
         true_saved_sdicts = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
         _test(prefix, to_save, true_saved_sdicts, "checkpoint")
-        _test(prefix, to_save, true_saved_sdicts, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_score_function():
-    def _test(to_save, obj, name, sync_dataflow=False):
+    def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
         checkpointer = Checkpoint(
-            to_save, save_handler=save_handler, score_function=lambda e: e.state.score, sync_dataflow=sync_dataflow
+            to_save, save_handler=save_handler, score_function=lambda e: e.state.score
         )
 
         trainer = Engine(lambda e, b: None)
@@ -189,18 +184,16 @@ def test_checkpoint_with_score_function():
     model = DummyModel()
     to_save = {"model": model}
     _test(to_save, model.state_dict(), "model")
-    _test(to_save, model.state_dict(), "model", sync_dataflow=True)
 
     model = DummyModel()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
     true_saved_sdicts = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
     _test(to_save, true_saved_sdicts, "checkpoint")
-    _test(to_save, true_saved_sdicts, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_score_name_and_function():
-    def _test(to_save, obj, name, sync_dataflow=False):
+    def _test(to_save, obj, name):
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
@@ -209,7 +202,6 @@ def test_checkpoint_with_score_name_and_function():
             save_handler=save_handler,
             score_name="loss",
             score_function=lambda e: e.state.score,
-            sync_dataflow=sync_dataflow,
         )
 
         trainer = Engine(lambda e, b: None)
@@ -234,14 +226,12 @@ def test_checkpoint_with_score_name_and_function():
     model = DummyModel()
     to_save = {"model": model}
     _test(to_save, model.state_dict(), "model")
-    _test(to_save, model.state_dict(), "model", sync_dataflow=True)
 
     model = DummyModel()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
     true_saved_sdicts = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
     _test(to_save, true_saved_sdicts, "checkpoint")
-    _test(to_save, true_saved_sdicts, "checkpoint", sync_dataflow=True)
 
 
 def test_checkpoint_with_int_score():

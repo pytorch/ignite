@@ -182,6 +182,10 @@ class Events(EventEnum):
     GET_BATCH_STARTED = "get_batch_started"
     GET_BATCH_COMPLETED = "get_batch_completed"
 
+    DATALOADER_STOP_ITERATION = "dataloader_stop_iteration"
+    TERMINATE = "terminate"
+    TERMINATE_SINGLE_EPOCH = "terminate_single_epoch"
+
     def __or__(self, other):
         return EventsList() | self | other
 

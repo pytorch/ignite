@@ -8,7 +8,6 @@ from typing import Optional, Callable, Iterable, Any, Tuple
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import _check_signature
-from ignite.utils import manual_seed
 from ignite._utils import _to_hours_mins_secs
 
 __all__ = ["Engine"]
@@ -562,30 +561,16 @@ class Engine:
         self.state.dataloader = data
         return self._internal_run()
 
-    def sync_dataflow(self) -> None:
-        """Helper method to synchronize dataflow by setting random states according to the current iteration and
-        resetting data loader iterator. This method can be helpful when is used after saving a training checkpoint.
-        Please see `Concepts/ <URL_TO_INSERT>`_ for details.
-        """
-        if self.state is None or self.state.dataloader is None:
-            raise RuntimeError("Can not call 'sync_dataflow' if Engine is not initialized")
-        manual_seed(self.state.iteration)
-        self._dataloader_iter = iter(self.state.dataloader)
-
     def _setup_engine(self) -> None:
-
         try:
-            self._dataloader_len = len(self.state.dataloader) if hasattr(self.state.dataloader, "__len__") else None
+            self._dataloader_len = None
+            if hasattr(self.state.dataloader, "__len__"):
+                self._dataloader_len = len(self.state.dataloader)
         except TypeError:
             # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
             self._dataloader_len = None
 
         iteration = self.state.iteration
-        if iteration > 0:
-            # iteration > 0 -> resume run
-            # synchronize random state here, as iter(data) can start prefetching
-            manual_seed(iteration)
-
         self._dataloader_iter = iter(self.state.dataloader)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
@@ -609,6 +594,7 @@ class Engine:
 
                 self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
+                    self._fire_event(Events.TERMINATE)
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
 
@@ -659,6 +645,7 @@ class Engine:
                             )
                         break
 
+                    self._fire_event(Events.DATALOADER_STOP_ITERATION)
                     self._dataloader_iter = iter(self.state.dataloader)
 
                     should_exit = True
@@ -674,6 +661,7 @@ class Engine:
                 # self.state.batch = None
 
                 if self.should_terminate or self.should_terminate_single_epoch:
+                    self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
                     self.should_terminate_single_epoch = False
                     self._dataloader_iter = iter(self.state.dataloader)
                     break
