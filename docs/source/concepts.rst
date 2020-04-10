@@ -107,7 +107,7 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
-Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandler`
+Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandle`
 reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
 
 .. code-block:: python
@@ -318,7 +318,7 @@ containing serialized trainer, model, optimizer, etc
 .. code-block:: bash
 
     ls /tmp/training
-    > "checkpoint_50000.pth"
+    > "checkpoint_50000.pt"
 
 We can then restore the training from the last checkpoint.
 

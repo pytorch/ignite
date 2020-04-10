@@ -9,7 +9,7 @@ from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
 
 import torch
 
-from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -139,7 +139,7 @@ class Engine:
 
         _check_signature(self, process_function, "process_function", None)
 
-    def register_events(self, *event_names: Union[str, int, Any], event_to_attr: Optional[dict] = None) -> None:
+    def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -157,7 +157,7 @@ class Engine:
 
         .. code-block:: python
 
-            from ignite.engine import Engine, EvenEnum
+            from ignite.engine import Engine, EventEnum
 
             class CustomEvents(EventEnum):
                 FOO_EVENT = "foo_event"
@@ -197,7 +197,7 @@ class Engine:
                 State.event_to_attr[e] = event_to_attr[e]
 
     @staticmethod
-    def _handler_wrapper(handler: Callable, event_name: str, event_filter: Callable) -> Callable:
+    def _handler_wrapper(handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
         def wrapper(engine: Engine, *args, **kwargs) -> Any:
             event = engine.state.get_event_attrib_value(event_name)
             if event_filter(engine, event):
@@ -207,12 +207,13 @@ class Engine:
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name: str, handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Any, handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
-            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: An event or a list of events to attach the handler. Valid events are
+                from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
@@ -225,7 +226,7 @@ class Engine:
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handler.
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
 
         Example usage:
 
@@ -238,12 +239,22 @@ class Engine:
 
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
+            events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
+
+            def execute_validation(engine):
+                # do some validations
+
+            engine.add_event_handler(events_list, execute_validation)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
             See :class:`~ignite.engine.Events` for more details.
 
         """
+        if isinstance(event_name, EventsList):
+            for e in event_name:
+                self.add_event_handler(e, handler, *args, **kwargs)
+            return RemovableEventHandle(event_name, handler, self)
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -264,7 +275,7 @@ class Engine:
         return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
-    def _assert_non_filtered_event(event_name: str):
+    def _assert_non_filtered_event(event_name: Any):
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -273,7 +284,7 @@ class Engine:
                 "Argument event_name should not be a filtered event, " "please use event without any event filtering"
             )
 
-    def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
+    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None):
         """Check if the specified event has the specified handler.
 
         Args:
@@ -301,7 +312,7 @@ class Engine:
             registered_handler = registered_handler._parent()
         return registered_handler == user_handler
 
-    def remove_event_handler(self, handler: Callable, event_name: str):
+    def remove_event_handler(self, handler: Callable, event_name: Any):
         """Remove event handler `handler` from registered handlers of the engine
 
         Args:
@@ -339,7 +350,7 @@ class Engine:
 
         return decorator
 
-    def _fire_event(self, event_name: str, *event_args, **event_kwargs) -> None:
+    def _fire_event(self, event_name: Any, *event_args, **event_kwargs) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -362,7 +373,7 @@ class Engine:
                 kwargs.update(event_kwargs)
                 func(self, *(event_args + args), **kwargs)
 
-    def fire_event(self, event_name: str) -> None:
+    def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event

@@ -7,6 +7,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator
+from ignite.engine.engine import Events
 from ignite.metrics import MeanSquaredError
 
 
@@ -80,11 +81,13 @@ def test_create_supervised_trainer_traced_with_cpu():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda():
+    device = "cuda"
     model = Linear(1, 1)
+    model.to(device)
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
-    trainer = create_supervised_trainer(model, optimizer, mse_loss, device="cuda")
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device=device)
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -100,7 +103,25 @@ def test_create_supervised_trainer_on_cuda():
     assert model.bias.item() == approx(0.8)
 
 
-def test_create_supervised():
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
+    model = Linear(1, 1)
+    # Not moving model to cuda!
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device="cuda")
+
+    x = torch.tensor([[1.0], [2.0]])
+    y = torch.tensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    with pytest.raises(RuntimeError, match=r"device type"):
+        trainer.run(data)
+
+
+def test_create_supervised_evaluator():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()
@@ -123,7 +144,7 @@ def test_create_supervised():
     assert model.bias.item() == approx(0.0)
 
 
-def test_create_supervised_on_cpu():
+def test_create_supervised_evaluator_on_cpu():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()
@@ -173,12 +194,14 @@ def test_create_supervised_evaluator_traced_on_cpu():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_on_cuda():
+def test_create_supervised_evaluator_on_cuda():
+    device = "cuda"
     model = Linear(1, 1)
+    model.to(device)
     model.weight.data.zero_()
     model.bias.data.zero_()
 
-    evaluator = create_supervised_evaluator(model, device="cuda")
+    evaluator = create_supervised_evaluator(model, device=device)
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -196,7 +219,24 @@ def test_create_supervised_on_cuda():
     assert model.bias.item() == approx(0.0)
 
 
-def test_create_supervised_with_metrics():
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
+    model = Linear(1, 1)
+    # Not moving model to cuda!
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    evaluator = create_supervised_evaluator(model, device="cuda")
+
+    x = torch.tensor([[1.0], [2.0]])
+    y = torch.tensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    with pytest.raises(RuntimeError, match=r"device type"):
+        evaluator.run(data)
+
+
+def test_create_supervised_evaluator_with_metrics():
     model = Linear(1, 1)
     model.weight.data.zero_()
     model.bias.data.zero_()

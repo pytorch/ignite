@@ -22,15 +22,25 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
+class DummyPretrainedModel(nn.Module):
+    def __init__(self):
+        super(DummyPretrainedModel, self).__init__()
+        self.features = nn.Linear(4, 2, bias=False)
+        self.fc = nn.Linear(2, 1)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.fc(x)
+        return x
+
+
 def test_checkpoint_wrong_input():
 
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
-        Checkpoint(
-            12, lambda x: x, "prefix",
-        )
+        Checkpoint(12, lambda x: x, "prefix")
 
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
-        Checkpoint([12,], lambda x: x, "prefix")
+        Checkpoint([12], lambda x: x, "prefix")
 
     with pytest.raises(ValueError, match=r"No objects to checkpoint."):
         Checkpoint({}, lambda x: x, "prefix")
@@ -48,6 +58,9 @@ def test_checkpoint_wrong_input():
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function."):
         Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", global_step_transform=123)
+
+    with pytest.warns(UserWarning, match=r"Argument archived is deprecated"):
+        Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", archived=True)
 
 
 def test_checkpoint_score_function_wrong_output():
@@ -75,16 +88,16 @@ def test_checkpoint_default():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_0.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_0.pt".format(name))
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_1234.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_1234.pt".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_0.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_1234.pth".format(name)
+        save_handler.remove.assert_called_with("{}_0.pt".format(name))
+        assert checkpointer.last_checkpoint == "{}_1234.pt".format(name)
 
     model = DummyModel()
     to_save = {"model": model}
@@ -117,16 +130,16 @@ def test_checkpoint_with_global_step_transform():
         if len(filename_prefix) > 0:
             filename_prefix += "_"
 
-        save_handler.assert_called_with(obj, "{}{}_1.pth".format(filename_prefix, name))
+        save_handler.assert_called_with(obj, "{}{}_1.pt".format(filename_prefix, name))
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}{}_12.pth".format(filename_prefix, name))
+        save_handler.assert_called_with(obj, "{}{}_12.pt".format(filename_prefix, name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}{}_1.pth".format(filename_prefix, name))
-        assert checkpointer.last_checkpoint == "{}{}_12.pth".format(filename_prefix, name)
+        save_handler.remove.assert_called_with("{}{}_1.pt".format(filename_prefix, name))
+        assert checkpointer.last_checkpoint == "{}{}_12.pt".format(filename_prefix, name)
 
     for prefix in ["", "dummytask"]:
         model = DummyModel()
@@ -152,7 +165,7 @@ def test_checkpoint_with_score_function():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_0.7700.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_0.7700.pt".format(name))
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
@@ -160,10 +173,10 @@ def test_checkpoint_with_score_function():
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_0.7800.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_0.7800.pt".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_0.7700.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_0.7800.pth".format(name)
+        save_handler.remove.assert_called_with("{}_0.7700.pt".format(name))
+        assert checkpointer.last_checkpoint == "{}_0.7800.pt".format(name)
 
     model = DummyModel()
     to_save = {"model": model}
@@ -190,7 +203,7 @@ def test_checkpoint_with_score_name_and_function():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_loss=-0.7700.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_loss=-0.7700.pt".format(name))
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
@@ -198,10 +211,10 @@ def test_checkpoint_with_score_name_and_function():
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_loss=-0.7600.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_loss=-0.7600.pt".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_loss=-0.7700.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_loss=-0.7600.pth".format(name)
+        save_handler.remove.assert_called_with("{}_loss=-0.7700.pt".format(name))
+        assert checkpointer.last_checkpoint == "{}_loss=-0.7600.pt".format(name)
 
     model = DummyModel()
     to_save = {"model": model}
@@ -233,17 +246,17 @@ def test_checkpoint_with_int_score():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_{}1.pth".format(name, score_name))
+        save_handler.assert_called_with(obj, "{}_{}1.pt".format(name, score_name))
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_{}12.pth".format(name, score_name))
+        save_handler.assert_called_with(obj, "{}_{}12.pt".format(name, score_name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_{}1.pth".format(name, score_name))
-        assert checkpointer.last_checkpoint == "{}_{}12.pth".format(name, score_name)
+        save_handler.remove.assert_called_with("{}_{}1.pt".format(name, score_name))
+        assert checkpointer.last_checkpoint == "{}_{}12.pt".format(name, score_name)
 
     model = DummyModel()
     to_save = {"model": model}
@@ -277,17 +290,17 @@ def test_checkpoint_with_score_function_and_trainer_epoch():
         checkpointer(evaluator)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_11_0.7700.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_11_0.7700.pt".format(name))
 
         trainer.state.epoch = 12
         evaluator.state.metrics["val_acc"] = 0.78
 
         checkpointer(evaluator)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_12_0.7800.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_12_0.7800.pt".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_11_0.7700.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_12_0.7800.pth".format(name)
+        save_handler.remove.assert_called_with("{}_11_0.7700.pt".format(name))
+        assert checkpointer.last_checkpoint == "{}_12_0.7800.pt".format(name)
 
     model = DummyModel()
     to_save = {"model": model}
@@ -316,17 +329,17 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
         checkpointer(evaluator)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_11_val_acc=0.7700.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_11_val_acc=0.7700.pt".format(name))
 
         trainer.state.epoch = 12
         evaluator.state.metrics["val_acc"] = 0.78
 
         checkpointer(evaluator)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_12_val_acc=0.7800.pth".format(name))
+        save_handler.assert_called_with(obj, "{}_12_val_acc=0.7800.pt".format(name))
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}_11_val_acc=0.7700.pth".format(name))
-        assert checkpointer.last_checkpoint == "{}_12_val_acc=0.7800.pth".format(name)
+        save_handler.remove.assert_called_with("{}_11_val_acc=0.7700.pt".format(name))
+        assert checkpointer.last_checkpoint == "{}_12_val_acc=0.7800.pt".format(name)
 
     model = DummyModel()
     to_save = {"model": model}
@@ -347,7 +360,7 @@ def test_checkpoint_last_checkpoint():
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
-    assert checkpointer.last_checkpoint == "{}_9.pth".format("model")
+    assert checkpointer.last_checkpoint == "{}_9.pt".format("model")
 
 
 def test_checkpoint_last_checkpoint_on_score():
@@ -372,7 +385,7 @@ def test_checkpoint_last_checkpoint_on_score():
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
-    assert checkpointer.last_checkpoint == "{}_val_acc=0.9000.pth".format("model")
+    assert checkpointer.last_checkpoint == "{}_val_acc=0.9000.pt".format("model")
 
 
 def test_model_checkpoint_args_validation(dirname):
@@ -382,10 +395,10 @@ def test_model_checkpoint_args_validation(dirname):
     os.makedirs(existing)
     os.makedirs(nonempty)
 
-    with open(os.path.join(nonempty, "{}_name_0.pth".format(_PREFIX)), "w"):
+    with open(os.path.join(nonempty, "{}_name_0.pt".format(_PREFIX)), "w"):
         pass
 
-    with pytest.raises(ValueError, match=r"with extension '.pth' or '.pth.tar' are already present "):
+    with pytest.raises(ValueError, match=r"with extension '.pt' are already present "):
         ModelCheckpoint(nonempty, _PREFIX)
 
     with pytest.raises(ValueError, match=r"Argument save_interval is deprecated and should be None"):
@@ -402,6 +415,9 @@ def test_model_checkpoint_args_validation(dirname):
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, global_step_transform=1234)
+
+    with pytest.warns(UserWarning, match=r"Argument archived is deprecated"):
+        ModelCheckpoint(existing, _PREFIX, create_dir=False, archived=True)
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     assert h.last_checkpoint is None
@@ -427,12 +443,12 @@ def test_model_checkpoint_simple_recovery(dirname):
 
 
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
-    def _test(ext, require_empty, archived):
+    def _test(ext, require_empty):
         previous_fname = os.path.join(dirname, "{}_{}_{}{}".format(_PREFIX, "obj", 1, ext))
         with open(previous_fname, "w") as f:
             f.write("test")
 
-        h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=require_empty, archived=archived)
+        h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=require_empty)
         engine = Engine(lambda e, b: None)
         engine.state = State(epoch=0, iteration=1)
 
@@ -441,7 +457,7 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
         h(engine, to_save)
 
         fname = h.last_checkpoint
-        ext = ".pth.tar" if archived else ".pth"
+        ext = ".pt"
         assert isinstance(fname, str)
         assert os.path.join(dirname, "{}_{}_{}{}".format(_PREFIX, "model", 1, ext)) == fname
         assert os.path.exists(fname)
@@ -450,9 +466,8 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
         assert loaded_objects == model.state_dict()
         os.remove(fname)
 
-    _test(".txt", require_empty=True, archived=False)
-    _test(".txt", require_empty=True, archived=True)
-    _test(".pth", require_empty=False, archived=False)
+    _test(".txt", require_empty=True)
+    _test(".pt", require_empty=False)
 
 
 def test_disk_saver_atomic(dirname):
@@ -464,7 +479,7 @@ def test_disk_saver_atomic(dirname):
     def _test_existance(atomic, _to_save, expected):
 
         saver = DiskSaver(dirname, atomic=atomic, create_dir=False, require_empty=False)
-        fname = "test.pth"
+        fname = "test.pt"
         try:
             with warnings.catch_warnings():
                 # Ignore torch/serialization.py:292: UserWarning: Couldn't retrieve source code for container of type
@@ -499,7 +514,7 @@ def test_last_k(dirname):
         engine.state.iteration = i
         h(engine, to_save)
 
-    expected = ["{}_{}_{}.pth".format(_PREFIX, "model", i) for i in [7, 8]]
+    expected = ["{}_{}_{}.pt".format(_PREFIX, "model", i) for i in [7, 8]]
 
     assert sorted(os.listdir(dirname)) == expected, "{} vs {}".format(sorted(os.listdir(dirname)), expected)
 
@@ -521,7 +536,7 @@ def test_disabled_n_saved(dirname):
     saved_files = sorted(os.listdir(dirname))
     assert len(saved_files) == num_iters, "{}".format(saved_files)
 
-    expected = sorted(["{}_{}_{}.pth".format(_PREFIX, "model", i) for i in range(num_iters)])
+    expected = sorted(["{}_{}_{}.pt".format(_PREFIX, "model", i) for i in range(num_iters)])
     assert saved_files == expected, "{} vs {}".format(saved_files, expected)
 
 
@@ -541,7 +556,7 @@ def test_best_k(dirname):
     for _ in range(4):
         h(engine, to_save)
 
-    expected = ["{}_{}_{:.4f}.pth".format(_PREFIX, "model", i) for i in [1.2, 3.1]]
+    expected = ["{}_{}_{:.4f}.pt".format(_PREFIX, "model", i) for i in [1.2, 3.1]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -566,7 +581,7 @@ def test_best_k_with_suffix(dirname):
         engine.state.epoch += 1
         h(engine, to_save)
 
-    expected = ["{}_{}_val_loss={:.4}.pth".format(_PREFIX, "model", scores[e - 1]) for e in [1, 3]]
+    expected = ["{}_{}_val_loss={:.4}.pt".format(_PREFIX, "model", scores[e - 1]) for e in [1, 3]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -606,7 +621,7 @@ def test_with_engine(dirname):
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
     engine.run([0], max_epochs=4)
 
-    expected = ["{}_{}_{}.pth".format(_PREFIX, name, i) for i in [3, 4]]
+    expected = ["{}_{}_{}.pt".format(_PREFIX, name, i) for i in [3, 4]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -675,12 +690,12 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
     handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
 
     engine.add_event_handler(
-        Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler,}
+        Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
     )
     engine.run([0], max_epochs=4)
 
     saved_objects = sorted(os.listdir(dirname))
-    # saved object is ['PREFIX_checkpoint_4.pth', ]
+    # saved object is ['PREFIX_checkpoint_4.pt', ]
     saved_checkpoint = os.path.join(dirname, saved_objects[0])
 
     loaded_obj = torch.load(saved_checkpoint)
@@ -742,20 +757,14 @@ def test_checkpoint_load_objects():
 def test_checkpoint_load_objects_from_saved_file(dirname):
     def _get_single_obj_to_save():
         model = DummyModel()
-        to_save = {
-            "model": model,
-        }
+        to_save = {"model": model}
         return to_save
 
     def _get_multiple_objs_to_save():
         model = DummyModel()
         optim = torch.optim.SGD(model.parameters(), lr=0.001)
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
-        to_save = {
-            "model": model,
-            "optimizer": optim,
-            "lr_scheduler": lr_scheduler,
-        }
+        to_save = {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
         return to_save
 
     trainer = Engine(lambda e, b: None)
@@ -798,6 +807,33 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     Checkpoint.load_objects(to_save, loaded_objects)
 
 
+def test_load_checkpoint_with_different_num_classes(dirname):
+    model = DummyPretrainedModel()
+    to_save_single_object = {"model": model}
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
+    handler(trainer, to_save_single_object)
+
+    fname = handler.last_checkpoint
+    loaded_checkpoint = torch.load(fname)
+
+    to_load_single_object = {"pretrained_features": model.features}
+
+    with pytest.raises(RuntimeError):
+        Checkpoint.load_objects(to_load_single_object, loaded_checkpoint)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        Checkpoint.load_objects(to_load_single_object, loaded_checkpoint, strict=False, blah="blah")
+
+    loaded_weights = to_load_single_object["pretrained_features"].state_dict()["weight"]
+
+    assert torch.all(model.state_dict()["features.weight"].eq(loaded_weights))
+
+
 def test_disksaver_wrong_input(dirname):
 
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
@@ -808,8 +844,7 @@ def test_disksaver_wrong_input(dirname):
         with open(previous_fname, "w") as f:
             f.write("test")
 
-        with pytest.raises(ValueError, match=r"with extension '.pth' or '.pth.tar' are already present"):
+        with pytest.raises(ValueError, match=r"with extension '.pt' are already present"):
             DiskSaver(dirname, require_empty=True)
 
-    _test(".pth")
-    _test(".pth.tar")
+    _test(".pt")

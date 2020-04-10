@@ -38,7 +38,7 @@ class Checkpoint:
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        archived (bool, optional): It True, saved checkpoint extension will be `.pth.tar`, Default value is False.
+        archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -46,7 +46,6 @@ class Checkpoint:
 
         - `filename_prefix` is the argument passed to the constructor,
         - `name` is the key in `to_save` if a single object is to store, otherwise `name` is "checkpoint".
-        - `ext` is `.pth.tar` if `archived=True` otherwise `.pth`.
         - `suffix` is composed as following `{global_step}_{score_name}={score}`.
 
         Above `global_step` defined by the output of `global_step_transform` and `score` defined by the output
@@ -57,14 +56,14 @@ class Checkpoint:
         `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
 
         If defined a `score_function`, but without `score_name`, then suffix is defined by provided score.
-        The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pth`.
+        The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pt`.
 
         If defined `score_function` and `score_name`, then the filename will
         be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If `global_step_transform` is provided, then
         the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}`
 
         For example, `score_name="neg_val_loss"` and `score_function` that returns `-loss` (as objects with highest
-        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pth`.
+        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pt`.
 
         To get the last stored filename, handler exposes attribute `last_checkpoint`:
 
@@ -73,7 +72,7 @@ class Checkpoint:
             handler = Checkpoint(...)
             ...
             print(handler.last_checkpoint)
-            > checkpoint_12345.pth
+            > checkpoint_12345.pt
 
     Examples:
 
@@ -93,7 +92,7 @@ class Checkpoint:
             handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2)
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
             trainer.run(data_loader, max_epochs=6)
-            > ["checkpoint_7000.pth", "checkpoint_8000.pth", ]
+            > ["checkpoint_7000.pt", "checkpoint_8000.pt", ]
 
         Attach the handler to an evaluator to save best model during the training
         according to computed validation metric:
@@ -120,7 +119,7 @@ class Checkpoint:
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
             trainer.run(data_loader, max_epochs=10)
-            > ["best_model_9_val_acc=0.77.pth", "best_model_10_val_acc=0.78.pth", ]
+            > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
 
     """
 
@@ -154,6 +153,8 @@ class Checkpoint:
             raise TypeError(
                 "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
             )
+        if archived:
+            warnings.warn("Argument archived is deprecated")
 
         self._check_objects(to_save, "state_dict")
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
@@ -163,7 +164,7 @@ class Checkpoint:
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
-        self._ext = ".pth.tar" if archived else ".pth"
+        self._ext = ".pt"
         self.global_step_transform = global_step_transform
 
     @property
@@ -242,7 +243,7 @@ class Checkpoint:
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Mapping) -> None:
+    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
         """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Args:
@@ -250,22 +251,32 @@ class Checkpoint:
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
                 "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
                 corresponding state_dict.
+            **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+                the user to load part of the pretrained model (useful for example, in Transfer Learning)
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
+
+        if len(kwargs) > 1 or any(k for k in kwargs.keys() if k not in ["strict"]):
+            warnings.warn("kwargs contains keys other than strict and these will be ignored")
+
+        is_state_dict_strict = kwargs.get("strict", True)
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint:
-                obj.load_state_dict(checkpoint)
+                obj.load_state_dict(checkpoint, strict=is_state_dict_strict)
                 return
 
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint:
                 raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
-            obj.load_state_dict(checkpoint[k])
+            if isinstance(obj, torch.nn.Module):
+                obj.load_state_dict(checkpoint[k], strict=is_state_dict_strict)
+            else:
+                obj.load_state_dict(checkpoint[k])
 
 
 class DiskSaver:
@@ -291,10 +302,10 @@ class DiskSaver:
             raise ValueError("Directory path '{}' is not found".format(dirname))
 
         if require_empty:
-            matched = [fname for fname in os.listdir(dirname) if fname.endswith(".pth") or fname.endswith(".pth.tar")]
+            matched = [fname for fname in os.listdir(dirname) if fname.endswith(".pt")]
             if len(matched) > 0:
                 raise ValueError(
-                    "Files {} with extension '.pth' or '.pth.tar' are already present "
+                    "Files {} with extension '.pt' are already present "
                     "in the directory {}. If you want to use this "
                     "directory anyway, pass `require_empty=False`."
                     "".format(matched, dirname)
@@ -343,7 +354,7 @@ class ModelCheckpoint(Checkpoint):
         :attr:`~ignite.engine.Events.ITERATION_STARTED(every=1000)`
 
         There is no more internal counter that has been used to indicate the number of save actions. User could
-        see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pth`. Actually,
+        see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pt`. Actually,
         `step_number` is replaced by current engine's epoch if `score_function` is specified and current iteration
         otherwise.
 
@@ -370,7 +381,7 @@ class ModelCheckpoint(Checkpoint):
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        archived (bool, optional): It True, saved checkpoint extension will be `.pth.tar`, Default value is False.
+        archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
 
     Examples:
         >>> import os
@@ -383,9 +394,9 @@ class ModelCheckpoint(Checkpoint):
         >>> trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
         >>> trainer.run([0], max_epochs=6)
         >>> os.listdir('/tmp/models')
-        ['myprefix_mymodel_4.pth', 'myprefix_mymodel_6.pth']
+        ['myprefix_mymodel_4.pt', 'myprefix_mymodel_6.pt']
         >>> handler.last_checkpoint
-        ['/tmp/models/myprefix_mymodel_6.pth']
+        ['/tmp/models/myprefix_mymodel_6.pt']
     """
 
     def __init__(
@@ -428,6 +439,9 @@ class ModelCheckpoint(Checkpoint):
                 "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
             )
 
+        if archived:
+            warnings.warn("Argument archived is deprecated")
+
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = disk_saver
         self.to_save = None
@@ -435,7 +449,7 @@ class ModelCheckpoint(Checkpoint):
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
-        self._ext = ".pth.tar" if archived else ".pth"
+        self._ext = ".pt"
         self.global_step_transform = global_step_transform
 
     @property
