@@ -82,6 +82,7 @@ def run(
     if torch.cuda.is_available():
         device = "cuda"
 
+    model.to(device)  # Move model before creating optimizer
     criterion = nn.NLLLoss()
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     lr_scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
