@@ -9,8 +9,12 @@ import torch
 
 from ignite.engine import Engine, Events
 
-from ignite.engine.deterministic import ReproducibleBatchSampler, update_dataloader, keep_random_state, \
-    make_deterministic
+from ignite.engine.deterministic import (
+    ReproducibleBatchSampler,
+    update_dataloader,
+    keep_random_state,
+    make_deterministic,
+)
 from ignite.utils import manual_seed, setup_logger
 
 from tests.ignite.engine import BatchChecker

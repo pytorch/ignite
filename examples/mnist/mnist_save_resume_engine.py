@@ -65,20 +65,19 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 def log_model_weights(engine, model=None, fp=None, **kwargs):
     assert model and fp
-    output = {'total': 0.0}
+    output = {"total": 0.0}
     max_counter = 5
     for name, p in model.named_parameters():
-        name = name.replace('.', '/')
+        name = name.replace(".", "/")
         n = torch.norm(p)
         if max_counter > 0:
             output[name] = n
-        output['total'] += n
+        output["total"] += n
         max_counter -= 1
 
     msg = "{} | {}: {}".format(
-        engine.state.epoch,
-        engine.state.iteration,
-        " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()]))
+        engine.state.epoch, engine.state.iteration, " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()])
+    )
 
     with open(fp, "a") as h:
         h.write(msg)
@@ -87,22 +86,21 @@ def log_model_weights(engine, model=None, fp=None, **kwargs):
 
 def log_model_grads(engine, model=None, fp=None, **kwargs):
     assert model and fp
-    output = {'grads/total': 0.0}
+    output = {"grads/total": 0.0}
     max_counter = 5
     for name, p in model.named_parameters():
         if p.grad is None:
             continue
-        name = name.replace('.', '/')
+        name = name.replace(".", "/")
         n = torch.norm(p.grad)
         if max_counter > 0:
-            output['grads/{}'.format(name)] = n
-        output['grads/total'] += n
+            output["grads/{}".format(name)] = n
+        output["grads/total"] += n
         max_counter -= 1
 
     msg = "{} | {}: {}".format(
-        engine.state.epoch,
-        engine.state.iteration,
-        " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()]))
+        engine.state.epoch, engine.state.iteration, " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()])
+    )
 
     with open(fp, "a") as h:
         h.write(msg)
@@ -113,15 +111,14 @@ def log_data_stats(engine, fp=None, **kwargs):
     assert fp
     x, y = engine.state.batch
     output = {
-        'batch xmean': x.mean().item(),
-        'batch xstd': x.std().item(),
-        'batch ymedian': y.median().item(),
+        "batch xmean": x.mean().item(),
+        "batch xstd": x.std().item(),
+        "batch ymedian": y.median().item(),
     }
 
     msg = "{} | {}: {}".format(
-        engine.state.epoch,
-        engine.state.iteration,
-        " - ".join(["{}:{:.7f}".format(m, v) for m, v in output.items()]))
+        engine.state.epoch, engine.state.iteration, " - ".join(["{}:{:.7f}".format(m, v) for m, v in output.items()])
+    )
 
     with open(fp, "a") as h:
         h.write(msg)
