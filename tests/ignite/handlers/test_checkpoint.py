@@ -118,7 +118,7 @@ def test_checkpoint_with_global_step_transform():
             to_save,
             save_handler=save_handler,
             filename_prefix=filename_prefix,
-            global_step_transform=lambda e, _: e.state.epoch
+            global_step_transform=lambda e, _: e.state.epoch,
         )
 
         trainer = Engine(lambda e, b: None)
@@ -158,9 +158,7 @@ def test_checkpoint_with_score_function():
         save_handler = MagicMock()
         save_handler.remove = MagicMock()
 
-        checkpointer = Checkpoint(
-            to_save, save_handler=save_handler, score_function=lambda e: e.state.score
-        )
+        checkpointer = Checkpoint(to_save, save_handler=save_handler, score_function=lambda e: e.state.score)
 
         trainer = Engine(lambda e, b: None)
         trainer.state = State(epoch=1, iteration=1, score=0.77, dataloader=[0, 1, 2])
@@ -198,10 +196,7 @@ def test_checkpoint_with_score_name_and_function():
         save_handler.remove = MagicMock()
 
         checkpointer = Checkpoint(
-            to_save,
-            save_handler=save_handler,
-            score_name="loss",
-            score_function=lambda e: e.state.score,
+            to_save, save_handler=save_handler, score_name="loss", score_function=lambda e: e.state.score,
         )
 
         trainer = Engine(lambda e, b: None)

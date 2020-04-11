@@ -15,6 +15,7 @@ from ignite.engine.deterministic import (
     keep_random_state,
     make_deterministic,
 )
+
 from ignite.utils import manual_seed
 
 from tests.ignite.engine import BatchChecker, setup_sampler
