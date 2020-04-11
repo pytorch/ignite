@@ -5,7 +5,7 @@ from collections.abc import Mapping
 import weakref
 import random
 import warnings
-from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
+from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple, List
 
 import torch
 
@@ -127,6 +127,7 @@ class Engine:
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self._state_dict_user_keys = []
         self._allowed_events = []
 
         self._dataloader_iter = None
@@ -504,24 +505,49 @@ class Engine:
         else:
             raise e
 
+    @property
+    def state_dict_user_keys(self) -> List:
+        return self._state_dict_user_keys
+
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration"
+        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration" and
+        other state values defined by `engine.state_dict_user_keys`
+
+        .. code-block:: python
+
+            engine = Engine(...)
+            engine.state_dict_user_keys.append("alpha")
+            engine.state_dict_user_keys.append("beta")
+            ...
+
+            @engine.on(Events.STARTED)
+            def init_user_value(_):
+                 engine.state.alpha = 0.1
+                 engine.state.beta = 1.0
+
+            @engine.on(Events.COMPLETED)
+            def save_engine(_):
+                state_dict = engine.state_dict()
+                assert "alpha" in state_dict and "beta" in state_dict
+                torch.save(state_dict, "/tmp/engine.pt")
 
         Returns:
-            dict:
+            OrderedDict:
                 a dictionary containing engine's state
 
         """
         if self.state is None:
             return OrderedDict()
         keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
+        keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
-        `seed`. Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+        `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
+        Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -547,6 +573,13 @@ class Engine:
                 raise ValueError(
                     "Required state attribute '{}' is absent in provided state_dict '{}'".format(k, state_dict.keys())
                 )
+        for k in self._state_dict_user_keys:
+            if k not in state_dict:
+                raise ValueError(
+                    "Required user state attribute '{}' is absent in provided state_dict '{}'".format(
+                        k, state_dict.keys()
+                    )
+                )
 
         opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
         if (not any(opts)) or (all(opts)):
@@ -558,6 +591,8 @@ class Engine:
             epoch_length=state_dict["epoch_length"],
             metrics={},
         )
+        for k in self._state_dict_user_keys:
+            setattr(self.state, k, state_dict[k])
 
         if "iteration" in state_dict:
             self.state.iteration = state_dict["iteration"]
