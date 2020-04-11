@@ -59,9 +59,9 @@ def test_load_state_dict():
     def _test(sd):
         engine.load_state_dict(sd)
         if "iteration" in sd:
-            assert sd["iteration"] == engine.state.iteration + 1
+            assert sd["iteration"] == engine.state.iteration
         elif "epoch" in sd:
-            assert sd["epoch"] == engine.state.epoch + 1
+            assert sd["epoch"] == engine.state.epoch
         assert sd["epoch_length"] == engine.state.epoch_length
         assert sd["max_epochs"] == engine.state.max_epochs
 
@@ -75,8 +75,8 @@ def test_load_state_dict_integration():
     state_dict = {"max_epochs": 100, "epoch_length": 120, "epoch": 5}
 
     engine.load_state_dict(state_dict)
-    engine.add_event_handler(Events.ITERATION_COMPLETED, IterationCounter(4 * 120 + 1))
-    engine.add_event_handler(Events.EPOCH_COMPLETED, EpochCounter(5))
+    engine.add_event_handler(Events.ITERATION_COMPLETED, IterationCounter(5 * 120 + 1))
+    engine.add_event_handler(Events.EPOCH_COMPLETED, EpochCounter(6))
     data = range(120)
     engine.run(data)
 

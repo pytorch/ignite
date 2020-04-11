@@ -9,14 +9,18 @@ import torch
 
 from ignite.engine import Engine, Events
 
-from ignite.engine.deterministic import ReproducibleBatchSampler, update_dataloader, keep_random_state, \
-    make_deterministic
-from ignite.utils import manual_seed, setup_logger
+from ignite.engine.deterministic import (
+    ReproducibleBatchSampler,
+    update_dataloader,
+    keep_random_state,
+    make_deterministic,
+)
+from ignite.utils import manual_seed
 
-from tests.ignite.engine import BatchChecker
+from tests.ignite.engine import BatchChecker, setup_sampler
 
 
-def test_update_dataloader(setup_sampler_fn):
+def test_update_dataloader():
     def _test(sampler_type=None):
         num_epochs = 3
         batch_size = 4
@@ -24,7 +28,7 @@ def test_update_dataloader(setup_sampler_fn):
         data = torch.randint(0, 1000, size=(num_iters * batch_size,))
         num_workers = 4
 
-        sampler = setup_sampler_fn(sampler_type, num_iters, batch_size)
+        sampler = setup_sampler(sampler_type, num_iters, batch_size)
         dataloader = torch.utils.data.DataLoader(
             data,
             batch_size=batch_size,
@@ -45,7 +49,7 @@ def test_update_dataloader(setup_sampler_fn):
                 t.append(b)
             seen_batches.append(t)
 
-        sampler = setup_sampler_fn(sampler_type, num_iters, batch_size)
+        sampler = setup_sampler(sampler_type, num_iters, batch_size)
         dataloader = torch.utils.data.DataLoader(
             data,
             batch_size=batch_size,
@@ -168,13 +172,14 @@ def test_strict_resume_from_iter():
 
         max_epochs = 5
         num_iters = 21
+        torch.manual_seed(0)
         data = torch.randint(0, 1000, size=(num_iters,))
         if epoch_length is None:
             epoch_length = num_iters
 
         for resume_iteration in range(2, min(num_iters * max_epochs, epoch_length * max_epochs), 4):
             print("\n----", resume_iteration, epoch_length)
-            batch_checker = BatchChecker(data, init_counter=resume_iteration - 1)
+            batch_checker = BatchChecker(data, init_counter=resume_iteration)
 
             def update_fn(_, batch):
                 assert batch_checker.check(batch), "{} | {}: {} vs {}".format(
@@ -183,8 +188,6 @@ def test_strict_resume_from_iter():
 
             engine = Engine(update_fn)
             make_deterministic(engine)
-            # import logging
-            # engine.logger = setup_logger("trainer", level=logging.DEBUG)
 
             @engine.on(Events.EPOCH_COMPLETED)
             def check_iteration(engine):
@@ -209,12 +212,13 @@ def test_strict_resume_from_epoch():
     def _test(epoch_length=None):
         max_epochs = 10
         num_iters = 21
+        torch.manual_seed(0)
         data = torch.randint(0, 1000, size=(num_iters,))
         if epoch_length is None:
             epoch_length = num_iters
 
-        for resume_epoch in range(2, max_epochs):
-            batch_checker = BatchChecker(data, init_counter=(resume_epoch - 1) * epoch_length)
+        for resume_epoch in range(1, max_epochs):
+            batch_checker = BatchChecker(data, init_counter=resume_epoch * epoch_length)
 
             def update_fn(_, batch):
                 assert batch_checker.check(batch), "{} | {}: {} vs {}".format(
@@ -222,16 +226,17 @@ def test_strict_resume_from_epoch():
                 )
 
             engine = Engine(update_fn)
+            make_deterministic(engine)
+
             resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length)
             engine.load_state_dict(resume_state_dict)
             engine.run(data)
             assert engine.state.epoch == max_epochs
             assert engine.state.iteration == epoch_length * max_epochs
 
-    _test()
-    # Below tests wont work as there is no more
-    # _test(60)
-    # _test(15)
+    # _test()
+    _test(60)
+    _test(15)
 
 
 def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_type=None):
@@ -246,7 +251,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
         if epoch_length is None:
             epoch_length = num_iters
 
-        for resume_epoch in range(2, max_epochs + 1):
+        for resume_epoch in range(1, max_epochs):
 
             for num_workers in [0, 4]:
                 sampler = _setup_sampler(sampler_type, num_iters, batch_size)
@@ -267,6 +272,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     seen_batchs.append(batch)
 
                 engine = Engine(update_fn)
+                make_deterministic(engine, seed=12)
 
                 if sampler_type == "distributed":
 
@@ -274,16 +280,11 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     def _(engine):
                         sampler.set_epoch(engine.state.epoch - 1)
 
-                @engine.on(Events.EPOCH_STARTED(once=resume_epoch))
-                def sync_seed(e):
-                    e.sync_dataflow()
-
-                torch.manual_seed(1)
                 engine.run(
                     orig_dataloader, max_epochs=max_epochs, epoch_length=epoch_length,
                 )
 
-                batch_checker = BatchChecker(seen_batchs, init_counter=(resume_epoch - 1) * epoch_length)
+                batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
                 sampler = _setup_sampler(sampler_type, num_iters, batch_size)
                 resume_dataloader = torch.utils.data.DataLoader(
@@ -303,6 +304,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     )
 
                 engine = Engine(update_fn)
+                make_deterministic(engine, seed=12)
 
                 if sampler_type == "distributed":
 
@@ -323,10 +325,10 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
         _test(15)
 
 
-def test_resume_random_dataloader_from_epoch(setup_sampler_fn):
-    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler_fn)
-    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler_fn, sampler_type="weighted")
-    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler_fn, sampler_type="distributed")
+def test_resume_random_dataloader_from_epoch():
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler)
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler, sampler_type="weighted")
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler, sampler_type="distributed")
 
 
 class AugmentedData:
@@ -343,9 +345,6 @@ class AugmentedData:
 
 
 def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_type=None):
-
-    torch.manual_seed(0)
-
     def _test(epoch_length=None):
         max_epochs = 3
         batch_size = 4
@@ -377,6 +376,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     seen_batchs.append(batch)
 
                 engine = Engine(update_fn)
+                make_deterministic(engine, seed=12)
 
                 if sampler_type == "distributed":
 
@@ -384,18 +384,12 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     def _(engine):
                         sampler.set_epoch(engine.state.epoch)
 
-                @engine.on(Events.GET_BATCH_STARTED(once=resume_iteration - 1))
-                def sync_seed(e):
-                    if sampler_type == "distributed":
-                        sampler.set_epoch(engine.state.epoch)
-                    e.sync_dataflow()
-
                 torch.manual_seed(12)
                 engine.run(
                     orig_dataloader, max_epochs=max_epochs, epoch_length=epoch_length,
                 )
 
-                batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration - 1)
+                batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
                 sampler = _setup_sampler(sampler_type, num_iters, batch_size)
                 resume_dataloader = torch.utils.data.DataLoader(
@@ -415,6 +409,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     )
 
                 engine = Engine(update_fn)
+                make_deterministic(engine, seed=12)
 
                 if sampler_type == "distributed":
 
@@ -437,10 +432,10 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
         _test(11)
 
 
-def test_resume_random_dataloader_from_iter(setup_sampler_fn):
-    _test_resume_random_dataloader_from_iter("cpu", setup_sampler_fn)
-    _test_resume_random_dataloader_from_iter("cpu", setup_sampler_fn, sampler_type="weighted")
-    _test_resume_random_dataloader_from_iter("cpu", setup_sampler_fn, sampler_type="distributed")
+def test_resume_random_dataloader_from_iter():
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler)
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler, sampler_type="weighted")
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler, sampler_type="distributed")
 
 
 def _test_resume_random_data_iterator_from_epoch(device):
@@ -458,25 +453,22 @@ def _test_resume_random_data_iterator_from_epoch(device):
         if epoch_length is None:
             epoch_length = num_iters
 
-        for resume_epoch in range(2, max_epochs):
-
+        for resume_epoch in range(1, max_epochs):
             seen_batchs = []
 
             def update_fn(engine, batch):
+                # if there is a random op when using data batch etc, we can not resume correctly
+                # torch.rand(1)
                 seen_batchs.append(batch)
 
             engine = Engine(update_fn)
+            make_deterministic(engine, seed=12)
 
-            @engine.on(Events.EPOCH_STARTED(once=resume_epoch))
-            def sync_seed(e):
-                e.sync_dataflow()
-
-            torch.manual_seed(12)
             engine.run(
                 infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length,
             )
 
-            batch_checker = BatchChecker(seen_batchs, init_counter=(resume_epoch - 1) * epoch_length)
+            batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
             def update_fn(engine, batch):
                 assert batch_checker.check(batch), "{} | {}: {} vs {}".format(
@@ -484,9 +476,10 @@ def _test_resume_random_data_iterator_from_epoch(device):
                 )
 
             engine = Engine(update_fn)
+            make_deterministic(engine, seed=12)
+
             resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length)
             engine.load_state_dict(resume_state_dict)
-            torch.manual_seed(12)
             engine.run(infinite_data_iterator())
             assert engine.state.epoch == max_epochs
             assert engine.state.iteration == epoch_length * max_epochs
@@ -515,7 +508,7 @@ def _test_resume_random_data_iterator_from_iter(device):
         if epoch_length is None:
             epoch_length = num_iters
 
-        for resume_iteration in range(2, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
+        for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
 
             seen_batchs = []
 
@@ -523,17 +516,14 @@ def _test_resume_random_data_iterator_from_iter(device):
                 seen_batchs.append(batch)
 
             engine = Engine(update_fn)
-
-            @engine.on(Events.GET_BATCH_STARTED(once=resume_iteration - 1))
-            def sync_seed(e):
-                e.sync_dataflow()
+            make_deterministic(engine, seed=12)
 
             torch.manual_seed(12)
             engine.run(
                 infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length,
             )
 
-            batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration - 1)
+            batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
             def update_fn(engine, batch):
                 assert batch_checker.check(batch), "{} | {}: {} vs {}".format(
@@ -541,6 +531,8 @@ def _test_resume_random_data_iterator_from_iter(device):
                 )
 
             engine = Engine(update_fn)
+            make_deterministic(engine, seed=12)
+
             resume_state_dict = dict(iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length)
             engine.load_state_dict(resume_state_dict)
             torch.manual_seed(12)
@@ -561,38 +553,97 @@ def test_resume_random_data_iterator_from_iter():
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl, setup_sampler_fn):
+def test_distrib_gpu(distributed_context_single_node_nccl, setup_sampler):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
-    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler)
 
 
 @pytest.mark.distributed
-def test_distrib_cpu(distributed_context_single_node_gloo, setup_sampler_fn):
+def test_distrib_cpu(distributed_context_single_node_gloo):
     device = "cpu"
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
-    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo, setup_sampler_fn):
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
-    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl, setup_sampler_fn):
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
-    _test_resume_random_dataloader_from_iter(device, setup_sampler_fn)
-    _test_resume_random_dataloader_from_epoch(device, setup_sampler_fn)
+    _test_resume_random_dataloader_from_iter(device, setup_sampler)
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler)
+
+
+def test_concepts_snippet_resume():
+    import torch
+    from torch.utils.data import DataLoader
+    from ignite.engine import Engine, Events
+    from ignite.engine.deterministic import make_deterministic
+
+    seen_batches = []
+
+    def random_train_data_loader(size):
+        data = torch.arange(0, size)
+        return DataLoader(data, batch_size=4, shuffle=True)
+
+    def print_train_data(engine, batch):
+        i = engine.state.iteration
+        e = engine.state.epoch
+        print("train", e, i, batch.tolist())
+        seen_batches.append(batch)
+
+    trainer = Engine(print_train_data)
+    make_deterministic(trainer, seed=15)
+
+    print("Original Run")
+    trainer.run(random_train_data_loader(40), max_epochs=2, epoch_length=5)
+
+    original_batches = list(seen_batches)
+    seen_batches = []
+
+    print("Resumed Run")
+    trainer.load_state_dict({"epoch": 1, "seed": 7, "epoch_length": 5, "max_epochs": 2})
+    trainer.run(random_train_data_loader(40))
+
+    resumed_batches = list(seen_batches)
+    seen_batches = []
+    for b1, b2 in zip(original_batches[5:], resumed_batches):
+        assert (b1 == b2).all()
+
+
+def test_concepts_snippet_warning():
+    def random_train_data_generator():
+        while True:
+            yield torch.randint(0, 100, size=(1,))
+
+    def print_train_data(engine, batch):
+        i = engine.state.iteration
+        e = engine.state.epoch
+        print("train", e, i, batch.tolist())
+
+    trainer = Engine(print_train_data)
+    make_deterministic(trainer, seed=15)
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=3))
+    def user_handler(_):
+        # handler synchronizes the random state
+        torch.manual_seed(12)
+        a = torch.rand(1)
+
+    trainer.run(random_train_data_generator(), max_epochs=3, epoch_length=5)

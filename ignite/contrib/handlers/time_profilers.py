@@ -213,7 +213,12 @@ class BasicTimeProfiler:
             results = profiler.get_results()
 
         """
-        events_to_ignore = [Events.EXCEPTION_RAISED]
+        events_to_ignore = [
+            Events.EXCEPTION_RAISED,
+            Events.TERMINATE,
+            Events.TERMINATE_SINGLE_EPOCH,
+            Events.DATALOADER_STOP_ITERATION,
+        ]
         total_eh_time = sum([sum(self.event_handlers_times[e]) for e in Events if e not in events_to_ignore])
 
         return OrderedDict(

@@ -430,17 +430,17 @@ class Engine:
         """Setups engine from `state_dict`.
 
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length`.
-        Values for iteration or epoch are 1-based: first iteration and epoch are equal to 1.
+        Values for iteration or epoch should be set as `required_value - 1`.
 
         Args:
             state_dict (Mapping): a dict with parameters
 
         .. code-block:: python
 
-            # Restore from the 3rd epoch
+            # Restore from the 4rd epoch
             state_dict = {"epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
             # or 500th iteration
-            # state_dict = {"iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
+            # state_dict = {"iteration": 499, "max_epochs": 100, "epoch_length": len(data_loader)}
 
             trainer = Engine(...)
             trainer.load_state_dict(state_dict)
@@ -463,10 +463,10 @@ class Engine:
         self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"])
 
         if "iteration" in state_dict:
-            self.state.iteration = state_dict["iteration"] - 1
+            self.state.iteration = state_dict["iteration"]
             self.state.epoch = self.state.iteration // self.state.epoch_length
         elif "epoch" in state_dict:
-            self.state.epoch = state_dict["epoch"] - 1
+            self.state.epoch = state_dict["epoch"]
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
     @staticmethod

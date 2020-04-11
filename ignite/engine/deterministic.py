@@ -41,7 +41,7 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
 
         .. code-block:: python
 
-            from ignite.engine.utils import update_dataloader
+            from ignite.engine.deterministic import update_dataloader
 
             dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
             # rewind dataloader to a specific iteration:
@@ -106,7 +106,7 @@ def _set_rng_states(rng_states):
 def keep_random_state(func: Callable):
     """Helper decorator to keep random state of torch, numpy and random intact
     while executing a function. For more details on usage, please see
-    `"Concepts/Random state synchronization" <https://pytorch.org/ignite/concepts.html#random-state-synchronization>`_.
+    `"Concepts/Dataflow synchronization" <https://pytorch.org/ignite/concepts.html#dataflow-synchronization>`_.
 
     Args:
         func (callable): function to decorate
@@ -121,7 +121,7 @@ def keep_random_state(func: Callable):
     return wrapper
 
 
-def make_deterministic(trainer: Engine, seed: Optional[int] = None):
+def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_deterministic=True):
     """Helper method to make trainer engine deterministic.
 
     This is done by adding additional handlers to synchronize the dataflow:
@@ -133,7 +133,7 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None):
             do_single_epoch_iterations(dataloader)
 
     If input data provider is `torch.utils.data.DataLoader`, its batch sampler is replaced by
-    :class:`~ignite.engine.utils.ReproducibleBatchSampler`.
+    :class:`~ignite.engine.deterministic.ReproducibleBatchSampler`.
 
     Usage:
 
@@ -146,43 +146,48 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None):
             trainer.run(data, max_epochs=N)
 
     Args:
-        trainer (Engine): trainer engine
-        seed (int, optional): seed offset to setup for random generators. If not provided a random value is generated
+        trainer (Engine): Trainer engine
+        seed (int, optional): Seed offset to setup for random generators. If not provided a random value is generated
+        cudnn_deterministic (bool): If True, the following commands applied: `torch.backends.cudnn.deterministic=True`,
+            `torch.backends.cudnn.benchmark`.
 
     """
     if seed is None:
         seed = torch.randint(0, int(1e9), (1,)).item()
 
-    @trainer.on(Events.STARTED)
-    def init_seed(_):
-        trainer.state.seed = seed
+    if cudnn_deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
-    def setup_seed(engine, iter_counter=None):
-        print("setup_seed", engine.last_event_name, engine.state.epoch, engine.state.iteration)
+    def setup_seed(engine, iter_counter=None, iteration=None):
         if iter_counter is None:
             le = engine._dataloader_len if engine._dataloader_len is not None else 1
-            print("le <- engine._dataloader_len", le)
         else:
             le = iter_counter
-            print("le <- iter_counter", le)
-        manual_seed(engine.state.seed + engine.state.iteration // le)
+        if iteration is None:
+            iteration = engine.state.iteration
+        manual_seed(engine.state.seed + iteration // le)
 
-    def setup_dataloader_from_iteration(data, iteration):
+    def setup_dataloader_from_iteration(trainer, iteration):
+        data = trainer.state.dataloader
         if isinstance(data, torch.utils.data.DataLoader):
             try:
                 # following is unsafe for IterableDatasets
                 iteration %= len(data.batch_sampler)
+                # Synchronize dataflow according to state.iteration
+                setup_seed(trainer)
                 if iteration > 0:
                     # batch sampler is ReproducibleBatchSampler
                     data.batch_sampler.start_iteration = iteration
-                    return iter(data)
-            except TypeError:
+                return iter(data)
+            except TypeError as e:
                 # Probably we can do nothing with DataLoader built upon IterableDatasets
                 pass
 
-        # !!! THERE WAS A BUG WITH ITERATORS <- on resume at some conditions, counter = 0 and iteration is epoch_length
         if hasattr(data, "__len__"):
             iteration %= len(data)
+        # Synchronize dataflow from the begining
+        setup_seed(trainer, iteration=0)
         data_iter = iter(data)
         counter = 0
         while counter < iteration:
@@ -194,7 +199,6 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None):
 
         return data_iter
 
-    @trainer.on(Events.EPOCH_STARTED(once=1))
     def _setup_engine(_):
         try:
             trainer._dataloader_len = None
@@ -203,9 +207,6 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None):
         except TypeError:
             # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
             trainer._dataloader_len = None
-
-        # setup seed here, as iter(data) can start prefetching
-        setup_seed(trainer)
 
         # if input data is torch dataloader we replace batch sampler by a batch sampler
         # such that its random sampling indices are reproducible by prefetching them before data iteration
@@ -226,11 +227,19 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None):
                     )
 
         iteration = trainer.state.iteration
-        trainer._dataloader_iter = setup_dataloader_from_iteration(trainer.state.dataloader, iteration)
+        trainer._dataloader_iter = setup_dataloader_from_iteration(trainer, iteration)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if trainer.state.epoch_length is not None:
             iteration %= trainer.state.epoch_length
         trainer._init_iter.append(iteration)
+
+    # We need to add _setup_engine as the last possible handler (due to possible attach of `sampler.set_epoch` which )
+    @trainer.on(Events.STARTED)
+    def init_seed(_):
+        trainer.state.seed = seed
+        trainer.add_event_handler(
+            Events.EPOCH_STARTED(event_filter=lambda e, _: e._dataloader_iter is None), _setup_engine
+        )
 
     trainer.add_event_handler(Events.DATALOADER_STOP_ITERATION | Events.TERMINATE_SINGLE_EPOCH, setup_seed)

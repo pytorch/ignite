@@ -73,21 +73,20 @@ def test_terminate_at_end_of_epoch_stops_run():
     max_epochs = 5
     last_epoch_to_run = 3
 
-    for deterministic in [True, False]:
-        engine = Engine(MagicMock(return_value=1))
+    engine = Engine(MagicMock(return_value=1))
 
-        def end_of_epoch_handler(engine):
-            if engine.state.epoch == last_epoch_to_run:
-                engine.terminate()
+    def end_of_epoch_handler(engine):
+        if engine.state.epoch == last_epoch_to_run:
+            engine.terminate()
 
-        engine.add_event_handler(Events.EPOCH_COMPLETED, end_of_epoch_handler)
+    engine.add_event_handler(Events.EPOCH_COMPLETED, end_of_epoch_handler)
 
-        assert not engine.should_terminate
+    assert not engine.should_terminate
 
-        state = engine.run([1], max_epochs=max_epochs)
+    state = engine.run([1], max_epochs=max_epochs)
 
-        assert state.epoch == last_epoch_to_run
-        assert engine.should_terminate
+    assert state.epoch == last_epoch_to_run
+    assert engine.should_terminate
 
 
 def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration():

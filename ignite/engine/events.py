@@ -136,7 +136,26 @@ class EventEnum(CallableEventWithFilter, Enum):
 
 
 class Events(EventEnum):
-    """Events that are fired by the :class:`~ignite.engine.Engine` during execution.
+    """Events that are fired by the :class:`~ignite.engine.Engine` during execution. Built-in events:
+
+    - STARTED : triggered when engine's run is started
+    - EPOCH_STARTED : triggered when the epoch is started
+    - GET_BATCH_STARTED : triggered before next batch is fetched
+    - GET_BATCH_COMPLETED : triggered after the batch is fetched
+    - ITERATION_STARTED : triggered when an iteration is started
+    - ITERATION_COMPLETED : triggered when the iteration is ended
+
+    - DATALOADER_STOP_ITERATION : engine's specific event triggered when dataloader has no more data to provide
+
+    - EXCEPTION_RAISED : triggered when an exception is encountered
+    - TERMINATE_SINGLE_EPOCH : triggered when the run is about to end the current epoch,
+      after receiving :meth:`~ignite.engine.Engine.terminate_epoch()` call.
+
+    - TERMINATE : triggered when the run is about to end completely,
+      after receiving :meth:`~ignite.engine.Engine.terminate()` call.
+
+    - EPOCH_COMPLETED : triggered when the epoch is ended
+    - COMPLETED : triggered when engine's run is completed
 
     Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:
 
@@ -166,6 +185,17 @@ class Events(EventEnum):
 
     Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
     Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
+
+    Since v0.4.0, user can also combine events with `|`-operator:
+
+    .. code-block:: python
+
+        events = Events.STARTED | Events.COMPLETED | Events.ITERATION_STARTED(every=3)
+        engine = ...
+
+        @engine.on(events)
+        def call_on_events(engine):
+            # do something
 
     """
 
