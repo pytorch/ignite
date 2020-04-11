@@ -109,7 +109,10 @@ multiple losses and metrics in your training loop.
 
 ## Power of Events & Handlers
 
-The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be any function (e.g. lambda, simple function, class method etc.) with the correct signature, we only require that the first argument be `engine`. Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk up your code and its complexity.
+The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be 
+any function: e.g. lambda, simple function, class method etc. The first argument can be optionally `engine`, but not necessary. 
+Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk 
+up your code and its complexity.
 
 ### Execute any number of functions whenever you wish
 
@@ -119,13 +122,13 @@ Examples
 </summary>
 
 ```python
-trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
+trainer.add_event_handler(Events.STARTED, lambda _: print("Start training"))
 
 # attach handler with args, kwargs
 mydata = [1, 2, 3, 4]
 logger = ...
 
-def on_training_ended(engine, data):
+def on_training_ended(data):
     print("Training is ended. mydata={}".format(data))
     # User can use variables from another scope  
     logger.info("Training is ended")
@@ -152,17 +155,17 @@ Examples
 ```python
 # run the validation every 5 epochs
 @trainer.on(Events.EPOCH_COMPLETED(every=5))
-def run_validation(_):
+def run_validation():
     # run validation
 
 # change some training variable once on 20th epoch
 @trainer.on(Events.EPOCH_STARTED(once=20))
-def change_training_variable(_):
+def change_training_variable():
     # ...
 
 # Trigger handler with customly defined frequency
 @trainer.on(Events.ITERATION_COMPLETED(event_filter=first_x_iters))
-def log_gradients(_):
+def log_gradients():
     # ...
 ```
 
@@ -178,7 +181,7 @@ Examples
 Events can be stacked together to enable multiple calls:
 ```python
 @trainer.on(Events.COMPLETED | Events.EPOCH_COMPLETED(every=10))
-def do_some_validation(engine):
+def run_validation():
     # ...
 ```
 
@@ -258,14 +261,13 @@ F1_mean.attach(engine, "F1")
     variety of handlers to ease the pain of training and validation of
     neural networks!
 -   **ignite.contrib**: The Contrib directory contains additional
-    modules contributed by Ignite users. Modules vary from TBPTT engine,
+    modules that can require extra dependencies. Modules vary from TBPTT engine,
     various optimisation parameter schedulers, logging handlers and a
     metrics module containing many regression metrics
     ([ignite.contrib.metrics.regression](https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression))!
 
 The code in **ignite.contrib** is not as fully maintained as the core
-part of the library. It may change or be removed at any time without
-notice.
+part of the library.
 
 # Examples
 

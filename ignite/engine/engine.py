@@ -137,7 +137,7 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        _check_signature(self, process_function, "process_function", None)
+        _check_signature(process_function, "process_function", self, None)
 
     def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
@@ -214,14 +214,13 @@ class Engine:
             event_name: An event or a list of events to attach the handler. Valid events are
                 from :class:`~ignite.engine.Events` or any `event_name` added by
                 :meth:`~ignite.engine.Engine.register_events`.
-            handler (callable): the callable event handler that should be invoked
+            handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
+                The first argument can be optionally `engine`, the :class:`~ignite.engine.Engine` object, handler is
+                bound to.
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
-            The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
-            was bound to.
-
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
@@ -241,10 +240,11 @@ class Engine:
 
             events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
 
-            def execute_validation(engine):
-                # do some validations
+            def execute_something():
+                # do some thing not related to engine
+                pass
 
-            engine.add_event_handler(events_list, execute_validation)
+            engine.add_event_handler(events_list, execute_something)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
@@ -267,9 +267,12 @@ class Engine:
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
-        _check_signature(self, handler, "handler", *(event_args + args), **kwargs)
-
-        self._event_handlers[event_name].append((handler, args, kwargs))
+        try:
+            _check_signature(handler, "handler", self, *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, (self,) + args, kwargs))
+        except ValueError:
+            _check_signature(handler, "handler", *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
@@ -342,6 +345,20 @@ class Engine:
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
+        Example usage:
+
+        .. code-block:: python
+
+            engine = Engine(process_function)
+
+            @engine.on(Events.EPOCH_COMPLETED)
+            def print_epoch():
+                print("Epoch: {}".format(engine.state.epoch))
+
+            @engine.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
+            def execute_something():
+                # do some thing not related to engine
+                pass
         """
 
         def decorator(f: Callable) -> Callable:
@@ -371,7 +388,8 @@ class Engine:
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
-                func(self, *(event_args + args), **kwargs)
+                first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
+                func(*first, *(event_args + others), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
