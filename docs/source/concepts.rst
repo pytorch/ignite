@@ -64,8 +64,10 @@ the run:
 
 Complete list of events can be found at :class:`~ignite.engine.Events`.
 
-Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when
-:meth:`~ignite.engine.Engine.run` is called:
+Thus, user can execute a custom code as an event handler. Handlers can be any function: e.g. lambda, simple function,
+class method etc. The first argument can be optionally `engine`, but not necessary.
+
+Let us consider in more detail what happens when :meth:`~ignite.engine.Engine.run` is called:
 
 .. code-block:: python
 
@@ -114,10 +116,6 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
 Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandle`
 reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
 
-.. Note ::
-
-   The handler function's first argument could optionally be the :class:`~ignite.engine.Engine` object it has been attached.
-
 .. code-block:: python
 
     model = ...
@@ -163,13 +161,13 @@ event filtering function:
     def do_something_once_on_25_epoch():
         # do something
 
-    def custom_event_filter(, event):
+    def custom_event_filter(engine, event):
         if event in [1, 2, 5, 10, 50, 100]:
             return True
         return False
 
     @engine.on(Events.ITERATION_STARTED(event_filter=custom_event_filter))
-    def call_on_special_event():
+    def call_on_special_event(engine):
          # do something on 1, 2, 5, 10, 50, 100 iterations
 
     trainer.run(train_loader, max_epochs=100)

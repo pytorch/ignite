@@ -214,14 +214,13 @@ class Engine:
             event_name: An event or a list of events to attach the handler. Valid events are
                 from :class:`~ignite.engine.Events` or any `event_name` added by
                 :meth:`~ignite.engine.Engine.register_events`.
-            handler (callable): the callable event handler that should be invoked
+            handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
+                The first argument can be optionally `engine`, the :class:`~ignite.engine.Engine` object, handler is
+                bound to.
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
-            The handler function's first argument could optionally be `self`, the :class:`~ignite.engine.Engine`
-            object it was bound to.
-
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
