@@ -1,6 +1,6 @@
 import gc
 
-from unittest.mock import call, MagicMock
+from unittest.mock import call, MagicMock, create_autospec
 
 import pytest
 from pytest import raises
@@ -35,8 +35,7 @@ def test_add_event_handler_raises_with_invalid_signature():
         pass
 
     engine.add_event_handler(Events.STARTED, handler)
-    with pytest.raises(ValueError):
-        engine.add_event_handler(Events.STARTED, handler, 1)
+    engine.add_event_handler(Events.STARTED, handler, 1)
 
     def handler_with_args(engine, a):
         pass
@@ -51,15 +50,13 @@ def test_add_event_handler_raises_with_invalid_signature():
     engine.add_event_handler(Events.STARTED, handler_with_kwargs, b=2)
     with pytest.raises(ValueError):
         engine.add_event_handler(Events.STARTED, handler_with_kwargs, c=3)
-    with pytest.raises(ValueError):
-        engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
+    engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
 
     def handler_with_args_and_kwargs(engine, a, b=42):
         pass
 
     engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2)
-    with pytest.raises(ValueError):
-        engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
+    engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
     with pytest.raises(ValueError):
         engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2, c=3)
 
@@ -91,9 +88,39 @@ def test_add_event_handler():
     assert completed_counter.count == 15
 
 
-def test_adding_multiple_event_handlers():
+def test_add_event_handler_without_engine():
     engine = DummyEngine()
-    handlers = [MagicMock(), MagicMock()]
+
+    class Counter(object):
+        def __init__(self, count=0):
+            self.count = count
+
+    started_counter = Counter()
+
+    def handle_iteration_started():
+        started_counter.count += 1
+
+    engine.add_event_handler(Events.STARTED, handle_iteration_started)
+
+    completed_counter = Counter()
+
+    def handle_iteration_completed(counter):
+        counter.count += 1
+
+    engine.add_event_handler(Events.COMPLETED, handle_iteration_completed, completed_counter)
+
+    engine.run(15)
+
+    assert started_counter.count == 15
+    assert completed_counter.count == 15
+
+
+def test_adding_multiple_event_handlers():
+    mock_fn_1 = create_autospec(spec=lambda x: None)
+    mock_fn_2 = create_autospec(spec=lambda x: None)
+
+    engine = DummyEngine()
+    handlers = [mock_fn_1, mock_fn_2]
     for handler in handlers:
         engine.add_event_handler(Events.STARTED, handler)
 
@@ -106,7 +133,7 @@ def test_event_removable_handle():
 
     # Removable handle removes event from engine.
     engine = DummyEngine()
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
     assert not hasattr(handler, "_parent")
 
     removable_handle = engine.add_event_handler(Events.STARTED, handler)
@@ -123,7 +150,7 @@ def test_event_removable_handle():
     handler.assert_called_once_with(engine)
 
     # Removable handle can be used as a context manager
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
 
     with engine.add_event_handler(Events.STARTED, handler):
         assert engine.has_event_handler(handler, Events.STARTED)
@@ -186,7 +213,7 @@ def test_events_list_removable_handle():
 
     # Removable handle removes event from engine.
     engine = DummyEngine()
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
     assert not hasattr(handler, "_parent")
 
     events_list = Events.STARTED | Events.COMPLETED
@@ -210,7 +237,7 @@ def test_events_list_removable_handle():
     assert handler.call_count == 2
 
     # Removable handle can be used as a context manager
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
 
     with engine.add_event_handler(events_list, handler):
         for e in events_list:
@@ -227,7 +254,7 @@ def test_events_list_removable_handle():
     assert handler.call_count == 2
 
     # Removeable handle only effects a single event registration
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
 
     other_events_list = Events.EPOCH_STARTED | Events.EPOCH_COMPLETED
 
@@ -248,7 +275,7 @@ def test_events_list_removable_handle():
 
     # Removeable handle is re-enter and re-exitable
 
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
 
     remove = engine.add_event_handler(events_list, handler)
 
@@ -348,7 +375,7 @@ def test_args_and_kwargs_are_passed_to_event():
     args = (1, 2, 3)
     handlers = []
     for event in [Events.STARTED, Events.COMPLETED]:
-        handler = MagicMock(spec_set=True)
+        handler = create_autospec(spec=lambda e, x1, x2, x3, a, b: None)
         engine.add_event_handler(event, handler, *args, **kwargs)
         handlers.append(handler)
 

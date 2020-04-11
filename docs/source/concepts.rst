@@ -64,8 +64,10 @@ the run:
 
 Complete list of events can be found at :class:`~ignite.engine.Events`.
 
-Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when
-:meth:`~ignite.engine.Engine.run` is called:
+Thus, user can execute a custom code as an event handler. Handlers can be any function: e.g. lambda, simple function,
+class method etc. The first argument can be optionally `engine`, but not necessary.
+
+Let us consider in more detail what happens when :meth:`~ignite.engine.Engine.run` is called:
 
 .. code-block:: python
 
@@ -98,11 +100,15 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
     @trainer.on(Events.STARTED)
     def on_training_started(engine):
         print("Another message of start training")
+    # or even simpler, use only what you need !
+    @trainer.on(Events.STARTED)
+    def on_training_started():
+        print("Another message of start training")
 
     # attach handler with args, kwargs
     mydata = [1, 2, 3, 4]
 
-    def on_training_ended(engine, data):
+    def on_training_ended(data):
         print("Training is ended. mydata={}".format(data))
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
@@ -147,12 +153,12 @@ event filtering function:
     trainer = create_supervised_trainer(model, optimizer, loss)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=50))
-    def log_training_loss_every_50_iterations(engine):
+    def log_training_loss_every_50_iterations():
         print("{} / {} : {} - loss: {:.2f}"
-              .format(engine.state.epoch, engine.state.max_epochs, engine.state.iteration, engine.state.output))
+              .format(trainer.state.epoch, trainer.state.max_epochs, trainer.state.iteration, trainer.state.output))
 
     @trainer.on(Events.EPOCH_STARTED(once=25))
-    def do_something_once_on_25_epoch(engine):
+    def do_something_once_on_25_epoch():
         # do something
 
     def custom_event_filter(engine, event):

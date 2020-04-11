@@ -96,13 +96,13 @@ class BasicTimeProfiler:
         }
 
         # Setup all other handlers:
-        engine._event_handlers[Events.STARTED].append((self._as_last_started, (), {}))
+        engine._event_handlers[Events.STARTED].append((self._as_last_started, (engine,), {}))
 
         for e, m in zip(self._events, self._fmethods):
-            engine._event_handlers[e].insert(0, (m, (), {}))
+            engine._event_handlers[e].insert(0, (m, (engine,), {}))
 
         for e, m in zip(self._events, self._lmethods):
-            engine._event_handlers[e].append((m, (), {}))
+            engine._event_handlers[e].append((m, (engine,), {}))
 
         # Let's go
         self._event_handlers_timer.reset()
@@ -190,7 +190,7 @@ class BasicTimeProfiler:
             raise TypeError("Argument engine should be ignite.engine.Engine, " "but given {}".format(type(engine)))
 
         if not engine.has_event_handler(self._as_first_started):
-            engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (), {}))
+            engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
     @staticmethod
     def _compute_basic_stats(data):
