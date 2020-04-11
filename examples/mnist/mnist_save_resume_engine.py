@@ -137,7 +137,7 @@ def run(
     checkpoint_every,
     resume_from,
     crash_iteration=-1,
-    deterministic=False
+    deterministic=False,
 ):
 
     # Setup seed to have same model's initialization:
@@ -181,11 +181,13 @@ def run(
         writer.add_scalar("lr", lr, engine.state.iteration)
 
     if crash_iteration > 0:
+
         @trainer.on(Events.ITERATION_COMPLETED(once=crash_iteration))
         def _(engine):
             raise Exception("STOP at {}".format(engine.state.iteration))
 
     if resume_from is not None:
+
         @trainer.on(Events.STARTED)
         def _(engine):
             pbar.n = engine.state.iteration
@@ -294,5 +296,5 @@ if __name__ == "__main__":
         args.checkpoint_every,
         args.resume_from,
         crash_iteration=args.crash_iteration,
-        deterministic=args.deterministic
+        deterministic=args.deterministic,
     )

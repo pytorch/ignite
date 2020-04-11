@@ -483,8 +483,9 @@ class Engine:
         for k in self._state_dict_user_keys:
             if k not in state_dict:
                 raise ValueError(
-                    "Required user state attribute '{}' is absent in provided state_dict '{}'"
-                    .format(k, state_dict.keys())
+                    "Required user state attribute '{}' is absent in provided state_dict '{}'".format(
+                        k, state_dict.keys()
+                    )
                 )
 
         opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
