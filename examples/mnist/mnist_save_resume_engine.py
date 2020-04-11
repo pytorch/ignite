@@ -136,9 +136,12 @@ def run(
     log_dir,
     checkpoint_every,
     resume_from,
-    crash_iteration=1000,
+    crash_iteration=-1,
     deterministic=False
 ):
+
+    # Setup seed to have same model's initialization:
+    manual_seed(75)
 
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
@@ -155,6 +158,7 @@ def run(
 
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
     if deterministic:
+        tqdm.write("Setup deterministic trainer")
         make_deterministic(trainer, seed=12, cudnn_deterministic="cuda" in device)
 
     evaluator = create_supervised_evaluator(
@@ -168,13 +172,7 @@ def run(
     desc = "ITERATION - loss: {:.4f} - lr: {:.4f}"
     pbar = tqdm(initial=0, leave=False, total=len(train_loader), desc=desc.format(0, lr))
 
-    if log_interval is None:
-        e = Events.ITERATION_COMPLETED
-        log_interval = 1
-    else:
-        e = Events.ITERATION_COMPLETED(every=log_interval)
-
-    @trainer.on(e)
+    @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
         lr = optimizer.param_groups[0]["lr"]
         pbar.desc = desc.format(engine.state.output, lr)
@@ -182,14 +180,12 @@ def run(
         writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
         writer.add_scalar("lr", lr, engine.state.iteration)
 
-    if resume_from is None:
-
+    if crash_iteration > 0:
         @trainer.on(Events.ITERATION_COMPLETED(once=crash_iteration))
         def _(engine):
             raise Exception("STOP at {}".format(engine.state.iteration))
 
-    else:
-
+    if resume_from is not None:
         @trainer.on(Events.STARTED)
         def _(engine):
             pbar.n = engine.state.iteration
@@ -226,15 +222,15 @@ def run(
 
     objects_to_checkpoint = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     training_checkpoint = Checkpoint(
-        to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir, require_empty=False)
+        to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir, require_empty=False), n_saved=None
     )
 
-    trainer.add_event_handler(Events.ITERATION_STARTED(every=checkpoint_every), training_checkpoint)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=checkpoint_every), training_checkpoint)
 
     def log_event_filter(_, event):
         if event in [1, 2, 3]:
             return True
-        elif event % checkpoint_every in [0, 1, 2]:
+        elif 0 <= (event % checkpoint_every) < 5:
             return True
         return False
 
@@ -244,11 +240,12 @@ def run(
         trainer.add_event_handler(Events.ITERATION_COMPLETED(event_filter=log_event_filter), h, model=model, fp=fp)
 
     if resume_from is not None:
-        tqdm.write("Resume from a checkpoint: {}".format(resume_from))
-        checkpoint = torch.load(resume_from, map_location="cpu")
+        tqdm.write("Resume from the checkpoint: {}".format(resume_from))
+        checkpoint = torch.load(resume_from)
         Checkpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
 
-    manual_seed(12)
+        trainer.add_event_handler(Events.STARTED, log_model_weights, model=model, fp=fp)
+
     try:
         trainer.run(train_loader, max_epochs=epochs)
     except Exception as e:
@@ -279,7 +276,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--resume_from", type=str, default=None, help="Path to the checkpoint .pt file to resume training from"
     )
-    parser.add_argument("--crash_iteration", type=int, default=3000, help="Iteration at which to raise an exception")
+    parser.add_argument("--crash_iteration", type=int, default=-1, help="Iteration at which to raise an exception")
     parser.add_argument(
         "--deterministic", action="store_true", help="Deterministic training with dataflow synchronization"
     )
