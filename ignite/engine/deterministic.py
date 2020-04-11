@@ -155,7 +155,7 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
     if seed is None:
         seed = torch.randint(0, int(1e9), (1,)).item()
 
-    if cudnn_deterministic:
+    if torch.cuda.is_available() and cudnn_deterministic:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 

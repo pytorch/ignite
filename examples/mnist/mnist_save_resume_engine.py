@@ -29,6 +29,7 @@ from ignite.engine import Events, create_supervised_trainer, create_supervised_e
 from ignite.metrics import Accuracy, Loss
 from ignite.handlers import Checkpoint, DiskSaver
 from ignite.utils import manual_seed
+from ignite.engine.deterministic import make_deterministic
 
 
 class Net(nn.Module):
@@ -136,6 +137,7 @@ def run(
     checkpoint_every,
     resume_from,
     crash_iteration=1000,
+    deterministic=False
 ):
 
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
@@ -150,7 +152,11 @@ def run(
     criterion = nn.NLLLoss()
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     lr_scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
+
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+    if deterministic:
+        make_deterministic(trainer, seed=12, cudnn_deterministic="cuda" in device)
+
     evaluator = create_supervised_evaluator(
         model, metrics={"accuracy": Accuracy(), "nll": Loss(criterion)}, device=device
     )
@@ -220,7 +226,7 @@ def run(
 
     objects_to_checkpoint = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     training_checkpoint = Checkpoint(
-        to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir, require_empty=False), sync_dataflow=True
+        to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir, require_empty=False)
     )
 
     trainer.add_event_handler(Events.ITERATION_STARTED(every=checkpoint_every), training_checkpoint)
@@ -274,6 +280,9 @@ if __name__ == "__main__":
         "--resume_from", type=str, default=None, help="Path to the checkpoint .pt file to resume training from"
     )
     parser.add_argument("--crash_iteration", type=int, default=3000, help="Iteration at which to raise an exception")
+    parser.add_argument(
+        "--deterministic", action="store_true", help="Deterministic training with dataflow synchronization"
+    )
 
     args = parser.parse_args()
 
@@ -287,5 +296,6 @@ if __name__ == "__main__":
         args.log_dir,
         args.checkpoint_every,
         args.resume_from,
-        args.crash_iteration,
+        crash_iteration=args.crash_iteration,
+        deterministic=args.deterministic
     )

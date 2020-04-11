@@ -648,3 +648,16 @@ def test_concepts_snippet_warning():
         a = torch.rand(1)
 
     trainer.run(random_train_data_generator(), max_epochs=3, epoch_length=5)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_make_deterministic_with_cudnn_deterministic():
+
+    trainer = Engine(lambda e, b: None)
+    make_deterministic(trainer, cudnn_deterministic=True)
+
+
+def test_make_deterministic_without_seed():
+
+    trainer = Engine(lambda e, b: None)
+    make_deterministic(trainer)

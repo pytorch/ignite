@@ -4,7 +4,7 @@ from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
 import weakref
 import warnings
-from typing import Optional, Callable, Iterable, Any, Tuple
+from typing import Optional, Callable, Iterable, Any, Tuple, List
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import _check_signature
@@ -124,6 +124,7 @@ class Engine:
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self._state_dict_user_keys = []
         self._allowed_events = []
 
         self._dataloader_iter = None
@@ -413,8 +414,13 @@ class Engine:
         else:
             raise e
 
+    @property
+    def state_dict_user_keys(self) -> List:
+        return self._state_dict_user_keys
+
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "epoch_length", "max_epochs" and "iteration"
+        """Returns a dictionary containing engine's state: "epoch_length", "max_epochs" and "iteration" and
+        user keys if defined by `engine.state_dict_user_keys`
 
         Returns:
             dict:
@@ -424,6 +430,7 @@ class Engine:
         if self.state is None:
             return OrderedDict()
         keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
+        keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
@@ -455,12 +462,20 @@ class Engine:
                 raise ValueError(
                     "Required state attribute '{}' is absent in provided state_dict '{}'".format(k, state_dict.keys())
                 )
+        for k in self._state_dict_user_keys:
+            if k not in state_dict:
+                raise ValueError(
+                    "Required user state attribute '{}' is absent in provided state_dict '{}'"
+                    .format(k, state_dict.keys())
+                )
 
         opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
         if (not any(opts)) or (all(opts)):
             raise ValueError("state_dict should contain only one of '{}' keys".format(self._state_dict_one_of_opt_keys))
 
         self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"])
+        for k in self._state_dict_user_keys:
+            setattr(self.state, k, state_dict[k])
 
         if "iteration" in state_dict:
             self.state.iteration = state_dict["iteration"]

@@ -75,7 +75,7 @@ and user can resume the training from the latest checkpoint.
 
 Initial training with a crash
 ```bash
-python mnist_save_resume_engine.py
+python mnist_save_resume_engine.py --crash_iteration 700 --log_dir=logs
 ```
 
 Resume from the latest checkpoint
