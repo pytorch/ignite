@@ -53,10 +53,7 @@ def main(dataset_path, batch_size=256, max_epochs=10, opt="O1"):
     timer.attach(trainer, step=Events.EPOCH_COMPLETED)
     ProgressBar(persist=True).attach(trainer, output_transform=lambda out: {"batch loss": out})
 
-    metrics = {
-        "Accuracy": Accuracy(),
-        "Loss": Loss(criterion)
-    }
+    metrics = {"Accuracy": Accuracy(), "Loss": Loss(criterion)}
 
     evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
 

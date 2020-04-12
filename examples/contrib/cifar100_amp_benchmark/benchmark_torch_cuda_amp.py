@@ -3,6 +3,7 @@ import fire
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
+
 # Creates a GradScaler once at the beginning of training.
 from torch.cuda.amp import GradScaler, autocast
 
@@ -62,10 +63,7 @@ def main(dataset_path, batch_size=256, max_epochs=10):
     timer.attach(trainer, step=Events.EPOCH_COMPLETED)
     ProgressBar(persist=True).attach(trainer, output_transform=lambda out: {"batch loss": out})
 
-    metrics = {
-        "Accuracy": Accuracy(),
-        "Loss": Loss(criterion)
-    }
+    metrics = {"Accuracy": Accuracy(), "Loss": Loss(criterion)}
 
     evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
 
