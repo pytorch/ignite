@@ -47,7 +47,7 @@ def create_supervised_trainer(
         optimizer (`torch.optim.Optimizer`): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
-            Applies to batches and the model after starting the engine.
+            Applies to batches after starting the engine. Model *will not* be moved.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
@@ -55,8 +55,20 @@ def create_supervised_trainer(
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
+    Note:
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
         of the processed batch by default.
+
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: a trainer engine with supervised update function.
@@ -73,12 +85,6 @@ def create_supervised_trainer(
         return output_transform(x, y, y_pred, loss)
 
     trainer = Engine(_update)
-
-    if device is not None:
-
-        @trainer.on(Events.STARTED)
-        def move_model(engine):
-            model.to(device)
 
     return trainer
 
@@ -98,7 +104,7 @@ def create_supervised_evaluator(
         model (`torch.nn.Module`): the model to train.
         metrics (dict of str - :class:`~ignite.metrics.Metric`): a map of metric names to Metrics.
         device (str, optional): device type specification (default: None).
-            Applies to batches and the model after starting the engine.
+            Applies to batches after starting the engine. Model *will not* be moved.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
@@ -107,8 +113,20 @@ def create_supervised_evaluator(
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
+    Note:
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
+
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: an evaluator engine with supervised inference function.
@@ -123,12 +141,6 @@ def create_supervised_evaluator(
             return output_transform(x, y, y_pred)
 
     evaluator = Engine(_inference)
-
-    if device is not None:
-
-        @evaluator.on(Events.STARTED)
-        def move_model(engine):
-            model.to(device)
 
     for name, metric in metrics.items():
         metric.attach(evaluator, name)

@@ -50,19 +50,28 @@ def create_supervised_tbptt_trainer(
         tbtt_step (int): the length of time chunks (last one may be smaller).
         dim (int): axis representing the time dimension.
         device (str, optional): device type specification (default: None).
-            Applies to both model and batches.
+            Applies to batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU,
             the copy may occur asynchronously with respect to the host. For other cases,
             this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`,
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
 
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
     Returns:
         Engine: a trainer engine with supervised update function.
 
     """
-    if device:
-        model.to(device)
 
     def _update(engine, batch):
         loss_list = []

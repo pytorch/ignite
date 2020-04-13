@@ -11,7 +11,7 @@ def test_precision_recall_curve():
     size = 100
     np_y_pred = np.random.rand(size, 1)
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2:] = 1
+    np_y[size // 2 :] = 1
     sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y, np_y_pred)
 
     precision_recall_curve_metric = PrecisionRecallCurve()
@@ -32,7 +32,7 @@ def test_integration_precision_recall_curve_with_output_transform():
     size = 100
     np_y_pred = np.random.rand(size, 1)
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2:] = 1
+    np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
     sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y, np_y_pred)
@@ -41,8 +41,8 @@ def test_integration_precision_recall_curve_with_output_transform():
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx: idx + batch_size]
-        y_pred_batch = np_y_pred[idx: idx + batch_size]
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
@@ -65,7 +65,7 @@ def test_integration_precision_recall_curve_with_activated_output_transform():
     np_y_pred = np.random.rand(size, 1)
     np_y_pred_sigmoid = torch.sigmoid(torch.from_numpy(np_y_pred)).numpy()
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2:] = 1
+    np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
     sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y, np_y_pred_sigmoid)
@@ -74,8 +74,8 @@ def test_integration_precision_recall_curve_with_activated_output_transform():
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx: idx + batch_size]
-        y_pred_batch = np_y_pred[idx: idx + batch_size]
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)

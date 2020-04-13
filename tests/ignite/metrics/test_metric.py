@@ -342,9 +342,9 @@ def test_detach():
     m2.detach(engine)
     engine.run(range(10), 5)
 
-    assert 'm1' not in engine.state.metrics
-    assert 'm2_1' not in engine.state.metrics
-    assert 'm2_2' not in engine.state.metrics
+    assert "m1" not in engine.state.metrics
+    assert "m2_1" not in engine.state.metrics
+    assert "m2_2" not in engine.state.metrics
 
     assert not m1.is_attached(engine)
     assert not m2.is_attached(engine)

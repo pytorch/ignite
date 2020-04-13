@@ -5,7 +5,7 @@ from collections.abc import Mapping
 import weakref
 import random
 import warnings
-from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
+from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple, List
 
 import torch
 
@@ -127,6 +127,7 @@ class Engine:
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self._state_dict_user_keys = []
         self._allowed_events = []
 
         self._dataloader_iter = None
@@ -137,7 +138,7 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        _check_signature(self, process_function, "process_function", None)
+        _check_signature(process_function, "process_function", self, None)
 
     def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
@@ -214,14 +215,13 @@ class Engine:
             event_name: An event or a list of events to attach the handler. Valid events are
                 from :class:`~ignite.engine.Events` or any `event_name` added by
                 :meth:`~ignite.engine.Engine.register_events`.
-            handler (callable): the callable event handler that should be invoked
+            handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
+                The first argument can be optionally `engine`, the :class:`~ignite.engine.Engine` object, handler is
+                bound to.
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
-            The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
-            was bound to.
-
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
@@ -241,10 +241,11 @@ class Engine:
 
             events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
 
-            def execute_validation(engine):
-                # do some validations
+            def execute_something():
+                # do some thing not related to engine
+                pass
 
-            engine.add_event_handler(events_list, execute_validation)
+            engine.add_event_handler(events_list, execute_something)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
@@ -267,9 +268,12 @@ class Engine:
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
-        _check_signature(self, handler, "handler", *(event_args + args), **kwargs)
-
-        self._event_handlers[event_name].append((handler, args, kwargs))
+        try:
+            _check_signature(handler, "handler", self, *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, (self,) + args, kwargs))
+        except ValueError:
+            _check_signature(handler, "handler", *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
@@ -342,6 +346,20 @@ class Engine:
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
+        Example usage:
+
+        .. code-block:: python
+
+            engine = Engine(process_function)
+
+            @engine.on(Events.EPOCH_COMPLETED)
+            def print_epoch():
+                print("Epoch: {}".format(engine.state.epoch))
+
+            @engine.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
+            def execute_something():
+                # do some thing not related to engine
+                pass
         """
 
         def decorator(f: Callable) -> Callable:
@@ -371,7 +389,8 @@ class Engine:
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
-                func(self, *(event_args + args), **kwargs)
+                first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
+                func(*first, *(event_args + others), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
@@ -486,24 +505,49 @@ class Engine:
         else:
             raise e
 
+    @property
+    def state_dict_user_keys(self) -> List:
+        return self._state_dict_user_keys
+
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration"
+        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration" and
+        other state values defined by `engine.state_dict_user_keys`
+
+        .. code-block:: python
+
+            engine = Engine(...)
+            engine.state_dict_user_keys.append("alpha")
+            engine.state_dict_user_keys.append("beta")
+            ...
+
+            @engine.on(Events.STARTED)
+            def init_user_value(_):
+                 engine.state.alpha = 0.1
+                 engine.state.beta = 1.0
+
+            @engine.on(Events.COMPLETED)
+            def save_engine(_):
+                state_dict = engine.state_dict()
+                assert "alpha" in state_dict and "beta" in state_dict
+                torch.save(state_dict, "/tmp/engine.pt")
 
         Returns:
-            dict:
+            OrderedDict:
                 a dictionary containing engine's state
 
         """
         if self.state is None:
             return OrderedDict()
         keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
+        keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
-        `seed`. Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+        `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
+        Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -529,6 +573,13 @@ class Engine:
                 raise ValueError(
                     "Required state attribute '{}' is absent in provided state_dict '{}'".format(k, state_dict.keys())
                 )
+        for k in self._state_dict_user_keys:
+            if k not in state_dict:
+                raise ValueError(
+                    "Required user state attribute '{}' is absent in provided state_dict '{}'".format(
+                        k, state_dict.keys()
+                    )
+                )
 
         opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
         if (not any(opts)) or (all(opts)):
@@ -540,6 +591,8 @@ class Engine:
             epoch_length=state_dict["epoch_length"],
             metrics={},
         )
+        for k in self._state_dict_user_keys:
+            setattr(self.state, k, state_dict[k])
 
         if "iteration" in state_dict:
             self.state.iteration = state_dict["iteration"]
