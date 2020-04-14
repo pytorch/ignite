@@ -106,10 +106,10 @@ def dump(train_batch_size, val_batch_size, lr, momentum, log_interval):
 
 def load(epochs):
 
-    with open('trainer.pkl', 'rb') as file:
+    with open("trainer.pkl", "rb") as file:
         trainer = dill.load(file)
 
-    with open('train_loader.pkl', 'rb') as file:
+    with open("train_loader.pkl", "rb") as file:
         train_loader = dill.load(file)
 
     trainer.run(train_loader, max_epochs=epochs)
@@ -129,9 +129,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log_interval", type=int, default=10, help="how many batches to wait before logging training status"
     )
-    parser.add_argument(
-        "--dill", type=int, default=0, help="dill : 0 dump, 1 load"
-    )
+    parser.add_argument("--dill", type=int, default=0, help="dill : 0 dump, 1 load")
 
     args = parser.parse_args()
 
