@@ -117,10 +117,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         pbar.close()
 
 
-def init_process(args, fn, backend='gloo'):
+def init_process(args, fn, backend="gloo"):
     """ Initialize the distributed environment. """
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
     fn(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_interval)
 

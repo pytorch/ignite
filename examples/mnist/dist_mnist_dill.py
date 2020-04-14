@@ -116,27 +116,27 @@ def run(epochs):
 
     rank = dist.get_rank()
 
-    with open("trainer.{}.pkl".format(rank), 'rb') as file:
+    with open("trainer.{}.pkl".format(rank), "rb") as file:
         trainer = dill.load(file)
 
-    with open("train_loader.{}.pkl".format(rank), 'rb') as file:
+    with open("train_loader.{}.pkl".format(rank), "rb") as file:
         train_loader = dill.load(file)
 
     trainer.run(train_loader, max_epochs=epochs)
 
 
-def init_process_for_prepare(args, backend='gloo'):
+def init_process_for_prepare(args, backend="gloo"):
     """ Initialize the distributed environment. """
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
     prepare_and_save(args.batch_size, args.val_batch_size, args.lr, args.momentum)
 
 
-def init_process_for_run(args, backend='gloo'):
+def init_process_for_run(args, backend="gloo"):
     """ Initialize the distributed environment. """
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(backend, rank=rank, world_size=size)
     run(args.epochs)
 
