@@ -5,6 +5,7 @@ from collections.abc import Mapping
 import weakref
 import random
 import warnings
+import functools
 from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple, List
 
 import torch
@@ -197,12 +198,14 @@ class Engine:
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
 
-    @staticmethod
-    def _handler_wrapper(handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
-        def wrapper(engine: Engine, *args, **kwargs) -> Any:
-            event = engine.state.get_event_attrib_value(event_name)
-            if event_filter(engine, event):
-                return handler(engine, *args, **kwargs)
+    def _handler_wrapper(self, handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
+        # signature of the following wrapper will be inspected during registering to check if engine is necessary
+        # we have to build a wrapper with relevant signature : solution is functools.wrapsgit s
+        @functools.wraps(handler)
+        def wrapper(*args, **kwargs) -> Any:
+            event = self.state.get_event_attrib_value(event_name)
+            if event_filter(self, event):
+                return handler(*args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
         wrapper._parent = weakref.ref(handler)
@@ -261,7 +264,7 @@ class Engine:
             and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             event_filter = event_name.filter
-            handler = Engine._handler_wrapper(handler, event_name, event_filter)
+            handler = self._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
             self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
