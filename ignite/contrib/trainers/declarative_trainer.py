@@ -25,8 +25,8 @@ log = logging.getLogger(__name__)
 
 __all__ = ["NetworkTrain"]
 
-""" 
-Copied from https://github.com/pytorch/ignite/blob/v0.2.1/ignite/handlers/checkpoint.py 
+"""
+Copied from https://github.com/pytorch/ignite/blob/v0.2.1/ignite/handlers/checkpoint.py
 due to the change in ignite v0.3.0
 """
 
@@ -227,13 +227,13 @@ class NetworkTrain:
 
     def __call__(self, model, train_dataset, val_dataset=None, parameters=None):
         """ Train a PyTorch model.
-        
+
         Args:
             model (torch.nn.Module): PyTorch model to train.
             train_dataset (torch.utils.data.Dataset): Dataset used to train.
             val_dataset (torch.utils.data, optional): Dataset used to validate.
             parameters (dict, optional) : Ignored.
-        
+
         Returns:
             trained_model (torch.nn.Module): Trained PyTorch model.
         """

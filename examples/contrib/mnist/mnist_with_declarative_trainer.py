@@ -49,13 +49,16 @@ if __name__ == "__main__":
             "accuracy": Accuracy(),
             "loss": Loss(loss_fn=nn.NLLLoss()),
         },
-        # [Optional] evaluate_train_data (when to compute evaluation metrics using train_dataset) accepts events at https://pytorch.org/ignite/engine.html#ignite.engine.Events
+        # [Optional] evaluate_train_data (when to compute evaluation metrics using train_dataset)
+        # accepts events at https://pytorch.org/ignite/engine.html#ignite.engine.Events
         "evaluate_train_data": "EPOCH_COMPLETED",
-        # [Optional] evaluate_val_data (when to compute evaluation metrics using val_dataset) accepts events at https://pytorch.org/ignite/engine.html#ignite.engine.Events
+        # [Optional] evaluate_val_data (when to compute evaluation metrics using val_dataset)
+        # accepts events at https://pytorch.org/ignite/engine.html#ignite.engine.Events
         "evaluate_val_data": "EPOCH_COMPLETED",
         # [Optional] progress_update (whether to show progress bar using tqdm package) accepts bool
         "progress_update": True,
-        # [Optional] param scheduler at https://pytorch.org/ignite/contrib/handlers.html#module-ignite.contrib.handlers.param_scheduler
+        # [Optional] param scheduler at
+        # https://pytorch.org/ignite/contrib/handlers.html#module-ignite.contrib.handlers.param_scheduler
         "scheduler": LinearCyclicalScheduler,
         # [Optional] scheduler_params accepts parameters for the specified scheduler
         "scheduler_params": {
@@ -68,12 +71,14 @@ if __name__ == "__main__":
             "end_value_mult": 1.0,
             "save_history": False,
         },
-        # [Optional] parameters for flexible version of ModelCheckpoint at https://pytorch.org/ignite/handlers.html#ignite.handlers.ModelCheckpoint
+        # [Optional] parameters for flexible version of ModelCheckpoint at
+        # https://pytorch.org/ignite/handlers.html#ignite.handlers.ModelCheckpoint
         "model_checkpoint_params": {
             # a parameter for ignite.handlers.ModelCheckpoint
             "dirname": "../checkpoint",
             # a parameter for ignite.handlers.ModelCheckpoint
-            # file_name_prefix accepts timestamp format at https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime-behaviors
+            # file_name_prefix accepts timestamp format at
+            # https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime-behaviors
             "filename_prefix": "%Y-%m-%dT%H-%M-%S",
             # a parameter for ignite.handlers.ModelCheckpoint
             "save_interval": None,
@@ -87,10 +92,12 @@ if __name__ == "__main__":
             "create_dir": True,
             # a parameter for ignite.handlers.ModelCheckpoint
             "save_as_state_dict": True,
-            # offset_hours (hours to add to GMT, typically the time zone in your location, to generate the timestamp in filename_prefix)
+            # offset_hours (hours to add to GMT, typically the time zone in your location,
+            # to generate the timestamp in filename_prefix)
             "offset_hours": 0,
         },
-        # [Optional] parameters for flexible version of EarlyStopping at https://pytorch.org/ignite/handlers.html#ignite.handlers.EarlyStopping
+        # [Optional] parameters for flexible version of EarlyStopping at
+        # https://pytorch.org/ignite/handlers.html#ignite.handlers.EarlyStopping
         "early_stopping_params": {
             # metric (metric to monitor to determine whether to stop early) accepts str
             "metric": "loss",
