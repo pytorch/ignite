@@ -23,7 +23,20 @@ class BasicTimeProfiler:
         profiler.attach(trainer)
         trainer.run(dataloader, max_epochs=3)
 
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def log_intermediate_results():
+            profiler.print_results(profiler.get_results())
+
+        profiler.write_results('path_to_dir/time_profiling.csv')
+
     """
+
+    events_to_ignore = [
+        Events.EXCEPTION_RAISED,
+        Events.TERMINATE,
+        Events.TERMINATE_SINGLE_EPOCH,
+        Events.DATALOADER_STOP_ITERATION,
+    ]
 
     def __init__(self):
         self._dataflow_timer = Timer()
@@ -90,9 +103,10 @@ class BasicTimeProfiler:
             e: [
                 h.__qualname__ if hasattr(h, "__qualname__") else h.__class__.__name__
                 for (h, _, _) in engine._event_handlers[e]
+                if "BasicTimeProfiler." not in repr(h)  # avoid adding internal handlers into output
             ]
             for e in Events
-            if e != Events.EXCEPTION_RAISED
+            if e not in self.events_to_ignore
         }
 
         # Setup all other handlers:
@@ -194,15 +208,17 @@ class BasicTimeProfiler:
 
     @staticmethod
     def _compute_basic_stats(data):
-        return OrderedDict(
-            [
+        # compute on non-zero data:
+        data = data[data > 0]
+        out = [("total", torch.sum(data).item() if len(data) > 0 else "not yet triggered")]
+        if len(data) > 1:
+            out += [
                 ("min/index", (torch.min(data).item(), torch.argmin(data).item())),
                 ("max/index", (torch.max(data).item(), torch.argmax(data).item())),
                 ("mean", torch.mean(data).item()),
                 ("std", torch.std(data).item()),
-                ("total", torch.sum(data).item()),
             ]
-        )
+        return OrderedDict(out)
 
     def get_results(self):
         """
@@ -213,13 +229,7 @@ class BasicTimeProfiler:
             results = profiler.get_results()
 
         """
-        events_to_ignore = [
-            Events.EXCEPTION_RAISED,
-            Events.TERMINATE,
-            Events.TERMINATE_SINGLE_EPOCH,
-            Events.DATALOADER_STOP_ITERATION,
-        ]
-        total_eh_time = sum([sum(self.event_handlers_times[e]) for e in Events if e not in events_to_ignore])
+        total_eh_time = sum([(self.event_handlers_times[e]).sum() for e in Events if e not in self.events_to_ignore])
 
         return OrderedDict(
             [
@@ -231,7 +241,7 @@ class BasicTimeProfiler:
                         [
                             (str(e.name).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
                             for e in Events
-                            if e not in events_to_ignore
+                            if e not in self.events_to_ignore
                         ]
                         + [("total_time", total_eh_time)]
                     ),
@@ -338,32 +348,29 @@ class BasicTimeProfiler:
             - Time profiling results:
             --------------------------------------------
             Processing function time stats (in seconds):
-                min/index: (2.9754010029137135e-05, 0)
-                max/index: (2.9754010029137135e-05, 0)
-                mean: 2.9754010029137135e-05
-                std: nan
-                total: 2.9754010029137135e-05
+                min/index: (1.3081999895803165e-05, 1)
+                max/index: (1.433099987480091e-05, 0)
+                mean: 1.3706499885302037e-05
+                std: 8.831763693706307e-07
+                total: 2.7412999770604074e-05
 
             Dataflow time stats (in seconds):
-                min/index: (0.2523871660232544, 0)
-                max/index: (0.2523871660232544, 0)
-                mean: 0.2523871660232544
-                std: nan
-                total: 0.2523871660232544
+                min/index: (5.199999941396527e-05, 0)
+                max/index: (0.00010925399692496285, 1)
+                mean: 8.062699635047466e-05
+                std: 4.048469054396264e-05
+                total: 0.0001612539927009493
+
 
             Time stats of event handlers (in seconds):
             - Total time spent:
                 1.0080009698867798
 
             - Events.STARTED:
-                min/index: (0.1256754994392395, 0)
-                max/index: (0.1256754994392395, 0)
-                mean: 0.1256754994392395
-                std: nan
                 total: 0.1256754994392395
 
             Handlers names:
-            ['BasicTimeProfiler._as_first_started', 'delay_start']
+            ['delay_start']
             --------------------------------------------
         """
 

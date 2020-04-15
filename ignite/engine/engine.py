@@ -4,6 +4,7 @@ from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
 import weakref
 import warnings
+import functools
 from typing import Optional, Callable, Iterable, Any, Tuple, List
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
@@ -194,12 +195,14 @@ class Engine:
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
 
-    @staticmethod
-    def _handler_wrapper(handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
-        def wrapper(engine: Engine, *args, **kwargs) -> Any:
-            event = engine.state.get_event_attrib_value(event_name)
-            if event_filter(engine, event):
-                return handler(engine, *args, **kwargs)
+    def _handler_wrapper(self, handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
+        # signature of the following wrapper will be inspected during registering to check if engine is necessary
+        # we have to build a wrapper with relevant signature : solution is functools.wrapsgit s
+        @functools.wraps(handler)
+        def wrapper(*args, **kwargs) -> Any:
+            event = self.state.get_event_attrib_value(event_name)
+            if event_filter(self, event):
+                return handler(*args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
         wrapper._parent = weakref.ref(handler)
@@ -258,7 +261,7 @@ class Engine:
             and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             event_filter = event_name.filter
-            handler = Engine._handler_wrapper(handler, event_name, event_filter)
+            handler = self._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
             self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
@@ -282,7 +285,7 @@ class Engine:
             and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             raise TypeError(
-                "Argument event_name should not be a filtered event, please use event without any event filtering"
+                "Argument event_name should not be a filtered event, " "please use event without any event filtering"
             )
 
     def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None):
@@ -290,7 +293,8 @@ class Engine:
 
         Args:
             handler (callable): the callable event handler.
-            event_name: The event the handler attached to. Set this to ``None`` to search all events.
+            event_name: The event the handler attached to. Set this
+                to ``None`` to search all events.
         """
         if event_name is not None:
             self._assert_non_filtered_event(event_name)
@@ -437,11 +441,29 @@ class Engine:
         return self._state_dict_user_keys
 
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "epoch_length", "max_epochs" and "iteration" and
-        user keys if defined by `engine.state_dict_user_keys`
+        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration" and
+        other state values defined by `engine.state_dict_user_keys`
+
+        .. code-block:: python
+
+            engine = Engine(...)
+            engine.state_dict_user_keys.append("alpha")
+            engine.state_dict_user_keys.append("beta")
+            ...
+
+            @engine.on(Events.STARTED)
+            def init_user_value(_):
+                 engine.state.alpha = 0.1
+                 engine.state.beta = 1.0
+
+            @engine.on(Events.COMPLETED)
+            def save_engine(_):
+                state_dict = engine.state_dict()
+                assert "alpha" in state_dict and "beta" in state_dict
+                torch.save(state_dict, "/tmp/engine.pt")
 
         Returns:
-            dict:
+            OrderedDict:
                 a dictionary containing engine's state
 
         """
@@ -454,8 +476,9 @@ class Engine:
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
-        State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length`.
-        Values for iteration or epoch should be set as `required_value - 1`.
+        State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
+        `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
+        Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -492,7 +515,7 @@ class Engine:
         if (not any(opts)) or (all(opts)):
             raise ValueError("state_dict should contain only one of '{}' keys".format(self._state_dict_one_of_opt_keys))
 
-        self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"])
+        self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"], metrics={},)
         for k in self._state_dict_user_keys:
             setattr(self.state, k, state_dict[k])
 
@@ -520,8 +543,7 @@ class Engine:
 
         - At the first call, new state is defined by `max_epochs`, `epoch_length` if provided.
         - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
-            provided, state is kept and used in the function. In this case, we also synchronize random states to the
-            provided iteration.
+            provided, state is kept and used in the function.
         - If state is defined and engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
         - If state is defined, engine is NOT "done", then input arguments if provided override defined state.
 
@@ -529,6 +551,7 @@ class Engine:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
             max_epochs (int, optional): Max epochs to run for (default: None).
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
+                This argument should be `None` if run is resuming from a state.
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
                 This argument should be `None` if run is resuming from a state.

@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from collections.abc import Mapping
@@ -26,6 +27,26 @@ def test_state_dict():
     _test(State(epoch=5, epoch_length=1000, max_epochs=100))
 
 
+def test_state_dict_with_user_keys():
+    engine = Engine(lambda e, b: 1)
+    engine.state_dict_user_keys.append("alpha")
+    engine.state_dict_user_keys.append("beta")
+
+    def _test(state):
+        engine.state = state
+        sd = engine.state_dict()
+        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1 + len(
+            engine.state_dict_user_keys
+        )
+        assert sd["iteration"] == engine.state.iteration
+        assert sd["epoch_length"] == engine.state.epoch_length
+        assert sd["max_epochs"] == engine.state.max_epochs
+        assert sd["alpha"] == engine.state.alpha
+        assert sd["beta"] == engine.state.beta
+
+    _test(State(iteration=500, epoch_length=1000, max_epochs=100, alpha=0.01, beta="Good"))
+
+
 def test_state_dict_integration():
     engine = Engine(lambda e, b: 1)
     data = range(100)
@@ -52,6 +73,11 @@ def test_load_state_dict_asserts():
     with pytest.raises(ValueError, match=r"state_dict should contain only one of"):
         engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12, "epoch": 123})
 
+    engine = Engine(lambda e, b: 1)
+    engine.state_dict_user_keys.append("alpha")
+    with pytest.raises(ValueError, match=r"Required user state attribute "):
+        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12, "epoch": 123})
+
 
 def test_load_state_dict():
     engine = Engine(lambda e, b: 1)
@@ -67,6 +93,25 @@ def test_load_state_dict():
 
     _test({"max_epochs": 100, "epoch_length": 120, "iteration": 123})
     _test({"max_epochs": 100, "epoch_length": 120, "epoch": 5})
+
+
+def test_load_state_dict_with_user_keys():
+    engine = Engine(lambda e, b: 1)
+    engine.state_dict_user_keys.append("alpha")
+    engine.state_dict_user_keys.append("beta")
+
+    def _test(sd):
+        engine.load_state_dict(sd)
+        if "iteration" in sd:
+            assert sd["iteration"] == engine.state.iteration
+        elif "epoch" in sd:
+            assert sd["epoch"] == engine.state.epoch
+        assert sd["epoch_length"] == engine.state.epoch_length
+        assert sd["max_epochs"] == engine.state.max_epochs
+        assert sd["alpha"] == engine.state.alpha
+        assert sd["beta"] == engine.state.beta
+
+    _test({"max_epochs": 100, "epoch_length": 120, "iteration": 123, "alpha": 0.1, "beta": "abc"})
 
 
 def test_load_state_dict_integration():
@@ -103,6 +148,29 @@ def test_load_state_dict_with_params_overriding_integration():
     with pytest.raises(ValueError, match=r"Argument epoch_length should be same as in the state"):
         engine.load_state_dict(state_dict)
         engine.run(data, epoch_length=90)
+
+
+def test_state_dict_with_user_keys_integration(dirname):
+    engine = Engine(lambda e, b: 1)
+    engine.state_dict_user_keys.append("alpha")
+
+    @engine.on(Events.STARTED)
+    def init_user_values(_):
+        engine.state.alpha = 0.1
+
+    fp = os.path.join(dirname, "engine.pt")
+
+    @engine.on(Events.COMPLETED)
+    def save_engine(_):
+        state_dict = engine.state_dict()
+        assert "alpha" in state_dict
+        torch.save(state_dict, fp)
+
+    engine.run([0, 1])
+
+    assert os.path.exists(fp)
+    state_dict = torch.load(fp)
+    assert "alpha" in state_dict and state_dict["alpha"] == 0.1
 
 
 def test_epoch_length():
