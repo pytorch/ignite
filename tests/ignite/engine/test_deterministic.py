@@ -6,6 +6,7 @@ from unittest.mock import patch
 import numpy as np
 
 import torch
+import torch.nn as nn
 
 from ignite.engine import Engine, Events
 
@@ -661,3 +662,118 @@ def test_make_deterministic_without_seed():
 
     trainer = Engine(lambda e, b: None)
     make_deterministic(trainer)
+
+
+def _test_gradients_on_resume(dirname, device):
+
+    from torch.utils.data import DataLoader
+    from torch.optim import SGD
+
+    def random_train_data_loader(size):
+        data = torch.rand(size, 10)
+        return DataLoader(data, batch_size=2, shuffle=True)
+
+    def _train(save_iter, resume_iter=None, sd=None):
+        w_norms = []
+        grad_norms = []
+        data = []
+        chkpt = []
+
+        manual_seed(12)
+        model = nn.Sequential(nn.Linear(10, 5), nn.ReLU(), nn.Linear(5, 2),).to(device)
+        opt = SGD(model.parameters(), lr=0.001)
+
+        def proc_fn(e, b):
+            model.train()
+            opt.zero_grad()
+            y = model(b.to(device))
+            y.sum().backward()
+            opt.step()
+
+        trainer = Engine(proc_fn)
+        make_deterministic(trainer)
+
+        @trainer.on(Events.ITERATION_COMPLETED(once=save_iter))
+        def save_chkpt(_):
+            total = 0.0
+            out = []
+            for p in model.parameters():
+                n1 = torch.norm(p).item()
+                out.append(n1)
+                total += n1
+            print("saved W:", [trainer.state.iteration, total] + out)
+            fp = os.path.join(dirname, "test.pt")
+            torch.save([model.state_dict(), opt.state_dict()], fp)
+            chkpt.append(fp)
+
+        def log_event_filter(_, event):
+            if (event // save_iter == 1) and 1 <= (event % save_iter) <= 5:
+                return True
+            return False
+
+        @trainer.on(Events.ITERATION_COMPLETED(event_filter=log_event_filter))
+        def write_data_grads_weights(e):
+            x = e.state.batch
+            i = e.state.iteration
+            data.append([i, x.mean().item(), x.std().item()])
+
+            total = [0.0, 0.0]
+            out1 = []
+            out2 = []
+            for p in model.parameters():
+                n1 = torch.norm(p).item()
+                n2 = torch.norm(p.grad).item()
+                out1.append(n1)
+                out2.append(n2)
+                total[0] += n1
+                total[1] += n2
+            w_norms.append([i, total[0]] + out1)
+            grad_norms.append([i, total[1]] + out2)
+
+        if resume_iter is not None:
+            assert sd is not None
+            sd = torch.load(sd)
+            model.load_state_dict(sd[0])
+            opt.load_state_dict(sd[1])
+            e_sd = {"iteration": resume_iter, "max_epochs": 10, "epoch_length": 5}
+            trainer.load_state_dict(e_sd)
+
+            total = 0.0
+            out = []
+            for p in model.parameters():
+                n1 = torch.norm(p).item()
+                out.append(n1)
+                total += n1
+            print("loaded W:", [trainer.state.iteration, total] + out)
+
+        trainer.run(random_train_data_loader(size=10), max_epochs=10)
+
+        assert trainer.state.epoch == 10
+
+        return {"resume_iter": save_iter, "sd": chkpt, "data": data, "grads": grad_norms, "weights": w_norms}
+
+    save_iter = 25
+    out_original = _train(save_iter=save_iter)
+    assert len(out_original["sd"]) > 0
+    out_resumed = _train(save_iter=save_iter, resume_iter=out_original["resume_iter"], sd=out_original["sd"][0])
+
+    # check data:
+    for d1, d2 in zip(out_original["data"], out_resumed["data"]):
+        assert d1 == d2
+
+    # check grads:
+    for d1, d2 in zip(out_original["grads"], out_resumed["grads"]):
+        assert d1 == d2
+
+    # check weights:
+    for d1, d2 in zip(out_original["weights"], out_resumed["weights"]):
+        assert d1 == d2
+
+
+def test_gradients_on_resume_cpu(dirname):
+    _test_gradients_on_resume(dirname, "cpu")
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_gradients_on_resume_gpu(dirname):
+    _test_gradients_on_resume(dirname, "cuda")
