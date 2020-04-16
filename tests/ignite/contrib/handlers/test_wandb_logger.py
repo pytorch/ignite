@@ -29,14 +29,14 @@ def test_optimizer_params():
     mock_engine.state.iteration = 123
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"lr/group_0": 0.01}, step=123)
+    mock_logger.log.assert_called_once_with({"lr/group_0": 0.01}, step=123, sync=None)
 
     wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"generator/lr/group_0": 0.01}, step=123)
+    mock_logger.log.assert_called_once_with({"generator/lr/group_0": 0.01}, step=123, sync=None)
 
 
 def test_output_handler_with_wrong_logger_type():
