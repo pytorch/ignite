@@ -71,30 +71,17 @@ if __name__ == "__main__":
             "end_value_mult": 1.0,
             "save_history": False,
         },
-        # [Optional] parameters for flexible version of ModelCheckpoint at
+        # [Optional] parameters for ModelCheckpoint at
         # https://pytorch.org/ignite/handlers.html#ignite.handlers.ModelCheckpoint
         "model_checkpoint_params": {
-            # a parameter for ignite.handlers.ModelCheckpoint
             "dirname": "../checkpoint",
-            # a parameter for ignite.handlers.ModelCheckpoint
-            # file_name_prefix accepts timestamp format at
-            # https://docs.python.org/3.6/library/datetime.html#strftime-and-strptime-behaviors
-            "filename_prefix": "%Y-%m-%dT%H-%M-%S",
-            # a parameter for ignite.handlers.ModelCheckpoint
+            "filename_prefix": "model",
             "save_interval": None,
-            # a parameter for ignite.handlers.ModelCheckpoint
             "n_saved": 1,
-            # a parameter for ignite.handlers.ModelCheckpoint
             "atomic": True,
-            # a parameter for ignite.handlers.ModelCheckpoint
             "require_empty": True,
-            # a parameter for ignite.handlers.ModelCheckpoint
             "create_dir": True,
-            # a parameter for ignite.handlers.ModelCheckpoint
             "save_as_state_dict": True,
-            # offset_hours (hours to add to GMT, typically the time zone in your location,
-            # to generate the timestamp in filename_prefix)
-            "offset_hours": 0,
         },
         # [Optional] parameters for flexible version of EarlyStopping at
         # https://pytorch.org/ignite/handlers.html#ignite.handlers.EarlyStopping
