@@ -73,7 +73,7 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 
 def create_summary_writer(model, data_loader, log_dir):
-    writer = SummaryWriter(logdir=log_dir)
+    writer = SummaryWriter(log_dir=log_dir)
     data_loader_iter = iter(data_loader)
     x, y = next(data_loader_iter)
     try:
@@ -92,6 +92,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
     if torch.cuda.is_available():
         device = "cuda"
 
+    model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
     evaluator = create_supervised_evaluator(

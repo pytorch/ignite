@@ -77,7 +77,7 @@ def setup_common_training_handlers(
         device=device,
     )
     if dist.is_available() and dist.is_initialized():
-        return _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
+        _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
     else:
         if train_sampler is not None:
             warnings.warn(
@@ -85,7 +85,7 @@ def setup_common_training_handlers(
                 "started event, but no distributed setting detected",
                 UserWarning,
             )
-        return _setup_common_training_handlers(trainer, **kwargs)
+        _setup_common_training_handlers(trainer, **kwargs)
 
 
 setup_common_distrib_training_handlers = setup_common_training_handlers
@@ -117,7 +117,7 @@ def _setup_common_training_handlers(
     if to_save is not None:
         if output_path is None:
             raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training")
+        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training", require_empty=False)
         trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
 
     if with_gpu_stats:
@@ -195,10 +195,8 @@ def _setup_common_distrib_training_handlers(
         if to_save is not None:
             if output_path is None:
                 raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-            checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training")
+            checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training", require_empty=False)
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
-
-    return trainer
 
 
 def empty_cuda_cache(_):

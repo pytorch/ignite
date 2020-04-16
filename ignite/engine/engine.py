@@ -5,11 +5,12 @@ from collections.abc import Mapping
 import weakref
 import random
 import warnings
-from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple
+import functools
+from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple, List
 
 import torch
 
-from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle
+from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
 from ignite._utils import _to_hours_mins_secs
 
@@ -127,6 +128,7 @@ class Engine:
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = None
+        self._state_dict_user_keys = []
         self._allowed_events = []
 
         self._dataloader_iter = None
@@ -137,9 +139,9 @@ class Engine:
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
 
-        _check_signature(self, process_function, "process_function", None)
+        _check_signature(process_function, "process_function", self, None)
 
-    def register_events(self, *event_names: Union[str, int, Any], event_to_attr: Optional[dict] = None) -> None:
+    def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -157,7 +159,7 @@ class Engine:
 
         .. code-block:: python
 
-            from ignite.engine import Engine, EvenEnum
+            from ignite.engine import Engine, EventEnum
 
             class CustomEvents(EventEnum):
                 FOO_EVENT = "foo_event"
@@ -196,36 +198,38 @@ class Engine:
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
 
-    @staticmethod
-    def _handler_wrapper(handler: Callable, event_name: str, event_filter: Callable) -> Callable:
-        def wrapper(engine: Engine, *args, **kwargs) -> Any:
-            event = engine.state.get_event_attrib_value(event_name)
-            if event_filter(engine, event):
-                return handler(engine, *args, **kwargs)
+    def _handler_wrapper(self, handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
+        # signature of the following wrapper will be inspected during registering to check if engine is necessary
+        # we have to build a wrapper with relevant signature : solution is functools.wrapsgit s
+        @functools.wraps(handler)
+        def wrapper(*args, **kwargs) -> Any:
+            event = self.state.get_event_attrib_value(event_name)
+            if event_filter(self, event):
+                return handler(*args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name: str, handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Any, handler: Callable, *args, **kwargs):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
-            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
-            handler (callable): the callable event handler that should be invoked
+            event_name: An event or a list of events to attach the handler. Valid events are
+                from :class:`~ignite.engine.Events` or any `event_name` added by
+                :meth:`~ignite.engine.Engine.register_events`.
+            handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
+                The first argument can be optionally `engine`, the :class:`~ignite.engine.Engine` object, handler is
+                bound to.
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
         Note:
-            The handler function's first argument will be `self`, the :class:`~ignite.engine.Engine` object it
-            was bound to.
-
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
             passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandler`, which can be used to remove the handler.
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
 
         Example usage:
 
@@ -238,33 +242,47 @@ class Engine:
 
             engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
+            events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
+
+            def execute_something():
+                # do some thing not related to engine
+                pass
+
+            engine.add_event_handler(events_list, execute_something)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
             See :class:`~ignite.engine.Events` for more details.
 
         """
+        if isinstance(event_name, EventsList):
+            for e in event_name:
+                self.add_event_handler(e, handler, *args, **kwargs)
+            return RemovableEventHandle(event_name, handler, self)
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             event_filter = event_name.filter
-            handler = Engine._handler_wrapper(handler, event_name, event_filter)
+            handler = self._handler_wrapper(handler, event_name, event_filter)
 
         if event_name not in self._allowed_events:
             self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
             raise ValueError("Event {} is not a valid event for this Engine.".format(event_name))
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
-        _check_signature(self, handler, "handler", *(event_args + args), **kwargs)
-
-        self._event_handlers[event_name].append((handler, args, kwargs))
+        try:
+            _check_signature(handler, "handler", self, *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, (self,) + args, kwargs))
+        except ValueError:
+            _check_signature(handler, "handler", *(event_args + args), **kwargs)
+            self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug("added handler for event %s.", event_name)
 
         return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
-    def _assert_non_filtered_event(event_name: str):
+    def _assert_non_filtered_event(event_name: Any):
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -273,7 +291,7 @@ class Engine:
                 "Argument event_name should not be a filtered event, " "please use event without any event filtering"
             )
 
-    def has_event_handler(self, handler: Callable, event_name: Optional[str] = None):
+    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None):
         """Check if the specified event has the specified handler.
 
         Args:
@@ -301,7 +319,7 @@ class Engine:
             registered_handler = registered_handler._parent()
         return registered_handler == user_handler
 
-    def remove_event_handler(self, handler: Callable, event_name: str):
+    def remove_event_handler(self, handler: Callable, event_name: Any):
         """Remove event handler `handler` from registered handlers of the engine
 
         Args:
@@ -331,6 +349,20 @@ class Engine:
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
+        Example usage:
+
+        .. code-block:: python
+
+            engine = Engine(process_function)
+
+            @engine.on(Events.EPOCH_COMPLETED)
+            def print_epoch():
+                print("Epoch: {}".format(engine.state.epoch))
+
+            @engine.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
+            def execute_something():
+                # do some thing not related to engine
+                pass
         """
 
         def decorator(f: Callable) -> Callable:
@@ -339,7 +371,7 @@ class Engine:
 
         return decorator
 
-    def _fire_event(self, event_name: str, *event_args, **event_kwargs) -> None:
+    def _fire_event(self, event_name: Any, *event_args, **event_kwargs) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -360,9 +392,10 @@ class Engine:
             self.last_event_name = event_name
             for func, args, kwargs in self._event_handlers[event_name]:
                 kwargs.update(event_kwargs)
-                func(self, *(event_args + args), **kwargs)
+                first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
+                func(*first, *(event_args + others), **kwargs)
 
-    def fire_event(self, event_name: str) -> None:
+    def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -475,24 +508,49 @@ class Engine:
         else:
             raise e
 
+    @property
+    def state_dict_user_keys(self) -> List:
+        return self._state_dict_user_keys
+
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration"
+        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration" and
+        other state values defined by `engine.state_dict_user_keys`
+
+        .. code-block:: python
+
+            engine = Engine(...)
+            engine.state_dict_user_keys.append("alpha")
+            engine.state_dict_user_keys.append("beta")
+            ...
+
+            @engine.on(Events.STARTED)
+            def init_user_value(_):
+                 engine.state.alpha = 0.1
+                 engine.state.beta = 1.0
+
+            @engine.on(Events.COMPLETED)
+            def save_engine(_):
+                state_dict = engine.state_dict()
+                assert "alpha" in state_dict and "beta" in state_dict
+                torch.save(state_dict, "/tmp/engine.pt")
 
         Returns:
-            dict:
+            OrderedDict:
                 a dictionary containing engine's state
 
         """
         if self.state is None:
             return OrderedDict()
         keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
+        keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
-        `seed`. Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+        `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
+        Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -518,6 +576,13 @@ class Engine:
                 raise ValueError(
                     "Required state attribute '{}' is absent in provided state_dict '{}'".format(k, state_dict.keys())
                 )
+        for k in self._state_dict_user_keys:
+            if k not in state_dict:
+                raise ValueError(
+                    "Required user state attribute '{}' is absent in provided state_dict '{}'".format(
+                        k, state_dict.keys()
+                    )
+                )
 
         opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
         if (not any(opts)) or (all(opts)):
@@ -529,6 +594,8 @@ class Engine:
             epoch_length=state_dict["epoch_length"],
             metrics={},
         )
+        for k in self._state_dict_user_keys:
+            setattr(self.state, k, state_dict[k])
 
         if "iteration" in state_dict:
             self.state.iteration = state_dict["iteration"]
