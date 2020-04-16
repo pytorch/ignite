@@ -102,8 +102,7 @@ def test_output_handler_metric_names():
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/a": 1, "tag/b": 5},
-                                            step=5, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 1, "tag/b": 5}, step=5, sync=None)
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
     mock_engine = MagicMock()
@@ -114,9 +113,7 @@ def test_output_handler_metric_names():
     mock_logger.log = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/a": 55.56,
-                                             "tag/c": "Some text"},
-                                            step=7, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 55.56, "tag/c": "Some text"}, step=7, sync=None)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
@@ -128,9 +125,7 @@ def test_output_handler_metric_names():
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/a": 12.23,
-                                             "tag/b": 23.45},
-                                            step=5, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 12.23, "tag/b": 23.45}, step=5, sync=None)
 
 
 def test_output_handler_both():
@@ -145,9 +140,8 @@ def test_output_handler_both():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.log.assert_called_once_with(
-        {"tag/a": 12.23, "tag/b": 23.45, "tag/loss": 12345}, step=5, sync=None
-    )
+    mock_logger.log.assert_called_once_with({"tag/a": 12.23, "tag/b": 23.45, "tag/loss": 12345}, step=5, sync=None)
+
 
 def test_output_handler_with_wrong_global_step_transform_output():
     def global_step_transform(*args, **kwargs):
@@ -180,8 +174,7 @@ def test_output_handler_with_global_step_transform():
     mock_engine.state.output = 12345
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    mock_logger.log.assert_called_once_with(
-        {"tag/loss": 12345}, step=10, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/loss": 12345}, step=10, sync=None)
 
 
 def test_output_handler_with_global_step_from_engine():
@@ -207,7 +200,8 @@ def test_output_handler_with_global_step_from_engine():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     mock_logger.log.assert_called_once_with(
-        {"tag/loss": mock_engine.state.output}, step=mock_another_engine.state.epoch, sync=None)
+        {"tag/loss": mock_engine.state.output}, step=mock_another_engine.state.epoch, sync=None
+    )
 
     mock_another_engine.state.epoch = 11
     mock_engine.state.output = 1.123

@@ -6,12 +6,7 @@ from ignite.contrib.handlers.base_logger import (
 )
 
 
-__all__ = [
-    "WandBLogger",
-    "OutputHandler",
-    "OptimizerParamsHandler",
-    "global_step_from_engine"
-]
+__all__ = ["WandBLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
 
 class OutputHandler(BaseOutputHandler):
@@ -109,8 +104,9 @@ class OutputHandler(BaseOutputHandler):
 
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None,
-                 sync=None):
+    def __init__(
+        self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None, sync=None
+    ):
         super().__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
         self.sync = sync
 
@@ -128,8 +124,7 @@ class OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics(engine)
         if self.tag is not None:
-            metrics = {"{tag}/{name}".format(tag=self.tag, name=name): value
-                       for name, value in metrics.items()}
+            metrics = {"{tag}/{name}".format(tag=self.tag, name=name): value for name, value in metrics.items()}
 
         logger.log(metrics, step=global_step, sync=self.sync)
 
@@ -275,13 +270,14 @@ class WandBLogger(BaseLogger):
     def __init__(self, *args, **kwargs):
         try:
             import wandb
+
             self._wandb = wandb
         except ImportError:
             raise RuntimeError(
                 "This contrib module requires wandb to be installed. "
                 "You man install wandb with the command:\n pip install wandb\n"
             )
-        if kwargs.get('init', True):
+        if kwargs.get("init", True):
             wandb.init(*args, **kwargs)
 
     def __getattr__(self, attr):
