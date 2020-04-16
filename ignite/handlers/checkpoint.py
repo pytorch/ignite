@@ -246,6 +246,26 @@ class Checkpoint:
     def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
         """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
+        Exemples:
+
+        .. code-block:: python
+
+            import torch
+            from ignite.engine import Engine, Events
+            from ignite.handlers import ModelCheckpoint, Checkpoint
+            trainer = Engine(lambda engine, batch: None)
+            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
+            model = torch.nn.Linear(3, 3)
+            optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+            to_save = {"weights": model, "optimizer": optimizer}
+            trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
+            trainer.run(torch.randn(10, 1), 5)
+
+            to_load = to_save
+            checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
+            checkpoint = torch.load(checkpoint_fp)
+            Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+
         Args:
             to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
@@ -291,7 +311,9 @@ class DiskSaver:
         require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
     """
 
-    def __init__(self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True):
+    def __init__(
+        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True,
+    ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
         if create_dir:
@@ -429,7 +451,7 @@ class ModelCheckpoint(Checkpoint):
                 # No choice
                 raise ValueError(msg)
 
-        disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty)
+        disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty,)
 
         if score_function is None and score_name is not None:
             raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
