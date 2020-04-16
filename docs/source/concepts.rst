@@ -388,7 +388,7 @@ Here is a trivial example of usage:
     import torch
     from torch.utils.data import DataLoader
     from ignite.engine import Engine, Events
-    from ignite.engine.deterministic import make_deterministic
+    from ignite.engine.deterministic import make_deterministic, manual_seed
 
 
     def random_train_data_loader(size):
@@ -401,15 +401,17 @@ Here is a trivial example of usage:
         e = engine.state.epoch
         print("train", e, i, batch.tolist())
 
+    manual_seed(seed=12)
+
     trainer = Engine(print_train_data)
-    make_deterministic(trainer, seed=15)
+    make_deterministic(trainer)
 
     print("Original Run")
     trainer.run(random_train_data_loader(40), max_epochs=2, epoch_length=5)
 
     print("Resumed Run")
     # Resume from 2nd epoch
-    trainer.load_state_dict({"epoch": 1, "seed": 7, "epoch_length": 5, "max_epochs": 2})
+    trainer.load_state_dict({"epoch": 1, "epoch_length": 5, "max_epochs": 2})
     trainer.run(random_train_data_loader(40))
 
 .. code-block:: text

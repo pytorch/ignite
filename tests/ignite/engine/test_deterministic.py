@@ -599,6 +599,7 @@ def test_concepts_snippet_resume():
     from ignite.engine.deterministic import make_deterministic
 
     seen_batches = []
+    manual_seed(seed=15)
 
     def random_train_data_loader(size):
         data = torch.arange(0, size)
@@ -611,7 +612,7 @@ def test_concepts_snippet_resume():
         seen_batches.append(batch)
 
     trainer = Engine(print_train_data)
-    make_deterministic(trainer, seed=15)
+    make_deterministic(trainer)
 
     print("Original Run")
     trainer.run(random_train_data_loader(40), max_epochs=2, epoch_length=5)
@@ -620,7 +621,7 @@ def test_concepts_snippet_resume():
     seen_batches = []
 
     print("Resumed Run")
-    trainer.load_state_dict({"epoch": 1, "seed": 7, "epoch_length": 5, "max_epochs": 2})
+    trainer.load_state_dict({"epoch": 1, "epoch_length": 5, "max_epochs": 2})
     trainer.run(random_train_data_loader(40))
 
     resumed_batches = list(seen_batches)

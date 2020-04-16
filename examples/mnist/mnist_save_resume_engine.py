@@ -237,7 +237,7 @@ def run(
         return False
 
     fp = Path(log_dir) / ("run.log" if resume_from is None else "resume_run.log")
-
+    fp = fp.as_posix()
     for h in [log_data_stats, log_model_weights, log_model_grads]:
         trainer.add_event_handler(Events.ITERATION_COMPLETED(event_filter=log_event_filter), h, model=model, fp=fp)
 
@@ -245,7 +245,6 @@ def run(
         tqdm.write("Resume from the checkpoint: {}".format(resume_from))
         checkpoint = torch.load(resume_from)
         Checkpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
-
         trainer.add_event_handler(Events.STARTED, log_model_weights, model=model, fp=fp)
 
     try:
