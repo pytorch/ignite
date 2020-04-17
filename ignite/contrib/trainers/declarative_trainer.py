@@ -1,14 +1,13 @@
 import copy
 import numpy as np
 from pathlib import Path
-import time
 
 import torch
 from torch.utils.data import DataLoader
 import ignite
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import RunningAverage
-from ignite.handlers import EarlyStopping, ModelCheckpoint
+from ignite.handlers import EarlyStopping, ModelCheckpoint, TimeLimit
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.mlflow_logger import (
     MLflowLogger,
@@ -418,18 +417,6 @@ def _loggable_dict(d, prefix=None):
         ("{}_{}".format(prefix, k) if prefix else k): ("{}".format(v) if isinstance(v, (tuple, list, dict, set)) else v)
         for k, v in d.items()
     }
-
-
-class TimeLimit:
-    def __init__(self, limit_sec=3600):
-        self.limit_sec = limit_sec
-        self.start_time = time.time()
-
-    def __call__(self, engine):
-        elapsed_time = time.time() - self.start_time
-        if elapsed_time > self.limit_sec:
-            log.warning("Reached the time limit: {} sec. Stop training".format(self.limit_sec))
-            engine.terminate()
 
 
 class ParamSchedulerSavingAsMetricMixIn:
