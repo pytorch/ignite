@@ -27,8 +27,34 @@ class NetworkTrain:
     """Create a trainer for a supervised PyTorch model.
 
     Args:
-        train_params (dict): Training parameters.
-        mlflow_logging (bool): If True and MLflow is installed, MLflow logging is enabled.
+        train_data_loader_params (dict): Parameters for data loader for training.
+            Accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+        val_data_loader_params (dict): Parameters for data loader for validation.
+            Accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+        epochs (int): Max epochs to train
+        optimizer (torch.optim): Optimizer used to train.
+            Accepts optimizers at https://pytorch.org/docs/stable/optim.html
+        optimizer_params (dict): Parameters for optimizer.
+        loss_fn (callable): Loss function used to train.
+            Accepts an instance of loss functions at https://pytorch.org/docs/stable/nn.html#loss-functions
+        evaluation_metrics (dict, optional): Metrics to compute for evaluation.
+            Accepts dict of metrics at https://pytorch.org/ignite/metrics.html
+        evaluate_train_data (str, optional): When to compute evaluation_metrics using training dataset.
+            Accepts events at https://pytorch.org/ignite/engine.html#ignite.engine.Events
+        evaluate_val_data (str, optional): When to compute evaluation_metrics using validation dataset.
+            Accepts events at https://pytorch.org/ignite/engine.html#ignite.engine.Events
+        progress_update (bool, optional): Whether to show progress bar using tqdm package
+        scheduler (ignite.contrib.handle.param_scheduler.ParamScheduler, optional): Param scheduler
+            Accepts a ParamScheduler at
+            https://pytorch.org/ignite/contrib/handlers.html#module-ignite.contrib.handlers.param_scheduler
+        scheduler_params (dict, optional): Parameters for scheduler
+        model_checkpoint_params (dict, optional): Parameters for ModelCheckpoint at
+            https://pytorch.org/ignite/handlers.html#ignite.handlers.ModelCheckpoint
+        early_stopping_params (dict, optional): Parameters for EarlyStopping at
+            https://pytorch.org/ignite/handlers.html#ignite.handlers.EarlyStopping
+        time_limit (int, optioinal): Time limit for training in seconds.
+        seed (int, optional): Random seed for training.
+        mlflow_logging (bool, optional): If True and MLflow is installed, MLflow logging is enabled.
 
     Returns:
         trainer (callable): a callable to train a PyTorch model.
@@ -37,10 +63,42 @@ class NetworkTrain:
 
     def __init__(
         self,
-        train_params,  # type: dict
+        train_data_loader_params=None,
+        val_data_loader_params=None,
+        epochs=None,
+        optimizer=None,
+        optimizer_params=None,
+        loss_fn=None,
+        evaluation_metrics=None,
+        evaluate_train_data=None,
+        evaluate_val_data=None,
+        progress_update=None,
+        scheduler=None,
+        scheduler_params=None,
+        model_checkpoint_params=None,
+        early_stopping_params=None,
+        time_limit=None,
+        seed=None,
         mlflow_logging=True,  # type: bool
     ):
-        self.train_params = train_params
+        self.train_params = dict(
+            train_data_loader_params=train_data_loader_params,
+            val_data_loader_params=val_data_loader_params,
+            epochs=epochs,
+            optimizer=optimizer,
+            optimizer_params=optimizer_params,
+            loss_fn=loss_fn,
+            evaluation_metrics=evaluation_metrics,
+            evaluate_train_data=evaluate_train_data,
+            evaluate_val_data=evaluate_val_data,
+            progress_update=progress_update,
+            scheduler=scheduler,
+            scheduler_params=scheduler_params,
+            model_checkpoint_params=model_checkpoint_params,
+            early_stopping_params=early_stopping_params,
+            time_limit=time_limit,
+            seed=seed,
+        )
         self.mlflow_logging = mlflow_logging
 
     def __call__(self, model, train_dataset, val_dataset=None, parameters=None):
@@ -49,7 +107,7 @@ class NetworkTrain:
         Args:
             model (torch.nn.Module): PyTorch model to train.
             train_dataset (torch.utils.data.Dataset): Dataset used to train.
-            val_dataset (torch.utils.data, optional): Dataset used to validate.
+            val_dataset (torch.utils.data.Dataset, optional): Dataset used to validate.
             parameters (dict, optional) : Ignored.
 
         Returns:

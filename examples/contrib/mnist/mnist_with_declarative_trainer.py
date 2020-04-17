@@ -79,7 +79,7 @@ if __name__ == "__main__":
             "save_interval": None,
             "n_saved": 1,
             "atomic": True,
-            "require_empty": True,
+            "require_empty": False,
             "create_dir": True,
             "save_as_state_dict": True,
         },
@@ -101,9 +101,11 @@ if __name__ == "__main__":
         "time_limit": 3600,
         # [Optional] seed (random seed) accepts an integer
         "seed": 42,
+        # [Optional] mlflow_logging: If True and MLflow is installed, MLflow logging is enabled.
+        "mlflow_logging": False,
     }
 
-    nn_train = NetworkTrain(train_params=train_params, mlflow_logging=False)
+    nn_train = NetworkTrain(**train_params)
 
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
     train_dataset = MNIST(download=True, root=".", transform=data_transform, train=True)
