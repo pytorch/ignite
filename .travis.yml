@@ -34,15 +34,11 @@ before_install: &before_install
   # Keep fix in case of problem with torchvision nightly releases
   # - if [[ "$PYTORCH_CHANNEL" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL; fi
   - conda install torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
-  # Test contrib dependencies
-  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard pynvml
+  # Install all test/examples dependencies
+  - pip install -r requirements-dev.txt
 
 install:
   - python setup.py install
-  - pip install numpy pytest codecov pytest-cov pytest-xdist
-  # Examples dependencies
-  - pip install pandas
-  - pip install gym
 
 script:
   - CUDA_VISIBLE_DEVICES="" py.test --tx 4*popen//python=python$TRAVIS_PYTHON_VERSION --cov ignite --cov-report term-missing -vvv tests/

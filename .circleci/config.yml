@@ -55,11 +55,7 @@ install_dependencies: &install_dependencies
   - run:
       name: Install dependencies
       command: |
-        docker exec -it pthd pip install \
-          tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client \
-          mlflow neptune-client tensorboard pynvml \
-          numpy pytest codecov pytest-cov pytest-xdist \
-          pandas gym
+        docker exec -it pthd pip install -r requirements-dev.txt
 
 
 # -------------------------------------------------------------------------------------

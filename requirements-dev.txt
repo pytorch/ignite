@@ -1,0 +1,20 @@
+# Tests
+numpy
+pytest
+codecov
+pytest-cov
+pytest-xdist
+# Test contrib dependencies
+tqdm
+scikit-learn
+matplotlib
+tensorboardX
+visdom
+polyaxon-client
+mlflow
+neptune-client
+tensorboard
+pynvml; python_version > '3.5'
+# Examples dependencies
+pandas
+gym
