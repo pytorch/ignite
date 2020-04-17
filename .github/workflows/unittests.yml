@@ -37,7 +37,7 @@ jobs:
         # install ignite
         python setup.py install
         # example dependencies
-        pip install pandas gym
+        pip install pandas gym dill
         
     - name: Run Tests
       run: |

@@ -59,7 +59,7 @@ install_dependencies: &install_dependencies
           tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client \
           mlflow neptune-client tensorboard pynvml \
           numpy pytest codecov pytest-cov pytest-xdist \
-          pandas gym
+          pandas gym dill
 
 
 # -------------------------------------------------------------------------------------
