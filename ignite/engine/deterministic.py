@@ -5,7 +5,7 @@ from typing import Optional, Generator, Callable
 
 import torch
 from ignite.engine.engine import Engine
-from ignite.engine.events import Events
+from ignite.engine.events import Events, State
 from ignite.utils import manual_seed
 
 
@@ -103,6 +103,13 @@ def _set_rng_states(rng_states):
         pass
 
 
+def _repr_rng_state(rng_states):
+    from hashlib import md5
+
+    out = " ".join([md5(str(list(s)).encode("utf-8")).hexdigest() for s in rng_states])
+    return out
+
+
 def keep_random_state(func: Callable):
     """Helper decorator to keep random state of torch, numpy and random intact
     while executing a function. For more details on usage, please see
@@ -122,6 +129,7 @@ def keep_random_state(func: Callable):
 
 
 def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_deterministic=True):
+    # TODO: HOW FREQUENTLY IT WILL BE USED ? WHEN YOU THINK TO SET TRAINER AS DETERMINISTIC ? ALWAYS or IN WHICH CASE ?
     """Helper method to make trainer engine deterministic.
 
     This is done by adding additional handlers to synchronize the dataflow:
@@ -159,6 +167,12 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
+    trainer.state_dict_user_keys.append("rng_states")
+
+    # @trainer.on(Events.STARTED | Events.EPOCH_STARTED | Events.GET_BATCH_STARTED | Events.GET_BATCH_COMPLETED)
+    # def log_rng():
+    #     print(trainer.state.iteration, trainer.last_event_name.name, _repr_rng_state(_get_rng_states()))
+
     def setup_seed(engine, iter_counter=None, iteration=None):
         if iter_counter is None:
             le = engine._dataloader_len if engine._dataloader_len is not None else 1
@@ -166,7 +180,10 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
             le = iter_counter
         if iteration is None:
             iteration = engine.state.iteration
+        # print("setup_seed", _repr_rng_state(_get_rng_states()))
+        # print("-> manual_seed", engine.state.seed, iteration, le)
         manual_seed(engine.state.seed + iteration // le)
+        # print("->>", _repr_rng_state(_get_rng_states()))
 
     def setup_dataloader_from_iteration(trainer, iteration):
         data = trainer.state.dataloader
@@ -184,6 +201,7 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
                 # Probably we can do nothing with DataLoader built upon IterableDatasets
                 pass
 
+        print("Resuming from iteration for provided data will fetch data until required iteration ...")
         if hasattr(data, "__len__"):
             iteration %= len(data)
         # Synchronize dataflow from the begining
@@ -200,6 +218,7 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
         return data_iter
 
     def _setup_engine(_):
+
         try:
             trainer._dataloader_len = None
             if hasattr(trainer.state.dataloader, "__len__"):
@@ -234,12 +253,35 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
             iteration %= trainer.state.epoch_length
         trainer._init_iter.append(iteration)
 
+        print("end of _setup_engine:", _repr_rng_state(_get_rng_states()))
+        # restore rng state
+        if getattr(trainer.state, "rng_states", None) is not None:
+            print("_set_rng_states")
+            _set_rng_states(trainer.state.rng_states)
+            trainer.state.rng_states = None
+            print("=", _repr_rng_state(_get_rng_states()))
+
     # We need to add _setup_engine as the last possible handler (due to possible attach of `sampler.set_epoch` which )
     @trainer.on(Events.STARTED)
     def init_seed(_):
+
+        # TODO: !!! THIS DOES NOT WORK AS load_state_dict HAPPENS BEFORE !!!
+        # TODO: trainer.state.saved_rng_states is None
+        trainer.state = _StateWithRNG(trainer.state)
         trainer.state.seed = seed
         trainer.add_event_handler(
             Events.EPOCH_STARTED(event_filter=lambda e, _: e._dataloader_iter is None), _setup_engine
         )
 
     trainer.add_event_handler(Events.DATALOADER_STOP_ITERATION | Events.TERMINATE_SINGLE_EPOCH, setup_seed)
+
+
+class _StateWithRNG(State):
+    def __init__(self, state):
+        super(_StateWithRNG).__init__()
+        for k, v in state.__dict__.items():
+            setattr(self, k, v)
+
+    @property
+    def rng_states(self):
+        return _get_rng_states()

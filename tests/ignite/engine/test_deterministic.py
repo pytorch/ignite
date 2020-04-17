@@ -665,46 +665,63 @@ def test_make_deterministic_without_seed():
     make_deterministic(trainer)
 
 
-def _test_gradients_on_resume(dirname, device):
+def _test_gradients_on_resume(dirname, device, with_dropout=False):
 
     from torch.utils.data import DataLoader
     from torch.optim import SGD
 
     def random_train_data_loader(size):
-        data = torch.rand(size, 10)
-        return DataLoader(data, batch_size=2, shuffle=True)
+        d = AugmentedData(torch.rand(size, 3, 32, 32))
+        return DataLoader(d, batch_size=4, shuffle=True, num_workers=4)
 
-    def _train(save_iter, resume_iter=None, sd=None):
+    def _train(save_iter, sd=None):
         w_norms = []
         grad_norms = []
         data = []
         chkpt = []
 
         manual_seed(12)
-        model = nn.Sequential(nn.Linear(10, 5), nn.ReLU(), nn.Linear(5, 2),).to(device)
+        arch = [
+            nn.Conv2d(3, 10, 3),
+            nn.ReLU(),
+            nn.Conv2d(10, 10, 3),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(10, 5),
+            nn.ReLU(),
+            nn.Linear(5, 2),
+        ]
+        if with_dropout:
+            arch.insert(2, nn.Dropout2d())
+            arch.insert(-2, nn.Dropout())
+
+        model = nn.Sequential(*arch).to(device)
         opt = SGD(model.parameters(), lr=0.001)
 
         def proc_fn(e, b):
+            from ignite.engine.deterministic import _repr_rng_state, _get_rng_states
+
+            s = _repr_rng_state(_get_rng_states())
             model.train()
             opt.zero_grad()
             y = model(b.to(device))
             y.sum().backward()
             opt.step()
+            print(trainer.state.iteration, trainer.state.epoch, "proc_fn - b.shape", b.shape, torch.norm(y).item(), s)
 
         trainer = Engine(proc_fn)
         make_deterministic(trainer)
 
         @trainer.on(Events.ITERATION_COMPLETED(once=save_iter))
         def save_chkpt(_):
-            total = 0.0
-            out = []
-            for p in model.parameters():
-                n1 = torch.norm(p).item()
-                out.append(n1)
-                total += n1
-            print("saved W:", [trainer.state.iteration, total] + out)
+            print(trainer.state.iteration, "save_chkpt")
             fp = os.path.join(dirname, "test.pt")
-            torch.save([model.state_dict(), opt.state_dict()], fp)
+            from ignite.engine.deterministic import _repr_rng_state
+
+            tsd = trainer.state_dict()
+            print("->", _repr_rng_state(tsd["rng_states"]))
+            torch.save([model.state_dict(), opt.state_dict(), tsd], fp)
             chkpt.append(fp)
 
         def log_event_filter(_, event):
@@ -731,32 +748,35 @@ def _test_gradients_on_resume(dirname, device):
             w_norms.append([i, total[0]] + out1)
             grad_norms.append([i, total[1]] + out2)
 
-        if resume_iter is not None:
-            assert sd is not None
+        if sd is not None:
             sd = torch.load(sd)
             model.load_state_dict(sd[0])
             opt.load_state_dict(sd[1])
-            e_sd = {"iteration": resume_iter, "max_epochs": 10, "epoch_length": 5}
-            trainer.load_state_dict(e_sd)
+            from ignite.engine.deterministic import _repr_rng_state
 
-            total = 0.0
-            out = []
-            for p in model.parameters():
-                n1 = torch.norm(p).item()
-                out.append(n1)
-                total += n1
-            print("loaded W:", [trainer.state.iteration, total] + out)
+            print("-->", _repr_rng_state(sd[2]["rng_states"]))
+            trainer.load_state_dict(sd[2])
 
-        trainer.run(random_train_data_loader(size=10), max_epochs=10)
-
-        assert trainer.state.epoch == 10
-
-        return {"resume_iter": save_iter, "sd": chkpt, "data": data, "grads": grad_norms, "weights": w_norms}
+        trainer.run(random_train_data_loader(size=24), max_epochs=5)
+        # assert trainer.state.epoch == 10
+        return {"sd": chkpt, "data": data, "grads": grad_norms, "weights": w_norms}
 
     save_iter = 25
     out_original = _train(save_iter=save_iter)
     assert len(out_original["sd"]) > 0
-    out_resumed = _train(save_iter=save_iter, resume_iter=out_original["resume_iter"], sd=out_original["sd"][0])
+
+    print("---")
+    out_resumed = _train(save_iter=save_iter, sd=out_original["sd"][0])
+
+    # print("Original:")
+    # print(" data:", out_original["data"])
+    # print("grads:", out_original["grads"])
+    # print("    W:", out_original["weights"])
+    # print("Resume:")
+    # print(" data:", out_resumed["data"])
+    # print("grads:", out_resumed["grads"])
+    # print("    W:", out_resumed["weights"])
+    # assert False
 
     # check data:
     for d1, d2 in zip(out_original["data"], out_resumed["data"]):
@@ -772,7 +792,8 @@ def _test_gradients_on_resume(dirname, device):
 
 
 def test_gradients_on_resume_cpu(dirname):
-    _test_gradients_on_resume(dirname, "cpu")
+    # _test_gradients_on_resume(dirname, "cpu")
+    _test_gradients_on_resume(dirname, "cpu", with_dropout=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
