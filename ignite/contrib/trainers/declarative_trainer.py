@@ -57,6 +57,10 @@ class NetworkTrain:
             Useful for quick preliminary check before using the whole dataset.
         val_dataset_size_limit (int, optional): If specified, only the subset of validation dataset is used.
             useful for qucik preliminary check before using the whole dataset.
+        cudnn_deterministic (bool, optional): Value for torch.backends.cudnn.deterministic.
+            See https://pytorch.org/docs/stable/notes/randomness.html for details.
+        cudnn_benchmark (bool, optional): Value for torch.backends.cudnn.benchmark.
+            See https://pytorch.org/docs/stable/notes/randomness.html for details.
         mlflow_logging (bool, optional): If True and MLflow is installed, MLflow logging is enabled.
 
     Returns:
@@ -84,6 +88,8 @@ class NetworkTrain:
         time_limit=None,
         train_dataset_size_limit=None,
         val_dataset_size_limit=None,
+        cudnn_deterministic=None,
+        cudnn_benchmark=None,
         mlflow_logging=True,
     ):
         self.train_params = dict(
@@ -105,6 +111,8 @@ class NetworkTrain:
             time_limit=time_limit,
             train_dataset_size_limit=train_dataset_size_limit,
             val_dataset_size_limit=val_dataset_size_limit,
+            cudnn_deterministic=cudnn_deterministic,
+            cudnn_benchmark=cudnn_benchmark,
         )
         self.mlflow_logging = mlflow_logging
 
