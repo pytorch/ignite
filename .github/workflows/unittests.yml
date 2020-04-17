@@ -30,15 +30,9 @@ jobs:
         # Keep fix in case of problem with torchvision nightly releases
         # if [[ "${{ matrix.pytorch-channel }}" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}; fi
         conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
-        # Contrib dependencies
-        pip install tqdm scikit-learn matplotlib visdom polyaxon-client mlflow neptune-client tensorboard tensorboardX
-        if [[ ${{ matrix.python-version }} != 3.5 ]]; then pip install pynvml; fi
-        pip install numpy pytest codecov pytest-cov pytest-xdist
-        # install ignite
+        pip install -r requirements-dev.txt
         python setup.py install
-        # example dependencies
-        pip install pandas gym dill
-        
+
     - name: Run Tests
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
