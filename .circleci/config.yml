@@ -94,6 +94,11 @@ jobs:
             export test5_cmd='pip uninstall -y tensorboardX'
             docker exec -it pthd /bin/bash -c "$test5_cmd"
             docker exec -it pthd /bin/bash -c "$test4_cmd"
+            # 4) mnist_save_resume_engine.py
+            export test6_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=1 --crash_iteration 700'
+            docker exec -it pthd /bin/bash -c "test6_cmd"
+            export test7_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pt'
+            docker exec -it pthd /bin/bash -c "test7_cmd"
 
   two_gpus_tests:
     <<: *two_gpus
