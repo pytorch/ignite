@@ -7,6 +7,7 @@ from ignite.handlers.checkpoint import ModelCheckpoint, Checkpoint, DiskSaver
 from ignite.handlers.timing import Timer
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.terminate_on_nan import TerminateOnNan
+from ignite.handlers.time_limit import TimeLimit
 
 __all__ = [
     "ModelCheckpoint",
@@ -15,6 +16,7 @@ __all__ = [
     "Timer",
     "EarlyStopping",
     "TerminateOnNan",
+    "TimeLimit",
     "global_step_from_engine",
 ]
 
