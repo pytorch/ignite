@@ -35,7 +35,7 @@ before_install: &before_install
   # - if [[ "$PYTORCH_CHANNEL" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL; fi
   - conda install torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
   # Test contrib dependencies
-  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard pynvml
+  - pip install tqdm scikit-learn matplotlib tensorboardX visdom polyaxon-client mlflow neptune-client tensorboard pynvml dill
 
 install:
   - python setup.py install
