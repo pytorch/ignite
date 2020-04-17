@@ -80,6 +80,17 @@ jobs:
             docker exec -it pthd /bin/bash -c "$test1_cmd"
             export test2_cmd='export WORLD_SIZE=1 && py.test --dist=each --tx $WORLD_SIZE*popen//python=python3.7 tests -m distributed -vvv'
             docker exec -it pthd /bin/bash -c "$test2_cmd"
+            # MNIST
+            # 1) mnist.py
+            export test3_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist.py --epochs=1'
+            docker exec -it pthd /bin/bash -c "$test3_cmd"
+            # 3.1) mnist_with_tensorboard.py with tbX
+            export test4_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_with_tensorboard.py --epochs=1'
+            docker exec -it pthd /bin/bash -c "$test4_cmd"
+            # 3.2) mnist_with_tensorboard.py with native torch tb
+            export test5_cmd='pip uninstall -y tensorboardX'
+            docker exec -it pthd /bin/bash -c "$test5_cmd"
+            docker exec -it pthd /bin/bash -c "$test4_cmd"
 
   two_gpus_tests:
     <<: *two_gpus
