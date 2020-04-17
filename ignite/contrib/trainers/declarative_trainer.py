@@ -27,16 +27,17 @@ class NetworkTrain:
     """Create a trainer for a supervised PyTorch model.
 
     Args:
-        train_data_loader_params (dict): Parameters for data loader for training.
-            Accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
-        val_data_loader_params (dict): Parameters for data loader for validation.
-            Accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
-        epochs (int): Max epochs to train
-        optimizer (torch.optim): Optimizer used to train.
-            Accepts optimizers at https://pytorch.org/docs/stable/optim.html
-        optimizer_params (dict): Parameters for optimizer.
         loss_fn (callable): Loss function used to train.
             Accepts an instance of loss functions at https://pytorch.org/docs/stable/nn.html#loss-functions
+        epochs (int, optional): Max epochs to train
+        seed (int, optional): Random seed for training.
+        optimizer (torch.optim, optional): Optimizer used to train.
+            Accepts optimizers at https://pytorch.org/docs/stable/optim.html
+        optimizer_params (dict, optional): Parameters for optimizer.
+        train_data_loader_params (dict, optional): Parameters for data loader for training.
+            Accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+        val_data_loader_params (dict, optional): Parameters for data loader for validation.
+            Accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
         evaluation_metrics (dict, optional): Metrics to compute for evaluation.
             Accepts dict of metrics at https://pytorch.org/ignite/metrics.html
         evaluate_train_data (str, optional): When to compute evaluation_metrics using training dataset.
@@ -53,7 +54,6 @@ class NetworkTrain:
         early_stopping_params (dict, optional): Parameters for EarlyStopping at
             https://pytorch.org/ignite/handlers.html#ignite.handlers.EarlyStopping
         time_limit (int, optioinal): Time limit for training in seconds.
-        seed (int, optional): Random seed for training.
         mlflow_logging (bool, optional): If True and MLflow is installed, MLflow logging is enabled.
 
     Returns:
@@ -63,12 +63,13 @@ class NetworkTrain:
 
     def __init__(
         self,
-        train_data_loader_params=None,
-        val_data_loader_params=None,
+        loss_fn,
         epochs=None,
+        seed=None,
         optimizer=None,
         optimizer_params=None,
-        loss_fn=None,
+        train_data_loader_params=None,
+        val_data_loader_params=None,
         evaluation_metrics=None,
         evaluate_train_data=None,
         evaluate_val_data=None,
@@ -78,16 +79,16 @@ class NetworkTrain:
         model_checkpoint_params=None,
         early_stopping_params=None,
         time_limit=None,
-        seed=None,
         mlflow_logging=True,  # type: bool
     ):
         self.train_params = dict(
-            train_data_loader_params=train_data_loader_params,
-            val_data_loader_params=val_data_loader_params,
+            loss_fn=loss_fn,
             epochs=epochs,
+            seed=seed,
             optimizer=optimizer,
             optimizer_params=optimizer_params,
-            loss_fn=loss_fn,
+            train_data_loader_params=train_data_loader_params,
+            val_data_loader_params=val_data_loader_params,
             evaluation_metrics=evaluation_metrics,
             evaluate_train_data=evaluate_train_data,
             evaluate_val_data=evaluate_val_data,
@@ -97,7 +98,6 @@ class NetworkTrain:
             model_checkpoint_params=model_checkpoint_params,
             early_stopping_params=early_stopping_params,
             time_limit=time_limit,
-            seed=seed,
         )
         self.mlflow_logging = mlflow_logging
 
@@ -124,37 +124,37 @@ class NetworkTrain:
                 log.warning("Failed to import mlflow. MLflow logging is disabled.")
                 mlflow_logging = False
 
+        loss_fn = train_params.get("loss_fn")
+        assert loss_fn
+        epochs = train_params.get("epochs")
+        seed = train_params.get("seed")
+        optimizer = train_params.get("optimizer")
+        assert optimizer
+        optimizer_params = train_params.get("optimizer_params", dict())
         train_dataset_size_limit = train_params.get("train_dataset_size_limit")
-        val_dataset_size_limit = train_params.get("val_dataset_size_limit")
         if train_dataset_size_limit:
             train_dataset = PartialDataset(train_dataset, train_dataset_size_limit)
             log.info("train dataset size is set to {}".format(len(train_dataset)))
 
+        val_dataset_size_limit = train_params.get("val_dataset_size_limit")
         if val_dataset_size_limit and (val_dataset is not None):
             val_dataset = PartialDataset(val_dataset, val_dataset_size_limit)
             log.info("val dataset size is set to {}".format(len(val_dataset)))
 
         train_data_loader_params = train_params.get("train_data_loader_params", dict())
         val_data_loader_params = train_params.get("val_data_loader_params", dict())
-        epochs = train_params.get("epochs")
-        progress_update = train_params.get("progress_update")
-
-        optimizer = train_params.get("optimizer")
-        assert optimizer
-        optimizer_params = train_params.get("optimizer_params", dict())
-        scheduler = train_params.get("scheduler")
-        scheduler_params = train_params.get("scheduler_params", dict())
-        loss_fn = train_params.get("loss_fn")
-        assert loss_fn
         evaluation_metrics = train_params.get("evaluation_metrics")
-
         evaluate_train_data = train_params.get("evaluate_train_data")
         evaluate_val_data = train_params.get("evaluate_val_data")
+        progress_update = train_params.get("progress_update")
 
+        scheduler = train_params.get("scheduler")
+        scheduler_params = train_params.get("scheduler_params", dict())
+
+        model_checkpoint_params = train_params.get("model_checkpoint_params")
         early_stopping_params = train_params.get("early_stopping_params")
         time_limit = train_params.get("time_limit")
-        model_checkpoint_params = train_params.get("model_checkpoint_params")
-        seed = train_params.get("seed")
+
         cudnn_deterministic = train_params.get("cudnn_deterministic")
         cudnn_benchmark = train_params.get("cudnn_benchmark")
 

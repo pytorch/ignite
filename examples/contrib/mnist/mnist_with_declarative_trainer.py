@@ -32,18 +32,20 @@ class Net(nn.Module):
 if __name__ == "__main__":
 
     train_params = {
-        # train_data_loader_params accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
-        "train_data_loader_params": {"batch_size": 64, "num_workers": 0},
-        # val_data_loader_params accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
-        "val_data_loader_params": {"batch_size": 1000, "num_workers": 0},
+        # loss_fn accepts a loss function at https://pytorch.org/docs/stable/nn.html#loss-functions
+        "loss_fn": nn.NLLLoss(),
         # epochs accepts an integer
         "epochs": 2,
+        # [Optional] seed (random seed) accepts an integer
+        "seed": 42,
         # optimizer accepts optimizers at https://pytorch.org/docs/stable/optim.html
         "optimizer": SGD,
         # optimizer_params accepts parameters for the specified optimizer
         "optimizer_params": {"lr": 0.01, "momentum": 0.5},
-        # loss_fn accepts a loss function at https://pytorch.org/docs/stable/nn.html#loss-functions
-        "loss_fn": nn.NLLLoss(),
+        # train_data_loader_params accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+        "train_data_loader_params": {"batch_size": 64, "num_workers": 0},
+        # val_data_loader_params accepts args at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+        "val_data_loader_params": {"batch_size": 1000, "num_workers": 0},
         # [Optional] evaluation_metrics accepts dict of metrics at https://pytorch.org/ignite/metrics.html
         "evaluation_metrics": {
             "accuracy": Accuracy(),
@@ -99,8 +101,6 @@ if __name__ == "__main__":
         },
         # [Optional] time_limit (time limit for training in seconds) accepts an integer
         "time_limit": 3600,
-        # [Optional] seed (random seed) accepts an integer
-        "seed": 42,
         # [Optional] mlflow_logging: If True and MLflow is installed, MLflow logging is enabled.
         "mlflow_logging": False,
     }
