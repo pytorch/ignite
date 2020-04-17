@@ -116,14 +116,13 @@ class NetworkTrain:
         )
         self.mlflow_logging = mlflow_logging
 
-    def __call__(self, model, train_dataset, val_dataset=None, parameters=None):
+    def __call__(self, model, train_dataset, val_dataset=None, **_):
         """ Train a PyTorch model.
 
         Args:
             model (torch.nn.Module): PyTorch model to train.
             train_dataset (torch.utils.data.Dataset): Dataset used to train.
             val_dataset (torch.utils.data.Dataset, optional): Dataset used to validate.
-            parameters (dict, optional) : Ignored.
 
         Returns:
             trained_model (torch.nn.Module): Trained PyTorch model.
