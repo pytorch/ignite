@@ -388,6 +388,7 @@ As always, PRs are welcome :)
     AI Toolkit for Healthcare Imaging
     ](https://github.com/Project-MONAI/MONAI)
 -   [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
+-   [Nussl - a flexible, object oriented Python audio source separation library](https://github.com/nussl/nussl)
 
 See other projects at [\"Used
 by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
