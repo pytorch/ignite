@@ -19,7 +19,6 @@ class Accumulation(Metric):
 
 
 def test_metric():
-
     def _test(m, values, e):
         for v in values:
             m.update(v)
