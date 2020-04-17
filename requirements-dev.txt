@@ -4,6 +4,7 @@ pytest
 codecov
 pytest-cov
 pytest-xdist
+dill
 # Test contrib dependencies
 tqdm
 scikit-learn
