@@ -53,6 +53,10 @@ class NetworkTrain:
         early_stopping_params (dict, optional): Parameters for EarlyStopping at
             https://pytorch.org/ignite/handlers.html#ignite.handlers.EarlyStopping
         time_limit (int, optioinal): Time limit for training in seconds.
+        train_dataset_size_limit (int, optional): If specified, only the subset of training dataset is used.
+            Useful for quick preliminary check before using the whole dataset.
+        val_dataset_size_limit (int, optional): If specified, only the subset of validation dataset is used.
+            useful for qucik preliminary check before using the whole dataset.
         mlflow_logging (bool, optional): If True and MLflow is installed, MLflow logging is enabled.
 
     Returns:
@@ -78,7 +82,9 @@ class NetworkTrain:
         model_checkpoint_params=None,
         early_stopping_params=None,
         time_limit=None,
-        mlflow_logging=True,  # type: bool
+        train_dataset_size_limit=None,
+        val_dataset_size_limit=None,
+        mlflow_logging=True,
     ):
         self.train_params = dict(
             loss_fn=loss_fn,
@@ -97,6 +103,8 @@ class NetworkTrain:
             model_checkpoint_params=model_checkpoint_params,
             early_stopping_params=early_stopping_params,
             time_limit=time_limit,
+            train_dataset_size_limit=train_dataset_size_limit,
+            val_dataset_size_limit=val_dataset_size_limit,
         )
         self.mlflow_logging = mlflow_logging
 

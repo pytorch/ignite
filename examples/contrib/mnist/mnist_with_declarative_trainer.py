@@ -101,6 +101,10 @@ if __name__ == "__main__":
         },
         # [Optional] time_limit (time limit for training in seconds) accepts an integer
         "time_limit": 3600,
+        # [Optional] train_dataset_size_limit accepts an integer
+        # "train_dataset_size_limit": 128,
+        # [Optional] val_dataset_size_limit accepts an integer
+        # "val_dataset_size_limit": 2000,
         # [Optional] mlflow_logging: If True and MLflow is installed, MLflow logging is enabled.
         "mlflow_logging": False,
     }
