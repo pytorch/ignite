@@ -413,7 +413,6 @@ Here is a trivial example of usage:
     manual_seed(56)
     trainer.run(random_train_data_loader(40))
 
-
 .. code-block:: text
 
     Original Run

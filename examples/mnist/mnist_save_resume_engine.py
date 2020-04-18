@@ -29,7 +29,6 @@ from ignite.engine import Events, create_supervised_trainer, create_supervised_e
 from ignite.metrics import Accuracy, Loss
 from ignite.handlers import Checkpoint, DiskSaver
 from ignite.utils import manual_seed
-from ignite.engine.deterministic import make_deterministic
 
 
 class Net(nn.Module):
@@ -58,11 +57,17 @@ def get_data_loaders(train_batch_size, val_batch_size):
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     train_loader = DataLoader(
-        MNIST(download=True, root=".", transform=data_transform, train=True), batch_size=train_batch_size, shuffle=True
+        MNIST(download=True, root=".", transform=data_transform, train=True),
+        batch_size=train_batch_size,
+        shuffle=True,
+        num_workers=4,
     )
 
     val_loader = DataLoader(
-        MNIST(download=False, root=".", transform=data_transform, train=False), batch_size=val_batch_size, shuffle=False
+        MNIST(download=False, root=".", transform=data_transform, train=False),
+        batch_size=val_batch_size,
+        shuffle=False,
+        num_workers=4,
     )
     return train_loader, val_loader
 
@@ -159,10 +164,9 @@ def run(
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     lr_scheduler = StepLR(optimizer, step_size=1, gamma=0.5)
 
-    trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
     if deterministic:
         tqdm.write("Setup deterministic trainer")
-        make_deterministic(trainer, seed=12, cudnn_deterministic="cuda" in device)
+    trainer = create_supervised_trainer(model, optimizer, criterion, device=device, deterministic=deterministic)
 
     evaluator = create_supervised_evaluator(
         model, metrics={"accuracy": Accuracy(), "nll": Loss(criterion)}, device=device
@@ -251,6 +255,7 @@ def run(
         trainer.add_event_handler(Events.STARTED, log_model_weights, model=model, fp=fp)
 
     try:
+        manual_seed(15)
         trainer.run(train_loader, max_epochs=epochs)
     except Exception as e:
         import traceback

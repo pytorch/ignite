@@ -113,11 +113,9 @@ python mnist_save_resume_engine.py --resume_from logs/checkpoint_1650.pt --log_d
 python mnist_save_resume_engine.py --resume_from logs/checkpoint_1650.pt --log_dir=logs --epochs 3 --deterministic
 ```
 
-The script logs batch stats, model weights norms and computed gradients norms in `run.log` and `resume_run.log` to 
-compare training behaviour in both cases. 
-We can observe 
-
-
+The script logs batch stats (mean/std of images, median of targets), model weights norms and computed gradients norms in 
+`run.log` and `resume_run.log` to compare training behaviour in both cases. 
+If set `--deterministic` option, we can observe the same values after resuming the training.
 
 ![tb1](assets/save_resume_p1.png)
 ![tb2](assets/save_resume_p2.png)
