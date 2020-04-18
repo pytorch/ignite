@@ -56,6 +56,10 @@ use the `output_transform` argument to transform it:
 
         evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy(device=device)}, device=device)
 
+.. Note ::
+
+   Metrics cannot be serialized using `pickle` module because the implementation is based on lambda functions.
+   Therefore, use the third party library `dill` to overcome the limitation of `pickle`.
 
 Metric arithmetics
 ------------------
