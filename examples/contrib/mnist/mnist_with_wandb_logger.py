@@ -34,7 +34,6 @@ from ignite.handlers import ModelCheckpoint
 from ignite.contrib.handlers.wandb_logger import *
 
 
-
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -116,28 +115,33 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     def iteration(engine):
         def wrapper(_, event_name):
             return engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
+
         return wrapper
 
     wandb_logger.attach(
         trainer,
         log_handler=OutputHandler(
-            tag="training", output_transform=lambda loss: {"batchloss": loss}, metric_names="all",
-            global_step_transform=iteration(trainer)
+            tag="training",
+            output_transform=lambda loss: {"batchloss": loss},
+            metric_names="all",
+            global_step_transform=iteration(trainer),
         ),
         event_name=Events.ITERATION_COMPLETED(every=100),
     )
 
     wandb_logger.attach(
         train_evaluator,
-        log_handler=OutputHandler(tag="training", metric_names=["loss", "accuracy"],
-                                  global_step_transform=iteration(trainer)),
+        log_handler=OutputHandler(
+            tag="training", metric_names=["loss", "accuracy"], global_step_transform=iteration(trainer)
+        ),
         event_name=Events.EPOCH_COMPLETED,
     )
 
     wandb_logger.attach(
         validation_evaluator,
-        log_handler=OutputHandler(tag="validation", metric_names=["loss", "accuracy"],
-                                  global_step_transform=iteration(trainer)),
+        log_handler=OutputHandler(
+            tag="validation", metric_names=["loss", "accuracy"], global_step_transform=iteration(trainer)
+        ),
         event_name=Events.EPOCH_COMPLETED,
     )
 
@@ -147,13 +151,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     wandb_logger.watch(model, log="all")
 
     def score_function(engine):
-        return engine.state.metrics['accuracy']
+        return engine.state.metrics["accuracy"]
 
     model_checkpoint = ModelCheckpoint(
-        wandb_logger.run.dir, n_saved=2, filename_prefix='best', score_function=score_function,
-        score_name="validation_accuracy", global_step_transform=iteration(trainer)
+        wandb_logger.run.dir,
+        n_saved=2,
+        filename_prefix="best",
+        score_function=score_function,
+        score_name="validation_accuracy",
+        global_step_transform=iteration(trainer),
     )
-    validation_evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
+    validation_evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {"model": model})
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
