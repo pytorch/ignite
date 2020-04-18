@@ -10,6 +10,9 @@ from ignite.engine.events import Events
 from ignite.utils import manual_seed
 
 
+__all__ = ["update_dataloader", "ReproducibleBatchSampler", "DeterministicEngine"]
+
+
 def update_dataloader(
     dataloader: torch.utils.data.DataLoader, new_batch_sampler: torch.utils.data.sampler.BatchSampler
 ) -> torch.utils.data.DataLoader:
@@ -127,3 +130,134 @@ def keep_random_state(func: Callable):
         _set_rng_states(rng_states)
 
     return wrapper
+
+
+class DeterministicEngine(Engine):
+    """Deterministic engine derived from :class:`~ignite.engine.Engine`.
+
+    "Deterministic" run is done by adding additional handlers to synchronize the dataflow and overriding some methods of
+    :class:`~ignite.engine.Engine`:
+
+    .. code-block:: python
+
+        for e in range(num_epochs):
+            set_seed(seed_offset + e)
+            if resume:
+                setup_saved_rng_states()
+            do_single_epoch_iterations(dataloader)
+
+    If input data provider is `torch.utils.data.DataLoader`, its batch sampler is replaced by
+    :class:`~ignite.engine.deterministic.ReproducibleBatchSampler`.
+
+    .. code-block:: python
+
+        for e in range(num_epochs):
+            set_seed(seed_offset + e)
+            setup_sampling(dataloader)
+            if resume:
+                setup_saved_rng_states()
+            do_single_epoch_iterations(dataloader)
+
+    """
+
+    def __init__(self, process_function: Callable):
+        super(DeterministicEngine, self).__init__(process_function)
+        self.state_dict_user_keys.append("rng_states")
+        self.add_event_handler(Events.STARTED, self._init_run)
+        self.add_event_handler(Events.DATALOADER_STOP_ITERATION | Events.TERMINATE_SINGLE_EPOCH, self._setup_seed)
+
+    def state_dict(self) -> OrderedDict:
+        state_dict = super(DeterministicEngine, self).state_dict()
+        state_dict["rng_states"] = _get_rng_states()
+        return state_dict
+
+    def _init_run(self) -> None:
+        seed = torch.randint(0, int(1e9), (1,)).item()
+        self.state.seed = seed
+        if not hasattr(self.state, "rng_states"):
+            self.state.rng_states = None
+
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+
+    def _setup_engine(self) -> None:
+        try:
+            self._dataloader_len = None
+            if hasattr(self.state.dataloader, "__len__"):
+                self._dataloader_len = len(self.state.dataloader)
+        except TypeError:
+            # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
+            self._dataloader_len = None
+
+        # if input data is torch dataloader we replace batch sampler by a batch sampler
+        # such that its random sampling indices are reproducible by prefetching them before data iteration
+        if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
+            _dataloader_kind = self.state.dataloader._dataset_kind
+            if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
+                if (self._dataloader_len is not None) and hasattr(self.state.dataloader.sampler, "epoch"):
+                    if self._dataloader_len != self.state.epoch_length:
+                        warnings.warn(
+                            "When defined engine's epoch length is different of input dataloader length, "
+                            "distributed sampler indices can not be setup in a reproducible manner"
+                        )
+
+                batch_sampler = self.state.dataloader.batch_sampler
+                if not isinstance(batch_sampler, ReproducibleBatchSampler):
+                    self.state.dataloader = update_dataloader(
+                        self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
+                    )
+
+        iteration = self.state.iteration
+        self._dataloader_iter = self._from_iteration(iteration)
+
+        # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
+        if self.state.epoch_length is not None:
+            iteration %= self.state.epoch_length
+        self._init_iter.append(iteration)
+
+        # restore rng state
+        if getattr(self.state, "rng_states", None) is not None:
+            _set_rng_states(self.state.rng_states)
+            self.state.rng_states = None
+
+    def _from_iteration(self, iteration: int) -> Iterator:
+        data = self.state.dataloader
+        if isinstance(data, torch.utils.data.DataLoader):
+            try:
+                # following is unsafe for IterableDatasets
+                iteration %= len(data.batch_sampler)
+                # Synchronize dataflow according to state.iteration
+                self._setup_seed()
+                if iteration > 0:
+                    # batch sampler is ReproducibleBatchSampler
+                    data.batch_sampler.start_iteration = iteration
+                return iter(data)
+            except TypeError as e:
+                # Probably we can do nothing with DataLoader built upon IterableDatasets
+                pass
+
+        self.logger.info("Resuming from iteration for provided data will fetch data until required iteration ...")
+        if hasattr(data, "__len__"):
+            iteration %= len(data)
+        # Synchronize dataflow from the begining
+        self._setup_seed(iteration=0)
+        data_iter = iter(data)
+        counter = 0
+        while counter < iteration:
+            try:
+                next(data_iter)
+                counter += 1
+            except StopIteration:
+                data_iter = iter(data)
+
+        return data_iter
+
+    def _setup_seed(self, _=None, iter_counter=None, iteration=None):
+        if iter_counter is None:
+            le = self._dataloader_len if self._dataloader_len is not None else 1
+        else:
+            le = iter_counter
+        if iteration is None:
+            iteration = self.state.iteration
+        manual_seed(self.state.seed + iteration // le)
