@@ -232,7 +232,7 @@ def no_site_packages():
         sys.modules[k] = wandb_client_modules[k]
 
 
-def test_no_neptune_client(no_site_packages):
+def test_no_wandb_client(no_site_packages):
 
     with pytest.raises(RuntimeError, match=r"This contrib module requires wandb to be installed."):
         WandBLogger()

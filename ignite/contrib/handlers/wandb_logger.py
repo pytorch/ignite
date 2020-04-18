@@ -281,7 +281,4 @@ class WandBLogger(BaseLogger):
             wandb.init(*args, **kwargs)
 
     def __getattr__(self, attr):
-        def wrapper(*args, **kwargs):
-            return getattr(self._wandb, attr)(*args, **kwargs)
-
-        return wrapper
+        return getattr(self._wandb, attr)
