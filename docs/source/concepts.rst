@@ -296,14 +296,30 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
           engine.state.new_attribute = 12345
 
 
-Resume training
----------------
+Deterministic training
+----------------------
 
-Engine provides two methods to serialize and deserialize its internal state :meth:`~ignite.engine.Engine.state_dict` and
-:meth:`~ignite.engine.Engine.load_state_dict`. In addition
-with serializing model, optimizer, lr scheduler etc user can store the trainer and then resume the training from
-an **iteration**. For example, using :class:`~ignite.handlers.Checkpoint` handler we can easily save checkpoints
-containing serialized trainer, model, optimizer, etc
+In general, it is rather difficult task to achieve deterministic and reproducible trainings as it relies on multiple
+aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch documentation <https://pytorch.org/docs/stable/notes/randomness.html>`_:
+there are some steps to take in order to make computations deterministic on your specific problem on one specific
+platform and PyTorch release:
+
+- setup random state seed
+
+- set `cudnn to deterministic <https://pytorch.org/docs/stable/notes/randomness.html#cudnn>`_ if applicable
+
+By default, these two options can be enough to run and rerun experiments in a deterministic way.
+Ignite's engine does not impact this behaviour.
+
+
+Resuming the training
+---------------------
+
+It is also possible to resume the training from a checkpoint and approximatively reproduce original run's behaviour.
+Using Ignite, this can be easily done using :class:`~ignite.handlers.Checkpoint` handler. Engine provides two methods
+to serialize and deserialize its internal state :meth:`~ignite.engine.Engine.state_dict` and
+:meth:`~ignite.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler etc user can
+store the trainer and then resume the training. For example:
 
 .. code-block:: python
 
@@ -318,7 +334,7 @@ containing serialized trainer, model, optimizer, etc
 
     to_save = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
     handler = Checkpoint(to_save, DiskSaver('/tmp/training', create_dir=True))
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
     trainer.run(data_loader, max_epochs=100)
 
 .. code-block:: bash
@@ -344,21 +360,6 @@ We can then restore the training from the last checkpoint.
 
     trainer.run(train_loader, max_epochs=100)
 
-Please, note that trainer can continue the training from the checkpoint iteration.
-In case when input data is `torch.utils.data.DataLoader`, previous batches are skipped and the first provided batch
-corresponds to the batch after the checkpoint iteration. Internally, while resuming, previous datapoint indices are just
-skipped without fetching the data.
 
-.. warning::
-
-    However, while resuming from iteration, random data augmentations are not synchronized in the middle of the epoch and
-    thus batches remaining until the end of en epoch can effectively be different of those from the initial run.
-
-
-Complete examples that simulates a crash on a defined iteration and resumes the training from a checkpoint can be found
-here:
-
-- `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume>`_
-- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#check-resume-training>`_
-
-
+It is also possible to store checkpoints every N iterations and continue the training from one of these checkpoints, i.e
+from iteration.

@@ -7,7 +7,6 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator
-from ignite.engine.engine import Events
 from ignite.metrics import MeanSquaredError
 
 
