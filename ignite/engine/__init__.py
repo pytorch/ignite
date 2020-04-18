@@ -3,6 +3,7 @@ import torch
 
 from ignite.engine.engine import Engine
 from ignite.engine.events import State, Events, EventEnum, CallableEventWithFilter
+from ignite.engine.deterministic import DeterministicEngine
 from ignite.utils import convert_tensor
 from ignite.metrics import Metric
 
@@ -14,6 +15,7 @@ __all__ = [
     "Events",
     "EventEnum",
     "CallableEventWithFilter",
+    "DeterministicEngine",
 ]
 
 

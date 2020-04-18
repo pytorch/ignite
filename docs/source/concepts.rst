@@ -387,8 +387,8 @@ Here is a trivial example of usage:
 
     import torch
     from torch.utils.data import DataLoader
-    from ignite.engine import Engine, Events
-    from ignite.engine.deterministic import make_deterministic, manual_seed
+    from ignite.engine import DeterministicEngine, Events
+    from ignite.utils import manual_seed
 
 
     def random_train_data_loader(size):
@@ -401,38 +401,39 @@ Here is a trivial example of usage:
         e = engine.state.epoch
         print("train", e, i, batch.tolist())
 
-    manual_seed(seed=12)
-
-    trainer = Engine(print_train_data)
-    make_deterministic(trainer)
+    trainer = DeterministicEngine(print_train_data)
 
     print("Original Run")
+    manual_seed(56)
     trainer.run(random_train_data_loader(40), max_epochs=2, epoch_length=5)
 
     print("Resumed Run")
     # Resume from 2nd epoch
-    trainer.load_state_dict({"epoch": 1, "epoch_length": 5, "max_epochs": 2})
+    trainer.load_state_dict({"epoch": 1, "epoch_length": 5, "max_epochs": 2, "rng_states": None})
+    manual_seed(56)
     trainer.run(random_train_data_loader(40))
+
 
 .. code-block:: text
 
     Original Run
-    train 1 1 [20, 22, 23, 9]
-    train 1 2 [32, 26, 31, 3]
-    train 1 3 [29, 2, 27, 11]
-    train 1 4 [13, 36, 6, 39]
-    train 1 5 [24, 5, 4, 10]
-    train 2 6 [16, 18, 8, 34]
-    train 2 7 [19, 37, 0, 15]
-    train 2 8 [1, 30, 7, 25]
-    train 2 9 [21, 33, 35, 17]
-    train 2 10 [28, 38, 12, 14]
+    train 1 1 [31, 13, 3, 4]
+    train 1 2 [23, 18, 6, 16]
+    train 1 3 [10, 8, 33, 36]
+    train 1 4 [1, 37, 19, 9]
+    train 1 5 [20, 30, 14, 26]
+    train 2 6 [29, 35, 38, 34]
+    train 2 7 [7, 22, 12, 17]
+    train 2 8 [25, 21, 24, 15]
+    train 2 9 [39, 5, 2, 28]
+    train 2 10 [27, 11, 32, 0]
     Resumed Run
-    train 2 6 [16, 18, 8, 34]
-    train 2 7 [19, 37, 0, 15]
-    train 2 8 [1, 30, 7, 25]
-    train 2 9 [21, 33, 35, 17]
-    train 2 10 [28, 38, 12, 14]
+    train 2 6 [29, 35, 38, 34]
+    train 2 7 [7, 22, 12, 17]
+    train 2 8 [25, 21, 24, 15]
+    train 2 9 [39, 5, 2, 28]
+    train 2 10 [27, 11, 32, 0]
+
 
 We can see that the data samples are exactly the same between original and resumed runs.
 
@@ -452,7 +453,7 @@ here:
 .. warning::
 
     However, while resuming from iteration, random data augmentations are not synchronized in the middle of the epoch and
-    thus batches remaining until the end of en epoch can be different of those from the initial run.
+    thus batches remaining until the end of the epoch can be different of those from the initial run.
 
 .. warning::
 
@@ -466,8 +467,7 @@ here:
             while True:
                 yield torch.randint(0, 100, size=(1, ))
 
-        trainer = Engine(print_train_data)
-        make_deterministic(trainer, seed=15)
+        trainer = DeterministicEngine(print_train_data)
 
         @trainer.on(Events.ITERATION_COMPLETED(every=3))
         def user_handler(_):

@@ -1,11 +1,13 @@
 import random
 import warnings
 from functools import wraps
-from typing import Optional, Generator, Callable
+from typing import Optional, Generator, Callable, Iterator
+from collections import OrderedDict
+from collections.abc import Mapping
 
 import torch
 from ignite.engine.engine import Engine
-from ignite.engine.events import Events, State
+from ignite.engine.events import Events
 from ignite.utils import manual_seed
 
 
@@ -128,71 +130,107 @@ def keep_random_state(func: Callable):
     return wrapper
 
 
-def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_deterministic=True):
-    # TODO: HOW FREQUENTLY IT WILL BE USED ? WHEN YOU THINK TO SET TRAINER AS DETERMINISTIC ? ALWAYS or IN WHICH CASE ?
-    """Helper method to make trainer engine deterministic.
+class DeterministicEngine(Engine):
+    """Deterministic engine derived from :class:`~ignite.engine.Engine`.
 
-    This is done by adding additional handlers to synchronize the dataflow:
+    "Deterministic" run is done by adding additional handlers to synchronize the dataflow and overriding some methods of
+    :class:`~ignite.engine.Engine`:
 
     .. code-block:: python
 
         for e in range(num_epochs):
             set_seed(seed_offset + e)
+            if resume:
+                setup_saved_rng_states()
             do_single_epoch_iterations(dataloader)
 
     If input data provider is `torch.utils.data.DataLoader`, its batch sampler is replaced by
     :class:`~ignite.engine.deterministic.ReproducibleBatchSampler`.
 
-    Usage:
+    .. code-block:: python
 
-        .. code-block:: python
-
-            trainer = ...
-            make_deterministic(trainer)
-
-            # add other handlers
-            trainer.run(data, max_epochs=N)
-
-    Args:
-        trainer (Engine): Trainer engine
-        seed (int, optional): Seed offset to setup for random generators. If not provided a random value is generated
-        cudnn_deterministic (bool): If True, the following commands applied: `torch.backends.cudnn.deterministic=True`,
-            `torch.backends.cudnn.benchmark`.
+        for e in range(num_epochs):
+            set_seed(seed_offset + e)
+            setup_sampling(dataloader)
+            if resume:
+                setup_saved_rng_states()
+            do_single_epoch_iterations(dataloader)
 
     """
-    if seed is None:
+
+    @staticmethod
+    def from_engine(engine: Engine) -> "DeterministicEngine":
+        pass
+
+    def __init__(self, process_function: Callable):
+        super(DeterministicEngine, self).__init__(process_function)
+        self.state_dict_user_keys.append("rng_states")
+        self.add_event_handler(Events.STARTED, self._init_run)
+        self.add_event_handler(Events.DATALOADER_STOP_ITERATION | Events.TERMINATE_SINGLE_EPOCH, self._setup_seed)
+
+    def state_dict(self) -> OrderedDict:
+        state_dict = super(DeterministicEngine, self).state_dict()
+        state_dict["rng_states"] = _get_rng_states()
+        return state_dict
+
+    def _init_run(self) -> None:
         seed = torch.randint(0, int(1e9), (1,)).item()
+        self.state.seed = seed
+        if not hasattr(self.state, "rng_states"):
+            self.state.rng_states = None
 
-    if torch.cuda.is_available() and cudnn_deterministic:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
 
-    trainer.state_dict_user_keys.append("rng_states")
+    def _setup_engine(self) -> None:
+        try:
+            self._dataloader_len = None
+            if hasattr(self.state.dataloader, "__len__"):
+                self._dataloader_len = len(self.state.dataloader)
+        except TypeError:
+            # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
+            self._dataloader_len = None
 
-    # @trainer.on(Events.STARTED | Events.EPOCH_STARTED | Events.GET_BATCH_STARTED | Events.GET_BATCH_COMPLETED)
-    # def log_rng():
-    #     print(trainer.state.iteration, trainer.last_event_name.name, _repr_rng_state(_get_rng_states()))
+        # if input data is torch dataloader we replace batch sampler by a batch sampler
+        # such that its random sampling indices are reproducible by prefetching them before data iteration
+        if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
+            _dataloader_kind = self.state.dataloader._dataset_kind
+            if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
+                if (self._dataloader_len is not None) and hasattr(self.state.dataloader.sampler, "epoch"):
+                    if self._dataloader_len != self.state.epoch_length:
+                        warnings.warn(
+                            "When defined engine's epoch length is different of input dataloader length, "
+                            "distributed sampler indices can not be setup in a reproducible manner"
+                        )
 
-    def setup_seed(engine, iter_counter=None, iteration=None):
-        if iter_counter is None:
-            le = engine._dataloader_len if engine._dataloader_len is not None else 1
-        else:
-            le = iter_counter
-        if iteration is None:
-            iteration = engine.state.iteration
-        # print("setup_seed", _repr_rng_state(_get_rng_states()))
-        # print("-> manual_seed", engine.state.seed, iteration, le)
-        manual_seed(engine.state.seed + iteration // le)
-        # print("->>", _repr_rng_state(_get_rng_states()))
+                batch_sampler = self.state.dataloader.batch_sampler
+                if not isinstance(batch_sampler, ReproducibleBatchSampler):
+                    self.state.dataloader = update_dataloader(
+                        self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
+                    )
 
-    def setup_dataloader_from_iteration(trainer, iteration):
-        data = trainer.state.dataloader
+        iteration = self.state.iteration
+        self._dataloader_iter = self._from_iteration(iteration)
+
+        # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
+        if self.state.epoch_length is not None:
+            iteration %= self.state.epoch_length
+        self._init_iter.append(iteration)
+
+        # restore rng state
+        if getattr(self.state, "rng_states", None) is not None:
+            _set_rng_states(self.state.rng_states)
+            self.state.rng_states = None
+
+    def _from_iteration(self, iteration: int) -> Iterator:
+        data = self.state.dataloader
         if isinstance(data, torch.utils.data.DataLoader):
             try:
                 # following is unsafe for IterableDatasets
                 iteration %= len(data.batch_sampler)
                 # Synchronize dataflow according to state.iteration
-                setup_seed(trainer)
+                self._setup_seed()
                 if iteration > 0:
                     # batch sampler is ReproducibleBatchSampler
                     data.batch_sampler.start_iteration = iteration
@@ -201,11 +239,11 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
                 # Probably we can do nothing with DataLoader built upon IterableDatasets
                 pass
 
-        print("Resuming from iteration for provided data will fetch data until required iteration ...")
+        self.logger.info("Resuming from iteration for provided data will fetch data until required iteration ...")
         if hasattr(data, "__len__"):
             iteration %= len(data)
         # Synchronize dataflow from the begining
-        setup_seed(trainer, iteration=0)
+        self._setup_seed(iteration=0)
         data_iter = iter(data)
         counter = 0
         while counter < iteration:
@@ -217,71 +255,11 @@ def make_deterministic(trainer: Engine, seed: Optional[int] = None, cudnn_determ
 
         return data_iter
 
-    def _setup_engine(_):
-
-        try:
-            trainer._dataloader_len = None
-            if hasattr(trainer.state.dataloader, "__len__"):
-                trainer._dataloader_len = len(trainer.state.dataloader)
-        except TypeError:
-            # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
-            trainer._dataloader_len = None
-
-        # if input data is torch dataloader we replace batch sampler by a batch sampler
-        # such that its random sampling indices are reproducible by prefetching them before data iteration
-        if isinstance(trainer.state.dataloader, torch.utils.data.DataLoader):
-            _dataloader_kind = trainer.state.dataloader._dataset_kind
-            if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
-                if (trainer._dataloader_len is not None) and hasattr(trainer.state.dataloader.sampler, "epoch"):
-                    if trainer._dataloader_len != trainer.state.epoch_length:
-                        warnings.warn(
-                            "When defined engine's epoch length is different of input dataloader length, "
-                            "distributed sampler indices can not be setup in a reproducible manner"
-                        )
-
-                batch_sampler = trainer.state.dataloader.batch_sampler
-                if not isinstance(batch_sampler, ReproducibleBatchSampler):
-                    trainer.state.dataloader = update_dataloader(
-                        trainer.state.dataloader, ReproducibleBatchSampler(batch_sampler)
-                    )
-
-        iteration = trainer.state.iteration
-        trainer._dataloader_iter = setup_dataloader_from_iteration(trainer, iteration)
-
-        # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
-        if trainer.state.epoch_length is not None:
-            iteration %= trainer.state.epoch_length
-        trainer._init_iter.append(iteration)
-
-        print("end of _setup_engine:", _repr_rng_state(_get_rng_states()))
-        # restore rng state
-        if getattr(trainer.state, "rng_states", None) is not None:
-            print("_set_rng_states")
-            _set_rng_states(trainer.state.rng_states)
-            trainer.state.rng_states = None
-            print("=", _repr_rng_state(_get_rng_states()))
-
-    # We need to add _setup_engine as the last possible handler (due to possible attach of `sampler.set_epoch` which )
-    @trainer.on(Events.STARTED)
-    def init_seed(_):
-
-        # TODO: !!! THIS DOES NOT WORK AS load_state_dict HAPPENS BEFORE !!!
-        # TODO: trainer.state.saved_rng_states is None
-        trainer.state = _StateWithRNG(trainer.state)
-        trainer.state.seed = seed
-        trainer.add_event_handler(
-            Events.EPOCH_STARTED(event_filter=lambda e, _: e._dataloader_iter is None), _setup_engine
-        )
-
-    trainer.add_event_handler(Events.DATALOADER_STOP_ITERATION | Events.TERMINATE_SINGLE_EPOCH, setup_seed)
-
-
-class _StateWithRNG(State):
-    def __init__(self, state):
-        super(_StateWithRNG).__init__()
-        for k, v in state.__dict__.items():
-            setattr(self, k, v)
-
-    @property
-    def rng_states(self):
-        return _get_rng_states()
+    def _setup_seed(self, _=None, iter_counter=None, iteration=None):
+        if iter_counter is None:
+            le = self._dataloader_len if self._dataloader_len is not None else 1
+        else:
+            le = iter_counter
+        if iteration is None:
+            iteration = self.state.iteration
+        manual_seed(self.state.seed + iteration // le)

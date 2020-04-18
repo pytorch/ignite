@@ -14,7 +14,7 @@ from ignite.engine.deterministic import (
     ReproducibleBatchSampler,
     update_dataloader,
     keep_random_state,
-    make_deterministic,
+    DeterministicEngine,
 )
 
 from ignite.utils import manual_seed
@@ -188,18 +188,15 @@ def test_strict_resume_from_iter():
                     resume_iteration, batch_checker.counter, batch_checker.true_batch, batch
                 )
 
-            engine = Engine(update_fn)
-            make_deterministic(engine)
+            engine = DeterministicEngine(update_fn)
 
             @engine.on(Events.EPOCH_COMPLETED)
             def check_iteration(engine):
                 assert engine.state.iteration == batch_checker.counter
 
-            resume_state_dict = {
-                "iteration": resume_iteration,
-                "max_epochs": max_epochs,
-                "epoch_length": epoch_length,
-            }
+            resume_state_dict = dict(
+                iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length, rng_states=None
+            )
             engine.load_state_dict(resume_state_dict)
             engine.run(data)
             assert engine.state.epoch == max_epochs
@@ -227,16 +224,17 @@ def test_strict_resume_from_epoch():
                     resume_epoch, batch_checker.counter, batch_checker.true_batch, batch
                 )
 
-            engine = Engine(update_fn)
-            make_deterministic(engine)
+            engine = DeterministicEngine(update_fn)
 
-            resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length)
+            resume_state_dict = dict(
+                epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length, rng_states=None
+            )
             engine.load_state_dict(resume_state_dict)
             engine.run(data)
             assert engine.state.epoch == max_epochs
             assert engine.state.iteration == epoch_length * max_epochs
 
-    # _test()
+    _test()
     _test(60)
     _test(15)
 
@@ -273,8 +271,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     batch_to_device = batch.to(device)
                     seen_batchs.append(batch)
 
-                engine = Engine(update_fn)
-                make_deterministic(engine, seed=12)
+                engine = DeterministicEngine(update_fn)
 
                 if sampler_type == "distributed":
 
@@ -282,6 +279,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     def _(engine):
                         sampler.set_epoch(engine.state.epoch - 1)
 
+                torch.manual_seed(87)
                 engine.run(
                     orig_dataloader, max_epochs=max_epochs, epoch_length=epoch_length,
                 )
@@ -305,8 +303,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                         num_workers, resume_epoch, batch_checker.counter, batch_checker.true_batch, batch
                     )
 
-                engine = Engine(update_fn)
-                make_deterministic(engine, seed=12)
+                engine = DeterministicEngine(update_fn)
 
                 if sampler_type == "distributed":
 
@@ -314,9 +311,11 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     def _(engine):
                         sampler.set_epoch(engine.state.epoch - 1)
 
-                resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length)
+                resume_state_dict = dict(
+                    epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length, rng_states=None
+                )
                 engine.load_state_dict(resume_state_dict)
-                torch.manual_seed(1)
+                torch.manual_seed(87)
                 engine.run(resume_dataloader)
                 assert engine.state.epoch == max_epochs
                 assert engine.state.iteration == epoch_length * max_epochs
@@ -334,13 +333,14 @@ def test_resume_random_dataloader_from_epoch():
 
 
 class AugmentedData:
-    def __init__(self, data):
+    def __init__(self, data, enabled=True):
         self.data = data
+        self.enabled = enabled
 
     def __getitem__(self, i):
         dp = self.data[i]
-        r = torch.randint_like(dp, 0, 100)
-        return dp + r
+        r = torch.randint_like(dp, -100, 100) if self.enabled else 0.0
+        return dp + r * 0.01
 
     def __len__(self):
         return len(self.data)
@@ -377,8 +377,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     batch_to_device = batch.to(device)
                     seen_batchs.append(batch)
 
-                engine = Engine(update_fn)
-                make_deterministic(engine, seed=12)
+                engine = DeterministicEngine(update_fn)
 
                 if sampler_type == "distributed":
 
@@ -410,8 +409,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                         num_workers, resume_iteration, batch_checker.counter, batch_checker.true_batch, batch
                     )
 
-                engine = Engine(update_fn)
-                make_deterministic(engine, seed=12)
+                engine = DeterministicEngine(update_fn)
 
                 if sampler_type == "distributed":
 
@@ -419,7 +417,9 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     def _(engine):
                         sampler.set_epoch(engine.state.epoch)
 
-                resume_state_dict = dict(iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length)
+                resume_state_dict = dict(
+                    iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length, rng_states=None
+                )
                 engine.load_state_dict(resume_state_dict)
                 torch.manual_seed(12)
                 engine.run(resume_dataloader)
@@ -463,9 +463,8 @@ def _test_resume_random_data_iterator_from_epoch(device):
                 # torch.rand(1)
                 seen_batchs.append(batch)
 
-            engine = Engine(update_fn)
-            make_deterministic(engine, seed=12)
-
+            engine = DeterministicEngine(update_fn)
+            torch.manual_seed(121)
             engine.run(
                 infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length,
             )
@@ -477,11 +476,13 @@ def _test_resume_random_data_iterator_from_epoch(device):
                     resume_epoch, batch_checker.counter, batch_checker.true_batch, batch
                 )
 
-            engine = Engine(update_fn)
-            make_deterministic(engine, seed=12)
+            engine = DeterministicEngine(update_fn)
 
-            resume_state_dict = dict(epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length)
+            resume_state_dict = dict(
+                epoch=resume_epoch, max_epochs=max_epochs, epoch_length=epoch_length, rng_states=None
+            )
             engine.load_state_dict(resume_state_dict)
+            torch.manual_seed(121)
             engine.run(infinite_data_iterator())
             assert engine.state.epoch == max_epochs
             assert engine.state.iteration == epoch_length * max_epochs
@@ -517,10 +518,9 @@ def _test_resume_random_data_iterator_from_iter(device):
             def update_fn(engine, batch):
                 seen_batchs.append(batch)
 
-            engine = Engine(update_fn)
-            make_deterministic(engine, seed=12)
+            engine = DeterministicEngine(update_fn)
 
-            torch.manual_seed(12)
+            torch.manual_seed(24)
             engine.run(
                 infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length,
             )
@@ -532,12 +532,13 @@ def _test_resume_random_data_iterator_from_iter(device):
                     resume_iteration, batch_checker.counter, batch_checker.true_batch, batch
                 )
 
-            engine = Engine(update_fn)
-            make_deterministic(engine, seed=12)
+            engine = DeterministicEngine(update_fn)
 
-            resume_state_dict = dict(iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length)
+            resume_state_dict = dict(
+                iteration=resume_iteration, max_epochs=max_epochs, epoch_length=epoch_length, rng_states=None
+            )
             engine.load_state_dict(resume_state_dict)
-            torch.manual_seed(12)
+            torch.manual_seed(24)
             engine.run(infinite_data_iterator())
             assert engine.state.epoch == max_epochs
             assert engine.state.iteration == epoch_length * max_epochs, "{} | {} vs {}".format(
@@ -593,10 +594,11 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
 
 def test_concepts_snippet_resume():
+
     import torch
     from torch.utils.data import DataLoader
-    from ignite.engine import Engine, Events
-    from ignite.engine.deterministic import make_deterministic
+    from ignite.engine import DeterministicEngine, Events
+    from ignite.utils import manual_seed
 
     seen_batches = []
     manual_seed(seed=15)
@@ -611,17 +613,18 @@ def test_concepts_snippet_resume():
         print("train", e, i, batch.tolist())
         seen_batches.append(batch)
 
-    trainer = Engine(print_train_data)
-    make_deterministic(trainer)
+    trainer = DeterministicEngine(print_train_data)
 
     print("Original Run")
+    manual_seed(56)
     trainer.run(random_train_data_loader(40), max_epochs=2, epoch_length=5)
 
     original_batches = list(seen_batches)
     seen_batches = []
 
     print("Resumed Run")
-    trainer.load_state_dict({"epoch": 1, "epoch_length": 5, "max_epochs": 2})
+    trainer.load_state_dict({"epoch": 1, "epoch_length": 5, "max_epochs": 2, "rng_states": None})
+    manual_seed(56)
     trainer.run(random_train_data_loader(40))
 
     resumed_batches = list(seen_batches)
@@ -640,8 +643,7 @@ def test_concepts_snippet_warning():
         e = engine.state.epoch
         print("train", e, i, batch.tolist())
 
-    trainer = Engine(print_train_data)
-    make_deterministic(trainer, seed=15)
+    trainer = DeterministicEngine(print_train_data)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=3))
     def user_handler(_):
@@ -652,26 +654,15 @@ def test_concepts_snippet_warning():
     trainer.run(random_train_data_generator(), max_epochs=3, epoch_length=5)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_make_deterministic_with_cudnn_deterministic():
+def _test_gradients_on_resume(dirname, device, with_dropout=True, with_dataaugs=True):
 
-    trainer = Engine(lambda e, b: None)
-    make_deterministic(trainer, cudnn_deterministic=True)
-
-
-def test_make_deterministic_without_seed():
-
-    trainer = Engine(lambda e, b: None)
-    make_deterministic(trainer)
-
-
-def _test_gradients_on_resume(dirname, device, with_dropout=False):
+    debug = False
 
     from torch.utils.data import DataLoader
     from torch.optim import SGD
 
     def random_train_data_loader(size):
-        d = AugmentedData(torch.rand(size, 3, 32, 32))
+        d = AugmentedData(torch.rand(size, 3, 32, 32), enabled=with_dataaugs)
         return DataLoader(d, batch_size=4, shuffle=True, num_workers=4)
 
     def _train(save_iter, sd=None):
@@ -708,19 +699,23 @@ def _test_gradients_on_resume(dirname, device, with_dropout=False):
             y = model(b.to(device))
             y.sum().backward()
             opt.step()
-            print(trainer.state.iteration, trainer.state.epoch, "proc_fn - b.shape", b.shape, torch.norm(y).item(), s)
+            if debug:
+                print(
+                    trainer.state.iteration, trainer.state.epoch, "proc_fn - b.shape", b.shape, torch.norm(y).item(), s
+                )
 
-        trainer = Engine(proc_fn)
-        make_deterministic(trainer)
+        trainer = DeterministicEngine(proc_fn)
 
         @trainer.on(Events.ITERATION_COMPLETED(once=save_iter))
         def save_chkpt(_):
-            print(trainer.state.iteration, "save_chkpt")
+            if debug:
+                print(trainer.state.iteration, "save_chkpt")
             fp = os.path.join(dirname, "test.pt")
             from ignite.engine.deterministic import _repr_rng_state
 
             tsd = trainer.state_dict()
-            print("->", _repr_rng_state(tsd["rng_states"]))
+            if debug:
+                print("->", _repr_rng_state(tsd["rng_states"]))
             torch.save([model.state_dict(), opt.state_dict(), tsd], fp)
             chkpt.append(fp)
 
@@ -754,29 +749,29 @@ def _test_gradients_on_resume(dirname, device, with_dropout=False):
             opt.load_state_dict(sd[1])
             from ignite.engine.deterministic import _repr_rng_state
 
-            print("-->", _repr_rng_state(sd[2]["rng_states"]))
+            if debug:
+                print("-->", _repr_rng_state(sd[2]["rng_states"]))
             trainer.load_state_dict(sd[2])
 
+        manual_seed(32)
         trainer.run(random_train_data_loader(size=24), max_epochs=5)
-        # assert trainer.state.epoch == 10
         return {"sd": chkpt, "data": data, "grads": grad_norms, "weights": w_norms}
 
     save_iter = 25
     out_original = _train(save_iter=save_iter)
     assert len(out_original["sd"]) > 0
 
-    print("---")
     out_resumed = _train(save_iter=save_iter, sd=out_original["sd"][0])
 
-    # print("Original:")
-    # print(" data:", out_original["data"])
-    # print("grads:", out_original["grads"])
-    # print("    W:", out_original["weights"])
-    # print("Resume:")
-    # print(" data:", out_resumed["data"])
-    # print("grads:", out_resumed["grads"])
-    # print("    W:", out_resumed["weights"])
-    # assert False
+    if debug:
+        print("Original:")
+        print(" data:", out_original["data"])
+        print("grads:", out_original["grads"])
+        print("    W:", out_original["weights"])
+        print("Resume:")
+        print(" data:", out_resumed["data"])
+        print("grads:", out_resumed["grads"])
+        print("    W:", out_resumed["weights"])
 
     # check data:
     for d1, d2 in zip(out_original["data"], out_resumed["data"]):
@@ -792,10 +787,13 @@ def _test_gradients_on_resume(dirname, device, with_dropout=False):
 
 
 def test_gradients_on_resume_cpu(dirname):
-    # _test_gradients_on_resume(dirname, "cpu")
-    _test_gradients_on_resume(dirname, "cpu", with_dropout=True)
+    with pytest.raises(AssertionError):
+        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True)
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_gradients_on_resume_gpu(dirname):
-    _test_gradients_on_resume(dirname, "cuda")
+    with pytest.raises(AssertionError):
+        _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True)
+    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False)
