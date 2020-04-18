@@ -377,6 +377,7 @@ As always, PRs are welcome :)
 -   [XPersona: Evaluating Multilingual Personalized Chatbot](https://github.com/HLTCHKUST/Xpersona)
 -   [CNN-CASS: CNN for Classification of Coronary Artery Stenosis Score in MPR Images](https://github.com/ucuapps/CoronaryArteryStenosisScoreClassification)
 -   [Bridging Text and Video: A Universal Multimodal Transformer for Video-Audio Scene-Aware Dialog](https://github.com/ictnlp/DSTC8-AVSD)
+-   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
 
 ## Blog articles, tutorials, books
 
@@ -410,6 +411,7 @@ As always, PRs are welcome :)
     PyTorch](https://github.com/vfdev-5/UDA-pytorch)
 -   [Hyperparameters tuning with
     Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
+-   [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 
 See other projects at [\"Used
 by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
