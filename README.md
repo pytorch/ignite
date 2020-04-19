@@ -367,28 +367,51 @@ As always, PRs are welcome :)
 
 # Projects using Ignite
 
+## Research papers
+
+-   [BatchBALD: Efficient and Diverse Batch Acquisition for Deep Bayesian Active Learning](https://github.com/BlackHC/BatchBALD)
+-   [A Model to Search for Synthesizable Molecules](https://github.com/john-bradshaw/molecule-chef)
+-   [Localised Generative Flows](https://github.com/jrmcornish/lgf)
+-   [Extracting T Cell Function and Differentiation Characteristics from the Biomedical Literature](https://github.com/hammerlab/t-cell-relation-extraction)
+-   [Variational Information Distillation for Knowledge Transfer](https://github.com/amzn/xfer/tree/master/var_info_distil)
+-   [XPersona: Evaluating Multilingual Personalized Chatbot](https://github.com/HLTCHKUST/Xpersona)
+-   [CNN-CASS: CNN for Classification of Coronary Artery Stenosis Score in MPR Images](https://github.com/ucuapps/CoronaryArteryStenosisScoreClassification)
+-   [Bridging Text and Video: A Universal Multimodal Transformer for Video-Audio Scene-Aware Dialog](https://github.com/ictnlp/DSTC8-AVSD)
+-   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
+
+## Blog articles, tutorials, books
+
 -   [State-of-the-Art Conversational AI with Transfer
     Learning](https://github.com/huggingface/transfer-learning-conv-ai)
 -   [Tutorial on Transfer Learning in NLP held at NAACL
     2019](https://github.com/huggingface/naacl_transfer_learning_tutorial)
+-   [Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by
+    Packt](https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition)
+-   [Once Upon a Repository: How to Write Readable, Maintainable Code with PyTorch](https://towardsdatascience.com/once-upon-a-repository-how-to-write-readable-maintainable-code-with-pytorch-951f03f6a829)
+
+
+## Toolkits
+
+-   [Project MONAI -
+    AI Toolkit for Healthcare Imaging
+    ](https://github.com/Project-MONAI/MONAI)
+-   [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
+-   [Nussl - a flexible, object oriented Python audio source separation library](https://github.com/nussl/nussl)
+
+## Others
+
 -   [Implementation of \"Attention is All You Need\"
     paper](https://github.com/akurniawan/pytorch-transformer)
 -   [Implementation of DropBlock: A regularization method for
     convolutional networks in
     PyTorch](https://github.com/miguelvr/dropblock)
--   [Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by
-    Packt](https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition)
 -   [Kaggle Kuzushiji Recognition: 2nd place
     solution](https://github.com/lopuhin/kaggle-kuzushiji-2019)
 -   [Unsupervised Data Augmentation experiments in
     PyTorch](https://github.com/vfdev-5/UDA-pytorch)
 -   [Hyperparameters tuning with
     Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
--   [Project MONAI -
-    AI Toolkit for Healthcare Imaging
-    ](https://github.com/Project-MONAI/MONAI)
--   [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
--   [Nussl - a flexible, object oriented Python audio source separation library](https://github.com/nussl/nussl)
+-   [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 
 See other projects at [\"Used
 by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
