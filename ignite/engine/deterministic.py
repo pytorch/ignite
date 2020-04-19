@@ -158,6 +158,17 @@ class DeterministicEngine(Engine):
                 setup_saved_rng_states()
             do_single_epoch_iterations(dataloader)
 
+    Internally, `torch.backends.cudnn.deterministic = True` and `torch.backends.cudnn.benchmark = False` are also
+    applied.
+
+    For more details about dataflow synchronization, please see
+    `"Concepts/Dataflow synchronization" <https://pytorch.org/ignite/concepts.html#dataflow-synchronization>`_.
+
+    .. Note ::
+
+        This class can produce exactly the same dataflow when resuming the run from an epoch (or more precisely from
+        dataflow restart) and using torch `DataLoader` with `num_workers > 1` as data provider.
+
     """
 
     def __init__(self, process_function: Callable):

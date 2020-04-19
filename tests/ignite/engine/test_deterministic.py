@@ -653,7 +653,9 @@ def test_concepts_snippet_warning():
     trainer.run(random_train_data_generator(), max_epochs=3, epoch_length=5)
 
 
-def _test_gradients_on_resume(dirname, device, with_dropout=True, with_dataaugs=True):
+def _test_gradients_on_resume(
+    dirname, device, with_dropout=True, with_dataaugs=True, data_size=24, batch_size=4, save_iter=25
+):
 
     debug = False
 
@@ -662,7 +664,7 @@ def _test_gradients_on_resume(dirname, device, with_dropout=True, with_dataaugs=
 
     def random_train_data_loader(size):
         d = AugmentedData(torch.rand(size, 3, 32, 32), enabled=with_dataaugs)
-        return DataLoader(d, batch_size=4, shuffle=True, num_workers=4)
+        return DataLoader(d, batch_size=batch_size, shuffle=True, num_workers=4)
 
     def _train(save_iter, sd=None):
         w_norms = []
@@ -753,10 +755,9 @@ def _test_gradients_on_resume(dirname, device, with_dropout=True, with_dataaugs=
             trainer.load_state_dict(sd[2])
 
         manual_seed(32)
-        trainer.run(random_train_data_loader(size=24), max_epochs=5)
+        trainer.run(random_train_data_loader(size=data_size), max_epochs=5)
         return {"sd": chkpt, "data": data, "grads": grad_norms, "weights": w_norms}
 
-    save_iter = 25
     out_original = _train(save_iter=save_iter)
     assert len(out_original["sd"]) > 0
 
@@ -789,6 +790,9 @@ def test_gradients_on_resume_cpu(dirname):
     with pytest.raises(AssertionError):
         _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True)
     _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False)
+    # resume from epoch
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=30)
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_iter=30)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -796,3 +800,6 @@ def test_gradients_on_resume_gpu(dirname):
     with pytest.raises(AssertionError):
         _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True)
     _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False)
+    # resume from epoch
+    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True, save_iter=30)
+    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False, save_iter=30)
