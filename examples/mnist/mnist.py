@@ -10,6 +10,7 @@ from torchvision.datasets import MNIST
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
+from ignite.utils import setup_logger
 
 from tqdm import tqdm
 
@@ -57,9 +58,11 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
+    trainer.logger = setup_logger("trainer")
     evaluator = create_supervised_evaluator(
         model, metrics={"accuracy": Accuracy(), "nll": Loss(F.nll_loss)}, device=device
     )
+    evaluator.logger = setup_logger("evaluator")
 
     desc = "ITERATION - loss: {:.2f}"
     pbar = tqdm(initial=0, leave=False, total=len(train_loader), desc=desc.format(0))
