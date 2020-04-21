@@ -76,7 +76,7 @@ def create_supervised_trainer(
     """
 
     device_type = device.type if isinstance(device, torch.device) else device
-    on_tpu = "xla" in device_type
+    on_tpu = "xla" in device_type if device_type is not None else False
 
     if on_tpu:
         try:
