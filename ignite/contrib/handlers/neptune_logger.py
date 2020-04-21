@@ -36,7 +36,7 @@ class OutputHandler(BaseOutputHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                        project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
@@ -64,7 +64,7 @@ class OutputHandler(BaseOutputHandler):
 
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                        project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
@@ -154,7 +154,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                        project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
@@ -204,7 +204,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                        project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
@@ -259,7 +259,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                        project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
@@ -344,7 +344,7 @@ class NeptuneLogger(BaseLogger):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                        project_name="shared/pytorch-ignite-integration",
                                        experiment_name="cnn-mnist", # Optional,
                                        params={"max_epochs": 10}, # Optional,
@@ -414,7 +414,7 @@ class NeptuneLogger(BaseLogger):
 
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                        project_name="shared/pytorch-ignite-integration",
                                             experiment_name="cnn-mnist", # Optional,
                                             params={"max_epochs": 10}, # Optional,
@@ -472,7 +472,7 @@ class NeptuneSaver:
         # Create a logger
         # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-        npt_logger = NeptuneLogger(api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV9rZXkiOiJiNzA2YmM4Zi03NmY5LTRjMmUtOTM5ZC00YmEwMzZmOTMyZTQifQ==",
+        npt_logger = NeptuneLogger(api_token="ANONYMOUS",
                                    project_name="shared/pytorch-ignite-integration",
                                    experiment_name="cnn-mnist", # Optional,
                                    params={"max_epochs": 10}, # Optional,
