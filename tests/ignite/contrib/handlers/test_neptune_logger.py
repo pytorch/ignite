@@ -82,9 +82,7 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls(
-        [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True
-    )
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True)
 
     wrapper = OutputHandler("tag", metric_names=["a",])
 
@@ -135,9 +133,7 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls(
-        [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True
-    )
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True)
 
 
 def test_output_handler_both():
