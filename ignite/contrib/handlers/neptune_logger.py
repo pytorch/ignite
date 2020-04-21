@@ -460,7 +460,7 @@ class NeptuneLogger(BaseLogger):
             k: v for k, v in kwargs.items() if k not in ["api_token", "project_name", "offline_mode"]
         }
 
-        neptune.create_experiment(**self._experiment_kwargs)
+        self.experiment = neptune.create_experiment(**self._experiment_kwargs)
 
     def close(self):
         self.stop()
