@@ -47,7 +47,7 @@ class CallableEventWithFilter:
 
     def __call__(
         self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
-    ) -> 'CallableEventWithFilter':
+    ) -> "CallableEventWithFilter":
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
         (which must take in the engine and current event value and return a boolean) or an every or once value
