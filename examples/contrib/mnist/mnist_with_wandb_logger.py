@@ -112,19 +112,13 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         },
     )
 
-    def iteration(engine):
-        def wrapper(_, event_name):
-            return engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
-
-        return wrapper
-
     wandb_logger.attach(
         trainer,
         log_handler=OutputHandler(
             tag="training",
             output_transform=lambda loss: {"batchloss": loss},
             metric_names="all",
-            global_step_transform=iteration(trainer),
+            global_step_transform=lambda *_: trainer.state.iteration,
         ),
         event_name=Events.ITERATION_COMPLETED(every=100),
     )
@@ -132,16 +126,16 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     wandb_logger.attach(
         train_evaluator,
         log_handler=OutputHandler(
-            tag="training", metric_names=["loss", "accuracy"], global_step_transform=iteration(trainer)
-        ),
+            tag="training", metric_names=["loss", "accuracy"],
+            global_step_transform=lambda *_: trainer.state.iteration),
         event_name=Events.EPOCH_COMPLETED,
     )
 
     wandb_logger.attach(
         validation_evaluator,
         log_handler=OutputHandler(
-            tag="validation", metric_names=["loss", "accuracy"], global_step_transform=iteration(trainer)
-        ),
+            tag="validation", metric_names=["loss", "accuracy"],
+            global_step_transform=lambda *_: trainer.state.iteration),
         event_name=Events.EPOCH_COMPLETED,
     )
 
@@ -159,7 +153,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         filename_prefix="best",
         score_function=score_function,
         score_name="validation_accuracy",
-        global_step_transform=iteration(trainer),
+        global_step_transform=lambda *_: trainer.state.iteration
     )
     validation_evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {"model": model})
 
