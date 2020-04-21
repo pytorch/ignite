@@ -14,21 +14,22 @@ Run the example:
 python mnist.py
 ```
 
-### Logging with TensorboardX
+### Logging with Tensorboard
 
-MNIST example with training and validation monitoring using TensorboardX and Tensorboard.
+MNIST example with training and validation monitoring using Tensorboard. Notice 
+that if PyTorch version is less than 1.2, the module TensorboardX is required.
 
 #### Requirements:
 
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
-- [TensorboardX](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+- [TensorboardX](https://github.com/lanpa/tensorboard-pytorch) (if and only if `PyTorch <= 1.2`): `pip install tensorboardX`
 - Tensorboard: `pip install tensorboard`
 
 #### Usage:
 
 Run the example:
 ```bash
-python mnist_with_tensorboardx.py --log_dir=/tmp/tensorboard_logs
+python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
 ```
 
 Start tensorboard:

@@ -1,10 +1,11 @@
 import os
 import tempfile
 import numbers
-
+import warnings
+from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import collections.abc as collections
-import warnings
+
 
 from typing import Optional, Callable, Mapping, Union
 
@@ -12,7 +13,19 @@ import torch
 
 from ignite.engine import Events, Engine
 
-__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint"]
+__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
+
+
+class BaseSaveHandler(metaclass=ABCMeta):
+    """Base class for save handlers"""
+
+    @abstractmethod
+    def __call__(self, checkpoint: Mapping, filename: str) -> None:
+        pass
+
+    @abstractmethod
+    def remove(self, filename: str) -> None:
+        pass
 
 
 class Checkpoint:
@@ -21,10 +34,13 @@ class Checkpoint:
     storage, etc.
 
     Args:
-        to_save (dict): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
+        to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
             load_state_dict` methods.
-        save_handler (callable): Method to use to save engine and other provided objects. Function receives a
-            checkpoint as a dictionary to save. In case if user needs to save engine's checkpoint on a disk,
+        save_handler (callable or `BaseSaveHandler`): Method or callable class to use to save engine and other provided
+            objects. Function receives two objects: checkpoint as a dictionary and filename. If `save_handler` is
+            callable class, it can
+            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement `remove` method to
+            keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
             `save_handler` can be defined with :class:`~ignite.handlers.DiskSaver`.
         filename_prefix (str, optional): Prefix for the filename to which objects will be saved. See Note for details.
         score_function (callable, optional): If not None, it should be a function taking a single argument,
@@ -38,7 +54,7 @@ class Checkpoint:
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        archived (bool, optional): It True, saved checkpoint extension will be `.pth.tar`, Default value is False.
+        archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -46,7 +62,6 @@ class Checkpoint:
 
         - `filename_prefix` is the argument passed to the constructor,
         - `name` is the key in `to_save` if a single object is to store, otherwise `name` is "checkpoint".
-        - `ext` is `.pth.tar` if `archived=True` otherwise `.pth`.
         - `suffix` is composed as following `{global_step}_{score_name}={score}`.
 
         Above `global_step` defined by the output of `global_step_transform` and `score` defined by the output
@@ -57,14 +72,14 @@ class Checkpoint:
         `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
 
         If defined a `score_function`, but without `score_name`, then suffix is defined by provided score.
-        The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pth`.
+        The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pt`.
 
         If defined `score_function` and `score_name`, then the filename will
         be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If `global_step_transform` is provided, then
         the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}`
 
         For example, `score_name="neg_val_loss"` and `score_function` that returns `-loss` (as objects with highest
-        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pth`.
+        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pt`.
 
         To get the last stored filename, handler exposes attribute `last_checkpoint`:
 
@@ -73,7 +88,7 @@ class Checkpoint:
             handler = Checkpoint(...)
             ...
             print(handler.last_checkpoint)
-            > checkpoint_12345.pth
+            > checkpoint_12345.pt
 
     Examples:
 
@@ -93,7 +108,7 @@ class Checkpoint:
             handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2)
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
             trainer.run(data_loader, max_epochs=6)
-            > ["checkpoint_7000.pth", "checkpoint_8000.pth", ]
+            > ["checkpoint_7000.pt", "checkpoint_8000.pt", ]
 
         Attach the handler to an evaluator to save best model during the training
         according to computed validation metric:
@@ -120,7 +135,7 @@ class Checkpoint:
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
             trainer.run(data_loader, max_epochs=10)
-            > ["best_model_9_val_acc=0.77.pth", "best_model_10_val_acc=0.78.pth", ]
+            > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
 
     """
 
@@ -129,7 +144,7 @@ class Checkpoint:
     def __init__(
         self,
         to_save: Mapping,
-        save_handler: Callable,
+        save_handler: Union[Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
@@ -138,14 +153,17 @@ class Checkpoint:
         archived: bool = False,
     ):
 
-        if not isinstance(to_save, collections.Mapping):
-            raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
+        if to_save is not None:  # for compatibility with ModelCheckpoint
+            if not isinstance(to_save, collections.Mapping):
+                raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
 
-        if len(to_save) < 1:
-            raise ValueError("No objects to checkpoint.")
+            if len(to_save) < 1:
+                raise ValueError("No objects to checkpoint.")
 
-        if not callable(save_handler):
-            raise TypeError("Argument `save_handler` should be callable")
+            self._check_objects(to_save, "state_dict")
+
+        if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
+            raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
 
         if score_function is None and score_name is not None:
             raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
@@ -154,16 +172,17 @@ class Checkpoint:
             raise TypeError(
                 "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
             )
+        if archived:
+            warnings.warn("Argument archived is deprecated")
 
-        self._check_objects(to_save, "state_dict")
+        self.to_save = to_save
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = save_handler
-        self.to_save = to_save
         self._score_function = score_function
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
-        self._ext = ".pth.tar" if archived else ".pth"
+        self._ext = ".pt"
         self.global_step_transform = global_step_transform
 
     @property
@@ -217,6 +236,9 @@ class Checkpoint:
                 checkpoint = checkpoint[name]
             filename = "{}{}_{}{}".format(self._fname_prefix, name, suffix, self._ext)
 
+            if any(item.filename == filename for item in self._saved):
+                return
+
             self.save_handler(checkpoint, filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))
@@ -224,7 +246,8 @@ class Checkpoint:
 
         if not self._check_lt_n_saved(or_equal=True):
             item = self._saved.pop(0)
-            self.save_handler.remove(item.filename)
+            if isinstance(self.save_handler, BaseSaveHandler):
+                self.save_handler.remove(item.filename)
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
@@ -239,33 +262,63 @@ class Checkpoint:
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Mapping) -> None:
+    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
         """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
+
+        Exemples:
+
+        .. code-block:: python
+
+            import torch
+            from ignite.engine import Engine, Events
+            from ignite.handlers import ModelCheckpoint, Checkpoint
+            trainer = Engine(lambda engine, batch: None)
+            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
+            model = torch.nn.Linear(3, 3)
+            optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+            to_save = {"weights": model, "optimizer": optimizer}
+            trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
+            trainer.run(torch.randn(10, 1), 5)
+
+            to_load = to_save
+            checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
+            checkpoint = torch.load(checkpoint_fp)
+            Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
         Args:
             to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
                 "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
                 corresponding state_dict.
+            **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+                the user to load part of the pretrained model (useful for example, in Transfer Learning)
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
+
+        if len(kwargs) > 1 or any(k for k in kwargs.keys() if k not in ["strict"]):
+            warnings.warn("kwargs contains keys other than strict and these will be ignored")
+
+        is_state_dict_strict = kwargs.get("strict", True)
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint:
-                obj.load_state_dict(checkpoint)
+                obj.load_state_dict(checkpoint, strict=is_state_dict_strict)
                 return
 
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint:
                 raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
-            obj.load_state_dict(checkpoint[k])
+            if isinstance(obj, torch.nn.Module):
+                obj.load_state_dict(checkpoint[k], strict=is_state_dict_strict)
+            else:
+                obj.load_state_dict(checkpoint[k])
 
 
-class DiskSaver:
+class DiskSaver(BaseSaveHandler):
     """Handler that saves input checkpoint on a disk.
 
     Args:
@@ -277,7 +330,9 @@ class DiskSaver:
         require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
     """
 
-    def __init__(self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True):
+    def __init__(
+        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True,
+    ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
         if create_dir:
@@ -288,10 +343,10 @@ class DiskSaver:
             raise ValueError("Directory path '{}' is not found".format(dirname))
 
         if require_empty:
-            matched = [fname for fname in os.listdir(dirname) if fname.endswith(".pth") or fname.endswith(".pth.tar")]
+            matched = [fname for fname in os.listdir(dirname) if fname.endswith(".pt")]
             if len(matched) > 0:
                 raise ValueError(
-                    "Files {} with extension '.pth' or '.pth.tar' are already present "
+                    "Files {} with extension '.pt' are already present "
                     "in the directory {}. If you want to use this "
                     "directory anyway, pass `require_empty=False`."
                     "".format(matched, dirname)
@@ -340,11 +395,11 @@ class ModelCheckpoint(Checkpoint):
         :attr:`~ignite.engine.Events.ITERATION_STARTED(every=1000)`
 
         There is no more internal counter that has been used to indicate the number of save actions. User could
-        see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pth`. Actually,
+        see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pt`. Actually,
         `step_number` is replaced by current engine's epoch if `score_function` is specified and current iteration
         otherwise.
 
-        A single `pth` file is created instead of multiple files.
+        A single `pt` file is created instead of multiple files.
 
     Args:
         dirname (str): Directory path where objects will be saved.
@@ -367,7 +422,7 @@ class ModelCheckpoint(Checkpoint):
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        archived (bool, optional): It True, saved checkpoint extension will be `.pth.tar`, Default value is False.
+        archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
 
     Examples:
         >>> import os
@@ -380,9 +435,9 @@ class ModelCheckpoint(Checkpoint):
         >>> trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
         >>> trainer.run([0], max_epochs=6)
         >>> os.listdir('/tmp/models')
-        ['myprefix_mymodel_4.pth', 'myprefix_mymodel_6.pth']
+        ['myprefix_mymodel_4.pt', 'myprefix_mymodel_6.pt']
         >>> handler.last_checkpoint
-        ['/tmp/models/myprefix_mymodel_6.pth']
+        ['/tmp/models/myprefix_mymodel_6.pt']
     """
 
     def __init__(
@@ -392,7 +447,7 @@ class ModelCheckpoint(Checkpoint):
         save_interval: Optional[Callable] = None,
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
-        n_saved: int = 1,
+        n_saved: Union[int, None] = 1,
         atomic: bool = True,
         require_empty: bool = True,
         create_dir: bool = True,
@@ -415,25 +470,18 @@ class ModelCheckpoint(Checkpoint):
                 # No choice
                 raise ValueError(msg)
 
-        disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty)
+        disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty,)
 
-        if score_function is None and score_name is not None:
-            raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
-
-        if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError(
-                "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
-            )
-
-        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
-        self.save_handler = disk_saver
-        self.to_save = None
-        self._score_function = score_function
-        self._score_name = score_name
-        self._n_saved = n_saved
-        self._saved = []
-        self._ext = ".pth.tar" if archived else ".pth"
-        self.global_step_transform = global_step_transform
+        super(ModelCheckpoint, self).__init__(
+            to_save=None,
+            save_handler=disk_saver,
+            filename_prefix=filename_prefix,
+            score_function=score_function,
+            score_name=score_name,
+            n_saved=n_saved,
+            global_step_transform=global_step_transform,
+            archived=archived,
+        )
 
     @property
     def last_checkpoint(self) -> Union[str, None]:

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEventWithFilter, EventEnum
+from ignite.engine.events import CallableEventWithFilter, EventEnum, EventsList
 
 import pytest
 
@@ -39,7 +39,6 @@ def test_custom_events():
 
 
 def test_custom_events_with_event_to_attr():
-
     class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
@@ -74,6 +73,23 @@ def test_custom_events_with_event_to_attr():
     engine = Engine(lambda engine, batch: 0)
     with pytest.raises(ValueError):
         engine.register_events(*CustomEvents, event_to_attr=custom_event_to_attr)
+
+
+def test_custom_events_with_events_list():
+    class CustomEvents(EventEnum):
+        TEST_EVENT = "test_event"
+
+    def process_func(engine, batch):
+        engine.fire_event(CustomEvents.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*CustomEvents)
+
+    # Handle should be called
+    handle = MagicMock()
+    engine.add_event_handler(CustomEvents.TEST_EVENT | Events.STARTED, handle)
+    engine.run(range(1))
+    assert handle.called
 
 
 def test_callable_events_with_wrong_inputs():
@@ -213,9 +229,18 @@ def _test_every_event_filter_with_engine(device="cpu"):
             assert counter_every[0] == getattr(engine.state, event_attr)
             num_calls[0] += 1
 
+        @engine.on(event_name(every=every))
+        def assert_every_no_engine():
+            assert getattr(engine.state, event_attr) % every == 0
+            assert counter_every[0] == getattr(engine.state, event_attr)
+
         @engine.on(event_name)
         def assert_(engine):
             counter[0] += 1
+            assert getattr(engine.state, event_attr) == counter[0]
+
+        @engine.on(event_name)
+        def assert_no_engine():
             assert getattr(engine.state, event_attr) == counter[0]
 
         engine.run(data, max_epochs=5)
@@ -434,3 +459,42 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
     _test_every_event_filter_with_engine(device)
     _test_every_event_filter_with_engine_with_dataloader(device)
+
+
+def test_event_list():
+
+    e1 = Events.ITERATION_STARTED(once=1)
+    e2 = Events.ITERATION_STARTED(every=3)
+    e3 = Events.COMPLETED
+
+    event_list = e1 | e2 | e3
+
+    assert type(event_list) == EventsList
+    assert len(event_list) == 3
+    assert event_list[0] == e1
+    assert event_list[1] == e2
+    assert event_list[2] == e3
+
+
+def test_list_of_events():
+    def _test(event_list, true_iterations):
+
+        engine = Engine(lambda e, b: b)
+
+        iterations = []
+
+        num_calls = [0]
+
+        @engine.on(event_list)
+        def execute_some_handler(e):
+            iterations.append(e.state.iteration)
+            num_calls[0] += 1
+
+        engine.run(range(3), max_epochs=5)
+
+        assert iterations == true_iterations
+        assert num_calls[0] == len(true_iterations)
+
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=1), [1, 1])
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3), [1, 3, 6, 9, 12, 15])

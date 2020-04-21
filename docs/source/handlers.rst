@@ -15,6 +15,7 @@ Complete list of handlers
 .. currentmodule:: ignite.handlers
 
 .. autoclass:: Checkpoint
+    :members: load_objects
 
 .. autoclass:: DiskSaver
 

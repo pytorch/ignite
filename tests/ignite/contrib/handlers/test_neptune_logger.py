@@ -18,7 +18,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with NeptuneLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with NeptuneLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -26,20 +26,20 @@ def test_optimizer_params():
     optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.iteration = 123
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.experiment.log_metric.assert_called_once_with("lr/group_0", y=0.01, x=123)
+    mock_logger.log_metric.assert_called_once_with("lr/group_0", y=0.01, x=123)
 
     wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
+    mock_logger.log_metric = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.experiment.log_metric.assert_called_once_with("generator/lr/group_0", y=0.01, x=123)
+    mock_logger.log_metric.assert_called_once_with("generator/lr/group_0", y=0.01, x=123)
 
 
 def test_output_handler_with_wrong_logger_type():
@@ -47,61 +47,58 @@ def test_output_handler_with_wrong_logger_type():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OutputHandler' works only with NeptuneLogger"):
+    with pytest.raises(RuntimeError, match="Handler OutputHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_output_handler_output_transform():
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.output = 12345
     mock_engine.state.iteration = 123
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-
-    mock_logger.experiment.log_metric.assert_called_once_with("tag/output", y=12345, x=123)
+    mock_logger.log_metric.assert_called_once_with("tag/output", y=12345, x=123)
 
     wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
+    mock_logger.log_metric = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.experiment.log_metric.assert_called_once_with("another_tag/loss", y=12345, x=123)
+    mock_logger.log_metric.assert_called_once_with("another_tag/loss", y=12345, x=123)
 
 
 def test_output_handler_metric_names():
     wrapper = OutputHandler("tag", metric_names=["a", "b"])
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.experiment.log_metric.call_count == 2
-    mock_logger.experiment.log_metric.assert_has_calls(
+    assert mock_logger.log_metric.call_count == 2
+    mock_logger.log_metric.assert_has_calls(
         [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True
     )
 
     wrapper = OutputHandler("tag", metric_names=["a",])
 
     mock_engine = MagicMock()
+    mock_logger.log_metric = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.experiment.log_metric.call_count == 4
-    mock_logger.experiment.log_metric.assert_has_calls(
+    assert mock_logger.log_metric.call_count == 4
+    mock_logger.log_metric.assert_has_calls(
         [
             call("tag/a/0", y=0.0, x=5),
             call("tag/a/1", y=1.0, x=5),
@@ -114,31 +111,31 @@ def test_output_handler_metric_names():
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
 
     mock_engine = MagicMock()
+    mock_logger.log_metric = MagicMock()
     mock_engine.state = State(metrics={"a": 55.56, "c": "Some text"})
     mock_engine.state.iteration = 7
 
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
+    mock_logger.log_metric = MagicMock()
 
     with pytest.warns(UserWarning):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.experiment.log_metric.call_count == 1
-    mock_logger.experiment.log_metric.assert_has_calls([call("tag/a", y=55.56, x=7),], any_order=True)
+    assert mock_logger.log_metric.call_count == 1
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=55.56, x=7),], any_order=True)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.experiment.log_metric.call_count == 2
-    mock_logger.experiment.log_metric.assert_has_calls(
+    assert mock_logger.log_metric.call_count == 2
+    mock_logger.log_metric.assert_has_calls(
         [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True
     )
 
@@ -146,8 +143,7 @@ def test_output_handler_metric_names():
 def test_output_handler_both():
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
     mock_engine.state.epoch = 5
@@ -155,8 +151,8 @@ def test_output_handler_both():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.experiment.log_metric.call_count == 3
-    mock_logger.experiment.log_metric.assert_has_calls(
+    assert mock_logger.log_metric.call_count == 3
+    mock_logger.log_metric.assert_has_calls(
         [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5), call("tag/loss", y=12345, x=5)], any_order=True
     )
 
@@ -167,8 +163,6 @@ def test_output_handler_with_wrong_global_step_transform_output():
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
@@ -191,16 +185,15 @@ def test_output_handler_with_global_step_from_engine():
     )
 
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 1
     mock_engine.state.output = 0.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.experiment.log_metric.call_count == 1
-    mock_logger.experiment.log_metric.assert_has_calls(
+    assert mock_logger.log_metric.call_count == 1
+    mock_logger.log_metric.assert_has_calls(
         [call("tag/loss", y=mock_engine.state.output, x=mock_another_engine.state.epoch)]
     )
 
@@ -208,8 +201,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_engine.state.output = 1.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.experiment.log_metric.call_count == 2
-    mock_logger.experiment.log_metric.assert_has_calls(
+    assert mock_logger.log_metric.call_count == 2
+    mock_logger.log_metric.assert_has_calls(
         [call("tag/loss", y=mock_engine.state.output, x=mock_another_engine.state.epoch)]
     )
 
@@ -220,16 +213,15 @@ def test_output_handler_with_global_step_transform():
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
     mock_engine.state.output = 12345
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.experiment.log_metric.call_count == 1
-    mock_logger.experiment.log_metric.assert_has_calls([call("tag/loss", y=12345, x=10)])
+    assert mock_logger.log_metric.call_count == 1
+    mock_logger.log_metric.assert_has_calls([call("tag/loss", y=12345, x=10)])
 
 
 def test_weights_scalar_handler_wrong_setup():
@@ -246,7 +238,7 @@ def test_weights_scalar_handler_wrong_setup():
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'WeightsScalarHandler' works only with NeptuneLogger"):
+    with pytest.raises(RuntimeError, match="Handler WeightsScalarHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -257,8 +249,7 @@ def test_weights_scalar_handler(dummy_model_factory):
     def _test(tag=None):
         wrapper = WeightsScalarHandler(model, tag=tag)
         mock_logger = MagicMock(spec=NeptuneLogger)
-        mock_logger.experiment = MagicMock()
-
+        mock_logger.log_metric = MagicMock()
         mock_engine = MagicMock()
         mock_engine.state = State()
         mock_engine.state.epoch = 5
@@ -267,8 +258,8 @@ def test_weights_scalar_handler(dummy_model_factory):
 
         tag_prefix = "{}/".format(tag) if tag else ""
 
-        assert mock_logger.experiment.log_metric.call_count == 4
-        mock_logger.experiment.log_metric.assert_has_calls(
+        assert mock_logger.log_metric.call_count == 4
+        mock_logger.log_metric.assert_has_calls(
             [
                 call(tag_prefix + "weights_norm/fc1/weight", y=0.0, x=5),
                 call(tag_prefix + "weights_norm/fc1/bias", y=0.0, x=5),
@@ -287,26 +278,25 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
 
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.experiment.log_metric.assert_has_calls(
+    mock_logger.log_metric.assert_has_calls(
         [call("weights_norm/fc2/weight", y=12.0, x=5), call("weights_norm/fc2/bias", y=math.sqrt(12.0), x=5),],
         any_order=True,
     )
 
     with pytest.raises(AssertionError):
-        mock_logger.experiment.log_metric.assert_has_calls(
+        mock_logger.log_metric.assert_has_calls(
             [call("weights_norm/fc1/weight", y=12.0, x=5), call("weights_norm/fc1/bias", y=math.sqrt(12.0), x=5),],
             any_order=True,
         )
 
-    assert mock_logger.experiment.log_metric.call_count == 2
+    assert mock_logger.log_metric.call_count == 2
 
 
 def test_grads_scalar_handler_wrong_setup():
@@ -320,7 +310,7 @@ def test_grads_scalar_handler_wrong_setup():
     wrapper = GradsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'GradsScalarHandler' works only with NeptuneLogger"):
+    with pytest.raises(RuntimeError, match="Handler GradsScalarHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -331,8 +321,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
     def _test(tag=None):
         wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
         mock_logger = MagicMock(spec=NeptuneLogger)
-        mock_logger.experiment = MagicMock()
-
+        mock_logger.log_metric = MagicMock()
         mock_engine = MagicMock()
         mock_engine.state = State()
         mock_engine.state.epoch = 5
@@ -342,7 +331,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
         tag_prefix = "{}/".format(tag) if tag else ""
 
-        mock_logger.experiment.log_metric.assert_has_calls(
+        mock_logger.log_metric.assert_has_calls(
             [
                 call(tag_prefix + "grads_norm/fc1/weight", y=ANY, x=5),
                 call(tag_prefix + "grads_norm/fc1/bias", y=ANY, x=5),
@@ -351,7 +340,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
             ],
             any_order=True,
         )
-        assert mock_logger.experiment.log_metric.call_count == 4
+        assert mock_logger.log_metric.call_count == 4
         assert norm_mock.call_count == 4
 
     _test()
@@ -363,8 +352,7 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
 
     wrapper = GradsScalarHandler(model, reduction=norm_mock)
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
+    mock_logger.log_metric = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
@@ -372,15 +360,15 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.experiment.log_metric.assert_has_calls(
+    mock_logger.log_metric.assert_has_calls(
         [call("grads_norm/fc2/weight", y=ANY, x=5), call("grads_norm/fc2/bias", y=ANY, x=5),], any_order=True
     )
 
     with pytest.raises(AssertionError):
-        mock_logger.experiment.log_metric.assert_has_calls(
+        mock_logger.log_metric.assert_has_calls(
             [call("grads_norm/fc1/weight", y=ANY, x=5), call("grads_norm/fc1/bias", y=ANY, x=5),], any_order=True
         )
-    assert mock_logger.experiment.log_metric.call_count == 2
+    assert mock_logger.log_metric.call_count == 2
     assert norm_mock.call_count == 2
 
 
@@ -400,7 +388,7 @@ def test_integration():
 
     def dummy_handler(engine, logger, event_name):
         global_step = engine.state.get_event_attrib_value(event_name)
-        logger.experiment.log_metric("test_value", global_step, global_step)
+        logger.log_metric("test_value", global_step, global_step)
 
     npt_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
@@ -423,44 +411,36 @@ def test_integration_as_context_manager():
 
         def dummy_handler(engine, logger, event_name):
             global_step = engine.state.get_event_attrib_value(event_name)
-            logger.experiment.log_metric("test_value", global_step, global_step)
+            logger.log_metric("test_value", global_step, global_step)
 
         npt_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
         trainer.run(data, max_epochs=n_epochs)
 
 
-def test_neptune_saver_serializable(dirname):
+def test_neptune_saver_serializable(dummy_model_factory, dirname):
 
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
-
-    model = DummyModel()
+    mock_logger.log_artifact = MagicMock()
+    model = torch.nn.Module()
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = "test.pth"
-    try:
-        with warnings.catch_warnings():
-            # Ignore torch/serialization.py:292: UserWarning: Couldn't retrieve source code for container of type
-            # DummyModel. It won't be checked for correctness upon loading.
-            warnings.simplefilter("ignore", category=UserWarning)
-            saver(to_save_serializable, fname)
-    except Exception:
-        pass
+    fname = "test.pt"
+    saver(to_save_serializable, fname)
 
-    assert mock_logger.experiment.log_artifact.call_count == 1
+    assert mock_logger.log_artifact.call_count == 1
 
 
 def test_neptune_saver_non_serializable(dirname):
 
     mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.experiment = MagicMock()
+    mock_logger.log_artifact = MagicMock()
 
     to_save_non_serializable = {"model": lambda x: x}
 
     saver = NeptuneSaver(mock_logger)
-    fname = "test.pth"
+    fname = "test.pt"
     try:
         with warnings.catch_warnings():
             # Ignore torch/serialization.py:292: UserWarning: Couldn't retrieve source code for container of type
@@ -470,7 +450,7 @@ def test_neptune_saver_non_serializable(dirname):
     except Exception:
         pass
 
-    assert mock_logger.experiment.log_artifact.call_count == 0
+    assert mock_logger.log_artifact.call_count == 0
 
 
 @pytest.fixture

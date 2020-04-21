@@ -8,4 +8,4 @@ def _to_hours_mins_secs(time_taken: Union[float, int]) -> Tuple[int, int, int]:
     """Convert seconds to hours, mins, and seconds."""
     mins, secs = divmod(time_taken, 60)
     hours, mins = divmod(mins, 60)
-    return hours, mins, secs
+    return round(hours), round(mins), round(secs)

@@ -1,11 +1,12 @@
 import gc
 
-from unittest.mock import MagicMock
+from unittest.mock import call, MagicMock, create_autospec
 
 import pytest
 from pytest import raises
 
 from ignite.engine import Engine, Events, State
+from ignite.engine.events import EventsList
 
 
 class DummyEngine(Engine):
@@ -34,8 +35,7 @@ def test_add_event_handler_raises_with_invalid_signature():
         pass
 
     engine.add_event_handler(Events.STARTED, handler)
-    with pytest.raises(ValueError):
-        engine.add_event_handler(Events.STARTED, handler, 1)
+    engine.add_event_handler(Events.STARTED, handler, 1)
 
     def handler_with_args(engine, a):
         pass
@@ -50,15 +50,13 @@ def test_add_event_handler_raises_with_invalid_signature():
     engine.add_event_handler(Events.STARTED, handler_with_kwargs, b=2)
     with pytest.raises(ValueError):
         engine.add_event_handler(Events.STARTED, handler_with_kwargs, c=3)
-    with pytest.raises(ValueError):
-        engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
+    engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
 
     def handler_with_args_and_kwargs(engine, a, b=42):
         pass
 
     engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2)
-    with pytest.raises(ValueError):
-        engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
+    engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
     with pytest.raises(ValueError):
         engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2, c=3)
 
@@ -90,9 +88,39 @@ def test_add_event_handler():
     assert completed_counter.count == 15
 
 
-def test_adding_multiple_event_handlers():
+def test_add_event_handler_without_engine():
     engine = DummyEngine()
-    handlers = [MagicMock(), MagicMock()]
+
+    class Counter(object):
+        def __init__(self, count=0):
+            self.count = count
+
+    started_counter = Counter()
+
+    def handle_iteration_started():
+        started_counter.count += 1
+
+    engine.add_event_handler(Events.STARTED, handle_iteration_started)
+
+    completed_counter = Counter()
+
+    def handle_iteration_completed(counter):
+        counter.count += 1
+
+    engine.add_event_handler(Events.COMPLETED, handle_iteration_completed, completed_counter)
+
+    engine.run(15)
+
+    assert started_counter.count == 15
+    assert completed_counter.count == 15
+
+
+def test_adding_multiple_event_handlers():
+    mock_fn_1 = create_autospec(spec=lambda x: None)
+    mock_fn_2 = create_autospec(spec=lambda x: None)
+
+    engine = DummyEngine()
+    handlers = [mock_fn_1, mock_fn_2]
     for handler in handlers:
         engine.add_event_handler(Events.STARTED, handler)
 
@@ -105,7 +133,7 @@ def test_event_removable_handle():
 
     # Removable handle removes event from engine.
     engine = DummyEngine()
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
     assert not hasattr(handler, "_parent")
 
     removable_handle = engine.add_event_handler(Events.STARTED, handler)
@@ -122,7 +150,7 @@ def test_event_removable_handle():
     handler.assert_called_once_with(engine)
 
     # Removable handle can be used as a context manager
-    handler = MagicMock(spec_set=True)
+    handler = create_autospec(spec=lambda x: None)
 
     with engine.add_event_handler(Events.STARTED, handler):
         assert engine.has_event_handler(handler, Events.STARTED)
@@ -179,6 +207,114 @@ def test_event_removable_handle():
 
     assert removable_handle.engine() is None
     assert removable_handle.handler() is None
+
+
+def test_events_list_removable_handle():
+
+    # Removable handle removes event from engine.
+    engine = DummyEngine()
+    handler = create_autospec(spec=lambda x: None)
+    assert not hasattr(handler, "_parent")
+
+    events_list = Events.STARTED | Events.COMPLETED
+
+    removable_handle = engine.add_event_handler(events_list, handler)
+    for e in events_list:
+        assert engine.has_event_handler(handler, e)
+
+    engine.run(1)
+    calls = [call(engine), call(engine)]
+    handler.assert_has_calls(calls)
+    assert handler.call_count == 2
+
+    removable_handle.remove()
+    for e in events_list:
+        assert not engine.has_event_handler(handler, e)
+
+    # Second engine pass does not fire handle again.
+    engine.run(1)
+    handler.assert_has_calls(calls)
+    assert handler.call_count == 2
+
+    # Removable handle can be used as a context manager
+    handler = create_autospec(spec=lambda x: None)
+
+    with engine.add_event_handler(events_list, handler):
+        for e in events_list:
+            assert engine.has_event_handler(handler, e)
+        engine.run(1)
+
+    for e in events_list:
+        assert not engine.has_event_handler(handler, e)
+    handler.assert_has_calls(calls)
+    assert handler.call_count == 2
+
+    engine.run(1)
+    handler.assert_has_calls(calls)
+    assert handler.call_count == 2
+
+    # Removeable handle only effects a single event registration
+    handler = create_autospec(spec=lambda x: None)
+
+    other_events_list = Events.EPOCH_STARTED | Events.EPOCH_COMPLETED
+
+    with engine.add_event_handler(events_list, handler):
+        with engine.add_event_handler(other_events_list, handler):
+            for e in events_list:
+                assert engine.has_event_handler(handler, e)
+            for e in other_events_list:
+                assert engine.has_event_handler(handler, e)
+        for e in events_list:
+            assert engine.has_event_handler(handler, e)
+        for e in other_events_list:
+            assert not engine.has_event_handler(handler, e)
+    for e in events_list:
+        assert not engine.has_event_handler(handler, e)
+    for e in other_events_list:
+        assert not engine.has_event_handler(handler, e)
+
+    # Removeable handle is re-enter and re-exitable
+
+    handler = create_autospec(spec=lambda x: None)
+
+    remove = engine.add_event_handler(events_list, handler)
+
+    with remove:
+        with remove:
+            for e in events_list:
+                assert engine.has_event_handler(handler, e)
+        for e in events_list:
+            assert not engine.has_event_handler(handler, e)
+    for e in events_list:
+        assert not engine.has_event_handler(handler, e)
+
+    # Removeable handle is a weakref, does not keep engine or event alive
+    def _add_in_closure():
+        _engine = DummyEngine()
+
+        def _handler(_):
+            pass
+
+        _handle = _engine.add_event_handler(events_list, _handler)
+        assert _handle.engine() is _engine
+        assert _handle.handler() is _handler
+
+        return _handle
+
+    removable_handle = _add_in_closure()
+
+    # gc.collect, resolving reference cycles in engine/state
+    # required to ensure object deletion in python2
+    gc.collect()
+
+    assert removable_handle.engine() is None
+    assert removable_handle.handler() is None
+
+
+def test_eventslist__append_raises():
+    ev_list = EventsList()
+    with pytest.raises(ValueError, match=r"Argument event should be Events or CallableEventWithFilter"):
+        ev_list._append("abc")
 
 
 def test_has_event_handler():
@@ -239,7 +375,7 @@ def test_args_and_kwargs_are_passed_to_event():
     args = (1, 2, 3)
     handlers = []
     for event in [Events.STARTED, Events.COMPLETED]:
-        handler = MagicMock(spec_set=True)
+        handler = create_autospec(spec=lambda e, x1, x2, x3, a, b: None)
         engine.add_event_handler(event, handler, *args, **kwargs)
         handlers.append(handler)
 

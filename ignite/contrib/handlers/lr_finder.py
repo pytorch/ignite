@@ -32,7 +32,7 @@ class FastaiLRFinder:
         model = ...
         optimizer = ...
 
-        lr_finder = LRFinder()
+        lr_finder = FastaiLRFinder()
         to_save = {"model": model, "optimizer": optimizer}
 
         with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:

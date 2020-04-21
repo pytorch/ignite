@@ -660,8 +660,8 @@ class LRScheduler(ParamScheduler):
 def create_lr_scheduler_with_warmup(
     lr_scheduler,
     warmup_start_value,
-    warmup_end_value,
     warmup_duration,
+    warmup_end_value=None,
     save_history=False,
     output_simulated_values=None,
 ):
@@ -672,8 +672,9 @@ def create_lr_scheduler_with_warmup(
         lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
             after the warm-up.
         warmup_start_value (float): learning rate start value of the warm-up phase.
-        warmup_end_value (float): learning rate end value of the warm-up phase.
         warmup_duration (int): warm-up phase duration, number of events.
+        warmup_end_value (float): learning rate end value of the warm-up phase, (default=None). If None,
+             warmup_end_value is set to optimizer initial lr.
         save_history (bool, optional): whether to log the parameter values to
             `engine.state.param_history`, (default=False).
         output_simulated_values (list, optional): optional output of simulated learning rate values.
@@ -715,6 +716,9 @@ def create_lr_scheduler_with_warmup(
 
     if not (isinstance(warmup_duration, numbers.Integral) and warmup_duration > 1):
         raise ValueError("Argument warmup_duration should be at least 2 events, but given {}".format(warmup_duration))
+
+    if warmup_end_value is None:
+        warmup_end_value = lr_scheduler.optimizer.param_groups[0]["lr"]
 
     milestones_values = [(0, warmup_start_value), (warmup_duration - 1, warmup_end_value)]
 

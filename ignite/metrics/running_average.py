@@ -110,7 +110,7 @@ class RunningAverage(Metric):
         return self.src.compute()
 
     @sync_all_reduce("src")
-    def _get_output_value(self) -> Metric:
+    def _get_output_value(self) -> Union[torch.Tensor, float]:
         return self.src
 
     def _metric_iteration_completed(self, engine: Engine) -> None:
@@ -118,5 +118,7 @@ class RunningAverage(Metric):
         self.src.iteration_completed(engine)
 
     @reinit__is_reduced
-    def _output_update(self, output: Metric) -> None:
+    def _output_update(self, output: Union[torch.Tensor, float]) -> None:
+        if isinstance(output, torch.Tensor):
+            output = output.detach().clone()
         self.src = output

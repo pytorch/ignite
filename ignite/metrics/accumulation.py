@@ -143,7 +143,7 @@ class GeometricAverage(VariableAccumulation):
     """Helper class to compute geometric average of a single variable.
 
     - `update` must receive output of the form `x`.
-    - `x` can be a number or `torch.Tensor`.
+    - `x` can be a positive number or a positive `torch.Tensor`, such that `torch.log(x)` is not `nan`.
 
     Note:
 

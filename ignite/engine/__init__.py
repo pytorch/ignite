@@ -7,12 +7,13 @@ from ignite.utils import convert_tensor
 from ignite.metrics import Metric
 
 __all__ = [
-    'create_supervised_trainer',
-    'create_supervised_evaluator',
-    'Engine',
-    'Events',
-    'EventEnum',
-    'CallableEventWithFilter'
+    "State",
+    "create_supervised_trainer",
+    "create_supervised_evaluator",
+    "Engine",
+    "Events",
+    "EventEnum",
+    "CallableEventWithFilter",
 ]
 
 
@@ -46,7 +47,7 @@ def create_supervised_trainer(
         optimizer (`torch.optim.Optimizer`): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
-            Applies to both model and batches.
+            Applies to batches after starting the engine. Model *will not* be moved.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
@@ -54,14 +55,24 @@ def create_supervised_trainer(
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
+    Note:
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
         of the processed batch by default.
+
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: a trainer engine with supervised update function.
     """
-    if device:
-        model.to(device)
 
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
@@ -73,7 +84,9 @@ def create_supervised_trainer(
         optimizer.step()
         return output_transform(x, y, y_pred, loss)
 
-    return Engine(_update)
+    trainer = Engine(_update)
+
+    return trainer
 
 
 def create_supervised_evaluator(
@@ -82,7 +95,7 @@ def create_supervised_evaluator(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred: (y_pred, y,),
+    output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
 ) -> Engine:
     """
     Factory function for creating an evaluator for supervised models.
@@ -91,7 +104,7 @@ def create_supervised_evaluator(
         model (`torch.nn.Module`): the model to train.
         metrics (dict of str - :class:`~ignite.metrics.Metric`): a map of metric names to Metrics.
         device (str, optional): device type specification (default: None).
-            Applies to both model and batches.
+            Applies to batches after starting the engine. Model *will not* be moved.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
@@ -100,16 +113,25 @@ def create_supervised_evaluator(
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
+    Note:
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
+
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: an evaluator engine with supervised inference function.
     """
     metrics = metrics or {}
-
-    if device:
-        model.to(device)
 
     def _inference(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.eval()
@@ -118,9 +140,9 @@ def create_supervised_evaluator(
             y_pred = model(x)
             return output_transform(x, y, y_pred)
 
-    engine = Engine(_inference)
+    evaluator = Engine(_inference)
 
     for name, metric in metrics.items():
-        metric.attach(engine, name)
+        metric.attach(evaluator, name)
 
-    return engine
+    return evaluator

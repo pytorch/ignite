@@ -167,7 +167,7 @@ def test_save_best_model_by_val_score(dirname, capsys):
     ]
     trainer.run(data, max_epochs=len(acc_scores))
 
-    assert set(os.listdir(dirname)) == set(["best_model_8_val_acc=0.6100.pth", "best_model_9_val_acc=0.7000.pth"])
+    assert set(os.listdir(dirname)) == set(["best_model_8_val_acc=0.6100.pt", "best_model_9_val_acc=0.7000.pt"])
 
 
 def test_add_early_stopping_by_val_score():
@@ -197,10 +197,12 @@ def test_add_early_stopping_by_val_score():
 
 
 def test_setup_tb_logging(dirname):
-    def _test(with_eval, with_optim):
+    def _test(subfolder, with_eval, with_optim):
         trainer = Engine(lambda e, b: b)
         evaluators = None
         optimizers = None
+
+        log_dir = os.path.join(dirname, subfolder)
 
         if with_eval:
             evaluator = Engine(lambda e, b: None)
@@ -222,7 +224,7 @@ def test_setup_tb_logging(dirname):
             t = torch.tensor([0,])
             optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
 
-        setup_tb_logging(dirname, trainer, optimizers=optimizers, evaluators=evaluators, log_every_iters=1)
+        setup_tb_logging(log_dir, trainer, optimizers=optimizers, evaluators=evaluators, log_every_iters=1)
 
         handlers = trainer._event_handlers[Events.ITERATION_COMPLETED]
         for cls in [
@@ -247,15 +249,15 @@ def test_setup_tb_logging(dirname):
         data = [0, 1, 2]
         trainer.run(data, max_epochs=10)
 
-        tb_files = list(os.listdir(dirname))
+        tb_files = list(os.listdir(log_dir))
         assert len(tb_files) == 1
         for v in [
             "events",
         ]:
             assert any([v in c for c in tb_files]), "{}".format(tb_files)
 
-    _test(with_eval=False, with_optim=False)
-    _test(with_eval=True, with_optim=True)
+    _test("t1", with_eval=False, with_optim=False)
+    _test("t2", with_eval=True, with_optim=True)
 
 
 def test_setup_visdom_logging(visdom_server):
@@ -283,10 +285,6 @@ def test_setup_visdom_logging(visdom_server):
         if with_optim:
             t = torch.tensor([0,])
             optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
-
-        # import os
-        # os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
-        # os.environ["VISDOM_PORT"] = str(visdom_server[1])
 
         vis_logger = setup_visdom_logging(
             trainer,

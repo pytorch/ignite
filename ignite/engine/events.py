@@ -7,10 +7,7 @@ from types import DynamicClassAttribute
 
 from ignite.engine.utils import _check_signature
 
-__all__ = [
-    'Events',
-    'State'
-]
+__all__ = ["Events", "State"]
 
 
 class CallableEventWithFilter:
@@ -26,16 +23,15 @@ class CallableEventWithFilter:
 
     """
 
-    def __init__(self, value: str, event_filter: Optional[Callable] = None,
-                 name=None):
+    def __init__(self, value: str, event_filter: Optional[Callable] = None, name=None):
         if event_filter is None:
             event_filter = CallableEventWithFilter.default_event_filter
         self.filter = event_filter
 
-        if not hasattr(self, '_value_'):
+        if not hasattr(self, "_value_"):
             self._value_ = value
 
-        if not hasattr(self, '_name_') and name is not None:
+        if not hasattr(self, "_name_") and name is not None:
             self._name_ = name
 
     # copied to be compatible to enum
@@ -49,9 +45,9 @@ class CallableEventWithFilter:
         """The value of the Enum member."""
         return self._value_
 
-    # Will return CallableEventWithFilter but can't annotate that way due to python <= 3.7
-    def __call__(self, event_filter: Optional[Callable] = None,
-                 every: Optional[int] = None, once: Optional[int] = None) -> Any:
+    def __call__(
+        self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
+    ) -> "CallableEventWithFilter":
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
         (which must take in the engine and current event value and return a boolean) or an every or once value
@@ -90,7 +86,7 @@ class CallableEventWithFilter:
 
         # check signature:
         if event_filter is not None:
-            _check_signature("engine", event_filter, "event_filter", "event")
+            _check_signature(event_filter, "event_filter", "engine", "event")
 
         return CallableEventWithFilter(self.value, event_filter, self.name)
 
@@ -129,6 +125,9 @@ class CallableEventWithFilter:
 
     def __hash__(self):
         return hash(self._name_)
+
+    def __or__(self, other):
+        return EventsList() | self | other
 
 
 class EventEnum(CallableEventWithFilter, Enum):
@@ -181,6 +180,55 @@ class Events(EventEnum):
 
     GET_BATCH_STARTED = "get_batch_started"
     GET_BATCH_COMPLETED = "get_batch_completed"
+
+    def __or__(self, other):
+        return EventsList() | self | other
+
+
+class EventsList:
+    """Collection of events stacked by operator `__or__`.
+
+    .. code-block:: python
+
+        events = Events.STARTED | Events.COMPLETED
+        events |= Events.ITERATION_STARTED(every=3)
+
+        engine = ...
+
+        @engine.on(events)
+        def call_on_events(engine):
+            # do something
+
+    or
+
+     .. code-block:: python
+
+        @engine.on(Events.STARTED | Events.COMPLETED | Events.ITERATION_STARTED(every=3))
+        def call_on_events(engine):
+            # do something
+
+    """
+
+    def __init__(self):
+        self._events = []
+
+    def _append(self, event: Union[Events, CallableEventWithFilter]):
+        if not isinstance(event, (Events, CallableEventWithFilter)):
+            raise ValueError("Argument event should be Events or CallableEventWithFilter, got: {}".format(type(event)))
+        self._events.append(event)
+
+    def __getitem__(self, item):
+        return self._events[item]
+
+    def __iter__(self):
+        return iter(self._events)
+
+    def __len__(self):
+        return len(self._events)
+
+    def __or__(self, other: Union[Events, CallableEventWithFilter]):
+        self._append(event=other)
+        return self
 
 
 class State:
@@ -273,7 +321,7 @@ class RemovableEventHandle:
         # print_epoch handler is now unregistered
     """
 
-    def __init__(self, event_name: Union[CallableEventWithFilter, Enum], handler: Callable, engine):
+    def __init__(self, event_name: Union[CallableEventWithFilter, Enum, EventsList], handler: Callable, engine):
         self.event_name = event_name
         self.handler = weakref.ref(handler)
         self.engine = weakref.ref(engine)
@@ -286,8 +334,13 @@ class RemovableEventHandle:
         if handler is None or engine is None:
             return
 
-        if engine.has_event_handler(handler, self.event_name):
-            engine.remove_event_handler(handler, self.event_name)
+        if isinstance(self.event_name, EventsList):
+            for e in self.event_name:
+                if engine.has_event_handler(handler, e):
+                    engine.remove_event_handler(handler, e)
+        else:
+            if engine.has_event_handler(handler, self.event_name):
+                engine.remove_event_handler(handler, self.event_name)
 
     def __enter__(self):
         return self

@@ -15,7 +15,7 @@
 
 Note:
     You can see an example experiment here:
-    https://ui.neptune.ai/o/neptune-ai/org/pytorch-ignite-integration/e/PYTOR-26/charts
+    https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR-26/charts
 """
 import sys
 from argparse import ArgumentParser
@@ -31,6 +31,7 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
+from ignite.handlers import Checkpoint
 
 from ignite.contrib.handlers.neptune_logger import *
 
@@ -69,7 +70,7 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def run(train_batch_size, val_batch_size, epochs, lr, momentum, neptune_project):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
     device = "cpu"
@@ -77,6 +78,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, neptune_project)
     if torch.cuda.is_available():
         device = "cuda"
 
+    model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
@@ -104,8 +106,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, neptune_project)
         validation_evaluator.run(val_loader)
 
     npt_logger = NeptuneLogger(
-        api_token=None,
-        project_name=neptune_project,
+        api_token="ANONYMOUS",
+        project_name="shared/pytorch-ignite-integration",
         name="ignite-mnist-example",
         params={
             "train_batch_size": train_batch_size,
@@ -146,6 +148,21 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, neptune_project)
 
     npt_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
 
+    def score_function(engine):
+        return engine.state.metrics["accuracy"]
+
+    to_save = {"model": model}
+    handler = Checkpoint(
+        to_save,
+        NeptuneSaver(npt_logger),
+        n_saved=2,
+        filename_prefix="best",
+        score_function=score_function,
+        score_name="validation_accuracy",
+        global_step_transform=global_step_from_engine(trainer),
+    )
+    validation_evaluator.add_event_handler(Events.COMPLETED, handler)
+
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
     npt_logger.close()
@@ -160,7 +177,6 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=10, help="number of epochs to train (default: 10)")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate (default: 0.01)")
     parser.add_argument("--momentum", type=float, default=0.5, help="SGD momentum (default: 0.5)")
-    parser.add_argument("--neptune_project", type=str, help="your project in neptune.ai")
 
     args = parser.parse_args()
 
@@ -172,4 +188,4 @@ if __name__ == "__main__":
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
-    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.neptune_project)
+    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum)

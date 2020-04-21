@@ -20,6 +20,7 @@ lr_finder
 ---------
 
 .. automodule:: ignite.contrib.handlers.lr_finder
+   :members:
 
 
 time_profilers

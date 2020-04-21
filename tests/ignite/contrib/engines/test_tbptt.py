@@ -84,6 +84,7 @@ def test_create_supervised_tbptt_trainer_callcounts(mock_detach_hidden):
 def _test_create_supervised_tbptt_trainer(device):
     # Defining dummy recurrent model with zero weights
     model = nn.RNN(1, 1, bias=False)
+    model.to(device)  # Move model before creating optimizer
     for p in model.parameters():
         p.data.zero_()
 
