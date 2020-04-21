@@ -45,10 +45,9 @@ class CallableEventWithFilter:
         """The value of the Enum member."""
         return self._value_
 
-    # Will return CallableEventWithFilter but can't annotate that way due to python <= 3.7
     def __call__(
         self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
-    ) -> Any:
+    ) -> 'CallableEventWithFilter':
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
         (which must take in the engine and current event value and return a boolean) or an every or once value
