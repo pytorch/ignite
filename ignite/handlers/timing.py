@@ -87,10 +87,10 @@ class Timer:
     def attach(
         self,
         engine: Engine,
-        start: str = Events.STARTED,
-        pause: str = Events.COMPLETED,
-        resume: Optional[str] = None,
-        step: Optional[str] = None,
+        start: Events = Events.STARTED,
+        pause: Events = Events.COMPLETED,
+        resume: Optional[Events] = None,
+        step: Optional[Events] = None,
     ):
         """ Register callbacks to control the timer.
 
