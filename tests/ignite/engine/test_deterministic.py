@@ -190,7 +190,7 @@ def test_strict_resume_from_iter():
             engine = DeterministicEngine(update_fn)
 
             @engine.on(Events.EPOCH_COMPLETED)
-            def check_iteration(engine):
+            def check_iteration(_):
                 assert engine.state.iteration == batch_checker.counter
 
             resume_state_dict = dict(
@@ -372,7 +372,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                 )
                 seen_batchs = []
 
-                def update_fn(engine, batch):
+                def update_fn(_, batch):
                     batch_to_device = batch.to(device)
                     seen_batchs.append(batch)
 
@@ -402,7 +402,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     shuffle=sampler is None,
                 )
 
-                def update_fn(engine, batch):
+                def update_fn(_, batch):
                     batch_to_device = batch.to(device)
                     assert batch_checker.check(batch), "{} {} | {}: {} vs {}".format(
                         num_workers, resume_iteration, batch_checker.counter, batch_checker.true_batch, batch
@@ -457,7 +457,7 @@ def _test_resume_random_data_iterator_from_epoch(device):
         for resume_epoch in range(1, max_epochs):
             seen_batchs = []
 
-            def update_fn(engine, batch):
+            def update_fn(_, batch):
                 # if there is a random op when using data batch etc, we can not resume correctly
                 # torch.rand(1)
                 seen_batchs.append(batch)
@@ -470,7 +470,7 @@ def _test_resume_random_data_iterator_from_epoch(device):
 
             batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
-            def update_fn(engine, batch):
+            def update_fn(_, batch):
                 assert batch_checker.check(batch), "{} | {}: {} vs {}".format(
                     resume_epoch, batch_checker.counter, batch_checker.true_batch, batch
                 )
@@ -514,7 +514,7 @@ def _test_resume_random_data_iterator_from_iter(device):
 
             seen_batchs = []
 
-            def update_fn(engine, batch):
+            def update_fn(_, batch):
                 seen_batchs.append(batch)
 
             engine = DeterministicEngine(update_fn)
@@ -526,7 +526,7 @@ def _test_resume_random_data_iterator_from_iter(device):
 
             batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
-            def update_fn(engine, batch):
+            def update_fn(_, batch):
                 assert batch_checker.check(batch), "{} | {}: {} vs {}".format(
                     resume_iteration, batch_checker.counter, batch_checker.true_batch, batch
                 )
@@ -555,7 +555,7 @@ def test_resume_random_data_iterator_from_iter():
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl, setup_sampler):
+def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
     _test_resume_random_data_iterator_from_iter(device)
     _test_resume_random_data_iterator_from_epoch(device)
