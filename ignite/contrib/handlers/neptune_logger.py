@@ -6,6 +6,7 @@ import warnings
 import torch
 
 import ignite
+from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
@@ -466,7 +467,7 @@ class NeptuneLogger(BaseLogger):
         self.stop()
 
 
-class NeptuneSaver:
+class NeptuneSaver(BaseSaveHandler):
     """Handler that saves input checkpoint to the Neptune server.
 
     Args:

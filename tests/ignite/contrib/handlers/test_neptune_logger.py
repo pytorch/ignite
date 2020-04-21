@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from ignite.engine import Engine, Events, State
+from ignite.handlers.checkpoint import Checkpoint
 from ignite.contrib.handlers.neptune_logger import *
 
 
@@ -414,7 +415,7 @@ def test_integration_as_context_manager():
         trainer.run(data, max_epochs=n_epochs)
 
 
-def test_neptune_saver_serializable(dummy_model_factory, dirname):
+def test_neptune_saver_serializable():
 
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_artifact = MagicMock()
@@ -428,7 +429,28 @@ def test_neptune_saver_serializable(dummy_model_factory, dirname):
     assert mock_logger.log_artifact.call_count == 1
 
 
-def test_neptune_saver_non_serializable(dirname):
+def test_neptune_saver_integration():
+
+    model = torch.nn.Module()
+    to_save_serializable = {"model": model}
+
+    mock_logger = MagicMock(spec=NeptuneLogger)
+    mock_logger.log_artifact = MagicMock()
+    mock_logger.delete_artifacts = MagicMock()
+    saver = NeptuneSaver(mock_logger)
+
+    checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=saver, n_saved=1)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+    checkpoint(trainer)
+    trainer.state.iteration = 1
+    checkpoint(trainer)
+    assert mock_logger.log_artifact.call_count == 2
+    assert mock_logger.delete_artifacts.call_count == 1
+
+
+def test_neptune_saver_non_serializable():
 
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_artifact = MagicMock()
