@@ -85,6 +85,12 @@ polyaxon_logger
    :members:
    :inherited-members:
 
+wandb_logger
+---------------
+
+.. automodule:: ignite.contrib.handlers.wandb_logger
+   :members:
+   :inherited-members:
 
 More on parameter scheduling
 ----------------------------
