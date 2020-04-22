@@ -60,11 +60,6 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
 
 
-class _NullHandler(logging.Handler):
-    def emit(self, record):
-        pass
-
-
 def setup_logger(
     name: str,
     level: int = logging.INFO,
@@ -116,7 +111,7 @@ def setup_logger(
     formatter = logging.Formatter(format)
 
     if distributed_rank > 0:
-        logger.addHandler(_NullHandler())
+        logger.addHandler(logging.NullHandler())
     else:
         logger.setLevel(level)
 
