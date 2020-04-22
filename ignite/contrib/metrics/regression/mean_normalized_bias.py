@@ -1,5 +1,3 @@
-from __future__ import division
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -31,7 +29,7 @@ class MeanNormalizedBias(_BaseRegression):
         y_pred, y = output
 
         if (y == 0).any():
-            raise NotComputableError('The ground truth has 0.')
+            raise NotComputableError("The ground truth has 0.")
 
         errors = (y.view_as(y_pred) - y_pred) / y
         self._sum_of_errors += torch.sum(errors).item()
@@ -39,5 +37,5 @@ class MeanNormalizedBias(_BaseRegression):
 
     def compute(self):
         if self._num_examples == 0:
-            raise NotComputableError('MeanNormalizedBias must have at least one example before it can be computed.')
+            raise NotComputableError("MeanNormalizedBias must have at least one example before it can be computed.")
         return self._sum_of_errors / self._num_examples

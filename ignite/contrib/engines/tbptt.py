@@ -1,14 +1,12 @@
 # coding: utf-8
 
-from enum import Enum
-
 import torch
 
 from ignite.utils import apply_to_tensor
-from ignite.engine import Engine, _prepare_batch
+from ignite.engine import Engine, _prepare_batch, EventEnum
 
 
-class Tbptt_Events(Enum):
+class Tbptt_Events(EventEnum):
     """Aditional tbptt events.
 
     Additional events for truncated backpropagation throught time dedicated
@@ -29,14 +27,7 @@ def _detach_hidden(hidden):
 
 
 def create_supervised_tbptt_trainer(
-        model,
-        optimizer,
-        loss_fn,
-        tbtt_step,
-        dim=0,
-        device=None,
-        non_blocking=False,
-        prepare_batch=_prepare_batch
+    model, optimizer, loss_fn, tbtt_step, dim=0, device=None, non_blocking=False, prepare_batch=_prepare_batch
 ):
     """Create a trainer for truncated backprop through time supervised models.
 
@@ -59,19 +50,28 @@ def create_supervised_tbptt_trainer(
         tbtt_step (int): the length of time chunks (last one may be smaller).
         dim (int): axis representing the time dimension.
         device (str, optional): device type specification (default: None).
-            Applies to both model and batches.
+            Applies to batches.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU,
             the copy may occur asynchronously with respect to the host. For other cases,
             this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`,
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
 
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
     Returns:
         Engine: a trainer engine with supervised update function.
 
     """
-    if device:
-        model.to(device)
 
     def _update(engine, batch):
         loss_list = []

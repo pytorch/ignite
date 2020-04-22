@@ -2,8 +2,11 @@ import os
 import logging
 import pytest
 import torch
+import torch.distributed as dist
 
-from ignite.utils import convert_tensor, to_onehot, setup_logger
+from collections import namedtuple
+from ignite.utils import convert_tensor, to_onehot, setup_logger, one_rank_only
+from ignite.engine import Engine, Events
 
 
 def test_convert_tensor():
@@ -12,11 +15,11 @@ def test_convert_tensor():
     assert torch.is_tensor(tensor)
 
     x = torch.tensor([0.0])
-    tensor = convert_tensor(x, device='cpu', non_blocking=True)
+    tensor = convert_tensor(x, device="cpu", non_blocking=True)
     assert torch.is_tensor(tensor)
 
     x = torch.tensor([0.0])
-    tensor = convert_tensor(x, device='cpu', non_blocking=False)
+    tensor = convert_tensor(x, device="cpu", non_blocking=False)
     assert torch.is_tensor(tensor)
 
     x = [torch.tensor([0.0]), torch.tensor([0.0])]
@@ -31,13 +34,20 @@ def test_convert_tensor():
     assert torch.is_tensor(tuple_[0])
     assert torch.is_tensor(tuple_[1])
 
-    x = {'a': torch.tensor([0.0]), 'b': torch.tensor([0.0])}
+    Point = namedtuple("Point", ["x", "y"])
+    x = Point(torch.tensor([0.0]), torch.tensor([0.0]))
+    tuple_ = convert_tensor(x)
+    assert isinstance(tuple_, Point)
+    assert torch.is_tensor(tuple_[0])
+    assert torch.is_tensor(tuple_[1])
+
+    x = {"a": torch.tensor([0.0]), "b": torch.tensor([0.0])}
     dict_ = convert_tensor(x)
     assert isinstance(dict_, dict)
-    assert torch.is_tensor(dict_['a'])
-    assert torch.is_tensor(dict_['b'])
+    assert torch.is_tensor(dict_["a"])
+    assert torch.is_tensor(dict_["b"])
 
-    assert convert_tensor('a') == 'a'
+    assert convert_tensor("a") == "a"
 
     with pytest.raises(TypeError):
         convert_tensor(12345)
@@ -97,7 +107,7 @@ def test_setup_logger(capsys, dirname):
     trainer.run([0, 1, 2, 3, 4, 5], max_epochs=5)
 
     captured = capsys.readouterr()
-    err = captured.err.split('\n')
+    err = captured.err.split("\n")
 
     with open(fp, "r") as h:
         data = h.readlines()
@@ -105,3 +115,88 @@ def test_setup_logger(capsys, dirname):
     for source in [err, data]:
         assert "trainer INFO: Engine run starting with max_epochs=5." in source[0]
         assert "evaluator INFO: Engine run starting with max_epochs=1." in source[2]
+
+
+def _test_distrib_one_rank_only(device):
+    def _test(barrier):
+        # last rank
+        rank = dist.get_world_size() - 1
+
+        value = torch.tensor(0).to(device)
+
+        @one_rank_only(rank=rank, barrier=barrier)
+        def initialize():
+            value.data = torch.tensor(100).to(device)
+
+        initialize()
+
+        value_list = [torch.tensor(0).to(device) for _ in range(dist.get_world_size())]
+
+        dist.all_gather(tensor=value, tensor_list=value_list)
+
+        for r in range(dist.get_world_size()):
+            if r == rank:
+                assert value_list[r].item() == 100
+            else:
+                assert value_list[r].item() == 0
+
+    _test(barrier=True)
+    _test(barrier=False)
+
+
+def _test_distrib_one_rank_only_with_engine(device):
+    def _test(barrier):
+        engine = Engine(lambda e, b: b)
+
+        batch_sum = torch.tensor(0).to(device)
+
+        @engine.on(Events.ITERATION_COMPLETED)
+        @one_rank_only(barrier=barrier)  # ie rank == 0
+        def _(_):
+            batch_sum.data += torch.tensor(engine.state.batch).to(device)
+
+        engine.run([1, 2, 3], max_epochs=2)
+
+        value_list = [torch.tensor(0).to(device) for _ in range(dist.get_world_size())]
+
+        dist.all_gather(tensor=batch_sum, tensor_list=value_list)
+
+        for r in range(dist.get_world_size()):
+            if r == 0:
+                assert value_list[r].item() == 12
+            else:
+                assert value_list[r].item() == 0
+
+    _test(barrier=True)
+    _test(barrier=False)
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    device = "cpu"
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)

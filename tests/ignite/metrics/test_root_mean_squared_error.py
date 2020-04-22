@@ -45,7 +45,7 @@ def _test_distrib_itegration(device):
     y_preds = (rank + 1) * torch.ones(offset, dtype=torch.float).to(device)
 
     def update(engine, i):
-        return y_preds[i * s:(i + 1) * s], y_true[i * s + offset * rank:(i + 1) * s + offset * rank]
+        return y_preds[i * s : (i + 1) * s], y_true[i * s + offset * rank : (i + 1) * s + offset * rank]
 
     engine = Engine(update)
 
@@ -56,7 +56,7 @@ def _test_distrib_itegration(device):
     engine.run(data=data, max_epochs=1)
 
     assert "rmse" in engine.state.metrics
-    res = engine.state.metrics['rmse']
+    res = engine.state.metrics["rmse"]
 
     y_preds_full = []
     for i in range(dist.get_world_size()):
@@ -84,14 +84,14 @@ def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_itegration(device)
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_itegration(device)

@@ -3,10 +3,14 @@ import numbers
 import warnings
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler, \
-    global_step_from_engine
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOutputHandler,
+    BaseOptimizerParamsHandler,
+    global_step_from_engine,
+)
 
-__all__ = ['PolyaxonLogger', 'OutputHandler', 'OptimizerParamsHandler', 'global_step_from_engine']
+__all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
 
 class OutputHandler(BaseOutputHandler):
@@ -30,20 +34,15 @@ class OutputHandler(BaseOutputHandler):
                                                         global_step_transform=global_step_from_engine(trainer)),
                               event_name=Events.EPOCH_COMPLETED)
 
-        Example with CustomPeriodicEvent, where model is evaluated every 500 iterations:
+        Another example, where model is evaluated every 500 iterations:
 
         .. code-block:: python
 
-            from ignite.contrib.handlers import CustomPeriodicEvent
+            from ignite.contrib.handlers.polyaxon_logger import *
 
-            cpe = CustomPeriodicEvent(n_iterations=500)
-            cpe.attach(trainer)
-
-            @trainer.on(cpe.Events.ITERATIONS_500_COMPLETED)
+            @trainer.on(Events.ITERATION_COMPLETED(every=500))
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
-
-            from ignite.contrib.handlers.polyaxon_logger import *
 
             plx_logger = PolyaxonLogger()
 
@@ -51,10 +50,9 @@ class OutputHandler(BaseOutputHandler):
                 return trainer.state.iteration
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # every 500 iterations. Since evaluator engine does not have CustomPeriodicEvent attached to it, we
+            # every 500 iterations. Since evaluator engine does not have access to the training iteration, we
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Polyaxon.
-
 
             plx_logger.attach(evaluator,
                               log_handler=OutputHandler(tag="validation",
@@ -68,7 +66,7 @@ class OutputHandler(BaseOutputHandler):
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, `another_loss`: loss2}` to label the plot
+            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
             value of event. Typically, user can provide
@@ -104,8 +102,10 @@ class OutputHandler(BaseOutputHandler):
         global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
-            raise TypeError("global_step must be int, got {}."
-                            " Please check the output of global_step_transform.".format(type(global_step)))
+            raise TypeError(
+                "global_step must be int, got {}."
+                " Please check the output of global_step_transform.".format(type(global_step))
+            )
 
         rendered_metrics = {"step": global_step}
         for key, value in metrics.items():
@@ -117,8 +117,7 @@ class OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     rendered_metrics["{}/{}/{}".format(self.tag, key, i)] = v.item()
             else:
-                warnings.warn("PolyaxonLogger output_handler can not log "
-                              "metrics value type {}".format(type(value)))
+                warnings.warn("PolyaxonLogger output_handler can not log " "metrics value type {}".format(type(value)))
 
         logger.log_metrics(**rendered_metrics)
 
@@ -155,9 +154,11 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
-        params = {"{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
-                  for i, param_group in enumerate(self.optimizer.param_groups)}
-        params['step'] = global_step
+        params = {
+            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            for i, param_group in enumerate(self.optimizer.param_groups)
+        }
+        params["step"] = global_step
         logger.log_metrics(**params)
 
 
@@ -217,8 +218,10 @@ class PolyaxonLogger(BaseLogger):
         try:
             from polyaxon_client.tracking import Experiment
         except ImportError:
-            raise RuntimeError("This contrib module requires polyaxon-client to be installed. "
-                               "Please install it with command: \n pip install polyaxon-client")
+            raise RuntimeError(
+                "This contrib module requires polyaxon-client to be installed. "
+                "Please install it with command: \n pip install polyaxon-client"
+            )
 
         self.experiment = Experiment()
 

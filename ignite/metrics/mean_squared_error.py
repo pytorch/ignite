@@ -6,9 +6,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
-__all__ = [
-    'MeanSquaredError'
-]
+__all__ = ["MeanSquaredError"]
 
 
 class MeanSquaredError(Metric):
@@ -33,5 +31,5 @@ class MeanSquaredError(Metric):
     @sync_all_reduce("_sum_of_squared_errors", "_num_examples")
     def compute(self) -> Union[float, torch.Tensor]:
         if self._num_examples == 0:
-            raise NotComputableError('MeanSquaredError must have at least one example before it can be computed.')
+            raise NotComputableError("MeanSquaredError must have at least one example before it can be computed.")
         return self._sum_of_squared_errors / self._num_examples

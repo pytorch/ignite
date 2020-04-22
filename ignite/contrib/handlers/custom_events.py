@@ -1,5 +1,4 @@
-from enum import Enum
-from ignite.engine import Events, State
+from ignite.engine import Events, State, EventEnum
 
 
 class CustomPeriodicEvent:
@@ -73,11 +72,12 @@ class CustomPeriodicEvent:
 
         self.custom_state_attr = "{}_{}".format(prefix, self.period)
         event_name = "{}_{}".format(prefix.upper(), self.period)
-        setattr(self, "Events",
-                Enum("Events",
-                     " ".join(["{}_STARTED".format(event_name),
-                               "{}_COMPLETED".format(event_name)])
-                     ))
+        setattr(
+            self,
+            "Events",
+            EventEnum("Events", " ".join(["{}_STARTED".format(event_name), "{}_COMPLETED".format(event_name)])),
+        )
+
         # Update State.event_to_attr
         for e in self.Events:
             State.event_to_attr[e] = self.custom_state_attr
@@ -102,7 +102,9 @@ class CustomPeriodicEvent:
         engine.register_events(*self.Events)
 
         engine.add_event_handler(Events.STARTED, self._on_started)
-        engine.add_event_handler(getattr(Events, "{}_STARTED".format(self.state_attr.upper())),
-                                 self._on_periodic_event_started)
-        engine.add_event_handler(getattr(Events, "{}_COMPLETED".format(self.state_attr.upper())),
-                                 self._on_periodic_event_completed)
+        engine.add_event_handler(
+            getattr(Events, "{}_STARTED".format(self.state_attr.upper())), self._on_periodic_event_started
+        )
+        engine.add_event_handler(
+            getattr(Events, "{}_COMPLETED".format(self.state_attr.upper())), self._on_periodic_event_completed
+        )

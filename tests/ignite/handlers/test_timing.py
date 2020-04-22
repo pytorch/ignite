@@ -22,13 +22,10 @@ def test_timer():
     t_train = Timer()
 
     t_total.attach(trainer)
-    t_batch.attach(trainer,
-                   pause=Events.ITERATION_COMPLETED,
-                   resume=Events.ITERATION_STARTED,
-                   step=Events.ITERATION_COMPLETED)
-    t_train.attach(trainer,
-                   pause=Events.EPOCH_COMPLETED,
-                   resume=Events.EPOCH_STARTED)
+    t_batch.attach(
+        trainer, pause=Events.ITERATION_COMPLETED, resume=Events.ITERATION_STARTED, step=Events.ITERATION_COMPLETED
+    )
+    t_train.attach(trainer, pause=Events.EPOCH_COMPLETED, resume=Events.EPOCH_STARTED)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def run_validation(trainer):

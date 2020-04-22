@@ -13,7 +13,6 @@ from pytest import approx
 
 
 class ListGatherMetric(Metric):
-
     def __init__(self, index):
         super(ListGatherMetric, self).__init__()
         self.index = index
@@ -43,15 +42,34 @@ def test_metrics_lambda():
 
     m0_plus_m1 = MetricsLambda(plus, m0, other=m1)
     m2_plus_2 = MetricsLambda(plus, m2, 2)
-    m0_plus_m1.attach(engine, 'm0_plus_m1')
-    m2_plus_2.attach(engine, 'm2_plus_2')
+    m0_plus_m1.attach(engine, "m0_plus_m1")
+    m2_plus_2.attach(engine, "m2_plus_2")
 
     engine.run([[1, 10, 100]])
-    assert engine.state.metrics['m0_plus_m1'] == 11
-    assert engine.state.metrics['m2_plus_2'] == 102
+    assert engine.state.metrics["m0_plus_m1"] == 11
+    assert engine.state.metrics["m2_plus_2"] == 102
     engine.run([[2, 20, 200]])
-    assert engine.state.metrics['m0_plus_m1'] == 22
-    assert engine.state.metrics['m2_plus_2'] == 202
+    assert engine.state.metrics["m0_plus_m1"] == 22
+    assert engine.state.metrics["m2_plus_2"] == 202
+
+    # metrics are partially attached
+    assert not m0.is_attached(engine)
+    assert not m1.is_attached(engine)
+    assert not m2.is_attached(engine)
+
+    # a dependency is detached
+    m0.detach(engine)
+    # so the lambda metric is too
+    assert not m0_plus_m1.is_attached(engine)
+    # the lambda is attached again
+    m0_plus_m1.attach(engine, "m0_plus_m1")
+    assert m0_plus_m1.is_attached(engine)
+    # metrics are always partially attached
+    assert not m0.is_attached(engine)
+    m0_plus_m1.detach(engine)
+    assert not m0_plus_m1.is_attached(engine)
+    # detached (and no longer partially attached)
+    assert not m0.is_attached(engine)
 
 
 def test_metrics_lambda_reset():
@@ -125,14 +143,14 @@ def test_integration():
 
     precision_true = precision_score(y_true, np.argmax(y_pred, axis=-1), average=None)
     recall_true = recall_score(y_true, np.argmax(y_pred, axis=-1), average=None)
-    f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average='macro')
+    f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average="macro")
 
-    precision = state.metrics['precision'].numpy()
-    recall = state.metrics['recall'].numpy()
+    precision = state.metrics["precision"].numpy()
+    recall = state.metrics["recall"].numpy()
 
     assert precision_true == approx(precision), "{} vs {}".format(precision_true, precision)
     assert recall_true == approx(recall), "{} vs {}".format(recall_true, recall)
-    assert f1_true == approx(state.metrics['f1']), "{} vs {}".format(f1_true, state.metrics['f1'])
+    assert f1_true == approx(state.metrics["f1"]), "{} vs {}".format(f1_true, state.metrics["f1"])
 
 
 def test_integration_ingredients_not_attached():
@@ -172,8 +190,8 @@ def test_integration_ingredients_not_attached():
 
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
-    f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average='macro')
-    assert f1_true == approx(state.metrics['f1']), "{} vs {}".format(f1_true, state.metrics['f1'])
+    f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average="macro")
+    assert f1_true == approx(state.metrics["f1"]), "{} vs {}".format(f1_true, state.metrics["f1"])
 
 
 def test_state_metrics():
@@ -235,7 +253,6 @@ def test_state_metrics_ingredients_not_attached():
 
 
 def test_recursive_attachment():
-
     def _test(composed_metric, metric_name, compute_true_value_fn):
 
         metrics = {
@@ -261,7 +278,7 @@ def test_recursive_attachment():
         d = data(y_pred, y)
         state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
-        assert set(state.metrics.keys()) == set([metric_name, ])
+        assert set(state.metrics.keys()) == set([metric_name,])
         np_y_pred = y_pred.numpy().ravel()
         np_y = y.numpy().ravel()
         assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))
@@ -303,6 +320,7 @@ def test_recursive_attachment():
 def _test_distrib_integration(device):
 
     import torch.distributed as dist
+
     rank = dist.get_rank()
     np.random.seed(12)
 
@@ -345,11 +363,11 @@ def _test_distrib_integration(device):
         data = list(range(n_iters))
         state = evaluator.run(data, max_epochs=1)
 
-        assert 'f1' in state.metrics
-        assert 'ff1' in state.metrics
-        f1_true = f1_score(y_true.ravel(), np.argmax(y_pred.reshape(-1, n_classes), axis=-1), average='macro')
-        assert f1_true == approx(state.metrics['f1'])
-        assert 1.0 + f1_true == approx(state.metrics['ff1'])
+        assert "f1" in state.metrics
+        assert "ff1" in state.metrics
+        f1_true = f1_score(y_true.ravel(), np.argmax(y_pred.reshape(-1, n_classes), axis=-1), average="macro")
+        assert f1_true == approx(state.metrics["f1"])
+        assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
     for _ in range(5):
         _test()
@@ -371,14 +389,14 @@ def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
-@pytest.mark.skipif('GPU_MULTINODE_DISTRIB' not in os.environ, reason="Skip if not multi-node distributed")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl['local_rank'])
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_integration(device)

@@ -1,49 +1,40 @@
 import collections.abc as collections
 import logging
+from functools import wraps
 from typing import Union, Optional, Callable, Any, Type, Tuple
 
 import torch
+import torch.distributed as dist
 
-__all__ = [
-    'convert_tensor',
-    'apply_to_tensor',
-    'apply_to_type',
-    'to_onehot',
-    'setup_logger'
-]
+__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger", "one_rank_only"]
 
 
-def convert_tensor(input_: Union[torch.Tensor, collections.Sequence,
-                                 collections.Mapping, str, bytes],
-                   device: Optional[Union[str, torch.device]] = None,
-                   non_blocking: bool = False) -> Union[torch.Tensor,
-                                                        collections.Sequence,
-                                                        collections.Mapping,
-                                                        str, bytes]:
+def convert_tensor(
+    input_: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes],
+    device: Optional[Union[str, torch.device]] = None,
+    non_blocking: bool = False,
+) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
     """Move tensors to relevant device."""
 
     def _func(tensor: torch.Tensor) -> torch.Tensor:
-        return tensor.to(device=device,
-                         non_blocking=non_blocking) if device else tensor
+        return tensor.to(device=device, non_blocking=non_blocking) if device is not None else tensor
 
     return apply_to_tensor(input_, _func)
 
 
-def apply_to_tensor(input_: Union[torch.Tensor, collections.Sequence,
-                                  collections.Mapping, str, bytes],
-                    func: Callable) -> Union[torch.Tensor,
-                                             collections.Sequence,
-                                             collections.Mapping, str, bytes]:
+def apply_to_tensor(
+    input_: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes], func: Callable
+) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
     """Apply a function on a tensor or mapping, or sequence of tensors.
     """
     return apply_to_type(input_, torch.Tensor, func)
 
 
-def apply_to_type(input_: Union[Any, collections.Sequence,
-                                collections.Mapping, str, bytes],
-                  input_type: Union[Type, Tuple[Type[Any], Any]],
-                  func: Callable) -> Union[Any, collections.Sequence,
-                                           collections.Mapping, str, bytes]:
+def apply_to_type(
+    input_: Union[Any, collections.Sequence, collections.Mapping, str, bytes],
+    input_type: Union[Type, Tuple[Type[Any], Any]],
+    func: Callable,
+) -> Union[Any, collections.Sequence, collections.Mapping, str, bytes]:
     """Apply a function on a object of `input_type` or mapping, or sequence of objects of `input_type`.
     """
     if isinstance(input_, input_type):
@@ -52,11 +43,12 @@ def apply_to_type(input_: Union[Any, collections.Sequence,
         return input_
     elif isinstance(input_, collections.Mapping):
         return type(input_)({k: apply_to_type(sample, input_type, func) for k, sample in input_.items()})
+    elif isinstance(input_, tuple) and hasattr(input_, "_fields"):  # namedtuple
+        return type(input_)(*(apply_to_type(sample, input_type, func) for sample in input_))
     elif isinstance(input_, collections.Sequence):
         return type(input_)([apply_to_type(sample, input_type, func) for sample in input_])
     else:
-        raise TypeError(("input must contain {}, dicts or lists; found {}"
-                         .format(input_type, type(input_))))
+        raise TypeError(("input must contain {}, dicts or lists; found {}".format(input_type, type(input_))))
 
 
 def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
@@ -64,16 +56,17 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     tensor of one-hot indicators of shape `(N, num_classes, ...) and of type uint8. Output's device is equal to the
     input's device`.
     """
-    onehot = torch.zeros(indices.shape[0], num_classes, *indices.shape[1:],
-                         dtype=torch.uint8,
-                         device=indices.device)
+    onehot = torch.zeros(indices.shape[0], num_classes, *indices.shape[1:], dtype=torch.uint8, device=indices.device)
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
 
 
-def setup_logger(name: str, level: int = logging.INFO,
-                 format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
-                 filepath: Optional[str] = None,
-                 distributed_rank: int = 0) -> logging.Logger:
+def setup_logger(
+    name: str,
+    level: int = logging.INFO,
+    format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
+    filepath: Optional[str] = None,
+    distributed_rank: int = 0,
+) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
     Args:
@@ -134,3 +127,40 @@ def setup_logger(name: str, level: int = logging.INFO,
         logger.addHandler(fh)
 
     return logger
+
+
+def one_rank_only(rank: int = 0, barrier: bool = False):
+    """Decorator to filter handlers wrt a rank number
+
+    Args:
+        rank (int): rank number of the handler (default: 0).
+        barrier (bool): synchronisation with a barrier (default: False).
+
+    .. code-block:: python
+
+        engine = ...
+
+        @engine.on(...)
+        @one_rank_only() # means @one_rank_only(rank=0)
+        def some_handler(_):
+            ...
+
+        @engine.on(...)
+        @one_rank_only(rank=1)
+        def some_handler(_):
+            ...
+    """
+
+    def _one_rank_only(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            ret = None
+            if dist.get_rank() == rank:
+                ret = func(*args, **kwargs)
+            if barrier:
+                dist.barrier()
+            return ret
+
+        return wrapper
+
+    return _one_rank_only

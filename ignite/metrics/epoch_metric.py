@@ -5,9 +5,7 @@ import torch
 
 from ignite.metrics.metric import Metric
 
-__all__ = [
-    'EpochMetric'
-]
+__all__ = ["EpochMetric"]
 
 
 class EpochMetric(Metric):
@@ -44,7 +42,7 @@ class EpochMetric(Metric):
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
-        super(EpochMetric, self).__init__(output_transform=output_transform, device='cpu')
+        super(EpochMetric, self).__init__(output_transform=output_transform, device="cpu")
         self.compute_fn = compute_fn
 
     def reset(self) -> None:
@@ -81,8 +79,7 @@ class EpochMetric(Metric):
             try:
                 self.compute_fn(self._predictions, self._targets)
             except Exception as e:
-                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e),
-                              EpochMetricWarning)
+                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
     def compute(self) -> None:
         return self.compute_fn(self._predictions, self._targets)

@@ -21,18 +21,17 @@ def set_seed(seed):
 
 def get_train_test_loaders(path, batch_size, num_workers, distributed=False, pin_memory=True):
 
-    train_transform = Compose([
-        Pad(4),
-        RandomCrop(32, fill=128),
-        RandomHorizontalFlip(),
-        ToTensor(),
-        Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-    ])
+    train_transform = Compose(
+        [
+            Pad(4),
+            RandomCrop(32, fill=128),
+            RandomHorizontalFlip(),
+            ToTensor(),
+            Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
 
-    test_transform = Compose([
-        ToTensor(),
-        Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-    ])
+    test_transform = Compose([ToTensor(), Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),])
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -49,11 +48,18 @@ def get_train_test_loaders(path, batch_size, num_workers, distributed=False, pin
         train_sampler = DistributedSampler(train_ds)
         test_sampler = DistributedSampler(test_ds, shuffle=False)
 
-    train_labelled_loader = DataLoader(train_ds, batch_size=batch_size, sampler=train_sampler,
-                                       num_workers=num_workers, pin_memory=pin_memory, drop_last=True)
+    train_labelled_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        sampler=train_sampler,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=True,
+    )
 
-    test_loader = DataLoader(test_ds, batch_size=batch_size * 2, sampler=test_sampler,
-                             num_workers=num_workers, pin_memory=pin_memory)
+    test_loader = DataLoader(
+        test_ds, batch_size=batch_size * 2, sampler=test_sampler, num_workers=num_workers, pin_memory=pin_memory
+    )
 
     return train_labelled_loader, test_loader
 

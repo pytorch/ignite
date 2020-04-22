@@ -52,22 +52,14 @@ def test_create_supervised_tbptt_trainer_callcounts(mock_detach_hidden):
     optimizer = mock.MagicMock()
     loss = mock.MagicMock()
 
-    trainer = create_supervised_tbptt_trainer(
-        model, optimizer, loss, tbtt_step=2
-    )
+    trainer = create_supervised_tbptt_trainer(model, optimizer, loss, tbtt_step=2)
 
     # Adding two mock handles to the trainer to monitor that TBPTT events are
     # called correctly
     handle_started = mock.MagicMock()
-    trainer.add_event_handler(
-        Tbptt_Events.TIME_ITERATION_STARTED,
-        handle_started
-    )
+    trainer.add_event_handler(Tbptt_Events.TIME_ITERATION_STARTED, handle_started)
     handle_completed = mock.MagicMock()
-    trainer.add_event_handler(
-        Tbptt_Events.TIME_ITERATION_COMPLETED,
-        handle_completed
-    )
+    trainer.add_event_handler(Tbptt_Events.TIME_ITERATION_COMPLETED, handle_completed)
 
     # Fake data
     X = torch.ones(6, 2, 1)
@@ -92,6 +84,7 @@ def test_create_supervised_tbptt_trainer_callcounts(mock_detach_hidden):
 def _test_create_supervised_tbptt_trainer(device):
     # Defining dummy recurrent model with zero weights
     model = nn.RNN(1, 1, bias=False)
+    model.to(device)  # Move model before creating optimizer
     for p in model.parameters():
         p.data.zero_()
 
@@ -102,13 +95,7 @@ def _test_create_supervised_tbptt_trainer(device):
 
     # Defning optimizer and trainer
     optimizer = optim.SGD(model.parameters(), 1)
-    trainer = create_supervised_tbptt_trainer(
-        model,
-        optimizer,
-        F.mse_loss,
-        tbtt_step=2,
-        device=device
-    )
+    trainer = create_supervised_tbptt_trainer(model, optimizer, F.mse_loss, tbtt_step=2, device=device)
 
     # Fake data
     X = torch.ones(6, 2, 1)

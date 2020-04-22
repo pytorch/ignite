@@ -1,13 +1,9 @@
-from __future__ import annotations
-
 from time import perf_counter
 from typing import Optional
 
 from ignite.engine import Events, Engine
 
-__all__ = [
-    'Timer'
-]
+__all__ = ["Timer"]
 
 
 class Timer:
@@ -84,12 +80,18 @@ class Timer:
         self._average = average
         self._t0 = perf_counter()
 
-        self.total = 0.
-        self.step_count = 0.
+        self.total = 0.0
+        self.step_count = 0.0
         self.running = True
 
-    def attach(self, engine: Engine, start: str = Events.STARTED,
-               pause: str = Events.COMPLETED, resume: Optional[str] = None, step: Optional[str] = None) -> Timer:
+    def attach(
+        self,
+        engine: Engine,
+        start: Events = Events.STARTED,
+        pause: Events = Events.COMPLETED,
+        resume: Optional[Events] = None,
+        step: Optional[Events] = None,
+    ):
         """ Register callbacks to control the timer.
 
         Args:
@@ -120,7 +122,7 @@ class Timer:
 
         return self
 
-    def reset(self, *args) -> Timer:
+    def reset(self, *args):
         self.__init__(self._average)
         return self
 
@@ -140,14 +142,14 @@ class Timer:
             total += self._elapsed()
 
         if self._average:
-            denominator = max(self.step_count, 1.)
+            denominator = max(self.step_count, 1.0)
         else:
-            denominator = 1.
+            denominator = 1.0
 
         return total / denominator
 
     def step(self, *args) -> None:
-        self.step_count += 1.
+        self.step_count += 1.0
 
     def _elapsed(self) -> float:
         return perf_counter() - self._t0
