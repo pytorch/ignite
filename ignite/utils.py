@@ -60,6 +60,11 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
 
 
+class _NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+
 def setup_logger(
     name: str,
     level: int = logging.INFO,
@@ -103,11 +108,6 @@ def setup_logger(
     """
     logger = logging.getLogger(name)
 
-    if distributed_rank > 0:
-        return logger
-
-    logger.setLevel(level)
-
     # Remove previous handlers
     if logger.hasHandlers():
         for h in list(logger.handlers):
@@ -115,16 +115,21 @@ def setup_logger(
 
     formatter = logging.Formatter(format)
 
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    if distributed_rank > 0:
+        logger.addHandler(_NullHandler())
+    else:
+        logger.setLevel(level)
 
-    if filepath is not None:
-        fh = logging.FileHandler(filepath)
-        fh.setLevel(level)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+        if filepath is not None:
+            fh = logging.FileHandler(filepath)
+            fh.setLevel(level)
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
 
     return logger
 
