@@ -214,7 +214,7 @@ class DeterministicEngine(Engine):
                         )
 
                 batch_sampler = self.state.dataloader.batch_sampler
-                if not isinstance(batch_sampler, ReproducibleBatchSampler):
+                if not (batch_sampler is None or isinstance(batch_sampler, ReproducibleBatchSampler)):
                     self.state.dataloader = update_dataloader(
                         self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
                     )

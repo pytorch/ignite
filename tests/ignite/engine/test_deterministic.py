@@ -803,3 +803,24 @@ def test_gradients_on_resume_gpu(dirname):
     # resume from epoch
     _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True, save_iter=30)
     _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False, save_iter=30)
+
+
+def test_engine_with_dataloader_no_auto_batching():
+    # tests https://github.com/pytorch/ignite/issues/941
+    from torch.utils.data import DataLoader, BatchSampler, RandomSampler
+
+    data = torch.rand(64, 4, 10)
+    data_loader = torch.utils.data.DataLoader(
+        data, batch_size=None, sampler=BatchSampler(RandomSampler(data), batch_size=8, drop_last=True)
+    )
+
+    counter = [0]
+
+    def foo(e, b):
+        print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
+        counter[0] += 1
+
+    engine = DeterministicEngine(foo)
+    engine.run(data_loader, epoch_length=10, max_epochs=5)
+
+    assert counter[0] == 50
