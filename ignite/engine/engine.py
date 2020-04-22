@@ -685,7 +685,15 @@ class Engine:
             )
 
         self.state.dataloader = data
+        self.add_event_handler(Events.STARTED, self._init_timers)
         return self._internal_run()
+
+
+    @staticmethod
+    def _init_timers(engine: "Engine"):
+        engine.state.times[Events.EPOCH_COMPLETED.name] = 0.0
+        engine.state.times[Events.COMPLETED.name] = 0.0
+
 
     def _setup_engine(self) -> None:
 
