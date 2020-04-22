@@ -12,7 +12,6 @@ import torch
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
 from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
-from ignite._utils import _to_hours_mins_secs
 
 __all__ = ["Engine"]
 
@@ -433,7 +432,7 @@ class Engine:
         )
         self.should_terminate_single_epoch = True
 
-    def _run_once_on_dataset(self) -> Tuple[int, int, int]:
+    def _run_once_on_dataset(self) -> float:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
@@ -497,10 +496,7 @@ class Engine:
             self.logger.error("Current run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
-        time_taken = time.time() - start_time
-        hours, mins, secs = _to_hours_mins_secs(time_taken)
-
-        return hours, mins, secs
+        return time.time() - start_time
 
     def _handle_exception(self, e: Exception) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
@@ -785,17 +781,15 @@ class Engine:
                 if self._dataloader_iter is None:
                     self._setup_engine()
 
-                hours, mins, secs = self._run_once_on_dataset()
-
-                self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+                time_taken = self._run_once_on_dataset()
+                self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
                 if self.should_terminate:
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
 
-            self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
-            hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self.state.times[Events.COMPLETED.name] = time_taken
+            self._fire_event(Events.COMPLETED)
 
         except BaseException as e:
             self._dataloader_iter = self._dataloader_len = None
