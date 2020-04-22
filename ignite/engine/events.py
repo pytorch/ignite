@@ -270,10 +270,7 @@ class State:
         self.metrics = {}
         self.dataloader = None
         self.seed = None
-        self.times = {
-            Events.EPOCH_COMPLETED.name: 0.0,
-            Events.COMPLETED.name: 0.0
-        }
+        self.times = {Events.EPOCH_COMPLETED.name: 0.0, Events.COMPLETED.name: 0.0}
 
         for k, v in kwargs.items():
             setattr(self, k, v)

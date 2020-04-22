@@ -380,17 +380,17 @@ def test_time_stored_in_state():
         upper_bound_time = 1.1 * lower_bound_time
 
         def init(engine):
-            engine.state.times = {
-                Events.EPOCH_COMPLETED.name: 0.0,
-                Events.COMPLETED.name: 0.0
-            }
+            engine.state.times = {Events.EPOCH_COMPLETED.name: 0.0, Events.COMPLETED.name: 0.0}
 
         def check_epoch_time(engine):
             assert lower_bound_time < engine.state.times[Events.EPOCH_COMPLETED.name] < upper_bound_time
 
         def check_completed_time(engine):
-            assert max_epochs * lower_bound_time < engine.state.times[
-                Events.COMPLETED.name] < max_epochs * upper_bound_time
+            assert (
+                max_epochs * lower_bound_time
+                < engine.state.times[Events.COMPLETED.name]
+                < max_epochs * upper_bound_time
+            )
 
         engine.add_event_handler(Events.STARTED, lambda e: init(e))
         engine.add_event_handler(Events.EPOCH_COMPLETED, lambda e: check_epoch_time(e))
@@ -399,6 +399,7 @@ def test_time_stored_in_state():
     _test(list(range(100)), max_epochs=2, epoch_length=100)
     _test(list(range(200)), max_epochs=2, epoch_length=100)
     _test(list(range(200)), max_epochs=5, epoch_length=100)
+
 
 def _test_run_check_triggered_events():
     def _test(data, max_epochs, epoch_length):
