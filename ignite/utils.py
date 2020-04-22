@@ -65,7 +65,7 @@ def setup_logger(
     level: int = logging.INFO,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
-    distributed_rank: int = None,
+    distributed_rank: Optional[int] = None,
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
