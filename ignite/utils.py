@@ -61,16 +61,16 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 
 
 def setup_logger(
-    name: str,
+    name: str = None,
     level: int = logging.INFO,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
-    distributed_rank: int = 0,
+    distributed_rank: int = None,
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
     Args:
-        name (str): new name for the logger.
+        name (str): new name for the logger. If None, the standard logger is used.
         level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG
         format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`
         filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
@@ -109,6 +109,12 @@ def setup_logger(
             logger.removeHandler(h)
 
     formatter = logging.Formatter(format)
+
+    if distributed_rank is None:
+        if dist.is_available() and dist.is_initialized():
+            distributed_rank = dist.get_rank()
+        else:
+            distributed_rank = 0
 
     if distributed_rank > 0:
         logger.addHandler(logging.NullHandler())
