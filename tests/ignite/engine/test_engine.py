@@ -373,11 +373,9 @@ def test_time_stored_in_state():
         engine = Engine(lambda e, b: time.sleep(sleep_time))
 
         def check_epoch_time(engine):
-            # TODO: can we make this test more meaningful?
             assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length
 
         def check_completed_time(engine):
-            # TODO: can we make this test more meaningful?
             assert engine.state.times[Events.COMPLETED.name] >= sleep_time * epoch_length * max_epochs
 
         engine.add_event_handler(Events.EPOCH_COMPLETED, lambda e: check_epoch_time(e))
