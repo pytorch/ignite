@@ -47,7 +47,9 @@ class EpochMetric(Metric):
 
     def reset(self) -> None:
         self._predictions = []
+        self._prediction_tensor = None
         self._targets = []
+        self._target_tensor = None
 
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -79,9 +81,9 @@ class EpochMetric(Metric):
                 warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
     def compute(self) -> None:
-        prediction_cat = torch.cat(self._predictions, dim=0)
-        target_cat = torch.cat(self._targets, dim=0)
-        return self.compute_fn(prediction_cat, target_cat)
+        self._prediction_tensor = torch.cat(self._predictions, dim=0)
+        self._target_tensor = torch.cat(self._targets, dim=0)
+        return self.compute_fn(self._prediction_tensor, self._target_tensor)
 
 
 class EpochMetricWarning(UserWarning):

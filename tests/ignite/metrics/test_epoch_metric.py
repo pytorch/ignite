@@ -43,13 +43,14 @@ def test_epoch_metric():
     em.update(output1)
     output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output2)
+    compute_value = em.compute()
 
-    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
-    assert torch.equal(em._predictions[:4, :], output1[0])
-    assert torch.equal(em._predictions[4:, :], output2[0])
-    assert torch.equal(em._targets[:4, :], output1[1])
-    assert torch.equal(em._targets[4:, :], output2[1])
-    assert em.compute() == 0.0
+    assert em._prediction_tensor.device.type == "cpu" and em._target_tensor.device.type == "cpu"
+    assert torch.equal(em._prediction_tensor[:4, :], output1[0])
+    assert torch.equal(em._prediction_tensor[4:, :], output2[0])
+    assert torch.equal(em._target_tensor[:4, :], output1[1])
+    assert torch.equal(em._target_tensor[4:, :], output2[1])
+    assert compute_value == 0.0
 
     # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size, )
     em.reset()
@@ -57,13 +58,14 @@ def test_epoch_metric():
     em.update(output1)
     output2 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
     em.update(output2)
+    compute_value = em.compute()
 
-    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
-    assert torch.equal(em._predictions[:4], output1[0][:, 0])
-    assert torch.equal(em._predictions[4:], output2[0][:, 0])
-    assert torch.equal(em._targets[:4], output1[1][:, 0])
-    assert torch.equal(em._targets[4:], output2[1][:, 0])
-    assert em.compute() == 0.0
+    assert em._prediction_tensor.device.type == "cpu" and em._target_tensor.device.type == "cpu"
+    assert torch.equal(em._prediction_tensor[:4], output1[0][:, 0])
+    assert torch.equal(em._prediction_tensor[4:], output2[0][:, 0])
+    assert torch.equal(em._target_tensor[:4], output1[1][:, 0])
+    assert torch.equal(em._target_tensor[4:], output2[1][:, 0])
+    assert compute_value == 0.0
 
 
 def test_mse_epoch_metric():
