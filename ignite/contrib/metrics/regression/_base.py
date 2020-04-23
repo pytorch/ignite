@@ -53,8 +53,8 @@ class _BaseRegressionEpoch(_BaseRegression, EpochMetric):
     def _update(self, output):
         y_pred, y = output
 
-        self._predictions.append(y_pred.detach().to(dtype=torch.float32))
-        self._targets.append(y.detach().to(dtype=torch.float32))
+        self._predictions.append(y_pred.to(dtype=torch.float32))
+        self._targets.append(y.to(dtype=torch.float32))
 
         # Check once the signature and execution of compute_fn
         if len(self._predictions) == 1:
