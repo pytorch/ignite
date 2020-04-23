@@ -12,14 +12,21 @@ class EpochMetric(Metric):
     """Class for metrics that should be computed on the entire output history of a model.
     Model's output and targets are restricted to be of shape `(batch_size, n_classes)`. Output
     datatype should be `float32`. Target datatype should be `long`.
+
     .. warning::
+
         Current implementation stores all input data (output and target) in as tensors before computing a metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
+
     .. warning::
+
         Current implementation does not work with distributed computations. Results are not gather across all devices
         and computed results are valid for a single device only.
+
     - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+
     If target shape is `(batch_size, n_classes)` and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`.
+
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
             `predictions` and `targets` and returns a scalar.
@@ -27,6 +34,7 @@ class EpochMetric(Metric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+
     """
 
     def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x):
