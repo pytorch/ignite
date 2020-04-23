@@ -686,13 +686,12 @@ class Engine:
             )
 
         self.state.dataloader = data
-        self.add_event_handler(Events.STARTED, self._init_timers)
         return self._internal_run()
 
     @staticmethod
-    def _init_timers(engine: "Engine"):
-        engine.state.times[Events.EPOCH_COMPLETED.name] = 0.0
-        engine.state.times[Events.COMPLETED.name] = 0.0
+    def _init_timers(state: State):
+        state.times[Events.EPOCH_COMPLETED.name] = 0.0
+        state.times[Events.COMPLETED.name] = 0.0
 
     def _setup_engine(self) -> None:
 
@@ -777,8 +776,9 @@ class Engine:
         le = self._dataloader_len if self._dataloader_len is not None else 1
         self._manual_seed(self.state.seed, self.state.iteration // le)
 
-    def _internal_run(self) -> State:
+    def _internal_run(self) -> State:        
         self.should_terminate = self.should_terminate_single_epoch = False
+        self._init_timers(self.state)
         try:
             start_time = time.time()
             self._fire_event(Events.STARTED)
