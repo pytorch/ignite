@@ -68,8 +68,8 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        self._predictions.append(y_pred.clone())
-        self._targets.append(y.clone())
+        self._predictions.append(y_pred.detach().clone())
+        self._targets.append(y.detach().clone())
 
         # Check once the signature and execution of compute_fn
         if len(self._predictions) == 1:
