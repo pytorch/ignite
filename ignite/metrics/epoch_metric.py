@@ -70,7 +70,7 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        self._predictions.append(y_pred.to(dtype=torch.float32, device="cpu"))
+        self._predictions.append(y_pred.detach().to(dtype=torch.float32, device="cpu"))
         self._targets.append(y.to(dtype=torch.long, device="cpu"))
 
         # Check once the signature and execution of compute_fn
