@@ -776,7 +776,7 @@ class Engine:
         le = self._dataloader_len if self._dataloader_len is not None else 1
         self._manual_seed(self.state.seed, self.state.iteration // le)
 
-    def _internal_run(self) -> State:        
+    def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False
         self._init_timers(self.state)
         try:
