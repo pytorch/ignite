@@ -99,6 +99,10 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
 
         pbar.n = pbar.last_print_n = 0
 
+    @trainer.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
+    def log_time(engine):
+        tqdm.write(f"{trainer.last_event_name.name} took {trainer.state.times[trainer.last_event_name.name]} seconds")
+
     trainer.run(train_loader, max_epochs=epochs)
     pbar.close()
 
