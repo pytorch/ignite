@@ -11,7 +11,7 @@ __all__ = ["EpochMetric"]
 class EpochMetric(Metric):
     """Class for metrics that should be computed on the entire output history of a model.
     Model's output and targets are restricted to be of shape `(batch_size, n_classes)`. Output
-    datatype should be `float32`. Target datatype should be `float32`.
+    datatype should be `float32`. Target datatype should be `long`.
 
     .. warning::
 
@@ -69,7 +69,7 @@ class EpochMetric(Metric):
             y = y.squeeze(dim=-1)
 
         self._predictions.append(y_pred.detach().to(dtype=torch.float32, device="cpu").clone())
-        self._targets.append(y.to(dtype=torch.float32, device="cpu").clone())
+        self._targets.append(y.to(dtype=torch.long, device="cpu").clone())
 
         # Check once the signature and execution of compute_fn
         if len(self._predictions) == 1:
