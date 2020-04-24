@@ -1,3 +1,4 @@
+import numbers
 import os
 import sys
 
@@ -632,3 +633,37 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib__sync_all_reduce(device)
     _test_distrib_sync_all_reduce_decorator(device)
+
+
+def test_completed():
+    class DummyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            pass
+
+    m = DummyMetric()
+
+    # tensor
+    engine = MagicMock(state=State(metrics={}))
+    m.compute = MagicMock(return_value=torch.tensor(1.0))
+    m.completed(engine, "metric")
+    assert engine.state.metrics == {"metric": 1.0}
+    assert isinstance(engine.state.metrics["metric"], numbers.Number)
+
+    # mapping
+    engine = MagicMock(state=State(metrics={}))
+    metrics = {"foo": 1, "bar": torch.tensor(2.0), "baz": {"qux": "quux"}}
+    m.compute = MagicMock(return_value=metrics)
+    m.completed(engine, "metric")
+    assert engine.state.metrics == metrics
+
+    # other
+    engine = MagicMock(state=State(metrics={}))
+    m.compute = MagicMock(return_value="foo")
+    m.completed(engine, "metric")
+    assert engine.state.metrics == {"metric": "foo"}
