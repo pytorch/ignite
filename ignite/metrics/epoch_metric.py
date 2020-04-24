@@ -11,7 +11,7 @@ __all__ = ["EpochMetric"]
 class EpochMetric(Metric):
     """Class for metrics that should be computed on the entire output history of a model.
     Model's output and targets are restricted to be of shape `(batch_size, n_classes)`. Output
-    datatype should be `float32`. Target datatype should be `long`.
+    datatype should be `float32`. Target datatype should be `float32`.
 
     .. warning::
 
@@ -47,9 +47,7 @@ class EpochMetric(Metric):
 
     def reset(self) -> None:
         self._predictions = []
-        self._prediction_tensor = None
         self._targets = []
-        self._target_tensor = None
 
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -71,7 +69,7 @@ class EpochMetric(Metric):
             y = y.squeeze(dim=-1)
 
         self._predictions.append(y_pred.detach().to(dtype=torch.float32, device="cpu").clone())
-        self._targets.append(y.to(dtype=torch.long, device="cpu").clone())
+        self._targets.append(y.to(dtype=torch.float32, device="cpu").clone())
 
         # Check once the signature and execution of compute_fn
         if len(self._predictions) == 1:
@@ -81,9 +79,9 @@ class EpochMetric(Metric):
                 warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
     def compute(self) -> None:
-        self._prediction_tensor = torch.cat(self._predictions, dim=0)
-        self._target_tensor = torch.cat(self._targets, dim=0)
-        return self.compute_fn(self._prediction_tensor, self._target_tensor)
+        _prediction_tensor = torch.cat(self._predictions, dim=0)
+        _target_tensor = torch.cat(self._targets, dim=0)
+        return self.compute_fn(_prediction_tensor, _target_tensor)
 
 
 class EpochMetricWarning(UserWarning):
