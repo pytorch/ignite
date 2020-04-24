@@ -60,14 +60,14 @@ def get_data_loaders(train_batch_size, val_batch_size):
         MNIST(download=True, root=".", transform=data_transform, train=True),
         batch_size=train_batch_size,
         shuffle=True,
-        num_workers=4
+        num_workers=4,
     )
 
     val_loader = DataLoader(
         MNIST(download=False, root=".", transform=data_transform, train=False),
         batch_size=val_batch_size,
         shuffle=False,
-        num_workers=4
+        num_workers=4,
     )
     return train_loader, val_loader
 
@@ -201,6 +201,7 @@ def run(
             raise Exception("STOP at {}".format(engine.state.iteration))
 
     if resume_from is not None:
+
         @trainer.on(Events.STARTED)
         def _(engine):
             pbar.n = engine.state.iteration % engine.state.epoch_length
@@ -242,7 +243,7 @@ def run(
         to_save=objects_to_checkpoint,
         save_handler=DiskSaver(log_dir, require_empty=False),
         n_saved=None,
-        global_step_transform=lambda *_: trainer.state.epoch
+        global_step_transform=lambda *_: trainer.state.epoch,
     )
     trainer.add_event_handler(Events.EPOCH_COMPLETED(every=checkpoint_every), training_checkpoint)
 
@@ -317,5 +318,5 @@ if __name__ == "__main__":
         args.checkpoint_every,
         args.resume_from,
         args.crash_iteration,
-        args.deterministic
+        args.deterministic,
     )
