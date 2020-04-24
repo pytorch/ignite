@@ -4,7 +4,7 @@ from functools import wraps
 from collections.abc import Mapping
 import warnings
 
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.distributed as dist
