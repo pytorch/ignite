@@ -80,42 +80,55 @@ Please, see the documentation for more details.
 
 Training
 ```bash
-python mnist_save_resume_engine.py --log_dir=/tmp/mnist_save_resume/
+python mnist_save_resume_engine.py --log_dir=logs/run_1 --epochs=10
 # or same in deterministic mode
-python mnist_save_resume_engine.py --log_dir=/tmp/mnist_save_resume/ --deterministic
+python mnist_save_resume_engine.py --log_dir=logs-det/run_1 --deterministic --epochs=10
 ```
 
 Resume the training
 ```bash
-python mnist_save_resume_engine.py --log_dir=/tmp/mnist_save_resume/ --resume_from=/tmp/mnist_save_resume/checkpoint_<N>.pt
+python mnist_save_resume_engine.py --log_dir=logs/run_2 --resume_from=logs/run_1/checkpoint_5628.pt --epochs=10
 # or same in deterministic mode
-python mnist_save_resume_engine.py --log_dir=/tmp/mnist_save_resume/ --resume_from=/tmp/mnist_save_resume/checkpoint_<N>.pt --deterministic
+python mnist_save_resume_engine.py --log_dir=logs-det/run_2 --resume_from=logs-det/run_1/checkpoint_5628.pt --deterministic --epochs=10
 ```
 
 Start tensorboard:
 ```bash
-tensorboard --logdir=/tmp/mnist_save_resume/
+tensorboard --logdir=.
 ```
+
+The script logs batch stats (mean/std of images, median of targets), model weights' norms and computed gradients norms in 
+`run.log` and `resume_run.log` to compare training behaviour in both cases. 
+If set `--deterministic` option, we can observe the same values after resuming the training.
+
+Non-deterministic| Deterministic 
+---|---
+![img1](assets/logs_run_1_2.png) | ![img1](assets/logs-det_run_1_2.png) 
+
+Deterministic `run.log` vs `resume_run.log`
+![img1](assets/run_vs_resume_run_logs_1_2.png)
+ 
 
 #### Usage with simulated crash
 
 Initial training with a crash
 ```bash
-python mnist_save_resume_engine.py --crash_iteration 1700 --log_dir=logs --epochs 3
+python mnist_save_resume_engine.py --crash_iteration 5700 --log_dir=logs/run_3_crash --epochs 10
 # or same in deterministic mode
-python mnist_save_resume_engine.py --crash_iteration 1700 --log_dir=logs --epochs 3 --deterministic
+python mnist_save_resume_engine.py --crash_iteration 5700 --log_dir=logs-det/run_3_crash --epochs 10 --deterministic
 ```
 
 Resume from the latest checkpoint
 ```bash
-python mnist_save_resume_engine.py --resume_from logs/checkpoint_1650.pt --log_dir=logs --epochs 3
+python mnist_save_resume_engine.py --resume_from logs/run_3_crash/checkpoint_6.pt --log_dir=logs/run_4 --epochs 10
 # or same in deterministic mode
-python mnist_save_resume_engine.py --resume_from logs/checkpoint_1650.pt --log_dir=logs --epochs 3 --deterministic
+python mnist_save_resume_engine.py --resume_from logs-det/run_3_crash/checkpoint_6.pt --log_dir=logs-det/run_4 --epochs 10 --deterministic
 ```
 
-The script logs batch stats (mean/std of images, median of targets), model weights norms and computed gradients norms in 
-`run.log` and `resume_run.log` to compare training behaviour in both cases. 
-If set `--deterministic` option, we can observe the same values after resuming the training.
+Non-deterministic| Deterministic
+---|---
+![img1](assets/logs_run_3_4.png) | ![img1](assets/logs-det_run_3_4.png) 
 
-![tb1](assets/save_resume_p1.png)
-![tb2](assets/save_resume_p2.png)
+
+Deterministic `run.log` vs `resume_run.log`
+![img1](assets/run_vs_resume_run_logs_3_4.png)

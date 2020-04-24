@@ -57,11 +57,17 @@ def get_data_loaders(train_batch_size, val_batch_size):
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     train_loader = DataLoader(
-        MNIST(download=True, root=".", transform=data_transform, train=True), batch_size=train_batch_size, shuffle=True
+        MNIST(download=True, root=".", transform=data_transform, train=True),
+        batch_size=train_batch_size,
+        shuffle=True,
+        num_workers=4
     )
 
     val_loader = DataLoader(
-        MNIST(download=False, root=".", transform=data_transform, train=False), batch_size=val_batch_size, shuffle=False
+        MNIST(download=False, root=".", transform=data_transform, train=False),
+        batch_size=val_batch_size,
+        shuffle=False,
+        num_workers=4
     )
     return train_loader, val_loader
 
@@ -177,13 +183,13 @@ def run(
     def lr_step(engine):
         lr_scheduler.step()
 
-    desc = "ITERATION - loss: {:.4f} - lr: {:.4f}"
-    pbar = tqdm(initial=0, leave=False, total=len(train_loader), desc=desc.format(0, lr))
+    desc = "Epoch {} - loss: {:.4f} - lr: {:.4f}"
+    pbar = tqdm(initial=0, leave=False, total=len(train_loader), desc=desc.format(0, 0, lr))
 
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
         lr = optimizer.param_groups[0]["lr"]
-        pbar.desc = desc.format(engine.state.output, lr)
+        pbar.desc = desc.format(engine.state.epoch, engine.state.output, lr)
         pbar.update(log_interval)
         writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
         writer.add_scalar("lr", lr, engine.state.iteration)
@@ -195,10 +201,9 @@ def run(
             raise Exception("STOP at {}".format(engine.state.iteration))
 
     if resume_from is not None:
-
         @trainer.on(Events.STARTED)
         def _(engine):
-            pbar.n = engine.state.iteration % len(train_loader) + 1
+            pbar.n = engine.state.iteration % engine.state.epoch_length
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
@@ -234,18 +239,21 @@ def run(
     # Setup object to checkpoint
     objects_to_checkpoint = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     training_checkpoint = Checkpoint(
-        to_save=objects_to_checkpoint, save_handler=DiskSaver(log_dir, require_empty=False), n_saved=None
+        to_save=objects_to_checkpoint,
+        save_handler=DiskSaver(log_dir, require_empty=False),
+        n_saved=None,
+        global_step_transform=lambda *_: trainer.state.epoch
     )
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=checkpoint_every), training_checkpoint)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=checkpoint_every), training_checkpoint)
 
     # Setup logger to print and dump into file: model weights, model grads and data stats
     # - first 3 iterations
     # - 4 iterations after checkpointing
     # This helps to compare resumed training with checkpointed training
-    def log_event_filter(_, event):
+    def log_event_filter(e, event):
         if event in [1, 2, 3]:
             return True
-        elif 0 <= (event % checkpoint_every) < 5:
+        elif 0 <= (event % (checkpoint_every * e.state.epoch_length)) < 5:
             return True
         return False
 
@@ -287,11 +295,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log_dir", type=str, default="/tmp/mnist_save_resume", help="log directory for Tensorboard log output"
     )
-    parser.add_argument("--checkpoint_every", type=int, default=550, help="Checkpoint training every X iterations")
+    parser.add_argument("--checkpoint_every", type=int, default=1, help="Checkpoint training every X epochs")
     parser.add_argument(
         "--resume_from", type=str, default=None, help="Path to the checkpoint .pt file to resume training from"
     )
-    parser.add_argument("--crash_iteration", type=int, default=3000, help="Iteration at which to raise an exception")
+    parser.add_argument("--crash_iteration", type=int, default=-1, help="Iteration at which to raise an exception")
     parser.add_argument(
         "--deterministic", action="store_true", help="Deterministic training with dataflow synchronization"
     )
@@ -309,4 +317,5 @@ if __name__ == "__main__":
         args.checkpoint_every,
         args.resume_from,
         args.crash_iteration,
+        args.deterministic
     )

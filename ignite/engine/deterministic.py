@@ -227,8 +227,9 @@ class DeterministicEngine(Engine):
             iteration %= self.state.epoch_length
         self._init_iter.append(iteration)
 
-        # restore rng state
-        if getattr(self.state, "rng_states", None) is not None:
+        # restore rng state if in the middle
+        in_the_middle = self.state.iteration % self._dataloader_len > 0 if self._dataloader_len is not None else False
+        if (getattr(self.state, "rng_states", None) is not None) and in_the_middle:
             _set_rng_states(self.state.rng_states)
             self.state.rng_states = None
 

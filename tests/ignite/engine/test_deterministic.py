@@ -654,10 +654,10 @@ def test_concepts_snippet_warning():
 
 
 def _test_gradients_on_resume(
-    dirname, device, with_dropout=True, with_dataaugs=True, data_size=24, batch_size=4, save_iter=25
+    dirname, device, with_dropout=True, with_dataaugs=True, data_size=24, batch_size=4, save_iter=None, save_epoch=None
 ):
 
-    debug = False
+    debug = True
 
     from torch.utils.data import DataLoader
     from torch.optim import SGD
@@ -666,7 +666,7 @@ def _test_gradients_on_resume(
         d = AugmentedData(torch.rand(size, 3, 32, 32), enabled=with_dataaugs)
         return DataLoader(d, batch_size=batch_size, shuffle=True, num_workers=4)
 
-    def _train(save_iter, sd=None):
+    def _train(save_iter=None, save_epoch=None, sd=None):
         w_norms = []
         grad_norms = []
         data = []
@@ -707,7 +707,13 @@ def _test_gradients_on_resume(
 
         trainer = DeterministicEngine(proc_fn)
 
-        @trainer.on(Events.ITERATION_COMPLETED(once=save_iter))
+        if save_iter is not None:
+            ev = Events.ITERATION_COMPLETED(once=save_iter)
+        elif save_epoch is not None:
+            ev = Events.EPOCH_COMPLETED(once=save_epoch)
+            save_iter = save_epoch * (data_size // batch_size)
+
+        @trainer.on(ev)
         def save_chkpt(_):
             if debug:
                 print(trainer.state.iteration, "save_chkpt")
@@ -758,10 +764,10 @@ def _test_gradients_on_resume(
         trainer.run(random_train_data_loader(size=data_size), max_epochs=5)
         return {"sd": chkpt, "data": data, "grads": grad_norms, "weights": w_norms}
 
-    out_original = _train(save_iter=save_iter)
+    out_original = _train(save_iter=save_iter, save_epoch=save_epoch)
     assert len(out_original["sd"]) > 0
 
-    out_resumed = _train(save_iter=save_iter, sd=out_original["sd"][0])
+    out_resumed = _train(save_iter=save_iter, save_epoch=save_epoch, sd=out_original["sd"][0])
 
     if debug:
         print("Original:")
@@ -788,11 +794,11 @@ def _test_gradients_on_resume(
 
 def test_gradients_on_resume_cpu(dirname):
     with pytest.raises(AssertionError):
-        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True)
-    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False)
+        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=25)
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_iter=25)
     # resume from epoch
-    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=30)
-    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_iter=30)
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_epoch=3)
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_epoch=3)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
