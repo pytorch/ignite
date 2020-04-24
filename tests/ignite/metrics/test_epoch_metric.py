@@ -61,7 +61,7 @@ def test_epoch_metric():
     assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
     assert torch.equal(em._predictions[0], output1[0][:, 0])
     assert torch.equal(em._predictions[1], output2[0][:, 0])
-    assert torch.equal(em._targets[1], output1[1][:, 0])
+    assert torch.equal(em._targets[0], output1[1][:, 0])
     assert torch.equal(em._targets[1], output2[1][:, 0])
     assert em.compute() == 0.0
 
