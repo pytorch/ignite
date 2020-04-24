@@ -150,3 +150,4 @@ def distributed_context_multi_node_nccl(multi_node_conf):
     dist.barrier()
 
     dist.destroy_process_group()
+
