@@ -82,9 +82,9 @@ class Metric(metaclass=ABCMeta):
         This is called at the end of each epoch.
 
         Returns:
-            Any: the actual quantity of interest. However, if a :class:`dict` is returned, it should contain
-                 :class:`numbers.Number` or :class:`torch.tensor` values and will flattened into
-                 `engine.state.metrics` when :func:`~ignite.metrics.Metric.completed` is called.
+            Any: the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,
+                 it will be (shallow) flattened into `engine.state.metrics` when
+                 :func:`~ignite.metrics.Metric.completed` is called.
 
         Raises:
             NotComputableError: raised when the metric cannot be computed.
@@ -116,19 +116,6 @@ class Metric(metaclass=ABCMeta):
             return tensor.item()
         return tensor
 
-    def ensure_metric_value(self, value: Any, raise_error=True) -> Union[numbers.Number, torch.Tensor]:
-        if isinstance(value, torch.Tensor):
-            if len(value.size()) == 0:
-                value = value.item()
-        elif not isinstance(value, numbers.Number) and raise_error:
-            raise TypeError(
-                "Metric value should has type of `numbers.Number` or `torch.Tensor`, but given `{}`".format(
-                    value.__class__.__name__
-                )
-            )
-
-        return value
-
     def started(self, engine: Engine) -> None:
         self.reset()
 
@@ -152,11 +139,13 @@ class Metric(metaclass=ABCMeta):
 
     def completed(self, engine: Engine, name: str) -> None:
         result = self.compute()
-        if isinstance(result, dict):
+        if isinstance(result, Mapping):
             for key, value in result.items():
-                engine.state.metrics[key] = self.ensure_metric_value(value, raise_error=True)
+                engine.state.metrics[key] = value
         else:
-            result = self.ensure_metric_value(result, raise_error=False)
+            if isinstance(result, torch.Tensor) and len(result.size()) == 0:
+                result = result.item()
+
             engine.state.metrics[name] = result
 
     def attach(self, engine: Engine, name: str) -> None:

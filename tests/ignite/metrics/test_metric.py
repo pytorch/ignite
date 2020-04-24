@@ -635,48 +635,6 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_distrib_sync_all_reduce_decorator(device)
 
 
-def test_ensure_metric_value():
-    class DummyMetric(Metric):
-        def reset(self):
-            pass
-
-        def compute(self):
-            pass
-
-        def update(self, output):
-            pass
-
-    m = DummyMetric()
-
-    # int
-    v_int = 1
-    v_int_ensured = m.ensure_metric_value(v_int)
-    assert v_int_ensured == v_int
-    assert isinstance(v_int_ensured, int)
-
-    # float
-    v_float = 1.0
-    v_float_ensured = m.ensure_metric_value(v_float)
-    assert v_float_ensured == v_float
-    assert isinstance(v_float_ensured, float)
-
-    # 0d tensor
-    v_tensor_0d = torch.tensor(1.0)
-    v_tensor_0d_ensured = m.ensure_metric_value(v_tensor_0d)
-    assert v_tensor_0d_ensured == v_tensor_0d
-    assert isinstance(v_tensor_0d_ensured, numbers.Number)
-
-    # other value type
-    v_str = "dummy"
-    v_str_ensured = m.ensure_metric_value(v_str, raise_error=False)
-    assert v_str_ensured == v_str
-    assert isinstance(v_str, str)
-    with pytest.raises(
-        TypeError, match=r"Metric value should has type of `numbers.Number` or `torch.Tensor`, but given `str`",
-    ):
-        m.ensure_metric_value(v_str, raise_error=True)
-
-
 def test_completed():
     class DummyMetric(Metric):
         def reset(self):
@@ -690,29 +648,19 @@ def test_completed():
 
     m = DummyMetric()
 
-    # plain number values
-    engine = MagicMock(state=State(metrics={}))
-    m.compute = MagicMock(return_value=1)
-    m.completed(engine, "metric")
-    assert engine.state.metrics == {"metric": 1}
-
+    # tensor
     engine = MagicMock(state=State(metrics={}))
     m.compute = MagicMock(return_value=torch.tensor(1.0))
     m.completed(engine, "metric")
     assert engine.state.metrics == {"metric": 1.0}
     assert isinstance(engine.state.metrics["metric"], numbers.Number)
 
-    # dict with number values
+    # mapping
     engine = MagicMock(state=State(metrics={}))
-    m.compute = MagicMock(return_value={"foo": 1, "bar": torch.tensor(2.0)})
+    metrics = {"foo": 1, "bar": torch.tensor(2.0), "baz": {"qux": "quux"}}
+    m.compute = MagicMock(return_value=metrics)
     m.completed(engine, "metric")
-    assert engine.state.metrics == {"foo": 1, "bar": 2.0}
-
-    # dict with non number values
-    engine = MagicMock(state=State(metrics={}))
-    m.compute = MagicMock(return_value={"foo": 1, "bar": "str"})
-    with raises(TypeError):
-        m.completed(engine, "metric")
+    assert engine.state.metrics == metrics
 
     # other
     engine = MagicMock(state=State(metrics={}))
