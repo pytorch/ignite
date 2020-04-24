@@ -47,4 +47,14 @@ class _BaseRegressionEpoch(_BaseRegression, EpochMetric):
         EpochMetric.__init__(self, compute_fn=compute_fn, output_transform=output_transform)
 
     def _update(self, output):
-        EpochMetric.update(self, output)
+        y_pred, y = output
+
+        self._predictions.append(y_pred.detach().to(dtype=torch.float32, device="cpu").clone())
+        self._targets.append(y.to(dtype=torch.float32, device="cpu").clone())
+
+        # Check once the signature and execution of compute_fn
+        if len(self._predictions) == 1:
+            try:
+                self.compute_fn(self._predictions[0], self._targets[0])
+            except Exception as e:
+                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
