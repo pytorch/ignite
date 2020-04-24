@@ -47,8 +47,8 @@ def test_epoch_metric():
     assert all([t.device.type == "cpu" for t in em._predictions + em.targets])
     assert torch.equal(em._predictions[0], output1[0])
     assert torch.equal(em._predictions[1], output2[0])
-    assert torch.equal(em._targets[0], output1[1].to(torch.float32))
-    assert torch.equal(em._targets[1], output2[1].to(torch.float32))
+    assert torch.equal(em._targets[0], output1[1])
+    assert torch.equal(em._targets[1], output2[1])
     assert em.compute() == 0.0
 
     # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size, )
