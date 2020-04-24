@@ -57,4 +57,4 @@ class _BaseRegressionEpoch(_BaseRegression, EpochMetric):
             try:
                 self.compute_fn(self._predictions[0], self._targets[0])
             except Exception as e:
-                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
+                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), RuntimeWarning)
