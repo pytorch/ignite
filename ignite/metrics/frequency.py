@@ -19,8 +19,21 @@ class Frequency(Metric):
             wps_metric.attach(trainer, name='wps')
             # Logging with TQDM
             ProgressBar(persist=True).attach(trainer, metric_names=['wps'])
-            # Progress bar will looks like
+            # Progress bar will look like
             # Epoch [2/10]: [12/24]  50%|█████      , wps=400 [00:17<1:23]
+
+
+        To compute examples processed per second every 50th iteration:
+
+        .. code-block:: python
+
+            # Compute number of tokens processed
+            wps_metric = Frequency(output_transform=lambda x: x['ntokens'])
+            wps_metric.attach(trainer, name='wps', event_name=Events.ITERATION_COMPLETED(every=50))
+            # Logging with TQDM
+            ProgressBar(persist=True).attach(trainer, metric_names=['wps'])
+            # Progress bar will look like
+            # Epoch [2/10]: [50/100]  50%|█████      , wps=400 [00:17<00:35]
     """
 
     def __init__(self, output_transform=lambda x: x, device=None):
