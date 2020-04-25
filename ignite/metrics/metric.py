@@ -15,7 +15,6 @@ __all__ = ["Metric", "MetricUsage"]
 
 
 class MetricUsage:
-
     def __init__(self, started, completed, iteration_completed):
         self.__started = started
         self.__completed = completed
@@ -35,32 +34,29 @@ class MetricUsage:
 
 
 class EpochWise(MetricUsage):
-
     def __init__(self):
         super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED
+            iteration_completed=Events.ITERATION_COMPLETED,
         )
 
 
 class BatchWise(MetricUsage):
-
     def __init__(self):
         super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
             completed=Events.ITERATION_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED
+            iteration_completed=Events.ITERATION_COMPLETED,
         )
 
 
 class BatchFiltered(MetricUsage):
-
     def __init__(self, filter):
         super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED(filter)
+            iteration_completed=Events.ITERATION_COMPLETED(filter),
         )
 
 
