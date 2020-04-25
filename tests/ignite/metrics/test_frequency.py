@@ -35,7 +35,7 @@ def _test_frequency_with_engine(device, workers, every=1):
 
     engine = Engine(update_fn)
     wps_metric = Frequency(output_transform=lambda x: x["ntokens"], device=device)
-    event = Events.ITERATION_COMPLETED if every == 1 else Events.ITERATION_COMPLETED(every=every)
+    event = Events.ITERATION_COMPLETED(every=every)
     wps_metric.attach(engine, "wps", event_name=event)
 
     @engine.on(event)
