@@ -230,7 +230,6 @@ class Metric(metaclass=ABCMeta):
             engine.add_event_handler(self.usage.ITERATION_COMPLETED, self.iteration_completed)
         engine.add_event_handler(self.usage.COMPLETED, self.completed, name)
 
-
     def detach(self, engine: Engine) -> None:
         """
         Detaches current metric from the engine and no metric's computation is done during the run.
