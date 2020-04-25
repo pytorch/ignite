@@ -90,7 +90,7 @@ def get_model_optimizer(config, distributed=False):
     )
 
     if distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank, ])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,])
     elif torch.cuda.device_count() > 0:
         model = nn.parallel.DataParallel(model)
 
@@ -117,37 +117,28 @@ def get_default_config():
     # Default configuration dictionary
     config = {
         "seed": 12,
-
         "data_path": "/tmp/cifar10",
         "output_path": "/tmp/output-cifar10",
-
         "model": "fastresnet",
-
         "batch_size": batch_size,
         "num_workers": 10,
-
         "momentum": 0.9,
         "weight_decay": 1e-4,
         "num_epochs": num_epochs,
         "learning_rate": 0.04,
         "num_warmup_epochs": 4,
-
         "validate_every": 3,
-
         # distributed settings
         "dist_url": "env://",
         "dist_backend": None,  # if None distributed option is disabled, set to "nccl" to enable
-
         # Logging:
         "display_iters": True,
         "log_model_grads_every": None,
         "checkpoint_every": 200,
-
         # Crash/Resume training:
         "resume_from": None,  # Path to checkpoint file .pt
         "crash_iteration": None,
-
         # Deterministic training: replace Engine by DeterministicEngine
-        "deterministic": False
+        "deterministic": False,
     }
     return config
