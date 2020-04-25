@@ -11,7 +11,7 @@ import torch.distributed as dist
 
 from ignite.engine import Events, Engine
 
-__all__ = ["Metric", "MetricUsage"]
+__all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
 
 
 class MetricUsage:
