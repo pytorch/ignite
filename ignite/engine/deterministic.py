@@ -10,7 +10,7 @@ from ignite.engine.events import Events
 from ignite.utils import manual_seed
 
 
-__all__ = ["update_dataloader", "ReproducibleBatchSampler", "DeterministicEngine"]
+__all__ = ["update_dataloader", "keep_random_state", "ReproducibleBatchSampler", "DeterministicEngine"]
 
 
 def update_dataloader(

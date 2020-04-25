@@ -103,10 +103,10 @@ If set `--deterministic` option, we can observe the same values after resuming t
 
 Non-deterministic| Deterministic 
 ---|---
-![img1](assets/logs_run_1_2.png) | ![img1](assets/logs-det_run_1_2.png) 
+![img11](assets/logs_run_1_2.png) | ![img12](assets/logs-det_run_1_2.png) 
 
 Deterministic `run.log` vs `resume_run.log`
-![img1](assets/run_vs_resume_run_logs_1_2.png)
+![img13](assets/run_vs_resume_run_logs_1_2.png)
  
 
 #### Usage with simulated crash
@@ -127,8 +127,8 @@ python mnist_save_resume_engine.py --resume_from logs-det/run_3_crash/checkpoint
 
 Non-deterministic| Deterministic
 ---|---
-![img1](assets/logs_run_3_4.png) | ![img1](assets/logs-det_run_3_4.png) 
+![img21](assets/logs_run_3_4.png) | ![img22](assets/logs-det_run_3_4.png) 
 
 
 Deterministic `run.log` vs `resume_run.log`
-![img1](assets/run_vs_resume_run_logs_3_4.png)
+![img23](assets/run_vs_resume_run_logs_3_4.png)
