@@ -103,7 +103,7 @@ class MetricsLambda(Metric):
                 # We must not use is_attached() but rather if these events exist
                 if not engine.has_event_handler(metric.started, metric.events.STARTED):
                     engine.add_event_handler(metric.events.STARTED, metric.started)
-                if not engine.has_event_handler(metric.iteration_completed,metric.events.ITERATION_COMPLETED):
+                if not engine.has_event_handler(metric.iteration_completed, metric.events.ITERATION_COMPLETED):
                     engine.add_event_handler(metric.events.ITERATION_COMPLETED, metric.iteration_completed)
 
     def attach(self, engine: Engine, name: str) -> None:

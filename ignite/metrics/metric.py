@@ -52,7 +52,12 @@ class Metric(metaclass=ABCMeta):
 
     _required_output_keys = ("y_pred", "y")
 
-    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None, events: MetricEvents = MetricEvents()):
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        device: Optional[Union[str, torch.device]] = None,
+        events: MetricEvents = MetricEvents(),
+    ):
         self._output_transform = output_transform
 
         # Check device if distributed is initialized:
