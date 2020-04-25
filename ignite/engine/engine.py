@@ -433,7 +433,7 @@ class Engine:
         )
         self.should_terminate_single_epoch = True
 
-    def _run_once_on_dataset(self) -> Tuple[int, int, int]:
+    def _run_once_on_dataset(self) -> float:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
@@ -497,10 +497,7 @@ class Engine:
             self.logger.error("Current run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
-        time_taken = time.time() - start_time
-        hours, mins, secs = _to_hours_mins_secs(time_taken)
-
-        return hours, mins, secs
+        return time.time() - start_time
 
     def _handle_exception(self, e: Exception) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
@@ -619,7 +616,8 @@ class Engine:
 
         Engine has a state and the following logic is applied in this function:
 
-        - At the first call, new state is defined by `max_epochs`, `epoch_length`, `seed` if provided.
+        - At the first call, new state is defined by `max_epochs`, `epoch_length`, `seed` if provided. A timer for
+            total and per-epoch time is initialized when Events.STARTED is handled.
         - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
             provided, state is kept and used in the function.
         - If state is defined and engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
@@ -689,6 +687,11 @@ class Engine:
 
         self.state.dataloader = data
         return self._internal_run()
+
+    @staticmethod
+    def _init_timers(state: State):
+        state.times[Events.EPOCH_COMPLETED.name] = 0.0
+        state.times[Events.COMPLETED.name] = 0.0
 
     def _setup_engine(self) -> None:
 
@@ -775,6 +778,7 @@ class Engine:
 
     def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False
+        self._init_timers(self.state)
         try:
             start_time = time.time()
             self._fire_event(Events.STARTED)
@@ -785,16 +789,18 @@ class Engine:
                 if self._dataloader_iter is None:
                     self._setup_engine()
 
-                hours, mins, secs = self._run_once_on_dataset()
-
+                time_taken = self._run_once_on_dataset()
+                self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
+                hours, mins, secs = _to_hours_mins_secs(time_taken)
                 self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
 
-            self._fire_event(Events.COMPLETED)
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
+            self.state.times[Events.COMPLETED.name] = time_taken
+            self._fire_event(Events.COMPLETED)
             self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
