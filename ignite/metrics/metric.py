@@ -47,7 +47,7 @@ class EpochWise(MetricUsage):
 class BatchWise(MetricUsage):
 
     def __init__(self):
-        super(EpochWise, self).__init__(
+        super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED
@@ -57,7 +57,7 @@ class BatchWise(MetricUsage):
 class BatchFiltered(MetricUsage):
 
     def __init__(self, filter):
-        super(EpochWise, self).__init__(
+        super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED(filter)
