@@ -11,26 +11,57 @@ import torch.distributed as dist
 
 from ignite.engine import Events, Engine
 
-__all__ = ["Metric", "MetricEvents"]
+__all__ = ["Metric", "MetricUsage"]
 
 
-class MetricEvents:
-    def __init__(self):
-        self._started = Events.EPOCH_STARTED
-        self._iteration_completed = Events.ITERATION_COMPLETED
-        self._completed = Events.EPOCH_COMPLETED
+class MetricUsage:
+
+    def __init__(self, started, completed, iteration_completed):
+        self.__started = started
+        self.__completed = completed
+        self.__iteration_completed = iteration_completed
 
     @property
     def STARTED(self):
-        return self._started
+        return self.__started
 
     @property
     def COMPLETED(self):
-        return self._completed
+        return self.__completed
 
     @property
     def ITERATION_COMPLETED(self):
-        return self._iteration_completed
+        return self.__iteration_completed
+
+
+class EpochWise(MetricUsage):
+
+    def __init__(self):
+        super(EpochWise, self).__init__(
+            started=Events.EPOCH_STARTED,
+            completed=Events.EPOCH_COMPLETED,
+            iteration_completed=Events.ITERATION_COMPLETED
+        )
+
+
+class BatchWise(MetricUsage):
+
+    def __init__(self):
+        super(EpochWise, self).__init__(
+            started=Events.ITERATION_STARTED,
+            completed=Events.ITERATION_COMPLETED,
+            iteration_completed=Events.ITERATION_COMPLETED
+        )
+
+
+class BatchFiltered(MetricUsage):
+
+    def __init__(self, filter):
+        super(EpochWise, self).__init__(
+            started=Events.EPOCH_STARTED,
+            completed=Events.EPOCH_COMPLETED,
+            iteration_completed=Events.ITERATION_COMPLETED(filter)
+        )
 
 
 class Metric(metaclass=ABCMeta):
@@ -56,7 +87,7 @@ class Metric(metaclass=ABCMeta):
         self,
         output_transform: Callable = lambda x: x,
         device: Optional[Union[str, torch.device]] = None,
-        events: MetricEvents = MetricEvents(),
+        usage: MetricUsage = EpochWise(),
     ):
         self._output_transform = output_transform
 
@@ -74,7 +105,7 @@ class Metric(metaclass=ABCMeta):
                 device = "cuda"
             device = torch.device(device)
         self._device = device
-        self._events = events
+        self._usage = usage
         self._is_reduced = False
         self.reset()
 
@@ -117,8 +148,8 @@ class Metric(metaclass=ABCMeta):
         pass
 
     @property
-    def events(self):
-        return self._events
+    def usage(self) -> MetricUsage:
+        return self._usage
 
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
         if not (dist.is_available() and dist.is_initialized()):
@@ -197,11 +228,11 @@ class Metric(metaclass=ABCMeta):
 
             assert metric.is_attached(engine)
         """
-        engine.add_event_handler(self._events.COMPLETED, self.completed, name)
-        if not engine.has_event_handler(self.started, self._events.STARTED):
-            engine.add_event_handler(self._events.STARTED, self.started)
-        if not engine.has_event_handler(self.iteration_completed, self._events.ITERATION_COMPLETED):
-            engine.add_event_handler(self._events.ITERATION_COMPLETED, self.iteration_completed)
+        engine.add_event_handler(self.usage.COMPLETED, self.completed, name)
+        if not engine.has_event_handler(self.started, self.usage.STARTED):
+            engine.add_event_handler(self.usage.STARTED, self.started)
+        if not engine.has_event_handler(self.iteration_completed, self.usage.ITERATION_COMPLETED):
+            engine.add_event_handler(self.usage.ITERATION_COMPLETED, self.iteration_completed)
 
     def detach(self, engine: Engine) -> None:
         """
@@ -225,12 +256,12 @@ class Metric(metaclass=ABCMeta):
 
             assert not metric.is_attached(engine)
         """
-        if engine.has_event_handler(self.completed, self._events.COMPLETED):
-            engine.remove_event_handler(self.completed, self._events.COMPLETED)
-        if engine.has_event_handler(self.started, self._events.STARTED):
-            engine.remove_event_handler(self.started, self._events.STARTED)
-        if engine.has_event_handler(self.iteration_completed, self._events.ITERATION_COMPLETED):
-            engine.remove_event_handler(self.iteration_completed, self._events.ITERATION_COMPLETED)
+        if engine.has_event_handler(self.completed, self.usage.COMPLETED):
+            engine.remove_event_handler(self.completed, self.usage.COMPLETED)
+        if engine.has_event_handler(self.started, self.usage.STARTED):
+            engine.remove_event_handler(self.started, self.usage.STARTED)
+        if engine.has_event_handler(self.iteration_completed, self.usage.ITERATION_COMPLETED):
+            engine.remove_event_handler(self.iteration_completed, self.usage.ITERATION_COMPLETED)
 
     def is_attached(self, engine: Engine) -> bool:
         """
@@ -240,7 +271,7 @@ class Metric(metaclass=ABCMeta):
         Args:
             engine (Engine): the engine checked from which the metric should be attached
         """
-        return engine.has_event_handler(self.completed, self._events.COMPLETED)
+        return engine.has_event_handler(self.completed, self.usage.COMPLETED)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda

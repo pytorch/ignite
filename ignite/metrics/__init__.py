@@ -1,4 +1,4 @@
-from ignite.metrics.metric import Metric
+from ignite.metrics.metric import Metric, MetricUsage
 from ignite.metrics.accuracy import Accuracy
 from ignite.metrics.loss import Loss
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
