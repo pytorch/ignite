@@ -138,14 +138,14 @@ Resume from the latest checkpoint
 ```bash
 python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_backend='nccl';resume_from=/tmp/output-cifar10/XYZ-distributed-1nodes-2gpus/training_checkpoint_800.pt"
 # or same in deterministic mode
-python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="resume_from=/tmp/output-cifar10/deterministic/XYZ-distributed-1nodes-2gpus/training_checkpoint_800.pt;deterministic=True;output_path=/tmp/output-cifar10/deterministic" 
+python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_backend='nccl';resume_from=/tmp/output-cifar10/deterministic/XYZ-distributed-1nodes-2gpus/training_checkpoint_800.pt;deterministic=True;output_path=/tmp/output-cifar10/deterministic" 
 ```
 
 Training without crashing
 ```bash
 python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_backend='nccl'"
 # or same in deterministic mode
-python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="deterministic=True;dist_backend='nccl'"
+python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_backend='nccl';deterministic=True;output_path=/tmp/output-cifar10/deterministic"
 ```
 
 Non-deterministic| Deterministic
