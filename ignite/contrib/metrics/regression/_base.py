@@ -1,7 +1,5 @@
 from abc import abstractmethod
 
-import warnings
-
 import torch
 
 from ignite.metrics import Metric, EpochMetric
@@ -12,7 +10,7 @@ class _BaseRegression(Metric):
     # `update` method check the shapes and call internal overloaded
     # method `_update`.
 
-    def update(self, output):
+    def _check_shape(self, output):
         y_pred, y = output
         if y_pred.shape != y.shape:
             raise ValueError("Input data shapes should be the same, but given {} and {}".format(y_pred.shape, y.shape))
@@ -25,10 +23,14 @@ class _BaseRegression(Metric):
         if not (y.ndimension() == 1 or c2):
             raise ValueError("Input y should have shape (N,) or (N, 1), but given {}".format(y.shape))
 
-        if c1:
+    def update(self, output):
+        self._check_shape(output)
+        y_pred, y = output
+
+        if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
             y_pred = y_pred.squeeze(dim=-1)
 
-        if c2:
+        if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
         self._update((y_pred, y))
@@ -46,15 +48,19 @@ class _BaseRegressionEpoch(_BaseRegression, EpochMetric):
     def __init__(self, compute_fn, output_transform=lambda x: x):
         EpochMetric.__init__(self, compute_fn=compute_fn, output_transform=output_transform)
 
-    def _update(self, output):
+    def _check_type(self, output):
         y_pred, y = output
+        if y_pred.dtype not in (torch.float16, torch.float32, torch.float64):
+            raise TypeError("Input y_pred dtype should be float 16, 32 or 64, but given {}".format(y_pred.dtype))
 
-        self._predictions.append(y_pred.detach().to(dtype=torch.float32, device="cpu").clone())
-        self._targets.append(y.to(dtype=torch.float32, device="cpu").clone())
+        if y.dtype not in (torch.float16, torch.float32, torch.float64):
+            raise TypeError("Input y dtype should be float 16, 32 or 64, but given {}".format(y.dtype))
 
-        # Check once the signature and execution of compute_fn
-        if len(self._predictions) == 1:
-            try:
-                self.compute_fn(self._predictions[0], self._targets[0])
-            except Exception as e:
-                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), RuntimeWarning)
+        super(_BaseRegressionEpoch, self)._check_type(output)
+
+    def update(self, output):
+        self._check_shape(output)
+        EpochMetric.update(self, output)
+
+    def _update(self, output):
+        pass

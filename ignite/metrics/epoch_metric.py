@@ -49,9 +49,8 @@ class EpochMetric(Metric):
         self._predictions = []
         self._targets = []
 
-    def update(self, output: Sequence[torch.Tensor]) -> None:
+    def _check_shape(self, output):
         y_pred, y = output
-
         if y_pred.ndimension() not in (1, 2):
             raise ValueError("Predictions should be of shape (batch_size, n_classes) or (batch_size, ).")
 
@@ -62,14 +61,38 @@ class EpochMetric(Metric):
             if not torch.equal(y ** 2, y):
                 raise ValueError("Targets should be binary (0 or 1).")
 
+    def _check_type(self, output):
+        y_pred, y = output
+        if len(self._predictions) < 1:
+            return
+        dtype_preds = self._predictions[-1].type()
+        if dtype_preds != y_pred.type():
+            raise ValueError(
+                "Incoherent types between input y_pred and stored predictions: "
+                "{} vs {}".format(dtype_preds, y_pred.type())
+            )
+
+        dtype_targets = self._targets[-1].type()
+        if dtype_targets != y.type():
+            raise ValueError(
+                "Incoherent types between input y and stored targets: " "{} vs {}".format(dtype_targets, y.type())
+            )
+
+    def update(self, output: Sequence[torch.Tensor]) -> None:
+        self._check_shape(output)
+        y_pred, y = output
         if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
             y_pred = y_pred.squeeze(dim=-1)
 
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        self._predictions.append(y_pred.detach().to(dtype=torch.float32, device="cpu").clone())
-        self._targets.append(y.to(dtype=torch.long, device="cpu").clone())
+        y_pred = y_pred.cpu().clone()
+        y = y.cpu().clone()
+
+        self._check_type((y_pred, y))
+        self._predictions.append(y_pred)
+        self._targets.append(y)
 
         # Check once the signature and execution of compute_fn
         if len(self._predictions) == 1:
