@@ -11,7 +11,26 @@ import torch.distributed as dist
 
 from ignite.engine import Events, Engine
 
-__all__ = ["Metric"]
+__all__ = ["Metric", "MetricEvents"]
+
+
+class MetricEvents:
+    def __init__(self):
+        self._started = Events.EPOCH_STARTED
+        self._iteration_completed = Events.ITERATION_COMPLETED
+        self._completed = Events.EPOCH_COMPLETED
+
+    @property
+    def STARTED(self):
+        return self._started
+
+    @property
+    def COMPLETED(self):
+        return self._completed
+
+    @property
+    def ITERATION_COMPLETED(self):
+        return self._iteration_completed
 
 
 class Metric(metaclass=ABCMeta):
@@ -33,7 +52,7 @@ class Metric(metaclass=ABCMeta):
 
     _required_output_keys = ("y_pred", "y")
 
-    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None):
+    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None, events: MetricEvents = MetricEvents()):
         self._output_transform = output_transform
 
         # Check device if distributed is initialized:
@@ -50,6 +69,7 @@ class Metric(metaclass=ABCMeta):
                 device = "cuda"
             device = torch.device(device)
         self._device = device
+        self._events = events
         self._is_reduced = False
         self.reset()
 
@@ -90,6 +110,10 @@ class Metric(metaclass=ABCMeta):
             NotComputableError: raised when the metric cannot be computed.
         """
         pass
+
+    @property
+    def events(self):
+        return self._events
 
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
         if not (dist.is_available() and dist.is_initialized()):
@@ -168,11 +192,11 @@ class Metric(metaclass=ABCMeta):
 
             assert metric.is_attached(engine)
         """
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
-        if not engine.has_event_handler(self.started, Events.EPOCH_STARTED):
-            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        if not engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
-            engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
+        engine.add_event_handler(self._events.COMPLETED, self.completed, name)
+        if not engine.has_event_handler(self.started, self._events.STARTED):
+            engine.add_event_handler(self._events.STARTED, self.started)
+        if not engine.has_event_handler(self.iteration_completed, self._events.ITERATION_COMPLETED):
+            engine.add_event_handler(self._events.ITERATION_COMPLETED, self.iteration_completed)
 
     def detach(self, engine: Engine) -> None:
         """
@@ -196,12 +220,12 @@ class Metric(metaclass=ABCMeta):
 
             assert not metric.is_attached(engine)
         """
-        if engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED):
-            engine.remove_event_handler(self.completed, Events.EPOCH_COMPLETED)
-        if engine.has_event_handler(self.started, Events.EPOCH_STARTED):
-            engine.remove_event_handler(self.started, Events.EPOCH_STARTED)
-        if engine.has_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED):
-            engine.remove_event_handler(self.iteration_completed, Events.ITERATION_COMPLETED)
+        if engine.has_event_handler(self.completed, self._events.COMPLETED):
+            engine.remove_event_handler(self.completed, self._events.COMPLETED)
+        if engine.has_event_handler(self.started, self._events.STARTED):
+            engine.remove_event_handler(self.started, self._events.STARTED)
+        if engine.has_event_handler(self.iteration_completed, self._events.ITERATION_COMPLETED):
+            engine.remove_event_handler(self.iteration_completed, self._events.ITERATION_COMPLETED)
 
     def is_attached(self, engine: Engine) -> bool:
         """
@@ -211,7 +235,7 @@ class Metric(metaclass=ABCMeta):
         Args:
             engine (Engine): the engine checked from which the metric should be attached
         """
-        return engine.has_event_handler(self.completed, Events.EPOCH_COMPLETED)
+        return engine.has_event_handler(self.completed, self._events.COMPLETED)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
