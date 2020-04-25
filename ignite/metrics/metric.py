@@ -224,11 +224,12 @@ class Metric(metaclass=ABCMeta):
 
             assert metric.is_attached(engine)
         """
-        engine.add_event_handler(self.usage.COMPLETED, self.completed, name)
         if not engine.has_event_handler(self.started, self.usage.STARTED):
             engine.add_event_handler(self.usage.STARTED, self.started)
         if not engine.has_event_handler(self.iteration_completed, self.usage.ITERATION_COMPLETED):
             engine.add_event_handler(self.usage.ITERATION_COMPLETED, self.iteration_completed)
+        engine.add_event_handler(self.usage.COMPLETED, self.completed, name)
+
 
     def detach(self, engine: Engine) -> None:
         """
