@@ -44,11 +44,11 @@ def test_epoch_metric():
     output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output2)
 
-    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
-    assert torch.equal(em._predictions[:4, :], output1[0])
-    assert torch.equal(em._predictions[4:, :], output2[0])
-    assert torch.equal(em._targets[:4, :], output1[1])
-    assert torch.equal(em._targets[4:, :], output2[1])
+    assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
+    assert torch.equal(em._predictions[0], output1[0])
+    assert torch.equal(em._predictions[1], output2[0])
+    assert torch.equal(em._targets[0], output1[1])
+    assert torch.equal(em._targets[1], output2[1])
     assert em.compute() == 0.0
 
     # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size, )
@@ -58,11 +58,11 @@ def test_epoch_metric():
     output2 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
     em.update(output2)
 
-    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
-    assert torch.equal(em._predictions[:4], output1[0][:, 0])
-    assert torch.equal(em._predictions[4:], output2[0][:, 0])
-    assert torch.equal(em._targets[:4], output1[1][:, 0])
-    assert torch.equal(em._targets[4:], output2[1][:, 0])
+    assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
+    assert torch.equal(em._predictions[0], output1[0][:, 0])
+    assert torch.equal(em._predictions[1], output2[0][:, 0])
+    assert torch.equal(em._targets[0], output1[1][:, 0])
+    assert torch.equal(em._targets[1], output2[1][:, 0])
     assert em.compute() == 0.0
 
 

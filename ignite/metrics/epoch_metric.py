@@ -46,8 +46,8 @@ class EpochMetric(Metric):
         self.compute_fn = compute_fn
 
     def reset(self) -> None:
-        self._predictions = torch.tensor([], dtype=torch.float32)
-        self._targets = torch.tensor([], dtype=torch.long)
+        self._predictions = []
+        self._targets = []
 
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -68,21 +68,20 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        y_pred = y_pred.to(self._predictions)
-        y = y.to(self._targets)
-
-        self._predictions = torch.cat([self._predictions, y_pred], dim=0)
-        self._targets = torch.cat([self._targets, y], dim=0)
+        self._predictions.append(y_pred.detach().to(dtype=torch.float32, device="cpu").clone())
+        self._targets.append(y.to(dtype=torch.long, device="cpu").clone())
 
         # Check once the signature and execution of compute_fn
-        if self._predictions.shape == y_pred.shape:
+        if len(self._predictions) == 1:
             try:
-                self.compute_fn(self._predictions, self._targets)
+                self.compute_fn(self._predictions[0], self._targets[0])
             except Exception as e:
                 warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
     def compute(self) -> None:
-        return self.compute_fn(self._predictions, self._targets)
+        _prediction_tensor = torch.cat(self._predictions, dim=0)
+        _target_tensor = torch.cat(self._targets, dim=0)
+        return self.compute_fn(_prediction_tensor, _target_tensor)
 
 
 class EpochMetricWarning(UserWarning):
