@@ -7,10 +7,10 @@ from ignite.metrics.epoch_metric import EpochMetricWarning
 import pytest
 
 
-def test_epoch_metric():
+def test_epoch_metric_wrong_setup_or_input():
 
     # Wrong compute function
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument compute_fn should be callable."):
         EpochMetric(12345)
 
     def compute_fn(y_preds, y_targets):
@@ -19,24 +19,43 @@ def test_epoch_metric():
     em = EpochMetric(compute_fn)
 
     # Wrong input dims
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         output = (torch.tensor(0), torch.tensor(0))
         em.update(output)
 
     # Wrong input dims
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
         output = (torch.rand(4, 3), torch.rand(4, 3, 1))
         em.update(output)
 
     # Wrong input dims
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         output = (torch.rand(4, 3, 1), torch.rand(4, 3))
         em.update(output)
 
     # Target is not binary
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Targets should be binary"):
         output = (torch.rand(4, 3), torch.randint(0, 5, size=(4, 3)))
         em.update(output)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
+        output2 = (torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3)))
+        em.update(output2)
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
+        output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32))
+        em.update(output2)
+
+
+def test_epoch_metric():
+    def compute_fn(y_preds, y_targets):
+        return 0.0
+
+    em = EpochMetric(compute_fn)
 
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
