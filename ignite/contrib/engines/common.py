@@ -1,16 +1,23 @@
 from functools import partial
+from typing import Optional, Union, Iterable, Dict, Any
+from types import ModuleType
 import warnings
 import numbers
+import os
 
 from collections.abc import Sequence, Mapping
 
 import torch
 import torch.distributed as dist
+from torch.optim.optimizer import Optimizer
+from torch.utils.data import DistributedSampler
+from torch.optim.lr_scheduler import _LRScheduler
 
 from ignite.engine import Engine, Events
 from ignite.metrics import RunningAverage
 from ignite.handlers import TerminateOnNan, ModelCheckpoint, EarlyStopping
 from ignite.contrib.metrics import GpuInfo
+from ignite.contrib.handlers.base_logger import BaseLogger
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.handlers import VisdomLogger
 from ignite.contrib.handlers import TensorboardLogger, global_step_from_engine
@@ -20,21 +27,21 @@ from ignite.contrib.handlers import MLflowLogger
 import ignite.contrib.handlers.mlflow_logger as mlflow_logger_module
 from ignite.contrib.handlers import PolyaxonLogger
 import ignite.contrib.handlers.polyaxon_logger as polyaxon_logger_module
-
+from ignite.contrib.handlers.param_scheduler import ParamScheduler
 
 def setup_common_training_handlers(
-    trainer,
-    train_sampler=None,
-    to_save=None,
-    save_every_iters=1000,
-    output_path=None,
-    lr_scheduler=None,
-    with_gpu_stats=False,
-    output_names=None,
-    with_pbars=True,
-    with_pbar_on_iters=True,
-    log_every_iters=100,
-    device="cuda",
+    trainer: Engine,
+    train_sampler: Optional[DistributedSampler] = None,
+    to_save: Optional[Dict[str, Any]] = None,
+    save_every_iters: Optional[int] = 1000,
+    output_path: Optional[os.PathLike] = None,
+    lr_scheduler: Optional[Union[ParamScheduler, _LRScheduler]] = None,
+    with_gpu_stats: Optional[bool] = False,
+    output_names: Optional[Union[Iterable[str]]] = None,
+    with_pbars: Optional[bool] = True,
+    with_pbar_on_iters: Optional[bool] = True,
+    log_every_iters: Optional[int] = 100,
+    device: Optional[Union[str, torch.device]] = "cuda"
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -57,7 +64,7 @@ def setup_common_training_handlers(
             as native torch LRScheduler or ignite's parameter scheduler.
         with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
-        output_names (list/tuple): list of names associated with `update_function` output dictionary.
+        output_names (list/tuple, optional): list of names associated with `update_function` output dictionary.
         with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached
         with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
         log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
@@ -92,17 +99,17 @@ setup_common_distrib_training_handlers = setup_common_training_handlers
 
 
 def _setup_common_training_handlers(
-    trainer,
-    to_save=None,
-    save_every_iters=1000,
-    output_path=None,
-    lr_scheduler=None,
-    with_gpu_stats=True,
-    output_names=None,
-    with_pbars=True,
-    with_pbar_on_iters=True,
-    log_every_iters=100,
-    device="cuda",
+    trainer: Engine,
+    to_save: Optional[Dict[str, Any]] = None,
+    save_every_iters: Optional[int] = 1000,
+    output_path: Optional[os.PathLike] = None,
+    lr_scheduler: Optional[Union[ParamScheduler, _LRScheduler]] = None,
+    with_gpu_stats: Optional[bool] = False,
+    output_names: Optional[Union[Iterable[str]]] = None,
+    with_pbars: Optional[bool] = True,
+    with_pbar_on_iters: Optional[bool] = True,
+    log_every_iters: Optional[int] = 100,
+    device: Optional[Union[str, torch.device]] = "cuda"
 ):
     trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
 
@@ -155,18 +162,18 @@ def _setup_common_training_handlers(
 
 
 def _setup_common_distrib_training_handlers(
-    trainer,
-    train_sampler=None,
-    to_save=None,
-    save_every_iters=1000,
-    output_path=None,
-    lr_scheduler=None,
-    with_gpu_stats=True,
-    output_names=None,
-    with_pbars=True,
-    with_pbar_on_iters=True,
-    log_every_iters=100,
-    device="cuda",
+    trainer: Engine,
+    train_sampler: Optional[DistributedSampler] = None,
+    to_save: Optional[Dict[str, Any]] = None,
+    save_every_iters: Optional[int] = 1000,
+    output_path: Optional[os.PathLike] = None,
+    lr_scheduler: Optional[Union[ParamScheduler, _LRScheduler]] = None,
+    with_gpu_stats: Optional[bool] = False,
+    output_names: Optional[Union[Iterable[str]]] = None,
+    with_pbars: Optional[bool] = True,
+    with_pbar_on_iters: Optional[bool] = True,
+    log_every_iters: Optional[int] = 100,
+    device: Optional[Union[str, torch.device]] = "cuda",
 ):
     if not (dist.is_available() and dist.is_initialized()):
         raise RuntimeError("Distributed setting is not initialized, please call `dist.init_process_group` before.")
@@ -206,9 +213,15 @@ def empty_cuda_cache(_):
     gc.collect()
 
 
-def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters):
+def setup_any_logging(
+    logger: BaseLogger,
+    logger_module: ModuleType,
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]],
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]],
+    log_every_iters: Optional[int]
+):
     if optimizers is not None:
-        from torch.optim.optimizer import Optimizer
 
         if not isinstance(optimizers, (Optimizer, Mapping)):
             raise TypeError("Argument optimizers should be either a single optimizer or a dictionary or optimizers")
@@ -252,7 +265,13 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
             )
 
 
-def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_tb_logging(
+    output_path: os.PathLike,
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: Optional[int] = 100
+):
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -276,7 +295,13 @@ def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log
     return tb_logger
 
 
-def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_visdom_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: Optional[int] = 100,
+    **kwargs: Any
+):
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -302,7 +327,12 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
     return vis_logger
 
 
-def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_mlflow_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: Optional[int] = 100,
+):
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -327,7 +357,12 @@ def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_it
     return mlflow_logger
 
 
-def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_plx_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: Optional[int] = 100,
+):
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -352,15 +387,23 @@ def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters
     return plx_logger
 
 
-def get_default_score_fn(metric_name):
-    def wrapper(engine):
+def get_default_score_fn(metric_name: str):
+    def wrapper(engine: Engine):
         score = engine.state.metrics[metric_name]
         return score
 
     return wrapper
 
 
-def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3, trainer=None, tag="val"):
+def save_best_model_by_val_score(
+    output_path: os.PathLike,
+    evaluator: Engine,
+    model: torch.nn.Module,
+    metric_name: str,
+    n_saved: Optional[int] = 3,
+    trainer: Optional[Engine] = None,
+    tag: Optional[str] = "val"
+):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
     provided by `evaluator`.
 
@@ -390,7 +433,12 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {"model": model,})
 
 
-def add_early_stopping_by_val_score(patience, evaluator, trainer, metric_name):
+def add_early_stopping_by_val_score(
+    patience: int,
+    evaluator: Engine,
+    trainer: Engine,
+    metric_name: str
+):
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
 
     Args:
