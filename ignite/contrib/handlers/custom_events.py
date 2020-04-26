@@ -3,7 +3,9 @@ import warnings
 
 
 class CustomPeriodicEvent:
-    """Handler to define a custom periodic events as a number of elapsed iterations/epochs for an engine.
+    """DEPRECATED. Use filtered events instead.
+    Handler to define a custom periodic events as a number of elapsed iterations/epochs
+    for an engine.
 
     When custom periodic event is created and attached to an engine, the following events are fired:
     1) K iterations is specified:
@@ -53,7 +55,7 @@ class CustomPeriodicEvent:
     def __init__(self, n_iterations=None, n_epochs=None):
 
         warnings.warn(
-            "CustomPeriodicEvent is deprecated since v0.4.0 and removing since v0.5.0" ", use filtered events instead",
+            "CustomPeriodicEvent is deprecated since 0.4.0 and will be removed in 0.5.0. Use filtered events instead.",
             DeprecationWarning,
         )
 
