@@ -15,7 +15,6 @@ __all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
 
 
 class EngineMetric(metaclass=ABCMeta):
-
     @abstractmethod
     def started(self, engine: Engine) -> None:
         pass
