@@ -1,6 +1,7 @@
 # coding: utf-8
 import logging
 import warnings
+from typing import Optional, Callable, Dict, Any
 from collections.abc import Mapping
 import tempfile
 import contextlib
@@ -77,7 +78,17 @@ class FastaiLRFinder:
         self._lr_schedule = None
         self.logger = logging.getLogger(__name__)
 
-    def _run(self, trainer, optimizer, output_transform, num_iter, end_lr, step_mode, smooth_f, diverge_th):
+    def _run(
+        self,
+        trainer: Engine,
+        optimizer: torch.optim.Optimizer,
+        output_transform: Callable,
+        num_iter: Optional[int],
+        end_lr: float,
+        step_mode: str,
+        smooth_f: float,
+        diverge_th: float
+    ):
 
         self._history = {"lr": [], "loss": []}
         self._best_loss = None
@@ -116,13 +127,13 @@ class FastaiLRFinder:
         if not trainer.has_event_handler(self._lr_schedule):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
-    def _reset(self, trainer):
+    def _reset(self, trainer: Engine):
         self.logger.debug("Completed LR finder run")
         trainer.remove_event_handler(self._lr_schedule, Events.ITERATION_COMPLETED)
         trainer.remove_event_handler(self._log_lr_and_loss, Events.ITERATION_COMPLETED)
         trainer.remove_event_handler(self._reached_num_iterations, Events.ITERATION_COMPLETED)
 
-    def _log_lr_and_loss(self, trainer, output_transform, smooth_f, diverge_th):
+    def _log_lr_and_loss(self, trainer: Engine, output_transform: Callable, smooth_f: float, diverge_th: float):
         output = trainer.state.output
         loss = output_transform(output)
         lr = self._lr_schedule.get_param()
@@ -142,7 +153,7 @@ class FastaiLRFinder:
             self.logger.info("Stopping early, the loss has diverged")
             trainer.terminate()
 
-    def _reached_num_iterations(self, trainer, num_iter):
+    def _reached_num_iterations(self, trainer: Engine, num_iter: int):
         if trainer.state.iteration > num_iter:
             trainer.terminate()
 
@@ -154,7 +165,7 @@ class FastaiLRFinder:
                 UserWarning,
             )
 
-    def _detach(self, trainer):
+    def _detach(self, trainer: Engine):
         """
         Detaches lr_finder from trainer.
 
@@ -175,7 +186,7 @@ class FastaiLRFinder:
         """
         return self._history
 
-    def plot(self, skip_start=10, skip_end=5, log_lr=True):
+    def plot(self, skip_start: Optional[int] = 10, skip_end: Optional[int] = 5, log_lr: Optional[bool] = True):
         """Plots the learning rate range test.
 
         This method requires `matplotlib` package to be installed:
@@ -242,14 +253,14 @@ class FastaiLRFinder:
     @contextlib.contextmanager
     def attach(
         self,
-        trainer,
-        to_save,
-        output_transform=lambda output: output,
-        num_iter=None,
-        end_lr=10.0,
-        step_mode="exp",
-        smooth_f=0.05,
-        diverge_th=5.0,
+        trainer: Engine,
+        to_save: Dict[str, Any],
+        output_transform: Optional[Callable] = lambda output: output,
+        num_iter: Optional[int] = None,
+        end_lr: Optional[float] = 10.0,
+        step_mode: Optional[str] = "exp",
+        smooth_f: Optional[float] = 0.05,
+        diverge_th: Optional[float] = 5.0,
     ):
         """Attaches lr_finder to a given trainer. It also resets model and optimizer at the end of the run.
 
@@ -355,7 +366,7 @@ class _ExponentialLR(_LRScheduler):
 
     """
 
-    def __init__(self, optimizer, end_lr, num_iter, last_epoch=-1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
