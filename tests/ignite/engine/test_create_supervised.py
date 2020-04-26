@@ -12,9 +12,11 @@ from ignite.metrics import MeanSquaredError
 
 try:
     import torch_xla.core.xla_model as xm
+
     has_xla = True
 except ImportError:
     has_xla = False
+
 
 def test_create_supervised_trainer():
     model = Linear(1, 1)
