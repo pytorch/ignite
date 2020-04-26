@@ -29,6 +29,7 @@ from ignite.contrib.handlers import PolyaxonLogger
 import ignite.contrib.handlers.polyaxon_logger as polyaxon_logger_module
 from ignite.contrib.handlers.param_scheduler import ParamScheduler
 
+
 def setup_common_training_handlers(
     trainer: Engine,
     train_sampler: Optional[DistributedSampler] = None,
@@ -41,7 +42,7 @@ def setup_common_training_handlers(
     with_pbars: Optional[bool] = True,
     with_pbar_on_iters: Optional[bool] = True,
     log_every_iters: Optional[int] = 100,
-    device: Optional[Union[str, torch.device]] = "cuda"
+    device: Optional[Union[str, torch.device]] = "cuda",
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -109,7 +110,7 @@ def _setup_common_training_handlers(
     with_pbars: Optional[bool] = True,
     with_pbar_on_iters: Optional[bool] = True,
     log_every_iters: Optional[int] = 100,
-    device: Optional[Union[str, torch.device]] = "cuda"
+    device: Optional[Union[str, torch.device]] = "cuda",
 ):
     trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
 
@@ -219,7 +220,7 @@ def setup_any_logging(
     trainer: Engine,
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]],
     evaluators: Optional[Union[Engine, Dict[str, Engine]]],
-    log_every_iters: Optional[int]
+    log_every_iters: Optional[int],
 ):
     if optimizers is not None:
 
@@ -270,7 +271,7 @@ def setup_tb_logging(
     trainer: Engine,
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
-    log_every_iters: Optional[int] = 100
+    log_every_iters: Optional[int] = 100,
 ):
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
@@ -402,7 +403,7 @@ def save_best_model_by_val_score(
     metric_name: str,
     n_saved: Optional[int] = 3,
     trainer: Optional[Engine] = None,
-    tag: Optional[str] = "val"
+    tag: Optional[str] = "val",
 ):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
     provided by `evaluator`.
@@ -433,12 +434,7 @@ def save_best_model_by_val_score(
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {"model": model,})
 
 
-def add_early_stopping_by_val_score(
-    patience: int,
-    evaluator: Engine,
-    trainer: Engine,
-    metric_name: str
-):
+def add_early_stopping_by_val_score(patience: int, evaluator: Engine, trainer: Engine, metric_name: str):
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
 
     Args:
