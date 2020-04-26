@@ -19,7 +19,7 @@ jobs:
         source activate py36
 
     - name: Install Torch XLA 
-    - run: |
+      run: |
         ## Install gsutil
         echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
         apt-get install -y apt-transport-https ca-certificates gnupg curl
@@ -43,6 +43,6 @@ jobs:
         export XRT_WORKERS="localservice:0;grpc://localhost:40934"
 
     - name: Run Tests
-    - run: |
+      run: |
         python -c "import torch_xla; print(torch_xla.__version__)"  
         py.test -vvv tests -m tpu
