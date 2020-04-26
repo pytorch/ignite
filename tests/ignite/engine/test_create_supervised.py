@@ -10,6 +10,13 @@ from ignite.engine import create_supervised_trainer, create_supervised_evaluator
 from ignite.engine.engine import Events
 from ignite.metrics import MeanSquaredError
 
+try:
+    import torch_xla.core.xla_model as xm
+
+    has_xla = True
+except ImportError:
+    has_xla = False
+
 
 def test_create_supervised_trainer():
     model = Linear(1, 1)
@@ -82,6 +89,31 @@ def test_create_supervised_trainer_traced_with_cpu():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda():
     device = "cuda"
+    model = Linear(1, 1)
+    model.to(device)
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+    trainer = create_supervised_trainer(model, optimizer, mse_loss, device=device)
+
+    x = torch.tensor([[1.0], [2.0]])
+    y = torch.tensor([[3.0], [5.0]])
+    data = [(x, y)]
+
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+    state = trainer.run(data)
+
+    assert state.output == approx(17.0)
+    assert model.weight.data[0, 0].item() == approx(1.3)
+    assert model.bias.item() == approx(0.8)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif(not has_xla, reason="Skip if no TPU")
+def test_create_supervised_trainer_on_tpu():
+    device = "xla"
     model = Linear(1, 1)
     model.to(device)
     model.weight.data.zero_()
