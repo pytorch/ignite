@@ -37,10 +37,7 @@ class BaseLogger:
         return self
 
     def __exit__(
-        self,
-        type: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional[TracebackType]
+        self, type: Optional[Type[BaseException]], value: Optional[BaseException], traceback: Optional[TracebackType]
     ):
         self.close()
 
@@ -81,7 +78,7 @@ class BaseOutputHandler(BaseHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         another_engine: Optional[Engine] = None,
-        global_step_transform: Optional[Callable] = None
+        global_step_transform: Optional[Callable] = None,
     ):
 
         if metric_names is not None:

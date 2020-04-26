@@ -87,7 +87,7 @@ class FastaiLRFinder:
         end_lr: float,
         step_mode: str,
         smooth_f: float,
-        diverge_th: float
+        diverge_th: float,
     ):
 
         self._history = {"lr": [], "loss": []}
