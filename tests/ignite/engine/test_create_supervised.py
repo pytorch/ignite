@@ -10,6 +10,11 @@ from ignite.engine import create_supervised_trainer, create_supervised_evaluator
 from ignite.engine.engine import Events
 from ignite.metrics import MeanSquaredError
 
+try:
+    import torch_xla.core.xla_model as xm
+    has_xla = True
+except ImportError:
+    has_xla = False
 
 def test_create_supervised_trainer():
     model = Linear(1, 1)
@@ -103,7 +108,7 @@ def test_create_supervised_trainer_on_cuda():
     assert model.bias.item() == approx(0.8)
 
 
-@pytest.mark.tpu
+@pytest.mark.skipif(not has_xla, reason="Skip if no TPU")
 def test_create_supervised_trainer_on_tpu():
     device = "xla"
     model = Linear(1, 1)
