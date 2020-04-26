@@ -110,6 +110,7 @@ def test_create_supervised_trainer_on_cuda():
     assert model.bias.item() == approx(0.8)
 
 
+@pytest.mark.tpu
 @pytest.mark.skipif(not has_xla, reason="Skip if no TPU")
 def test_create_supervised_trainer_on_tpu():
     device = "xla"
