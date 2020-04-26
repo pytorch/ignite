@@ -14,20 +14,6 @@ from ignite.engine import Events, Engine
 __all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
 
 
-class EngineMetric(metaclass=ABCMeta):
-    @abstractmethod
-    def started(self, engine: Engine) -> None:
-        pass
-
-    @abstractmethod
-    def iteration_completed(self, engine: Engine) -> None:
-        pass
-
-    @abstractmethod
-    def completed(self, engine: Engine, name: str) -> None:
-        pass
-
-
 class MetricUsage:
     def __init__(self, started, completed, iteration_completed):
         self.__started = started
@@ -45,27 +31,6 @@ class MetricUsage:
     @property
     def ITERATION_COMPLETED(self):
         return self.__iteration_completed
-
-
-def attach(usage: MetricUsage, engine: Engine, name: str, metric: EngineMetric):
-    if not engine.has_event_handler(metric.started, usage.STARTED):
-        engine.add_event_handler(usage.STARTED, metric.started)
-    if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
-        engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
-    engine.add_event_handler(usage.COMPLETED, metric.completed, name)
-
-
-def detach(usage: MetricUsage, engine: Engine, metric: EngineMetric):
-    if engine.has_event_handler(metric.completed, usage.COMPLETED):
-        engine.remove_event_handler(metric.completed, usage.COMPLETED)
-    if engine.has_event_handler(metric.started, usage.STARTED):
-        engine.remove_event_handler(metric.started, usage.STARTED)
-    if engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
-        engine.remove_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED)
-
-
-def is_attached(usage: MetricUsage, engine: Engine, metric: EngineMetric) -> bool:
-    return engine.has_event_handler(metric.completed, usage.COMPLETED)
 
 
 class EpochWise(MetricUsage):
@@ -95,7 +60,7 @@ class BatchFiltered(MetricUsage):
         )
 
 
-class Metric(EngineMetric):
+class Metric(metaclass=ABCMeta):
     """
     Base class for all Metrics.
 
@@ -252,7 +217,11 @@ class Metric(EngineMetric):
 
             assert metric.is_attached(engine)
         """
-        attach(usage=usage, engine=engine, name=name, metric=self)
+        if not engine.has_event_handler(self.started, usage.STARTED):
+            engine.add_event_handler(usage.STARTED, self.started)
+        if not engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
+            engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
+        engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
     def detach(self, engine: Engine, usage: MetricUsage = EpochWise()) -> None:
         """
@@ -277,7 +246,12 @@ class Metric(EngineMetric):
 
             assert not metric.is_attached(engine)
         """
-        detach(usage=usage, engine=engine, metric=self)
+        if engine.has_event_handler(self.completed, usage.COMPLETED):
+            engine.remove_event_handler(self.completed, usage.COMPLETED)
+        if engine.has_event_handler(self.started, usage.STARTED):
+            engine.remove_event_handler(self.started, usage.STARTED)
+        if engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
+            engine.remove_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED)
 
     def is_attached(self, engine: Engine, usage: MetricUsage = EpochWise()) -> bool:
         """
@@ -288,7 +262,7 @@ class Metric(EngineMetric):
             engine (Engine): the engine checked from which the metric should be attached
             usage (MetricUsage): the usage of the metric
         """
-        return is_attached(usage=usage, engine=engine, metric=self)
+        return engine.has_event_handler(self.completed, usage.COMPLETED)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
