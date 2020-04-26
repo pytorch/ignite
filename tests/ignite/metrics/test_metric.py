@@ -671,7 +671,6 @@ def test_completed():
 
 def test_batchwise_usage():
     class MyMetric(Metric):
-
         def __init__(self, usage):
             super(MyMetric, self).__init__(usage=usage)
             self.value = []
@@ -695,6 +694,6 @@ def test_batchwise_usage():
     def _():
         bwm = engine.state.metrics["bwm"]
         assert len(bwm) == 1
-        assert bwm[0] == (engine.state.iteration-1) % 3
+        assert bwm[0] == (engine.state.iteration - 1) % 3
 
     engine.run([0, 1, 2], max_epochs=10)
