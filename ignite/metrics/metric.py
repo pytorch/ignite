@@ -259,6 +259,17 @@ class Metric(metaclass=ABCMeta):
             assert "mymetric" in engine.run(data).metrics
 
             assert metric.is_attached(engine)
+
+        Example with usage:
+
+        .. code-block:: python
+
+            metric = ...
+            metric.attach(engine, "mymetric", usage="batch_wise")
+
+            assert "mymetric" in engine.run(data).metrics
+
+            assert metric.is_attached(engine, usage="batch_wise")
         """
         usage = self._check_usage(usage)
         if not engine.has_event_handler(self.started, usage.STARTED):
@@ -299,7 +310,7 @@ class Metric(metaclass=ABCMeta):
         if engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
             engine.remove_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED)
 
-    def is_attached(self, engine: Engine, usage: MetricUsage = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
         """
         Checks if current metric is attached to provided engine. If attached, metric's computed
         value is written to `engine.state.metrics` dictionary.
