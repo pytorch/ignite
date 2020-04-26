@@ -42,14 +42,14 @@ jobs:
         pip install torch-1.5-cp36-cp36m-linux_x86_64.whl
         pip install torch_xla-1.5-cp36-cp36m-linux_x86_64.whl
 
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/pkgs/mkl-2020.0-166/lib/
-        export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
-        export XRT_WORKERS="localservice:0;grpc://localhost:40934"
-
     - name: Run Tests
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate py36
-        
+
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/pkgs/mkl-2020.0-166/lib/
+        export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
+        export XRT_WORKERS="localservice:0;grpc://localhost:40934"
+
         python -c "import torch_xla; print(torch_xla.__version__)"  
         py.test -vvv tests -m tpu
