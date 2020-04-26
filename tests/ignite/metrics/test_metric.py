@@ -4,9 +4,9 @@ import sys
 
 import torch
 
-from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
+from ignite.metrics import Metric, BatchWise, Precision, Recall, ConfusionMatrix
 from ignite.metrics.metric import reinit__is_reduced
-from ignite.engine import Engine, State
+from ignite.engine import Engine, State, Events
 
 from unittest.mock import MagicMock
 import pytest
@@ -667,3 +667,34 @@ def test_completed():
     m.compute = MagicMock(return_value="foo")
     m.completed(engine, "metric")
     assert engine.state.metrics == {"metric": "foo"}
+
+
+def test_batchwise_usage():
+    class MyMetric(Metric):
+
+        def __init__(self, usage):
+            super(MyMetric, self).__init__(usage=usage)
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    engine = Engine(lambda e, b: b)
+
+    m = MyMetric(usage=BatchWise())
+
+    m.attach(engine, "bwm")
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def _():
+        bwm = engine.state.metrics["bwm"]
+        assert len(bwm) == 1
+        assert bwm[0] == (engine.state.iteration-1) % 3
+
+    engine.run([0, 1, 2], max_epochs=10)
