@@ -47,7 +47,7 @@ flexibility to the user to allow for this:
 
 .. code-block:: python
 
-    class BackpropEvents(EventEnum):
+    class BackpropEvents(Enum):
         """
         Events based on back propagation
         """
@@ -66,7 +66,7 @@ flexibility to the user to allow for this:
         engine.fire_event(BackpropEvents.BACKWARD_COMPLETED)
         optimizer.step()
         engine.fire_event(BackpropEvents.OPTIM_STEP_COMPLETED)
-        
+
         return loss.item()
 
     trainer = Engine(update)
@@ -80,10 +80,17 @@ flexibility to the user to allow for this:
 More detailed implementation can be found in `TBPTT Trainer <_modules/ignite/contrib/engines/tbptt.html#create_supervised_tbptt_trainer>`_.
 
 
+Creating Custom Events based on Iteration and Epoch
+---------------------------------------------------
+
+Another type of custom event could be based on number of iteration and epochs. Ignite has :attr:`~ignite.contrib.handlers.custom_events.CustomPeriodicEvent`, which allows the user to
+define events based on number of elapsed iterations/epochs.
+
+
 Gradients accumulation
 ----------------------
 
-A best practice to use if we need to increase effectively the batchsize on limited GPU resources. There several ways to
+A best practice to use if we need to increase effectively the batch size on limited GPU resources. There several ways to
 do this, the most simple is the following:
 
 .. code-block:: python
@@ -108,6 +115,240 @@ do this, the most simple is the following:
 
 Based on `this blog article <https://medium.com/huggingface/training-larger-batches-practical-tips-on-1-gpu-multi-gpu-distributed-setups-ec88c3e51255>`_ and
 `this code <https://gist.github.com/thomwolf/ac7a7da6b1888c2eeac8ac8b9b05d3d3#file-gradient_accumulation-py>`_.
+
+
+Working with iterators
+----------------------
+
+If data provider for training or validation is an iterator (infinite or finite with known or unknown size), here are
+basic examples of how to setup trainer or evaluator.
+
+
+Infinite iterator for training
+``````````````````````````````
+
+Let's use an infinite data iterator as training dataflow
+
+.. code-block:: python
+
+    import torch
+    from ignite.engine import Engine, Events
+
+    torch.manual_seed(12)
+
+    def infinite_iterator(batch_size):
+        while True:
+            batch = torch.rand(batch_size, 3, 32, 32)
+            yield batch
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print(
+            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm())
+        )
+
+    trainer = Engine(train_step)
+    # We need to specify epoch_length to define the epoch
+    trainer.run(infinite_iterator(4), epoch_length=5, max_epochs=3)
+
+In this case we will obtain the following output:
+
+.. code-block:: text
+
+    1/3 : 1 - 63.862
+    1/3 : 2 - 64.042
+    1/3 : 3 - 63.936
+    1/3 : 4 - 64.141
+    1/3 : 5 - 64.767
+    2/3 : 6 - 63.791
+    2/3 : 7 - 64.565
+    2/3 : 8 - 63.602
+    2/3 : 9 - 63.995
+    2/3 : 10 - 63.943
+    3/3 : 11 - 63.831
+    3/3 : 12 - 64.276
+    3/3 : 13 - 64.148
+    3/3 : 14 - 63.920
+    3/3 : 15 - 64.226
+
+If we do not specify `epoch_length`, we can stop the training explicitly by calling :meth:`~ignite.engine.Engine.terminate`
+In this case, there will be only a single epoch defined.
+
+.. code-block:: python
+
+    import torch
+    from ignite.engine import Engine, Events
+
+    torch.manual_seed(12)
+
+    def infinite_iterator(batch_size):
+        while True:
+            batch = torch.rand(batch_size, 3, 32, 32)
+            yield batch
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print(
+            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm())
+        )
+
+    trainer = Engine(train_step)
+
+    @trainer.on(Events.ITERATION_COMPLETED(once=15))
+    def stop_training():
+        trainer.terminate()
+
+    trainer.run(infinite_iterator(4))
+
+We obtain the following output:
+
+.. code-block:: text
+
+    1/1 : 1 - 63.862
+    1/1 : 2 - 64.042
+    1/1 : 3 - 63.936
+    1/1 : 4 - 64.141
+    1/1 : 5 - 64.767
+    1/1 : 6 - 63.791
+    1/1 : 7 - 64.565
+    1/1 : 8 - 63.602
+    1/1 : 9 - 63.995
+    1/1 : 10 - 63.943
+    1/1 : 11 - 63.831
+    1/1 : 12 - 64.276
+    1/1 : 13 - 64.148
+    1/1 : 14 - 63.920
+    1/1 : 15 - 64.226
+
+
+Same code can be used for validating models.
+
+
+Finite iterator with unknown length
+```````````````````````````````````
+
+Let's use a finite data iterator but with unknown length (for user). In case of training, we would like to perform
+several passes over the dataflow and thus we need to restart the data iterator when it is exhausted.
+In the code, we do not specify `epoch_length` which will be automatically determined.
+
+.. code-block:: python
+
+    import torch
+    from ignite.engine import Engine, Events
+
+    torch.manual_seed(12)
+
+    def finite_unk_size_data_iter():
+        for i in range(11):
+            yield i
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print(
+            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+        )
+
+    trainer = Engine(train_step)
+
+    @trainer.on(Events.DATALOADER_STOP_ITERATION)
+    def restart_iter():
+        trainer.state.dataloader = finite_unk_size_data_iter()
+
+    data_iter = finite_unk_size_data_iter()
+    trainer.run(data_iter, max_epochs=5)
+
+
+In case of validation, the code is simply
+
+.. code-block:: python
+
+    import torch
+    from ignite.engine import Engine, Events
+
+    torch.manual_seed(12)
+
+    def finite_unk_size_data_iter():
+        for i in range(11):
+            yield i
+
+    def val_step(evaluator, batch):
+        # ...
+        s = evaluator.state
+        print(
+            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+        )
+
+    evaluator = Engine(val_step)
+
+    data_iter = finite_unk_size_data_iter()
+    evaluator.run(data_iter)
+
+
+Finite iterator with known length
+`````````````````````````````````
+
+Let's use a finite data iterator with known size for training or validation.
+If we need to restart the data iterator, we can do this explicitly on iteration.
+
+.. code-block:: python
+
+    import torch
+    from ignite.engine import Engine, Events
+
+    torch.manual_seed(12)
+
+    size = 11
+
+    def finite_size_data_iter(size):
+        for i in range(size):
+            yield i
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print(
+            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+        )
+
+    trainer = Engine(train_step)
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=size))
+    def restart_iter():
+        trainer.state.dataloader = finite_size_data_iter(size)
+
+    data_iter = finite_size_data_iter(size)
+    trainer.run(data_iter, max_epochs=5)
+
+
+In case of validation, the code is simply
+
+.. code-block:: python
+
+    import torch
+    from ignite.engine import Engine, Events
+
+    torch.manual_seed(12)
+
+    size = 11
+
+    def finite_size_data_iter(size):
+        for i in range(size):
+            yield i
+
+    def val_step(evaluator, batch):
+        # ...
+        s = evaluator.state
+        print(
+            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+        )
+
+    evaluator = Engine(val_step)
+
+    data_iter = finite_size_data_iter(size)
+    evaluator.run(data_iter)
 
 
 Other answers can be found on the github among the issues labeled by

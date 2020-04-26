@@ -10,7 +10,8 @@ class BatchChecker:
     def check(self, batch):
         self.true_batch = self.data[self.counter % len(self.data)]
         self.counter += 1
-        return (self.true_batch == batch).all()
+        res = self.true_batch == batch
+        return res.all() if not isinstance(res, bool) else res
 
 
 class IterationCounter:
