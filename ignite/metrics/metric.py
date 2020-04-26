@@ -20,6 +20,7 @@ class MetricUsage:
 
     Here, usage means when a metric starts to compute, updates and completes.
     """
+
     def __init__(self, started, completed, iteration_completed):
         self.__started = started
         self.__completed = completed
@@ -47,6 +48,7 @@ class EpochWise(MetricUsage):
     * updates each Events.ITERATION_COMPLETED and
     * completes at Events.EPOCH_COMPLETED.
     """
+
     def __init__(self):
         super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
@@ -64,6 +66,7 @@ class BatchWise(MetricUsage):
     * updates each Events.ITERATION_COMPLETED and
     * completes at Events.ITERATION_COMPLETED.
     """
+
     def __init__(self):
         super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
