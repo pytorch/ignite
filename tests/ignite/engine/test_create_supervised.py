@@ -19,7 +19,9 @@ except ImportError:
     has_xla = False
 
 
-def _test_create_supervised_trainer(model_device: Optional[str] = None, trainer_device: Optional[str]=None, trace: bool = False):
+def _test_create_supervised_trainer(
+    model_device: Optional[str] = None, trainer_device: Optional[str] = None, trace: bool = False
+):
     model = Linear(1, 1)
 
     if model_device:
@@ -51,6 +53,7 @@ def _test_create_supervised_trainer(model_device: Optional[str] = None, trainer_
     else:
         with pytest.raises(RuntimeError, match=r"device type"):
             trainer.run(data)
+
 
 def test_create_supervised_trainer():
     _test_create_supervised_trainer()
