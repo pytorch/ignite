@@ -32,7 +32,7 @@ jobs:
 
         ## Install openblas and mkl
         sudo apt-get install -y libopenblas-dev
-        conda install -y mkl
+        conda install -y mkl=2020.0=166  # if change the version, think about to change LD_LIBRARY_PATH below
 
         ## Download torch & xla
         gsutil cp gs://tpu-pytorch/wheels/torch-1.5-cp36-cp36m-linux_x86_64.whl .
@@ -47,7 +47,7 @@ jobs:
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate py36
 
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/pkgs/mkl-2020.0-166/lib/
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/miniconda/pkgs/mkl-2020.0-166/lib/
         export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
         export XRT_WORKERS="localservice:0;grpc://localhost:40934"
 
