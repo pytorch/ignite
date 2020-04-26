@@ -196,7 +196,19 @@ class Metric(metaclass=ABCMeta):
 
             engine.state.metrics[name] = result
 
-    def attach(self, engine: Engine, name: str, usage: MetricUsage = EpochWise()) -> None:
+    def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
+        if isinstance(usage, str):
+            if usage == "epoch_wise":
+                usage = EpochWise()
+            elif usage == "batch_wise":
+                usage = BatchWise()
+            else:
+                raise ValueError("usage should be 'epoch_wise' or 'batch_wise', get {}".format(usage))
+        if not isinstance(usage, MetricUsage):
+            raise TypeError("Unhandled usage type {}".format(type(usage)))
+        return usage
+
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
         """
         Attaches current metric to provided engine. On the end of engine's run,
         `engine.state.metrics` dictionary will contain computed metric's value under provided name.
@@ -217,13 +229,14 @@ class Metric(metaclass=ABCMeta):
 
             assert metric.is_attached(engine)
         """
+        usage = self._check_usage(usage)
         if not engine.has_event_handler(self.started, usage.STARTED):
             engine.add_event_handler(usage.STARTED, self.started)
         if not engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
             engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
         engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: MetricUsage = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
         """
         Detaches current metric from the engine and no metric's computation is done during the run.
         This method in conjunction with :meth:`~ignite.metrics.Metric.attach` can be useful if several
@@ -246,6 +259,7 @@ class Metric(metaclass=ABCMeta):
 
             assert not metric.is_attached(engine)
         """
+        usage = self._check_usage(usage)
         if engine.has_event_handler(self.completed, usage.COMPLETED):
             engine.remove_event_handler(self.completed, usage.COMPLETED)
         if engine.has_event_handler(self.started, usage.STARTED):
@@ -262,6 +276,7 @@ class Metric(metaclass=ABCMeta):
             engine (Engine): the engine checked from which the metric should be attached
             usage (MetricUsage): the usage of the metric
         """
+        usage = self._check_usage(usage)
         return engine.has_event_handler(self.completed, usage.COMPLETED)
 
     def __add__(self, other):

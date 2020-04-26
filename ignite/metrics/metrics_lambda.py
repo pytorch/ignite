@@ -1,5 +1,5 @@
 import itertools
-from typing import Callable, Any
+from typing import Callable, Any, Union
 
 from ignite.metrics.metric import Metric, MetricUsage, EpochWise, reinit__is_reduced
 from ignite.engine import Events, Engine
@@ -100,18 +100,21 @@ class MetricsLambda(Metric):
                 if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
                     engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
 
-    def attach(self, engine: Engine, name: str, usage: MetricUsage = EpochWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+        usage = self._check_usage(usage)
         # recursively attach all its dependencies (partially)
         self._internal_attach(engine, usage)
         # attach only handler on EPOCH_COMPLETED
         engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: MetricUsage = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+        usage = self._check_usage(usage)
         # remove from engine
         super(MetricsLambda, self).detach(engine, usage)
         self.engine = None
 
-    def is_attached(self, engine: Engine, usage: MetricUsage = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+        usage = self._check_usage(usage)
         # check recursively the dependencies
         return super(MetricsLambda, self).is_attached(engine, usage) and self._internal_is_attached(engine, usage)
 

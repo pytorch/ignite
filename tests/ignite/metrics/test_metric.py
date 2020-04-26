@@ -688,7 +688,7 @@ def test_batchwise_usage():
 
     m = MyMetric()
 
-    m.attach(engine, "bwm", usage=BatchWise())
+    m.attach(engine, "bwm", usage="batch_wise")
 
     @engine.on(Events.ITERATION_COMPLETED)
     def _():
