@@ -21,6 +21,9 @@ jobs:
 
     - name: Install Torch XLA 
       run: |
+        export PATH="$HOME/miniconda/bin:$PATH"
+        source activate py36
+        
         ## Install gsutil
         echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
         sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
@@ -45,5 +48,8 @@ jobs:
 
     - name: Run Tests
       run: |
+        export PATH="$HOME/miniconda/bin:$PATH"
+        source activate py36
+        
         python -c "import torch_xla; print(torch_xla.__version__)"  
         py.test -vvv tests -m tpu
