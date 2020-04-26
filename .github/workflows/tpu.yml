@@ -1,5 +1,5 @@
 name: Run TPU tests
-on: [pull_request, push]
+on: [pull_request]
 
 jobs:
   tpu-tests:
@@ -16,7 +16,7 @@ jobs:
         # Useful for debugging any issues with conda
         conda info -a
         conda create -y -n py36 python=3.6
-        conda activate py36
+        source activate py36
 
     - name: Install Torch XLA 
     - run: |
