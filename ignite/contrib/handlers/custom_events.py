@@ -1,4 +1,5 @@
 from ignite.engine import Events, State, EventEnum
+import warnings
 
 
 class CustomPeriodicEvent:
@@ -51,8 +52,8 @@ class CustomPeriodicEvent:
 
     def __init__(self, n_iterations=None, n_epochs=None):
         
-        raise DeprecationWarning("CustomPeriodicEvent is deprecated since v0.4.0 and"
-                                 "removing since v0.5.0, use filtered events instead")
+        warnings.warn("CustomPeriodicEvent is deprecated since v0.4.0 and removing since v0.5.0"
+                      ", use filtered events instead", DeprecationWarning)
         
         if n_iterations is not None and (not isinstance(n_iterations, int) or n_iterations < 1):
             raise ValueError("Argument n_iterations should be positive integer number")
