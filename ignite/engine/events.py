@@ -280,6 +280,8 @@ class State:
         state.batch             # batch passed to `process_function`
         state.output            # output of `process_function` after a single iteration
         state.metrics           # dictionary with defined metrics if any
+        state.times             # dictionary with total and per-epoch times fetched on
+                                # keys: Events.EPOCH_COMPLETED.name and Events.COMPLETED.name
 
     """
 
@@ -304,6 +306,7 @@ class State:
         self.metrics = {}
         self.dataloader = None
         self.seed = None
+        self.times = {Events.EPOCH_COMPLETED.name: None, Events.COMPLETED.name: None}
 
         for k, v in kwargs.items():
             setattr(self, k, v)

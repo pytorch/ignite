@@ -51,6 +51,7 @@ def create_supervised_trainer(
         loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
+            Device can be CPU, GPU or TPU.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
@@ -74,6 +75,15 @@ def create_supervised_trainer(
         Engine: a trainer engine with supervised update function.
     """
 
+    device_type = device.type if isinstance(device, torch.device) else device
+    on_tpu = "xla" in device_type if device_type is not None else False
+
+    if on_tpu:
+        try:
+            import torch_xla.core.xla_model as xm
+        except ImportError:
+            raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
+
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         optimizer.zero_grad()
@@ -81,7 +91,12 @@ def create_supervised_trainer(
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
-        optimizer.step()
+
+        if on_tpu:
+            xm.optimizer_step(optimizer, barrier=True)
+        else:
+            optimizer.step()
+
         return output_transform(x, y, y_pred, loss)
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)

@@ -1,4 +1,5 @@
 import os
+import time
 import pytest
 from unittest.mock import call, MagicMock, Mock
 
@@ -375,9 +376,29 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
 
 
+def test_time_stored_in_state():
+    def _test(data, max_epochs, epoch_length):
+        sleep_time = 0.01
+        engine = Engine(lambda e, b: time.sleep(sleep_time))
+
+        def check_epoch_time(engine):
+            assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length
+
+        def check_completed_time(engine):
+            assert engine.state.times[Events.COMPLETED.name] >= sleep_time * epoch_length * max_epochs
+
+        engine.add_event_handler(Events.EPOCH_COMPLETED, lambda e: check_epoch_time(e))
+        engine.add_event_handler(Events.COMPLETED, lambda e: check_completed_time(e))
+
+        engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+    _test(list(range(100)), max_epochs=2, epoch_length=100)
+    _test(list(range(200)), max_epochs=2, epoch_length=100)
+    _test(list(range(200)), max_epochs=5, epoch_length=100)
+
+
 def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=None):
     engine = Engine(lambda e, b: 1)
-
     events = [
         Events.STARTED,
         Events.EPOCH_STARTED,
@@ -416,7 +437,6 @@ def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=
 
 
 def _test_run_check_triggered_events():
-
     # tests issue https://github.com/pytorch/ignite/issues/818
     _test_check_triggered_events(list(range(10)), max_epochs=4, epoch_length=10)
     _test_check_triggered_events(list(range(100)), max_epochs=5, epoch_length=100)
