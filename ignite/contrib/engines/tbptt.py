@@ -35,11 +35,11 @@ def create_supervised_tbptt_trainer(
     loss_fn: torch.nn.modules.loss._Loss,
     tbtt_step: int,
     dim: int = 0,
-    device: Optional[Union[str, torch.device]]  = None,
+    device: Optional[Union[str, torch.device]] = None,
     non_blocking: Optional[bool] = False,
     prepare_batch: Optional[
         Callable[[torch.Tensor, Optional[Union[str, torch.device]], Optional[bool]], Tuple[torch.Tensor, torch.Tensor]]
-    ] = _prepare_batch
+    ] = _prepare_batch,
 ):
     """Create a trainer for truncated backprop through time supervised models.
 
