@@ -1,0 +1,34 @@
+name: Run TPU tests
+on: [pull_request]
+jobs:
+  tpu-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: test
+    - run: |
+        conda create -y -n py36 python=3.6
+        conda activate py36
+
+        ## Install gsutil
+        echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+        apt-get install -y apt-transport-https ca-certificates gnupg curl
+        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+        apt-get update && apt-get install -y google-cloud-sdk
+
+        ## Install openblas and mkl
+        apt-get install -y libopenblas-dev
+        conda install -y mkl
+
+        ## Download torch & xla
+        gsutil cp gs://tpu-pytorch/wheels/torch-1.5-cp36-cp36m-linux_x86_64.whl .
+        gsutil cp gs://tpu-pytorch/wheels/torch_xla-1.5-cp36-cp36m-linux_x86_64.whl .
+
+        ## Install torch & xla
+        pip install torch-1.5-cp36-cp36m-linux_x86_64.whl
+        pip install torch_xla-1.5-cp36-cp36m-linux_x86_64.whl
+
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/pkgs/mkl-2020.0-166/lib/
+        export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
+        export XRT_WORKERS="localservice:0;grpc://localhost:40934"
+
+        py.test -vvv tests -m tpu
