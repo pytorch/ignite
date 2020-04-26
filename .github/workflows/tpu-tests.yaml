@@ -16,4 +16,4 @@ jobs:
         # Useful for debugging any issues with conda
         conda info -a
         conda create -y -n py36 python=3.6
-        conda activate py36
+        source activate py36
