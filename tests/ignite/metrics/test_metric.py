@@ -671,8 +671,8 @@ def test_completed():
 
 def test_batchwise_usage():
     class MyMetric(Metric):
-        def __init__(self, usage):
-            super(MyMetric, self).__init__(usage=usage)
+        def __init__(self):
+            super(MyMetric, self).__init__()
             self.value = []
 
         def reset(self):
@@ -686,9 +686,9 @@ def test_batchwise_usage():
 
     engine = Engine(lambda e, b: b)
 
-    m = MyMetric(usage=BatchWise())
+    m = MyMetric()
 
-    m.attach(engine, "bwm")
+    m.attach(engine, "bwm", usage=BatchWise())
 
     @engine.on(Events.ITERATION_COMPLETED)
     def _():

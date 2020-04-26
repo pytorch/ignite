@@ -83,7 +83,6 @@ class Metric(metaclass=ABCMeta):
         self,
         output_transform: Callable = lambda x: x,
         device: Optional[Union[str, torch.device]] = None,
-        usage: MetricUsage = EpochWise(),
     ):
         self._output_transform = output_transform
 
@@ -101,7 +100,6 @@ class Metric(metaclass=ABCMeta):
                 device = "cuda"
             device = torch.device(device)
         self._device = device
-        self._usage = usage
         self._is_reduced = False
         self.reset()
 
@@ -142,10 +140,6 @@ class Metric(metaclass=ABCMeta):
             NotComputableError: raised when the metric cannot be computed.
         """
         pass
-
-    @property
-    def usage(self) -> MetricUsage:
-        return self._usage
 
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
         if not (dist.is_available() and dist.is_initialized()):
@@ -204,7 +198,7 @@ class Metric(metaclass=ABCMeta):
 
             engine.state.metrics[name] = result
 
-    def attach(self, engine: Engine, name: str) -> None:
+    def attach(self, engine: Engine, name: str, usage: MetricUsage = EpochWise()) -> None:
         """
         Attaches current metric to provided engine. On the end of engine's run,
         `engine.state.metrics` dictionary will contain computed metric's value under provided name.
@@ -212,6 +206,7 @@ class Metric(metaclass=ABCMeta):
         Args:
             engine (Engine): the engine to which the metric must be attached
             name (str): the name of the metric to attach
+            usage (MetricUsage): the usage of the metric
 
         Example:
 
@@ -224,13 +219,13 @@ class Metric(metaclass=ABCMeta):
 
             assert metric.is_attached(engine)
         """
-        if not engine.has_event_handler(self.started, self.usage.STARTED):
-            engine.add_event_handler(self.usage.STARTED, self.started)
-        if not engine.has_event_handler(self.iteration_completed, self.usage.ITERATION_COMPLETED):
-            engine.add_event_handler(self.usage.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(self.usage.COMPLETED, self.completed, name)
+        if not engine.has_event_handler(self.started, usage.STARTED):
+            engine.add_event_handler(usage.STARTED, self.started)
+        if not engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
+            engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
+        engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine) -> None:
+    def detach(self, engine: Engine, usage: MetricUsage = EpochWise()) -> None:
         """
         Detaches current metric from the engine and no metric's computation is done during the run.
         This method in conjunction with :meth:`~ignite.metrics.Metric.attach` can be useful if several
@@ -239,6 +234,7 @@ class Metric(metaclass=ABCMeta):
 
         Args:
             engine (Engine): the engine from which the metric must be detached
+            usage (MetricUsage): the usage of the metric
 
         Example:
 
@@ -252,22 +248,23 @@ class Metric(metaclass=ABCMeta):
 
             assert not metric.is_attached(engine)
         """
-        if engine.has_event_handler(self.completed, self.usage.COMPLETED):
-            engine.remove_event_handler(self.completed, self.usage.COMPLETED)
-        if engine.has_event_handler(self.started, self.usage.STARTED):
-            engine.remove_event_handler(self.started, self.usage.STARTED)
-        if engine.has_event_handler(self.iteration_completed, self.usage.ITERATION_COMPLETED):
-            engine.remove_event_handler(self.iteration_completed, self.usage.ITERATION_COMPLETED)
+        if engine.has_event_handler(self.completed, usage.COMPLETED):
+            engine.remove_event_handler(self.completed, usage.COMPLETED)
+        if engine.has_event_handler(self.started, usage.STARTED):
+            engine.remove_event_handler(self.started, usage.STARTED)
+        if engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
+            engine.remove_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED)
 
-    def is_attached(self, engine: Engine) -> bool:
+    def is_attached(self, engine: Engine, usage: MetricUsage = EpochWise()) -> bool:
         """
         Checks if current metric is attached to provided engine. If attached, metric's computed
         value is written to `engine.state.metrics` dictionary.
 
         Args:
             engine (Engine): the engine checked from which the metric should be attached
+            usage (MetricUsage): the usage of the metric
         """
-        return engine.has_event_handler(self.completed, self.usage.COMPLETED)
+        return engine.has_event_handler(self.completed, usage.COMPLETED)
 
     def __add__(self, other):
         from ignite.metrics import MetricsLambda
