@@ -15,6 +15,11 @@ __all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
 
 
 class MetricUsage:
+    """
+    Base class for all usages of Metrics.
+
+    Here, usage means when a metric starts to compute, updates and completes.
+    """
     def __init__(self, started, completed, iteration_completed):
         self.__started = started
         self.__completed = completed
@@ -34,6 +39,14 @@ class MetricUsage:
 
 
 class EpochWise(MetricUsage):
+    """
+    Epoch-wise usage of Metrics. It's the default and most common usage of metrics.
+
+    Metrics :
+    * starts to compute at Events.EPOCH_STARTED,
+    * updates each Events.ITERATION_COMPLETED and
+    * completes at Events.EPOCH_COMPLETED.
+    """
     def __init__(self):
         super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
@@ -43,6 +56,14 @@ class EpochWise(MetricUsage):
 
 
 class BatchWise(MetricUsage):
+    """
+    Batch-wise usage of Metrics.
+
+    Metrics :
+    * starts to compute at Events.ITERATION_STARTED,
+    * updates each Events.ITERATION_COMPLETED and
+    * completes at Events.ITERATION_COMPLETED.
+    """
     def __init__(self):
         super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
@@ -52,6 +73,15 @@ class BatchWise(MetricUsage):
 
 
 class BatchFiltered(MetricUsage):
+    """
+    Batch filtered usage of Metrics. This usage is similar to epch-wise but update event is filtered.
+
+    Metrics :
+    * starts to compute at Events.EPOCH_STARTED,
+    * updates each Events.ITERATION_COMPLETED(filter) and
+    * completes at Events.EPOCH_COMPLETED.
+    """
+
     def __init__(self, filter):
         super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
@@ -70,7 +100,7 @@ class Metric(metaclass=ABCMeta):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
+        device (str or torch.device, optional): device specification in case of distributed computation usage.
             In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
             if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
             initialized and available, device is set to `cuda`.
@@ -216,7 +246,8 @@ class Metric(metaclass=ABCMeta):
         Args:
             engine (Engine): the engine to which the metric must be attached
             name (str): the name of the metric to attach
-            usage (MetricUsage): the usage of the metric
+            usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
+            'epoch_wise' (default) or 'batch_wise'.
 
         Example:
 
@@ -245,7 +276,8 @@ class Metric(metaclass=ABCMeta):
 
         Args:
             engine (Engine): the engine from which the metric must be detached
-            usage (MetricUsage): the usage of the metric
+            usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
+            'epoch_wise' (default) or 'batch_wise'.
 
         Example:
 
@@ -274,7 +306,8 @@ class Metric(metaclass=ABCMeta):
 
         Args:
             engine (Engine): the engine checked from which the metric should be attached
-            usage (MetricUsage): the usage of the metric
+            usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
+            'epoch_wise' (default) or 'batch_wise'.
         """
         usage = self._check_usage(usage)
         return engine.has_event_handler(self.completed, usage.COMPLETED)
