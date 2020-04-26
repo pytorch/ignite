@@ -1,4 +1,6 @@
-from ignite.engine import Events, State, EventEnum
+from ignite.engine import Events, State, EventEnum, Engine
+
+from typing import Optional
 import warnings
 
 
@@ -52,7 +54,7 @@ class CustomPeriodicEvent:
 
     """
 
-    def __init__(self, n_iterations=None, n_epochs=None):
+    def __init__(self, n_iterations: Optional[str] = None, n_epochs: Optional[int] = None):
 
         warnings.warn(
             "CustomPeriodicEvent is deprecated since 0.4.0 and will be removed in 0.5.0. Use filtered events instead.",
@@ -94,19 +96,19 @@ class CustomPeriodicEvent:
         self._periodic_event_started = getattr(self.Events, "{}_STARTED".format(event_name))
         self._periodic_event_completed = getattr(self.Events, "{}_COMPLETED".format(event_name))
 
-    def _on_started(self, engine):
+    def _on_started(self, engine: Engine):
         setattr(engine.state, self.custom_state_attr, 0)
 
-    def _on_periodic_event_started(self, engine):
+    def _on_periodic_event_started(self, engine: Engine):
         if getattr(engine.state, self.state_attr) % self.period == 1:
             setattr(engine.state, self.custom_state_attr, getattr(engine.state, self.custom_state_attr) + 1)
             engine.fire_event(self._periodic_event_started)
 
-    def _on_periodic_event_completed(self, engine):
+    def _on_periodic_event_completed(self, engine: Engine):
         if getattr(engine.state, self.state_attr) % self.period == 0:
             engine.fire_event(self._periodic_event_completed)
 
-    def attach(self, engine):
+    def attach(self, engine: Engine):
         engine.register_events(*self.Events)
 
         engine.add_event_handler(Events.STARTED, self._on_started)
