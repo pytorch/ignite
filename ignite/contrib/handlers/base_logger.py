@@ -1,3 +1,5 @@
+from types import TracebackType
+from typing import Callable, Any, Type, Optional, Union, List
 from abc import ABCMeta, abstractmethod
 import numbers
 import warnings
@@ -14,7 +16,7 @@ class BaseLogger:
 
     """
 
-    def attach(self, engine, log_handler, event_name):
+    def attach(self, engine: Engine, log_handler: Callable, event_name: Any):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
         Args:
@@ -34,7 +36,12 @@ class BaseLogger:
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(
+        self,
+        type: Optional[Type[BaseException]],
+        value: Optional[BaseException],
+        traceback: Optional[TracebackType]
+    ):
         self.close()
 
     def close(self):
@@ -52,7 +59,7 @@ class BaseOptimizerParamsHandler(BaseHandler):
     Base handler for logging optimizer parameters
     """
 
-    def __init__(self, optimizer, param_name="lr", tag=None):
+    def __init__(self, optimizer: torch.optim.Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         if not isinstance(optimizer, torch.optim.Optimizer):
             raise TypeError(
                 "Argument optimizer should be of type torch.optim.Optimizer, " "but given {}".format(type(optimizer))
@@ -68,7 +75,14 @@ class BaseOutputHandler(BaseHandler):
     Helper handler to log engine's output and/or metrics
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
+    def __init__(
+        self,
+        tag,
+        metric_names: Optional[Union[str, List[str]]] = None,
+        output_transform: Optional[Callable] = None,
+        another_engine: Optional[Engine] = None,
+        global_step_transform: Optional[Callable] = None
+    ):
 
         if metric_names is not None:
             if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
@@ -101,7 +115,7 @@ class BaseOutputHandler(BaseHandler):
 
         if global_step_transform is None:
 
-            def global_step_transform(engine, event_name):
+            def global_step_transform(engine: Engine, event_name: str):
                 return engine.state.get_event_attrib_value(event_name)
 
         self.tag = tag
@@ -109,7 +123,7 @@ class BaseOutputHandler(BaseHandler):
         self.output_transform = output_transform
         self.global_step_transform = global_step_transform
 
-    def _setup_output_metrics(self, engine):
+    def _setup_output_metrics(self, engine: Engine):
         """Helper method to setup metrics to log
         """
         metrics = {}
@@ -141,14 +155,14 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model, reduction=torch.norm, tag=None):
+    def __init__(self, model: torch.nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
         if not callable(reduction):
             raise TypeError("Argument reduction should be callable, " "but given {}".format(type(reduction)))
 
-        def _is_0D_tensor(t):
+        def _is_0D_tensor(t: torch.Tensor):
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
         # Test reduction function on a tensor
@@ -166,7 +180,7 @@ class BaseWeightsHistHandler(BaseHandler):
     Helper handler to log model's weights as histograms.
     """
 
-    def __init__(self, model, tag=None):
+    def __init__(self, model: torch.nn.Module, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
