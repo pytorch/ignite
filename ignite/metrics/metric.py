@@ -301,6 +301,18 @@ class Metric(metaclass=ABCMeta):
             assert "mymetric" not in engine.run(data).metrics
 
             assert not metric.is_attached(engine)
+
+        Example with usage:
+
+        .. code-block:: python
+
+            metric = ...
+            engine = ...
+            metric.detach(engine, usage="batch_wise")
+
+            assert "mymetric" not in engine.run(data).metrics
+
+            assert not metric.is_attached(engine, usage="batch_wise")
         """
         usage = self._check_usage(usage)
         if engine.has_event_handler(self.completed, usage.COMPLETED):
