@@ -70,7 +70,6 @@ def _test_create_supervised_evaluator(
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
-
     evaluator = create_supervised_evaluator(model, device=evaluator_device)
 
     x = torch.tensor([[1.0], [2.0]])
