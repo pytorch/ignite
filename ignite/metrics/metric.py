@@ -11,6 +11,12 @@ import torch.distributed as dist
 
 from ignite.engine import Events, Engine
 
+try:
+     import torch_xla.core.xla_model as xm
+     on_xla_device = True
+except ImportError:
+     on_xla_device = False
+
 __all__ = ["Metric"]
 
 
@@ -91,7 +97,32 @@ class Metric(metaclass=ABCMeta):
         """
         pass
 
+
+    def _tpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
+        tensor_to_number = False
+        if isinstance(tensor, numbers.Number):
+            tensor = torch.tensor(tensor, device=self._device, dtype=torch.float)
+            tensor_to_number = True
+
+        if isinstance(tensor, torch.Tensor):
+            # check if the tensor is at specified device
+            if tensor.device != self._device:
+                tensor = tensor.to(self._device)
+        else:
+            raise TypeError("Unhandled input type {}".format(type(tensor)))
+
+        # synchronize and reduce
+        xm.all_reduce("sum", [tensor, ])
+
+        if tensor_to_number:
+            return tensor.item()
+        return tensor
+
+
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
+        if on_xla_device:
+            return self._tpu_sync_all_reduce(tensor)
+
         if not (dist.is_available() and dist.is_initialized()):
             # Nothing to reduce
             return tensor
