@@ -13,10 +13,11 @@ from ignite.engine import Events, Engine
 
 try:
     import torch_xla.core.xla_model as xm
-
     on_xla_device = True
+    xla_dist = xm.xrt_world_size() > 1
 except ImportError:
     on_xla_device = False
+    xla_dist = False
 
 __all__ = ["Metric"]
 
@@ -102,10 +103,11 @@ class Metric(metaclass=ABCMeta):
         self,
         tensor: Union[torch.Tensor, numbers.Number],
         reduction: Callable[[Union[torch.Tensor, numbers.Number]], None],
+        dtype: Optional[str] = None,
     ) -> Union[torch.Tensor, numbers.Number]:
         tensor_to_number = False
         if isinstance(tensor, numbers.Number):
-            tensor = torch.tensor(tensor, device=self._device, dtype=torch.float)
+            tensor = torch.tensor(tensor, device=self._device, dtype=dtype)
             tensor_to_number = True
 
         if isinstance(tensor, torch.Tensor):
@@ -123,7 +125,7 @@ class Metric(metaclass=ABCMeta):
 
     @staticmethod
     def _tpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
-        xm.all_reduce("sum", [tensor,])
+        xm.all_reduce("sum", [tensor,], torch.float)
 
     @staticmethod
     def _gpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
@@ -137,12 +139,12 @@ class Metric(metaclass=ABCMeta):
         return self._do_reduction(tensor, self._gpu_reduce)
 
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
-        if on_xla_device:
-            return self._tpu_sync_all_reduce(tensor)
-
-        if not (dist.is_available() and dist.is_initialized()):
+        if not (dist.is_available() and dist.is_initialized()) and not xla_dist:
             # Nothing to reduce
             return tensor
+
+        if on_xla_device:
+            return self._tpu_sync_all_reduce(tensor)
 
         return self._gpu_sync_all_reduce(tensor)
 
