@@ -47,7 +47,7 @@ flexibility to the user to allow for this:
 
 .. code-block:: python
 
-    class BackpropEvents(Enum):
+    class BackpropEvents(EventEnum):
         """
         Events based on back propagation
         """
