@@ -47,7 +47,7 @@ flexibility to the user to allow for this:
 
 .. code-block:: python
 
-    class BackpropEvents(Enum):
+    class BackpropEvents(EventEnum):
         """
         Events based on back propagation
         """
@@ -78,13 +78,6 @@ flexibility to the user to allow for this:
 
 
 More detailed implementation can be found in `TBPTT Trainer <_modules/ignite/contrib/engines/tbptt.html#create_supervised_tbptt_trainer>`_.
-
-
-Creating Custom Events based on Iteration and Epoch
----------------------------------------------------
-
-Another type of custom event could be based on number of iteration and epochs. Ignite has :attr:`~ignite.contrib.handlers.custom_events.CustomPeriodicEvent`, which allows the user to
-define events based on number of elapsed iterations/epochs.
 
 
 Gradients accumulation
