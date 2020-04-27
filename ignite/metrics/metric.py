@@ -101,7 +101,7 @@ class Metric(metaclass=ABCMeta):
     def _do_reduction(
         self,
         tensor: Union[torch.Tensor, numbers.Number],
-        reduction: Callable[[Union[torch.Tensor, numbers.Number]], None]
+        reduction: Callable[[Union[torch.Tensor, numbers.Number]], None],
     ) -> Union[torch.Tensor, numbers.Number]:
         tensor_to_number = False
         if isinstance(tensor, numbers.Number):
@@ -123,7 +123,7 @@ class Metric(metaclass=ABCMeta):
 
     @staticmethod
     def _tpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
-        xm.all_reduce("sum", [tensor, ])
+        xm.all_reduce("sum", [tensor,])
 
     @staticmethod
     def _gpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
