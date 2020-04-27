@@ -98,7 +98,11 @@ class Metric(metaclass=ABCMeta):
         """
         pass
 
-    def _tpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
+    def _do_reduction(
+        self,
+        tensor: Union[torch.Tensor, numbers.Number],
+        reduction: Callable[[Union[torch.Tensor, numbers.Number]], None]
+    ) -> Union[torch.Tensor, numbers.Number]:
         tensor_to_number = False
         if isinstance(tensor, numbers.Number):
             tensor = torch.tensor(tensor, device=self._device, dtype=torch.float)
@@ -111,12 +115,26 @@ class Metric(metaclass=ABCMeta):
         else:
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
-        # synchronize and reduce
-        xm.all_reduce("sum", [tensor,])
+        reduction(tensor)
 
         if tensor_to_number:
             return tensor.item()
         return tensor
+
+    @staticmethod
+    def _tpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
+        xm.all_reduce("sum", [tensor, ])
+
+    @staticmethod
+    def _gpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
+        dist.barrier()
+        dist.all_reduce(tensor)
+
+    def _tpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
+        return self._do_reduction(tensor, self._tpu_reduce)
+
+    def _gpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
+        return self._do_reduction(tensor, self._gpu_reduce)
 
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
         if on_xla_device:
@@ -126,25 +144,7 @@ class Metric(metaclass=ABCMeta):
             # Nothing to reduce
             return tensor
 
-        tensor_to_number = False
-        if isinstance(tensor, numbers.Number):
-            tensor = torch.tensor(tensor, device=self._device)
-            tensor_to_number = True
-
-        if isinstance(tensor, torch.Tensor):
-            # check if the tensor is at specified device
-            if tensor.device != self._device:
-                tensor = tensor.to(self._device)
-        else:
-            raise TypeError("Unhandled input type {}".format(type(tensor)))
-
-        # synchronize and reduce
-        dist.barrier()
-        dist.all_reduce(tensor)
-
-        if tensor_to_number:
-            return tensor.item()
-        return tensor
+        return self._gpu_sync_all_reduce(tensor)
 
     def started(self, engine: Engine) -> None:
         self.reset()
