@@ -148,6 +148,7 @@ python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_
 python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_backend='nccl';deterministic=True;output_path=/tmp/output-cifar10/deterministic"
 ```
 
+<!---
 Non-deterministic| Deterministic
 ---|---
 ![img21](assets/tb_logger_2x_run_resume_ndet.png) | ![img22](assets/tb_logger_2x_run_resume_det.png) 
@@ -155,15 +156,7 @@ Non-deterministic| Deterministic
 Relative performances comparision
 ![img23](assets/tb_logger_2x_det_vs_ndet.png)
 
-
-
-
-
-
-
-
-
-![tb-resume](assets/tb_logger_resume1.png)
+![tbresume](assets/tb_logger_resume1.png)
 
 - Orange curves represent the training with a crash at the iteration 1000
 - Blue curves show resumed training from the last checkpoint (iteration 800)
@@ -175,3 +168,6 @@ correctly providing data samples for the resumed iteration, random data augmenta
 in validation curves (`train/loss`, `train/accuracy` etc.) at the begining of training resuming. 
   
 ![tb-resume](assets/tb_logger_resume2.png)
+
+-->
+

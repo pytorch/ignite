@@ -68,6 +68,8 @@ def run(output_path, config):
             "batch loss": loss.item(),
         }
 
+    if config["deterministic"] and rank == 0:
+        print("Setup deterministic trainer")
     trainer = Engine(train_step) if not config["deterministic"] else DeterministicEngine(train_step)
     train_sampler = train_loader.sampler if distributed else None
     to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
