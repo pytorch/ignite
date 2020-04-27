@@ -13,6 +13,7 @@ from ignite.engine import Events, Engine
 
 try:
     import torch_xla.core.xla_model as xm
+
     on_xla_device = True
     xla_dist = xm.xrt_world_size() > 1
 except ImportError:
