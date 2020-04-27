@@ -196,7 +196,7 @@ Examples
 
 Custom events related to backward and optimizer step calls:
 ```python
-class BackpropEvents(Enum):
+class BackpropEvents(EventEnum):
     BACKWARD_STARTED = 'backward_started'
     BACKWARD_COMPLETED = 'backward_completed'
     OPTIM_STEP_COMPLETED = 'optim_step_completed'
