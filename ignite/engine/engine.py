@@ -554,7 +554,8 @@ class Engine:
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
                 This argument should be `None` if run is resuming from a state.
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
-                `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
+                `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
+                determined as the iteration on which data iterator raises `StopIteration`.
                 This argument should be `None` if run is resuming from a state.
             seed (int, optional): Deprecated argument. Please, use `torch.manual_seed` or
                 :meth:`~ignite.utils.manual_seed`.
@@ -590,11 +591,7 @@ class Engine:
                     epoch_length = len(data)
                     if epoch_length < 1:
                         raise ValueError("Input data has zero size. Please provide non-empty data")
-                else:
-                    # FR: https://github.com/pytorch/ignite/issues/871
-                    # make epoch_length optional for iterators
-                    # raise ValueError("Argument `epoch_length` should be defined if `data` is an iterator")
-                    pass
+
             self.state = State(iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
