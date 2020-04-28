@@ -5,12 +5,15 @@ from ignite.engine.engine import Engine
 from ignite.engine.events import State, Events, EventEnum, CallableEventWithFilter
 from ignite.utils import convert_tensor
 from ignite.metrics import Metric
+from ignite.engine.deterministic import DeterministicEngine
+
 
 __all__ = [
     "State",
     "create_supervised_trainer",
     "create_supervised_evaluator",
     "Engine",
+    "DeterministicEngine",
     "Events",
     "EventEnum",
     "CallableEventWithFilter",
@@ -38,10 +41,10 @@ def create_supervised_trainer(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    deterministic: bool = False,
 ) -> Engine:
     """
     Factory function for creating a trainer for supervised models.
-
     Args:
         model (`torch.nn.Module`): the model to train.
         optimizer (`torch.optim.Optimizer`): the optimizer to use.
@@ -55,22 +58,19 @@ def create_supervised_trainer(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-
+        deterministic (bool, optional): if True, returns deterministic engine of type
+            :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.Engine`
+            (default: False).
     Note:
-        `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
+        `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
         of the processed batch by default.
-
     .. warning::
-
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
-
         For more information see:
-
         * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
         * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
-
     Returns:
         Engine: a trainer engine with supervised update function.
     """
@@ -99,7 +99,7 @@ def create_supervised_trainer(
 
         return output_transform(x, y, y_pred, loss)
 
-    trainer = Engine(_update)
+    trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
 
     return trainer
 

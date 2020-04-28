@@ -33,6 +33,9 @@ class BasicTimeProfiler:
 
     events_to_ignore = [
         Events.EXCEPTION_RAISED,
+        Events.TERMINATE,
+        Events.TERMINATE_SINGLE_EPOCH,
+        Events.DATALOADER_STOP_ITERATION,
     ]
 
     def __init__(self):
