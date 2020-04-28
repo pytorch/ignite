@@ -67,13 +67,13 @@ jobs:
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
         # 4) mnist_save_resume_engine.py
-        python examples/mnist/mnist_save_resume_engine.py --epochs=1 --crash_iteration 700
+        python examples/mnist/mnist_save_resume_engine.py --epochs=2 --crash_iteration 1100
         
     - name: Resume MNIST from previous crash
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
-        python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pt
+        python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
 
     - name: Run GAN example
       run: |
