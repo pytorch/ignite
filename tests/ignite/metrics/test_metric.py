@@ -5,7 +5,7 @@ import sys
 import torch
 
 from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import reinit__is_reduced, xrt_world_size, on_xla_device
 from ignite.engine import Engine, State
 
 from unittest.mock import MagicMock
@@ -17,12 +17,6 @@ from sklearn.metrics import precision_score, recall_score, f1_score, confusion_m
 
 import torch.distributed as dist
 
-try:
-    import torch_xla.core.xla_model as xm
-
-    on_xla_device = True
-except ImportError:
-    on_xla_device = False
 
 
 class DummyMetric1(Metric):
@@ -607,12 +601,13 @@ def _test_distrib_sync_all_reduce_decorator(device, world_size):
 
 
 @pytest.mark.tpu
-@pytest.mark.skipif(not on_xla_device or xm.xrt_world_size() < 1, reason="Skip if no TPU")
+@pytest.mark.skipif(not on_xla_device or xrt_world_size < 1, reason="Skip if no TPU")
 def test_distrib_tpu():
+    import torch_xla.core.xla_model as xm
 
     device = xm.xla_device()
-    _test_distrib__sync_all_reduce(device, world_size=xm.xrt_world_size())
-    _test_distrib_sync_all_reduce_decorator(device, world_size=xm.xrt_world_size())
+    _test_distrib__sync_all_reduce(device, world_size=xrt_world_size)
+    _test_distrib_sync_all_reduce_decorator(device, world_size=xrt_world_size)
 
 
 @pytest.mark.distributed

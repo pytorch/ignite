@@ -15,10 +15,10 @@ try:
     import torch_xla.core.xla_model as xm
 
     on_xla_device = True
-    xla_dist = xm.xrt_world_size() > 1
+    xrt_world_size = xm.xrt_world_size()
 except ImportError:
     on_xla_device = False
-    xla_dist = False
+    xrt_world_size = 0
 
 __all__ = ["Metric"]
 
@@ -140,7 +140,7 @@ class Metric(metaclass=ABCMeta):
         return self._do_reduction(tensor, self._gpu_reduce)
 
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
-        if not (dist.is_available() and dist.is_initialized()) and not xla_dist:
+        if not (dist.is_available() and dist.is_initialized()) and not xrt_world_size > 0:
             # Nothing to reduce
             return tensor
 
