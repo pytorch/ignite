@@ -284,7 +284,9 @@ Finite iterator with known length
 `````````````````````````````````
 
 Let's use a finite data iterator with known size for training or validation.
-If we need to restart the data iterator, we can do this explicitly on iteration.
+If we need to restart the data iterator, we can do this either as in case of
+unknown size by attaching the restart handler on `@trainer.on(Events.DATALOADER_STOP_ITERATION)`,
+but here we will do this explicitly on iteration:
 
 .. code-block:: python
 
