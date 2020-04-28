@@ -18,7 +18,6 @@ from sklearn.metrics import precision_score, recall_score, f1_score, confusion_m
 import torch.distributed as dist
 
 
-
 class DummyMetric1(Metric):
     def __init__(self, true_output, output_transform=lambda x: x):
         super(DummyMetric1, self).__init__(output_transform=output_transform)
