@@ -10,7 +10,7 @@ from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
 
-from tests.ignite.engine import IterationCounter, EpochCounter
+from tests.ignite.engine import IterationCounter, EpochCounter, BatchChecker
 
 
 def test_terminate():
@@ -341,9 +341,6 @@ def test_run_asserts():
     with pytest.raises(ValueError, match=r"Input data has zero size. Please provide non-empty data"):
         engine.run([])
 
-    with pytest.raises(ValueError, match=r"Argument `epoch_length` should be defined if `data` is an iterator"):
-        engine.run(iter([0, 1, 2, 3]))
-
     with pytest.warns(UserWarning, match="Argument seed is deprecated"):
         engine.run([0, 1, 2, 3, 4], seed=1234)
 
@@ -638,3 +635,235 @@ def test_engine_with_dataloader_no_auto_batching():
     engine.run(data_loader, epoch_length=10, max_epochs=5)
 
     assert counter[0] == 50
+
+
+def test_run_once_finite_iterator_no_epoch_length():
+    # FR: https://github.com/pytorch/ignite/issues/871
+
+    unknown_size = 11
+
+    def finite_unk_size_data_iter():
+        for i in range(unknown_size):
+            yield i
+
+    bc = BatchChecker(data=list(range(unknown_size)))
+
+    engine = Engine(lambda e, b: bc.check(b))
+
+    completed_handler = MagicMock()
+    engine.add_event_handler(Events.COMPLETED, completed_handler)
+
+    data_iter = finite_unk_size_data_iter()
+    engine.run(data_iter)
+
+    assert engine.state.epoch == 1
+    assert engine.state.iteration == unknown_size
+    assert completed_handler.call_count == 1
+
+
+def test_run_finite_iterator_no_epoch_length():
+    # FR: https://github.com/pytorch/ignite/issues/871
+    unknown_size = 11
+
+    def finite_unk_size_data_iter():
+        for i in range(unknown_size):
+            yield i
+
+    bc = BatchChecker(data=list(range(unknown_size)))
+
+    engine = Engine(lambda e, b: bc.check(b))
+
+    @engine.on(Events.DATALOADER_STOP_ITERATION)
+    def restart_iter():
+        engine.state.dataloader = finite_unk_size_data_iter()
+
+    data_iter = finite_unk_size_data_iter()
+    engine.run(data_iter, max_epochs=5)
+
+    assert engine.state.epoch == 5
+    assert engine.state.iteration == unknown_size * 5
+
+
+def test_run_finite_iterator_no_epoch_length_2():
+    # FR: https://github.com/pytorch/ignite/issues/871
+    known_size = 11
+
+    def finite_size_data_iter(size):
+        for i in range(size):
+            yield i
+
+    bc = BatchChecker(data=list(range(known_size)))
+
+    engine = Engine(lambda e, b: bc.check(b))
+
+    @engine.on(Events.ITERATION_COMPLETED(every=known_size))
+    def restart_iter():
+        engine.state.dataloader = finite_size_data_iter(known_size)
+
+    data_iter = finite_size_data_iter(known_size)
+    engine.run(data_iter, max_epochs=5)
+
+    assert engine.state.epoch == 5
+    assert engine.state.iteration == known_size * 5
+
+
+def test_faq_inf_iterator_with_epoch_length():
+    # Code snippet from FAQ
+
+    import torch
+
+    torch.manual_seed(12)
+
+    def infinite_iterator(batch_size):
+        while True:
+            batch = torch.rand(batch_size, 3, 32, 32)
+            yield batch
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm()))
+
+    trainer = Engine(train_step)
+    # We need to specify epoch_length to define the epoch
+    trainer.run(infinite_iterator(4), epoch_length=5, max_epochs=3)
+
+    assert trainer.state.epoch == 3
+    assert trainer.state.iteration == 3 * 5
+
+
+def test_faq_inf_iterator_no_epoch_length():
+    # Code snippet from FAQ
+
+    import torch
+
+    torch.manual_seed(12)
+
+    def infinite_iterator(batch_size):
+        while True:
+            batch = torch.rand(batch_size, 3, 32, 32)
+            yield batch
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm()))
+
+    trainer = Engine(train_step)
+
+    @trainer.on(Events.ITERATION_COMPLETED(once=15))
+    def stop_training():
+        trainer.terminate()
+
+    trainer.run(infinite_iterator(4))
+
+    assert trainer.state.epoch == 1
+    assert trainer.state.iteration == 15
+
+
+def test_faq_fin_iterator_unknw_size():
+    # Code snippet from FAQ
+
+    import torch
+
+    torch.manual_seed(12)
+
+    def finite_unk_size_data_iter():
+        for i in range(11):
+            yield i
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+
+    trainer = Engine(train_step)
+
+    @trainer.on(Events.DATALOADER_STOP_ITERATION)
+    def restart_iter():
+        trainer.state.dataloader = finite_unk_size_data_iter()
+
+    data_iter = finite_unk_size_data_iter()
+    trainer.run(data_iter, max_epochs=5)
+
+    assert trainer.state.epoch == 5
+    assert trainer.state.iteration == 5 * 11
+
+    # # # # #
+
+    import torch
+
+    torch.manual_seed(12)
+
+    def finite_unk_size_data_iter():
+        for i in range(11):
+            yield i
+
+    def val_step(evaluator, batch):
+        # ...
+        s = evaluator.state
+        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+
+    evaluator = Engine(val_step)
+
+    data_iter = finite_unk_size_data_iter()
+    evaluator.run(data_iter)
+
+    assert evaluator.state.epoch == 1
+    assert evaluator.state.iteration == 1 * 11
+
+
+def test_faq_fin_iterator():
+    # Code snippet from FAQ
+
+    import torch
+
+    torch.manual_seed(12)
+
+    size = 11
+
+    def finite_size_data_iter(size):
+        for i in range(size):
+            yield i
+
+    def train_step(trainer, batch):
+        # ...
+        s = trainer.state
+        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+
+    trainer = Engine(train_step)
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=size))
+    def restart_iter():
+        trainer.state.dataloader = finite_size_data_iter(size)
+
+    data_iter = finite_size_data_iter(size)
+    trainer.run(data_iter, max_epochs=5)
+
+    assert trainer.state.epoch == 5
+    assert trainer.state.iteration == 5 * size
+
+    # # # # #
+
+    import torch
+
+    torch.manual_seed(12)
+
+    size = 11
+
+    def finite_size_data_iter(size):
+        for i in range(size):
+            yield i
+
+    def val_step(evaluator, batch):
+        # ...
+        s = evaluator.state
+        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+
+    evaluator = Engine(val_step)
+
+    data_iter = finite_size_data_iter(size)
+    evaluator.run(data_iter)
+
+    assert evaluator.state.epoch == 1
+    assert evaluator.state.iteration == size

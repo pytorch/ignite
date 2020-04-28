@@ -554,7 +554,8 @@ class Engine:
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
                 This argument should be `None` if run is resuming from a state.
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
-                `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
+                `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
+                determined as the iteration on which data iterator raises `StopIteration`.
                 This argument should be `None` if run is resuming from a state.
             seed (int, optional): Deprecated argument. Please, use `torch.manual_seed` or
                 :meth:`~ignite.utils.manual_seed`.
@@ -590,8 +591,7 @@ class Engine:
                     epoch_length = len(data)
                     if epoch_length < 1:
                         raise ValueError("Input data has zero size. Please provide non-empty data")
-                else:
-                    raise ValueError("Argument `epoch_length` should be defined if `data` is an iterator")
+
             self.state = State(iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
@@ -694,12 +694,19 @@ class Engine:
                     iter_counter += 1
                     should_exit = False
                 except StopIteration:
+
                     if self._dataloader_len is None:
                         if iter_counter > 0:
                             self._dataloader_len = iter_counter
                         else:
                             # this can happen when data is finite iterator and epoch_length is equal to its size
                             self._dataloader_len = self.state.iteration
+
+                    # Define self.state.epoch_length if it is not yet set
+                    if self.state.epoch_length is None:
+                        # Define epoch length and stop the epoch
+                        self.state.epoch_length = iter_counter
+                        break
 
                     # Should exit while loop if we can not iterate
                     if should_exit:
@@ -734,7 +741,7 @@ class Engine:
                     self._dataloader_iter = iter(self.state.dataloader)
                     break
 
-                if iter_counter == self.state.epoch_length:
+                if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
                     break
 
         except Exception as e:
