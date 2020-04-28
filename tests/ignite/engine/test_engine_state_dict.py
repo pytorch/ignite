@@ -150,6 +150,26 @@ def test_load_state_dict_with_params_overriding_integration():
         engine.run(data, epoch_length=90)
 
 
+def test_continue_training():
+    # Tests issue : https://github.com/pytorch/ignite/issues/993
+    max_epochs = 2
+    data = range(10)
+    engine = Engine(lambda e, b: 1)
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.max_epochs == max_epochs
+    assert state.iteration == len(data) * max_epochs
+    assert state.epoch == max_epochs
+
+    @engine.on(Events.STARTED)
+    def assert_continue_training():
+        assert engine.state.epoch == max_epochs
+
+    state = engine.run(data, max_epochs=max_epochs * 2)
+    assert state.max_epochs == max_epochs * 2
+    assert state.iteration == len(data) * max_epochs * 2
+    assert state.epoch == max_epochs * 2
+
+
 def test_state_dict_with_user_keys_integration(dirname):
     engine = Engine(lambda e, b: 1)
     engine.state_dict_user_keys.append("alpha")

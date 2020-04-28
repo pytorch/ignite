@@ -552,11 +552,12 @@ class Engine:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
             max_epochs (int, optional): Max epochs to run for (default: None).
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
-                This argument should be `None` if run is resuming from a state.
+                If run is resuming from a state, provided `max_epochs` will be taken into account and should be larger
+                than `engine.state.max_epochs`.
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
                 determined as the iteration on which data iterator raises `StopIteration`.
-                This argument should be `None` if run is resuming from a state.
+                This argument should not change if run is resuming from a state.
             seed (int, optional): Deprecated argument. Please, use `torch.manual_seed` or
                 :meth:`~ignite.utils.manual_seed`.
 
@@ -582,20 +583,8 @@ class Engine:
                 "Please, use torch.manual_seed or ignite.utils.manual_seed"
             )
 
-        if self.state is None or self._is_done(self.state):
-            # Create new state
-            if max_epochs is None:
-                max_epochs = 1
-            if epoch_length is None:
-                if hasattr(data, "__len__"):
-                    epoch_length = len(data)
-                    if epoch_length < 1:
-                        raise ValueError("Input data has zero size. Please provide non-empty data")
-
-            self.state = State(iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
-            self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
-        else:
-            # Keep actual state and override it if input args provided
+        if self.state is not None:
+            # Check and apply overridden parameters
             if max_epochs is not None:
                 if max_epochs < self.state.epoch:
                     raise ValueError(
@@ -610,6 +599,20 @@ class Engine:
                             epoch_length, self.state.epoch_length
                         )
                     )
+
+        if self.state is None or self._is_done(self.state):
+            # Create new state
+            if max_epochs is None:
+                max_epochs = 1
+            if epoch_length is None:
+                if hasattr(data, "__len__"):
+                    epoch_length = len(data)
+                    if epoch_length < 1:
+                        raise ValueError("Input data has zero size. Please provide non-empty data")
+
+            self.state = State(iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
+            self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
+        else:
             self.logger.info(
                 "Engine run resuming from iteration {}, epoch {} until {} epochs".format(
                     self.state.iteration, self.state.epoch, self.state.max_epochs
