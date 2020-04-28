@@ -341,9 +341,6 @@ def test_run_asserts():
     with pytest.raises(ValueError, match=r"Input data has zero size. Please provide non-empty data"):
         engine.run([])
 
-    with pytest.raises(ValueError, match=r"Argument `epoch_length` should be defined if `data` is an iterator"):
-        engine.run(iter([0, 1, 2, 3]))
-
     with pytest.warns(UserWarning, match="Argument seed is deprecated"):
         engine.run([0, 1, 2, 3, 4], seed=1234)
 
