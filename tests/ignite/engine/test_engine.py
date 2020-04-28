@@ -617,3 +617,24 @@ def test_altered_random_state():
     for i in range(epoch_length):
         assert train_batches[epoch_length + i] != train_batches[2 * epoch_length + i]
         assert train_batches[i] == train_only_batches[i]
+
+
+def test_engine_with_dataloader_no_auto_batching():
+    # tests https://github.com/pytorch/ignite/issues/941
+    from torch.utils.data import DataLoader, BatchSampler, RandomSampler
+
+    data = torch.rand(64, 4, 10)
+    data_loader = torch.utils.data.DataLoader(
+        data, batch_size=None, sampler=BatchSampler(RandomSampler(data), batch_size=8, drop_last=True)
+    )
+
+    counter = [0]
+
+    def foo(e, b):
+        print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
+        counter[0] += 1
+
+    engine = Engine(foo)
+    engine.run(data_loader, epoch_length=10, max_epochs=5)
+
+    assert counter[0] == 50

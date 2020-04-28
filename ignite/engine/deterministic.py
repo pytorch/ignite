@@ -10,7 +10,7 @@ from ignite.engine.events import Events
 from ignite.utils import manual_seed
 
 
-__all__ = ["update_dataloader", "ReproducibleBatchSampler", "DeterministicEngine"]
+__all__ = ["update_dataloader", "keep_random_state", "ReproducibleBatchSampler", "DeterministicEngine"]
 
 
 def update_dataloader(
@@ -158,6 +158,17 @@ class DeterministicEngine(Engine):
                 setup_saved_rng_states()
             do_single_epoch_iterations(dataloader)
 
+    Internally, `torch.backends.cudnn.deterministic = True` and `torch.backends.cudnn.benchmark = False` are also
+    applied.
+
+    For more details about dataflow synchronization, please see
+    `"Concepts/Dataflow synchronization" <https://pytorch.org/ignite/concepts.html#dataflow-synchronization>`_.
+
+    .. Note ::
+
+        This class can produce exactly the same dataflow when resuming the run from an epoch (or more precisely from
+        dataflow restart) and using torch `DataLoader` with `num_workers > 1` as data provider.
+
     """
 
     def __init__(self, process_function: Callable):
@@ -203,7 +214,7 @@ class DeterministicEngine(Engine):
                         )
 
                 batch_sampler = self.state.dataloader.batch_sampler
-                if not isinstance(batch_sampler, ReproducibleBatchSampler):
+                if not (batch_sampler is None or isinstance(batch_sampler, ReproducibleBatchSampler)):
                     self.state.dataloader = update_dataloader(
                         self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
                     )
@@ -216,8 +227,9 @@ class DeterministicEngine(Engine):
             iteration %= self.state.epoch_length
         self._init_iter.append(iteration)
 
-        # restore rng state
-        if getattr(self.state, "rng_states", None) is not None:
+        # restore rng state if in the middle
+        in_the_middle = self.state.iteration % self._dataloader_len > 0 if self._dataloader_len is not None else False
+        if (getattr(self.state, "rng_states", None) is not None) and in_the_middle:
             _set_rng_states(self.state.rng_states)
             self.state.rng_states = None
 
