@@ -15,6 +15,15 @@ from pytest import approx, raises
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
+import torch.distributed as dist
+
+try:
+    import torch_xla.core.xla_model as xm
+
+    on_xla_device = True
+except ImportError:
+    on_xla_device = False
+
 
 class DummyMetric1(Metric):
     def __init__(self, true_output, output_transform=lambda x: x):
@@ -545,28 +554,23 @@ def test__sync_all_reduce():
     assert res == 10
 
 
-def _test_distrib__sync_all_reduce(device):
-    import torch.distributed as dist
-
-    assert dist.is_available() and dist.is_initialized()
-
+def _test_distrib__sync_all_reduce(device, world_size):
     m = DummyMetric2(device=device)
     res = m._sync_all_reduce(10)
-    assert res == 10 * dist.get_world_size()
+    assert res == 10 * world_size
 
     m = DummyMetric2(device=device)
     t = torch.tensor(10, device=device)
     res = m._sync_all_reduce(t)
-    assert res.item() == 10 * dist.get_world_size()
+    assert res.item() == 10 * world_size
 
     m = DummyMetric2(device=device)
     with pytest.raises(TypeError, match=r"Unhandled input type"):
         m._sync_all_reduce("abc")
 
 
-def _test_distrib_sync_all_reduce_decorator(device):
+def _test_distrib_sync_all_reduce_decorator(device, world_size):
 
-    import torch.distributed as dist
     from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
     class DummyMetric(Metric):
@@ -583,10 +587,10 @@ def _test_distrib_sync_all_reduce_decorator(device):
 
         @sync_all_reduce("a", "b", "c", "n")
         def compute(self):
-            assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
-            assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
-            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
-            assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+            assert (self.a.cpu() == (self.a_nocomp + 10) * world_size).all()
+            assert (self.b.cpu() == (self.b_nocomp - 5) * world_size).all()
+            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * world_size)
+            assert self.n == (self.n_nocomp + 1) * world_size
 
         @reinit__is_reduced
         def update(self, output):
@@ -602,37 +606,46 @@ def _test_distrib_sync_all_reduce_decorator(device):
     m.compute()
 
 
+@pytest.mark.tpu
+@pytest.mark.skipif(not on_xla_device or xm.xrt_world_size() < 1, reason="Skip if no TPU")
+def test_distrib_tpu():
+
+    device = xm.xla_device()
+    _test_distrib__sync_all_reduce(device, world_size=xm.xrt_world_size())
+    _test_distrib_sync_all_reduce_decorator(device, world_size=xm.xrt_world_size())
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
     device = "cuda:{}".format(local_rank)
-    _test_distrib__sync_all_reduce(device)
-    _test_distrib_sync_all_reduce_decorator(device)
+    _test_distrib__sync_all_reduce(device, world_size=dist.get_world_size())
+    _test_distrib_sync_all_reduce_decorator(device, world_size=dist.get_world_size())
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = "cpu"
-    _test_distrib__sync_all_reduce(device)
-    _test_distrib_sync_all_reduce_decorator(device)
+    _test_distrib__sync_all_reduce(device, world_size=dist.get_world_size())
+    _test_distrib_sync_all_reduce_decorator(device, world_size=dist.get_world_size())
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
-    _test_distrib__sync_all_reduce(device)
-    _test_distrib_sync_all_reduce_decorator(device)
+    _test_distrib__sync_all_reduce(device, world_size=dist.get_world_size())
+    _test_distrib_sync_all_reduce_decorator(device, world_size=dist.get_world_size())
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-    _test_distrib__sync_all_reduce(device)
-    _test_distrib_sync_all_reduce_decorator(device)
+    _test_distrib__sync_all_reduce(device, world_size=dist.get_world_size())
+    _test_distrib_sync_all_reduce_decorator(device, world_size=dist.get_world_size())
 
 
 def test_completed():
