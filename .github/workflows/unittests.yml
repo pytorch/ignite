@@ -1,4 +1,4 @@
-on: [pull_request]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -9,6 +9,10 @@ jobs:
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8]
         pytorch-channel: [pytorch, pytorch-nightly]
+        exclude:
+          # excludes pytorch-nightly python 3.5 as it was dropped
+          - pytorch-channel: pytorch-nightly
+            python-version: 3.5
 
     steps:
     - uses: actions/checkout@v2
