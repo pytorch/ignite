@@ -332,7 +332,8 @@ def test__setup_engine():
     data = list(range(100))
     engine.state.dataloader = data
     engine._setup_engine()
-    assert engine._dataloader_len == len(data)
+    assert len(engine._init_iter) == 1 and engine._init_iter[0] == 10
+    # assert engine._dataloader_len == len(data)
 
 
 def test_run_asserts():
@@ -867,3 +868,31 @@ def test_faq_fin_iterator():
 
     assert evaluator.state.epoch == 1
     assert evaluator.state.iteration == size
+
+
+def test_set_data():
+    # tests FR https://github.com/pytorch/ignite/issues/833
+
+    num_iters1 = 10
+    num_iters2 = 20
+    batch_size = 4
+
+    torch.manual_seed(1)
+    data1 = torch.utils.data.DataLoader(torch.rand(num_iters1 * batch_size, 11), batch_size=batch_size)
+    data2 = torch.utils.data.DataLoader(torch.rand(num_iters2 * batch_size, 22), batch_size=batch_size)
+
+    switch_iteration = 35
+
+    def train_fn(e, batch):
+        if e.state.iteration <= switch_iteration:
+            assert batch.shape[1] == 11, "{}: {}".format(e.state.iteration, batch.shape)
+        else:
+            assert batch.shape[1] == 22, "{}: {}".format(e.state.iteration, batch.shape)
+
+    trainer = Engine(train_fn)
+
+    @trainer.on(Events.ITERATION_COMPLETED(once=switch_iteration))
+    def switch_dataloader():
+        trainer.set_data(data2)
+
+    trainer.run(data1, max_epochs=10)
