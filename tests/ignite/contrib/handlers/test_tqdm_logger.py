@@ -440,3 +440,35 @@ def test_tqdm_logger_epoch_length(capsys):
     actual = err[-1]
     expected = "Epoch: [50/50] 100%|██████████ [00:00<00:00]"
     assert actual == expected
+
+
+def test_tqdm_logger_iter_without_epoch_length(capsys):
+
+    size = 11
+
+    def finite_size_data_iter(size):
+        for i in range(size):
+            yield i
+
+    def train_step(trainer, batch):
+        pass
+
+    trainer = Engine(train_step)
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=size))
+    def restart_iter():
+        trainer.state.dataloader = finite_size_data_iter(size)
+
+    pbar = ProgressBar(persist=True)
+    pbar.attach(trainer)
+
+    data_iter = finite_size_data_iter(size)
+    trainer.run(data_iter, max_epochs=5)
+
+    captured = capsys.readouterr()
+    err = captured.err.split("\r")
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    expected = "Epoch [5/5]: [11/11] 100%|██████████ [00:00<00:00]"
+    assert actual == expected

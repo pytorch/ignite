@@ -125,7 +125,7 @@ class ProgressBar(BaseLogger):
         )
 
     def _close(self, engine):
-        if self.pbar:
+        if self.pbar is not None:
             self.pbar.close()
         self.pbar = None
 
@@ -261,5 +261,6 @@ class _OutputHandler(BaseOutputHandler):
             logger.pbar.set_postfix(**rendered_metrics)
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        global_step = (global_step - 1) % pbar_total + 1
+        if pbar_total is not None:
+            global_step = (global_step - 1) % pbar_total + 1
         logger.pbar.update(global_step - logger.pbar.n)
