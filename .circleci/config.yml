@@ -113,10 +113,10 @@ jobs:
 
             # 4) mnist_save_resume_engine.py
             # save
-            export mnist4_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=1 --crash_iteration 700'
+            export mnist4_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=2 --crash_iteration 1100'
             docker exec -it pthd /bin/bash -c "$mnist4_cmd"
             # resume
-            export mnist4_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pt'
+            export mnist4_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt'
             docker exec -it pthd /bin/bash -c "$mnist4_cmd"
 
   two_gpus_tests:
