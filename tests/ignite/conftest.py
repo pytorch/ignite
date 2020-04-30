@@ -41,6 +41,9 @@ def distributed_context_single_node_nccl(local_rank):
     }
 
     dist.init_process_group(**dist_info)
+
+    dist.barrier()
+
     torch.cuda.device(local_rank)
 
     yield {"local_rank": local_rank}
@@ -66,6 +69,8 @@ def distributed_context_single_node_gloo(local_rank):
     }
 
     dist.init_process_group(**dist_info)
+
+    dist.barrier()
 
     yield {"local_rank": local_rank}
 
@@ -110,6 +115,8 @@ def distributed_context_multi_node_gloo(multi_node_conf):
 
     dist.init_process_group(**dist_info)
 
+    dist.barrier()
+
     yield multi_node_conf
 
     dist.barrier()
@@ -133,6 +140,9 @@ def distributed_context_multi_node_nccl(multi_node_conf):
     }
 
     dist.init_process_group(**dist_info)
+
+    dist.barrier()
+
     torch.cuda.device(multi_node_conf["local_rank"])
 
     yield multi_node_conf
