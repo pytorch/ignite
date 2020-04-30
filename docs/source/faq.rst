@@ -349,7 +349,7 @@ In case of validation, the code is simply
 Switching data provider during the training
 -------------------------------------------
 
-User can easily switch data provider during the training using :meth:`~ignite.engine.Engine.set_data`.
+User can easily switch data provider during the training using :meth:`~ignite.engine.engine.Engine.set_data`.
 See an example in the documentation of the method.
 
 
