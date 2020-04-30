@@ -673,7 +673,7 @@ class Engine(Serializable):
         self._dataloader_iter = self._dataloader_len = None
         return self.state
 
-    def _run_once_on_dataset(self) -> Tuple[int, int, int]:
+    def _run_once_on_dataset(self) -> float:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
