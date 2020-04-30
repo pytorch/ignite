@@ -730,7 +730,7 @@ def _test_distrib_itegration_multiclass(device, rank, world_size):
 
         offset = n_iters * s
         y_true = torch.randint(0, n_classes, size=(offset * world_size)).to(device)
-        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+        y_preds = torch.rand(offset * world_size, n_classes).to(device)
 
         def update(engine, i):
             return (
