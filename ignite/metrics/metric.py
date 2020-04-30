@@ -126,7 +126,7 @@ class Metric(metaclass=ABCMeta):
 
     @staticmethod
     def _tpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
-        xm.all_reduce("sum", [tensor,], torch.float)
+        xm.all_reduce("sum", [tensor,])
 
     @staticmethod
     def _gpu_reduce(tensor: Union[torch.Tensor, numbers.Number]) -> None:
@@ -134,7 +134,7 @@ class Metric(metaclass=ABCMeta):
         dist.all_reduce(tensor)
 
     def _tpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
-        return self._do_reduction(tensor, self._tpu_reduce)
+        return self._do_reduction(tensor, self._tpu_reduce, torch.float)
 
     def _gpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
         return self._do_reduction(tensor, self._gpu_reduce)
