@@ -3,15 +3,17 @@ import tempfile
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import collections.abc as collections
 
 
-from typing import Optional, Callable, Mapping, Union
+from typing import Optional, Callable, MutableMapping, Union
 
 import torch
 
 from ignite.engine import Events, Engine
+from ignite.base import Serializable
+
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 
@@ -20,7 +22,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
     """Base class for save handlers"""
 
     @abstractmethod
-    def __call__(self, checkpoint: Mapping, filename: str) -> None:
+    def __call__(self, checkpoint: MutableMapping, filename: str) -> None:
         pass
 
     @abstractmethod
@@ -28,14 +30,14 @@ class BaseSaveHandler(metaclass=ABCMeta):
         pass
 
 
-class Checkpoint:
+class Checkpoint(Serializable):
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
     storage, etc.
 
     Args:
-        to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
-            load_state_dict` methods.
+        to_save (MutableMapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and
+            `load_state_dict` methods.
         save_handler (callable or `BaseSaveHandler`): Method or callable class to use to save engine and other provided
             objects. Function receives two objects: checkpoint as a dictionary and filename. If `save_handler` is
             callable class, it can
@@ -137,13 +139,22 @@ class Checkpoint:
             trainer.run(data_loader, max_epochs=10)
             > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
 
+    Note:
+        Checkpoint has its internal state: list of saved file names with their associated scores.
+        Methods :meth:`~ignite.handlers.Checkpoint.state_dict` and :meth:`~ignite.handlers.Checkpoint.load_state_dict`
+        help to save and restore this internal state.
+        Checkpoint's internal state is automatically appended to input argument `to_save` if
+        :class:`~ignite.engine.Engine` is present in `to_save`.
+
     """
 
     Item = namedtuple("Item", ["priority", "filename"])
 
+    _state_dict_all_req_keys = ("saved",)
+
     def __init__(
         self,
-        to_save: Mapping,
+        to_save: MutableMapping,
         save_handler: Union[Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
@@ -154,13 +165,17 @@ class Checkpoint:
     ):
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
-            if not isinstance(to_save, collections.Mapping):
+            if not isinstance(to_save, collections.MutableMapping):
                 raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
 
             if len(to_save) < 1:
                 raise ValueError("No objects to checkpoint.")
 
             self._check_objects(to_save, "state_dict")
+
+            # Add this checkpoint if Engine is present in to_save:
+            if any([isinstance(o, Engine) for _, o in to_save.items()]):
+                to_save["checkpoint_{}".format(id(self))] = self
 
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
@@ -186,10 +201,19 @@ class Checkpoint:
         self.global_step_transform = global_step_transform
 
     @property
-    def last_checkpoint(self) -> str:
+    def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
             return None
         return self._saved[-1].filename
+
+    def state_dict(self) -> OrderedDict:
+        return OrderedDict([("saved", [(s.priority, s.filename) for s in self._saved]),])
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        super(Checkpoint, self).load_state_dict(state_dict)
+
+        for priority, filename in state_dict["saved"]:
+            self._saved.append(Checkpoint.Item(priority, filename))
 
     def _check_lt_n_saved(self, or_equal=False):
         if self._n_saved is None:
@@ -256,13 +280,13 @@ class Checkpoint:
         return checkpoint
 
     @staticmethod
-    def _check_objects(objs: Mapping, attr: str) -> None:
+    def _check_objects(objs: MutableMapping, attr: str) -> None:
         for k, obj in objs.items():
             if not hasattr(obj, attr):
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
+    def load_objects(to_load: MutableMapping, checkpoint: MutableMapping, **kwargs) -> None:
         """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Exemples:
@@ -286,8 +310,8 @@ class Checkpoint:
             Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
         Args:
-            to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
-            checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
+            to_load (MutableMapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            checkpoint (MutableMapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
                 "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
                 corresponding state_dict.
             **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
