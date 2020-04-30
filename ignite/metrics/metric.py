@@ -104,7 +104,7 @@ class Metric(metaclass=ABCMeta):
         self,
         tensor: Union[torch.Tensor, numbers.Number],
         reduction: Callable[[Union[torch.Tensor, numbers.Number]], None],
-        dtype: Optional[str] = None,
+        dtype: Optional[torch.dtype] = None,
     ) -> Union[torch.Tensor, numbers.Number]:
         tensor_to_number = False
         if isinstance(tensor, numbers.Number):
@@ -133,21 +133,15 @@ class Metric(metaclass=ABCMeta):
         dist.barrier()
         dist.all_reduce(tensor)
 
-    def _tpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
-        return self._do_reduction(tensor, self._tpu_reduce, torch.float)
-
-    def _gpu_sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
-        return self._do_reduction(tensor, self._gpu_reduce)
-
     def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
         if not (dist.is_available() and dist.is_initialized()) and not xrt_world_size > 0:
             # Nothing to reduce
             return tensor
 
         if on_xla_device:
-            return self._tpu_sync_all_reduce(tensor)
+            return self._do_reduction(tensor, self._tpu_reduce, torch.float)
 
-        return self._gpu_sync_all_reduce(tensor)
+        return self._do_reduction(tensor, self._gpu_reduce)
 
     def started(self, engine: Engine) -> None:
         self.reset()
