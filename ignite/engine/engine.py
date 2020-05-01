@@ -197,7 +197,7 @@ class Engine:
 
     def _handler_wrapper(self, handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
         # signature of the following wrapper will be inspected during registering to check if engine is necessary
-        # we have to build a wrapper with relevant signature : solution is functools.wrapsgit s
+        # we have to build a wrapper with relevant signature : solution is functools.wraps
         @functools.wraps(handler)
         def wrapper(*args, **kwargs) -> Any:
             event = self.state.get_event_attrib_value(event_name)
@@ -297,7 +297,7 @@ class Engine:
                 to ``None`` to search all events.
         """
         if event_name is not None:
-            self._assert_non_filtered_event(event_name)
+            # self._assert_non_filtered_event(event_name)
 
             if event_name not in self._event_handlers:
                 return False
@@ -324,7 +324,7 @@ class Engine:
             event_name: The event the handler attached to.
 
         """
-        self._assert_non_filtered_event(event_name)
+        # self._assert_non_filtered_event(event_name)
         if event_name not in self._event_handlers:
             raise ValueError("Input event name '{}' does not exist".format(event_name))
 
