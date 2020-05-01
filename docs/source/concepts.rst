@@ -4,7 +4,7 @@ Concepts
 Engine
 ------
 
-The **essence** of the framework is the class :class:`~ignite.engine.Engine`, an abstraction that loops a given number of times over
+The **essence** of the framework is the class :class:`~ignite.engine.engine.Engine`, an abstraction that loops a given number of times over
 provided data, executes a processing function and returns a result:
 
 .. code-block:: python
@@ -55,19 +55,19 @@ For example, model trainer for a supervised task:
 Events and Handlers
 -------------------
 
-To improve the :class:`~ignite.engine.Engine`'s flexibility, an event system is introduced that facilitates interaction on each step of
+To improve the :class:`~ignite.engine.engine.Engine`'s flexibility, an event system is introduced that facilitates interaction on each step of
 the run:
 
 - *engine is started/completed*
 - *epoch is started/completed*
 - *batch iteration is started/completed*
 
-Complete list of events can be found at :class:`~ignite.engine.Events`.
+Complete list of events can be found at :class:`~ignite.engine.events.Events`.
 
 Thus, user can execute a custom code as an event handler. Handlers can be any function: e.g. lambda, simple function,
 class method etc. The first argument can be optionally `engine`, but not necessary.
 
-Let us consider in more detail what happens when :meth:`~ignite.engine.Engine.run` is called:
+Let us consider in more detail what happens when :meth:`~ignite.engine.engine.Engine.run` is called:
 
 .. code-block:: python
 
@@ -88,8 +88,8 @@ At first *engine is started* event is fired and all this event handlers are exec
 how to add event handlers). Next, `while` loop is started and *epoch is started* event occurs, etc. Every time
 an event is "fired", attached handlers are executed.
 
-Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.add_event_handler` or
-:meth:`~ignite.engine.Engine.on` decorator:
+Attaching an event handler is simple using method :meth:`~ignite.engine.engine.Engine.add_event_handler` or
+:meth:`~ignite.engine.engine.Engine.on` decorator:
 
 .. code-block:: python
 
@@ -113,8 +113,8 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
-Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandle`
-reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
+Event handlers can be detached via :meth:`~ignite.engine.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.events.RemovableEventHandle`
+reference returned by :meth:`~ignite.engine.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
 
 .. code-block:: python
 
@@ -175,8 +175,8 @@ event filtering function:
 
 .. Note ::
 
-   User can also register custom events with :meth:`~ignite.engine.Engine.register_events`, attach handlers and fire custom events
-   calling :meth:`~ignite.engine.Engine.fire_event` in any handler or `process_function`.
+   User can also register custom events with :meth:`~ignite.engine.engine.Engine.register_events`, attach handlers and fire custom events
+   calling :meth:`~ignite.engine.engine.Engine.fire_event` in any handler or `process_function`.
 
    See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
@@ -193,18 +193,18 @@ epoch:
 
 State
 -----
-A state is introduced in :class:`~ignite.engine.Engine` to store the output of the `process_function`, current epoch,
-iteration and other helpful information. Each :class:`~ignite.engine.Engine` contains a :class:`~ignite.engine.State`, 
+A state is introduced in :class:`~ignite.engine.engine.Engine` to store the output of the `process_function`, current epoch,
+iteration and other helpful information. Each :class:`~ignite.engine.engine.Engine` contains a :class:`~ignite.engine.events.State`,
 which includes the following:
 
 - **engine.state.seed**: Seed to set at each data "epoch".
 - **engine.state.epoch**: Number of epochs the engine has completed. Initializated as 0 and the first epoch is 1.
 - **engine.state.iteration**: Number of iterations the engine has completed. Initialized as 0 and the first iteration is 1.
 - **engine.state.max_epochs**: Number of epochs to run for. Initializated as 1.
-- **engine.state.output**: The output of the `process_function` defined for the :class:`~ignite.engine.Engine`. See below.
+- **engine.state.output**: The output of the `process_function` defined for the :class:`~ignite.engine.engine.Engine`. See below.
 - etc
 
-Other attributes can be found in the docs of :class:`~ignite.engine.State`.
+Other attributes can be found in the docs of :class:`~ignite.engine.events.State`.
 
 In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at 
 every iteration.
@@ -287,7 +287,7 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
 
 .. Note ::
 
-   A good practice is to use :class:`~ignite.engine.State` also as a storage of user data created in update or handler functions.
+   A good practice is to use :class:`~ignite.engine.events.State` also as a storage of user data created in update or handler functions.
    For example, we would like to save `new_attribute` in the `state`:
 
    .. code-block:: python
@@ -317,8 +317,8 @@ Resuming the training
 
 It is also possible to resume the training from a checkpoint and approximatively reproduce original run's behaviour.
 Using Ignite, this can be easily done using :class:`~ignite.handlers.Checkpoint` handler. Engine provides two methods
-to serialize and deserialize its internal state :meth:`~ignite.engine.Engine.state_dict` and
-:meth:`~ignite.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler etc user can
+to serialize and deserialize its internal state :meth:`~ignite.engine.engine.Engine.state_dict` and
+:meth:`~ignite.engine.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler etc user can
 store the trainer and then resume the training. For example:
 
 .. code-block:: python

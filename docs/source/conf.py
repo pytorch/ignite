@@ -22,8 +22,8 @@ import pytorch_sphinx_theme
 # -- Project information -----------------------------------------------------
 
 project = "ignite"
-copyright = "2019, Torch Contributors"
-author = "Torch Contributors"
+copyright = "2020, PyTorch-Ignite Contributors"
+author = "PyTorch-Ignite Contributors"
 
 # The short X.Y version
 try:
