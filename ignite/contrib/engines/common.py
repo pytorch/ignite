@@ -418,6 +418,8 @@ def save_best_model_by_val_score(
         trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.
         tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
 
+    Returns:
+        A :class:`~ignite.handlers.checkpoint.ModelCheckpoint` handler.
     """
     global_step_transform = None
     if trainer is not None:
@@ -433,6 +435,8 @@ def save_best_model_by_val_score(
     )
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {"model": model,})
 
+    return best_model_handler
+
 
 def add_early_stopping_by_val_score(patience: int, evaluator: Engine, trainer: Engine, metric_name: str):
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
@@ -444,6 +448,10 @@ def add_early_stopping_by_val_score(patience: int, evaluator: Engine, trainer: E
         metric_name (str): metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
 
+    Returns:
+        A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
     """
     es_handler = EarlyStopping(patience=patience, score_function=get_default_score_fn(metric_name), trainer=trainer)
     evaluator.add_event_handler(Events.COMPLETED, es_handler)
+
+    return es_handler

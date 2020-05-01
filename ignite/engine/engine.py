@@ -3,21 +3,21 @@ import time
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
 import weakref
-import random
 import warnings
 import functools
-from typing import Union, Optional, Callable, Iterable, Iterator, Any, Tuple, List
-
-import torch
+from typing import Optional, Callable, Iterable, Any, Tuple, List
 
 from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
-from ignite.engine.utils import ReproducibleBatchSampler, _update_dataloader, _check_signature
+from ignite.engine.utils import _check_signature
 from ignite._utils import _to_hours_mins_secs
+
+from ignite.base import Serializable
+
 
 __all__ = ["Engine"]
 
 
-class Engine:
+class Engine(Serializable):
     """Runs a given `process_function` over each batch of a dataset, emitting events as it goes.
 
     Args:
@@ -107,9 +107,9 @@ class Engine:
         .. code-block:: python
 
             # Restore from an epoch
-            state_dict = {"seed": 0, "epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
+            state_dict = {"epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
             # or an iteration
-            # state_dict = {"seed": 0, "iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
+            # state_dict = {"iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
 
             trainer = Engine(...)
             trainer.load_state_dict(state_dict)
@@ -117,7 +117,7 @@ class Engine:
 
     """
 
-    _state_dict_all_req_keys = ("seed", "epoch_length", "max_epochs")
+    _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
     def __init__(self, process_function: Callable):
@@ -433,72 +433,6 @@ class Engine:
         )
         self.should_terminate_single_epoch = True
 
-    def _run_once_on_dataset(self) -> float:
-        start_time = time.time()
-
-        # We need to setup iter_counter > 0 if we resume from an iteration
-        iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
-        should_exit = False
-        try:
-            while True:
-                try:
-                    self._fire_event(Events.GET_BATCH_STARTED)
-                    batch = next(self._dataloader_iter)
-                    self._fire_event(Events.GET_BATCH_COMPLETED)
-                    iter_counter += 1
-                    should_exit = False
-                except StopIteration:
-                    if self._dataloader_len is None:
-                        if iter_counter > 0:
-                            self._dataloader_len = iter_counter
-                        else:
-                            # this can happen when data is finite iterator and epoch_length is equal to its size
-                            self._dataloader_len = self.state.iteration
-
-                    # Should exit while loop if we can not iterate
-                    if should_exit:
-                        if not self._is_done(self.state):
-                            warnings.warn(
-                                "Data iterator can not provide data anymore but required total number of "
-                                "iterations to run is not reached. "
-                                "Current iteration: {} vs Total iterations to run : {}".format(
-                                    self.state.iteration, self.state.epoch_length * self.state.max_epochs
-                                )
-                            )
-                        break
-
-                    # set seed on restart of data iterator
-                    self.setup_seed()
-                    self._dataloader_iter = iter(self.state.dataloader)
-
-                    should_exit = True
-
-                    continue
-
-                self.state.batch = batch
-                self.state.iteration += 1
-                self._fire_event(Events.ITERATION_STARTED)
-                self.state.output = self._process_function(self, self.state.batch)
-                self._fire_event(Events.ITERATION_COMPLETED)
-
-                # TODO: remove refs on batch to avoid high mem consumption ? -> need verification
-                # self.state.batch = batch = None
-
-                if self.should_terminate or self.should_terminate_single_epoch:
-                    self.should_terminate_single_epoch = False
-                    self._manual_seed(self.state.seed, self.state.iteration // iter_counter)
-                    self._dataloader_iter = iter(self.state.dataloader)
-                    break
-
-                if iter_counter == self.state.epoch_length:
-                    break
-
-        except BaseException as e:
-            self.logger.error("Current run is terminating due to exception: %s.", str(e))
-            self._handle_exception(e)
-
-        return time.time() - start_time
-
     def _handle_exception(self, e: Exception) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
             self._fire_event(Events.EXCEPTION_RAISED, e)
@@ -552,27 +486,20 @@ class Engine:
         Args:
             state_dict (Mapping): a dict with parameters
 
-
         .. code-block:: python
 
-            # Restore from an epoch
-            state_dict = {"seed": 0, "epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
-            # or an iteration
-            # state_dict = {"seed": 0, "iteration": 500, "max_epochs": 100, "epoch_length": len(data_loader)}
+            # Restore from the 4rd epoch
+            state_dict = {"epoch": 3, "max_epochs": 100, "epoch_length": len(data_loader)}
+            # or 500th iteration
+            # state_dict = {"iteration": 499, "max_epochs": 100, "epoch_length": len(data_loader)}
 
             trainer = Engine(...)
             trainer.load_state_dict(state_dict)
             trainer.run(data)
 
         """
-        if not isinstance(state_dict, Mapping):
-            raise TypeError("Argument state_dict should be a dictionary, but given {}".format(type(state_dict)))
+        super(Engine, self).load_state_dict(state_dict)
 
-        for k in self._state_dict_all_req_keys:
-            if k not in state_dict:
-                raise ValueError(
-                    "Required state attribute '{}' is absent in provided state_dict '{}'".format(k, state_dict.keys())
-                )
         for k in self._state_dict_user_keys:
             if k not in state_dict:
                 raise ValueError(
@@ -581,16 +508,7 @@ class Engine:
                     )
                 )
 
-        opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
-        if (not any(opts)) or (all(opts)):
-            raise ValueError("state_dict should contain only one of '{}' keys".format(self._state_dict_one_of_opt_keys))
-
-        self.state = State(
-            seed=state_dict["seed"],
-            max_epochs=state_dict["max_epochs"],
-            epoch_length=state_dict["epoch_length"],
-            metrics={},
-        )
+        self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"], metrics={},)
         for k in self._state_dict_user_keys:
             setattr(self.state, k, state_dict[k])
 
@@ -604,6 +522,42 @@ class Engine:
     @staticmethod
     def _is_done(state: State) -> bool:
         return state.iteration == state.epoch_length * state.max_epochs
+
+    def set_data(self, data):
+        """Method to set data. After calling the method the next batch passed to `processing_function` is
+        from newly provided data. Please, note that epoch length is not modified.
+
+        Args:
+            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
+
+        Example usage:
+            User can switch data provider during the training:
+
+            .. code-block:: python
+
+                data1 = ...
+                data2 = ...
+
+                switch_iteration = 5000
+
+                def train_step(e, batch):
+                    # when iteration <= switch_iteration
+                    # batch is from data1
+                    # when iteration > switch_iteration
+                    # batch is from data2
+                    ...
+
+                trainer = Engine(train_step)
+
+                @trainer.on(Events.ITERATION_COMPLETED(once=switch_iteration))
+                def switch_dataloader():
+                    trainer.set_data(data2)
+
+                trainer.run(data1, max_epochs=100)
+
+        """
+        self.state.dataloader = data
+        self._dataloader_iter = iter(self.state.dataloader)
 
     def run(
         self,
@@ -627,12 +581,14 @@ class Engine:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
             max_epochs (int, optional): Max epochs to run for (default: None).
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
-                This argument should be `None` if run is resuming from a state.
+                If run is resuming from a state, provided `max_epochs` will be taken into account and should be larger
+                than `engine.state.max_epochs`.
             epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
-                `len(data)`. If `data` is an iterator and `epoch_length` is not set, an error is raised.
-                This argument should be `None` if run is resuming from a state.
-            seed (int, optional): Seed to use for dataflow consistency, by default it
-                will respect the global random state. This argument should be `None` if run is resuming from a state.
+                `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
+                determined as the iteration on which data iterator raises `StopIteration`.
+                This argument should not change if run is resuming from a state.
+            seed (int, optional): Deprecated argument. Please, use `torch.manual_seed` or
+                :meth:`~ignite.utils.manual_seed`.
 
         Returns:
             State: output state.
@@ -649,36 +605,43 @@ class Engine:
                 def switch_batch(engine):
                     engine.state.batch = preprocess_batch(engine.state.batch)
 
-        Note:
-            In order to perform a reproducible run, if input `data` is `torch.utils.data.DataLoader`, its batch sampler
-            is replaced by a batch sampler (:class:`~ignite.engine.engine.ReproducibleBatchSampler`) such that random
-            sampling indices are reproducible by prefetching them before data iteration.
-
         """
+        if seed is not None:
+            warnings.warn(
+                "Argument seed is deprecated. It will be removed in future releases. "
+                "Please, use torch.manual_seed or ignite.utils.manual_seed"
+            )
+
+        if self.state is not None:
+            # Check and apply overridden parameters
+            if max_epochs is not None:
+                if max_epochs < self.state.epoch:
+                    raise ValueError(
+                        "Argument max_epochs should be larger than the start epoch "
+                        "defined in the state: {} vs {}".format(max_epochs, self.state.epoch)
+                    )
+                self.state.max_epochs = max_epochs
+            if epoch_length is not None:
+                if epoch_length != self.state.epoch_length:
+                    raise ValueError(
+                        "Argument epoch_length should be same as in the state, given {} vs {}".format(
+                            epoch_length, self.state.epoch_length
+                        )
+                    )
 
         if self.state is None or self._is_done(self.state):
             # Create new state
             if max_epochs is None:
                 max_epochs = 1
-            if seed is None:
-                seed = torch.randint(0, int(1e9), (1,)).item()
             if epoch_length is None:
                 if hasattr(data, "__len__"):
                     epoch_length = len(data)
                     if epoch_length < 1:
                         raise ValueError("Input data has zero size. Please provide non-empty data")
-                else:
-                    raise ValueError("Argument `epoch_length` should be defined if `data` is an iterator")
-            self.state = State(seed=seed, iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
+
+            self.state = State(iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
-            # Keep actual state and override it if input args provided
-            if max_epochs is not None:
-                self.state.max_epochs = max_epochs
-            if seed is not None:
-                self.state.seed = seed
-            if epoch_length is not None:
-                self.state.epoch_length = epoch_length
             self.logger.info(
                 "Engine run resuming from iteration {}, epoch {} until {} epochs".format(
                     self.state.iteration, self.state.epoch, self.state.max_epochs
@@ -694,87 +657,13 @@ class Engine:
         state.times[Events.COMPLETED.name] = 0.0
 
     def _setup_engine(self) -> None:
-
-        try:
-            self._dataloader_len = len(self.state.dataloader) if hasattr(self.state.dataloader, "__len__") else None
-        except TypeError:
-            # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
-            self._dataloader_len = None
-
-        # setup seed here, as iter(data) can start prefetching
-        self.setup_seed()
-
-        # if input data is torch dataloader we replace batch sampler by a batch sampler
-        # such that its random sampling indices are reproducible by prefetching them before data iteration
-        if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
-            _dataloader_kind = self.state.dataloader._dataset_kind
-            if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
-                if (self._dataloader_len is not None) and hasattr(self.state.dataloader.sampler, "epoch"):
-                    if self._dataloader_len != self.state.epoch_length:
-                        warnings.warn(
-                            "When defined engine's epoch length is different of input dataloader length, "
-                            "distributed sampler indices can not be setup in a reproducible manner"
-                        )
-
-                batch_sampler = self.state.dataloader.batch_sampler
-                if not isinstance(batch_sampler, ReproducibleBatchSampler):
-                    self.state.dataloader = _update_dataloader(
-                        self.state.dataloader, ReproducibleBatchSampler(batch_sampler)
-                    )
-
         iteration = self.state.iteration
-        self._dataloader_iter = self._from_iteration(self.state.dataloader, iteration)
+        self._dataloader_iter = iter(self.state.dataloader)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
             iteration %= self.state.epoch_length
         self._init_iter.append(iteration)
-
-    @staticmethod
-    def _from_iteration(data: Union[Iterable, torch.utils.data.DataLoader], iteration: int) -> Iterator:
-        if isinstance(data, torch.utils.data.DataLoader):
-            try:
-                # following is unsafe for IterableDatasets
-                iteration %= len(data.batch_sampler)
-                if iteration > 0:
-                    # batch sampler is ReproducibleBatchSampler
-                    data.batch_sampler.start_iteration = iteration
-            except TypeError:
-                # Probably we can do nothing with DataLoader built upon IterableDatasets
-                pass
-            data_iter = iter(data)
-        else:
-            if hasattr(data, "__len__"):
-                iteration %= len(data)
-            data_iter = iter(data)
-            counter = 0
-            while counter < iteration:
-                try:
-                    next(data_iter)
-                    counter += 1
-                except StopIteration:
-                    data_iter = iter(data)
-
-        return data_iter
-
-    @staticmethod
-    def _manual_seed(seed: int, epoch: int) -> None:
-        random.seed(seed + epoch)
-        torch.manual_seed(seed + epoch)
-        try:
-            import numpy as np
-
-            np.random.seed(seed + epoch)
-        except ImportError:
-            pass
-
-    def setup_seed(self) -> None:
-        # seed value should be related to input data iterator length -> iteration at data iterator restart
-        # - seed can not be epoch because during a single epoch we can have multiple `_dataloader_len`
-        # - seed can not be iteration because when resuming from iteration we need to set the seed from the start of the
-        #   dataloader and then rewind to required iteration
-        le = self._dataloader_len if self._dataloader_len is not None else 1
-        self._manual_seed(self.state.seed, self.state.iteration // le)
 
     def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False
@@ -794,6 +683,7 @@ class Engine:
                 hours, mins, secs = _to_hours_mins_secs(time_taken)
                 self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
                 if self.should_terminate:
+                    self._fire_event(Events.TERMINATE)
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
 
@@ -804,9 +694,74 @@ class Engine:
             self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
-            self._dataloader_iter = self._dataloader_len = None
+            self._dataloader_iter = None
             self.logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
-        self._dataloader_iter = self._dataloader_len = None
+        self._dataloader_iter = None
         return self.state
+
+    def _run_once_on_dataset(self) -> float:
+        start_time = time.time()
+
+        # We need to setup iter_counter > 0 if we resume from an iteration
+        iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
+        should_exit = False
+        try:
+            while True:
+                try:
+                    # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
+                    if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
+                        self._fire_event(Events.GET_BATCH_STARTED)
+                    self.state.batch = next(self._dataloader_iter)
+                    self._fire_event(Events.GET_BATCH_COMPLETED)
+                    iter_counter += 1
+                    should_exit = False
+                except StopIteration:
+                    # Define self.state.epoch_length if it is not yet set
+                    if self.state.epoch_length is None:
+                        # Define epoch length and stop the epoch
+                        self.state.epoch_length = iter_counter
+                        break
+
+                    # Should exit while loop if we can not iterate
+                    if should_exit:
+                        if not self._is_done(self.state):
+                            warnings.warn(
+                                "Data iterator can not provide data anymore but required total number of "
+                                "iterations to run is not reached. "
+                                "Current iteration: {} vs Total iterations to run : {}".format(
+                                    self.state.iteration, self.state.epoch_length * self.state.max_epochs
+                                )
+                            )
+                        break
+
+                    self._fire_event(Events.DATALOADER_STOP_ITERATION)
+                    self.set_data(self.state.dataloader)
+
+                    should_exit = True
+
+                    continue
+
+                self.state.iteration += 1
+                self._fire_event(Events.ITERATION_STARTED)
+                self.state.output = self._process_function(self, self.state.batch)
+                self._fire_event(Events.ITERATION_COMPLETED)
+
+                # TODO: remove refs on batch to avoid high mem consumption ? -> need verification
+                # self.state.batch = None
+
+                if self.should_terminate or self.should_terminate_single_epoch:
+                    self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
+                    self.should_terminate_single_epoch = False
+                    self.set_data(self.state.dataloader)
+                    break
+
+                if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
+                    break
+
+        except Exception as e:
+            self.logger.error("Current run is terminating due to exception: %s.", str(e))
+            self._handle_exception(e)
+
+        return time.time() - start_time
