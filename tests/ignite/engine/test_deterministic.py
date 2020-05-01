@@ -830,3 +830,26 @@ def test_engine_with_dataloader_no_auto_batching():
     engine.run(data_loader, epoch_length=10, max_epochs=5)
 
     assert counter[0] == 50
+
+
+def test_run_finite_iterator_no_epoch_length():
+    # FR: https://github.com/pytorch/ignite/issues/871
+    unknown_size = 11
+
+    def finite_unk_size_data_iter():
+        for i in range(unknown_size):
+            yield i
+
+    bc = BatchChecker(data=list(range(unknown_size)))
+
+    engine = DeterministicEngine(lambda e, b: bc.check(b))
+
+    @engine.on(Events.DATALOADER_STOP_ITERATION)
+    def restart_iter():
+        engine.state.dataloader = finite_unk_size_data_iter()
+
+    data_iter = finite_unk_size_data_iter()
+    engine.run(data_iter, max_epochs=5)
+
+    assert engine.state.epoch == 5
+    assert engine.state.iteration == unknown_size * 5
