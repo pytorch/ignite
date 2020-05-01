@@ -11,10 +11,13 @@ from ignite.engine.events import Events, State, CallableEventWithFilter, Removab
 from ignite.engine.utils import _check_signature
 from ignite._utils import _to_hours_mins_secs
 
+from ignite.base import Serializable
+
+
 __all__ = ["Engine"]
 
 
-class Engine:
+class Engine(Serializable):
     """Runs a given `process_function` over each batch of a dataset, emitting events as it goes.
 
     Args:
@@ -495,14 +498,8 @@ class Engine:
             trainer.run(data)
 
         """
-        if not isinstance(state_dict, Mapping):
-            raise TypeError("Argument state_dict should be a dictionary, but given {}".format(type(state_dict)))
+        super(Engine, self).load_state_dict(state_dict)
 
-        for k in self._state_dict_all_req_keys:
-            if k not in state_dict:
-                raise ValueError(
-                    "Required state attribute '{}' is absent in provided state_dict '{}'".format(k, state_dict.keys())
-                )
         for k in self._state_dict_user_keys:
             if k not in state_dict:
                 raise ValueError(
@@ -510,10 +507,6 @@ class Engine:
                         k, state_dict.keys()
                     )
                 )
-
-        opts = [k in state_dict for k in self._state_dict_one_of_opt_keys]
-        if (not any(opts)) or (all(opts)):
-            raise ValueError("state_dict should contain only one of '{}' keys".format(self._state_dict_one_of_opt_keys))
 
         self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"], metrics={},)
         for k in self._state_dict_user_keys:
