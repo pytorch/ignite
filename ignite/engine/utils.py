@@ -3,7 +3,7 @@ from typing import Callable
 
 
 def _check_signature(fn: Callable, fn_description: str, *args, **kwargs) -> None:
-    signature = inspect.signature(fn)
+    signature = inspect.signature(fn, follow_wrapped=False)
     try:  # try without engine
         signature.bind(*args, **kwargs)
     except TypeError as exc:
