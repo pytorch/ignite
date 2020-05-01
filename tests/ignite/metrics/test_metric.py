@@ -4,7 +4,7 @@ import sys
 
 import torch
 
-from ignite.metrics import Metric, BatchWise, Precision, Recall, ConfusionMatrix
+from ignite.metrics import Metric, BatchFiltered, Precision, Recall, ConfusionMatrix
 from ignite.metrics.metric import reinit__is_reduced
 from ignite.engine import Engine, State, Events
 
@@ -697,3 +697,68 @@ def test_batchwise_usage():
         assert bwm[0] == (engine.state.iteration - 1) % 3
 
     engine.run([0, 1, 2], max_epochs=10)
+
+
+def test_batchfiltered_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    engine = Engine(lambda e, b: b)
+
+    m = MyMetric()
+
+    usage = BatchFiltered(every=2)
+
+    m.attach(engine, "bfm", usage=usage)
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def _():
+        bfm = engine.state.metrics["bfm"]
+        assert len(bfm) == 1
+        assert bfm[0] == 1
+
+    engine.run([0, 1, 2], max_epochs=10)
+
+
+def test_batchfiltered_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    engine = Engine(lambda e, b: b)
+
+    m = MyMetric()
+
+    usage = BatchFiltered(every=2)
+
+    m.attach(engine, "bfm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        bfm = engine.state.metrics["bfm"]
+        print(len(bfm), bfm[0])
+        assert len(bfm) == 2
+        assert bfm[0] == 1
+
+    engine.run([0, 1, 2, 3], max_epochs=10)
