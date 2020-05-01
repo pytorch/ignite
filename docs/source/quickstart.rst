@@ -61,7 +61,7 @@ datasets (as `torch.utils.data.DataLoader <https://pytorch.org/docs/stable/data.
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
     loss = torch.nn.NLLLoss()
 
-Next we define trainer and evaluator engines. The main component of Ignite is the :class:`~ignite.engine.Engine`, an abstraction over your
+Next we define trainer and evaluator engines. The main component of Ignite is the :class:`~ignite.engine.engine.Engine`, an abstraction over your
 training loop. Getting started with the engine is easy, the constructor only requires one things:
 
 - `update_function`: a function that receives the engine and a batch and have a role to update your model.
@@ -77,7 +77,7 @@ In the above example we are using helper methods :meth:`~ignite.engine.create_su
                                                 'nll': Loss(loss)
                                                 })
 
-However, we could also define trainer and evaluator using :class:`~ignite.engine.Engine`. If we take a look into the source code of
+However, we could also define trainer and evaluator using :class:`~ignite.engine.engine.Engine`. If we take a look into the source code of
 :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`, we can observe the following pattern:
 
 .. code-block:: python
@@ -125,7 +125,7 @@ where we define two metrics: *accuracy* and *loss* to compute on validation data
 metrics can be found at :doc:`metrics`.
 
 
-The most interesting part of the code snippet is adding event handlers. :class:`~ignite.engine.Engine` allows to add handlers on
+The most interesting part of the code snippet is adding event handlers. :class:`~ignite.engine.engine.Engine` allows to add handlers on
 various events that fired during the run. When an event is fired, attached handlers (functions) are executed. Thus, for
 logging purposes we added a function to be executed after every iteration:
 
@@ -167,7 +167,7 @@ complete event:
 
 .. Note ::
 
-   Function :meth:`~ignite.engine.Engine.add_event_handler` (as well as :meth:`~ignite.engine.Engine.on` decorator) also accepts optional `args`, `kwargs` to be passed
+   Function :meth:`~ignite.engine.engine.Engine.add_event_handler` (as well as :meth:`~ignite.engine.engine.Engine.on` decorator) also accepts optional `args`, `kwargs` to be passed
    to the handler. For example:
 
    .. code-block:: python
