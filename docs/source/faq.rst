@@ -346,5 +346,15 @@ In case of validation, the code is simply
     evaluator.run(data_iter)
 
 
+Switching data provider during the training
+-------------------------------------------
+
+User can easily switch data provider during the training using :meth:`~ignite.engine.engine.Engine.set_data`.
+See an example in the documentation of the method.
+
+
+Other questions
+---------------
+
 Other answers can be found on the github among the issues labeled by
 `question <https://github.com/pytorch/ignite/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Aquestion+>`_.

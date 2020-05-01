@@ -75,8 +75,8 @@ def test_load_state_dict_asserts():
 
     engine = Engine(lambda e, b: 1)
     engine.state_dict_user_keys.append("alpha")
-    with pytest.raises(ValueError, match=r"Required user state attribute "):
-        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12, "epoch": 123})
+    with pytest.raises(ValueError, match=r"Required user state attribute"):
+        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12})
 
 
 def test_load_state_dict():
