@@ -26,6 +26,13 @@ def local_rank(worker_id):
 
 
 @pytest.fixture()
+def distributed_context_single_node_xla(local_rank):
+    import torch_xla.distributed.xla_multiprocessing as xmp
+
+    yield lambda fn, args: xmp.spawn(fn, args=args)
+
+
+@pytest.fixture()
 def distributed_context_single_node_nccl(local_rank):
 
     import os

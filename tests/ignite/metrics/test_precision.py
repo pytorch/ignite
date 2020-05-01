@@ -5,6 +5,7 @@ import torch.distributed as dist
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
+from ignite.metrics.metric import on_xla_device, xrt_world_size
 
 import pytest
 import warnings
@@ -829,6 +830,18 @@ def _test_distrib_itegration_multilabel(device, rank, world_size):
     pr_compute2 = pr.compute()
     assert len(pr_compute1) == 4 * 6 * 8
     assert (pr_compute1 == pr_compute2).all()
+
+
+@pytest.mark.tpu
+@pytest.mark.distributed
+@pytest.mark.skipif(not on_xla_device or xrt_world_size < 1, reason="Skip if no TPU")
+def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
+    import torch_xla.core.xla_model as xm
+
+    executor = distributed_context_single_node_xla
+    args = (xm.xla_device(), xm.get_ordinal(), xm.get_world_size())
+    executor(_test_distrib_itegration_multiclass, args)
+    executor(_test_distrib_itegration_multilabel, args)
 
 
 @pytest.mark.distributed
