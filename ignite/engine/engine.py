@@ -530,6 +530,42 @@ class Engine:
     def _is_done(state: State) -> bool:
         return state.iteration == state.epoch_length * state.max_epochs
 
+    def set_data(self, data):
+        """Method to set data. After calling the method the next batch passed to `processing_function` is
+        from newly provided data. Please, note that epoch length is not modified.
+
+        Args:
+            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
+
+        Example usage:
+            User can switch data provider during the training:
+
+            .. code-block:: python
+
+                data1 = ...
+                data2 = ...
+
+                switch_iteration = 5000
+
+                def train_step(e, batch):
+                    # when iteration <= switch_iteration
+                    # batch is from data1
+                    # when iteration > switch_iteration
+                    # batch is from data2
+                    ...
+
+                trainer = Engine(train_step)
+
+                @trainer.on(Events.ITERATION_COMPLETED(once=switch_iteration))
+                def switch_dataloader():
+                    trainer.set_data(data2)
+
+                trainer.run(data1, max_epochs=100)
+
+        """
+        self.state.dataloader = data
+        self._dataloader_iter = iter(self.state.dataloader)
+
     def run(
         self,
         data: Iterable,
@@ -628,14 +664,6 @@ class Engine:
         state.times[Events.COMPLETED.name] = 0.0
 
     def _setup_engine(self) -> None:
-        try:
-            self._dataloader_len = None
-            if hasattr(self.state.dataloader, "__len__"):
-                self._dataloader_len = len(self.state.dataloader)
-        except TypeError:
-            # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
-            self._dataloader_len = None
-
         iteration = self.state.iteration
         self._dataloader_iter = iter(self.state.dataloader)
 
@@ -673,11 +701,11 @@ class Engine:
             self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
-            self._dataloader_iter = self._dataloader_len = None
+            self._dataloader_iter = None
             self.logger.error("Engine run is terminating due to exception: %s.", str(e))
             self._handle_exception(e)
 
-        self._dataloader_iter = self._dataloader_len = None
+        self._dataloader_iter = None
         return self.state
 
     def _run_once_on_dataset(self) -> float:
@@ -697,14 +725,6 @@ class Engine:
                     iter_counter += 1
                     should_exit = False
                 except StopIteration:
-
-                    if self._dataloader_len is None:
-                        if iter_counter > 0:
-                            self._dataloader_len = iter_counter
-                        else:
-                            # this can happen when data is finite iterator and epoch_length is equal to its size
-                            self._dataloader_len = self.state.iteration
-
                     # Define self.state.epoch_length if it is not yet set
                     if self.state.epoch_length is None:
                         # Define epoch length and stop the epoch
@@ -724,7 +744,7 @@ class Engine:
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    self._dataloader_iter = iter(self.state.dataloader)
+                    self.set_data(self.state.dataloader)
 
                     should_exit = True
 
@@ -741,7 +761,7 @@ class Engine:
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
                     self.should_terminate_single_epoch = False
-                    self._dataloader_iter = iter(self.state.dataloader)
+                    self.set_data(self.state.dataloader)
                     break
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
