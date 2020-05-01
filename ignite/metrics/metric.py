@@ -85,11 +85,11 @@ class BatchFiltered(MetricUsage):
     * completes at Events.EPOCH_COMPLETED.
     """
 
-    def __init__(self, filter):
+    def __init__(self, *args, **kwargs):
         super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED(filter),
+            iteration_completed=Events.ITERATION_COMPLETED(*args, **kwargs),
         )
 
 
