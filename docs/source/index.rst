@@ -91,3 +91,11 @@ of stable version as dependency):
 
 .. automodule:: ignite
    :members:
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Team
+
+   about
+   governance
