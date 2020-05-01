@@ -24,7 +24,7 @@ It is important to understand that engines have their own events. For example, w
 
 Trainer engine has its own loop and runs multiple times over the training dataset. When a training epoch is over we
 launch evaluator engine and run a single time of over the validation dataset. **Evaluator has its own loop**. Therefore,
-it runs only one epoch and :attr:`~ignite.engine.Events.EPOCH_COMPLETED` is equivalent to :attr:`~ignite.engine.Events.COMPLETED`.
+it runs only one epoch and `Events.EPOCH_COMPLETED` is equivalent to `Events.COMPLETED`.
 As a consequence, the following code is correct too:
 
 .. code-block:: python
@@ -165,7 +165,7 @@ In this case we will obtain the following output:
     3/3 : 14 - 63.920
     3/3 : 15 - 64.226
 
-If we do not specify `epoch_length`, we can stop the training explicitly by calling :meth:`~ignite.engine.Engine.terminate`
+If we do not specify `epoch_length`, we can stop the training explicitly by calling :meth:`~ignite.engine.engine.Engine.terminate`
 In this case, there will be only a single epoch defined.
 
 .. code-block:: python
