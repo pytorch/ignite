@@ -370,7 +370,6 @@ def test_checkpoint_last_checkpoint_on_score():
 
     trainer = Engine(lambda e, b: None)
 
-    val_acc = 0.0
     for i in range(10):
         val_acc = i * 0.1
         trainer.state = State(epoch=1, iteration=i, metrics={"val_acc": val_acc})
@@ -413,8 +412,8 @@ def test_model_checkpoint_args_validation(dirname):
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     assert h.last_checkpoint is None
-    with pytest.raises(RuntimeError, match=r"No objects to checkpoint found."):
-        h(None, [])
+    with pytest.raises(ValueError, match=r"No objects to checkpoint"):
+        h(None, {})
 
 
 def test_model_checkpoint_simple_recovery(dirname):
@@ -884,3 +883,53 @@ def test_checkpoint_load_state_dict():
     sd = {"saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
     checkpointer.load_state_dict(sd)
     assert checkpointer._saved == true_checkpointer._saved
+
+
+def _test_save_and_resume_checkpoint(setup_handler, dirname):
+
+    model = DummyModel()
+    trainer = Engine(lambda e, b: None)
+    to_save = {"trainer": trainer, "model": model}
+
+    handler = setup_handler(to_save, dirname, trainer)
+
+    trainer.run([0, 1, 2], max_epochs=5)
+
+    saved_objects = sorted(os.listdir(dirname))
+    # saved objects is ['checkpoint_12.pt', 'checkpoint_15.pt', 'checkpoint_9.pt']
+
+    saved_checkpoint = os.path.join(dirname, handler.last_checkpoint)
+    loaded_obj = torch.load(saved_checkpoint)
+    chkpt = "checkpoint_{}".format(id(handler))
+    for f in ["model", "trainer", chkpt]:
+        assert f in loaded_obj
+
+    loaded_checkpoint_state_dict = loaded_obj[chkpt]
+    assert "saved" in loaded_checkpoint_state_dict
+    assert len(loaded_checkpoint_state_dict["saved"]) == len(saved_objects)
+    print(loaded_checkpoint_state_dict["saved"])
+
+    Checkpoint.load_objects(to_save, loaded_obj)
+    assert len(handler._saved) == len(saved_objects)
+
+    trainer.run([0, 1, 2], max_epochs=10)
+    saved_objects = sorted(os.listdir(dirname))
+    assert len(saved_objects) == handler._n_saved
+
+
+def test_save_and_resume_checkpoint(dirname):
+    def setup_checkpoint(to_save, dirname, trainer):
+        handler = Checkpoint(to_save=to_save, save_handler=DiskSaver(dirname), n_saved=3)
+        trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
+        return handler
+
+    _test_save_and_resume_checkpoint(setup_checkpoint, dirname)
+
+
+def test_save_and_resume_modelcheckpoint(dirname):
+    def setup_modelcheckpoint(to_save, dirname, trainer):
+        handler = ModelCheckpoint(dirname, filename_prefix="", n_saved=3)
+        trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
+        return handler
+
+    _test_save_and_resume_checkpoint(setup_modelcheckpoint, dirname)

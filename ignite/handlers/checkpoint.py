@@ -165,17 +165,8 @@ class Checkpoint(Serializable):
     ):
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
-            if not isinstance(to_save, collections.MutableMapping):
-                raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
-
-            if len(to_save) < 1:
-                raise ValueError("No objects to checkpoint.")
-
-            self._check_objects(to_save, "state_dict")
-
-            # Add this checkpoint if Engine is present in to_save:
-            if any([isinstance(o, Engine) for _, o in to_save.items()]):
-                to_save["checkpoint_{}".format(id(self))] = self
+            self._check_to_save(to_save)
+            to_save = self._setup_to_save(to_save)
 
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
@@ -200,6 +191,21 @@ class Checkpoint(Serializable):
         self._ext = ".pt"
         self.global_step_transform = global_step_transform
 
+    def _check_to_save(self, to_save):
+        if not isinstance(to_save, collections.MutableMapping):
+            raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
+
+        if len(to_save) < 1:
+            raise ValueError("No objects to checkpoint.")
+
+        self._check_objects(to_save, "state_dict")
+
+    def _setup_to_save(self, to_save):
+        # Add this checkpoint if Engine is present in to_save:
+        if any([isinstance(o, Engine) for _, o in to_save.items()]):
+            to_save["checkpoint_{}".format(id(self))] = self
+        return to_save
+
     @property
     def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
@@ -209,16 +215,13 @@ class Checkpoint(Serializable):
     def state_dict(self) -> OrderedDict:
         return OrderedDict([("saved", [(s.priority, s.filename) for s in self._saved]),])
 
-    def load_state_dict(self, state_dict: Mapping) -> None:
+    def load_state_dict(self, state_dict: MutableMapping) -> None:
         super(Checkpoint, self).load_state_dict(state_dict)
 
+        self._saved = []
         for priority, filename in state_dict["saved"]:
             self._saved.append(Checkpoint.Item(priority, filename))
-
-    def _check_lt_n_saved(self, or_equal=False):
-        if self._n_saved is None:
-            return True
-        return len(self._saved) < self._n_saved + int(or_equal)
+        self._saved.sort(key=lambda item: item[0])
 
     def __call__(self, engine: Engine) -> None:
 
@@ -251,32 +254,42 @@ class Checkpoint(Serializable):
             elif len(suffix) == 0:
                 suffix = "{}".format(priority_str)
 
-            checkpoint = self._setup_checkpoint()
-
-            name = "checkpoint"
-            if len(checkpoint) == 1:
-                for k in checkpoint:
-                    name = k
-                checkpoint = checkpoint[name]
-            filename = "{}{}_{}{}".format(self._fname_prefix, name, suffix, self._ext)
-
+            filename = self._setup_filename(suffix)
             if any(item.filename == filename for item in self._saved):
                 return
 
-            self.save_handler(checkpoint, filename)
-
+            # When we setup the checkpoint, Checkpoint's state dict should be up to date as we add new item
+            # and remove optionally other items.
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
+            if not self._check_lt_n_saved(or_equal=True):
+                item = self._saved.pop(0)
+                if isinstance(self.save_handler, BaseSaveHandler):
+                    self.save_handler.remove(item.filename)
 
-        if not self._check_lt_n_saved(or_equal=True):
-            item = self._saved.pop(0)
-            if isinstance(self.save_handler, BaseSaveHandler):
-                self.save_handler.remove(item.filename)
+            checkpoint = self._setup_checkpoint()
+            self.save_handler(checkpoint, filename)
+
+    def _check_lt_n_saved(self, or_equal=False):
+        if self._n_saved is None:
+            return True
+        return len(self._saved) < self._n_saved + int(or_equal)
+
+    def _setup_filename(self, suffix):
+        name = "checkpoint"
+        if len(self.to_save) == 1:
+            for k in self.to_save:
+                name = k
+        return "{}{}_{}{}".format(self._fname_prefix, name, suffix, self._ext)
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
+        name = None
         for k, obj in self.to_save.items():
             checkpoint[k] = obj.state_dict()
+            name = k
+        if len(self.to_save) == 1:
+            checkpoint = checkpoint[name]
         return checkpoint
 
     @staticmethod
@@ -376,7 +389,7 @@ class DiskSaver(BaseSaveHandler):
                     "".format(matched, dirname)
                 )
 
-    def __call__(self, checkpoint: Mapping, filename: str) -> None:
+    def __call__(self, checkpoint: MutableMapping, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
 
         if not self._atomic:
@@ -513,11 +526,10 @@ class ModelCheckpoint(Checkpoint):
             return None
         return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
 
-    def __call__(self, engine: Engine, to_save: Mapping) -> None:
+    def __call__(self, engine: Engine, to_save: MutableMapping) -> None:
 
-        if len(to_save) == 0:
-            raise RuntimeError("No objects to checkpoint found.")
-
-        self._check_objects(to_save, "state_dict")
+        self._check_to_save(to_save)
+        to_save = self._setup_to_save(to_save)
         self.to_save = to_save
+
         super(ModelCheckpoint, self).__call__(engine)
