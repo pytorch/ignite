@@ -839,7 +839,7 @@ def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
     import torch_xla.core.xla_model as xm
 
     executor = distributed_context_single_node_xla
-    args = (xm.xla_device(), xm.get_ordinal(), xm.get_world_size())
+    args = (xm.xla_device(), xm.get_ordinal(), xrt_world_size)
     executor(_test_distrib_itegration_multiclass, args)
     executor(_test_distrib_itegration_multilabel, args)
 
