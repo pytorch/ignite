@@ -719,7 +719,7 @@ def test_incorrect_y_classes():
     _test(average=False)
 
 
-def _test_distrib_itegration_multiclass(device, rank, world_size):
+def _test_distrib_itegration_multiclass(rank, device, world_size):
     from ignite.engine import Engine
 
     torch.manual_seed(12)
@@ -765,7 +765,7 @@ def _test_distrib_itegration_multiclass(device, rank, world_size):
         _test(average=False, n_epochs=2)
 
 
-def _test_distrib_itegration_multilabel(device, rank, world_size):
+def _test_distrib_itegration_multilabel(rank, device, world_size):
 
     from ignite.engine import Engine
 
@@ -839,7 +839,7 @@ def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
     import torch_xla.core.xla_model as xm
 
     executor = distributed_context_single_node_xla
-    args = (xm.xla_device(), xm.get_ordinal(), xrt_world_size)
+    args = (xm.xla_device(), xrt_world_size)
     executor(_test_distrib_itegration_multiclass, args)
     executor(_test_distrib_itegration_multilabel, args)
 
@@ -848,28 +848,28 @@ def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
-    _test_distrib_itegration_multiclass(device, dist.get_rank(), dist.get_world_size())
-    _test_distrib_itegration_multilabel(device, dist.get_rank(), dist.get_world_size())
+    _test_distrib_itegration_multiclass(dist.get_rank(), device, dist.get_world_size())
+    _test_distrib_itegration_multilabel(dist.get_rank(), device, dist.get_world_size())
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
     device = "cpu"
-    _test_distrib_itegration_multiclass(device, dist.get_rank(), dist.get_world_size())
-    _test_distrib_itegration_multilabel(device, dist.get_rank(), dist.get_world_size())
+    _test_distrib_itegration_multiclass(dist.get_rank(), device, dist.get_world_size())
+    _test_distrib_itegration_multilabel(dist.get_rank(), device, dist.get_world_size())
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
-    _test_distrib_itegration_multiclass(device, dist.get_rank(), dist.get_world_size())
-    _test_distrib_itegration_multilabel(device, dist.get_rank(), dist.get_world_size())
+    _test_distrib_itegration_multiclass(dist.get_rank(), device, dist.get_world_size())
+    _test_distrib_itegration_multilabel(dist.get_rank(), device, dist.get_world_size())
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-    _test_distrib_itegration_multiclass(device, dist.get_rank(), dist.get_world_size())
-    _test_distrib_itegration_multilabel(device, dist.get_rank(), dist.get_world_size())
+    _test_distrib_itegration_multiclass(dist.get_rank(), device, dist.get_world_size())
+    _test_distrib_itegration_multilabel(dist.get_rank(), device, dist.get_world_size())
