@@ -722,38 +722,6 @@ def test_batchfiltered_usage():
 
     m.attach(engine, "bfm", usage=usage)
 
-    @engine.on(Events.ITERATION_COMPLETED)
-    def _():
-        bfm = engine.state.metrics["bfm"]
-        assert len(bfm) == 1
-        assert bfm[0] == 1
-
-    engine.run([0, 1, 2], max_epochs=10)
-
-
-def test_batchfiltered_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = []
-
-        def reset(self):
-            self.value = []
-
-        def compute(self):
-            return self.value
-
-        def update(self, output):
-            self.value.append(output)
-
-    engine = Engine(lambda e, b: b)
-
-    m = MyMetric()
-
-    usage = BatchFiltered(every=2)
-
-    m.attach(engine, "bfm", usage=usage)
-
     @engine.on(Events.EPOCH_COMPLETED)
     def _():
         bfm = engine.state.metrics["bfm"]
