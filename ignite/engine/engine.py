@@ -300,8 +300,6 @@ class Engine(Serializable):
                 to ``None`` to search all events.
         """
         if event_name is not None:
-            # self._assert_non_filtered_event(event_name)
-
             if event_name not in self._event_handlers:
                 return False
             events = [event_name]
@@ -327,7 +325,6 @@ class Engine(Serializable):
             event_name: The event the handler attached to.
 
         """
-        # self._assert_non_filtered_event(event_name)
         if event_name not in self._event_handlers:
             raise ValueError("Input event name '{}' does not exist".format(event_name))
 
