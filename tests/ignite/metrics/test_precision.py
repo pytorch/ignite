@@ -1,4 +1,5 @@
 import os
+import sys
 
 import torch
 import torch.distributed as dist
@@ -9,6 +10,8 @@ from ignite.metrics.metric import on_xla_device, xrt_world_size
 
 import pytest
 import warnings
+
+from unittest.mock import patch
 
 from sklearn.metrics import precision_score
 from sklearn.exceptions import UndefinedMetricWarning
@@ -840,8 +843,10 @@ def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
 
     executor = distributed_context_single_node_xla
     args = (xm.xla_device(), xrt_world_size)
-    executor(_test_distrib_itegration_multiclass, args)
-    executor(_test_distrib_itegration_multilabel, args)
+
+    with patch.object(sys, 'exit', return_value=None):
+        executor(_test_distrib_itegration_multiclass, args)
+        executor(_test_distrib_itegration_multilabel, args)
 
 
 @pytest.mark.distributed

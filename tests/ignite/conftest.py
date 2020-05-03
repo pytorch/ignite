@@ -27,6 +27,14 @@ def local_rank(worker_id):
 
 @pytest.fixture()
 def distributed_context_single_node_xla(local_rank):
+    import os
+
+    if "XRT_DEVICE_MAP" not in os.environ:
+        os.environ["XRT_DEVICE_MAP"] = "CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
+
+    if "XRT_WORKERS" not in os.environ:
+        os.environ["XRT_WORKERS"] = "localservice:0;grpc://localhost:40934"
+
     import torch_xla.distributed.xla_multiprocessing as xmp
 
     yield lambda fn, args: xmp.spawn(fn, args=args)
