@@ -1,7 +1,11 @@
 import numbers
 
+from typing import Any, Mapping
+
 import warnings
 import torch
+
+from ignite.engine import Engine
 
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
@@ -258,3 +262,9 @@ class MLflowLogger(BaseLogger):
         import mlflow
 
         mlflow.end_run()
+
+    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        engine.add_event_handler(event_name, OutputHandler(*args, **kwargs))
+
+    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        engine.add_event_handler(event_name, OptimizerParamsHandler(*args, **kwargs))

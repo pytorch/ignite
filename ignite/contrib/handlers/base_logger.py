@@ -33,7 +33,6 @@ class BaseLogger:
 
         engine.add_event_handler(event_name, log_handler, self, name)
 
-
     def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
         """
 
@@ -45,7 +44,6 @@ class BaseLogger:
         :return:
         """
         pass
-
 
     def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
         """

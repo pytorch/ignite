@@ -3,6 +3,10 @@ import numbers
 import warnings
 import torch
 
+from typing import Mapping, Any
+
+from ignite.engine import Engine
+
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOutputHandler,
@@ -230,3 +234,9 @@ class PolyaxonLogger(BaseLogger):
             return getattr(self.experiment, attr)(*args, **kwargs)
 
         return wrapper
+
+    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        engine.add_event_handler(event_name, OutputHandler(*args, **kwargs))
+
+    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        engine.add_event_handler(event_name, OptimizerParamsHandler(*args, **kwargs))

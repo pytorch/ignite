@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import warnings
 
+from typing import Mapping, Any
+
 import torch
 
 from ignite.engine import Events, Engine
@@ -190,6 +192,9 @@ class ProgressBar(BaseLogger):
 
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
+
+    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        engine.add_event_handler(event_name, _OutputHandler(*args, **kwargs))
 
 
 class _OutputHandler(BaseOutputHandler):

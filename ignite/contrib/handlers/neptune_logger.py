@@ -1,11 +1,14 @@
 import numbers
 import tempfile
-from typing import Mapping
+from typing import Mapping, Any
 import warnings
 
 import torch
 
 import ignite
+
+from ignite.engine import Engine
+
 from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
@@ -529,3 +532,9 @@ class NeptuneSaver(BaseSaveHandler):
 
     def remove(self, filename: str) -> None:
         self._logger.delete_artifacts(filename)
+
+    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        engine.add_event_handler(event_name, OutputHandler(*args, **kwargs))
+
+    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        engine.add_event_handler(event_name, OptimizerParamsHandler(*args, **kwargs))
