@@ -15,6 +15,7 @@ from ignite.engine import Events, Engine
 
 try:
     import torch_xla.core.xla_model as xm
+
     on_xla_device = True
 except ImportError:
     on_xla_device = False
@@ -381,7 +382,6 @@ class DiskSaver(BaseSaveHandler):
             xm.save(checkpoint, filename)
         else:
             torch.save(checkpoint, filename)
-
 
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)

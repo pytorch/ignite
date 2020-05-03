@@ -860,6 +860,3 @@ def test_tpu_saves_to_cpu(dirname):
     assert os.path.exists(fname)
     loaded_objects = torch.load(fname)
     assert loaded_objects == model.cpu().state_dict()
-
-
-
