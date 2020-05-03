@@ -840,3 +840,26 @@ def test_disksaver_wrong_input(dirname):
             DiskSaver(dirname, require_empty=True)
 
     _test(".pt")
+
+
+@pytest.mark.tpu
+def test_tpu_saves_to_cpu(dirname):
+    import torch_xla.core.xla_model as xm
+
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
+    engine = Engine(lambda e, b: None)
+    engine.state = State(epoch=0, iteration=1)
+
+    model = DummyModel().to(xm.xla_device())
+    to_save = {"model": model}
+    h(engine, to_save)
+
+    fname = h.last_checkpoint
+    assert isinstance(fname, str)
+    assert os.path.join(dirname, _PREFIX) in fname
+    assert os.path.exists(fname)
+    loaded_objects = torch.load(fname)
+    assert loaded_objects == model.cpu().state_dict()
+
+
+

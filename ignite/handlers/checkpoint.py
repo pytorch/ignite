@@ -13,6 +13,13 @@ import torch
 
 from ignite.engine import Events, Engine
 
+try:
+    import torch_xla.core.xla_model as xm
+    on_xla_device = True
+except ImportError:
+    on_xla_device = False
+
+
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 
 
@@ -356,11 +363,11 @@ class DiskSaver(BaseSaveHandler):
         path = os.path.join(self.dirname, filename)
 
         if not self._atomic:
-            torch.save(checkpoint, path)
+            self._save(checkpoint, path)
         else:
             tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
             try:
-                torch.save(checkpoint, tmp.file)
+                self._save(checkpoint, tmp.file)
             except BaseException:
                 tmp.close()
                 os.remove(tmp.name)
@@ -368,6 +375,13 @@ class DiskSaver(BaseSaveHandler):
             else:
                 tmp.close()
                 os.rename(tmp.name, path)
+
+    def _save(self, checkpoint: Mapping, filename: str):
+        if on_xla_device:
+            xm.save(checkpoint, filename)
+        else:
+            torch.save(checkpoint, filename)
+
 
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
