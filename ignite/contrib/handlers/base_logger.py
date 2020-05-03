@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod
 import numbers
 import warnings
 
+from typing import Mapping, Any
+
 import torch
 
 from ignite.engine import State, Engine
@@ -30,6 +32,32 @@ class BaseLogger:
             raise RuntimeError("Unknown event name '{}'".format(name))
 
         engine.add_event_handler(event_name, log_handler, self, name)
+
+
+    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        """
+
+        :param engine: engine object.
+        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+        :params args: the required position arguments to construct the appropriate output handler
+        :param kwargs: the required keyword arguments to construct the appropriate output handler
+        :return:
+        """
+        pass
+
+
+    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        """
+
+        :param engine: engine object.
+        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+        :params args: the required position arguments to construct the appropriate optimizer params handler
+        :param kwargs: the required keyword arguments to construct the appropriate optimizer params handler
+        :return:
+        """
+        pass
 
     def __enter__(self):
         return self
