@@ -844,7 +844,7 @@ def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
     executor = distributed_context_single_node_xla
     args = (xm.xla_device(), xrt_world_size)
 
-    with patch.object(sys, 'exit', return_value=None):
+    with patch.object(sys, "exit", return_value=None):
         executor(_test_distrib_itegration_multiclass, args)
         executor(_test_distrib_itegration_multilabel, args)
 
