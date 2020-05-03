@@ -39,7 +39,8 @@ class BaseSaveHandler(metaclass=ABCMeta):
 class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
-    storage, etc.
+    storage, etc. The Checkpoint handler also handles automatically moving devices on TPU to CPU before writing
+    the checkpoint.
 
     Args:
         to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
