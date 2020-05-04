@@ -10,63 +10,6 @@ from ignite.engine import State, Engine
 from ignite.handlers import global_step_from_engine
 
 
-class BaseLogger:
-    """
-    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
-
-    """
-
-    def attach(self, engine, log_handler, event_name):
-        """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
-
-        Args:
-            engine (Engine): engine object.
-            log_handler (callable): a logging handler to execute
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
-
-        """
-        name = event_name
-
-        if name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(name))
-
-        engine.add_event_handler(event_name, log_handler, self, name)
-
-    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        """
-
-        :param engine: engine object.
-        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
-        :params args: the required position arguments to construct the appropriate output handler
-        :param kwargs: the required keyword arguments to construct the appropriate output handler
-        :return:
-        """
-        pass
-
-    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        """
-
-        :param engine: engine object.
-        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
-        :params args: the required position arguments to construct the appropriate optimizer params handler
-        :param kwargs: the required keyword arguments to construct the appropriate optimizer params handler
-        :return:
-        """
-        pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.close()
-
-    def close(self):
-        pass
-
-
 class BaseHandler(metaclass=ABCMeta):
     @abstractmethod
     def __call__(self, *args, **kwargs):
@@ -198,3 +141,63 @@ class BaseWeightsHistHandler(BaseHandler):
 
         self.model = model
         self.tag = tag
+
+
+class BaseLogger(metaclass=ABCMeta):
+    """
+    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
+
+    """
+
+    output_handler = BaseOutputHandler
+    opt_params_handler = BaseOptimizerParamsHandler
+
+    def attach(self, engine, log_handler, event_name):
+        """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
+
+        Args:
+            engine (Engine): engine object.
+            log_handler (callable): a logging handler to execute
+            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+
+        """
+        name = event_name
+
+        if name not in State.event_to_attr:
+            raise RuntimeError("Unknown event name '{}'".format(name))
+
+        engine.add_event_handler(event_name, log_handler, self, name)
+
+    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        """
+
+        :param engine: engine object.
+        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+        :params args: the required position arguments to construct the appropriate output handler
+        :param kwargs: the required keyword arguments to construct the appropriate output handler
+        :return:
+        """
+        engine.add_event_handler(event_name, self.output_handler(*args, **kwargs))
+
+    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        """
+
+        :param engine: engine object.
+        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+        :params args: the required position arguments to construct the appropriate optimizer params handler
+        :param kwargs: the required keyword arguments to construct the appropriate optimizer params handler
+        :return:
+        """
+        engine.add_event_handler(event_name, self.opt_params_handler(*args, **kwargs))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def close(self):
+        pass

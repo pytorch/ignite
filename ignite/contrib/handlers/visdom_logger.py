@@ -429,6 +429,9 @@ class VisdomLogger(BaseLogger):
 
     """
 
+    output_handler = OutputHandler
+    opt_params_handler = OptimizerParamsHandler
+
     def __init__(self, server=None, port=None, num_workers=1, **kwargs):
         try:
             import visdom
@@ -485,13 +488,6 @@ class VisdomLogger(BaseLogger):
     def close(self):
         self.vis = None
         self.executor.shutdown()
-
-    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        engine.add_event_handler(event_name, OutputHandler(*args, **kwargs))
-
-    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        engine.add_event_handler(event_name, OptimizerParamsHandler(*args, **kwargs))
-
 
 class _DummyExecutor:
     class _DummyFuture:

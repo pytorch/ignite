@@ -271,6 +271,9 @@ class WandBLogger(BaseLogger):
                 Events.COMPLETED, model_checkpoint, {'model': model})
     """
 
+    output_handler = OutputHandler
+    opt_params_handler = OptimizerParamsHandler
+
     def __init__(self, *args, **kwargs):
         try:
             import wandb
@@ -286,9 +289,3 @@ class WandBLogger(BaseLogger):
 
     def __getattr__(self, attr):
         return getattr(self._wandb, attr)
-
-    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        engine.add_event_handler(event_name, OutputHandler(*args, **kwargs))
-
-    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        engine.add_event_handler(event_name, OptimizerParamsHandler(*args, **kwargs))

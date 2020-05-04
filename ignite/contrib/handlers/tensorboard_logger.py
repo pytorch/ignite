@@ -446,6 +446,9 @@ class TensorboardLogger(BaseLogger):
 
     """
 
+    output_handler = OutputHandler
+    opt_params_handler = OptimizerParamsHandler
+
     def __init__(self, *args, **kwargs):
         try:
             from tensorboardX import SummaryWriter
@@ -463,9 +466,3 @@ class TensorboardLogger(BaseLogger):
 
     def close(self):
         self.writer.close()
-
-    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        engine.add_event_handler(event_name, OutputHandler(*args, **kwargs))
-
-    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        engine.add_event_handler(event_name, OptimizerParamsHandler(*args, **kwargs))
