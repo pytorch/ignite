@@ -489,6 +489,7 @@ class VisdomLogger(BaseLogger):
         self.vis = None
         self.executor.shutdown()
 
+
 class _DummyExecutor:
     class _DummyFuture:
         def __init__(self, result):

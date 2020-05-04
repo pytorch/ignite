@@ -10,7 +10,6 @@ from ignite.engine.events import CallableEventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 
 
-
 class _OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
@@ -83,6 +82,7 @@ class _OutputHandler(BaseOutputHandler):
         if pbar_total is not None:
             global_step = (global_step - 1) % pbar_total + 1
         logger.pbar.update(global_step - logger.pbar.n)
+
 
 class ProgressBar(BaseLogger):
     """

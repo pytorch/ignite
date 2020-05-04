@@ -265,5 +265,3 @@ class MLflowLogger(BaseLogger):
         import mlflow
 
         mlflow.end_run()
-
-
