@@ -205,7 +205,7 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
     raise DeprecationWarning("setup_any_logging is deprecated")
 
 
-def setup_logger(logger, trainer, optimizers, evaluators, log_every_iters):
+def _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters):
     if optimizers is not None:
         from torch.optim.optimizer import Optimizer
 
@@ -265,7 +265,7 @@ def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log
         TensorboardLogger
     """
     logger = TensorboardLogger(log_dir=output_path)
-    setup_logger(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
 
@@ -289,7 +289,7 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
         VisdomLogger
     """
     logger = VisdomLogger(**kwargs)
-    setup_logger(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
 
@@ -312,7 +312,7 @@ def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_it
         MLflowLogger
     """
     logger = MLflowLogger()
-    setup_logger(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
 
@@ -335,7 +335,7 @@ def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters
         PolyaxonLogger
     """
     logger = PolyaxonLogger()
-    setup_logger(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
 
