@@ -11,6 +11,13 @@ from ignite.handlers.checkpoint import BaseSaveHandler
 import pytest
 from unittest.mock import MagicMock
 
+try:
+    import torch_xla.core.xla_model as xm
+
+    on_xla_device = True
+except ImportError:
+    on_xla_device = False
+
 _PREFIX = "PREFIX"
 
 
@@ -843,9 +850,8 @@ def test_disksaver_wrong_input(dirname):
 
 
 @pytest.mark.tpu
+@pytest.mark.skipif(not on_xla_device, reason="Not on TPU device")
 def test_tpu_saves_to_cpu(dirname):
-    import torch_xla.core.xla_model as xm
-
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     engine = Engine(lambda e, b: None)
     engine.state = State(epoch=0, iteration=1)
