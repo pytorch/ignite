@@ -1,4 +1,3 @@
-
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOutputHandler,
