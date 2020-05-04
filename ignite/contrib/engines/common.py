@@ -220,9 +220,7 @@ def setup_logger(logger, trainer, optimizers, evaluators, log_every_iters):
         log_every_iters = 1
 
     logger.attach_output_handler(
-        trainer,
-        event_name=Events.ITERATION_COMPLETED(every=log_every_iters),
-        tag="training", metric_names="all"
+        trainer, event_name=Events.ITERATION_COMPLETED(every=log_every_iters), tag="training", metric_names="all"
     )
 
     if optimizers is not None:
@@ -232,9 +230,7 @@ def setup_logger(logger, trainer, optimizers, evaluators, log_every_iters):
 
         for k, optimizer in optimizers.items():
             logger.attach_opt_params_handler(
-                trainer,
-                Events.ITERATION_STARTED(every=log_every_iters),
-                optimizer, param_name="lr", tag=k
+                trainer, Events.ITERATION_STARTED(every=log_every_iters), optimizer, param_name="lr", tag=k
             )
 
     if evaluators is not None:
@@ -245,10 +241,9 @@ def setup_logger(logger, trainer, optimizers, evaluators, log_every_iters):
         for k, evaluator in evaluators.items():
             gst = global_step_from_engine(trainer)
             logger.attach_output_handler(
-                evaluator,
-                event_name=Events.COMPLETED,
-                tag=k, metric_names="all", global_step_transform=gst
+                evaluator, event_name=Events.COMPLETED, tag=k, metric_names="all", global_step_transform=gst
             )
+
 
 def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log_every_iters=100):
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
