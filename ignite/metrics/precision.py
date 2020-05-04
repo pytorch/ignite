@@ -6,7 +6,7 @@ import torch
 from ignite.metrics.accuracy import _BaseClassification
 from ignite.exceptions import NotComputableError
 from ignite.utils import to_onehot
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import reinit__is_reduced, on_xla_device, xrt_world_size
 
 __all__ = ["Precision"]
 
@@ -19,7 +19,8 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if (torch.distributed.is_available() and torch.distributed.is_initialized()) or \
+                (on_xla_device and xrt_world_size > 1):
             if (not average) and is_multilabel:
                 warnings.warn(
                     "Precision/Recall metrics do not work in distributed setting when average=False "

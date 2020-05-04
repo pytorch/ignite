@@ -851,7 +851,7 @@ def _test_distrib_itegration_multilabel_xla(rank):
 
 @pytest.mark.tpu
 @pytest.mark.distributed
-@pytest.mark.skipif(not on_xla_device or xrt_world_size < 1, reason="Skip if no TPU")
+@pytest.mark.skipif(not on_xla_device or xrt_world_size <= 1, reason="Skip if no TPU")
 def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
 
     args = ()
