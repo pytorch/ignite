@@ -1,11 +1,7 @@
 import numbers
-
 import warnings
+
 import torch
-
-from typing import Mapping, Any
-
-from ignite.engine import Engine
 
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
@@ -15,6 +11,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHistHandler,
     global_step_from_engine,
 )
+
 
 __all__ = [
     "TensorboardLogger",

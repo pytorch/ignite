@@ -1,11 +1,7 @@
 import numbers
-
-from typing import Any, Mapping
-
 import warnings
-import torch
 
-from ignite.engine import Engine
+import torch
 
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,

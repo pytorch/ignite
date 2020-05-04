@@ -1,13 +1,11 @@
 import numbers
 import tempfile
-from typing import Mapping, Any
+from typing import Mapping
 import warnings
 
 import torch
 
 import ignite
-
-from ignite.engine import Engine
 
 from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.contrib.handlers.base_logger import (
