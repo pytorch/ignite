@@ -42,6 +42,7 @@ def distributed_context_single_node_xla(local_rank):
     except SystemExit as ex_:
         assert ex_.code == 0, "Didn't successfully exit in XLA test"
 
+
 @pytest.fixture()
 def distributed_context_single_node_nccl(local_rank):
 
