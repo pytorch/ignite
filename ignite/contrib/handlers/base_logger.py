@@ -12,7 +12,7 @@ from ignite.handlers import global_step_from_engine
 
 class BaseHandler(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, *args, **kwargs):
+    def __call__(self, engine, logger, event_name):
         pass
 
 
@@ -149,9 +149,6 @@ class BaseLogger(metaclass=ABCMeta):
 
     """
 
-    output_handler = BaseOutputHandler
-    opt_params_handler = BaseOptimizerParamsHandler
-
     def attach(self, engine, log_handler, event_name):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
@@ -161,37 +158,53 @@ class BaseLogger(metaclass=ABCMeta):
             event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
 
+        Returns:
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
         """
         name = event_name
 
         if name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(name))
 
-        engine.add_event_handler(event_name, log_handler, self, name)
+        return engine.add_event_handler(event_name, log_handler, self, name)
 
     def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        """
+        """Shortcut method to attach `OutputHandler` to the logger.
 
-        :param engine: engine object.
-        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+        Args:
+            engine (Engine): engine object.
+            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
-        :params args: the required position arguments to construct the appropriate output handler
-        :param kwargs: the required keyword arguments to construct the appropriate output handler
-        :return:
+            *args: args to initialize `OutputHandler`
+            **kwargs: kwargs to initialize `OutputHandler`
+
+        Returns:
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
         """
-        engine.add_event_handler(event_name, self.output_handler(*args, **kwargs))
+        return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
     def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
-        """
+        """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
-        :param engine: engine object.
-        :param event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+        Args:
+            engine (Engine): engine object.
+            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
                 or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
-        :params args: the required position arguments to construct the appropriate optimizer params handler
-        :param kwargs: the required keyword arguments to construct the appropriate optimizer params handler
-        :return:
+            *args: args to initialize `OptimizerParamsHandler`
+            **kwargs: kwargs to initialize `OptimizerParamsHandler`
+
+        Returns:
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
         """
-        engine.add_event_handler(event_name, self.opt_params_handler(*args, **kwargs))
+        self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
+
+    @abstractmethod
+    def _create_output_handler(self, engine, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def _create_opt_params_handler(self, *args, **kwargs):
+        pass
 
     def __enter__(self):
         return self

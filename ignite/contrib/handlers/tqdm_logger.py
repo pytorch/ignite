@@ -174,8 +174,6 @@ class ProgressBar(BaseLogger):
         Events.COMPLETED,
     ]
 
-    output_handler = _OutputHandler
-
     def __init__(
         self,
         persist=False,
@@ -270,5 +268,12 @@ class ProgressBar(BaseLogger):
         engine.add_event_handler(closing_event_name, self._close)
 
     def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        """Intentionally empty"""
+        pass
+
+    def _create_output_handler(self, *args, **kwargs):
+        return _OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
         """Intentionally empty"""
         pass

@@ -467,6 +467,12 @@ class NeptuneLogger(BaseLogger):
     def close(self):
         self.stop()
 
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)
+
 
 class NeptuneSaver(BaseSaveHandler):
     """Handler that saves input checkpoint to the Neptune server.
@@ -518,9 +524,6 @@ class NeptuneSaver(BaseSaveHandler):
     https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
 
     """
-
-    output_handler = OutputHandler
-    opt_params_handler = OptimizerParamsHandler
 
     def __init__(self, neptune_logger: NeptuneLogger):
         self._logger = neptune_logger

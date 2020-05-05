@@ -214,9 +214,6 @@ class PolyaxonLogger(BaseLogger):
                               event_name=Events.EPOCH_COMPLETED)
     """
 
-    output_handler = OutputHandler
-    opt_params_handler = OptimizerParamsHandler
-
     def __init__(self):
         try:
             from polyaxon_client.tracking import Experiment
@@ -233,3 +230,9 @@ class PolyaxonLogger(BaseLogger):
             return getattr(self.experiment, attr)(*args, **kwargs)
 
         return wrapper
+
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)

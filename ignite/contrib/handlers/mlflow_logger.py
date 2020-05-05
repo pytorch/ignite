@@ -229,9 +229,6 @@ class MLflowLogger(BaseLogger):
                                  event_name=Events.EPOCH_COMPLETED)
     """
 
-    output_handler = OutputHandler
-    opt_params_handler = OptimizerParamsHandler
-
     def __init__(self, tracking_uri=None):
         try:
             import mlflow
@@ -261,3 +258,9 @@ class MLflowLogger(BaseLogger):
         import mlflow
 
         mlflow.end_run()
+
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)
