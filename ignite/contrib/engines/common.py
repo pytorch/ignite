@@ -12,6 +12,7 @@ from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.handlers import TensorboardLogger, global_step_from_engine
 from ignite.contrib.handlers import VisdomLogger
 from ignite.contrib.handlers import NeptuneLogger
+from ignite.contrib.handlers import WandBLogger
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan, ModelCheckpoint, EarlyStopping
@@ -339,6 +340,29 @@ def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_i
         MLflowLogger
     """
     logger = NeptuneLogger()
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
+
+
+def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+    """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
+        - Training metrics, e.g. running average loss values
+        - Learning rate(s)
+        - Evaluation metrics
+
+    Args:
+        trainer (Engine): trainer engine
+        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+            torch optimizers. If a dictionary, keys are used as tags arguments for logging.
+        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+            keys are used as tags arguments for logging.
+        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+            value can be set to 1 or None.
+
+    Returns:
+        MLflowLogger
+    """
+    logger = WandBLogger()
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
