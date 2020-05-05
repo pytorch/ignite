@@ -10,13 +10,7 @@ from torch.optim import SGD
 
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import MeanSquaredError
-
-try:
-    import torch_xla.core.xla_model as xm
-
-    has_xla = True
-except ImportError:
-    has_xla = False
+from ignite.metrics.metric import on_xla_device
 
 
 def _test_create_supervised_trainer(
@@ -113,7 +107,7 @@ def test_create_supervised_trainer_on_cuda():
 
 
 @pytest.mark.tpu
-@pytest.mark.skipif(not has_xla, reason="Skip if no TPU")
+@pytest.mark.skipif(not on_xla_device, reason="Skip if no TPU")
 def test_create_supervised_trainer_on_tpu():
     model_device = trainer_device = "xla"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
