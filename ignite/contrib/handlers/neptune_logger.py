@@ -6,6 +6,7 @@ import warnings
 import torch
 
 import ignite
+
 from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
@@ -465,6 +466,12 @@ class NeptuneLogger(BaseLogger):
 
     def close(self):
         self.stop()
+
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)
 
 
 class NeptuneSaver(BaseSaveHandler):

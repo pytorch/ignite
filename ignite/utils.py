@@ -105,6 +105,12 @@ def setup_logger(
     """
     logger = logging.getLogger(name)
 
+    # don't propagate to ancestors
+    # the problem here is to attach handlers to loggers
+    # should we provide a default configuration less open ?
+    if name is not None:
+        logger.propagate = False
+
     # Remove previous handlers
     if logger.hasHandlers():
         for h in list(logger.handlers):

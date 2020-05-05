@@ -1,25 +1,22 @@
-from functools import partial
-import warnings
 import numbers
-
+import warnings
 from collections.abc import Sequence, Mapping
+from functools import partial
 
 import torch
 import torch.distributed as dist
 
-from ignite.engine import Engine, Events
-from ignite.metrics import RunningAverage
-from ignite.handlers import TerminateOnNan, ModelCheckpoint, EarlyStopping
-from ignite.contrib.metrics import GpuInfo
-from ignite.contrib.handlers import ProgressBar
-from ignite.contrib.handlers import VisdomLogger
-from ignite.contrib.handlers import TensorboardLogger, global_step_from_engine
-import ignite.contrib.handlers.tensorboard_logger as tb_logger_module
-import ignite.contrib.handlers.visdom_logger as visdom_logger_module
 from ignite.contrib.handlers import MLflowLogger
-import ignite.contrib.handlers.mlflow_logger as mlflow_logger_module
 from ignite.contrib.handlers import PolyaxonLogger
-import ignite.contrib.handlers.polyaxon_logger as polyaxon_logger_module
+from ignite.contrib.handlers import ProgressBar
+from ignite.contrib.handlers import TensorboardLogger, global_step_from_engine
+from ignite.contrib.handlers import VisdomLogger
+from ignite.contrib.handlers import NeptuneLogger
+from ignite.contrib.handlers import WandBLogger
+from ignite.contrib.metrics import GpuInfo
+from ignite.engine import Engine, Events
+from ignite.handlers import TerminateOnNan, ModelCheckpoint, EarlyStopping
+from ignite.metrics import RunningAverage
 
 
 def setup_common_training_handlers(
@@ -207,6 +204,13 @@ def empty_cuda_cache(_):
 
 
 def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters):
+    raise DeprecationWarning(
+        "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. "
+        "Please use ignite.contrib.engines.common._setup_logging instead."
+    )
+
+
+def _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters):
     if optimizers is not None:
         from torch.optim.optimizer import Optimizer
 
@@ -220,10 +224,8 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
     if log_every_iters is None:
         log_every_iters = 1
 
-    logger.attach(
-        trainer,
-        log_handler=logger_module.OutputHandler(tag="training", metric_names="all"),
-        event_name=Events.ITERATION_COMPLETED(every=log_every_iters),
+    logger.attach_output_handler(
+        trainer, event_name=Events.ITERATION_COMPLETED(every=log_every_iters), tag="training", metric_names="all"
     )
 
     if optimizers is not None:
@@ -232,10 +234,8 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
             optimizers = {None: optimizers}
 
         for k, optimizer in optimizers.items():
-            logger.attach(
-                trainer,
-                log_handler=logger_module.OptimizerParamsHandler(optimizer, param_name="lr", tag=k),
-                event_name=Events.ITERATION_STARTED(every=log_every_iters),
+            logger.attach_opt_params_handler(
+                trainer, Events.ITERATION_STARTED(every=log_every_iters), optimizer, param_name="lr", tag=k
             )
 
     if evaluators is not None:
@@ -245,10 +245,8 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
 
         for k, evaluator in evaluators.items():
             gst = global_step_from_engine(trainer)
-            logger.attach(
-                evaluator,
-                log_handler=logger_module.OutputHandler(tag=k, metric_names="all", global_step_transform=gst),
-                event_name=Events.COMPLETED,
+            logger.attach_output_handler(
+                evaluator, event_name=Events.COMPLETED, tag=k, metric_names="all", global_step_transform=gst
             )
 
 
@@ -271,9 +269,9 @@ def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log
     Returns:
         TensorboardLogger
     """
-    tb_logger = TensorboardLogger(log_dir=output_path)
-    setup_any_logging(tb_logger, tb_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters)
-    return tb_logger
+    logger = TensorboardLogger(log_dir=output_path)
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
 
 
 def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
@@ -295,11 +293,9 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
     Returns:
         VisdomLogger
     """
-    vis_logger = VisdomLogger(**kwargs)
-    setup_any_logging(
-        vis_logger, visdom_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters
-    )
-    return vis_logger
+    logger = VisdomLogger(**kwargs)
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
 
 
 def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
@@ -320,15 +316,59 @@ def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_it
     Returns:
         MLflowLogger
     """
-    mlflow_logger = MLflowLogger()
-    setup_any_logging(
-        mlflow_logger, mlflow_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters
-    )
-    return mlflow_logger
+    logger = MLflowLogger()
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
+
+
+def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+    """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
+        - Training metrics, e.g. running average loss values
+        - Learning rate(s)
+        - Evaluation metrics
+
+    Args:
+        trainer (Engine): trainer engine
+        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+            torch optimizers. If a dictionary, keys are used as tags arguments for logging.
+        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+            keys are used as tags arguments for logging.
+        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+            value can be set to 1 or None.
+
+    Returns:
+        NeptuneLogger
+    """
+    logger = NeptuneLogger()
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
+
+
+def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+    """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
+        - Training metrics, e.g. running average loss values
+        - Learning rate(s)
+        - Evaluation metrics
+
+    Args:
+        trainer (Engine): trainer engine
+        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+            torch optimizers. If a dictionary, keys are used as tags arguments for logging.
+        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+            keys are used as tags arguments for logging.
+        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+            value can be set to 1 or None.
+
+    Returns:
+        WandBLogger
+    """
+    logger = WandBLogger()
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
 
 
 def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
-    """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
+    """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -345,11 +385,9 @@ def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters
     Returns:
         PolyaxonLogger
     """
-    plx_logger = PolyaxonLogger()
-    setup_any_logging(
-        plx_logger, polyaxon_logger_module, trainer, optimizers, evaluators, log_every_iters=log_every_iters
-    )
-    return plx_logger
+    logger = PolyaxonLogger()
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
 
 
 def get_default_score_fn(metric_name):
