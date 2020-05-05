@@ -4,6 +4,7 @@ import torch
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Recall
+from ignite.metrics.metric import on_xla_device, xrt_world_size
 
 import pytest
 import warnings
@@ -831,6 +832,30 @@ def _test_distrib_itegration_multilabel(device):
     re_compute2 = re.compute()
     assert len(re_compute1) == 4 * 6 * 8
     assert (re_compute1 == re_compute2).all()
+
+
+def _test_distrib_itegration_multiclass_xla(rank):
+    # Required because `xm.xla_device()` needs to be retrieved from a spawned context
+    import torch_xla.core.xla_model as xm
+
+    _test_distrib_itegration_multiclass(rank, xm.xla_device(), xrt_world_size)
+
+
+def _test_distrib_itegration_multilabel_xla(rank):
+    # Required because `xm.xla_device()` needs to be retrieved from a spawned context
+    import torch_xla.core.xla_model as xm
+
+    _test_distrib_itegration_multilabel(rank, xm.xla_device(), xrt_world_size)
+
+
+@pytest.mark.tpu
+@pytest.mark.distributed
+@pytest.mark.skipif(not on_xla_device or xrt_world_size <= 1, reason="Skip if no TPU")
+def test_distrib_tpu(local_rank, distributed_context_single_node_xla):
+
+    args = ()
+    distributed_context_single_node_xla(_test_distrib_itegration_multiclass_xla, args)
+    distributed_context_single_node_xla(_test_distrib_itegration_multilabel_xla, args)
 
 
 @pytest.mark.distributed
