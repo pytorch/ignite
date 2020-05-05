@@ -11,8 +11,6 @@ from ignite.metrics.metric import on_xla_device, xrt_world_size
 import pytest
 import warnings
 
-from unittest.mock import patch
-
 from sklearn.metrics import precision_score
 from sklearn.exceptions import UndefinedMetricWarning
 
