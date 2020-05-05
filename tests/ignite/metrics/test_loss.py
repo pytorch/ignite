@@ -6,6 +6,7 @@ from torch.nn.functional import nll_loss
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Loss
+from ignite.metrics.metric import on_xla_device, xrt_world_size
 
 import pytest
 from numpy.testing import assert_almost_equal
@@ -114,6 +115,13 @@ def _test_distrib_compute_on_criterion(device):
     assert_almost_equal(res, true_loss_value.item())
 
 
+def _test_distrib_compute_on_criterion_xla(rank):
+    # Required because `xm.xla_device()` needs to be retrieved from a spawned context
+    import torch_xla.core.xla_model as xm
+
+    _test_distrib_compute_on_criterion(xm.xla_device())
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
@@ -141,3 +149,11 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_compute_on_criterion(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not on_xla_device or xrt_world_size <= 1, reason="Skip if no TPU")
+def test_multinode_distrib_tpu(distributed_context_single_node_xla):
+    args = ()
+    distributed_context_single_node_xla(_test_distrib_compute_on_criterion_xla, args)
