@@ -368,7 +368,7 @@ def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_ite
 
 
 def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
-    """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
+    """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
