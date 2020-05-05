@@ -337,7 +337,7 @@ def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_i
             value can be set to 1 or None.
 
     Returns:
-        MLflowLogger
+        NeptuneLogger
     """
     logger = NeptuneLogger()
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -360,7 +360,7 @@ def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_ite
             value can be set to 1 or None.
 
     Returns:
-        MLflowLogger
+        WandBLogger
     """
     logger = WandBLogger()
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
