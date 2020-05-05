@@ -250,7 +250,7 @@ def _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters):
             )
 
 
-def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -265,11 +265,12 @@ def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log
             keys are used as tags arguments for logging.
         log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         TensorboardLogger
     """
-    logger = TensorboardLogger(log_dir=output_path)
+    logger = TensorboardLogger(log_dir=output_path, **kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
@@ -288,7 +289,7 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
             keys are used as tags arguments for logging.
         log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: kwargs to pass into VisdomLogger
+        **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         VisdomLogger
@@ -298,7 +299,7 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
     return logger
 
 
-def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -312,16 +313,17 @@ def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_it
             keys are used as tags arguments for logging.
         log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         MLflowLogger
     """
-    logger = MLflowLogger()
+    logger = MLflowLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
 
-def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -335,16 +337,17 @@ def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_i
             keys are used as tags arguments for logging.
         log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         NeptuneLogger
     """
-    logger = NeptuneLogger()
+    logger = NeptuneLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
 
-def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -358,16 +361,17 @@ def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_ite
             keys are used as tags arguments for logging.
         log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         WandBLogger
     """
-    logger = WandBLogger()
+    logger = WandBLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
 
-def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100):
+def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -381,11 +385,12 @@ def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters
             keys are used as tags arguments for logging.
         log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         PolyaxonLogger
     """
-    logger = PolyaxonLogger()
+    logger = PolyaxonLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
