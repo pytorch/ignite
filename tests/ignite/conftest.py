@@ -27,7 +27,8 @@ def local_rank(worker_id):
 
 def xla_template_worker_task(index, fn, args):
     import torch_xla.core.xla_model as xm
-    xm.rendezvous('init')
+
+    xm.rendezvous("init")
     fn(index, *args)
 
 
@@ -35,6 +36,7 @@ def xla_execute(fn, args):
     import os
 
     import torch_xla.distributed.xla_multiprocessing as xmp
+
     try:
         xmp.spawn(xla_template_worker_task, args=(fn, args), nprocs=os.environ.get("TPU_WORKERS", 1))
     except SystemExit as ex_:
