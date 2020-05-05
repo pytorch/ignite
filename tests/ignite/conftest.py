@@ -25,6 +25,22 @@ def local_rank(worker_id):
     raise RuntimeError("Can not get rank from worker_id={}".format(worker_id))
 
 
+def xla_template_worker_task(index, fn, args):
+    import torch_xla.core.xla_model as xm
+    xm.rendezvous('init')
+    fn(index, *args)
+
+
+def xla_execute(fn, args):
+    import os
+
+    import torch_xla.distributed.xla_multiprocessing as xmp
+    try:
+        xmp.spawn(xla_template_worker_task, args=(fn, args), nprocs=os.environ.get("TPU_WORKERS", 1))
+    except SystemExit as ex_:
+        assert ex_.code == 0, "Didn't successfully exit in XLA test"
+
+
 @pytest.fixture()
 def distributed_context_single_node_xla(local_rank):
     import os
@@ -35,12 +51,7 @@ def distributed_context_single_node_xla(local_rank):
     if "XRT_WORKERS" not in os.environ:
         os.environ["XRT_WORKERS"] = "localservice:0;grpc://localhost:40934"
 
-    import torch_xla.distributed.xla_multiprocessing as xmp
-
-    try:
-        yield lambda fn, args: xmp.spawn(fn, args=args)
-    except SystemExit as ex_:
-        assert ex_.code == 0, "Didn't successfully exit in XLA test"
+    yield xla_execute
 
 
 @pytest.fixture()
