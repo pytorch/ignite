@@ -179,10 +179,8 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
 
 class WandBLogger(BaseLogger):
-    """
-    `
-    Weights & Biases handler to log metrics, model/optimizer parameters, gradients during training and validation.
-    It can also be used to log model checkpoints to the Weights & Biases cloud.
+    """`Weights & Biases <https://app.wandb.ai/>`_ handler to log metrics, model/optimizer parameters, gradients
+    during training and validation. It can also be used to log model checkpoints to the Weights & Biases cloud.
 
     .. code-block:: bash
 
@@ -192,7 +190,9 @@ class WandBLogger(BaseLogger):
     this wrapper. See examples on how to save model parameters and gradients.
 
     Args:
-        args, kwargs:  Please see wandb.init for documentation of possible parameters.
+        *args: Positional arguments accepted by `wandb.init`.
+        **kwargs: Keyword arguments accepted by `wandb.init`.
+            Please see `wandb.init <https://docs.wandb.com/library/init>`_ for documentation of possible parameters.
 
     Examples:
 
