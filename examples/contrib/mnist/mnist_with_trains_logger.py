@@ -22,15 +22,12 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
-from trains import Task
 
 from ignite.contrib.handlers.trains_logger import *
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import Checkpoint
 from ignite.metrics import Accuracy, Loss
 
-# Start a new task
-task = Task.init(project_name="examples", task_name="ignite")
 LOG_INTERVAL = 10
 
 
@@ -101,7 +98,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         train_evaluator.run(train_loader)
         validation_evaluator.run(val_loader)
 
-    trains_logger = TrainsLogger()
+    trains_logger = TrainsLogger(project_name="examples", task_name="ignite")
 
     trains_logger.attach(
         trainer,
