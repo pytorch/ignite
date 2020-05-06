@@ -454,6 +454,8 @@ class TrainsLogger(BaseLogger):
 
     """
 
+    _bypass = None
+
     def __init__(self, *_, **kwargs):
         try:
             import trains
@@ -470,14 +472,31 @@ class TrainsLogger(BaseLogger):
             )
         }
 
-        self.task = trains.Task.init(
-            project_name=kwargs.get("project_name"),
-            task_name=kwargs.get("task_name"),
-            task_type=kwargs.get("task_type", trains.Task.TaskTypes.training),
-            **experiment_kwargs
-        )
+        if self.bypass_mode():
+            warnings.warn("TrainsSaver: running in bypass mode")
 
-        self.trains_logger = self.task.get_logger()
+            class _Stub(object):
+                def __call__(self, *_, **__):
+                    return self
+
+                def __getattr__(self, attr):
+                    if attr in ('name', 'id'):
+                        return ''
+                    return self
+
+                def __setattr__(self, attr, val):
+                    pass
+
+            self._task = _Stub()
+        else:
+            self._task = trains.Task.init(
+                project_name=kwargs.get("project_name"),
+                task_name=kwargs.get("task_name"),
+                task_type=kwargs.get("task_type", trains.Task.TaskTypes.training),
+                **experiment_kwargs
+            )
+
+        self.trains_logger = self._task.get_logger()
 
         self.grad_helper = trains.binding.frameworks.tensorflow_bind.WeightsGradientHistHelper(
             logger=self.trains_logger,
@@ -485,6 +504,28 @@ class TrainsLogger(BaseLogger):
             histogram_update_freq_multiplier=kwargs.get("histogram_update_freq_multiplier", 10),
             histogram_granularity=kwargs.get("histogram_granularity", 50),
         )
+
+    @classmethod
+    def set_bypass_mode(cls, bypass: bool) -> None:
+        """
+        Will bypass all outside communication, and will drop all logs.
+        Should only be used in "standalone mode", when there is no access to the *trains-server*.
+        Args:
+            bypass: If ``True``, all outside communication is skipped.
+        """
+        cls._bypass = bypass
+
+    @classmethod
+    def bypass_mode(cls) -> bool:
+        """
+        Returns the bypass mode state.
+        Note:
+            `GITHUB_ACTIONS` env will automatically set bypass_mode to ``True``
+            unless overridden specifically with ``TrainsLogger.set_bypass_mode(False)``.
+        Return:
+            If True, all outside communication is skipped.
+        """
+        return cls._bypass if cls._bypass is not None else bool(os.environ.get('CI'))
 
 
 class TrainsSaver(DiskSaver):
