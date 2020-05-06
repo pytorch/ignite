@@ -17,25 +17,39 @@ def dirname():
 @pytest.fixture()
 def local_rank(worker_id):
     """ use a different account in each xdist worker """
-    if "gw" in worker_id:
-        return int(worker_id.replace("gw", ""))
-    elif "master" == worker_id:
-        return 0
+    import os
 
-    raise RuntimeError("Can not get rank from worker_id={}".format(worker_id))
+    if "gw" in worker_id:
+        lrank = int(worker_id.replace("gw", ""))
+    elif "master" == worker_id:
+        lrank = 0
+    else:
+        raise RuntimeError("Can not get rank from worker_id={}".format(worker_id))
+
+    os.environ["LOCAL_RANK"] = "{}".format(lrank)
+    return lrank
 
 
 @pytest.fixture()
-def distributed_context_single_node_nccl(local_rank):
-
+def world_size():
     import os
 
     if "WORLD_SIZE" not in os.environ:
-        os.environ["WORLD_SIZE"] = "{}".format(torch.cuda.device_count())
+        if torch.cuda.is_available():
+            ws = torch.cuda.device_count()
+        else:
+            ws = 1
+        os.environ["WORLD_SIZE"] = "{}".format(ws)
+
+    return int(os.environ["WORLD_SIZE"])
+
+
+@pytest.fixture()
+def distributed_context_single_node_nccl(local_rank, world_size):
 
     dist_info = {
         "backend": "nccl",
-        "world_size": int(os.environ["WORLD_SIZE"]),
+        "world_size": world_size,
         "rank": local_rank,
         "init_method": "tcp://localhost:2222",
     }
@@ -54,7 +68,7 @@ def distributed_context_single_node_nccl(local_rank):
 
 
 @pytest.fixture()
-def distributed_context_single_node_gloo(local_rank):
+def distributed_context_single_node_gloo(local_rank, world_size):
 
     import os
 
@@ -63,7 +77,7 @@ def distributed_context_single_node_gloo(local_rank):
 
     dist_info = {
         "backend": "gloo",
-        "world_size": int(os.environ["WORLD_SIZE"]),
+        "world_size": world_size,
         "rank": local_rank,
         "init_method": "tcp://localhost:2222",
     }
