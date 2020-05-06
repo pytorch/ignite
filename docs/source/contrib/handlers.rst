@@ -92,6 +92,16 @@ wandb_logger
    :members:
    :inherited-members:
 
+trains_logger
+---------------
+
+See `trains mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_trains_logger.py>`_
+for detailed usage.
+
+.. automodule:: ignite.contrib.handlers.trains_logger
+   :members:
+   :inherited-members:
+
 More on parameter scheduling
 ----------------------------
 
