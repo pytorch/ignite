@@ -16,7 +16,7 @@ mlflow
 neptune-client
 tensorboard
 pynvml; python_version > '3.5'
-trains>=0.14.3
+trains==0.14.3rc0
 # Examples dependencies
 pandas
 gym
