@@ -17,7 +17,6 @@ from ignite.utils import setup_logger
 
 
 class SerialModel:
-
     @staticmethod
     def is_initialized() -> bool:
         return True
@@ -56,7 +55,6 @@ class SerialModel:
 
 
 class XlaModel:
-
     @staticmethod
     def is_initialized() -> bool:
         return True
@@ -200,6 +198,7 @@ def rank() -> int:
 
 def local_rank() -> int:
     return _model.get_local_rank()
+
 
 # experimental
 # to be tested with slurm
