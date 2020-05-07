@@ -146,18 +146,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         global_step_transform=global_step_from_engine(trainer),
     )
 
-    handler_to_temp_dir = Checkpoint(
-        {"model": model},
-        TrainsSaver(trains_logger),
-        n_saved=1,
-        score_function=lambda e: 123,
-        score_name="acc",
-        filename_prefix="best",
-        global_step_transform=global_step_from_engine(trainer),
-    )
-
     validation_evaluator.add_event_handler(Events.EPOCH_COMPLETED, handler)
-    validation_evaluator.add_event_handler(Events.EPOCH_COMPLETED, handler_to_temp_dir)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
