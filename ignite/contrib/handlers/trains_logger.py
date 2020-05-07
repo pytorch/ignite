@@ -423,7 +423,8 @@ class TrainsLogger(BaseLogger):
 
             # Attach the logger to the trainer to log training loss at each iteration
             trains_logger.attach(trainer,
-                                 log_handler=OutputHandler(tag="training", output_transform=lambda loss: {"loss": loss}),
+                                 log_handler=OutputHandler(tag="training",
+                                 output_transform=lambda loss: {"loss": loss}),
                                  event_name=Events.ITERATION_COMPLETED)
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
