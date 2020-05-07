@@ -7,11 +7,12 @@ import torch
 import torch.distributed as dist
 
 from ignite.contrib.handlers import MLflowLogger
+from ignite.contrib.handlers import NeptuneLogger
 from ignite.contrib.handlers import PolyaxonLogger
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.handlers import TensorboardLogger, global_step_from_engine
+from ignite.contrib.handlers import TrainsLogger
 from ignite.contrib.handlers import VisdomLogger
-from ignite.contrib.handlers import NeptuneLogger
 from ignite.contrib.handlers import WandBLogger
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
@@ -391,6 +392,30 @@ def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters
         PolyaxonLogger
     """
     logger = PolyaxonLogger(**kwargs)
+    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    return logger
+
+
+def setup_trains_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+    """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
+        - Training metrics, e.g. running average loss values
+        - Learning rate(s)
+        - Evaluation metrics
+
+    Args:
+        trainer (Engine): trainer engine
+        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+            torch optimizers. If a dictionary, keys are used as tags arguments for logging.
+        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+            keys are used as tags arguments for logging.
+        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+            value can be set to 1 or None.
+        **kwargs: optional keyword args to be passed to construct the logger.
+
+    Returns:
+        TrainsLogger
+    """
+    logger = TrainsLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
