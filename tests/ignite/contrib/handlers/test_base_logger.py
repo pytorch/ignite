@@ -2,7 +2,8 @@ import math
 import torch
 
 from ignite.engine import Engine, State, Events
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, global_step_from_engine
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler
+from ignite.contrib.handlers import global_step_from_engine
 from ignite.contrib.handlers import CustomPeriodicEvent
 
 import pytest
@@ -10,13 +11,22 @@ import pytest
 from unittest.mock import MagicMock
 
 
-class DummyLogger(BaseLogger):
-    pass
-
-
 class DummyOutputHandler(BaseOutputHandler):
     def __call__(self, *args, **kwargs):
         pass
+
+
+class DummyOptParamsHandler(BaseOptimizerParamsHandler):
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class DummyLogger(BaseLogger):
+    def _create_output_handler(self, *args, **kwargs):
+        return DummyOutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return DummyOptParamsHandler(*args, **kwargs)
 
 
 def test_base_output_handler_wrong_setup():
@@ -179,7 +189,7 @@ def test_as_context_manager():
     n_epochs = 5
     data = list(range(50))
 
-    class _DummyLogger(BaseLogger):
+    class _DummyLogger(DummyLogger):
         def __init__(self, writer):
             self.writer = writer
 

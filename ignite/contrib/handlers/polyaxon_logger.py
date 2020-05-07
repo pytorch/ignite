@@ -1,6 +1,6 @@
 import numbers
-
 import warnings
+
 import torch
 
 from ignite.contrib.handlers.base_logger import (
@@ -230,3 +230,9 @@ class PolyaxonLogger(BaseLogger):
             return getattr(self.experiment, attr)(*args, **kwargs)
 
         return wrapper
+
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)
