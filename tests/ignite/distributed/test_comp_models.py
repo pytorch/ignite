@@ -37,7 +37,7 @@ def _assert_model(model, true_conf):
     assert model.get_rank() == true_conf["rank"]
     assert model.get_world_size() == true_conf["world_size"]
 
-    assert model.get_node_index() == true_conf["node_index"]
+    assert model.get_node_rank() == true_conf["node_index"]
     assert model.get_num_nodes() == true_conf["num_nodes"]
     assert model.get_ntasks_per_node() == true_conf["ntasks_per_node"]
 
@@ -57,7 +57,7 @@ def _test__dist_model_create_from_backend_no_dist(backend, true_device):
     _assert_model(
         model,
         {
-            "device": "cpu",
+            "device": true_device,
             "local_rank": 0,
             "rank": 0,
             "world_size": 1,
@@ -101,6 +101,8 @@ def _test__dist_model_create_from_backend_dist(local_rank, rank, world_size, bac
 
 
 def _test__dist_model_create_from_context_no_dist(true_backend, true_device):
+
+    assert _DistModel.create_from_context() is None
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=1, rank=0)
     dist.barrier()
@@ -174,3 +176,37 @@ def test__dist_model_create_dist_gloo(local_rank, world_size):
 def test__dist_model_create_dist_nccl(local_rank, world_size):
     _test__dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank))
     _test__dist_model_create_from_context_dist(local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank))
+
+
+def _test_spawn(local_rank, backend, world_size, device):
+    from ignite.distributed.utils import _model
+
+    assert dist.is_available() and dist.is_initialized()
+    assert dist.get_backend() == backend
+
+    assert isinstance(_model, _DistModel), "{} vs _DistModel".format(type(_model))
+
+    assert _model.get_local_rank() == local_rank
+    assert _model.get_world_size() == world_size
+    if backend == "nccl":
+        assert _model.device() == "{}:{}".format(device, local_rank)
+    elif backend == "gloo":
+        assert _model.device() == device
+
+
+def _test__dist_model_spawn(backend, num_workers_per_machine, device):
+    _DistModel.spawn(
+        backend,
+        _test_spawn,
+        args=(backend, num_workers_per_machine, device),
+        num_workers_per_machine=num_workers_per_machine,
+    )
+
+
+def test__dist_model_spawn_gloo():
+    _test__dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu")
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test__dist_model_spawn_nccl():
+    _test__dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")

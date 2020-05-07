@@ -39,7 +39,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_node_index(self) -> int:
+    def get_node_rank(self) -> int:
         pass
 
     @abstractmethod
@@ -97,7 +97,7 @@ class _SerialModel(ComputationModel):
     def get_num_nodes(self) -> int:
         return 1
 
-    def get_node_index(self) -> int:
+    def get_node_rank(self) -> int:
         return 0
 
     def is_distributed(self) -> bool:
@@ -152,7 +152,7 @@ class _DistModel(ComputationModel):
     @staticmethod
     def create_from_context() -> Optional["_DistModel"]:
         if not (dist.is_available() and dist.is_initialized()):
-            raise RuntimeError("Can not create new instance if default process group is not already initialized")
+            return None
         return _DistModel()
 
     @staticmethod
@@ -205,14 +205,14 @@ class _DistModel(ComputationModel):
         # except AttributeError:
         #     pass
 
+        self._local_rank = 0  # self.get_rank() % self._ntasks_per_node
         self._ntasks_per_node = self._compute_ntasks_per_node()
         self._nnodes = self.get_world_size() // self._ntasks_per_node
         self._node = self.get_rank() // self._ntasks_per_node
-        self._local_rank = self.get_rank() % self._ntasks_per_node
 
     def _compute_ntasks_per_node(self):
-        tensor = torch.tensor([1]).to(self.device())
-        dist.all_reduce(tensor)
+        tensor = torch.tensor([self.get_local_rank() + 1]).to(self.device())
+        dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
         return tensor.item()
 
     def setup_env_vars(self):
@@ -269,7 +269,7 @@ class _DistModel(ComputationModel):
     def get_num_nodes(self) -> int:
         return self._nnodes
 
-    def get_node_index(self) -> int:
+    def get_node_rank(self) -> int:
         return self._node
 
     def is_distributed(self) -> bool:
@@ -287,19 +287,41 @@ class _DistModel(ComputationModel):
         dist.destroy_process_group()
 
     @staticmethod
-    def _dist_worker_task_fn(fn,):
-        pass
+    def _dist_worker_task_fn(
+        local_rank, backend, fn, world_size, num_workers_per_machine, machine_rank, master_addr, master_port, args
+    ):
+        from ignite.distributed.utils import _set_model
+
+        os.environ["LOCAL_RANK"] = str(local_rank)
+        os.environ["RANK"] = str(machine_rank * num_workers_per_machine + local_rank)
+        os.environ["WORLD_SIZE"] = str(world_size)
+        os.environ["MASTER_ADDR"] = str(master_addr)
+        os.environ["MASTER_PORT"] = str(master_port)
+
+        model = _DistModel.create_from_backend(backend)
+        _set_model(model)
+        fn(local_rank, *args)
+        model.finalize()
 
     @staticmethod
-    def spawn(fn, args, num_workers_per_machine, num_machines, machine_rank, dist_url=None, timeout=None, **kwargs):
-        pass
-        # world_size = num_machines * num_workers_per_machine
-        # mp.spawn(
-        #     _DistModel._dist_worker_task_fn,
-        #     nprocs=num_workers_per_machine,
-        #     args=(fn, world_size, num_gpus_per_machine, machine_rank, dist_url, args),
-        #     daemon=False,
-        # )
+    def spawn(
+        backend,
+        fn,
+        args,
+        num_workers_per_machine,
+        num_machines=1,
+        machine_rank=0,
+        master_addr="0.0.0.0",
+        master_port=2222,
+        **kwargs
+    ):
+        world_size = num_machines * num_workers_per_machine
+        mp.spawn(
+            _DistModel._dist_worker_task_fn,
+            nprocs=num_workers_per_machine,
+            args=(backend, fn, world_size, num_workers_per_machine, machine_rank, master_addr, master_port, args),
+            daemon=False,
+        )
 
 
 class _XlaDistModel(ComputationModel):
@@ -337,7 +359,7 @@ class _XlaDistModel(ComputationModel):
     def get_num_nodes(self) -> int:
         raise NotImplementedError("not yet implemented")
 
-    def get_node_index(self) -> int:
+    def get_node_rank(self) -> int:
         raise NotImplementedError("not yet implemented")
 
     def is_distributed(self) -> bool:

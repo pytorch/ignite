@@ -17,7 +17,7 @@ from ignite.distributed.comp_models import registered_computation_models, _Seria
 
 
 # default: _SerialModel
-_model = _SerialModel
+_model = _SerialModel()
 
 
 def _sync_model_wrapper(func):
@@ -33,6 +33,7 @@ def _sync_model_wrapper(func):
 
 def _sync_model():
     global _model
+    pass
 
 
 @_sync_model_wrapper
@@ -106,7 +107,7 @@ def get_num_nodes() -> int:
 
 
 @_sync_model_wrapper
-def get_node_index() -> int:
+def get_node_rank() -> int:
     return _model.get_rank() % _model.get_ntasks_per_node()
 
 
@@ -130,6 +131,11 @@ def spawn(fn, args, backend, num_workers_per_machine, num_machines, machine_rank
     #         machine_rank=machine_rank,
     #         **kwargs
     #     )
+
+
+def _set_model(model):
+    global _model
+    _model = model
 
 
 def _find_best_dist_backend():
@@ -237,4 +243,4 @@ def show_config():
     logger.info("rank = {}".format(get_rank()))
     logger.info("ntasks_per_node = {}".format(get_ntasks_per_node()))
     logger.info("nnodes = {}".format(get_nnodes()))
-    logger.info("node = {}".format(get_node_index()))
+    logger.info("node = {}".format(get_node_rank()))
