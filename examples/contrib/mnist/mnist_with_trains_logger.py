@@ -128,9 +128,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100)
     )
 
-    trains_logger.attach(
-        trainer, log_handler=WeightsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100)
-    )
+    trains_logger.attach(trainer, log_handler=WeightsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100))
 
     trains_logger.attach(
         trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100)

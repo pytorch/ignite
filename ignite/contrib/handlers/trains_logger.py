@@ -466,9 +466,16 @@ class TrainsLogger(BaseLogger):
             )
 
         experiment_kwargs = {
-            k: v for k, v in kwargs.items() if k not in (
-                "project_name", "task_name", "task_type", "report_freq",
-                "histogram_update_freq_multiplier", "histogram_granularity"
+            k: v
+            for k, v in kwargs.items()
+            if k
+            not in (
+                "project_name",
+                "task_name",
+                "task_type",
+                "report_freq",
+                "histogram_update_freq_multiplier",
+                "histogram_granularity",
             )
         }
 
@@ -480,8 +487,8 @@ class TrainsLogger(BaseLogger):
                     return self
 
                 def __getattr__(self, attr):
-                    if attr in ('name', 'id'):
-                        return ''
+                    if attr in ("name", "id"):
+                        return ""
                     return self
 
                 def __setattr__(self, attr, val):
@@ -493,7 +500,7 @@ class TrainsLogger(BaseLogger):
                 project_name=kwargs.get("project_name"),
                 task_name=kwargs.get("task_name"),
                 task_type=kwargs.get("task_type", trains.Task.TaskTypes.training),
-                **experiment_kwargs
+                **experiment_kwargs,
             )
 
         self.trains_logger = self._task.get_logger()
@@ -525,7 +532,7 @@ class TrainsLogger(BaseLogger):
         Return:
             If True, all outside communication is skipped.
         """
-        return cls._bypass if cls._bypass is not None else bool(os.environ.get('CI'))
+        return cls._bypass if cls._bypass is not None else bool(os.environ.get("CI"))
 
 
 class TrainsSaver(DiskSaver):
@@ -569,9 +576,7 @@ class TrainsSaver(DiskSaver):
             dirname = tempfile.mkdtemp(
                 prefix="ignite_checkpoints_{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S_"))
             )
-            warnings.warn(
-                "TrainsSaver created a temporary checkpoints directory: {}".format(dirname)
-            )
+            warnings.warn("TrainsSaver created a temporary checkpoints directory: {}".format(dirname))
 
         super(TrainsSaver, self).__init__(dirname=dirname, *args, **kwargs)
 
@@ -603,7 +608,7 @@ class TrainsSaver(DiskSaver):
                     framework=trains.model.Framework.pytorch,
                     task=self.task,
                     singlefile=True,
-                    model_name=os.path.basename(filename)
+                    model_name=os.path.basename(filename),
                 )
 
     def get_local_copy(self, filename: str) -> Optional[str]:
