@@ -383,7 +383,10 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
 class TrainsLogger(BaseLogger):
     """
-    Trains handler to log metrics, text, model/optimizer parameters, plots during the training and validation.
+    `Trains <https://github.com/allegroai/trains>`_ handler to log metrics, text, model/optimizer parameters,
+    plots during training and validation.
+    Also supports model checkpoints logging and upload to the storage solution of your choice (i.e. Trains File server,
+     S3 bucket etc.)
 
     .. code-block:: bash
 
