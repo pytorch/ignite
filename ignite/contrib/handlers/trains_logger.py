@@ -534,6 +534,15 @@ class TrainsLogger(BaseLogger):
         """
         return cls._bypass if cls._bypass is not None else bool(os.environ.get("CI"))
 
+    def close(self):
+        self.trains_logger.flush()
+
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)
+
 
 class TrainsSaver(DiskSaver):
     """Handler that saves input checkpoint as Trains artifacts
