@@ -1,5 +1,6 @@
 from typing import Optional, Union, Tuple
 import socket
+from functools import wraps
 
 import torch
 import torch.distributed as dist
@@ -15,14 +16,31 @@ from ignite.utils import setup_logger
 from ignite.distributed.comp_models import registered_computation_models, _SerialModel
 
 
-# default is serial computation model
-_model = _SerialModel()
+# default: _SerialModel
+_model = _SerialModel
 
 
+def _sync_model_wrapper(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if isinstance(_model, _SerialModel):
+            _sync_model()
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def _sync_model():
+    global _model
+
+
+@_sync_model_wrapper
 def device() -> Union[torch.device, str]:
     return _model.device()
 
 
+@_sync_model_wrapper
 def backend() -> Optional[str]:
     """Returns computation model's backend.
     For non-distributed model, the backend is None.
@@ -42,26 +60,32 @@ def available_backends() -> Tuple[str]:
     return out
 
 
+@_sync_model_wrapper
 def model_name() -> str:
     return _model.name
 
 
+@_sync_model_wrapper
 def is_distributed() -> bool:
     return _model.is_distributed()
 
 
-def is_initialized() -> bool:
-    return _model.is_initialized()
+# @_sync_model_wrapper
+# def is_initialized() -> bool:
+#     return _model.is_initialized()
 
 
+@_sync_model_wrapper
 def get_world_size() -> int:
     return _model.get_world_size()
 
 
+@_sync_model_wrapper
 def get_rank() -> int:
     return _model.get_rank()
 
 
+@_sync_model_wrapper
 def get_local_rank() -> int:
     return _model.get_local_rank()
 
@@ -71,14 +95,17 @@ def get_local_rank() -> int:
 # it depends on how scheduling was done
 
 
+@_sync_model_wrapper
 def get_ntasks_per_node() -> int:
     return _model.get_ntasks_per_node()
 
 
-def get_nnodes() -> int:
-    return _model.get_nnodes()
+@_sync_model_wrapper
+def get_num_nodes() -> int:
+    return _model.get_num_nodes()
 
 
+@_sync_model_wrapper
 def get_node_index() -> int:
     return _model.get_rank() % _model.get_ntasks_per_node()
 
@@ -117,7 +144,7 @@ def _find_best_dist_backend():
 
 
 def _sanity_check():
-    assert _model.is_initialized()
+    # assert _model.is_initialized()
     assert _model.get_world_size() == _model.get_nnodes() * _model.get_ntasks_per_node()
     assert _model.get_local_rank() < _model.get_ntasks_per_node()
     assert _model.get_rank() < _model.get_world_size()
@@ -145,6 +172,10 @@ def initialize(backend: Optional[str] = None, timeout: Optional["timedelta"] = N
     if not (has_xla_support or dist.is_available()):
         # nothing to do => serial model
         # maybe warn about this
+        return
+
+    if backend is None:
+        _sync_model()
         return
 
     _assert_backend(backend)
@@ -189,8 +220,7 @@ def initialize(backend: Optional[str] = None, timeout: Optional["timedelta"] = N
 
 
 def finalize():
-    if is_distributed() and model_name() == "dist":
-        dist.destroy_process_group()
+    _model.finalize()
 
 
 def show_config():

@@ -12,9 +12,11 @@ from ignite.distributed.utils import has_xla_support
 
 
 class ComputationModel(metaclass=ABCMeta):
-    @abstractmethod
-    def is_initialized(self) -> bool:
-        pass
+
+    # vfdev: I do not understand the purpose of the method and when to use it
+    # @abstractmethod
+    # def is_initialized(self) -> bool:
+    #     pass
 
     @abstractmethod
     def get_local_rank(self) -> int:
@@ -33,11 +35,11 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_nnodes(self) -> int:
+    def get_num_nodes(self) -> int:
         pass
 
     @abstractmethod
-    def get_node(self) -> int:
+    def get_node_index(self) -> int:
         pass
 
     @abstractmethod
@@ -53,7 +55,21 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def finalize(self):
+        pass
+
     @staticmethod
+    @abstractmethod
+    def create_from_context() -> Optional["ComputationModel"]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def create_from_backend(backend: str, **kwargs) -> "ComputationModel":
+        pass
+
+    @staticmethod
+    @abstractmethod
     def spawn(*args, **kwargs):
         pass
 
@@ -63,8 +79,8 @@ class _SerialModel(ComputationModel):
     name = "serial"
     available_backends = tuple()
 
-    def is_initialized(self) -> bool:
-        return True
+    # def is_initialized(self) -> bool:
+    #     return True
 
     def get_local_rank(self) -> int:
         return 0
@@ -78,10 +94,10 @@ class _SerialModel(ComputationModel):
     def get_ntasks_per_node(self) -> int:
         return 1
 
-    def get_nnodes(self) -> int:
+    def get_num_nodes(self) -> int:
         return 1
 
-    def get_node(self) -> int:
+    def get_node_index(self) -> int:
         return 0
 
     def is_distributed(self) -> bool:
@@ -92,6 +108,17 @@ class _SerialModel(ComputationModel):
 
     def backend(self) -> Optional[str]:
         return None
+
+    def finalize(self):
+        pass
+
+    @staticmethod
+    def create_from_context() -> Optional["_SerialModel"]:
+        return _SerialModel()
+
+    @staticmethod
+    def create_from_backend(backend: str, **kwargs) -> "_SerialModel":
+        return _SerialModel()
 
     @staticmethod
     def spawn(*args, **kwargs):
@@ -122,7 +149,27 @@ class _DistModel(ComputationModel):
         if getattr(dist, "is_{}_available".format(name))
     )
 
-    def __init__(self, backend, timeout=None, **kwargs):
+    @staticmethod
+    def create_from_context() -> Optional["_DistModel"]:
+        if not (dist.is_available() and dist.is_initialized()):
+            raise RuntimeError("Can not create new instance if default process group is not already initialized")
+        return _DistModel()
+
+    @staticmethod
+    def create_from_backend(backend: str, **kwargs) -> "_DistModel":
+        if dist.is_available() and dist.is_initialized():
+            raise RuntimeError("Can not create new distributed process group if default one is already initialized")
+        return _DistModel(backend=backend, **kwargs)
+
+    def __init__(self, backend=None, timeout=None, **kwargs):
+        """This is a private method. Please, use `create_from_backend` or `create_from_context`
+        """
+        if backend is not None:
+            self._create_from_backend(backend, timeout=timeout, **kwargs)
+        else:
+            self._init_from_context()
+
+    def _create_from_backend(self, backend, timeout=None, **kwargs):
         self.setup_env_vars()
         self._master_port = int(os.environ["MASTER_PORT"])
         self._master_addr = os.environ["MASTER_ADDR"]
@@ -142,11 +189,30 @@ class _DistModel(ComputationModel):
         self._ntasks_per_node = self._compute_ntasks_per_node()
         self._nnodes = self.get_world_size() // self.get_ntasks_per_node()
         self._node = self.get_rank() // self._ntasks_per_node
-        self._is_initialized = True
+        # self._is_initialized = True
+
+    def _init_from_context(self):
+        self._master_port = None
+        self._master_addr = None
+
+        # THIS COULD HELP TO GET master addr/port if TCPStore is used.
+        # HOWEVER, user can use FileStore or any other store.
+        # try:
+        #     store = dist.distributed_c10d._get_default_store()
+        #     if isinstance(store, torch.distributed.TCPStore):
+        #         self._master_port = None
+        #         self._master_addr = None
+        # except AttributeError:
+        #     pass
+
+        self._ntasks_per_node = self._compute_ntasks_per_node()
+        self._nnodes = self.get_world_size() // self._ntasks_per_node
+        self._node = self.get_rank() // self._ntasks_per_node
+        self._local_rank = self.get_rank() % self._ntasks_per_node
 
     def _compute_ntasks_per_node(self):
-        tensor = torch.tensor([self.get_local_rank() + 1]).to(self.device())
-        dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
+        tensor = torch.tensor([1]).to(self.device())
+        dist.all_reduce(tensor)
         return tensor.item()
 
     def setup_env_vars(self):
@@ -154,13 +220,18 @@ class _DistModel(ComputationModel):
             self._setup_env_in_slurm()
             return
 
-        for k in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
-            if k not in os.environ:
-                raise RuntimeError("PyTorch distributed configuration is missing '{}' in env variables".format(k))
+        # check if all necessary env vars are set
+        # if partially defined raise an error
+        necessary_env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
+        all_env_vars_defined = [k in os.environ for k in necessary_env_vars]
+        if any(all_env_vars_defined) and not all(all_env_vars_defined):
+            raise RuntimeError(
+                "PyTorch distributed configuration should define env variables '{}'".format(necessary_env_vars)
+            )
 
-        os.environ["RANK"] = os.environ["RANK"]
-        os.environ["LOCAL_RANK"] = os.environ["LOCAL_RANK"]
-        os.environ["WORLD_SIZE"] = os.environ["WORLD_SIZE"]
+        os.environ["RANK"] = os.environ.get("RANK", "0")
+        os.environ["LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "0")
+        os.environ["WORLD_SIZE"] = os.environ.get("WORLD_SIZE", "1")
         os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
         os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
 
@@ -180,8 +251,8 @@ class _DistModel(ComputationModel):
         hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
         os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
-    def is_initialized(self) -> bool:
-        return self._is_initialized
+    # def is_initialized(self) -> bool:
+    #     return self._is_initialized
 
     def get_local_rank(self) -> int:
         return self._local_rank
@@ -195,14 +266,14 @@ class _DistModel(ComputationModel):
     def get_ntasks_per_node(self) -> int:
         return self._ntasks_per_node
 
-    def get_nnodes(self) -> int:
+    def get_num_nodes(self) -> int:
         return self._nnodes
 
-    def get_node(self) -> int:
+    def get_node_index(self) -> int:
         return self._node
 
     def is_distributed(self) -> bool:
-        return dist.is_available() and dist.is_initialized()
+        return dist.is_available() and dist.is_initialized() and self.get_world_size() > 1
 
     def device(self) -> Union[torch.device, str]:
         if self.backend() == "nccl":
@@ -212,20 +283,23 @@ class _DistModel(ComputationModel):
     def backend(self) -> Optional[str]:
         return dist.get_backend()
 
+    def finalize(self):
+        dist.destroy_process_group()
+
     @staticmethod
     def _dist_worker_task_fn(fn,):
-
         pass
 
     @staticmethod
     def spawn(fn, args, num_workers_per_machine, num_machines, machine_rank, dist_url=None, timeout=None, **kwargs):
-        world_size = num_machines * num_workers_per_machine
-        mp.spawn(
-            _DistModel._dist_worker_task_fn,
-            nprocs=num_workers_per_machine,
-            args=(fn, world_size, num_gpus_per_machine, machine_rank, dist_url, args),
-            daemon=False,
-        )
+        pass
+        # world_size = num_machines * num_workers_per_machine
+        # mp.spawn(
+        #     _DistModel._dist_worker_task_fn,
+        #     nprocs=num_workers_per_machine,
+        #     args=(fn, world_size, num_gpus_per_machine, machine_rank, dist_url, args),
+        #     daemon=False,
+        # )
 
 
 class _XlaDistModel(ComputationModel):
@@ -245,8 +319,8 @@ class _XlaDistModel(ComputationModel):
 
         self._xm = xm
 
-    def is_initialized(self) -> bool:
-        return True
+    # def is_initialized(self) -> bool:
+    #     return True
 
     def get_local_rank(self) -> int:
         self._xm.get_ordinal()
@@ -260,15 +334,26 @@ class _XlaDistModel(ComputationModel):
     def get_ntasks_per_node(self) -> int:
         raise NotImplementedError("not yet implemented")
 
-    def get_nnodes(self) -> int:
+    def get_num_nodes(self) -> int:
         raise NotImplementedError("not yet implemented")
 
-    def get_node(self) -> int:
+    def get_node_index(self) -> int:
         raise NotImplementedError("not yet implemented")
 
     def is_distributed(self) -> bool:
         raise NotImplementedError("not yet implemented")
         # return has_xla_support and self._xm.xrt_world_size() > 1
+
+    def finalize(self):
+        pass
+
+    @staticmethod
+    def create_from_context() -> Optional["_SerialModel"]:
+        pass
+
+    @staticmethod
+    def create_from_backend(backend: str, **kwargs) -> "_SerialModel":
+        pass
 
 
 registered_computation_models = [_SerialModel, _DistModel, _XlaDistModel]
