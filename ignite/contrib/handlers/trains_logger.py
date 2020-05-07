@@ -573,7 +573,7 @@ class TrainsSaver(DiskSaver):
 
     """
 
-    def __init__(self, logger: TrainsLogger, output_uri=None, dirname=None, *args, **kwargs):
+    def __init__(self, logger: TrainsLogger, output_uri: str = None, dirname: str = None, *args, **kwargs):
         if not isinstance(logger, TrainsLogger):
             raise TypeError("logger must be an instance of TrainsLogger")
 
@@ -634,4 +634,3 @@ class TrainsSaver(DiskSaver):
         if artifact:
             return artifact.get_local_copy()
         self.task.get_logger().report_text("Can not find artifact {}".format(filename))
-        return None
