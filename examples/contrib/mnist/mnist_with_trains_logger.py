@@ -76,18 +76,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
 
-    if sys.version_info > (3,):
-        from ignite.contrib.metrics.gpu_info import GpuInfo
-
-        try:
-            GpuInfo().attach(trainer)
-        except RuntimeError:
-            print(
-                "INFO: By default, in this example it is possible to log GPU information (used memory, utilization). "
-                "As there is no pynvml python package installed, GPU information won't be logged. Otherwise, please "
-                "install it : `pip install pynvml`"
-            )
-
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
 
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
