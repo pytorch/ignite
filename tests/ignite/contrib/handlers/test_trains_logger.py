@@ -605,7 +605,7 @@ def test_integration_as_context_manager(dirname):
         return next(losses_iter)
 
     TrainsLogger.set_bypass_mode(True)
-    with TrainsLogger(dirname=dirname) as trains_log:
+    with TrainsLogger(dirname=dirname) as trains_logger:
 
         trainer = Engine(update_fn)
 
@@ -613,32 +613,7 @@ def test_integration_as_context_manager(dirname):
             global_step = engine.state.get_event_attrib_value(event_name)
             logger.trains_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
 
-        trains_log.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
-
-        trainer.run(data, max_epochs=n_epochs)
-
-
-def test_integration_as_context_manager(dirname):
-
-    n_epochs = 5
-    data = list(range(50))
-
-    losses = torch.rand(n_epochs * len(data))
-    losses_iter = iter(losses)
-
-    def update_fn(engine, batch):
-        return next(losses_iter)
-
-    TrainsLogger.set_bypass_mode(True)
-    with TrainsLogger(dirname=dirname) as trains:
-
-        trainer = Engine(update_fn)
-
-        def dummy_handler(engine, logger, event_name):
-            global_step = engine.state.get_event_attrib_value(event_name)
-            logger.trains_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
-
-        trains.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
+        trains_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
         trainer.run(data, max_epochs=n_epochs)
 
