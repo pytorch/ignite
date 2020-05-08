@@ -94,6 +94,8 @@ def _test__dist_model_create_from_backend_dist(local_rank, rank, world_size, bac
         },
     )
 
+
+
     model.finalize()
 
     del os.environ["RANK"]

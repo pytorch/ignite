@@ -30,8 +30,6 @@ def local_rank(worker_id):
 
     yield lrank
 
-    del os.environ["LOCAL_RANK"]
-
 
 @pytest.fixture()
 def world_size():
@@ -45,8 +43,6 @@ def world_size():
         os.environ["WORLD_SIZE"] = "{}".format(ws)
 
     yield int(os.environ["WORLD_SIZE"])
-
-    del os.environ["WORLD_SIZE"]
 
 
 @pytest.fixture()

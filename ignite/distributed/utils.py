@@ -271,21 +271,26 @@ def initialize(backend: Optional[str] = None, timeout: Optional["timedelta"] = N
 
 
 def finalize():
+    """Finalizes distributed configuration. For example, in case of native pytorch distributed configuration,
+    it calls `dist.destroy_process_group()`.
+    """
     _model.finalize()
 
 
 def show_config():
+    """Helper method to display distributed configuration via `logging`.
+    """
 
     # setup parallel logger
     logger = setup_logger(__name__)
 
-    logger.info("model = {}".format(model_name()))
-    logger.info("is distributed = {}".format(is_distributed()))
-    logger.info("backend = {}".format(backend()))
-    logger.info("device = {}".format(device()))
-    logger.info("hostname = {}".format(hostname()))
-    logger.info("world size = {}".format(get_world_size()))
-    logger.info("rank = {}".format(get_rank()))
-    logger.info("ntasks_per_node = {}".format(get_ntasks_per_node()))
-    logger.info("nnodes = {}".format(get_num_nodes()))
-    logger.info("node = {}".format(get_node_rank()))
+    logger.info("distributed configuration: {}".format(model_name()))
+    logger.info("backend: {}".format(backend()))
+    logger.info("device: {}".format(device()))
+    logger.info("hostname: {}".format(hostname()))
+    logger.info("world size: {}".format(get_world_size()))
+    logger.info("rank: {}".format(get_rank()))
+    logger.info("local rank: {}".format(get_local_rank()))
+    logger.info("num tasks per_node: {}".format(get_ntasks_per_node()))
+    logger.info("num nodes: {}".format(get_num_nodes()))
+    logger.info("node rank: {}".format(get_node_rank()))
