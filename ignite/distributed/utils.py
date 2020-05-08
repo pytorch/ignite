@@ -98,13 +98,7 @@ def hostname() -> str:
     return socket.gethostname()
 
 
-def spawn(
-    backend,
-    fn,
-    args,
-    num_procs_per_node,
-    **kwargs
-):
+def spawn(backend, fn, args, num_procs_per_node, **kwargs):
     """
 
     Args:
@@ -121,13 +115,7 @@ def spawn(
     for comp_model_cls in registered_computation_models:
         if backend not in comp_model_cls.available_backends:
             continue
-        comp_model_cls.spawn(
-            fn,
-            args=args,
-            num_procs_per_node=num_procs_per_node,
-            backend=backend,
-            **kwargs
-        )
+        comp_model_cls.spawn(fn, args=args, num_procs_per_node=num_procs_per_node, backend=backend, **kwargs)
 
 
 def _set_model(model):
