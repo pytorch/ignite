@@ -103,7 +103,7 @@ def test_native_distrib_single_node_spawn_gloo():
     world_size = 4
 
     idist.spawn(
-        "gloo", _test_native_distrib, args=("gloo", world_size, "cpu"), num_procs_per_node=world_size, timeout=timeout,
+        "gloo", _test_native_distrib, args=("gloo", world_size, "cpu"), num_procs_per_node=world_size, timeout=timeout
     )
 
 
@@ -119,5 +119,5 @@ def test_native_distrib_single_node_spawn_nccl():
     world_size = torch.cuda.device_count()
 
     idist.spawn(
-        "nccl", _test_native_distrib, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size, timeout=timeout,
+        "nccl", _test_native_distrib, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size, timeout=timeout
     )

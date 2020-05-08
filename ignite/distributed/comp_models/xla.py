@@ -6,6 +6,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
 
     has_xla_support = True
 except ImportError:
@@ -33,13 +34,8 @@ class _XlaDistModel(ComputationModel):
     def __init__(self, backend=None, **kwargs):
         """This is a private method. Please, use `create_from_backend` or `create_from_context`
         """
-        import torch_xla.core.xla_model as xm
 
         self._xm = xm
-
-        import torch_xla.core.xla_env_vars as xenv
-
-        self._xenv = xenv
 
         if backend is not None:
             self._create_from_backend(backend, **kwargs)
@@ -59,17 +55,17 @@ class _XlaDistModel(ComputationModel):
 
     def _compute_ntasks_per_node(self):
         tensor = torch.tensor([self.get_local_rank() + 1.0], dtype=torch.float).to(self.device())
-        self._xm.all_reduce("max", [tensor,])
+        xm.all_reduce("max", [tensor, ])
         return int(tensor.item())
 
     def get_local_rank(self) -> int:
-        return self._xm.get_local_ordinal()
+        return xm.get_local_ordinal()
 
     def get_rank(self) -> int:
-        return self._xm.get_ordinal()
+        return xm.get_ordinal()
 
     def get_world_size(self) -> int:
-        return self._xm.xrt_world_size()
+        return xm.xrt_world_size()
 
     def get_ntasks_per_node(self) -> int:
         return self._ntasks_per_node
@@ -81,10 +77,10 @@ class _XlaDistModel(ComputationModel):
         return self._node
 
     def is_distributed(self) -> bool:
-        return self._xm.xrt_world_size() > 1
+        return xm.xrt_world_size() > 1
 
     def device(self) -> Union[torch.device, str]:
-        return self._xm.xla_device()
+        return xm.xla_device()
 
     def backend(self) -> Optional[str]:
         return self._backend
@@ -104,7 +100,6 @@ class _XlaDistModel(ComputationModel):
     @staticmethod
     def spawn(fn, args, num_procs_per_node, num_nodes=1, node_rank=0, backend="xla-tpu", **kwargs):
         import os
-        import torch_xla.distributed.xla_multiprocessing as xmp
 
         spawn_kwargs = {}
         if "COLAB_TPU_ADDR" in os.environ:
