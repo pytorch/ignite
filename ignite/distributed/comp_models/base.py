@@ -8,6 +8,7 @@ class ComputationModel(metaclass=ABCMeta):
     """
 
     """
+
     @abstractmethod
     def get_local_rank(self) -> int:
         pass
