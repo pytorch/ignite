@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 from ignite.distributed.comp_models.base import ComputationModel
 
 
-class _DistModel(ComputationModel):
+class _NativeDistModel(ComputationModel):
     """PyTorch native distributed computation model.
 
     Supported `backends <https://pytorch.org/docs/stable/distributed.html#backends>`_:
@@ -34,16 +34,16 @@ class _DistModel(ComputationModel):
     )
 
     @staticmethod
-    def create_from_context() -> Optional["_DistModel"]:
+    def create_from_context() -> Optional["_NativeDistModel"]:
         if not (dist.is_available() and dist.is_initialized()):
             return None
-        return _DistModel()
+        return _NativeDistModel()
 
     @staticmethod
-    def create_from_backend(backend: str, **kwargs) -> "_DistModel":
+    def create_from_backend(backend: str, **kwargs) -> "_NativeDistModel":
         if dist.is_available() and dist.is_initialized():
             raise RuntimeError("Can not create new distributed process group if default one is already initialized")
-        return _DistModel(backend=backend, **kwargs)
+        return _NativeDistModel(backend=backend, **kwargs)
 
     def __init__(self, backend=None, timeout=None, **kwargs):
         """This is a private method. Please, use `create_from_backend` or `create_from_context`
@@ -155,9 +155,6 @@ class _DistModel(ComputationModel):
     def get_node_rank(self) -> int:
         return self._node
 
-    def is_distributed(self) -> bool:
-        return dist.is_available() and dist.is_initialized() and self.get_world_size() > 1
-
     def device(self) -> Union[torch.device, str]:
         if self.backend() == "nccl":
             return "cuda:{}".format(torch.cuda.current_device())
@@ -181,7 +178,7 @@ class _DistModel(ComputationModel):
         os.environ["MASTER_ADDR"] = str(master_addr)
         os.environ["MASTER_PORT"] = str(master_port)
 
-        model = _DistModel.create_from_backend(backend)
+        model = _NativeDistModel.create_from_backend(backend)
         _set_model(model)
         fn(local_rank, *args)
         model.finalize()
@@ -200,7 +197,7 @@ class _DistModel(ComputationModel):
     ):
         world_size = num_nodes * num_procs_per_node
         mp.spawn(
-            _DistModel._dist_worker_task_fn,
+            _NativeDistModel._dist_worker_task_fn,
             nprocs=num_procs_per_node,
             args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args),
             daemon=False,

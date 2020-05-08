@@ -9,7 +9,6 @@ from ignite.utils import setup_logger
 from ignite.distributed.comp_models import registered_computation_models, _SerialModel, has_xla_support
 
 
-# default: _SerialModel
 _model = _SerialModel()
 
 
@@ -57,11 +56,6 @@ def available_backends() -> Tuple[str]:
 @_sync_model_wrapper
 def model_name() -> str:
     return _model.name
-
-
-@_sync_model_wrapper
-def is_distributed() -> bool:
-    return _model.is_distributed()
 
 
 @_sync_model_wrapper

@@ -5,6 +5,9 @@ import torch
 
 
 class ComputationModel(metaclass=ABCMeta):
+    """
+
+    """
     @abstractmethod
     def get_local_rank(self) -> int:
         pass
@@ -27,10 +30,6 @@ class ComputationModel(metaclass=ABCMeta):
 
     @abstractmethod
     def get_node_rank(self) -> int:
-        pass
-
-    @abstractmethod
-    def is_distributed(self) -> bool:
         pass
 
     @abstractmethod

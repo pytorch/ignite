@@ -21,7 +21,6 @@ def test_no_distrib():
     assert idist.get_rank() == 0
     assert idist.get_world_size() == 1
     assert idist.get_local_rank() == 0
-    assert not idist.is_distributed()
     assert idist.model_name() == "serial"
 
     from ignite.distributed.utils import _model, _SerialModel
@@ -49,18 +48,14 @@ def _test_native_distrib(local_rank, backend, ws, device, rank=None):
     assert idist.get_rank() == rank
     assert idist.get_world_size() == ws
     assert idist.get_local_rank() == local_rank
-    if ws > 1:
-        assert idist.is_distributed()
-    else:
-        assert not idist.is_distributed()
 
     assert idist.model_name() == "native-dist"
 
     from ignite.distributed.utils import _model
-    from ignite.distributed.comp_models import _DistModel
+    from ignite.distributed.comp_models import _NativeDistModel
 
     _sanity_check()
-    assert isinstance(_model, _DistModel)
+    assert isinstance(_model, _NativeDistModel)
 
 
 @pytest.mark.distributed

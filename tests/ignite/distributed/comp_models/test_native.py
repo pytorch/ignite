@@ -4,12 +4,12 @@ import pytest
 import torch
 import torch.distributed as dist
 
-from ignite.distributed.comp_models import _DistModel
+from ignite.distributed.comp_models import _NativeDistModel
 
 
 @pytest.mark.distributed
 def test__dist_model():
-    available_backends = _DistModel.available_backends
+    available_backends = _NativeDistModel.available_backends
 
     if dist.is_nccl_available():
         assert "nccl" in available_backends
@@ -29,7 +29,7 @@ def test__dist_model_create_from_backend_bad_config():
     os.environ["RANK"] = "1"
 
     with pytest.raises(RuntimeError, match=r"PyTorch distributed configuration should define env variables"):
-        _DistModel.create_from_backend(backend="gloo")
+        _NativeDistModel.create_from_backend(backend="gloo")
 
     del os.environ["RANK"]
 
@@ -45,15 +45,10 @@ def _assert_model(model, true_conf):
     assert model.get_num_nodes() == true_conf["num_nodes"]
     assert model.get_ntasks_per_node() == true_conf["ntasks_per_node"]
 
-    if model.get_world_size() > 1:
-        assert model.is_distributed()
-    else:
-        assert not model.is_distributed()
-
 
 def _test__dist_model_create_from_backend_no_dist(backend, true_device):
 
-    model = _DistModel.create_from_backend(backend=backend)
+    model = _NativeDistModel.create_from_backend(backend=backend)
 
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == backend
@@ -81,7 +76,7 @@ def _test__dist_model_create_from_backend_dist(local_rank, rank, world_size, bac
     timeout = timedelta(seconds=20)
     os.environ["RANK"] = "{}".format(rank)
 
-    model = _DistModel.create_from_backend(backend=backend, timeout=timeout)
+    model = _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
 
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == backend
@@ -106,12 +101,12 @@ def _test__dist_model_create_from_backend_dist(local_rank, rank, world_size, bac
 
 def _test__dist_model_create_from_context_no_dist(true_backend, true_device):
 
-    assert _DistModel.create_from_context() is None
+    assert _NativeDistModel.create_from_context() is None
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=1, rank=0)
     dist.barrier()
 
-    model = _DistModel.create_from_context()
+    model = _NativeDistModel.create_from_context()
 
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == true_backend
@@ -137,7 +132,7 @@ def _test__dist_model_create_from_context_dist(local_rank, rank, world_size, tru
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=world_size, rank=rank)
     dist.barrier()
 
-    model = _DistModel.create_from_context()
+    model = _NativeDistModel.create_from_context()
 
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == true_backend
@@ -194,7 +189,7 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == backend
 
-    assert isinstance(_model, _DistModel), "{} vs _DistModel".format(type(_model))
+    assert isinstance(_model, _NativeDistModel), "{} vs _NativeDistModel".format(type(_model))
 
     assert _model.get_local_rank() == local_rank
     assert _model.get_world_size() == world_size
@@ -205,7 +200,7 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
 
 
 def _test__dist_model_spawn(backend, num_workers_per_machine, device):
-    _DistModel.spawn(
+    _NativeDistModel.spawn(
         _test_dist_spawn_fn,
         args=(backend, num_workers_per_machine, device),
         backend=backend,

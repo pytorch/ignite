@@ -76,9 +76,6 @@ class _XlaDistModel(ComputationModel):
     def get_node_rank(self) -> int:
         return self._node
 
-    def is_distributed(self) -> bool:
-        return xm.xrt_world_size() > 1
-
     def device(self) -> Union[torch.device, str]:
         return xm.xla_device()
 
