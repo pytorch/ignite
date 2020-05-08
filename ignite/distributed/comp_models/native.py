@@ -10,7 +10,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 
 class _NativeDistModel(ComputationModel):
-    """PyTorch native distributed computation model.
+    """Private class for PyTorch native distributed computation model.
 
     Supported `backends <https://pytorch.org/docs/stable/distributed.html#backends>`_:
 

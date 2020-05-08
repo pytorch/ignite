@@ -25,20 +25,31 @@ def _sync_model_wrapper(func):
 
 def _sync_model():
     global _model
+    # TODO: to implement
     pass
 
 
 @_sync_model_wrapper
 def device() -> Union[torch.device, str]:
+    """Returns current device according to current distributed configuration.
+
+    - `cpu` if no distributed configuration or native gloo distributed configuration
+    - `cuda:local_rank` if native nccl distributed configuration
+    - `xla` device if XLA distributed configuration
+
+    Returns:
+        torch.device or str
+    """
     return _model.device()
 
 
 @_sync_model_wrapper
 def backend() -> Optional[str]:
     """Returns computation model's backend.
-    For non-distributed model, the backend is None.
-    For native torch distributed model, the backend can be "nccl", "gloo", "mpi"
-    For XLA distributed model, the backend can be "xla-tpu"
+
+    - `None` for no distributed configuration
+    - "nccl" or "gloo" or "mpi" for native torch distributed configuration
+    - "xla-tpu" for XLA distributed configuration
 
     Returns:
         str or None
@@ -47,6 +58,8 @@ def backend() -> Optional[str]:
 
 
 def available_backends() -> Tuple[str]:
+    """Returns available backends.
+    """
     out = ()
     for m in registered_computation_models:
         out += m.available_backends
@@ -55,52 +68,157 @@ def available_backends() -> Tuple[str]:
 
 @_sync_model_wrapper
 def model_name() -> str:
+    """Returns distributed configuration name (given by ignite)
+
+    - `serial` for no distributed configuration
+    - `native-dist` for native torch distributed configuration
+    - `xla-dist` for XLA distributed configuration
+
+    """
     return _model.name
 
 
 @_sync_model_wrapper
 def get_world_size() -> int:
+    """Returns world size of current distributed configuration. Returns 1 if no distributed configuration.
+    """
     return _model.get_world_size()
 
 
 @_sync_model_wrapper
 def get_rank() -> int:
+    """Returns process rank within current distributed configuration. Returns 0 if no distributed configuration.
+    """
     return _model.get_rank()
 
 
 @_sync_model_wrapper
 def get_local_rank() -> int:
+    """Returns local process rank within current distributed configuration. Returns 0 if no distributed configuration.
+    """
     return _model.get_local_rank()
 
 
 @_sync_model_wrapper
 def get_ntasks_per_node() -> int:
+    """Returns number of processes (or tasks) per node within current distributed configuration.
+    Returns 1 if no distributed configuration.
+    """
     return _model.get_ntasks_per_node()
 
 
 @_sync_model_wrapper
 def get_num_nodes() -> int:
+    """Returns number of nodes within current distributed configuration.
+    Returns 1 if no distributed configuration.
+    """
     return _model.get_num_nodes()
 
 
 @_sync_model_wrapper
 def get_node_rank() -> int:
-    return _model.get_rank() % _model.get_ntasks_per_node()
+    """Returns node rank within current distributed configuration.
+    Returns 0 if no distributed configuration.
+    """
+    return _model.get_node_rank()
 
 
 def hostname() -> str:
+    """Returns host name for current process within current distributed configuration.
+    """
     return socket.gethostname()
 
 
 def spawn(backend, fn, args, num_procs_per_node, **kwargs):
-    """
+    """Spawns `num_procs_per_node` processes that run `fn` with `args` and initialize distributed configuration
+    defined by `backend`.
+
+    Examples:
+
+        1) Launch single node multi-GPU training
+
+        .. code-block:: python
+
+            # >>> python main.py
+
+            # main.py
+
+            import ignite.distributed as idist
+
+            def train_fn(local_rank, a, b, c):
+                import torch.distributed as dist
+                assert dist.is_available() and dist.is_initialized()
+                assert dist.get_world_size() == 4
+
+                device = idist.device()
+                assert device == "cuda:{}".format(local_rank)
+
+
+            idist.spawn("nccl", train_fn, args=(a, b, c), num_procs_per_node=4)
+
+
+        2) Launch multi-node multi-GPU training
+
+        .. code-block:: python
+
+            # >>> (node 0): python main.py --node_rank=0 --num_nodes=8 --master_addr=master --master_port=2222
+            # >>> (node 1): python main.py --node_rank=1 --num_nodes=8 --master_addr=master --master_port=2222
+            # >>> ...
+            # >>> (node 7): python main.py --node_rank=7 --num_nodes=8 --master_addr=master --master_port=2222
+
+            # main.py
+
+            import torch
+            import ignite.distributed as idist
+
+            def train_fn(local_rank, num_nodes, num_procs_per_node):
+                import torch.distributed as dist
+                assert dist.is_available() and dist.is_initialized()
+                assert dist.get_world_size() == num_nodes * num_procs_per_node
+
+                device = idist.device()
+                assert device == "cuda:{}".format(local_rank)
+
+            idist.spawn(
+                "nccl",
+                train_fn,
+                args=(num_nodes, num_procs_per_node),
+                num_procs_per_node=num_procs_per_node,
+                num_nodes=num_nodes,
+                node_rank=node_rank,
+                master_addr=master_addr,
+                master_port=master_port
+            )
+
+        3) Launch single node multi-TPU training (for example on Google Colab)
+
+        .. code-block:: python
+
+            # >>> python main.py
+
+            # main.py
+
+            import ignite.distributed as idist
+
+            def train_fn(local_rank, a, b, c):
+                import torch_xla.core.xla_model as xm
+                assert xm.get_world_size() == 8
+
+                device = idist.device()
+                assert "xla" in device.type
+
+
+            idist.spawn("xla-tpu", train_fn, args=(a, b, c), num_procs_per_node=8)
 
     Args:
-        backend:
-        fn:
-        args:
-        num_procs_per_node:
-        **kwargs:
+        backend (str): backend: `nccl`, `gloo`, `xla-tpu`
+        fn (function): function to called as the entrypoint of the spawned process.
+            This function must be defined at the top level of a module so it can be pickled and spawned.
+            This is a requirement imposed by multiprocessing. The function is called as `fn(i, *args)`, where `i` is
+            the process index and args is the passed through tuple of arguments.
+        args (tuple): arguments passed to `fn`
+        num_procs_per_node (int): number of processes to spawn on a single node.
+        **kwargs: TODO
 
     Returns:
 

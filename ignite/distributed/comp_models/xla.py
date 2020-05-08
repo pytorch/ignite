@@ -14,6 +14,14 @@ except ImportError:
 
 
 class _XlaDistModel(ComputationModel):
+    """Private class for PyTorch XLA basic distributed computation model.
+
+    Supported XLA devices:
+
+    - CPU
+    - TPU
+
+    """
 
     name = "xla-dist"
 
@@ -35,15 +43,13 @@ class _XlaDistModel(ComputationModel):
         """This is a private method. Please, use `create_from_backend` or `create_from_context`
         """
 
-        self._xm = xm
-
         if backend is not None:
             self._create_from_backend(backend, **kwargs)
         else:
             self._init_from_context()
 
     def _create_from_backend(self, backend, **kwargs):
-        self._xm.rendezvous("init")
+        xm.rendezvous("init")
 
         self._backend = backend
         self._ntasks_per_node = self._compute_ntasks_per_node()
@@ -96,6 +102,9 @@ class _XlaDistModel(ComputationModel):
 
     @staticmethod
     def spawn(fn, args, num_procs_per_node, num_nodes=1, node_rank=0, backend="xla-tpu", **kwargs):
+        if not has_xla_support:
+            raise RuntimeError("Torch xla package is not installed.")
+
         import os
 
         spawn_kwargs = {}

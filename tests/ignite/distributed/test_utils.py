@@ -3,7 +3,9 @@ import pytest
 
 import torch
 import torch.distributed as dist
+
 import ignite.distributed as idist
+from ignite.distributed.utils import has_xla_support
 
 
 def _sanity_check():
@@ -41,21 +43,25 @@ def _test_native_distrib(local_rank, backend, ws, device, rank=None):
         assert idist.device() == d, "{} vs {}".format(idist.device(), d)
     elif backend == "gloo":
         assert idist.device() == device
+    elif backend == "xla-tpu":
+        d = idist.device()
+        assert isinstance(d, torch.device) and device in d.type
 
     if rank is None:
-        rank = dist.get_rank()
+        if idist.model_name() == "native-dist":
+            rank = dist.get_rank()
+            assert idist.get_rank() == rank
 
-    assert idist.get_rank() == rank
     assert idist.get_world_size() == ws
     assert idist.get_local_rank() == local_rank
 
-    assert idist.model_name() == "native-dist"
+    assert idist.model_name() in ("native-dist", "xla-dist")
 
     from ignite.distributed.utils import _model
-    from ignite.distributed.comp_models import _NativeDistModel
+    from ignite.distributed.comp_models import _NativeDistModel, _XlaDistModel
 
     _sanity_check()
-    assert isinstance(_model, _NativeDistModel)
+    assert isinstance(_model, (_NativeDistModel, _XlaDistModel))
 
 
 @pytest.mark.distributed
@@ -116,3 +122,30 @@ def test_native_distrib_single_node_spawn_nccl():
     idist.spawn(
         "nccl", _test_native_distrib, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size, timeout=timeout
     )
+
+
+@pytest.mark.skipif(has_xla_support, reason="Skip if has PyTorch XLA package")
+def test_xla_distrib_spawn_no_xla_support():
+    with pytest.raises(RuntimeError, match=r"Torch xla package is not installed"):
+        idist.spawn("xla-tpu", _test_native_distrib, args=("xla-tpu", 1, "xla"), num_procs_per_node=1)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_xla_distrib_single_node_spawn_one_proc():
+    try:
+        idist.spawn("xla-tpu", _test_native_distrib, args=("xla-tpu", 1, "xla"), num_procs_per_node=1)
+    except SystemExit:
+        pass
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_xla_distrib_single_node_spawn_n_procs():
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    try:
+        idist.spawn("xla-tpu", _test_native_distrib, args=("xla-tpu", n, "xla"), num_procs_per_node=n)
+    except SystemExit:
+        pass
