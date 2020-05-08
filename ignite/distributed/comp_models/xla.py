@@ -55,7 +55,7 @@ class _XlaDistModel(ComputationModel):
 
     def _compute_ntasks_per_node(self):
         tensor = torch.tensor([self.get_local_rank() + 1.0], dtype=torch.float).to(self.device())
-        xm.all_reduce("max", [tensor, ])
+        xm.all_reduce("max", [tensor,])
         return int(tensor.item())
 
     def get_local_rank(self) -> int:
