@@ -36,9 +36,7 @@ def _test_xla_spawn_fn(local_rank, world_size, device):
 def test__xla_dist_model_spawn_one_proc():
     try:
         _XlaDistModel.spawn(
-            _test_xla_spawn_fn,
-            args=(1, "xla"),
-            num_procs_per_node=1,
+            _test_xla_spawn_fn, args=(1, "xla"), num_procs_per_node=1,
         )
     except SystemExit:
         pass
@@ -51,9 +49,7 @@ def test__xla_dist_model_spawn_n_procs():
     n = int(os.environ["NUM_TPU_WORKERS"])
     try:
         _XlaDistModel.spawn(
-            _test_xla_spawn_fn,
-            args=(n, "xla"),
-            num_procs_per_node=n,
+            _test_xla_spawn_fn, args=(n, "xla"), num_procs_per_node=n,
         )
     except SystemExit:
         pass

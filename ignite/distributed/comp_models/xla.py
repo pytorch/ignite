@@ -16,7 +16,7 @@ class _XlaDistModel(ComputationModel):
 
     name = "xla-dist"
 
-    available_backends = tuple(["xla-tpu", ])
+    available_backends = tuple(["xla-tpu",])
 
     @staticmethod
     def create_from_context() -> Optional["_XlaDistModel"]:
@@ -34,9 +34,11 @@ class _XlaDistModel(ComputationModel):
         """This is a private method. Please, use `create_from_backend` or `create_from_context`
         """
         import torch_xla.core.xla_model as xm
+
         self._xm = xm
 
         import torch_xla.core.xla_env_vars as xenv
+
         self._xenv = xenv
 
         if backend is not None:
@@ -57,7 +59,7 @@ class _XlaDistModel(ComputationModel):
 
     def _compute_ntasks_per_node(self):
         tensor = torch.tensor([self.get_local_rank() + 1.0], dtype=torch.float).to(self.device())
-        self._xm.all_reduce("max", [tensor, ])
+        self._xm.all_reduce("max", [tensor,])
         return int(tensor.item())
 
     def get_local_rank(self) -> int:
@@ -91,9 +93,7 @@ class _XlaDistModel(ComputationModel):
         pass
 
     @staticmethod
-    def _dist_worker_task_fn(
-        local_rank, backend, fn, args
-    ):
+    def _dist_worker_task_fn(local_rank, backend, fn, args):
         from ignite.distributed.utils import _set_model
 
         model = _XlaDistModel.create_from_backend(backend)
@@ -102,15 +102,7 @@ class _XlaDistModel(ComputationModel):
         model.finalize()
 
     @staticmethod
-    def spawn(
-        fn,
-        args,
-        num_procs_per_node,
-        num_nodes=1,
-        node_rank=0,
-        backend="xla-tpu",
-        **kwargs
-    ):
+    def spawn(fn, args, num_procs_per_node, num_nodes=1, node_rank=0, backend="xla-tpu", **kwargs):
         import os
         import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -119,8 +111,5 @@ class _XlaDistModel(ComputationModel):
             spawn_kwargs["start_method"] = "fork"
 
         xmp.spawn(
-            _XlaDistModel._dist_worker_task_fn,
-            args=(backend, fn, args),
-            nprocs=num_procs_per_node,
-            **spawn_kwargs
+            _XlaDistModel._dist_worker_task_fn, args=(backend, fn, args), nprocs=num_procs_per_node, **spawn_kwargs
         )
