@@ -27,7 +27,10 @@ def local_rank(worker_id):
         raise RuntimeError("Can not get rank from worker_id={}".format(worker_id))
 
     os.environ["LOCAL_RANK"] = "{}".format(lrank)
-    return lrank
+
+    yield lrank
+
+    del os.environ["LOCAL_RANK"]
 
 
 @pytest.fixture()
@@ -41,7 +44,9 @@ def world_size():
             ws = 1
         os.environ["WORLD_SIZE"] = "{}".format(ws)
 
-    return int(os.environ["WORLD_SIZE"])
+    yield int(os.environ["WORLD_SIZE"])
+
+    del os.environ["WORLD_SIZE"]
 
 
 @pytest.fixture()

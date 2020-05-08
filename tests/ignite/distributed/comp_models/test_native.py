@@ -1,3 +1,4 @@
+import os
 import pytest
 
 import torch
@@ -6,6 +7,7 @@ import torch.distributed as dist
 from ignite.distributed.comp_models import _DistModel
 
 
+@pytest.mark.distributed
 def test__dist_model():
     available_backends = _DistModel.available_backends
 
@@ -19,6 +21,8 @@ def test__dist_model():
         assert "mpi" in available_backends
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__dist_model_create_from_backend_bad_config():
     import os
 
@@ -154,11 +158,15 @@ def _test__dist_model_create_from_context_dist(local_rank, rank, world_size, tru
     dist.destroy_process_group()
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__dist_model_create_no_dist_gloo():
     _test__dist_model_create_from_backend_no_dist("gloo", "cpu")
     # _test__dist_model_create_from_context_no_dist("gloo", "cpu")
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__dist_model_create_no_dist_nccl():
     _test__dist_model_create_from_backend_no_dist("nccl", "cuda:0")
@@ -205,15 +213,14 @@ def _test__dist_model_spawn(backend, num_workers_per_machine, device):
     )
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__dist_model_spawn_gloo():
     _test__dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu")
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__dist_model_spawn_nccl():
-    _test__dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")
-
-
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__dist_model_spawn_nccl():
     _test__dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")
