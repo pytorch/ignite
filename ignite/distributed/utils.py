@@ -5,13 +5,6 @@ from functools import wraps
 import torch
 import torch.distributed as dist
 
-try:
-    import torch_xla.core.xla_model as xm
-
-    has_xla_support = True
-except ImportError:
-    has_xla_support = False
-
 from ignite.utils import setup_logger
 from ignite.distributed.comp_models import registered_computation_models, _SerialModel
 
@@ -242,5 +235,5 @@ def show_config():
     logger.info("world size = {}".format(get_world_size()))
     logger.info("rank = {}".format(get_rank()))
     logger.info("ntasks_per_node = {}".format(get_ntasks_per_node()))
-    logger.info("nnodes = {}".format(get_nnodes()))
+    logger.info("nnodes = {}".format(get_num_nodes()))
     logger.info("node = {}".format(get_node_rank()))

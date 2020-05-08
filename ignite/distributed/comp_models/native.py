@@ -1,128 +1,12 @@
-from abc import ABCMeta, abstractmethod
-from typing import Optional, Union
-
 import os
 import subprocess
+from typing import Optional, Union
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from ignite.distributed.utils import has_xla_support
-
-
-class ComputationModel(metaclass=ABCMeta):
-
-    # vfdev: I do not understand the purpose of the method and when to use it
-    # @abstractmethod
-    # def is_initialized(self) -> bool:
-    #     pass
-
-    @abstractmethod
-    def get_local_rank(self) -> int:
-        pass
-
-    @abstractmethod
-    def get_rank(self) -> int:
-        pass
-
-    @abstractmethod
-    def get_world_size(self) -> int:
-        pass
-
-    @abstractmethod
-    def get_ntasks_per_node(self) -> int:
-        pass
-
-    @abstractmethod
-    def get_num_nodes(self) -> int:
-        pass
-
-    @abstractmethod
-    def get_node_rank(self) -> int:
-        pass
-
-    @abstractmethod
-    def is_distributed(self) -> bool:
-        pass
-
-    @abstractmethod
-    def device(self) -> Union[torch.device, str]:
-        pass
-
-    @abstractmethod
-    def backend(self) -> Optional[str]:
-        pass
-
-    @abstractmethod
-    def finalize(self):
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def create_from_context() -> Optional["ComputationModel"]:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def create_from_backend(backend: str, **kwargs) -> "ComputationModel":
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def spawn(*args, **kwargs):
-        pass
-
-
-class _SerialModel(ComputationModel):
-
-    name = "serial"
-    available_backends = tuple()
-
-    # def is_initialized(self) -> bool:
-    #     return True
-
-    def get_local_rank(self) -> int:
-        return 0
-
-    def get_rank(self) -> int:
-        return 0
-
-    def get_world_size(self) -> int:
-        return 1
-
-    def get_ntasks_per_node(self) -> int:
-        return 1
-
-    def get_num_nodes(self) -> int:
-        return 1
-
-    def get_node_rank(self) -> int:
-        return 0
-
-    def is_distributed(self) -> bool:
-        return False
-
-    def device(self) -> Union[torch.device, str]:
-        return "cpu"
-
-    def backend(self) -> Optional[str]:
-        return None
-
-    def finalize(self):
-        pass
-
-    @staticmethod
-    def create_from_context() -> Optional["_SerialModel"]:
-        return _SerialModel()
-
-    @staticmethod
-    def create_from_backend(backend: str, **kwargs) -> "_SerialModel":
-        return _SerialModel()
-
-    @staticmethod
-    def spawn(*args, **kwargs):
-        raise NotImplementedError("Serial computation model does not implement spawn method")
+from ignite.distributed.comp_models.base import ComputationModel
 
 
 class _DistModel(ComputationModel):
@@ -189,9 +73,11 @@ class _DistModel(ComputationModel):
         self._ntasks_per_node = self._compute_ntasks_per_node()
         self._nnodes = self.get_world_size() // self.get_ntasks_per_node()
         self._node = self.get_rank() // self._ntasks_per_node
-        # self._is_initialized = True
 
     def _init_from_context(self):
+
+        raise NotImplementedError("")
+
         self._master_port = None
         self._master_addr = None
 
@@ -251,9 +137,6 @@ class _DistModel(ComputationModel):
         hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
         os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
-    # def is_initialized(self) -> bool:
-    #     return self._is_initialized
-
     def get_local_rank(self) -> int:
         return self._local_rank
 
@@ -288,12 +171,12 @@ class _DistModel(ComputationModel):
 
     @staticmethod
     def _dist_worker_task_fn(
-        local_rank, backend, fn, world_size, num_workers_per_machine, machine_rank, master_addr, master_port, args
+        local_rank, backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args
     ):
         from ignite.distributed.utils import _set_model
 
         os.environ["LOCAL_RANK"] = str(local_rank)
-        os.environ["RANK"] = str(machine_rank * num_workers_per_machine + local_rank)
+        os.environ["RANK"] = str(node_rank * num_procs_per_node + local_rank)
         os.environ["WORLD_SIZE"] = str(world_size)
         os.environ["MASTER_ADDR"] = str(master_addr)
         os.environ["MASTER_PORT"] = str(master_port)
@@ -305,77 +188,20 @@ class _DistModel(ComputationModel):
 
     @staticmethod
     def spawn(
-        backend,
         fn,
         args,
-        num_workers_per_machine,
-        num_machines=1,
-        machine_rank=0,
+        num_procs_per_node,
+        num_nodes=1,
+        node_rank=0,
         master_addr="0.0.0.0",
         master_port=2222,
+        backend="nccl",
         **kwargs
     ):
-        world_size = num_machines * num_workers_per_machine
+        world_size = num_nodes * num_procs_per_node
         mp.spawn(
             _DistModel._dist_worker_task_fn,
-            nprocs=num_workers_per_machine,
-            args=(backend, fn, world_size, num_workers_per_machine, machine_rank, master_addr, master_port, args),
+            nprocs=num_procs_per_node,
+            args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args),
             daemon=False,
         )
-
-
-class _XlaDistModel(ComputationModel):
-
-    name = "xla-dist"
-
-    available_backends = tuple("xla-tpu",)
-
-    def __init__(self, *args, **kwargs):
-
-        raise NotImplementedError("Not implemented")
-
-        if not has_xla_support:
-            raise RuntimeError("Torch xla package is not installed.")
-
-        import torch_xla.core.xla_model as xm
-
-        self._xm = xm
-
-    # def is_initialized(self) -> bool:
-    #     return True
-
-    def get_local_rank(self) -> int:
-        self._xm.get_ordinal()
-
-    def get_rank(self) -> int:
-        return self._xm.get_ordinal()
-
-    def get_world_size(self) -> int:
-        return self._xm.xrt_world_size()
-
-    def get_ntasks_per_node(self) -> int:
-        raise NotImplementedError("not yet implemented")
-
-    def get_num_nodes(self) -> int:
-        raise NotImplementedError("not yet implemented")
-
-    def get_node_rank(self) -> int:
-        raise NotImplementedError("not yet implemented")
-
-    def is_distributed(self) -> bool:
-        raise NotImplementedError("not yet implemented")
-        # return has_xla_support and self._xm.xrt_world_size() > 1
-
-    def finalize(self):
-        pass
-
-    @staticmethod
-    def create_from_context() -> Optional["_SerialModel"]:
-        pass
-
-    @staticmethod
-    def create_from_backend(backend: str, **kwargs) -> "_SerialModel":
-        pass
-
-
-registered_computation_models = [_SerialModel, _DistModel, _XlaDistModel]
