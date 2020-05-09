@@ -37,7 +37,7 @@ def distributed_context_single_node_nccl(local_rank):
         "backend": "nccl",
         "world_size": int(os.environ["WORLD_SIZE"]),
         "rank": local_rank,
-        "init_method": "tcp://localhost:2222",
+        "init_method": "tcp://localhost:2223",
     }
 
     dist.init_process_group(**dist_info)
@@ -57,6 +57,7 @@ def distributed_context_single_node_nccl(local_rank):
 def distributed_context_single_node_gloo(local_rank):
 
     import os
+    from datetime import timedelta
 
     if "WORLD_SIZE" not in os.environ:
         os.environ["WORLD_SIZE"] = "1"
@@ -66,6 +67,7 @@ def distributed_context_single_node_gloo(local_rank):
         "world_size": int(os.environ["WORLD_SIZE"]),
         "rank": local_rank,
         "init_method": "tcp://localhost:2222",
+        "timeout": timedelta(seconds=60)
     }
 
     dist.init_process_group(**dist_info)
