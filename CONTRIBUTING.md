@@ -93,8 +93,8 @@ sh tests/run_cpu_tests.sh
 ```
 
 #### Send a PR
-If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
 
+If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
 
 If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
