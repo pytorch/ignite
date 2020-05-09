@@ -6,7 +6,6 @@ from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.precision import Precision
 from ignite.metrics.recall import Recall
 
-
 __all__ = ["Fbeta"]
 
 
