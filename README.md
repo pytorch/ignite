@@ -20,13 +20,14 @@
 
 ![image](https://img.shields.io/badge/-Features:-black?style=flat-square) [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Twitter](https://img.shields.io/badge/news-twitter-blue)](https://twitter.com/pytorch_ignite)
 
 </div>
 
 ## TL;DR
 
 Ignite is a high-level library to help with training neural networks in
-PyTorch.
+PyTorch:
 
 -   ignite helps you write compact but full-featured training loops in a
     few lines of code
@@ -46,10 +47,8 @@ your code when \"rolling your own\" training loop.
 
 # Table of Contents
 - [Installation](#installation)
-  * [Nightly releases](#nightly-releases)
 - [Why Ignite?](#why-ignite)
 - [Documentation](#documentation)
-  * [Additional Materials](#additional-materials)
 - [Structure](#structure)
 - [Examples](#examples)
   * [MNIST Example](#mnist-example)
@@ -60,7 +59,7 @@ your code when \"rolling your own\" training loop.
 - [Communication](#communication)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
-- [User feedback](#user-feedback)
+- [About the team](#about-the-team)
 
 
 # Installation
@@ -110,7 +109,10 @@ multiple losses and metrics in your training loop.
 
 ## Power of Events & Handlers
 
-The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be any function (e.g. lambda, simple function, class method etc.) with the correct signature, we only require that the first argument be `engine`. Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk up your code and its complexity.
+The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be 
+any function: e.g. lambda, simple function, class method etc. The first argument can be optionally `engine`, but not necessary. 
+Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk 
+up your code and its complexity.
 
 ### Execute any number of functions whenever you wish
 
@@ -120,13 +122,13 @@ Examples
 </summary>
 
 ```python
-trainer.add_event_handler(Events.STARTED, lambda engine: print("Start training"))
+trainer.add_event_handler(Events.STARTED, lambda _: print("Start training"))
 
 # attach handler with args, kwargs
 mydata = [1, 2, 3, 4]
 logger = ...
 
-def on_training_ended(engine, data):
+def on_training_ended(data):
     print("Training is ended. mydata={}".format(data))
     # User can use variables from another scope  
     logger.info("Training is ended")
@@ -153,17 +155,17 @@ Examples
 ```python
 # run the validation every 5 epochs
 @trainer.on(Events.EPOCH_COMPLETED(every=5))
-def run_validation(_):
+def run_validation():
     # run validation
 
 # change some training variable once on 20th epoch
 @trainer.on(Events.EPOCH_STARTED(once=20))
-def change_training_variable(_):
+def change_training_variable():
     # ...
 
 # Trigger handler with customly defined frequency
 @trainer.on(Events.ITERATION_COMPLETED(event_filter=first_x_iters))
-def log_gradients(_):
+def log_gradients():
     # ...
 ```
 
@@ -179,7 +181,7 @@ Examples
 Events can be stacked together to enable multiple calls:
 ```python
 @trainer.on(Events.COMPLETED | Events.EPOCH_COMPLETED(every=10))
-def do_some_validation(engine):
+def run_validation():
     # ...
 ```
 
@@ -194,7 +196,7 @@ Examples
 
 Custom events related to backward and optimizer step calls:
 ```python
-class BackpropEvents(Enum):
+class BackpropEvents(EventEnum):
     BACKWARD_STARTED = 'backward_started'
     BACKWARD_COMPLETED = 'backward_completed'
     OPTIM_STEP_COMPLETED = 'optim_step_completed'
@@ -239,8 +241,10 @@ F1_mean.attach(engine, "F1")
 
 # Documentation
 
-API documentation and an overview of the library can be found
-[here](https://pytorch.org/ignite/index.html).
+- Stable API documentation and an overview of the library: https://pytorch.org/ignite/
+- Development version API documentation: https://pytorch.org/ignite/master/
+- [FAQ](https://pytorch.org/ignite/faq.html) and ["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+).
+- [Project's Roadmap](https://github.com/pytorch/ignite/wiki/Roadmap)
 
 ## Additional Materials
 
@@ -257,14 +261,13 @@ API documentation and an overview of the library can be found
     variety of handlers to ease the pain of training and validation of
     neural networks!
 -   **ignite.contrib**: The Contrib directory contains additional
-    modules contributed by Ignite users. Modules vary from TBPTT engine,
+    modules that can require extra dependencies. Modules vary from TBPTT engine,
     various optimisation parameter schedulers, logging handlers and a
     metrics module containing many regression metrics
     ([ignite.contrib.metrics.regression](https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression))!
 
 The code in **ignite.contrib** is not as fully maintained as the core
-part of the library. It may change or be removed at any time without
-notice.
+part of the library.
 
 # Examples
 
@@ -295,7 +298,13 @@ Basic neural network training on MNIST dataset with/without `ignite.contrib` mod
     CIFAR100](https://github.com/pytorch/ignite/blob/master/examples/notebooks/EfficientNet_Cifar100_finetuning.ipynb)
 -   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb)  [Hyperparameters tuning with
     Ax](https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar10_Ax_hyperparam_tuning.ipynb) 
--   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/FastaiLRFinder_MNIST.ipynb)  [Basic example of LR finder on MNIST](https://github.com/pytorch/ignite/blob/master/examples/notebooks/FastaiLRFinder_MNIST.ipynb) 
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/FastaiLRFinder_MNIST.ipynb)  [Basic example of LR finder on 
+    MNIST](https://github.com/pytorch/ignite/blob/master/examples/notebooks/FastaiLRFinder_MNIST.ipynb)
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/Cifar100_bench_amp.ipynb)  [Benchmark mixed precision training on Cifar100: 
+    torch.cuda.amp vs nvidia/apex](https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar100_bench_amp.ipynb) 
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)  [MNIST training on a single 
+    TPU](https://github.com/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)
+   
 
 ## Distributed CIFAR10 Example
 
@@ -354,11 +363,6 @@ Thank you !
 
 # Contributing
 
-We appreciate all contributions. If you are planning to contribute back
-bug-fixes, please do so without any further discussion. If you plan to
-contribute new features, utility functions or extensions, please first
-open an issue and discuss the feature with us.
-
 Please see the [contribution
 guidelines](https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md)
 for more information.
@@ -367,27 +371,51 @@ As always, PRs are welcome :)
 
 # Projects using Ignite
 
+## Research papers
+
+-   [BatchBALD: Efficient and Diverse Batch Acquisition for Deep Bayesian Active Learning](https://github.com/BlackHC/BatchBALD)
+-   [A Model to Search for Synthesizable Molecules](https://github.com/john-bradshaw/molecule-chef)
+-   [Localised Generative Flows](https://github.com/jrmcornish/lgf)
+-   [Extracting T Cell Function and Differentiation Characteristics from the Biomedical Literature](https://github.com/hammerlab/t-cell-relation-extraction)
+-   [Variational Information Distillation for Knowledge Transfer](https://github.com/amzn/xfer/tree/master/var_info_distil)
+-   [XPersona: Evaluating Multilingual Personalized Chatbot](https://github.com/HLTCHKUST/Xpersona)
+-   [CNN-CASS: CNN for Classification of Coronary Artery Stenosis Score in MPR Images](https://github.com/ucuapps/CoronaryArteryStenosisScoreClassification)
+-   [Bridging Text and Video: A Universal Multimodal Transformer for Video-Audio Scene-Aware Dialog](https://github.com/ictnlp/DSTC8-AVSD)
+-   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
+
+## Blog articles, tutorials, books
+
 -   [State-of-the-Art Conversational AI with Transfer
     Learning](https://github.com/huggingface/transfer-learning-conv-ai)
 -   [Tutorial on Transfer Learning in NLP held at NAACL
     2019](https://github.com/huggingface/naacl_transfer_learning_tutorial)
+-   [Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by
+    Packt](https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition)
+-   [Once Upon a Repository: How to Write Readable, Maintainable Code with PyTorch](https://towardsdatascience.com/once-upon-a-repository-how-to-write-readable-maintainable-code-with-pytorch-951f03f6a829)
+
+
+## Toolkits
+
+-   [Project MONAI -
+    AI Toolkit for Healthcare Imaging
+    ](https://github.com/Project-MONAI/MONAI)
+-   [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
+-   [Nussl - a flexible, object oriented Python audio source separation library](https://github.com/nussl/nussl)
+
+## Others
+
 -   [Implementation of \"Attention is All You Need\"
     paper](https://github.com/akurniawan/pytorch-transformer)
 -   [Implementation of DropBlock: A regularization method for
     convolutional networks in
     PyTorch](https://github.com/miguelvr/dropblock)
--   [Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by
-    Packt](https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition)
 -   [Kaggle Kuzushiji Recognition: 2nd place
     solution](https://github.com/lopuhin/kaggle-kuzushiji-2019)
 -   [Unsupervised Data Augmentation experiments in
     PyTorch](https://github.com/vfdev-5/UDA-pytorch)
 -   [Hyperparameters tuning with
     Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
--   [Project MONAI -
-    AI Toolkit for Healthcare Imaging
-    ](https://github.com/Project-MONAI/MONAI)
--   [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
+-   [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 
 See other projects at [\"Used
 by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
@@ -398,3 +426,8 @@ your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
 
+
+# About the team
+
+Project is currently maintained by a team of volunteers.
+See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors.

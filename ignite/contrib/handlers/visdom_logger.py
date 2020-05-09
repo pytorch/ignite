@@ -1,7 +1,7 @@
-import os
 import numbers
-
+import os
 import warnings
+
 import torch
 
 from ignite.contrib.handlers.base_logger import (
@@ -481,6 +481,12 @@ class VisdomLogger(BaseLogger):
     def close(self):
         self.vis = None
         self.executor.shutdown()
+
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)
 
 
 class _DummyExecutor:

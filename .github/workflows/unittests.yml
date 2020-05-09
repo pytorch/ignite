@@ -1,4 +1,4 @@
-on: [pull_request]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -9,6 +9,10 @@ jobs:
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8]
         pytorch-channel: [pytorch, pytorch-nightly]
+        exclude:
+          # excludes pytorch-nightly python 3.5 as it was dropped
+          - pytorch-channel: pytorch-nightly
+            python-version: 3.5
 
     steps:
     - uses: actions/checkout@v2
@@ -30,15 +34,9 @@ jobs:
         # Keep fix in case of problem with torchvision nightly releases
         # if [[ "${{ matrix.pytorch-channel }}" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}; fi
         conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
-        # Contrib dependencies
-        pip install tqdm scikit-learn matplotlib visdom polyaxon-client mlflow neptune-client tensorboard tensorboardX
-        if [[ ${{ matrix.python-version }} != 3.5 ]]; then pip install pynvml; fi
-        pip install numpy pytest codecov pytest-cov pytest-xdist
-        # install ignite
+        pip install -r requirements-dev.txt
         python setup.py install
-        # example dependencies
-        pip install pandas gym
-        
+
     - name: Run Tests
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
@@ -73,13 +71,13 @@ jobs:
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
         # 4) mnist_save_resume_engine.py
-        python examples/mnist/mnist_save_resume_engine.py --epochs=1 --crash_iteration 700
+        python examples/mnist/mnist_save_resume_engine.py --epochs=2 --crash_iteration 1100
         
     - name: Resume MNIST from previous crash
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
-        python examples/mnist/mnist_save_resume_engine.py --epochs=1 --resume_from=/tmp/mnist_save_resume/checkpoint_550.pt
+        python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
 
     - name: Run GAN example
       run: |

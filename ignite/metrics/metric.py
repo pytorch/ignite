@@ -82,7 +82,9 @@ class Metric(metaclass=ABCMeta):
         This is called at the end of each epoch.
 
         Returns:
-            Any: the actual quantity of interest.
+            Any: the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,
+                 it will be (shallow) flattened into `engine.state.metrics` when
+                 :func:`~ignite.metrics.Metric.completed` is called.
 
         Raises:
             NotComputableError: raised when the metric cannot be computed.
@@ -137,9 +139,14 @@ class Metric(metaclass=ABCMeta):
 
     def completed(self, engine: Engine, name: str) -> None:
         result = self.compute()
-        if torch.is_tensor(result) and len(result.shape) == 0:
-            result = result.item()
-        engine.state.metrics[name] = result
+        if isinstance(result, Mapping):
+            for key, value in result.items():
+                engine.state.metrics[key] = value
+        else:
+            if isinstance(result, torch.Tensor) and len(result.size()) == 0:
+                result = result.item()
+
+            engine.state.metrics[name] = result
 
     def attach(self, engine: Engine, name: str) -> None:
         """
@@ -291,6 +298,12 @@ class Metric(metaclass=ABCMeta):
         from ignite.metrics import MetricsLambda
 
         return MetricsLambda(lambda x: x[index], self)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
 
 def sync_all_reduce(*attrs) -> Callable:

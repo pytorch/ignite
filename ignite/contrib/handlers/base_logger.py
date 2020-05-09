@@ -2,48 +2,17 @@ from abc import ABCMeta, abstractmethod
 import numbers
 import warnings
 
+from typing import Mapping, Any
+
 import torch
 
 from ignite.engine import State, Engine
 from ignite.handlers import global_step_from_engine
 
 
-class BaseLogger:
-    """
-    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
-
-    """
-
-    def attach(self, engine, log_handler, event_name):
-        """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
-
-        Args:
-            engine (Engine): engine object.
-            log_handler (callable): a logging handler to execute
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
-
-        """
-        name = event_name
-
-        if name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(name))
-
-        engine.add_event_handler(event_name, log_handler, self, name)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.close()
-
-    def close(self):
-        pass
-
-
 class BaseHandler(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, *args, **kwargs):
+    def __call__(self, engine, logger, event_name):
         pass
 
 
@@ -172,3 +141,76 @@ class BaseWeightsHistHandler(BaseHandler):
 
         self.model = model
         self.tag = tag
+
+
+class BaseLogger(metaclass=ABCMeta):
+    """
+    Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
+
+    """
+
+    def attach(self, engine, log_handler, event_name):
+        """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
+
+        Args:
+            engine (Engine): engine object.
+            log_handler (callable): a logging handler to execute
+            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+
+        Returns:
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+        """
+        name = event_name
+
+        if name not in State.event_to_attr:
+            raise RuntimeError("Unknown event name '{}'".format(name))
+
+        return engine.add_event_handler(event_name, log_handler, self, name)
+
+    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        """Shortcut method to attach `OutputHandler` to the logger.
+
+        Args:
+            engine (Engine): engine object.
+            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            *args: args to initialize `OutputHandler`
+            **kwargs: kwargs to initialize `OutputHandler`
+
+        Returns:
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+        """
+        return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
+
+    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+        """Shortcut method to attach `OptimizerParamsHandler` to the logger.
+
+        Args:
+            engine (Engine): engine object.
+            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
+                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            *args: args to initialize `OptimizerParamsHandler`
+            **kwargs: kwargs to initialize `OptimizerParamsHandler`
+
+        Returns:
+            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+        """
+        self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
+
+    @abstractmethod
+    def _create_output_handler(self, engine, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def _create_opt_params_handler(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def close(self):
+        pass

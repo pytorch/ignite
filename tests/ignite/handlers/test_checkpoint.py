@@ -6,6 +6,7 @@ import torch.nn as nn
 
 from ignite.engine import Engine, Events, State
 from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver
+from ignite.handlers.checkpoint import BaseSaveHandler
 
 import pytest
 from unittest.mock import MagicMock
@@ -76,8 +77,7 @@ def test_checkpoint_score_function_wrong_output():
 
 def test_checkpoint_default():
     def _test(to_save, obj, name):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
         checkpointer = Checkpoint(to_save, save_handler=save_handler)
         assert checkpointer.last_checkpoint is None
@@ -111,8 +111,7 @@ def test_checkpoint_default():
 
 def test_checkpoint_with_global_step_transform():
     def _test(filename_prefix, to_save, obj, name):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
         checkpointer = Checkpoint(
             to_save,
@@ -154,8 +153,7 @@ def test_checkpoint_with_global_step_transform():
 
 def test_checkpoint_with_score_function():
     def _test(to_save, obj, name):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
         checkpointer = Checkpoint(to_save, save_handler=save_handler, score_function=lambda e: e.state.score)
 
@@ -190,8 +188,7 @@ def test_checkpoint_with_score_function():
 
 def test_checkpoint_with_score_name_and_function():
     def _test(to_save, obj, name):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
         checkpointer = Checkpoint(
             to_save, save_handler=save_handler, score_name="loss", score_function=lambda e: e.state.score
@@ -228,8 +225,7 @@ def test_checkpoint_with_score_name_and_function():
 
 def test_checkpoint_with_int_score():
     def _test(to_save, obj, name, score_name=None):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
         checkpointer = Checkpoint(
             to_save, save_handler=save_handler, score_name=score_name, score_function=lambda e: e.state.epoch
@@ -272,8 +268,7 @@ def test_checkpoint_with_int_score():
 
 def test_checkpoint_with_score_function_and_trainer_epoch():
     def _test(to_save, obj, name):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
         trainer = Engine(lambda e, b: None)
         evaluator = Engine(lambda e, b: None)
@@ -309,8 +304,7 @@ def test_checkpoint_with_score_function_and_trainer_epoch():
 
 def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
     def _test(to_save, obj, name):
-        save_handler = MagicMock()
-        save_handler.remove = MagicMock()
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
         trainer = Engine(lambda e, b: None)
         evaluator = Engine(lambda e, b: None)
@@ -347,8 +341,7 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
 
 
 def test_checkpoint_last_checkpoint():
-    save_handler = MagicMock()
-    save_handler.remove = MagicMock()
+    save_handler = MagicMock(spec=BaseSaveHandler)
     to_save = {"model": DummyModel()}
 
     checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None)
@@ -364,8 +357,7 @@ def test_checkpoint_last_checkpoint():
 
 
 def test_checkpoint_last_checkpoint_on_score():
-    save_handler = MagicMock()
-    save_handler.remove = MagicMock()
+    save_handler = MagicMock(spec=BaseSaveHandler)
     to_save = {"model": DummyModel()}
 
     checkpointer = Checkpoint(

@@ -4,7 +4,7 @@ Concepts
 Engine
 ------
 
-The **essence** of the framework is the class :class:`~ignite.engine.Engine`, an abstraction that loops a given number of times over
+The **essence** of the framework is the class :class:`~ignite.engine.engine.Engine`, an abstraction that loops a given number of times over
 provided data, executes a processing function and returns a result:
 
 .. code-block:: python
@@ -55,17 +55,19 @@ For example, model trainer for a supervised task:
 Events and Handlers
 -------------------
 
-To improve the :class:`~ignite.engine.Engine`'s flexibility, an event system is introduced that facilitates interaction on each step of
+To improve the :class:`~ignite.engine.engine.Engine`'s flexibility, an event system is introduced that facilitates interaction on each step of
 the run:
 
 - *engine is started/completed*
 - *epoch is started/completed*
 - *batch iteration is started/completed*
 
-Complete list of events can be found at :class:`~ignite.engine.Events`.
+Complete list of events can be found at :class:`~ignite.engine.events.Events`.
 
-Thus, user can execute a custom code as an event handler. Let us consider in more detail what happens when
-:meth:`~ignite.engine.Engine.run` is called:
+Thus, user can execute a custom code as an event handler. Handlers can be any function: e.g. lambda, simple function,
+class method etc. The first argument can be optionally `engine`, but not necessary.
+
+Let us consider in more detail what happens when :meth:`~ignite.engine.engine.Engine.run` is called:
 
 .. code-block:: python
 
@@ -86,8 +88,8 @@ At first *engine is started* event is fired and all this event handlers are exec
 how to add event handlers). Next, `while` loop is started and *epoch is started* event occurs, etc. Every time
 an event is "fired", attached handlers are executed.
 
-Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.add_event_handler` or
-:meth:`~ignite.engine.Engine.on` decorator:
+Attaching an event handler is simple using method :meth:`~ignite.engine.engine.Engine.add_event_handler` or
+:meth:`~ignite.engine.engine.Engine.on` decorator:
 
 .. code-block:: python
 
@@ -98,17 +100,21 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.Engine.a
     @trainer.on(Events.STARTED)
     def on_training_started(engine):
         print("Another message of start training")
+    # or even simpler, use only what you need !
+    @trainer.on(Events.STARTED)
+    def on_training_started():
+        print("Another message of start training")
 
     # attach handler with args, kwargs
     mydata = [1, 2, 3, 4]
 
-    def on_training_ended(engine, data):
+    def on_training_ended(data):
         print("Training is ended. mydata={}".format(data))
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
-Event handlers can be detached via :meth:`~ignite.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.RemovableEventHandle`
-reference returned by :meth:`~ignite.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
+Event handlers can be detached via :meth:`~ignite.engine.engine.Engine.remove_event_handler` or via the :class:`~ignite.engine.events.RemovableEventHandle`
+reference returned by :meth:`~ignite.engine.engine.Engine.add_event_handler`. This can be used to reuse a configured engine for multiple loops:
 
 .. code-block:: python
 
@@ -147,12 +153,12 @@ event filtering function:
     trainer = create_supervised_trainer(model, optimizer, loss)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=50))
-    def log_training_loss_every_50_iterations(engine):
+    def log_training_loss_every_50_iterations():
         print("{} / {} : {} - loss: {:.2f}"
-              .format(engine.state.epoch, engine.state.max_epochs, engine.state.iteration, engine.state.output))
+              .format(trainer.state.epoch, trainer.state.max_epochs, trainer.state.iteration, trainer.state.output))
 
     @trainer.on(Events.EPOCH_STARTED(once=25))
-    def do_something_once_on_25_epoch(engine):
+    def do_something_once_on_25_epoch():
         # do something
 
     def custom_event_filter(engine, event):
@@ -169,8 +175,8 @@ event filtering function:
 
 .. Note ::
 
-   User can also register custom events with :meth:`~ignite.engine.Engine.register_events`, attach handlers and fire custom events
-   calling :meth:`~ignite.engine.Engine.fire_event` in any handler or `process_function`.
+   User can also register custom events with :meth:`~ignite.engine.engine.Engine.register_events`, attach handlers and fire custom events
+   calling :meth:`~ignite.engine.engine.Engine.fire_event` in any handler or `process_function`.
 
    See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
@@ -187,18 +193,18 @@ epoch:
 
 State
 -----
-A state is introduced in :class:`~ignite.engine.Engine` to store the output of the `process_function`, current epoch,
-iteration and other helpful information. Each :class:`~ignite.engine.Engine` contains a :class:`~ignite.engine.State`, 
+A state is introduced in :class:`~ignite.engine.engine.Engine` to store the output of the `process_function`, current epoch,
+iteration and other helpful information. Each :class:`~ignite.engine.engine.Engine` contains a :class:`~ignite.engine.events.State`,
 which includes the following:
 
 - **engine.state.seed**: Seed to set at each data "epoch".
 - **engine.state.epoch**: Number of epochs the engine has completed. Initializated as 0 and the first epoch is 1.
 - **engine.state.iteration**: Number of iterations the engine has completed. Initialized as 0 and the first iteration is 1.
 - **engine.state.max_epochs**: Number of epochs to run for. Initializated as 1.
-- **engine.state.output**: The output of the `process_function` defined for the :class:`~ignite.engine.Engine`. See below.
+- **engine.state.output**: The output of the `process_function` defined for the :class:`~ignite.engine.engine.Engine`. See below.
 - etc
 
-Other attributes can be found in the docs of :class:`~ignite.engine.State`.
+Other attributes can be found in the docs of :class:`~ignite.engine.events.State`.
 
 In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at 
 every iteration.
@@ -281,7 +287,7 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
 
 .. Note ::
 
-   A good practice is to use :class:`~ignite.engine.State` also as a storage of user data created in update or handler functions.
+   A good practice is to use :class:`~ignite.engine.events.State` also as a storage of user data created in update or handler functions.
    For example, we would like to save `new_attribute` in the `state`:
 
    .. code-block:: python
@@ -290,14 +296,30 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
           engine.state.new_attribute = 12345
 
 
-Resume training
----------------
+Deterministic training
+----------------------
 
-Engine provides two methods to serialize and deserialize its internal state :meth:`~ignite.engine.Engine.state_dict` and
-:meth:`~ignite.engine.Engine.load_state_dict`. In addition
-with serializing model, optimizer, lr scheduler etc user can store the trainer and then resume the training from
-an **iteration**. For example, using :class:`~ignite.handlers.Checkpoint` handler we can easily save checkpoints
-containing serialized trainer, model, optimizer, etc
+In general, it is rather difficult task to achieve deterministic and reproducible trainings as it relies on multiple
+aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch documentation <https://pytorch.org/docs/stable/notes/randomness.html>`_:
+there are some steps to take in order to make computations deterministic on your specific problem on one specific
+platform and PyTorch release:
+
+- setup random state seed
+
+- set `cudnn to deterministic <https://pytorch.org/docs/stable/notes/randomness.html#cudnn>`_ if applicable
+
+By default, these two options can be enough to run and rerun experiments in a deterministic way.
+Ignite's engine does not impact this behaviour.
+
+
+Resuming the training
+---------------------
+
+It is also possible to resume the training from a checkpoint and approximatively reproduce original run's behaviour.
+Using Ignite, this can be easily done using :class:`~ignite.handlers.Checkpoint` handler. Engine provides two methods
+to serialize and deserialize its internal state :meth:`~ignite.engine.engine.Engine.state_dict` and
+:meth:`~ignite.engine.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler etc user can
+store the trainer and then resume the training. For example:
 
 .. code-block:: python
 
@@ -312,7 +334,7 @@ containing serialized trainer, model, optimizer, etc
 
     to_save = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
     handler = Checkpoint(to_save, DiskSaver('/tmp/training', create_dir=True))
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
     trainer.run(data_loader, max_epochs=100)
 
 .. code-block:: bash
@@ -338,16 +360,82 @@ We can then restore the training from the last checkpoint.
 
     trainer.run(train_loader, max_epochs=100)
 
-Please, note that trainer can continue the training from the checkpoint iteration.
-In case when input data is `torch.utils.data.DataLoader`, previous batches are skipped and the first provided batch
-corresponds to the batch after the checkpoint iteration. Internally, while resuming, previous datapoint indices are just
-skipped without fetching the data.
 
-.. warning::
+It is also possible to store checkpoints every N iterations and continue the training from one of these checkpoints, i.e
+from iteration.
 
-    However, while resuming from iteration, random data augmentations are not synchronized in the middle of the epoch and
-    thus batches remaining until the end of en epoch can effectively be different of those from the initial run.
 
+Dataflow synchronization
+````````````````````````
+
+Previous approach, however, does not synchronize the dataflow and the model does not see the same data samples when
+resuming from a checkpoint. Therefore, training curves will not be exactly the same.
+
+Ignite provides an option to control the dataflow by synchronizing random state on epochs. In this way, for a given
+iteration/epoch the dataflow can be the same for a given seed. More precisely it is roughly looks like:
+
+.. code-block:: python
+
+    for e in range(num_epochs):
+        set_seed(seed + e)
+        do_single_epoch_iterations(dataloader)
+
+
+In addition, if data provider is `torch.utils.data.DataLoader`, batch data indices can be made completely deterministic.
+Here is a trivial example of usage:
+
+.. code-block:: python
+
+    import torch
+    from torch.utils.data import DataLoader
+    from ignite.engine import DeterministicEngine, Events
+    from ignite.utils import manual_seed
+
+
+    def random_train_data_loader(size):
+        data = torch.arange(0, size)
+        return DataLoader(data, batch_size=4, shuffle=True)
+
+
+    def print_train_data(engine, batch):
+        i = engine.state.iteration
+        e = engine.state.epoch
+        print("train", e, i, batch.tolist())
+
+    trainer = DeterministicEngine(print_train_data)
+
+    print("Original Run")
+    manual_seed(56)
+    trainer.run(random_train_data_loader(40), max_epochs=2, epoch_length=5)
+
+    print("Resumed Run")
+    # Resume from 2nd epoch
+    trainer.load_state_dict({"epoch": 1, "epoch_length": 5, "max_epochs": 2, "rng_states": None})
+    manual_seed(56)
+    trainer.run(random_train_data_loader(40))
+
+.. code-block:: text
+
+    Original Run
+    train 1 1 [31, 13, 3, 4]
+    train 1 2 [23, 18, 6, 16]
+    train 1 3 [10, 8, 33, 36]
+    train 1 4 [1, 37, 19, 9]
+    train 1 5 [20, 30, 14, 26]
+    train 2 6 [29, 35, 38, 34]
+    train 2 7 [7, 22, 12, 17]
+    train 2 8 [25, 21, 24, 15]
+    train 2 9 [39, 5, 2, 28]
+    train 2 10 [27, 11, 32, 0]
+    Resumed Run
+    train 2 6 [29, 35, 38, 34]
+    train 2 7 [7, 22, 12, 17]
+    train 2 8 [25, 21, 24, 15]
+    train 2 9 [39, 5, 2, 28]
+    train 2 10 [27, 11, 32, 0]
+
+
+We can see that the data samples are exactly the same between original and resumed runs.
 
 Complete examples that simulates a crash on a defined iteration and resumes the training from a checkpoint can be found
 here:
@@ -355,4 +443,74 @@ here:
 - `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume>`_
 - `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#check-resume-training>`_
 
+
+.. Note ::
+
+    In case when input data is `torch.utils.data.DataLoader`, previous batches are skipped and the first provided batch
+    corresponds to the batch after the checkpoint iteration. Internally, while resuming, previous datapoint indices are just
+    skipped without fetching the data.
+
+.. warning::
+
+    However, while resuming from iteration, random data augmentations are not synchronized in the middle of the epoch and
+    thus batches remaining until the end of the epoch can be different of those from the initial run.
+
+.. warning::
+
+    However, please, keep in mind that there can be an issue with dataflow synchronization on every epoch
+    if user's handler synchronizes the random state, for example, by calling periodically `torch.manual_seed(seed)` during
+    the run. This can have an impact on the dataflow:
+
+    .. code-block:: python
+
+        def random_train_data_generator():
+            while True:
+                yield torch.randint(0, 100, size=(1, ))
+
+        trainer = DeterministicEngine(print_train_data)
+
+        @trainer.on(Events.ITERATION_COMPLETED(every=3))
+        def user_handler(_):
+            # handler synchronizes the random state
+            torch.manual_seed(12)
+            a = torch.rand(1)
+
+        trainer.run(random_train_data_generator(), max_epochs=3, epoch_length=5);
+
+    .. code-block:: text
+
+        train 1 1 [32]
+        train 1 2 [29]
+        train 1 3 [40]
+        train 1 4 [3]  <---
+        train 1 5 [22]
+        train 2 6 [77]
+        train 2 7 [3]  <---
+        train 2 8 [22]
+        train 2 9 [77]
+        train 2 10 [3] <---
+        train 3 11 [22]
+        train 3 12 [77]
+        train 3 13 [3] <---
+        train 3 14 [22]
+        train 3 15 [77]
+
+    Initially, the function `random_train_data_generator()` generates randomly data batches using the random state set
+    up by `trainer`. This is intended behaviour until `user_handler()` is called.
+    After `user_handler()` execution, random state is altered and thus `random_train_data_generator()` will produce
+    random batches based on altered random state.
+
+    We provide helper decorator :meth:`~ignite.engine.deterministic.keep_random_state` to save and restore random states for
+    `torch`, `numpy` and `random`. Therefore, we can deal with described issue using this decorator:
+
+    .. code-block:: python
+
+        from ignite.engine.deterministic import keep_random_state
+
+        @trainer.on(Events.ITERATION_COMPLETED(every=3))
+        @keep_random_state
+        def user_handler(_):
+            # handler synchronizes the random state
+            torch.manual_seed(12)
+            a = torch.rand(1)
 

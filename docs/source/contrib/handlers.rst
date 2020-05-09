@@ -20,6 +20,7 @@ lr_finder
 ---------
 
 .. automodule:: ignite.contrib.handlers.lr_finder
+   :members:
 
 
 time_profilers
@@ -84,6 +85,12 @@ polyaxon_logger
    :members:
    :inherited-members:
 
+wandb_logger
+---------------
+
+.. automodule:: ignite.contrib.handlers.wandb_logger
+   :members:
+   :inherited-members:
 
 More on parameter scheduling
 ----------------------------

@@ -229,9 +229,18 @@ def _test_every_event_filter_with_engine(device="cpu"):
             assert counter_every[0] == getattr(engine.state, event_attr)
             num_calls[0] += 1
 
+        @engine.on(event_name(every=every))
+        def assert_every_no_engine():
+            assert getattr(engine.state, event_attr) % every == 0
+            assert counter_every[0] == getattr(engine.state, event_attr)
+
         @engine.on(event_name)
         def assert_(engine):
             counter[0] += 1
+            assert getattr(engine.state, event_attr) == counter[0]
+
+        @engine.on(event_name)
+        def assert_no_engine():
             assert getattr(engine.state, event_attr) == counter[0]
 
         engine.run(data, max_epochs=5)
@@ -412,17 +421,17 @@ def _test_every_event_filter_with_engine_with_dataloader(device):
         )
         seen_batchs = []
 
-        def update_fn(engine, batch):
+        def update_fn(_, batch):
             batch_to_device = batch.to(device)
             seen_batchs.append(batch)
 
         engine = Engine(update_fn)
 
-        def foo(engine):
+        def foo(_):
             pass
 
         engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo)
-        engine.run(dataloader, max_epochs=max_epochs, seed=12)
+        engine.run(dataloader, max_epochs=max_epochs)
         engine = None
 
         import gc

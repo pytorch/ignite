@@ -230,6 +230,25 @@ def test_multiple_attach():
     trainer.run(data)
 
 
+def test_output_is_tensor():
+
+    m = RunningAverage(output_transform=lambda x: x)
+    m.update(torch.rand(10, requires_grad=True).mean())
+    v = m.compute()
+    assert isinstance(v, torch.Tensor)
+    assert not v.requires_grad
+
+    m.update(torch.rand(10, requires_grad=True).mean())
+    v = m.compute()
+    assert isinstance(v, torch.Tensor)
+    assert not v.requires_grad
+
+    m.update(torch.rand(10, requires_grad=True).mean())
+    v = m.compute()
+    assert isinstance(v, torch.Tensor)
+    assert not v.requires_grad
+
+
 def _test_distrib_on_output(device):
     import torch.distributed as dist
 

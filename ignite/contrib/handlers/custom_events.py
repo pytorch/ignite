@@ -1,8 +1,11 @@
 from ignite.engine import Events, State, EventEnum
+import warnings
 
 
 class CustomPeriodicEvent:
-    """Handler to define a custom periodic events as a number of elapsed iterations/epochs for an engine.
+    """DEPRECATED. Use filtered events instead.
+    Handler to define a custom periodic events as a number of elapsed iterations/epochs
+    for an engine.
 
     When custom periodic event is created and attached to an engine, the following events are fired:
     1) K iterations is specified:
@@ -50,6 +53,11 @@ class CustomPeriodicEvent:
     """
 
     def __init__(self, n_iterations=None, n_epochs=None):
+
+        warnings.warn(
+            "CustomPeriodicEvent is deprecated since 0.4.0 and will be removed in 0.5.0. Use filtered events instead.",
+            DeprecationWarning,
+        )
 
         if n_iterations is not None and (not isinstance(n_iterations, int) or n_iterations < 1):
             raise ValueError("Argument n_iterations should be positive integer number")

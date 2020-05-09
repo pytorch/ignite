@@ -5,12 +5,15 @@ from ignite.engine.engine import Engine
 from ignite.engine.events import State, Events, EventEnum, CallableEventWithFilter
 from ignite.utils import convert_tensor
 from ignite.metrics import Metric
+from ignite.engine.deterministic import DeterministicEngine
+
 
 __all__ = [
     "State",
     "create_supervised_trainer",
     "create_supervised_evaluator",
     "Engine",
+    "DeterministicEngine",
     "Events",
     "EventEnum",
     "CallableEventWithFilter",
@@ -38,29 +41,48 @@ def create_supervised_trainer(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    deterministic: bool = False,
 ) -> Engine:
     """
     Factory function for creating a trainer for supervised models.
-
     Args:
         model (`torch.nn.Module`): the model to train.
         optimizer (`torch.optim.Optimizer`): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
-            Applies to batches and the model after starting the engine.
+            Applies to batches after starting the engine. Model *will not* be moved.
+            Device can be CPU, GPU or TPU.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is the loss
+        deterministic (bool, optional): if True, returns deterministic engine of type
+            :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.Engine`
+            (default: False).
+    Note:
+        `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
         of the processed batch by default.
-
+    .. warning::
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+        For more information see:
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
     Returns:
         Engine: a trainer engine with supervised update function.
     """
+
+    device_type = device.type if isinstance(device, torch.device) else device
+    on_tpu = "xla" in device_type if device_type is not None else False
+
+    if on_tpu:
+        try:
+            import torch_xla.core.xla_model as xm
+        except ImportError:
+            raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
 
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
@@ -69,16 +91,15 @@ def create_supervised_trainer(
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
-        optimizer.step()
+
+        if on_tpu:
+            xm.optimizer_step(optimizer, barrier=True)
+        else:
+            optimizer.step()
+
         return output_transform(x, y, y_pred, loss)
 
-    trainer = Engine(_update)
-
-    if device is not None:
-
-        @trainer.on(Events.STARTED)
-        def move_model(engine):
-            model.to(device)
+    trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
 
     return trainer
 
@@ -98,7 +119,7 @@ def create_supervised_evaluator(
         model (`torch.nn.Module`): the model to train.
         metrics (dict of str - :class:`~ignite.metrics.Metric`): a map of metric names to Metrics.
         device (str, optional): device type specification (default: None).
-            Applies to batches and the model after starting the engine.
+            Applies to batches after starting the engine. Model *will not* be moved.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
@@ -107,8 +128,20 @@ def create_supervised_evaluator(
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
-    Note: `engine.state.output` for this engine is defind by `output_transform` parameter and is
+    Note:
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
+
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: an evaluator engine with supervised inference function.
@@ -123,12 +156,6 @@ def create_supervised_evaluator(
             return output_transform(x, y, y_pred)
 
     evaluator = Engine(_inference)
-
-    if device is not None:
-
-        @evaluator.on(Events.STARTED)
-        def move_model(engine):
-            model.to(device)
 
     for name, metric in metrics.items():
         metric.attach(evaluator, name)

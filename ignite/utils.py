@@ -1,3 +1,4 @@
+import random
 import collections.abc as collections
 import logging
 from functools import wraps
@@ -61,20 +62,21 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 
 
 def setup_logger(
-    name: str,
+    name: Optional[str] = None,
     level: int = logging.INFO,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
-    distributed_rank: int = 0,
+    distributed_rank: Optional[int] = None,
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
     Args:
-        name (str): new name for the logger.
+        name (str, optional): new name for the logger. If None, the standard logger is used.
         level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG
         format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`
         filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
         distributed_rank (int, optional): Optional, rank in distributed configuration to avoid logger setup for workers.
+        If None, distributed_rank is initialized to the rank of process.
 
     Returns:
         logging.Logger
@@ -103,10 +105,11 @@ def setup_logger(
     """
     logger = logging.getLogger(name)
 
-    if distributed_rank > 0:
-        return logger
-
-    logger.setLevel(level)
+    # don't propagate to ancestors
+    # the problem here is to attach handlers to loggers
+    # should we provide a default configuration less open ?
+    if name is not None:
+        logger.propagate = False
 
     # Remove previous handlers
     if logger.hasHandlers():
@@ -115,18 +118,46 @@ def setup_logger(
 
     formatter = logging.Formatter(format)
 
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    if distributed_rank is None:
+        if dist.is_available() and dist.is_initialized():
+            distributed_rank = dist.get_rank()
+        else:
+            distributed_rank = 0
 
-    if filepath is not None:
-        fh = logging.FileHandler(filepath)
-        fh.setLevel(level)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
+    if distributed_rank > 0:
+        logger.addHandler(logging.NullHandler())
+    else:
+        logger.setLevel(level)
+
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+        if filepath is not None:
+            fh = logging.FileHandler(filepath)
+            fh.setLevel(level)
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
 
     return logger
+
+
+def manual_seed(seed: int) -> None:
+    """Setup random state from a seed for `torch`, `random` and optionally `numpy` (if can be imported).
+
+    Args:
+        seed (int): Random state seed
+
+    """
+    random.seed(seed)
+    torch.manual_seed(seed)
+    try:
+        import numpy as np
+
+        np.random.seed(seed)
+    except ImportError:
+        pass
 
 
 def one_rank_only(rank: int = 0, barrier: bool = False):
@@ -137,6 +168,7 @@ def one_rank_only(rank: int = 0, barrier: bool = False):
         barrier (bool): synchronisation with a barrier (default: False).
 
     .. code-block:: python
+
         engine = ...
 
         @engine.on(...)

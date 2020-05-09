@@ -1,6 +1,6 @@
 import numbers
-
 import warnings
+
 import torch
 
 from ignite.contrib.handlers.base_logger import (
@@ -199,7 +199,7 @@ class MLflowLogger(BaseLogger):
             mlflow_logger = MLflowLogger()
 
             # Log experiment parameters:
-            mlflow_logger.log_params(**{
+            mlflow_logger.log_params({
                 "seed": seed,
                 "batch_size": batch_size,
                 "model": model.__class__.__name__,
@@ -258,3 +258,9 @@ class MLflowLogger(BaseLogger):
         import mlflow
 
         mlflow.end_run()
+
+    def _create_output_handler(self, *args, **kwargs):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args, **kwargs):
+        return OptimizerParamsHandler(*args, **kwargs)
