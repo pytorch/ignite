@@ -30,7 +30,7 @@ class _NativeDistModel(ComputationModel):
     available_backends = tuple(
         name
         for name in [dist.Backend.NCCL, dist.Backend.GLOO, dist.Backend.MPI]
-        if getattr(dist, "is_{}_available".format(name))
+        if getattr(dist, "is_{}_available".format(name))()
     )
 
     @staticmethod
