@@ -2,7 +2,7 @@ import numbers
 
 from typing import Callable, Union, Any, Optional
 
-from ignite.metrics import Metric
+from ignite.metrics.metric import Metric
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 from ignite.exceptions import NotComputableError
 

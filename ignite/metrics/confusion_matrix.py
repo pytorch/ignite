@@ -3,7 +3,8 @@ from typing import Optional, Union, Any, Callable, Sequence
 
 import torch
 
-from ignite.metrics import Metric, MetricsLambda
+from ignite.metrics.metric import Metric
+from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 

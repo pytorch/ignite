@@ -2,7 +2,7 @@ import torch
 import torch.distributed as dist
 
 from ignite.engine import Events
-from ignite.metrics import Metric
+from ignite.metrics.metric import Metric
 from ignite.handlers.timing import Timer
 from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 

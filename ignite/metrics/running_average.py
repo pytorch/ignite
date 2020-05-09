@@ -3,7 +3,7 @@ from typing import Optional, Union, Callable, Sequence
 import torch
 
 from ignite.engine import Events, Engine
-from ignite.metrics import Metric
+from ignite.metrics.metric import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = ["RunningAverage"]
