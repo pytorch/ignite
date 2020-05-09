@@ -241,14 +241,38 @@ def _assert_backend(backend):
         raise ValueError("Backend should be one of '{}'".format(backends))
 
 
-def initialize(backend: Optional[str] = None, timeout: Optional["timedelta"] = None, **kwargs):
-    """
+def initialize(backend: str, **kwargs):
+    """Initializes distributed configuration according to provided `backend`
+
+    Examples:
+
+        Launch single node multi-GPU training with `torch.distributed.launch` utility:
+
+        .. code-block:: python
+
+            # >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE main.py
+
+            # main.py
+
+            import ignite.distributed as idist
+
+            def train_fn(local_rank, a, b, c):
+                import torch.distributed as dist
+                assert dist.is_available() and dist.is_initialized()
+                assert dist.get_world_size() == 4
+
+                device = idist.device()
+                assert device == "cuda:{}".format(local_rank)
+
+
+            idist.initialize("nccl")
+            train_fn
+            idist.finalize()
+
 
     Args:
-        backend (str, optional): backend to initialize computation model.
-        timeout (timedelta, optional): process group initialization timeout. Applied to `torch.distributed`.
-
-    Returns:
+        backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`.
+        **kwargs: TODO
 
     """
     global _model
@@ -258,16 +282,12 @@ def initialize(backend: Optional[str] = None, timeout: Optional["timedelta"] = N
         # maybe warn about this
         return
 
-    if backend is None:
-        _sync_model()
-        return
-
     _assert_backend(backend)
 
     for comp_model_cls in registered_computation_models:
         if backend not in comp_model_cls.available_backends:
             continue
-        _model = comp_model_cls(backend, timeout=timeout, **kwargs)
+        _model = comp_model_cls(backend, **kwargs)
 
 
 def finalize():
