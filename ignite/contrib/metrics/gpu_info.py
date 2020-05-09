@@ -3,8 +3,8 @@ import warnings
 
 import torch
 
-from ignite.metrics import Metric
 from ignite.engine import Events
+from ignite.metrics import Metric
 
 
 class GpuInfo(Metric):

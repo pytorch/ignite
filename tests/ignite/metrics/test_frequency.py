@@ -1,7 +1,6 @@
 import time
 
 import pytest
-
 import torch.distributed as dist
 
 from ignite.engine import Engine, Events

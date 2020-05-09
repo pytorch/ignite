@@ -1,21 +1,24 @@
 import numbers
 import warnings
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
 from functools import partial
 
 import torch
 import torch.distributed as dist
 
-from ignite.contrib.handlers import MLflowLogger
-from ignite.contrib.handlers import PolyaxonLogger
-from ignite.contrib.handlers import ProgressBar
-from ignite.contrib.handlers import TensorboardLogger, global_step_from_engine
-from ignite.contrib.handlers import VisdomLogger
-from ignite.contrib.handlers import NeptuneLogger
-from ignite.contrib.handlers import WandBLogger
+from ignite.contrib.handlers import (
+    MLflowLogger,
+    NeptuneLogger,
+    PolyaxonLogger,
+    ProgressBar,
+    TensorboardLogger,
+    VisdomLogger,
+    WandBLogger,
+    global_step_from_engine,
+)
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
-from ignite.handlers import TerminateOnNan, ModelCheckpoint, EarlyStopping
+from ignite.handlers import EarlyStopping, ModelCheckpoint, TerminateOnNan
 from ignite.metrics import RunningAverage
 
 

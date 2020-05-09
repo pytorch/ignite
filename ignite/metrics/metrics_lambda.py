@@ -1,8 +1,8 @@
 import itertools
-from typing import Callable, Any
+from typing import Any, Callable
 
+from ignite.engine import Engine, Events
 from ignite.metrics.metric import Metric, reinit__is_reduced
-from ignite.engine import Events, Engine
 
 __all__ = ["MetricsLambda"]
 

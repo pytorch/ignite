@@ -1,23 +1,21 @@
 import os
+from unittest.mock import MagicMock
 
+import pytest
 import torch
 import torch.nn as nn
 
-from ignite.engine import Events, Engine
+import ignite.contrib.handlers.tensorboard_logger as tb_logger_module
+import ignite.contrib.handlers.visdom_logger as visdom_logger_module
 from ignite.contrib.engines.common import (
-    setup_common_training_handlers,
-    save_best_model_by_val_score,
     add_early_stopping_by_val_score,
+    save_best_model_by_val_score,
+    setup_common_training_handlers,
     setup_tb_logging,
     setup_visdom_logging,
 )
-
+from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan
-import ignite.contrib.handlers.tensorboard_logger as tb_logger_module
-import ignite.contrib.handlers.visdom_logger as visdom_logger_module
-
-import pytest
-from unittest.mock import MagicMock
 
 
 class DummyModel(nn.Module):

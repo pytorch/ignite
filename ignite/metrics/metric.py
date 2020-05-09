@@ -1,15 +1,14 @@
 import numbers
-from abc import ABCMeta, abstractmethod
-from functools import wraps
-from collections.abc import Mapping
 import warnings
-
-from typing import Callable, Union, Optional, Any
+from abc import ABCMeta, abstractmethod
+from collections.abc import Mapping
+from functools import wraps
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.distributed as dist
 
-from ignite.engine import Events, Engine
+from ignite.engine import Engine, Events
 
 __all__ = ["Metric"]
 

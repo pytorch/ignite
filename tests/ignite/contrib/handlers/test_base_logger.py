@@ -1,14 +1,12 @@
 import math
-import torch
-
-from ignite.engine import Engine, State, Events
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, BaseOptimizerParamsHandler
-from ignite.contrib.handlers import global_step_from_engine
-from ignite.contrib.handlers import CustomPeriodicEvent
+from unittest.mock import MagicMock
 
 import pytest
+import torch
 
-from unittest.mock import MagicMock
+from ignite.contrib.handlers import CustomPeriodicEvent, global_step_from_engine
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.engine import Engine, Events, State
 
 
 class DummyOutputHandler(BaseOutputHandler):

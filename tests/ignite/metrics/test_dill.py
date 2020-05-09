@@ -1,5 +1,4 @@
 import dill
-
 from ignite.metrics import Metric
 
 
