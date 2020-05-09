@@ -1,11 +1,10 @@
-from typing import Union, Sequence, Optional, Callable
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 from torch.nn.functional import pairwise_distance
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["MeanPairwiseDistance"]
 

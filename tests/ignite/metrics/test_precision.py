@@ -1,15 +1,13 @@
 import os
+import warnings
 
+import pytest
 import torch
+from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.metrics import precision_score
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
-
-import pytest
-import warnings
-
-from sklearn.metrics import precision_score
-from sklearn.exceptions import UndefinedMetricWarning
 
 torch.manual_seed(12)
 

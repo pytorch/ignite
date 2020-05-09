@@ -1,24 +1,21 @@
 import os
-import pytest
 import random
 from unittest.mock import patch
 
 import numpy as np
-
+import pytest
 import torch
 import torch.nn as nn
 
-from ignite.engine.deterministic import (
-    ReproducibleBatchSampler,
-    update_dataloader,
-    keep_random_state,
-    DeterministicEngine,
-)
-
 from ignite.engine import Events
+from ignite.engine.deterministic import (
+    DeterministicEngine,
+    ReproducibleBatchSampler,
+    keep_random_state,
+    update_dataloader,
+)
 from ignite.utils import manual_seed
-
-from tests.ignite.engine import setup_sampler, BatchChecker
+from tests.ignite.engine import BatchChecker, setup_sampler
 
 
 def test_update_dataloader():

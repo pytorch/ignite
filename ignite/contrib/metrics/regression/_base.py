@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 import torch
 
-from ignite.metrics import Metric, EpochMetric
+from ignite.metrics import EpochMetric, Metric
 
 
 def _check_output_shapes(output):

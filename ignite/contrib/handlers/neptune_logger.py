@@ -1,13 +1,11 @@
 import numbers
 import tempfile
-from typing import Mapping
 import warnings
+from typing import Mapping
 
 import torch
 
 import ignite
-
-from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
@@ -15,6 +13,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsScalarHandler,
     global_step_from_engine,
 )
+from ignite.handlers.checkpoint import BaseSaveHandler
 
 __all__ = [
     "NeptuneLogger",

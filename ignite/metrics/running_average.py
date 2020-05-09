@@ -1,10 +1,9 @@
-from typing import Optional, Union, Callable, Sequence
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.engine import Events, Engine
-from ignite.metrics.metric import Metric
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.engine import Engine, Events
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["RunningAverage"]
 

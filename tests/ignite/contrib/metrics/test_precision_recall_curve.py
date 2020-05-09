@@ -1,7 +1,6 @@
 import numpy as np
-from sklearn.metrics import precision_recall_curve
-
 import torch
+from sklearn.metrics import precision_recall_curve
 
 from ignite.contrib.metrics.precision_recall_curve import PrecisionRecallCurve
 from ignite.engine import Engine

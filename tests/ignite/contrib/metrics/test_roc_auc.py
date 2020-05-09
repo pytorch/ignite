@@ -1,10 +1,9 @@
 import numpy as np
+import torch
 from sklearn.metrics import roc_auc_score
 
-import torch
-
-from ignite.engine import Engine
 from ignite.contrib.metrics import ROC_AUC
+from ignite.engine import Engine
 
 
 def test_roc_auc_score():

@@ -1,13 +1,13 @@
 import math
 import warnings
+from unittest.mock import ANY, MagicMock, call
 
-from unittest.mock import call, ANY, MagicMock
 import pytest
 import torch
 
+from ignite.contrib.handlers.neptune_logger import *
 from ignite.engine import Engine, Events, State
 from ignite.handlers.checkpoint import Checkpoint
-from ignite.contrib.handlers.neptune_logger import *
 
 
 def test_optimizer_params_handler_wrong_setup():

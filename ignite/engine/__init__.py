@@ -1,12 +1,12 @@
-from typing import Sequence, Union, Optional, Callable, Dict, Any, Tuple
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+
 import torch
 
-from ignite.engine.engine import Engine
-from ignite.engine.events import State, Events, EventEnum, CallableEventWithFilter
-from ignite.utils import convert_tensor
-from ignite.metrics import Metric
 from ignite.engine.deterministic import DeterministicEngine
-
+from ignite.engine.engine import Engine
+from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, State
+from ignite.metrics import Metric
+from ignite.utils import convert_tensor
 
 __all__ = [
     "State",
