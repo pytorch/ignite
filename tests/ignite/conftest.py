@@ -45,17 +45,6 @@ def world_size():
     yield int(os.environ["WORLD_SIZE"])
 
 
-def _find_free_port():
-    # Taken from https://github.com/facebookresearch/detectron2/blob/master/detectron2/engine/launch.py
-    import socket
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(("", 0))
-    port = sock.getsockname()[1]
-    sock.close()
-    return port
-
-
 @pytest.fixture()
 def distributed_context_single_node_nccl(local_rank, world_size):
 
@@ -63,7 +52,7 @@ def distributed_context_single_node_nccl(local_rank, world_size):
         "backend": "nccl",
         "world_size": world_size,
         "rank": local_rank,
-        "init_method": "tcp://localhost:{}".format(_find_free_port()),
+        "init_method": "tcp://localhost:2223",
     }
 
     dist.init_process_group(**dist_info)
@@ -83,6 +72,7 @@ def distributed_context_single_node_nccl(local_rank, world_size):
 def distributed_context_single_node_gloo(local_rank, world_size):
 
     import os
+    from datetime import timedelta
 
     if "WORLD_SIZE" not in os.environ:
         os.environ["WORLD_SIZE"] = "1"
@@ -91,7 +81,8 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         "backend": "gloo",
         "world_size": world_size,
         "rank": local_rank,
-        "init_method": "tcp://localhost:{}".format(_find_free_port()),
+        "init_method": "tcp://localhost:2222",
+        "timeout": timedelta(seconds=60),
     }
 
     dist.init_process_group(**dist_info)
