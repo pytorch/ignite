@@ -1,5 +1,6 @@
 import math
 import numbers
+from typing import List, Union
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
@@ -118,8 +119,11 @@ class ParamScheduler(metaclass=ABCMeta):
                 setattr(self, name, val)
 
     @abstractmethod
-    def get_param(self):
-        """Method to get current optimizer's parameter value
+    def get_param(self) -> Union[List[float], float]:
+        """Method to get current optimizer's parameter values
+
+        Returns:
+            list of params, or scalar param
         """
         pass
 
