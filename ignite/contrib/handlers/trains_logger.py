@@ -2,7 +2,7 @@ import os
 import tempfile
 import warnings
 from datetime import datetime
-from typing import Optional, Mapping
+from typing import Mapping, Optional
 
 import torch
 
@@ -10,9 +10,9 @@ from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
+    BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
     global_step_from_engine,
-    BaseWeightsHistHandler,
 )
 from ignite.handlers.checkpoint import DiskSaver
 

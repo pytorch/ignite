@@ -1,12 +1,12 @@
 import math
-from unittest.mock import MagicMock, call, ANY
+from unittest.mock import ANY, MagicMock, call
 
 import pytest
 import torch
-import trains
 
+import trains
 from ignite.contrib.handlers.trains_logger import *
-from ignite.engine import Events, State, Engine
+from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
 
 
