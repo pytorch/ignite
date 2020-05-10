@@ -1,10 +1,10 @@
-import time
 import os
-
-from ignite.engine import Engine, Events
-from ignite.contrib.handlers.time_profilers import BasicTimeProfiler
+import time
 
 from pytest import approx
+
+from ignite.contrib.handlers.time_profilers import BasicTimeProfiler
+from ignite.engine import Engine, Events
 
 
 def _do_nothing_update_fn(engine, batch):

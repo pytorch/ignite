@@ -1,16 +1,15 @@
 import os
 import time
-import pytest
-from unittest.mock import call, MagicMock, Mock
+from unittest.mock import MagicMock, Mock, call
 
 import numpy as np
+import pytest
 import torch
 
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
-
-from tests.ignite.engine import IterationCounter, EpochCounter, BatchChecker
+from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
 
 
 def test_terminate():

@@ -1,17 +1,15 @@
+import collections.abc as collections
+import numbers
 import os
 import tempfile
-import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
-import collections.abc as collections
-
-
-from typing import Optional, Callable, Mapping, Union
+from typing import Callable, Mapping, Optional, Union
 
 import torch
 
-from ignite.engine import Events, Engine
+from ignite.engine import Engine, Events
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 

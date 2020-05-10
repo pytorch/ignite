@@ -1,5 +1,6 @@
-from ignite.engine import Events, State, EventEnum
 import warnings
+
+from ignite.engine import EventEnum, Events, State
 
 
 class CustomPeriodicEvent:

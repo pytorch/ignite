@@ -1,10 +1,10 @@
 import os
+
+import pytest
 import torch
 
 from ignite.engine import Engine, Events
 from ignite.handlers import EarlyStopping
-
-import pytest
 
 
 def do_nothing_update_fn(engine, batch):

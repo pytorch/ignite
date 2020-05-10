@@ -1,12 +1,11 @@
 import os
-import pytest
-
 from unittest.mock import MagicMock, call
 
+import pytest
 import torch
 
-from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.mlflow_logger import *
+from ignite.engine import Engine, Events, State
 
 
 def test_output_handler_with_wrong_logger_type():

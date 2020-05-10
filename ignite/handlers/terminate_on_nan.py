@@ -1,11 +1,11 @@
 import logging
 import numbers
-from typing import Union, Callable
+from typing import Callable, Union
 
 import torch
 
-from ignite.utils import apply_to_type
 from ignite.engine import Engine
+from ignite.utils import apply_to_type
 
 __all__ = ["TerminateOnNan"]
 

@@ -1,8 +1,8 @@
+import ignite.contrib
 import ignite.engine
+import ignite.exceptions
 import ignite.handlers
 import ignite.metrics
-import ignite.exceptions
-import ignite.contrib
 import ignite.utils
 
 __version__ = "0.4.0"

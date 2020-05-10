@@ -1,12 +1,12 @@
 import warnings
-from typing import Sequence, Callable, Optional, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.accuracy import _BaseClassification
 from ignite.exceptions import NotComputableError
-from ignite.utils import to_onehot
+from ignite.metrics.accuracy import _BaseClassification
 from ignite.metrics.metric import reinit__is_reduced
+from ignite.utils import to_onehot
 
 __all__ = ["Precision"]
 

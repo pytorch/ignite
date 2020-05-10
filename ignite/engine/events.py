@@ -1,9 +1,8 @@
-from typing import Callable, Optional, Union, Any
-
-from enum import Enum
 import numbers
 import weakref
+from enum import Enum
 from types import DynamicClassAttribute
+from typing import Any, Callable, Optional, Union
 
 from ignite.engine.utils import _check_signature
 

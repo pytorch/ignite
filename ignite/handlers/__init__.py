@@ -1,12 +1,11 @@
-from typing import Callable, Any, Union
+from typing import Any, Callable, Union
 
 from ignite.engine import Engine
-from ignite.engine.events import EventEnum, CallableEventWithFilter
-
-from ignite.handlers.checkpoint import ModelCheckpoint, Checkpoint, DiskSaver
-from ignite.handlers.timing import Timer
+from ignite.engine.events import CallableEventWithFilter, EventEnum
+from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.terminate_on_nan import TerminateOnNan
+from ignite.handlers.timing import Timer
 
 __all__ = [
     "ModelCheckpoint",
