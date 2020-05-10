@@ -44,15 +44,27 @@ class ParamScheduler(metaclass=ABCMeta):
 
         value = self.get_param()
 
-        if len(value) != len(self.optimizer_param_groups):
-            raise RuntimeError(
-                "size of value is different than optimizer_param_groups {} != {}".format(
-                    len(value), len(self.optimizer_param_groups)
+        if isinstance(value, list):
+            if len(value) != len(self.optimizer_param_groups):
+                raise RuntimeError(
+                    "size of value is different than optimizer_param_groups {} != {}".format(
+                        len(value), len(self.optimizer_param_groups)
+                    )
                 )
-            )
 
-        for i, param_group in enumerate(self.optimizer_param_groups):
-            param_group[self.param_name] = value[i]
+            for i, param_group in enumerate(self.optimizer_param_groups):
+                param_group[self.param_name] = value[i]
+        else:
+
+            if len(self.optimizer_param_groups) > 1:
+                raise RuntimeError(
+                    "size of optimizer_param_groups {} > 1".format(
+                        len(self.optimizer_param_groups)
+                    )
+                )
+
+            for i, param_group in enumerate(self.optimizer_param_groups):
+                param_group[self.param_name] = value
 
         if name is None:
             name = self.param_name

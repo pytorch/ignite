@@ -553,17 +553,6 @@ def test_save_param_history():
 
 def test_lr_scheduler_asserts():
 
-    t1 = torch.zeros([1], requires_grad=True)
-    t2 = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
-    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
-
-    with pytest.raises(ValueError):
-        LRScheduler(lr_scheduler)
-
-    with pytest.raises(ValueError):
-        LRScheduler.simulate_values(num_events=100, lr_scheduler=lr_scheduler)
-
     with pytest.raises(TypeError):
         LRScheduler(123)
 
