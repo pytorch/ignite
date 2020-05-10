@@ -1,10 +1,10 @@
 import math
 import numbers
-from typing import List, Union
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
+from typing import List, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
