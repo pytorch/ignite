@@ -55,14 +55,6 @@ class ParamScheduler(metaclass=ABCMeta):
             for i, param_group in enumerate(self.optimizer_param_groups):
                 param_group[self.param_name] = value[i]
         else:
-
-            if len(self.optimizer_param_groups) > 1:
-                raise RuntimeError(
-                    "size of optimizer_param_groups {} > 1".format(
-                        len(self.optimizer_param_groups)
-                    )
-                )
-
             for i, param_group in enumerate(self.optimizer_param_groups):
                 param_group[self.param_name] = value
 
