@@ -26,7 +26,8 @@ class Engine(Serializable):
 
     Attributes:
         state (State): object that is used to pass internal and user-defined state between event handlers.
-            It is created and reset on every :meth:`~ignite.engine.Engine.run`.
+            It is created with the engine and its attributes (e.g. `state.iteration`, `state.epoch` etc) are reset
+            on every :meth:`~ignite.engine.Engine.run`.
         last_event_name (Events): last event name triggered by the engine.
 
     Examples:
@@ -127,7 +128,6 @@ class Engine(Serializable):
         self.last_event_name = None
         self.should_terminate = False
         self.should_terminate_single_epoch = False
-        # self.state = None
         self.state = State()
         self._state_dict_user_keys = []
         self._allowed_events = []
@@ -473,10 +473,6 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-        # !!! TODO: we can not export as empty dict and raise an error when load it
-        if self.state.max_epochs is None:
-            return OrderedDict()
-
         keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
@@ -487,6 +483,8 @@ class Engine(Serializable):
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
         `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
         Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+
+        This method does not remove any custom attributs added by user.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -512,7 +510,6 @@ class Engine(Serializable):
                         k, state_dict.keys()
                     )
                 )
-        # self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"])
         self.state.max_epochs = state_dict["max_epochs"]
         self.state.epoch_length = state_dict["epoch_length"]
         for k in self._state_dict_user_keys:
@@ -520,9 +517,16 @@ class Engine(Serializable):
 
         if "iteration" in state_dict:
             self.state.iteration = state_dict["iteration"]
-            self.state.epoch = self.state.iteration // self.state.epoch_length
+            self.state.epoch = 0
+            if self.state.epoch_length is not None:
+                self.state.epoch = self.state.iteration // self.state.epoch_length
         elif "epoch" in state_dict:
             self.state.epoch = state_dict["epoch"]
+            if self.state.epoch_length is None:
+                raise ValueError(
+                    "If epoch is provided in the state dict, epoch_length should not be None. "
+                    "Input state_dict: {}".format(state_dict)
+                )
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
     @staticmethod
@@ -645,7 +649,6 @@ class Engine(Serializable):
                     if epoch_length < 1:
                         raise ValueError("Input data has zero size. Please provide non-empty data")
 
-            # self.state = State(iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
             self.state.iteration = 0
             self.state.epoch = 0
             self.state.max_epochs = max_epochs

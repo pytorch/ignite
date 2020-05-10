@@ -13,7 +13,10 @@ from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
 def test_state_dict():
     engine = Engine(lambda e, b: 1)
     sd = engine.state_dict()
-    assert isinstance(sd, Mapping) and len(sd) == 0
+    assert isinstance(sd, Mapping) and len(sd) == 3
+    assert "iteration" in sd and sd["iteration"] == 0
+    assert "max_epochs" in sd and sd["max_epochs"] is None
+    assert "epoch_length" in sd and sd["epoch_length"] is None
 
     def _test(state):
         engine.state = state
@@ -77,6 +80,10 @@ def test_load_state_dict_asserts():
     engine.state_dict_user_keys.append("alpha")
     with pytest.raises(ValueError, match=r"Required user state attribute"):
         engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12})
+
+    engine = Engine(lambda e, b: 1)
+    with pytest.raises(ValueError, match=r"If epoch is provided in the state dict, epoch_length should not be None"):
+        engine.load_state_dict({"max_epochs": 100, "epoch": 2, "epoch_length": None})
 
 
 def test_load_state_dict():
@@ -148,6 +155,12 @@ def test_load_state_dict_with_params_overriding_integration():
     with pytest.raises(ValueError, match=r"Argument epoch_length should be same as in the state"):
         engine.load_state_dict(state_dict)
         engine.run(data, epoch_length=90)
+
+
+def test_empty_state_dict_load_state_dict():
+    engine = Engine(lambda e, b: 1)
+    sd = engine.state_dict()
+    engine.load_state_dict(sd)
 
 
 def test_continue_training():
@@ -236,3 +249,23 @@ def test_epoch_length():
 
     _test_as_iter(data, 1, num_iters)
     _test_as_iter(data, 2, num_iters // 2)
+
+
+def test_state_custom_attrs_init():
+    def _test(with_load_state_dict=False):
+        engine = Engine(lambda e, b: None)
+        engine.state.alpha = 0.0
+        engine.state.beta = 1.0
+
+        if with_load_state_dict:
+            engine.load_state_dict({"iteration": 3, "max_epochs": 5, "epoch_length": 5})
+
+        @engine.on(Events.STARTED | Events.EPOCH_STARTED | Events.EPOCH_COMPLETED | Events.COMPLETED)
+        def check_custom_attr():
+            assert hasattr(engine.state, "alpha") and engine.state.alpha == 0.0
+            assert hasattr(engine.state, "beta") and engine.state.beta == 1.0
+
+        engine.run([0, 1, 2, 3, 4], max_epochs=5)
+
+    _test()
+    _test(with_load_state_dict=True)
