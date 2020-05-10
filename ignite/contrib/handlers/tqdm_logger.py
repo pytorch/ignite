@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 import warnings
-
-from typing import Mapping, Any
+from typing import Any, Mapping
 
 import torch
 
-from ignite.engine import Events, Engine
-from ignite.engine.events import CallableEventWithFilter
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
+from ignite.engine import Engine, Events
+from ignite.engine.events import CallableEventWithFilter
 
 
 class _OutputHandler(BaseOutputHandler):

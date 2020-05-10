@@ -1,7 +1,6 @@
 import time
 
 import pytest
-
 import torch.distributed as dist
 
 from ignite.engine import Engine, Events
@@ -21,9 +20,9 @@ def test_nondistributed_average():
     assert average_lower_bound < average < average_upper_bound
 
 
-def _test_frequency_with_engine(device, workers, every=1):
+def _test_frequency_with_engine(device, workers, lower_bound_factor=0.8, every=1):
 
-    artificial_time = 0.1 / workers  # seconds
+    artificial_time = 1.0 / workers  # seconds
     total_tokens = 1200 // workers
     batch_size = 128 // workers
 
@@ -41,8 +40,8 @@ def _test_frequency_with_engine(device, workers, every=1):
     @engine.on(event)
     def assert_wps(e):
         wps = e.state.metrics["wps"]
-        assert estimated_wps * 0.80 < wps < estimated_wps, "{}: {} < {} < {}".format(
-            e.state.iteration, estimated_wps * 0.80, wps, estimated_wps
+        assert estimated_wps * lower_bound_factor < wps < estimated_wps, "{}: {} < {} < {}".format(
+            e.state.iteration, estimated_wps * lower_bound_factor, wps, estimated_wps
         )
 
     data = [[i] * batch_size for i in range(0, total_tokens, batch_size)]
@@ -63,7 +62,6 @@ def test_frequency_with_engine_distributed(distributed_context_single_node_gloo)
 def test_frequency_with_engine_with_every():
     device = "cpu"
     _test_frequency_with_engine(device, workers=1, every=1)
-    _test_frequency_with_engine(device, workers=1, every=2)
     _test_frequency_with_engine(device, workers=1, every=10)
 
 
@@ -71,5 +69,4 @@ def test_frequency_with_engine_with_every():
 def test_frequency_with_engine_distributed_with_every(distributed_context_single_node_gloo):
     device = "cpu"
     _test_frequency_with_engine(device, workers=dist.get_world_size(), every=1)
-    _test_frequency_with_engine(device, workers=dist.get_world_size(), every=2)
     _test_frequency_with_engine(device, workers=dist.get_world_size(), every=10)

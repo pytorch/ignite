@@ -1,6 +1,6 @@
 import numbers
 import warnings
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
 from functools import partial
 
 import torch
@@ -16,7 +16,7 @@ from ignite.contrib.handlers import VisdomLogger
 from ignite.contrib.handlers import WandBLogger
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
-from ignite.handlers import TerminateOnNan, ModelCheckpoint, EarlyStopping
+from ignite.handlers import EarlyStopping, ModelCheckpoint, TerminateOnNan
 from ignite.metrics import RunningAverage
 
 

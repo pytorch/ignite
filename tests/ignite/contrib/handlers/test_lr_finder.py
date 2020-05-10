@@ -1,17 +1,15 @@
 import copy
 
 import matplotlib
-
-matplotlib.use("agg")
-
+import pytest
 import torch
 from torch import nn
 from torch.optim import SGD
 
-from ignite.engine import create_supervised_trainer
 from ignite.contrib.handlers import FastaiLRFinder
+from ignite.engine import create_supervised_trainer
 
-import pytest
+matplotlib.use("agg")
 
 
 @pytest.fixture

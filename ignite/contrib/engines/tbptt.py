@@ -2,8 +2,8 @@
 
 import torch
 
+from ignite.engine import Engine, EventEnum, _prepare_batch
 from ignite.utils import apply_to_tensor
-from ignite.engine import Engine, _prepare_batch, EventEnum
 
 
 class Tbptt_Events(EventEnum):

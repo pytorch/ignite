@@ -1,14 +1,13 @@
 import os
-import torch
 
 import numpy as np
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score
+import pytest
+import torch
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
-from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, DiceCoefficient
-import pytest
-
+from ignite.metrics.confusion_matrix import DiceCoefficient, cmAccuracy, cmPrecision, cmRecall
 
 torch.manual_seed(12)
 
