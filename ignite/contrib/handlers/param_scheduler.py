@@ -7,7 +7,7 @@ from copy import copy
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from torch.optim.optimizer import Optimizer
+from torch.optim.optimizer import Optimizer, required
 
 
 class ParamScheduler(metaclass=ABCMeta):
@@ -642,8 +642,7 @@ class LRScheduler(ParamScheduler):
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError("lr_scheduler should inherit of _LRScheduler")
         lr_scheduler_cls = lr_scheduler.__class__
-        optimizer_cls = lr_scheduler.optimizer.__class__
-        dummy_optimizer = _get_fake_optimizer(optimizer_cls, **lr_scheduler.optimizer.defaults)
+        dummy_optimizer = _replicate_optimizer(lr_scheduler.optimizer)
         for group in dummy_optimizer.param_groups:
             group.setdefault("initial_lr", group["lr"])
         kwargs = lr_scheduler.state_dict()
@@ -959,3 +958,19 @@ def _get_fake_optimizer(optimizer_cls=None, **kwargs):
         optimizer_cls = torch.optim.SGD
         kwargs["lr"] = 0.01
     return optimizer_cls([t], **kwargs)
+
+
+def _replicate_optimizer(optimizer):
+    cls = optimizer.__class__
+    defaults = copy(optimizer.defaults)
+    if defaults["lr"] == required:
+        defaults["lr"] = 0.01
+    param_groups = optimizer.param_groups
+    param_groups = [
+        # do no copy params
+        {k: v for k, v in pg.items() if k != "params"}
+        for pg in param_groups
+    ]
+    for pg in param_groups:
+        pg["params"] = torch.zeros([1], requires_grad=True)
+    return cls(param_groups, **defaults)
