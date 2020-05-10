@@ -605,7 +605,7 @@ def test_integration_as_context_manager(dirname):
         return next(losses_iter)
 
     TrainsLogger.set_bypass_mode(True)
-    with TrainsLogger(dirname=dirname) as trains_logger:
+    with TrainsLogger(output_uri=dirname) as trains_logger:
 
         trainer = Engine(update_fn)
 
