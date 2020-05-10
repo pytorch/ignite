@@ -44,8 +44,12 @@ class ParamScheduler(metaclass=ABCMeta):
 
         value = self.get_param()
 
-        for param_group in self.optimizer_param_groups:
-            param_group[self.param_name] = value
+        if len(value) != len(self.optimizer_param_groups):
+            raise RuntimeError("size of value is different than optimizer_param_groups {} != {}"
+                               .format(len(value), len(self.optimizer_param_groups)))
+
+        for i, param_group in enumerate(self.optimizer_param_groups):
+            param_group[self.param_name] = value[i]
 
         if name is None:
             name = self.param_name
@@ -581,12 +585,6 @@ class LRScheduler(ParamScheduler):
                 "but given {}".format(type(lr_scheduler))
             )
 
-        if len(lr_scheduler.optimizer.param_groups) > 1:
-            raise ValueError(
-                "Optimizer passed to lr_scheduler should have a single param group, "
-                "but currently there are {} param groups".format(len(lr_scheduler.optimizer.param_groups))
-            )
-
         self.lr_scheduler = lr_scheduler
         super(LRScheduler, self).__init__(
             optimizer=self.lr_scheduler.optimizer, param_name="lr", save_history=save_history
@@ -606,12 +604,7 @@ class LRScheduler(ParamScheduler):
         self.lr_scheduler._get_lr_called_within_step = True
         lr_list = self.lr_scheduler.get_lr()
         self.lr_scheduler._get_lr_called_within_step = False
-        if len(lr_list) > 1:
-            raise ValueError(
-                "Optimizer passed to lr_scheduler should have a single param group, "
-                "but currently there are {} param groups".format(len(lr_list))
-            )
-        return lr_list[0]
+        return lr_list
 
     @classmethod
     def simulate_values(cls, num_events, lr_scheduler, **kwargs):
@@ -632,7 +625,8 @@ class LRScheduler(ParamScheduler):
         values = []
         scheduler = cls(save_history=False, lr_scheduler=copy_lr_scheduler)
         for i in range(num_events):
-            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+            params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
+            values.append([i] + params)
             scheduler(engine=None)
 
         return values
