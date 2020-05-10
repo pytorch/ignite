@@ -555,8 +555,11 @@ class ConcatScheduler(ParamScheduler):
             param_names = [scheduler.param_name]
         for i in range(num_events):
             scheduler(engine=None)
-            values = [scheduler.optimizer_param_groups[0][param_name] for param_name in param_names]
-            output.append([i,] + values)
+            values = [i]
+            for param_name in param_names:
+                params = [p[param_name] for p in scheduler.optimizer_param_groups]
+                values = values + params
+            output.append(values)
         return output
 
 
@@ -946,7 +949,7 @@ def _replicate_scheduler(scheduler, save_history=False):
         return ConcatScheduler(copy_schedulers, durations=scheduler.durations, save_history=save_history)
     elif isinstance(scheduler, ParamScheduler):
         new_scheduler = copy(scheduler)
-        new_scheduler.optimizer = _get_fake_optimizer()
+        new_scheduler.optimizer = _replicate_optimizer(new_scheduler.optimizer)
         new_scheduler.save_history = save_history
         return new_scheduler
     else:
