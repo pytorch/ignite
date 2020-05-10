@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import torch
-from torch.optim.lr_scheduler import StepLR, ExponentialLR
+from torch.optim.lr_scheduler import ExponentialLR, StepLR
 
 from ignite.contrib.handlers.param_scheduler import (
     ConcatScheduler,
@@ -1147,9 +1147,7 @@ def test_scheduler_with_param_groups():
     t2 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
 
-    lr_scheduler = LinearCyclicalScheduler(
-        optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10
-    )
+    lr_scheduler = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
     _test(lr_scheduler, optimizer)
 
     lr_scheduler = PiecewiseLinear(
@@ -1157,9 +1155,7 @@ def test_scheduler_with_param_groups():
     )
     _test(lr_scheduler, optimizer)
 
-    lr_scheduler = CosineAnnealingScheduler(
-        optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10
-    )
+    lr_scheduler = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
     _test(lr_scheduler, optimizer)
 
     torch_lr_scheduler = ExponentialLR(optimizer, gamma=0.98)
