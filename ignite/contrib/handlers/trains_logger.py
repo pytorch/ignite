@@ -458,8 +458,6 @@ class TrainsLogger(BaseLogger):
 
     """
 
-    _bypass = None
-
     def __init__(self, *_, **kwargs):
         try:
             import trains
@@ -524,7 +522,7 @@ class TrainsLogger(BaseLogger):
         Args:
             bypass: If ``True``, all outside communication is skipped.
         """
-        cls._bypass = bypass
+        setattr(cls, "_bypass", bypass)
 
     @classmethod
     def bypass_mode(cls) -> bool:
@@ -536,7 +534,7 @@ class TrainsLogger(BaseLogger):
         Return:
             If True, all outside communication is skipped.
         """
-        return cls._bypass if cls._bypass is not None else bool(os.environ.get("CI"))
+        return getattr(cls, "_bypass", bool(os.environ.get("CI")))
 
     def close(self):
         self.trains_logger.flush()
