@@ -219,11 +219,8 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
 
-    with pytest.warns(UserWarning, match=r"Matplotlib is currently using agg"):
-        lr_finder.plot()
-
-    with pytest.warns(UserWarning, match=r"Matplotlib is currently using agg"):
-        lr_finder.plot(skip_end=0)
+    lr_finder.plot()
+    lr_finder.plot(skip_end=0)
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):
