@@ -1,8 +1,8 @@
 import torch
 from pytest import approx, raises
 
-from ignite.exceptions import NotComputableError
 from ignite.contrib.metrics.regression import MeanAbsoluteRelativeError
+from ignite.exceptions import NotComputableError
 
 
 def test_wrong_input_shapes():

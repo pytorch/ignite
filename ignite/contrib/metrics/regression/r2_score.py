@@ -1,7 +1,7 @@
 import torch
 
-from ignite.exceptions import NotComputableError
 from ignite.contrib.metrics.regression._base import _BaseRegression
+from ignite.exceptions import NotComputableError
 
 
 class R2Score(_BaseRegression):

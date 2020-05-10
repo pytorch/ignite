@@ -1,14 +1,14 @@
 import random
 import warnings
-from functools import wraps
-from typing import Optional, Generator, Callable, Iterator
 from collections import OrderedDict
+from functools import wraps
+from typing import Callable, Generator, Iterator, Optional
 
 import torch
+
 from ignite.engine.engine import Engine
 from ignite.engine.events import Events
 from ignite.utils import manual_seed
-
 
 __all__ = ["update_dataloader", "keep_random_state", "ReproducibleBatchSampler", "DeterministicEngine"]
 

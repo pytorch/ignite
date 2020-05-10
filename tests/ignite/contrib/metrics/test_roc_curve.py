@@ -1,7 +1,6 @@
 import numpy as np
-from sklearn.metrics import roc_curve
-
 import torch
+from sklearn.metrics import roc_curve
 
 from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine

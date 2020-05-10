@@ -1,12 +1,10 @@
 import os
-import pytest
-
 from collections.abc import Mapping
 
+import pytest
 import torch
 
-from ignite.engine import Engine, State, Events
-
+from ignite.engine import Engine, Events, State
 from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
 
 

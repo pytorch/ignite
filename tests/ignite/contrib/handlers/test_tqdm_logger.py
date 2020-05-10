@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import time
+
 import numpy as np
 import pytest
 import torch
 
-from ignite.contrib.handlers import ProgressBar
+from ignite.contrib.handlers import CustomPeriodicEvent, ProgressBar
 from ignite.engine import Engine, Events
-from ignite.metrics import RunningAverage
-from ignite.contrib.handlers import CustomPeriodicEvent
 from ignite.handlers import TerminateOnNan
+from ignite.metrics import RunningAverage
 
 
 def update_fn(engine, batch):

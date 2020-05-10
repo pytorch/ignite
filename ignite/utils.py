@@ -1,8 +1,8 @@
-import random
 import collections.abc as collections
 import logging
+import random
 from functools import wraps
-from typing import Union, Optional, Callable, Any, Type, Tuple
+from typing import Any, Callable, Optional, Tuple, Type, Union
 
 import torch
 import torch.distributed as dist

@@ -1,18 +1,16 @@
+import functools
 import logging
 import time
-from collections import defaultdict, OrderedDict
-from collections.abc import Mapping
-import weakref
 import warnings
-import functools
-from typing import Optional, Callable, Iterable, Any, List
+import weakref
+from collections import OrderedDict, defaultdict
+from collections.abc import Mapping
+from typing import Any, Callable, Iterable, List, Optional
 
-from ignite.engine.events import Events, State, CallableEventWithFilter, RemovableEventHandle, EventsList
-from ignite.engine.utils import _check_signature
 from ignite._utils import _to_hours_mins_secs
-
 from ignite.base import Serializable
-
+from ignite.engine.events import CallableEventWithFilter, Events, EventsList, RemovableEventHandle, State
+from ignite.engine.utils import _check_signature
 
 __all__ = ["Engine"]
 

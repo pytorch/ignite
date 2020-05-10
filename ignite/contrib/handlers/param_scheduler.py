@@ -1,16 +1,13 @@
-from collections import OrderedDict
-from copy import copy
-
 import math
 import numbers
-
 from abc import ABCMeta, abstractmethod
-
-from collections.abc import Sequence, Mapping
+from collections import OrderedDict
+from collections.abc import Mapping, Sequence
+from copy import copy
 
 import torch
-from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.optimizer import Optimizer
 
 
 class ParamScheduler(metaclass=ABCMeta):

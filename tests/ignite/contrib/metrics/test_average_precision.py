@@ -1,10 +1,9 @@
 import numpy as np
+import torch
 from sklearn.metrics import average_precision_score
 
-import torch
-
-from ignite.engine import Engine
 from ignite.contrib.metrics import AveragePrecision
+from ignite.engine import Engine
 
 
 def test_ap_score():

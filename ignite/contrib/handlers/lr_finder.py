@@ -1,17 +1,17 @@
 # coding: utf-8
+import contextlib
 import logging
+import tempfile
 import warnings
 from collections.abc import Mapping
-import tempfile
-import contextlib
 from pathlib import Path
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from ignite.engine import Events, Engine
+from ignite.contrib.handlers.param_scheduler import LRScheduler, PiecewiseLinear
+from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint
-from ignite.contrib.handlers import LRScheduler, PiecewiseLinear
 
 
 class FastaiLRFinder:

@@ -2,12 +2,11 @@ import os
 from functools import partial
 
 import numpy as np
+import pytest
 import torch
 
 from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy, RunningAverage
-
-import pytest
 
 
 def test_wrong_input_args():

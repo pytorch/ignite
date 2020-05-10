@@ -1,13 +1,17 @@
-import pytest
-
 import numpy as np
-
+import pytest
 import torch
 
+from ignite.contrib.handlers.param_scheduler import (
+    ConcatScheduler,
+    CosineAnnealingScheduler,
+    LinearCyclicalScheduler,
+    LRScheduler,
+    ParamGroupScheduler,
+    PiecewiseLinear,
+    create_lr_scheduler_with_warmup,
+)
 from ignite.engine import Engine, Events
-from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, CosineAnnealingScheduler
-from ignite.contrib.handlers.param_scheduler import ConcatScheduler, LRScheduler, create_lr_scheduler_with_warmup
-from ignite.contrib.handlers.param_scheduler import ParamGroupScheduler, PiecewiseLinear
 
 
 def test_linear_scheduler():
