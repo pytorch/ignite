@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from ignite.engine import Events
 from ignite.engine.deterministic import (
@@ -27,7 +28,7 @@ def test_update_dataloader():
         num_workers = 4
 
         sampler = setup_sampler(sampler_type, num_iters, batch_size)
-        dataloader = torch.utils.data.DataLoader(
+        dataloader = DataLoader(
             data,
             batch_size=batch_size,
             num_workers=num_workers,
@@ -48,7 +49,7 @@ def test_update_dataloader():
             seen_batches.append(t)
 
         sampler = setup_sampler(sampler_type, num_iters, batch_size)
-        dataloader = torch.utils.data.DataLoader(
+        dataloader = DataLoader(
             data,
             batch_size=batch_size,
             num_workers=num_workers,
@@ -251,7 +252,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
 
             for num_workers in [0, 4]:
                 sampler = _setup_sampler(sampler_type, num_iters, batch_size)
-                orig_dataloader = torch.utils.data.DataLoader(
+                orig_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
@@ -283,7 +284,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
                 sampler = _setup_sampler(sampler_type, num_iters, batch_size)
-                resume_dataloader = torch.utils.data.DataLoader(
+                resume_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
@@ -358,7 +359,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
             for num_workers in [0, 4]:
 
                 sampler = _setup_sampler(sampler_type, num_iters, batch_size)
-                orig_dataloader = torch.utils.data.DataLoader(
+                orig_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
@@ -389,7 +390,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
                 sampler = _setup_sampler(sampler_type, num_iters, batch_size)
-                resume_dataloader = torch.utils.data.DataLoader(
+                resume_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
@@ -813,7 +814,7 @@ def test_engine_with_dataloader_no_auto_batching():
     from torch.utils.data import DataLoader, BatchSampler, RandomSampler
 
     data = torch.rand(64, 4, 10)
-    data_loader = torch.utils.data.DataLoader(
+    data_loader = DataLoader(
         data, batch_size=None, sampler=BatchSampler(RandomSampler(data), batch_size=8, drop_last=True)
     )
 
@@ -850,3 +851,28 @@ def test_run_finite_iterator_no_epoch_length():
 
     assert engine.state.epoch == 5
     assert engine.state.iteration == unknown_size * 5
+
+
+class OldDataLoader(DataLoader):
+    def __init__(self, dl, *args, **kwargs):
+        self.dl = dl
+        self.sampler = self.dl.sampler
+        self.batch_sampler = self.dl.batch_sampler
+
+    def __len__(self):
+        return len(self.dl)
+
+    def __iter__(self):
+        return iter(self.dl)
+
+
+def test_dataloader_no_dataset_kind():
+    # tests issue : https://github.com/pytorch/ignite/issues/1022
+
+    engine = DeterministicEngine(lambda e, b: None)
+
+    data = torch.randint(0, 1000, size=(100 * 4,))
+    dataloader = DataLoader(data, batch_size=4)
+    dataloader = OldDataLoader(dataloader)
+
+    engine.run(dataloader)
