@@ -150,8 +150,6 @@ def test__xla_dist_model_create_from_context_in_child_proc():
         if "COLAB_TPU_ADDR" in os.environ:
             spawn_kwargs["start_method"] = "fork"
 
-        xmp.spawn(
-            _test_fn, args=(), nprocs=n, **spawn_kwargs
-        )
+        xmp.spawn(_test_fn, args=(), nprocs=n, **spawn_kwargs)
     except SystemExit:
         pass
