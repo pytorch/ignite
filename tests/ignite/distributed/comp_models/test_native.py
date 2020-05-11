@@ -13,23 +13,32 @@ def test__dist_model():
 
     if dist.is_nccl_available():
         assert "nccl" in available_backends
+    else:
+        assert "nccl" not in available_backends
 
     if dist.is_gloo_available():
         assert "gloo" in available_backends
+    else:
+        assert "gloo" not in available_backends
 
     if dist.is_mpi_available():
         assert "mpi" in available_backends
+    else:
+        assert "mpi" not in available_backends
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__dist_model_create_from_backend_bad_config():
     import os
+    from datetime import timedelta
 
     os.environ["RANK"] = "1"
 
+    print("ENV", os.environ)
+
     with pytest.raises(RuntimeError, match=r"PyTorch distributed configuration should define env variables"):
-        _NativeDistModel.create_from_backend(backend="gloo")
+        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
 
     del os.environ["RANK"]
 
@@ -47,8 +56,9 @@ def _assert_model(model, true_conf):
 
 
 def _test__dist_model_create_from_backend_no_dist(backend, true_device):
+    from datetime import timedelta
 
-    model = _NativeDistModel.create_from_backend(backend=backend)
+    model = _NativeDistModel.create_from_backend(backend=backend, timeout=timedelta(seconds=20))
 
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == backend

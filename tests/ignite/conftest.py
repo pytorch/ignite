@@ -29,10 +29,14 @@ def local_rank(worker_id):
 
     yield lrank
 
+    del os.environ["LOCAL_RANK"]
+
 
 @pytest.fixture()
 def world_size():
     import os
+
+    remove_env_var = False
 
     if "WORLD_SIZE" not in os.environ:
         if torch.cuda.is_available():
@@ -40,8 +44,12 @@ def world_size():
         else:
             ws = 1
         os.environ["WORLD_SIZE"] = "{}".format(ws)
+        remove_env_var = True
 
     yield int(os.environ["WORLD_SIZE"])
+
+    if remove_env_var:
+        del os.environ["WORLD_SIZE"]
 
 
 @pytest.fixture()

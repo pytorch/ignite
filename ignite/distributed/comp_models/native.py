@@ -172,6 +172,8 @@ class _NativeDistModel(ComputationModel):
     ):
         from ignite.distributed.utils import _set_model
 
+        copy_env_vars = dict(os.environ)
+
         os.environ["LOCAL_RANK"] = str(local_rank)
         os.environ["RANK"] = str(node_rank * num_procs_per_node + local_rank)
         os.environ["WORLD_SIZE"] = str(world_size)
@@ -182,6 +184,8 @@ class _NativeDistModel(ComputationModel):
         _set_model(model)
         fn(local_rank, *args)
         model.finalize()
+
+        os.environ = copy_env_vars
 
     @staticmethod
     def spawn(
