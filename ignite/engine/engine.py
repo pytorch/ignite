@@ -5,7 +5,7 @@ import warnings
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Optional
 
 from ignite._utils import _to_hours_mins_secs
 from ignite.base import Serializable
@@ -24,7 +24,8 @@ class Engine(Serializable):
 
     Attributes:
         state (State): object that is used to pass internal and user-defined state between event handlers.
-            It is created and reset on every :meth:`~ignite.engine.Engine.run`.
+            It is created with the engine and its attributes (e.g. `state.iteration`, `state.epoch` etc) are reset
+            on every :meth:`~ignite.engine.Engine.run`.
         last_event_name (Events): last event name triggered by the engine.
 
     Examples:
@@ -125,7 +126,7 @@ class Engine(Serializable):
         self.last_event_name = None
         self.should_terminate = False
         self.should_terminate_single_epoch = False
-        self.state = None
+        self.state = State()
         self._state_dict_user_keys = []
         self._allowed_events = []
 
@@ -195,6 +196,8 @@ class Engine(Serializable):
             self._allowed_events.append(e)
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
+        # we need to update state attributes associated with new custom events
+        self.state._update_attrs()
 
     def _handler_wrapper(self, handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
         # signature of the following wrapper will be inspected during registering to check if engine is necessary
@@ -468,8 +471,6 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-        if self.state is None:
-            return OrderedDict()
         keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
@@ -480,6 +481,8 @@ class Engine(Serializable):
         State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
         `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
         Iteration and epoch values are 0-based: the first iteration or epoch is zero.
+
+        This method does not remove any custom attributs added by user.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -505,16 +508,23 @@ class Engine(Serializable):
                         k, state_dict.keys()
                     )
                 )
-
-        self.state = State(max_epochs=state_dict["max_epochs"], epoch_length=state_dict["epoch_length"], metrics={},)
+        self.state.max_epochs = state_dict["max_epochs"]
+        self.state.epoch_length = state_dict["epoch_length"]
         for k in self._state_dict_user_keys:
             setattr(self.state, k, state_dict[k])
 
         if "iteration" in state_dict:
             self.state.iteration = state_dict["iteration"]
-            self.state.epoch = self.state.iteration // self.state.epoch_length
+            self.state.epoch = 0
+            if self.state.epoch_length is not None:
+                self.state.epoch = self.state.iteration // self.state.epoch_length
         elif "epoch" in state_dict:
             self.state.epoch = state_dict["epoch"]
+            if self.state.epoch_length is None:
+                raise ValueError(
+                    "If epoch is provided in the state dict, epoch_length should not be None. "
+                    "Input state_dict: {}".format(state_dict)
+                )
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
     @staticmethod
@@ -610,7 +620,7 @@ class Engine(Serializable):
                 "Please, use torch.manual_seed or ignite.utils.manual_seed"
             )
 
-        if self.state is not None:
+        if self.state.max_epochs is not None:
             # Check and apply overridden parameters
             if max_epochs is not None:
                 if max_epochs < self.state.epoch:
@@ -627,7 +637,7 @@ class Engine(Serializable):
                         )
                     )
 
-        if self.state is None or self._is_done(self.state):
+        if self.state.max_epochs is None or self._is_done(self.state):
             # Create new state
             if max_epochs is None:
                 max_epochs = 1
@@ -637,7 +647,10 @@ class Engine(Serializable):
                     if epoch_length < 1:
                         raise ValueError("Input data has zero size. Please provide non-empty data")
 
-            self.state = State(iteration=0, epoch=0, max_epochs=max_epochs, epoch_length=epoch_length)
+            self.state.iteration = 0
+            self.state.epoch = 0
+            self.state.max_epochs = max_epochs
+            self.state.epoch_length = epoch_length
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
             self.logger.info(

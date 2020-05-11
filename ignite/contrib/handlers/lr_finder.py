@@ -315,7 +315,9 @@ class FastaiLRFinder:
         # store to_save
         with tempfile.TemporaryDirectory() as tmpdirname:
             obj = {k: o.state_dict() for k, o in to_save.items()}
-            cache_filepath = Path(tmpdirname) / "ignite_lr_finder_cache.pt.tar"
+            # add trainer
+            obj["trainer"] = trainer.state_dict()
+            cache_filepath = Path(tmpdirname) / "ignite_lr_finder_cache.pt"
             torch.save(obj, cache_filepath.as_posix())
 
             optimizer = to_save["optimizer"]
@@ -341,9 +343,10 @@ class FastaiLRFinder:
             self._detach(trainer)
             # restore to_save and reset trainer's state
             obj = torch.load(cache_filepath.as_posix())
-            trainer.state = None
+            trainer.load_state_dict(obj["trainer"])
             for k, o in obj.items():
-                to_save[k].load_state_dict(o)
+                if k in to_save:
+                    to_save[k].load_state_dict(o)
 
 
 class _ExponentialLR(_LRScheduler):
