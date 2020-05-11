@@ -142,8 +142,6 @@ def test_model_optimizer_reset(lr_finder, to_save, dummy_engine, dataloader):
 
     assert init_optimizer_sd == optimizer.state_dict()
     assert init_model_sd == model.state_dict()
-    print(init_trainer_sd)
-    print(dummy_engine.state_dict())
     assert init_trainer_sd == dummy_engine.state_dict()
 
 
