@@ -5,6 +5,8 @@ from functools import wraps
 from typing import Callable, Generator, Iterator, Optional
 
 import torch
+from torch.utils.data import DataLoader
+from torch.utils.data.sampler import BatchSampler
 
 from ignite.engine.engine import Engine
 from ignite.engine.events import Events
@@ -13,9 +15,7 @@ from ignite.utils import manual_seed
 __all__ = ["update_dataloader", "keep_random_state", "ReproducibleBatchSampler", "DeterministicEngine"]
 
 
-def update_dataloader(
-    dataloader: torch.utils.data.DataLoader, new_batch_sampler: torch.utils.data.sampler.BatchSampler
-) -> torch.utils.data.DataLoader:
+def update_dataloader(dataloader: DataLoader, new_batch_sampler: BatchSampler) -> DataLoader:
     """Helper function to replace current batch sampler of the dataloader by a new batch sampler. Function returns new
     dataloader with new batch sampler.
 
@@ -24,7 +24,7 @@ def update_dataloader(
         new_batch_sampler (torch.utils.data.sampler.BatchSampler): new batch sampler to use
 
     Returns:
-        torch.utils.data.DataLoader
+        DataLoader
     """
     params_keys = [k for k in dataloader.__dict__.keys() if not k.startswith("_")]
     for k in ["batch_size", "sampler", "drop_last", "batch_sampler", "dataset_kind"]:
@@ -35,7 +35,7 @@ def update_dataloader(
     return type(dataloader)(**params)
 
 
-class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
+class ReproducibleBatchSampler(BatchSampler):
     """Reproducible batch sampler. This class internally iterates and stores indices of the input batch sampler.
     This helps to start providing data batches from an iteration in a deterministic way.
 
@@ -57,8 +57,8 @@ class ReproducibleBatchSampler(torch.utils.data.sampler.BatchSampler):
         start_iteration (int, optional): optional start iteration
     """
 
-    def __init__(self, batch_sampler: torch.utils.data.sampler.BatchSampler, start_iteration: Optional[int] = None):
-        if not isinstance(batch_sampler, torch.utils.data.sampler.BatchSampler):
+    def __init__(self, batch_sampler: BatchSampler, start_iteration: Optional[int] = None):
+        if not isinstance(batch_sampler, BatchSampler):
             raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
 
         self.batch_indices = None
@@ -146,7 +146,7 @@ class DeterministicEngine(Engine):
                 setup_saved_rng_states()
             do_single_epoch_iterations(dataloader)
 
-    If input data provider is `torch.utils.data.DataLoader`, its batch sampler is replaced by
+    If input data provider is `DataLoader`, its batch sampler is replaced by
     :class:`~ignite.engine.deterministic.ReproducibleBatchSampler`.
 
     .. code-block:: python
@@ -203,9 +203,15 @@ class DeterministicEngine(Engine):
 
         # if input data is torch dataloader we replace batch sampler by a batch sampler
         # such that its random sampling indices are reproducible by prefetching them before data iteration
-        if isinstance(self.state.dataloader, torch.utils.data.DataLoader):
-            _dataloader_kind = self.state.dataloader._dataset_kind
-            if _dataloader_kind == torch.utils.data.dataloader._DatasetKind.Map:
+        if isinstance(self.state.dataloader, DataLoader):
+            # attribute _dataset_kind is introduced since 1.3.0 => before 1.3.0 all datasets are map-like
+            can_patch_dataloader = True
+            if hasattr(self.state.dataloader, "_dataset_kind"):
+                from torch.utils.data.dataloader import _DatasetKind
+
+                _dataloader_kind = self.state.dataloader._dataset_kind
+                can_patch_dataloader = _dataloader_kind == _DatasetKind.Map
+            if can_patch_dataloader:
                 if (self._dataloader_len is not None) and hasattr(self.state.dataloader.sampler, "epoch"):
                     if self._dataloader_len != self.state.epoch_length:
                         warnings.warn(
@@ -235,7 +241,7 @@ class DeterministicEngine(Engine):
 
     def _from_iteration(self, iteration: int) -> Iterator:
         data = self.state.dataloader
-        if isinstance(data, torch.utils.data.DataLoader):
+        if isinstance(data, DataLoader):
             try:
                 # following is unsafe for IterableDatasets
                 iteration %= len(data.batch_sampler)
