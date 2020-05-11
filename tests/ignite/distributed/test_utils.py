@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import has_xla_support, _sync_model
+from ignite.distributed.utils import _sync_model, has_xla_support
 
 
 def _sanity_check():
@@ -158,6 +158,7 @@ def test_xla_distrib_single_node_spawn_n_procs():
 
 def _test_sync_model(cls):
     from ignite.distributed.utils import _set_model, _SerialModel
+
     _set_model(_SerialModel())
 
     _sync_model()
@@ -172,6 +173,7 @@ def _test_sync_model(cls):
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test__sync_model_as_xla():
     from ignite.distributed.comp_models import _XlaDistModel
+
     _test_sync_model(_XlaDistModel)
 
 
@@ -183,6 +185,7 @@ def test__sync_model_as_xla_in_child_proc():
 
     def _test_fn(index):
         from ignite.distributed.comp_models import _XlaDistModel
+
         _test_sync_model(_XlaDistModel)
 
     try:
@@ -193,8 +196,6 @@ def test__sync_model_as_xla_in_child_proc():
         if "COLAB_TPU_ADDR" in os.environ:
             spawn_kwargs["start_method"] = "fork"
 
-        xmp.spawn(
-            _test_fn, args=(), nprocs=n, **spawn_kwargs
-        )
+        xmp.spawn(_test_fn, args=(), nprocs=n, **spawn_kwargs)
     except SystemExit:
         pass
