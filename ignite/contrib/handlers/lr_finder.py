@@ -126,12 +126,7 @@ class FastaiLRFinder:
         output = trainer.state.output
         loss = output_transform(output)
         lr = self._lr_schedule.get_param()
-        if isinstance(lr, list):
-            if len(lr) != 1:
-                raise RuntimeError("params should a scalar, got list of size {}", len(lr))
-            self._history["lr"].append(lr[0])
-        else:
-            self._history["lr"].append(lr)
+        self._history["lr"].append(lr)
         if trainer.state.iteration == 1:
             self._best_loss = loss
         else:

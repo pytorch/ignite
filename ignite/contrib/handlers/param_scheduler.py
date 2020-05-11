@@ -8,7 +8,7 @@ from typing import List, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from torch.optim.optimizer import Optimizer, required
+from torch.optim.optimizer import Optimizer
 
 
 class ParamScheduler(metaclass=ABCMeta):
@@ -611,14 +611,17 @@ class LRScheduler(ParamScheduler):
         self.lr_scheduler.last_epoch += 1
         super(LRScheduler, self).__call__(engine, name)
 
-    def get_param(self):
+    def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value
         """
         # Emulate context manager for pytorch>=1.4
         self.lr_scheduler._get_lr_called_within_step = True
         lr_list = self.lr_scheduler.get_lr()
         self.lr_scheduler._get_lr_called_within_step = False
-        return lr_list
+        if len(lr_list) == 1:
+            return lr_list[0]
+        else:
+            return lr_list
 
     @classmethod
     def simulate_values(cls, num_events, lr_scheduler, **kwargs):
@@ -971,7 +974,7 @@ def _get_fake_optimizer(optimizer_cls=None, **kwargs):
 def _replicate_optimizer(optimizer):
     cls = optimizer.__class__
     defaults = copy(optimizer.defaults)
-    if defaults["lr"] == required:
+    if not isinstance(defaults["lr"], numbers.Real):
         defaults["lr"] = 0.01
     param_groups = optimizer.param_groups
     param_groups = [
