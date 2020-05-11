@@ -310,6 +310,9 @@ class State:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+        self._update_attrs()
+
+    def _update_attrs(self):
         for value in self.event_to_attr.values():
             if not hasattr(self, value):
                 setattr(self, value, 0)
