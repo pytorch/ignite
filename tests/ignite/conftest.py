@@ -174,3 +174,29 @@ def distributed_context_multi_node_nccl(multi_node_conf):
     dist.barrier()
 
     dist.destroy_process_group()
+
+
+def _xla_template_worker_task(index, fn, args):
+    import torch_xla.core.xla_model as xm
+
+    xm.rendezvous("init")
+    fn(index, *args)
+
+
+def _xla_execute(fn, args, nprocs):
+    import os
+    import torch_xla.distributed.xla_multiprocessing as xmp
+
+    spawn_kwargs = {}
+    if "COLAB_TPU_ADDR" in os.environ:
+        spawn_kwargs["start_method"] = "fork"
+
+    try:
+        xmp.spawn(_xla_template_worker_task, args=(fn, args), nprocs=nprocs, **spawn_kwargs)
+    except SystemExit as ex_:
+        assert ex_.code == 0, "Didn't successfully exit in XLA test"
+
+
+@pytest.fixture()
+def xmp_executor():
+    yield _xla_execute

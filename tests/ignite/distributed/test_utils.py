@@ -180,7 +180,7 @@ def test__sync_model_as_xla():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test__sync_model_as_xla_in_child_proc():
+def test__sync_model_as_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
 
     def _test_fn(index):
@@ -188,14 +188,39 @@ def test__sync_model_as_xla_in_child_proc():
 
         _test_sync_model(_XlaDistModel)
 
-    try:
+    xmp_executor(_test_fn, args=(), nprocs=n)
 
-        import torch_xla.distributed.xla_multiprocessing as xmp
 
-        spawn_kwargs = {}
-        if "COLAB_TPU_ADDR" in os.environ:
-            spawn_kwargs["start_method"] = "fork"
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_methods_in_xla_context():
+    # We explicitly set _model as _SerialModel
+    # then call idist.* methods and check that they give correct values
+    from ignite.distributed.utils import _set_model, _SerialModel
+    _set_model(_SerialModel())
 
-        xmp.spawn(_test_fn, args=(), nprocs=n, **spawn_kwargs)
-    except SystemExit:
-        pass
+    _test_distrib_config(
+        local_rank=0, backend="xla-tpu", ws=1, device="xla", rank=0
+    )
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_methods_in_xla_context_in_child_proc(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_fn(index):
+        # We explicitly set _model as _SerialModel
+        # then call idist.* methods and check that they give correct values
+        from ignite.distributed.utils import _set_model, _SerialModel
+        _set_model(_SerialModel())
+
+        import torch_xla.core.xla_model as xm
+
+        _test_distrib_config(
+            local_rank=index, backend="xla-tpu", ws=xm.xrt_world_size(), device="xla", rank=xm.get_ordinal()
+        )
+
+    xmp_executor(_test_fn, args=(), nprocs=n)

@@ -119,7 +119,7 @@ def test__xla_dist_model_create_from_context():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test__xla_dist_model_create_from_context_in_child_proc():
+def test__xla_dist_model_create_from_context_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
 
     def _test_fn(index):
@@ -142,14 +142,4 @@ def test__xla_dist_model_create_from_context_in_child_proc():
             },
         )
 
-    try:
-
-        import torch_xla.distributed.xla_multiprocessing as xmp
-
-        spawn_kwargs = {}
-        if "COLAB_TPU_ADDR" in os.environ:
-            spawn_kwargs["start_method"] = "fork"
-
-        xmp.spawn(_test_fn, args=(), nprocs=n, **spawn_kwargs)
-    except SystemExit:
-        pass
+    xmp_executor(_test_fn, args=(), nprocs=n)

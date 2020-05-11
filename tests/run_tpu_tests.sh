@@ -2,4 +2,9 @@
 
 set -xeu
 
+if [ -z ${NUM_TPU_WORKERS+x} ]; then
+    export NUM_TPU_WORKERS=1
+    py.test --cov ignite --cov-append --cov-report term-missing tests/ -vvv -m tpu
+fi
+
 py.test --cov ignite --cov-append --cov-report term-missing tests/ -vvv -m tpu
