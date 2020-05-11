@@ -24,8 +24,13 @@ def _sync_model_wrapper(func):
 
 def _sync_model():
     global _model
-    # TODO: to implement
-    pass
+    for comp_model_cls in registered_computation_models:
+        if comp_model_cls == _SerialModel:
+            continue
+        model = comp_model_cls.create_from_context()
+        if model is not None:
+            _model = model
+            break
 
 
 @_sync_model_wrapper
