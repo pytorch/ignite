@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
-from typing import List, Union
+from typing import List, Union, Optional
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -651,7 +651,7 @@ class LRScheduler(ParamScheduler):
     @staticmethod
     def _replicate_lr_scheduler(lr_scheduler):
         if not isinstance(lr_scheduler, _LRScheduler):
-            raise TypeError("lr_scheduler should inherit of _LRScheduler")
+            raise TypeError("lr_scheduler should inherit of _LRScheduler, got {}".format(type(lr_scheduler)))
         lr_scheduler_cls = lr_scheduler.__class__
         dummy_optimizer = _replicate_optimizer(lr_scheduler.optimizer)
         for group in dummy_optimizer.param_groups:
@@ -857,7 +857,7 @@ class PiecewiseLinear(ParamScheduler):
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
 
-class ParamGroupScheduler:
+class ParamGroupScheduler(ParamScheduler):
     """
     Scheduler helper to group multiple schedulers into one.
 
@@ -885,11 +885,14 @@ class ParamGroupScheduler:
 
     """
 
-    def __init__(self, schedulers, names):
+    def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None):
         if not (
             isinstance(schedulers, Sequence) and all(isinstance(scheduler, ParamScheduler) for scheduler in schedulers)
         ):
             raise ValueError("Argument schedulers should be a list/tuple of parameter schedulers")
+
+        if names is None:
+            names = ["default_".format(i) for i in range(len(schedulers))]
 
         if not (isinstance(names, (list, tuple)) and all(isinstance(n, str) for n in names)):
             raise ValueError("Argument names should be a list/tuple of parameter scheduler's names")
@@ -903,6 +906,9 @@ class ParamGroupScheduler:
     def __call__(self, engine):
         for scheduler, name in zip(self.schedulers, self.names):
             scheduler(engine, name=name)
+
+    def get_param(self) -> Union[List[float], float]:
+        return [scheduler.get_param() for scheduler in self.schedulers]
 
     def state_dict(self):
         """Returns a dictionary containing a whole state of ParamGroupScheduler.
@@ -946,6 +952,31 @@ class ParamGroupScheduler:
                     " {} vs {}".format(n, req_n)
                 )
             s.load_state_dict(sd)
+
+    @classmethod
+    def simulate_values(cls, num_events, schedulers, **kwargs):
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events (int): number of events during the simulation.
+            lr_schedulers (subclass of `torch.optim.lr_scheduler._LRScheduler`): lr_scheduler object to wrap.
+
+        Returns:
+            list of pairs: [event_index, value]
+
+        """
+        copy_lr_schedulers = [_replicate_scheduler(s) for s in schedulers]
+        values = []
+        scheduler = cls(schedulers=copy_lr_schedulers)
+        for s in schedulers:
+            print(s)
+            print(s.optimizer)
+        for i in range(num_events):
+            params = scheduler.get_param()
+            values.append([i] + params)
+            scheduler(engine=None)
+
+        return values
 
 
 def _replicate_scheduler(scheduler, save_history=False):
