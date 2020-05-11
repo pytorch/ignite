@@ -2,7 +2,7 @@ import itertools
 from typing import Any, Callable, Union
 
 from ignite.engine import Engine, Events
-from ignite.metrics.metric import Metric, MetricUsage, EpochWise, reinit__is_reduced
+from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced
 
 __all__ = ["MetricsLambda"]
 

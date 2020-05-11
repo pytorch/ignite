@@ -1,7 +1,6 @@
 import numbers
 import os
 import sys
-
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -10,9 +9,9 @@ import torch
 from pytest import approx, raises
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
-from ignite.engine import Engine, State, Events
-from ignite.metrics import Precision, Recall, ConfusionMatrix
-from ignite.metrics.metric import reinit__is_reduced, Metric, BatchFiltered
+from ignite.engine import Engine, Events, State
+from ignite.metrics import ConfusionMatrix, Precision, Recall
+from ignite.metrics.metric import BatchFiltered, Metric, reinit__is_reduced
 
 
 class DummyMetric1(Metric):
