@@ -1,13 +1,12 @@
-from typing import Optional, Union, Tuple
 import socket
 from functools import wraps
+from typing import Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
 
+from ignite.distributed.comp_models import _SerialModel, has_xla_support, registered_computation_models
 from ignite.utils import setup_logger
-from ignite.distributed.comp_models import registered_computation_models, _SerialModel, has_xla_support
-
 
 _model = _SerialModel()
 

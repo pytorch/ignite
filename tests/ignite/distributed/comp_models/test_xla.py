@@ -1,7 +1,6 @@
 import os
 
 import pytest
-
 import torch
 
 from ignite.distributed.comp_models import _XlaDistModel, has_xla_support
