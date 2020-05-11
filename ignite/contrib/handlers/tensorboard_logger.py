@@ -7,11 +7,10 @@ from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
-    BaseWeightsScalarHandler,
     BaseWeightsHistHandler,
+    BaseWeightsScalarHandler,
     global_step_from_engine,
 )
-
 
 __all__ = [
     "TensorboardLogger",

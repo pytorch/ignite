@@ -1,10 +1,10 @@
-from typing import Sequence, Callable, Optional, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
+from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.precision import _BasePrecisionRecall
 from ignite.utils import to_onehot
-from ignite.metrics.metric import reinit__is_reduced
 
 __all__ = ["Recall"]
 

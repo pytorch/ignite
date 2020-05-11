@@ -1,10 +1,10 @@
 import os
+
+import pytest
 import torch
 
 from ignite.metrics import EpochMetric
 from ignite.metrics.epoch_metric import EpochMetricWarning
-
-import pytest
 
 
 def test_epoch_metric_wrong_setup_or_input():

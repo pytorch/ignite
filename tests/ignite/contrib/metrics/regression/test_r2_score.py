@@ -1,9 +1,10 @@
-import torch
 import numpy as np
 import pytest
-from ignite.engine import Engine
-from ignite.contrib.metrics.regression import R2Score
+import torch
 from sklearn.metrics import r2_score
+
+from ignite.contrib.metrics.regression import R2Score
+from ignite.engine import Engine
 
 
 def test_wrong_input_shapes():

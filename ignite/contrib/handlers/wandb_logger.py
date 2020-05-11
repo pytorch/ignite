@@ -1,7 +1,7 @@
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
-    BaseOutputHandler,
     BaseOptimizerParamsHandler,
+    BaseOutputHandler,
     global_step_from_engine,
 )
 

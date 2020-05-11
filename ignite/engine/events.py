@@ -1,9 +1,8 @@
-from typing import Callable, Optional, Union, Any
-
-from enum import Enum
 import numbers
 import weakref
+from enum import Enum
 from types import DynamicClassAttribute
+from typing import Any, Callable, Optional, Union
 
 from ignite.engine.utils import _check_signature
 
@@ -311,6 +310,9 @@ class State:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+        self._update_attrs()
+
+    def _update_attrs(self):
         for value in self.event_to_attr.values():
             if not hasattr(self, value):
                 setattr(self, value, 0)

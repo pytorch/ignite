@@ -1,7 +1,7 @@
-from typing import Union, Tuple
+from typing import Tuple, Union
 
 # For compatibilty
-from ignite.utils import convert_tensor, apply_to_tensor, apply_to_type, to_onehot
+from ignite.utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot
 
 
 def _to_hours_mins_secs(time_taken: Union[float, int]) -> Tuple[int, int, int]:

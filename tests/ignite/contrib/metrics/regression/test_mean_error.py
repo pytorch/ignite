@@ -1,9 +1,9 @@
-import torch
 import numpy as np
 import pytest
+import torch
 
-from ignite.exceptions import NotComputableError
 from ignite.contrib.metrics.regression import MeanError
+from ignite.exceptions import NotComputableError
 
 
 def test_zero_div():

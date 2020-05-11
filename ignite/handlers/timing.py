@@ -1,7 +1,7 @@
 from time import perf_counter
 from typing import Optional
 
-from ignite.engine import Events, Engine
+from ignite.engine import Engine, Events
 
 __all__ = ["Timer"]
 

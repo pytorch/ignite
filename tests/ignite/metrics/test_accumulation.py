@@ -1,13 +1,12 @@
 import os
-import torch
+
 import numpy as np
-
 import pytest
+import torch
 
-from ignite.metrics.accumulation import VariableAccumulation, Average, GeometricAverage
+from ignite.engine import Engine, Events
 from ignite.exceptions import NotComputableError
-from ignite.engine import Events, Engine
-
+from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 
 torch.manual_seed(15)
 

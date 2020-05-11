@@ -1,10 +1,9 @@
-import tempfile
 import shutil
-
-import torch
-import torch.distributed as dist
+import tempfile
 
 import pytest
+import torch
+import torch.distributed as dist
 
 
 @pytest.fixture()

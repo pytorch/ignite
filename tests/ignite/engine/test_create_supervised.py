@@ -1,14 +1,13 @@
 from typing import Optional
 
 import pytest
-from pytest import approx
-
 import torch
+from pytest import approx
 from torch.nn import Linear
 from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
-from ignite.engine import create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer
 from ignite.metrics import MeanSquaredError
 
 try:

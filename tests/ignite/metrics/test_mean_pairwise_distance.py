@@ -1,12 +1,11 @@
 import os
 
+import pytest
 import torch
+from pytest import approx
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import MeanPairwiseDistance
-
-import pytest
-from pytest import approx
 
 
 def test_zero_div():
