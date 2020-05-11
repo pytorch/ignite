@@ -554,6 +554,7 @@ class ConcatScheduler(ParamScheduler):
 
         # Need to copy all schedulers otherwise unsafe
         copy_schedulers = [_replicate_scheduler(s) for s in schedulers]
+
         scheduler = cls(copy_schedulers, durations, save_history=False)
         if param_names is None:
             param_names = [scheduler.param_name]
@@ -724,41 +725,48 @@ def create_lr_scheduler_with_warmup(
     if not (isinstance(warmup_duration, numbers.Integral) and warmup_duration > 1):
         raise ValueError("Argument warmup_duration should be at least 2 events, but given {}".format(warmup_duration))
 
-    if warmup_end_value is None:
-        warmup_end_value = lr_scheduler.optimizer.param_groups[0]["lr"]
+    warmup_schedulers = []
 
-    milestones_values = [(0, warmup_start_value), (warmup_duration - 1, warmup_end_value)]
+    for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
 
-    if isinstance(lr_scheduler, _LRScheduler):
-        init_lrs = [g["lr"] for g in lr_scheduler.optimizer.param_groups]
-        if len(init_lrs) < 1:
-            raise RuntimeError("Number of parameter groups of input `lr_scheduler.optimizer` is less than one.")
+        if warmup_end_value is None:
+            warmup_end_value = param_group["lr"]
 
-        if init_lrs[0] != warmup_end_value:
-            milestones_values.append((warmup_duration, init_lrs[0]))
+        milestones_values = [(0, warmup_start_value), (warmup_duration - 1, warmup_end_value)]
 
-        lr_scheduler = LRScheduler(lr_scheduler)
-    else:
-        init_lr = lr_scheduler.get_param()
-        if init_lr == warmup_end_value:
-            if warmup_duration > 2:
-                d = (warmup_end_value - warmup_start_value) / (warmup_duration - 1)
-                milestones_values[-1] = (warmup_duration - 2, warmup_end_value - d)
-            else:
-                milestones_values.pop(-1)
+        if isinstance(lr_scheduler, _LRScheduler):
+            init_lr = param_group["lr"]
 
-    warmup_scheduler = PiecewiseLinear(
-        lr_scheduler.optimizer,
-        param_name="lr",
-        milestones_values=milestones_values,
-        param_group_index=lr_scheduler.param_group_index,
-    )
+            if init_lr != warmup_end_value:
+                milestones_values.append((warmup_duration, init_lr))
+
+            lr_scheduler = LRScheduler(lr_scheduler)
+        else:
+            init_lr = lr_scheduler.get_param()
+            if init_lr == warmup_end_value:
+                if warmup_duration > 2:
+                    d = (warmup_end_value - warmup_start_value) / (warmup_duration - 1)
+                    milestones_values[-1] = (warmup_duration - 2, warmup_end_value - d)
+                else:
+                    milestones_values.pop(-1)
+
+        warmup_scheduler = PiecewiseLinear(
+            lr_scheduler.optimizer,
+            param_name="lr",
+            milestones_values=milestones_values,
+            param_group_index=param_group_index,
+        )
+
+        warmup_schedulers.append(warmup_scheduler)
+
+    warmup_scheduler = ParamGroupScheduler(warmup_schedulers)
 
     schedulers = [warmup_scheduler, lr_scheduler]
     durations = [
         milestones_values[-1][0] + 1,
     ]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
+
     if output_simulated_values is not None:
         if not isinstance(output_simulated_values, list):
             raise TypeError(
@@ -903,9 +911,14 @@ class ParamGroupScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.names = names
 
-    def __call__(self, engine):
+        optimizer = self.schedulers[0].optimizer
+
+        super(ParamGroupScheduler, self).__init__(optimizer=optimizer, param_name="lr")
+
+    def __call__(self, engine, name=None):
         for scheduler, name in zip(self.schedulers, self.names):
             scheduler(engine, name=name)
+        return super(ParamGroupScheduler, self).__call__(engine, name)
 
     def get_param(self) -> Union[List[float], float]:
         return [scheduler.get_param() for scheduler in self.schedulers]
