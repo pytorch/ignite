@@ -16,25 +16,48 @@ def dirname():
 @pytest.fixture()
 def local_rank(worker_id):
     """ use a different account in each xdist worker """
-    if "gw" in worker_id:
-        return int(worker_id.replace("gw", ""))
-    elif "master" == worker_id:
-        return 0
+    import os
 
-    raise RuntimeError("Can not get rank from worker_id={}".format(worker_id))
+    if "gw" in worker_id:
+        lrank = int(worker_id.replace("gw", ""))
+    elif "master" == worker_id:
+        lrank = 0
+    else:
+        raise RuntimeError("Can not get rank from worker_id={}".format(worker_id))
+
+    os.environ["LOCAL_RANK"] = "{}".format(lrank)
+
+    yield lrank
+
+    del os.environ["LOCAL_RANK"]
 
 
 @pytest.fixture()
-def distributed_context_single_node_nccl(local_rank):
-
+def world_size():
     import os
 
+    remove_env_var = False
+
     if "WORLD_SIZE" not in os.environ:
-        os.environ["WORLD_SIZE"] = "{}".format(torch.cuda.device_count())
+        if torch.cuda.is_available():
+            ws = torch.cuda.device_count()
+        else:
+            ws = 1
+        os.environ["WORLD_SIZE"] = "{}".format(ws)
+        remove_env_var = True
+
+    yield int(os.environ["WORLD_SIZE"])
+
+    if remove_env_var:
+        del os.environ["WORLD_SIZE"]
+
+
+@pytest.fixture()
+def distributed_context_single_node_nccl(local_rank, world_size):
 
     dist_info = {
         "backend": "nccl",
-        "world_size": int(os.environ["WORLD_SIZE"]),
+        "world_size": world_size,
         "rank": local_rank,
         "init_method": "tcp://localhost:2223",
     }
@@ -53,7 +76,7 @@ def distributed_context_single_node_nccl(local_rank):
 
 
 @pytest.fixture()
-def distributed_context_single_node_gloo(local_rank):
+def distributed_context_single_node_gloo(local_rank, world_size):
 
     import os
     from datetime import timedelta
@@ -63,7 +86,7 @@ def distributed_context_single_node_gloo(local_rank):
 
     dist_info = {
         "backend": "gloo",
-        "world_size": int(os.environ["WORLD_SIZE"]),
+        "world_size": world_size,
         "rank": local_rank,
         "init_method": "tcp://localhost:2222",
         "timeout": timedelta(seconds=60),
