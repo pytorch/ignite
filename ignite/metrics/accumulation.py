@@ -1,12 +1,10 @@
 import numbers
-
-from typing import Callable, Union, Any, Optional
-
-from ignite.metrics import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
-from ignite.exceptions import NotComputableError
+from typing import Any, Callable, Optional, Union
 
 import torch
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["VariableAccumulation", "GeometricAverage", "Average"]
 

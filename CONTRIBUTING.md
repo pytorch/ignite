@@ -82,17 +82,19 @@ flake8 ignite/ tests/ examples/
 ```
 
 #### Run tests:
+
+To run a specific test, for example `test_terminate` from `test_engine.py`
 ```bash
-pytest tests/ -vvv
+pytest tests/ignite/engine/test_terminate -vvv -k test_terminate
 ```
-or tests with coverage (assuming installed `pytest-cov`):
+To run all tests with coverage (assuming installed `pytest-cov`):
 ```bash
-py.test --cov ignite --cov-report term-missing
+sh tests/run_cpu_tests.sh
 ```
 
 #### Send a PR
-If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
 
+If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
 
 If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request

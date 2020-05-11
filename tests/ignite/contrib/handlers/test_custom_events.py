@@ -1,8 +1,9 @@
 import math
+
 import pytest
 
-from ignite.engine import Engine
 from ignite.contrib.handlers.custom_events import CustomPeriodicEvent
+from ignite.engine import Engine
 
 
 def test_bad_input():

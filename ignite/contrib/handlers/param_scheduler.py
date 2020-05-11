@@ -1,16 +1,13 @@
-from collections import OrderedDict
-from copy import copy
-
 import math
 import numbers
-
 from abc import ABCMeta, abstractmethod
-
-from collections.abc import Sequence, Mapping
+from collections import OrderedDict
+from collections.abc import Mapping, Sequence
+from copy import copy
 
 import torch
-from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.optimizer import Optimizer
 
 
 class ParamScheduler(metaclass=ABCMeta):
@@ -54,7 +51,7 @@ class ParamScheduler(metaclass=ABCMeta):
             name = self.param_name
 
         if self.save_history:
-            if not hasattr(engine.state, "param_history"):
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:
                 setattr(engine.state, "param_history", {})
             engine.state.param_history.setdefault(name, [])
             values = [pg[self.param_name] for pg in self.optimizer_param_groups]

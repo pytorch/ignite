@@ -1,12 +1,11 @@
 import sys
-
-import torch
-
-from ignite.engine import Engine, State
-from ignite.contrib.metrics import GpuInfo
+from unittest.mock import Mock, patch
 
 import pytest
-from unittest.mock import Mock, patch
+import torch
+
+from ignite.contrib.metrics import GpuInfo
+from ignite.engine import Engine, State
 
 python_below_36 = (sys.version[0] == "3" and int(sys.version[2]) < 6) or int(sys.version[0]) < 2
 

@@ -1,6 +1,5 @@
 import gc
-
-from unittest.mock import call, MagicMock, create_autospec
+from unittest.mock import MagicMock, call, create_autospec
 
 import pytest
 from pytest import raises

@@ -1,14 +1,12 @@
 import os
-import numpy as np
-from sklearn.metrics import fbeta_score
 
+import numpy as np
+import pytest
 import torch
+from sklearn.metrics import fbeta_score
 
 from ignite.engine import Engine
 from ignite.metrics import Fbeta, Precision, Recall
-
-import pytest
-
 
 torch.manual_seed(12)
 

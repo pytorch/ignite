@@ -1,11 +1,11 @@
 import numbers
-from typing import Optional, Union, Any, Callable, Sequence
+from typing import Any, Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics import Metric, MetricsLambda
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metrics_lambda import MetricsLambda
 
 __all__ = ["ConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "cmPrecision", "cmRecall"]
 

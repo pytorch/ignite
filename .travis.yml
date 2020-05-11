@@ -41,15 +41,7 @@ install:
   - python setup.py install
 
 script:
-  - CUDA_VISIBLE_DEVICES="" py.test --tx 4*popen//python=python$TRAVIS_PYTHON_VERSION --cov ignite --cov-report term-missing -vvv tests/
-  # Run test on cuda device
-  # As no GPUs on travis -> all tests will be skipped
-  - CUDA_VISIBLE_DEVICES=0 py.test --cov ignite --cov-append --cov-report term-missing -vvv tests/ -k "on_cuda"
-  # tests for distributed ops
-  # As no GPUs on travis -> all tests will be skipped
-  # 2 is the number of processes <-> number of available GPUs
-  - export WORLD_SIZE=2
-  - py.test --cov ignite --cov-append --cov-report term-missing --dist=each --tx $WORLD_SIZE*popen//python=python$TRAVIS_PYTHON_VERSION tests -m distributed -vvv
+  - sh tests/run_cpu_tests.sh
 
 after_success:
   - codecov
@@ -59,10 +51,11 @@ jobs:
     - stage: Lint check
       python: "3.7"
       before_install: # Nothing to do
-      install: pip install flake8 black
+      install: pip install flake8 black isort
       script:
         - flake8 .
         - black --check .
+        - isort -rc -c .
       after_success: # Nothing to do
 
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
