@@ -198,11 +198,10 @@ def test_idist_methods_in_xla_context():
     # We explicitly set _model as _SerialModel
     # then call idist.* methods and check that they give correct values
     from ignite.distributed.utils import _set_model, _SerialModel
+
     _set_model(_SerialModel())
 
-    _test_distrib_config(
-        local_rank=0, backend="xla-tpu", ws=1, device="xla", rank=0
-    )
+    _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, device="xla", rank=0)
 
 
 @pytest.mark.tpu
@@ -215,6 +214,7 @@ def test_idist_methods_in_xla_context_in_child_proc(xmp_executor):
         # We explicitly set _model as _SerialModel
         # then call idist.* methods and check that they give correct values
         from ignite.distributed.utils import _set_model, _SerialModel
+
         _set_model(_SerialModel())
 
         import torch_xla.core.xla_model as xm
