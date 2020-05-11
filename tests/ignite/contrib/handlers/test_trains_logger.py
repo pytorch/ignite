@@ -3,8 +3,8 @@ from unittest.mock import ANY, MagicMock, call
 
 import pytest
 import torch
-
 import trains
+
 from ignite.contrib.handlers.trains_logger import *
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
