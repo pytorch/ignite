@@ -52,3 +52,106 @@ def test__xla_dist_model_spawn_n_procs():
         )
     except SystemExit:
         pass
+
+
+def _assert_model(model, true_conf):
+
+    assert model.device() == true_conf["device"]
+    assert model.get_local_rank() == true_conf["local_rank"]
+    assert model.get_rank() == true_conf["rank"]
+    assert model.get_world_size() == true_conf["world_size"]
+
+    assert model.get_node_rank() == true_conf["node_index"]
+    assert model.get_num_nodes() == true_conf["num_nodes"]
+    assert model.get_ntasks_per_node() == true_conf["ntasks_per_node"]
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test__xla_dist_model_create_from_backend():
+    # without spawn
+    model = _XlaDistModel.create_from_backend("xla-tpu")
+
+    import torch_xla.core.xla_model as xm
+
+    _assert_model(
+        model,
+        {
+            "device": xm.xla_device(),
+            "local_rank": 0,
+            "rank": 0,
+            "world_size": 1,
+            "node_index": 0,
+            "num_nodes": 1,
+            "ntasks_per_node": 1,
+        },
+    )
+
+    model.finalize()
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test__xla_dist_model_create_from_context():
+    # without spawn
+    model = _XlaDistModel.create_from_context()
+
+    assert model.backend() == "xla-tpu"
+
+    import torch_xla.core.xla_model as xm
+
+    _assert_model(
+        model,
+        {
+            "device": xm.xla_device(),
+            "local_rank": 0,
+            "rank": 0,
+            "world_size": 1,
+            "node_index": 0,
+            "num_nodes": 1,
+            "ntasks_per_node": 1,
+        },
+    )
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test__xla_dist_model_create_from_context_in_child_proc():
+    n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_fn(index):
+        model = _XlaDistModel.create_from_context()
+
+        assert model.backend() == "xla-tpu"
+
+        import torch_xla.core.xla_model as xm
+
+        _assert_model(
+            model,
+            {
+                "device": xm.xla_device(),
+                "local_rank": index,
+                "rank": xm.get_ordinal(),
+                "world_size": xm.xrt_world_size(),
+                "node_index": 0,
+                "num_nodes": 1,
+                "ntasks_per_node": xm.xrt_world_size(),
+            },
+        )
+
+    try:
+
+        import torch_xla.distributed.xla_multiprocessing as xmp
+
+        spawn_kwargs = {}
+        if "COLAB_TPU_ADDR" in os.environ:
+            spawn_kwargs["start_method"] = "fork"
+
+        xmp.spawn(
+            _test_fn, args=(), nprocs=n, **spawn_kwargs
+        )
+    except SystemExit:
+        pass

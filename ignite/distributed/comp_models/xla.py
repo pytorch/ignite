@@ -31,7 +31,7 @@ class _XlaDistModel(ComputationModel):
     def create_from_context() -> Optional["_XlaDistModel"]:
         if not has_xla_support:
             return None
-        raise NotImplementedError("")
+        return _XlaDistModel()
 
     @staticmethod
     def create_from_backend(backend: str = "xla-tpu", **kwargs) -> "_XlaDistModel":
@@ -52,12 +52,16 @@ class _XlaDistModel(ComputationModel):
         xm.rendezvous("init")
 
         self._backend = backend
+        self._setup_attrs()
+
+    def _init_from_context(self):
+        self._backend = "xla-tpu"
+        self._setup_attrs()
+
+    def _setup_attrs(self):
         self._ntasks_per_node = self._compute_ntasks_per_node()
         self._nnodes = self.get_world_size() // self.get_ntasks_per_node()
         self._node = self.get_rank() // self._ntasks_per_node
-
-    def _init_from_context(self):
-        raise NotImplementedError("")
 
     def _compute_ntasks_per_node(self):
         tensor = torch.tensor([self.get_local_rank() + 1.0], dtype=torch.float).to(self.device())
