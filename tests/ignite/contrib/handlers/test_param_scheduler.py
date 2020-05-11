@@ -385,6 +385,8 @@ def test_concat_scheduler_two_schedulers():
             assert lrs == pytest.approx([v for i, v in simulated_values])
             concat_scheduler.load_state_dict(state_dict)
 
+            trainer.state.param_history = None
+
     _test(duration_vals_as_np_int=False)
     _test(duration_vals_as_np_int=True)
 
@@ -457,6 +459,8 @@ def test_concat_scheduler_two_linear():
         assert lrs == pytest.approx([v for i, v in simulated_values])
         concat_scheduler.load_state_dict(state_dict)
 
+        trainer.state.param_history = None
+
 
 def test_concat_scheduler_3_schedulers():
     tensor = torch.zeros([1], requires_grad=True)
@@ -527,6 +531,8 @@ def test_concat_scheduler_3_schedulers():
 
         assert lrs == pytest.approx([v for i, v in simulated_values])
         concat_scheduler.load_state_dict(state_dict)
+
+        trainer.state.param_history = None
 
 
 def test_save_param_history():
@@ -1011,6 +1017,8 @@ def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
             if save_history:
                 param_history = trainer.state.param_history["lr"]
                 assert lrs == pytest.approx([v[0] for v in param_history])
+
+                trainer.state.param_history = None
 
             scheduler.load_state_dict(state_dict)
 

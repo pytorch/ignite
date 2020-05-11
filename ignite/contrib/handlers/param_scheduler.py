@@ -63,7 +63,7 @@ class ParamScheduler(metaclass=ABCMeta):
             name = self.param_name
 
         if self.save_history:
-            if not hasattr(engine.state, "param_history"):
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:
                 setattr(engine.state, "param_history", {})
             engine.state.param_history.setdefault(name, [])
             values = [pg[self.param_name] for pg in self.optimizer_param_groups]
