@@ -1,11 +1,10 @@
 import os
 
+import pytest
 import torch
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import TopKCategoricalAccuracy
-
-import pytest
 
 
 def test_zero_div():

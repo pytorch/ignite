@@ -1,10 +1,11 @@
 import os
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Accuracy
+
 import pytest
 import torch
 from sklearn.metrics import accuracy_score
 
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Accuracy
 
 torch.manual_seed(12)
 

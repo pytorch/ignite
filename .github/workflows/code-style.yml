@@ -1,0 +1,23 @@
+name: Format python code
+on: push
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
+    - run: |
+        python -m pip install autopep8 black isort
+        isort -rc .
+        autopep8 --recursive --in-place --aggressive --aggressive .
+        black .
+    - name: Commit and push changes
+      uses: stefanzweifel/git-auto-commit-action@v2.0.0
+      with:
+        commit_author_email: ''
+        commit_author_name: AutoPEP8
+        commit_message: autopep8 fix
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

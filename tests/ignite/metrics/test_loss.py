@@ -1,14 +1,13 @@
 import os
 
+import pytest
 import torch
+from numpy.testing import assert_almost_equal
 from torch import nn
 from torch.nn.functional import nll_loss
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Loss
-
-import pytest
-from numpy.testing import assert_almost_equal
 
 
 def test_zero_div():

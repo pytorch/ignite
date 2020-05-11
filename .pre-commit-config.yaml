@@ -1,4 +1,15 @@
 repos:
+  - repo: https://github.com/asottile/seed-isort-config
+    rev: v1.9.4
+    hooks:
+        - id: seed-isort-config
+          args: [--exclude=^((examples|docs)/.*)$]
+
+  - repo: https://github.com/timothycrosley/isort
+    rev: 4.3.21-2
+    hooks:
+        - id: isort
+
   - repo: https://github.com/python/black
     rev: 19.10b0
     hooks:

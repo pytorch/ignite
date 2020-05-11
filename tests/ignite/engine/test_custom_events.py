@@ -1,13 +1,11 @@
 from enum import Enum
-
 from unittest.mock import MagicMock
 
+import pytest
 import torch
 
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter, EventEnum, EventsList
-
-import pytest
 
 
 def test_custom_events():

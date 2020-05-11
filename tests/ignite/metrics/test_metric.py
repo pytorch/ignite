@@ -2,18 +2,17 @@ import numbers
 import os
 import sys
 
-import torch
-
-from ignite.metrics import Metric, BatchFiltered, Precision, Recall, ConfusionMatrix
-from ignite.metrics.metric import reinit__is_reduced
-from ignite.engine import Engine, State, Events
-
 from unittest.mock import MagicMock
-import pytest
-from pytest import approx, raises
 
 import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+import pytest
+import torch
+from pytest import approx, raises
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+
+from ignite.engine import Engine, State, Events
+from ignite.metrics import Precision, Recall, ConfusionMatrix
+from ignite.metrics.metric import reinit__is_reduced, Metric, BatchFiltered
 
 
 class DummyMetric1(Metric):

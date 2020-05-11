@@ -1,10 +1,12 @@
-from typing import Optional, Union, Callable
-
-__all__ = ["Fbeta"]
+from typing import Callable, Optional, Union
 
 import torch
 
-from ignite.metrics import Precision, Recall, MetricsLambda
+from ignite.metrics.metrics_lambda import MetricsLambda
+from ignite.metrics.precision import Precision
+from ignite.metrics.recall import Recall
+
+__all__ = ["Fbeta"]
 
 
 def Fbeta(

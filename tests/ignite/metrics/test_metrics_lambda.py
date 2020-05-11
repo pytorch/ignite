@@ -1,15 +1,13 @@
 import os
 
 import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score
-
+import pytest
 import torch
+from pytest import approx
+from sklearn.metrics import f1_score, precision_score, recall_score
 
 from ignite.engine import Engine
 from ignite.metrics import Metric, MetricsLambda, Precision, Recall
-
-import pytest
-from pytest import approx
 
 
 class ListGatherMetric(Metric):

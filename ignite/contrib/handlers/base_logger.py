@@ -1,12 +1,11 @@
-from abc import ABCMeta, abstractmethod
 import numbers
 import warnings
-
-from typing import Mapping, Any
+from abc import ABCMeta, abstractmethod
+from typing import Any, Mapping
 
 import torch
 
-from ignite.engine import State, Engine
+from ignite.engine import Engine, State
 from ignite.handlers import global_step_from_engine
 
 

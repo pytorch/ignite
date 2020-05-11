@@ -1,8 +1,9 @@
-import torch
 import numpy as np
 import pytest
-from ignite.engine import Engine
+import torch
+
 from ignite.contrib.metrics.regression import MedianRelativeAbsoluteError
+from ignite.engine import Engine
 
 
 def test_wrong_input_shapes():
