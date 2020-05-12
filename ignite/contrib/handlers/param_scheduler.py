@@ -893,7 +893,7 @@ class ParamGroupScheduler(ParamScheduler):
 
     """
 
-    def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None):
+    def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None, save_history=False):
         if not (
             isinstance(schedulers, Sequence) and all(isinstance(scheduler, ParamScheduler) for scheduler in schedulers)
         ):
@@ -913,12 +913,11 @@ class ParamGroupScheduler(ParamScheduler):
 
         optimizer = self.schedulers[0].optimizer
 
-        super(ParamGroupScheduler, self).__init__(optimizer=optimizer, param_name="lr")
+        super(ParamGroupScheduler, self).__init__(optimizer=optimizer, param_name="lr", save_history=save_history)
 
     def __call__(self, engine, name=None):
         for scheduler, name in zip(self.schedulers, self.names):
             scheduler(engine, name=name)
-        return super(ParamGroupScheduler, self).__call__(engine, name)
 
     def get_param(self) -> Union[List[float], float]:
         return [scheduler.get_param() for scheduler in self.schedulers]
@@ -981,14 +980,10 @@ class ParamGroupScheduler(ParamScheduler):
         copy_lr_schedulers = [_replicate_scheduler(s) for s in schedulers]
         values = []
         scheduler = cls(schedulers=copy_lr_schedulers)
-        for s in schedulers:
-            print(s)
-            print(s.optimizer)
         for i in range(num_events):
+            scheduler(engine=None)
             params = scheduler.get_param()
             values.append([i] + params)
-            scheduler(engine=None)
-
         return values
 
 
@@ -998,6 +993,9 @@ def _replicate_scheduler(scheduler, save_history=False):
     elif isinstance(scheduler, ConcatScheduler):
         copy_schedulers = [_replicate_scheduler(s, save_history=save_history) for s in scheduler.schedulers]
         return ConcatScheduler(copy_schedulers, durations=scheduler.durations, save_history=save_history)
+    elif isinstance(scheduler, ParamGroupScheduler):
+        copy_schedulers = [_replicate_scheduler(s, save_history=save_history) for s in scheduler.schedulers]
+        return ParamGroupScheduler(schedulers=copy_schedulers, names=scheduler.names, save_history=save_history)
     elif isinstance(scheduler, ParamScheduler):
         new_scheduler = copy(scheduler)
         new_scheduler.optimizer = _replicate_optimizer(new_scheduler.optimizer)
