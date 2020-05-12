@@ -1,6 +1,7 @@
 import os
 import subprocess
 from typing import Optional, Union
+from numbers import Number
 
 import torch
 import torch.distributed as dist
@@ -76,13 +77,17 @@ class _NativeDistModel(ComputationModel):
 
     def _init_from_context(self):
 
-        if "LOCAL_RANK" not in os.environ:
+        if "LOCAL_RANK" in os.environ:
+            self._local_rank = int(os.environ["LOCAL_RANK"])
+        elif self._ext_local_rank is not None:
+            self._local_rank = self._ext_local_rank
+        else:
             raise RuntimeError(
                 "Can not initialize native dist model without local rank information. "
-                "Please, set `os.environ['LOCAL_RANK']` with correct local rank index"
+                "Please, either set `os.environ['LOCAL_RANK']` with correct local rank index or"
+                "use `idist.set_local_rank(local_rank)`"
             )
 
-        self._local_rank = int(os.environ["LOCAL_RANK"])
         # for debug purposes
         self._master_port = None
         self._master_addr = None
@@ -203,3 +208,21 @@ class _NativeDistModel(ComputationModel):
             args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args),
             daemon=False,
         )
+
+    _reduce_op_map = {
+        "SUM": dist.ReduceOp.SUM,
+        "PRODUCT": dist.ReduceOp.PRODUCT,
+        "MIN": dist.ReduceOp.MIN,
+        "MAX": dist.ReduceOp.MAX,
+        "AND": dist.ReduceOp.BAND,
+        "OR": dist.ReduceOp.BOR,
+    }
+
+    def _do_reduction(self, tensor: torch.Tensor, op: str = "SUM"):
+        if op not in self._reduce_op_map:
+            raise ValueError("Unsupported reduction operation: '{}'".format(op))
+        op = self._reduce_op_map[op]
+        dist.barrier()
+        dist.all_reduce(tensor, op)
+
+

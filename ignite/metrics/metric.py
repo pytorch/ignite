@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional, Union
 import torch
 import torch.distributed as dist
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 
 __all__ = ["Metric"]
@@ -89,31 +90,6 @@ class Metric(metaclass=ABCMeta):
             NotComputableError: raised when the metric cannot be computed.
         """
         pass
-
-    def _sync_all_reduce(self, tensor: Union[torch.Tensor, numbers.Number]) -> Union[torch.Tensor, numbers.Number]:
-        if not (dist.is_available() and dist.is_initialized()):
-            # Nothing to reduce
-            return tensor
-
-        tensor_to_number = False
-        if isinstance(tensor, numbers.Number):
-            tensor = torch.tensor(tensor, device=self._device)
-            tensor_to_number = True
-
-        if isinstance(tensor, torch.Tensor):
-            # check if the tensor is at specified device
-            if tensor.device != self._device:
-                tensor = tensor.to(self._device)
-        else:
-            raise TypeError("Unhandled input type {}".format(type(tensor)))
-
-        # synchronize and reduce
-        dist.barrier()
-        dist.all_reduce(tensor)
-
-        if tensor_to_number:
-            return tensor.item()
-        return tensor
 
     def started(self, engine: Engine) -> None:
         self.reset()
@@ -318,7 +294,8 @@ def sync_all_reduce(*attrs) -> Callable:
                 for attr in attrs:
                     t = getattr(self, attr, None)
                     if t is not None:
-                        t = self._sync_all_reduce(t)
+                        # t = self._sync_all_reduce(t)
+                        t = idist.all_reduce(t)
                         self._is_reduced = True
                         setattr(self, attr, t)
 

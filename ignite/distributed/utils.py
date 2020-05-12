@@ -1,6 +1,7 @@
 import socket
 from functools import wraps
 from typing import Optional, Tuple, Union
+from numbers import Number
 
 import torch
 import torch.distributed as dist
@@ -232,6 +233,36 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
         if backend not in comp_model_cls.available_backends:
             continue
         comp_model_cls.spawn(fn, args=args, num_procs_per_node=num_procs_per_node, backend=backend, **kwargs)
+
+
+@_sync_model_wrapper
+def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
+    """TODO
+
+    Args:
+        tensor:
+        op:
+
+    Returns:
+
+    """
+    if get_world_size() < 2:
+        # Nothing to reduce
+        return tensor
+
+    _model.all_reduce(tensor, op)
+
+
+def set_local_rank(index: int):
+    """TODO
+
+    Args:
+        index (int): local rank or current process index
+
+    """
+    from ignite.distributed.comp_models.base import ComputationModel
+
+    ComputationModel._ext_local_rank = index
 
 
 def _set_model(model):

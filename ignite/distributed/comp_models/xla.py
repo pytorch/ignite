@@ -1,4 +1,5 @@
 from typing import Optional, Union
+from numbers import Number
 
 import torch
 
@@ -118,3 +119,19 @@ class _XlaDistModel(ComputationModel):
         xmp.spawn(
             _XlaDistModel._dist_worker_task_fn, args=(backend, fn, args), nprocs=num_procs_per_node, **spawn_kwargs
         )
+
+    _reduction_dtype = torch.float
+    _reduce_op_map = {
+        "SUM": "sum",
+        "PRODUCT": "mul",
+        "MIN": "min",
+        "MAX": "max",
+        "AND": "and",
+        "OR": "or",
+    }
+
+    def _do_reduction(self, tensor: torch.Tensor, op: str = "SUM"):
+        if op not in self._reduce_op_map:
+            raise ValueError("Unsupported reduction operation: '{}'".format(op))
+        op = self._reduce_op_map[op]
+        xm.all_reduce(op, [tensor,])

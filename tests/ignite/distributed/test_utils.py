@@ -78,13 +78,11 @@ def test_native_distrib_single_node_launch_tool_gloo(local_rank, world_size):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_native_distrib_single_node_launch_tool_nccl(local_rank, world_size):
     import os
-    from datetime import timedelta
 
-    timeout = timedelta(seconds=20)
     rank = local_rank
     os.environ["RANK"] = "{}".format(rank)
 
-    idist.initialize("nccl", timeout=timeout)
+    idist.initialize("nccl")
     _test_distrib_config(local_rank, "nccl", world_size, "cuda", rank)
     idist.finalize()
 
@@ -108,15 +106,10 @@ def test_native_distrib_single_node_spawn_gloo():
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_native_distrib_single_node_spawn_nccl():
-
-    from datetime import timedelta
-
-    timeout = timedelta(seconds=20)
-
     world_size = torch.cuda.device_count()
 
     idist.spawn(
-        "nccl", _test_distrib_config, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size, timeout=timeout
+        "nccl", _test_distrib_config, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size
     )
 
 
@@ -183,6 +176,21 @@ def test__sync_model_as_xla():
     _test_sync_model(_XlaDistModel)
 
 
+@pytest.mark.distributed
+def test__sync_model_as_native_gloo(distributed_context_single_node_gloo):
+    from ignite.distributed.comp_models import _NativeDistModel
+
+    _test_sync_model(_NativeDistModel)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test__sync_model_as_native_nccl(distributed_context_single_node_nccl):
+    from ignite.distributed.comp_models import _NativeDistModel
+
+    _test_sync_model(_NativeDistModel)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
@@ -230,3 +238,62 @@ def test_idist_methods_in_xla_context_in_child_proc(xmp_executor):
         )
 
     xmp_executor(_test_fn, args=(), nprocs=n)
+
+
+def _test_idist_methods_in_native_context(backend, device, local_rank):
+    # We explicitly set _model as _SerialModel
+    # then call idist.* methods and check that they give correct values
+    from ignite.distributed.utils import _set_model, _SerialModel
+
+    _set_model(_SerialModel())
+
+    ws = dist.get_world_size()
+    rank = dist.get_rank()
+    _test_distrib_config(local_rank=local_rank, backend=backend, ws=ws, device=device, rank=rank)
+
+
+@pytest.mark.distributed
+def test_idist_methods_in_native_gloo_context(distributed_context_single_node_gloo):
+    local_rank = distributed_context_single_node_gloo["local_rank"]
+    _test_idist_methods_in_native_context("gloo", "cpu", local_rank)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_methods_in_native_nccl_context(distributed_context_single_node_nccl):
+    local_rank = distributed_context_single_node_nccl["local_rank"]
+    _test_idist_methods_in_native_context("nccl", "cuda", local_rank)
+
+
+def _test_idist_methods_in_native_context_set_local_rank(backend, device, local_rank):
+    # We explicitly set _model as _SerialModel
+    # then call idist.* methods and check that they give correct values
+    from ignite.distributed.utils import _set_model, _SerialModel
+
+    _set_model(_SerialModel())
+
+    lrank = int(os.environ["LOCAL_RANK"])
+    del os.environ["LOCAL_RANK"]
+
+    ws = dist.get_world_size()
+    rank = dist.get_rank()
+
+    idist.set_local_rank(local_rank)
+
+    _test_distrib_config(local_rank=local_rank, backend=backend, ws=ws, device=device, rank=rank)
+
+    os.environ["LOCAL_RANK"] = str(lrank)
+
+
+@pytest.mark.distributed
+def test_idist_methods_in_native_gloo_context_set_local_rank(distributed_context_single_node_gloo):
+    local_rank = distributed_context_single_node_gloo["local_rank"]
+    _test_idist_methods_in_native_context_set_local_rank("gloo", "cpu", local_rank)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_methods_in_native_nccl_context_set_local_rank(distributed_context_single_node_nccl):
+    local_rank = distributed_context_single_node_nccl["local_rank"]
+    _test_idist_methods_in_native_context_set_local_rank("nccl", "cuda", local_rank)
+

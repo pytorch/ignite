@@ -53,6 +53,15 @@ def world_size():
 
 
 @pytest.fixture()
+def clean_env():
+    import os
+
+    for k in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
+        if k in os.environ:
+            del os.environ[k]
+
+
+@pytest.fixture()
 def distributed_context_single_node_nccl(local_rank, world_size):
 
     dist_info = {

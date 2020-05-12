@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from typing import Optional, Union
+from numbers import Number
 
 import torch
 
@@ -9,6 +10,8 @@ class ComputationModel(metaclass=ABCMeta):
 
     This class is public and should be used for other custom derived distributed models.
     """
+    # this is an additional local rank storage used when idist is setup from existing native torch dist context
+    _ext_local_rank = None
 
     @abstractmethod
     def get_local_rank(self) -> int:
@@ -61,6 +64,32 @@ class ComputationModel(metaclass=ABCMeta):
     def spawn(*args, **kwargs):
         pass
 
+    _reduction_dtype = None
+
+    def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
+        tensor_to_number = False
+        device = self.device()
+        if isinstance(tensor, Number):
+            tensor = torch.tensor(tensor, device=device, dtype=self._reduction_dtype)
+            tensor_to_number = True
+
+        if isinstance(tensor, torch.Tensor):
+            # check if the tensor is at specified device
+            if tensor.device != device:
+                tensor = tensor.to(device)
+        else:
+            raise TypeError("Unhandled input type {}".format(type(tensor)))
+
+        self._do_reduction(tensor, op)
+
+        if tensor_to_number:
+            return tensor.item()
+        return tensor
+
+    @abstractmethod
+    def _do_reduction(self, tensor: Union[torch.Tensor, Number], op: str = "sum"):
+        pass
+
 
 class _SerialModel(ComputationModel):
     """Private class defines non-distributed computation model for code compatibility with other distributed models.
@@ -110,3 +139,9 @@ class _SerialModel(ComputationModel):
     @staticmethod
     def spawn(*args, **kwargs):
         raise NotImplementedError("Serial computation model does not implement spawn method")
+
+    def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
+        return tensor
+
+    def _do_reduction(self, tensor: Union[torch.Tensor, Number], op: str = "sum"):
+        pass
