@@ -754,7 +754,7 @@ def create_lr_scheduler_with_warmup(
             param_name="lr",
             milestones_values=milestones_values,
             param_group_index=param_group_index,
-            save_history=save_history
+            save_history=save_history,
         )
 
         warmup_schedulers.append(warmup_scheduler)
