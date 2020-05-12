@@ -68,7 +68,6 @@ class ParamScheduler(metaclass=ABCMeta):
             engine.state.param_history.setdefault(name, [])
             values = [pg[self.param_name] for pg in self.optimizer_param_groups]
             engine.state.param_history[name].append(values)
-
         self.event_index += 1
 
     @property
@@ -755,11 +754,12 @@ def create_lr_scheduler_with_warmup(
             param_name="lr",
             milestones_values=milestones_values,
             param_group_index=param_group_index,
+            save_history=save_history
         )
 
         warmup_schedulers.append(warmup_scheduler)
 
-    warmup_scheduler = ParamGroupScheduler(warmup_schedulers)
+    warmup_scheduler = ParamGroupScheduler(warmup_schedulers, save_history=save_history)
 
     schedulers = [warmup_scheduler, lr_scheduler]
     durations = [
@@ -900,7 +900,7 @@ class ParamGroupScheduler(ParamScheduler):
             raise ValueError("Argument schedulers should be a list/tuple of parameter schedulers")
 
         if names is None:
-            names = ["default_".format(i) for i in range(len(schedulers))]
+            names = [s.param_name for s in schedulers]
 
         if not (isinstance(names, (list, tuple)) and all(isinstance(n, str) for n in names)):
             raise ValueError("Argument names should be a list/tuple of parameter scheduler's names")
@@ -912,12 +912,14 @@ class ParamGroupScheduler(ParamScheduler):
         self.names = names
 
         optimizer = self.schedulers[0].optimizer
+        if not (all(id(s.optimizer) == id(optimizer) for s in schedulers)):
+            raise ValueError("schedulers should be related to same optimizer")
 
         super(ParamGroupScheduler, self).__init__(optimizer=optimizer, param_name="lr", save_history=save_history)
 
     def __call__(self, engine, name=None):
         for scheduler, name in zip(self.schedulers, self.names):
-            scheduler(engine, name=name)
+            scheduler(engine, name)
 
     def get_param(self) -> Union[List[float], float]:
         return [scheduler.get_param() for scheduler in self.schedulers]
@@ -994,7 +996,10 @@ def _replicate_scheduler(scheduler, save_history=False):
         copy_schedulers = [_replicate_scheduler(s, save_history=save_history) for s in scheduler.schedulers]
         return ConcatScheduler(copy_schedulers, durations=scheduler.durations, save_history=save_history)
     elif isinstance(scheduler, ParamGroupScheduler):
+        copy_optimizer = _replicate_optimizer(scheduler.optimizer)
         copy_schedulers = [_replicate_scheduler(s, save_history=save_history) for s in scheduler.schedulers]
+        for s in copy_schedulers:
+            s.optimizer = copy_optimizer
         return ParamGroupScheduler(schedulers=copy_schedulers, names=scheduler.names, save_history=save_history)
     elif isinstance(scheduler, ParamScheduler):
         new_scheduler = copy(scheduler)
