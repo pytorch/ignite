@@ -168,6 +168,12 @@ def _test_sync_model(cls):
     assert isinstance(_model, cls), "{} vs {}".format(type(_model), cls)
 
 
+def test__sync_model_no_dist():
+    from ignite.distributed.comp_models import _SerialModel
+
+    _test_sync_model(_SerialModel)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")

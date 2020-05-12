@@ -8,7 +8,7 @@ from ignite.distributed.comp_models import _NativeDistModel
 
 
 @pytest.mark.distributed
-def test__dist_model():
+def test__native_dist_model():
     available_backends = _NativeDistModel.available_backends
 
     if dist.is_nccl_available():
@@ -29,7 +29,7 @@ def test__dist_model():
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test__dist_model_create_from_backend_bad_config():
+def test__native_dist_model_create_from_backend_bad_config():
     import os
     from datetime import timedelta
 
@@ -55,7 +55,7 @@ def _assert_model(model, true_conf):
     assert model.get_ntasks_per_node() == true_conf["ntasks_per_node"]
 
 
-def _test__dist_model_create_from_backend_no_dist(backend, true_device):
+def _test__native_dist_model_create_from_backend_no_dist(backend, true_device):
     from datetime import timedelta
 
     model = _NativeDistModel.create_from_backend(backend=backend, timeout=timedelta(seconds=20))
@@ -79,7 +79,7 @@ def _test__dist_model_create_from_backend_no_dist(backend, true_device):
     model.finalize()
 
 
-def _test__dist_model_create_from_backend_dist(local_rank, rank, world_size, backend, true_device):
+def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_size, backend, true_device):
     import os
     from datetime import timedelta
 
@@ -109,12 +109,15 @@ def _test__dist_model_create_from_backend_dist(local_rank, rank, world_size, bac
     del os.environ["RANK"]
 
 
-def _test__dist_model_create_from_context_no_dist(true_backend, true_device):
+def _test__native_dist_model_create_from_context_no_dist(true_backend, true_device):
 
     assert _NativeDistModel.create_from_context() is None
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=1, rank=0)
     dist.barrier()
+
+    import os
+    os.environ["LOCAL_RANK"] = "0"
 
     model = _NativeDistModel.create_from_context()
 
@@ -137,7 +140,7 @@ def _test__dist_model_create_from_context_no_dist(true_backend, true_device):
     dist.destroy_process_group()
 
 
-def _test__dist_model_create_from_context_dist(local_rank, rank, world_size, true_backend, true_device):
+def _test__native_dist_model_create_from_context_dist(local_rank, rank, world_size, true_backend, true_device):
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=world_size, rank=rank)
     dist.barrier()
@@ -165,30 +168,30 @@ def _test__dist_model_create_from_context_dist(local_rank, rank, world_size, tru
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test__dist_model_create_no_dist_gloo():
-    _test__dist_model_create_from_backend_no_dist("gloo", "cpu")
-    # _test__dist_model_create_from_context_no_dist("gloo", "cpu")
+def test__native_dist_model_create_no_dist_gloo():
+    _test__native_dist_model_create_from_backend_no_dist("gloo", "cpu")
+    _test__native_dist_model_create_from_context_no_dist("gloo", "cpu")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__dist_model_create_no_dist_nccl():
-    _test__dist_model_create_from_backend_no_dist("nccl", "cuda:0")
-    # _test__dist_model_create_from_context_no_dist("nccl", "cuda:0")
+def test__native_dist_model_create_no_dist_nccl():
+    _test__native_dist_model_create_from_backend_no_dist("nccl", "cuda:0")
+    _test__native_dist_model_create_from_context_no_dist("nccl", "cuda:0")
 
 
 @pytest.mark.distributed
-def test__dist_model_create_dist_gloo(local_rank, world_size):
-    _test__dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "gloo", "cpu")
-    # _test__dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", "cpu")
+def test__native_dist_model_create_dist_gloo(local_rank, world_size):
+    _test__native_dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "gloo", "cpu")
+    # _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", "cpu")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__dist_model_create_dist_nccl(local_rank, world_size):
-    _test__dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank))
-    # _test__dist_model_create_from_context_dist(
+def test__native_dist_model_create_dist_nccl(local_rank, world_size):
+    _test__native_dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank))
+    # _test__native_dist_model_create_from_context_dist(
     #     local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
     # )
 
@@ -209,7 +212,7 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
         assert _model.device() == device
 
 
-def _test__dist_model_spawn(backend, num_workers_per_machine, device):
+def _test__native_dist_model_spawn(backend, num_workers_per_machine, device):
     _NativeDistModel.spawn(
         _test_dist_spawn_fn,
         args=(backend, num_workers_per_machine, device),
@@ -220,12 +223,12 @@ def _test__dist_model_spawn(backend, num_workers_per_machine, device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test__dist_model_spawn_gloo():
-    _test__dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu")
+def test__native_dist_model_spawn_gloo():
+    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__dist_model_spawn_nccl():
-    _test__dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")
+def test__native_dist_model_spawn_nccl():
+    _test__native_dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")

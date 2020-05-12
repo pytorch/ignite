@@ -55,9 +55,11 @@ class _NativeDistModel(ComputationModel):
 
     def _create_from_backend(self, backend, timeout=None, **kwargs):
         self.setup_env_vars()
+
+        self._local_rank = int(os.environ["LOCAL_RANK"])
+        # for debug purposes
         self._master_port = int(os.environ["MASTER_PORT"])
         self._master_addr = os.environ["MASTER_ADDR"]
-        self._local_rank = int(os.environ["LOCAL_RANK"])
 
         init_pg_kwargs = {}
         if timeout is not None:
@@ -70,28 +72,23 @@ class _NativeDistModel(ComputationModel):
         if backend == "nccl":
             torch.cuda.device(self._local_rank)
 
-        self._ntasks_per_node = self._compute_ntasks_per_node()
-        self._nnodes = self.get_world_size() // self.get_ntasks_per_node()
-        self._node = self.get_rank() // self._ntasks_per_node
+        self._setup_attrs()
 
     def _init_from_context(self):
 
-        raise NotImplementedError("")
+        if "LOCAL_RANK" not in os.environ:
+            raise RuntimeError(
+                "Can not initialize native dist model without local rank information. "
+                "Please, set `os.environ['LOCAL_RANK']` with correct local rank index"
+            )
 
+        self._local_rank = int(os.environ["LOCAL_RANK"])
+        # for debug purposes
         self._master_port = None
         self._master_addr = None
+        self._setup_attrs()
 
-        # THIS COULD HELP TO GET master addr/port if TCPStore is used.
-        # HOWEVER, user can use FileStore or any other store.
-        # try:
-        #     store = dist.distributed_c10d._get_default_store()
-        #     if isinstance(store, torch.distributed.TCPStore):
-        #         self._master_port = None
-        #         self._master_addr = None
-        # except AttributeError:
-        #     pass
-
-        self._local_rank = 0  # self.get_rank() % self._ntasks_per_node
+    def _setup_attrs(self):
         self._ntasks_per_node = self._compute_ntasks_per_node()
         self._nnodes = self.get_world_size() // self._ntasks_per_node
         self._node = self.get_rank() // self._ntasks_per_node
