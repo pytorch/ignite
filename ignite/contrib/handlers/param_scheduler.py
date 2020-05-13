@@ -729,23 +729,25 @@ def create_lr_scheduler_with_warmup(
     for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
 
         if warmup_end_value is None:
-            warmup_end_value = param_group["lr"]
+            param_group_warmup_end_value = param_group["lr"]
+        else:
+            param_group_warmup_end_value = warmup_end_value
 
-        milestones_values = [(0, warmup_start_value), (warmup_duration - 1, warmup_end_value)]
+        milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
 
         if isinstance(lr_scheduler, _LRScheduler):
             init_lr = param_group["lr"]
 
-            if init_lr != warmup_end_value:
+            if init_lr != param_group_warmup_end_value:
                 milestones_values.append((warmup_duration, init_lr))
 
             lr_scheduler = LRScheduler(lr_scheduler)
         else:
             init_lr = lr_scheduler.get_param()
-            if init_lr == warmup_end_value:
+            if init_lr == param_group_warmup_end_value:
                 if warmup_duration > 2:
-                    d = (warmup_end_value - warmup_start_value) / (warmup_duration - 1)
-                    milestones_values[-1] = (warmup_duration - 2, warmup_end_value - d)
+                    d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
+                    milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
                 else:
                     milestones_values.pop(-1)
 
