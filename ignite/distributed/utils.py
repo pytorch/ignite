@@ -273,8 +273,7 @@ def set_local_rank(index: int):
 
             dist.init_process_group(**dist_info)
 
-
-
+            TODO
 
 
     Args:
@@ -302,11 +301,12 @@ def initialize(backend: str, **kwargs):
 
     Examples:
 
-        Launch single node multi-GPU training with `torch.distributed.launch` utility:
+        Launch single node multi-GPU training with `torch.distributed.launch` utility. Please, note that we need to
+        pass local rank with `--use_env` option:
 
         .. code-block:: python
 
-            # >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE main.py
+            # >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE --use_env main.py
 
             # main.py
 
@@ -322,7 +322,8 @@ def initialize(backend: str, **kwargs):
 
 
             idist.initialize("nccl")
-            train_fn
+            local_rank = idist.get_local_rank()
+            train_fn(local_rank, a, b, c)
             idist.finalize()
 
 
