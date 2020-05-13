@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import sync, has_xla_support
+from ignite.distributed.utils import has_xla_support, sync
 
 
 def _sanity_check():
@@ -20,6 +20,7 @@ def _sanity_check():
 def test_no_distrib():
 
     from ignite.distributed.utils import _model
+
     print("test_no_distrib : dist: ", dist.is_available(), dist.is_initialized())
     print("test_no_distrib : _model", type(_model))
 
@@ -113,9 +114,7 @@ def test_native_distrib_single_node_spawn_gloo():
 def test_native_distrib_single_node_spawn_nccl():
     world_size = torch.cuda.device_count()
 
-    idist.spawn(
-        "nccl", _test_distrib_config, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size
-    )
+    idist.spawn("nccl", _test_distrib_config, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size)
 
 
 @pytest.mark.skipif(has_xla_support, reason="Skip if has PyTorch XLA package")

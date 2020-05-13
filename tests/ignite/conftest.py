@@ -77,6 +77,7 @@ def _destroy_dist_context():
     dist.destroy_process_group()
 
     from ignite.distributed.utils import _SerialModel, _set_model
+
     # We need to set synced model to initial state
     _set_model(_SerialModel())
 
@@ -143,6 +144,7 @@ def _destroy_mnodes_dist_context():
     dist.destroy_process_group()
 
     from ignite.distributed.utils import _SerialModel, _set_model
+
     # We need to set synced model to initial state
     _set_model(_SerialModel())
 

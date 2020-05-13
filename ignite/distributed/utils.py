@@ -1,7 +1,7 @@
 import socket
 from functools import wraps
-from typing import Optional, Tuple, Union
 from numbers import Number
+from typing import Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist

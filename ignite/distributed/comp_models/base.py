@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from typing import Optional, Union
 from numbers import Number
+from typing import Optional, Union
 
 import torch
 
@@ -10,6 +10,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     This class is public and should be used for other custom derived distributed models.
     """
+
     # this is an additional local rank storage used when idist is setup from existing native torch dist context
     _ext_local_rank = None
 

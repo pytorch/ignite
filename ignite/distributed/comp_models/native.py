@@ -1,7 +1,7 @@
 import os
 import subprocess
-from typing import Optional, Union
 from numbers import Number
+from typing import Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -224,5 +224,3 @@ class _NativeDistModel(ComputationModel):
         op = self._reduce_op_map[op]
         dist.barrier()
         dist.all_reduce(tensor, op)
-
-

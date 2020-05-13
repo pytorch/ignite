@@ -1,5 +1,5 @@
-from typing import Optional, Union
 from numbers import Number
+from typing import Optional, Union
 
 import torch
 
