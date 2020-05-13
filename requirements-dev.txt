@@ -16,6 +16,7 @@ polyaxon-client
 mlflow
 neptune-client
 tensorboard
+pytest-rerunfailures
 pynvml; python_version > '3.5'
 trains
 # Examples dependencies
