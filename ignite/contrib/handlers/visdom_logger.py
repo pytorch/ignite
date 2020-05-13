@@ -77,13 +77,25 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             vd_logger = VisdomLogger()
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of
-            # the `trainer`:
-            vd_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # of the `trainer`:
+            vd_logger.attach(
+                evaluator,
+                log_handler=OutputHandler(
+                    tag="validation",
+                    metric_names=["nll", "accuracy"],
+                    global_step_transform=global_step_from_engine(trainer)
+                ),
+                event_name=Events.EPOCH_COMPLETED
+            )
+            # or equivalently
+            vd_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
         Another example, where model is evaluated every 500 iterations:
 
@@ -105,20 +117,21 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Visdom.
 
-
-            vd_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metrics=["nll", "accuracy"],
-                                                       global_step_transform=global_step_transform),
-                             event_name=Events.EPOCH_COMPLETED)
+            vd_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metrics=["nll", "accuracy"],
+                global_step_transform=global_step_transform
+            )
 
     Args:
-        tag (str): common title for all produced plots. For example, 'training'
+        tag (str): common title for all produced plots. For example, "training"
         metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
             value of event. Typically, user can provide
@@ -202,14 +215,22 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
             vb_logger = VisdomLogger()
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            vb_logger.attach(trainer,
-                             log_handler=OptimizerParamsHandler(optimizer),
-                             event_name=Events.ITERATION_STARTED)
+            vd_logger.attach(
+                trainer,
+                log_handler=OptimizerParamsHandler(optimizer),
+                event_name=Events.ITERATION_STARTED
+            )
+            # or equivalently
+            vd_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer
+            )
 
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
         show_legend (bool, optional): flag to show legend in the window
     """
 
@@ -219,7 +240,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, VisdomLogger):
-            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with VisdomLogger")
+            raise RuntimeError("Handler OptimizerParamsHandler works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
@@ -249,14 +270,16 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             vd_logger = VisdomLogger()
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            vd_logger.attach(trainer,
-                             log_handler=WeightsScalarHandler(model, reduction=torch.norm),
-                             event_name=Events.ITERATION_COMPLETED)
+            vd_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
         show_legend (bool, optional): flag to show legend in the window
     """
 
@@ -295,14 +318,16 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             vd_logger = VisdomLogger()
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            vd_logger.attach(trainer,
-                             log_handler=GradsScalarHandler(model, reduction=torch.norm),
-                             event_name=Events.ITERATION_COMPLETED)
+            vd_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
         show_legend (bool, optional): flag to show legend in the window
 
     """
@@ -366,42 +391,56 @@ class VisdomLogger(BaseLogger):
             vd_logger = VisdomLogger()
 
             # Attach the logger to the trainer to log training loss at each iteration
-            vd_logger.attach(trainer,
-                             log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
-                             event_name=Events.ITERATION_COMPLETED)
+            vd_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                output_transform=lambda loss: {"loss": loss}
+            )
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
-            # of the `trainer` instead of `train_evaluator`:
-            vd_logger.attach(train_evaluator,
-                             log_handler=OutputHandler(tag="training",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            # of the `trainer` instead of `train_evaluator`.
+            vd_logger.attach_output_handler(
+                train_evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="training",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer),
+            )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of
-            # the `trainer` instead of `evaluator`:
-            vd_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer),
-                             event_name=Events.EPOCH_COMPLETED)
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
+            # `trainer` instead of `evaluator`.
+            vd_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)),
+            )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            vd_logger.attach(trainer,
-                             log_handler=optimizer_params_handler(optimizer),
-                             event_name=Events.ITERATION_COMPLETED)
+            vd_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer,
+                param_name='lr'  # optional
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            vd_logger.attach(trainer,
-                             log_handler=weights_scalar_handler(model),
-                             event_name=Events.ITERATION_COMPLETED)
+            vd_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model)
+            )
 
             # Attach the logger to the trainer to log model's gradients norm after each iteration
-            vd_logger.attach(trainer,
-                             log_handler=grads_scalar_handler(model),
-                             event_name=Events.ITERATION_COMPLETED)
+            vd_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model)
+            )
 
             # We need to close the logger with we are done
             vd_logger.close()
@@ -416,12 +455,12 @@ class VisdomLogger(BaseLogger):
 
                 trainer = Engine(update_fn)
                 # Attach the logger to the trainer to log training loss at each iteration
-                vd_logger.attach(trainer,
-                                 log_handler=OutputHandler(tag="training",
-                                                           output_transform=lambda loss: {'loss': loss}),
-                                 event_name=Events.ITERATION_COMPLETED)
-
-
+                vd_logger.attach_output_handler(
+                    trainer,
+                    event_name=Events.ITERATION_COMPLETED,
+                    tag="training",
+                    output_transform=lambda loss: {"loss": loss}
+                )
 
     """
 
