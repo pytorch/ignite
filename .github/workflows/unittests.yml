@@ -41,10 +41,7 @@ jobs:
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
-        CUDA_VISIBLE_DEVICES="" py.test --tx 4*popen//python=python${{ matrix.python-version }} --cov ignite --cov-report term-missing -vvv tests/
-        # tests for distributed ops
-        export WORLD_SIZE=2
-        py.test --cov ignite --cov-append --cov-report term-missing --dist=each --tx $WORLD_SIZE*popen//python=python${{ matrix.python-version }} tests -m distributed -vvv
+        sh tests/run_cpu_tests.sh
 
     - name: Run MNIST Examples
       run: |
