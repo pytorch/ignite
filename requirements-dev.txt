@@ -1,6 +1,7 @@
 # Tests
 numpy
 pytest
+ifcfg
 codecov
 pytest-cov
 pytest-xdist

@@ -5,6 +5,12 @@ import pytest
 import torch
 import torch.distributed as dist
 
+import pytest
+
+
+def get_ifname():
+    import ifcfg
+    return ifcfg.default_interface()["device"]
 
 @pytest.fixture()
 def dirname():
@@ -61,6 +67,9 @@ def distributed_context_single_node_gloo(local_rank):
     if "WORLD_SIZE" not in os.environ:
         os.environ["WORLD_SIZE"] = "1"
 
+    if "GLOO_SOCKET_IFNAME" not in os.environ:
+        os.environ["GLOO_SOCKET_IFNAME"] = get_ifname()
+
     dist_info = {
         "backend": "gloo",
         "world_size": int(os.environ["WORLD_SIZE"]),
@@ -113,6 +122,9 @@ def distributed_context_multi_node_gloo(multi_node_conf):
         "world_size": multi_node_conf["world_size"],
         "rank": multi_node_conf["rank"],
     }
+
+    if "GLOO_SOCKET_IFNAME" not in os.environ:
+        os.environ["GLOO_SOCKET_IFNAME"] = get_ifname()
 
     dist.init_process_group(**dist_info)
 
