@@ -41,7 +41,7 @@ jobs:
       run: |
         export PATH="$HOME/miniconda/bin:$PATH"
         source activate test-environment
-        sh tests/run_cpu_tests.sh
+        CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
 
     - name: Run MNIST Examples
       run: |
