@@ -5,12 +5,12 @@ import pytest
 import torch
 import torch.distributed as dist
 
-import pytest
-
 
 def get_ifname():
     import ifcfg
+
     return ifcfg.default_interface()["device"]
+
 
 @pytest.fixture()
 def dirname():
