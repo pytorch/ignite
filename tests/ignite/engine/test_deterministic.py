@@ -800,13 +800,14 @@ def test_gradients_on_resume_cpu(dirname):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_gradients_on_resume_gpu(dirname):
+def test_gradients_on_resume_on_cuda(dirname):
     with pytest.raises(AssertionError):
-        _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True)
-    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False)
+        _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True, save_iter=25)
+    with pytest.raises(AssertionError):
+        _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False, save_iter=25)
     # resume from epoch
-    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True, save_iter=30)
-    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False, save_iter=30)
+    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=True, save_epoch=3)
+    _test_gradients_on_resume(dirname, "cuda", with_dataaugs=False, save_epoch=3)
 
 
 def test_engine_with_dataloader_no_auto_batching():
