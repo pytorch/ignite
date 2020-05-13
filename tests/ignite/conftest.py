@@ -61,6 +61,26 @@ def clean_env():
             del os.environ[k]
 
 
+def _create_dist_context(dist_info, lrank):
+
+    dist.init_process_group(**dist_info)
+    dist.barrier()
+    if dist_info["backend"] == "nccl":
+        torch.cuda.device(local_rank)
+
+    return {"local_rank": lrank}
+
+
+def _destroy_dist_context():
+
+    dist.barrier()
+    dist.destroy_process_group()
+
+    from ignite.distributed.utils import _SerialModel, _set_model
+    # We need to set synced model to initial state
+    _set_model(_SerialModel())
+
+
 @pytest.fixture()
 def distributed_context_single_node_nccl(local_rank, world_size):
 
@@ -70,28 +90,14 @@ def distributed_context_single_node_nccl(local_rank, world_size):
         "rank": local_rank,
         "init_method": "tcp://localhost:2223",
     }
-
-    dist.init_process_group(**dist_info)
-
-    dist.barrier()
-
-    torch.cuda.device(local_rank)
-
-    yield {"local_rank": local_rank}
-
-    dist.barrier()
-
-    dist.destroy_process_group()
+    yield _create_dist_context(dist_info, local_rank)
+    _destroy_dist_context()
 
 
 @pytest.fixture()
 def distributed_context_single_node_gloo(local_rank, world_size):
 
-    import os
     from datetime import timedelta
-
-    if "WORLD_SIZE" not in os.environ:
-        os.environ["WORLD_SIZE"] = "1"
 
     dist_info = {
         "backend": "gloo",
@@ -100,16 +106,8 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         "init_method": "tcp://localhost:2222",
         "timeout": timedelta(seconds=60),
     }
-
-    dist.init_process_group(**dist_info)
-
-    dist.barrier()
-
-    yield {"local_rank": local_rank}
-
-    dist.barrier()
-
-    dist.destroy_process_group()
+    yield _create_dist_context(dist_info, local_rank)
+    _destroy_dist_context()
 
 
 @pytest.fixture()
@@ -131,6 +129,24 @@ def multi_node_conf(local_rank):
     return out
 
 
+def _create_mnodes_dist_context(dist_info, mnodes_conf):
+
+    dist.init_process_group(**dist_info)
+    dist.barrier()
+    if dist_info["backend"] == "nccl":
+        torch.cuda.device(mnodes_conf["local_rank"])
+    return mnodes_conf
+
+
+def _destroy_mnodes_dist_context():
+    dist.barrier()
+    dist.destroy_process_group()
+
+    from ignite.distributed.utils import _SerialModel, _set_model
+    # We need to set synced model to initial state
+    _set_model(_SerialModel())
+
+
 @pytest.fixture()
 def distributed_context_multi_node_gloo(multi_node_conf):
 
@@ -145,16 +161,8 @@ def distributed_context_multi_node_gloo(multi_node_conf):
         "world_size": multi_node_conf["world_size"],
         "rank": multi_node_conf["rank"],
     }
-
-    dist.init_process_group(**dist_info)
-
-    dist.barrier()
-
-    yield multi_node_conf
-
-    dist.barrier()
-
-    dist.destroy_process_group()
+    yield _create_mnodes_dist_context(dist_info, multi_node_conf)
+    _destroy_mnodes_dist_context()
 
 
 @pytest.fixture()
@@ -171,18 +179,8 @@ def distributed_context_multi_node_nccl(multi_node_conf):
         "world_size": multi_node_conf["world_size"],
         "rank": multi_node_conf["rank"],
     }
-
-    dist.init_process_group(**dist_info)
-
-    dist.barrier()
-
-    torch.cuda.device(multi_node_conf["local_rank"])
-
-    yield multi_node_conf
-
-    dist.barrier()
-
-    dist.destroy_process_group()
+    yield _create_mnodes_dist_context(dist_info, multi_node_conf)
+    _destroy_mnodes_dist_context()
 
 
 def _xla_template_worker_task(index, fn, args):

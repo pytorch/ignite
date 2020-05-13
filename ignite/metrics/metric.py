@@ -294,7 +294,6 @@ def sync_all_reduce(*attrs) -> Callable:
                 for attr in attrs:
                     t = getattr(self, attr, None)
                     if t is not None:
-                        # t = self._sync_all_reduce(t)
                         t = idist.all_reduce(t)
                         self._is_reduced = True
                         setattr(self, attr, t)

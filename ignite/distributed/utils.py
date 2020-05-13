@@ -11,27 +11,34 @@ from ignite.utils import setup_logger
 
 _model = _SerialModel()
 
+_need_to_sync = True
+
 
 def _sync_model_wrapper(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if isinstance(_model, _SerialModel):
-            _sync_model()
-
+        if isinstance(_model, _SerialModel) and _need_to_sync:
+            sync()
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def _sync_model():
+def sync():
+    """Helper method to force this module to synchronize with current distributed context.
+    This method should be used when distributed context is manually created or destroyed.
+    """
     global _model
+
     for comp_model_cls in registered_computation_models:
         if comp_model_cls == _SerialModel:
             continue
         model = comp_model_cls.create_from_context()
         if model is not None:
             _model = model
-            break
+            return
+
+    _model = _SerialModel()
 
 
 @_sync_model_wrapper
@@ -223,9 +230,9 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
             the process index and args is the passed through tuple of arguments.
         args (tuple): arguments passed to `fn`
         num_procs_per_node (int): number of processes to spawn on a single node.
-        **kwargs: TODO
-
-    Returns:
+        **kwargs: acceptable kwargs according to provided backend:
+            - "nccl" or "gloo" : `num_nodes` (=1), `node_rank` (=0), `master_addr` (0.0.0.0), `master_port` (2222)
+            - "xla-tpu" : `num_nodes` (=1), `node_rank` (=0)
 
     """
     _assert_backend(backend)
@@ -236,25 +243,39 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
 
 
 @_sync_model_wrapper
-def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
-    """TODO
+def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[torch.Tensor, Number]:
+    """Helper method to perform all reduce operation.
 
     Args:
-        tensor:
-        op:
+        tensor (torch.Tensor or number): tensor or number to collect across participating processes.
+        op (str): reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
 
     Returns:
+        torch.Tensor or number
 
     """
     if get_world_size() < 2:
         # Nothing to reduce
         return tensor
 
-    _model.all_reduce(tensor, op)
+    return _model.all_reduce(tensor, op)
 
 
 def set_local_rank(index: int):
-    """TODO
+    """Method to hint the local rank in case if torch native distributed context is created by user
+    without using :meth:`~ignite.distributed.utils.initialize` or :meth:`~ignite.distributed.utils.spawn`.
+
+    Usage:
+
+        .. code-block:: python
+
+            import ignite.distributed as idist
+
+            dist.init_process_group(**dist_info)
+
+
+
+
 
     Args:
         index (int): local rank or current process index
@@ -310,7 +331,7 @@ def initialize(backend: str, **kwargs):
         **kwargs: TODO
 
     """
-    global _model
+    global _model, _need_to_sync
 
     if not (has_xla_support or dist.is_available()):
         # nothing to do => serial model
@@ -324,12 +345,16 @@ def initialize(backend: str, **kwargs):
             continue
         _model = comp_model_cls(backend, **kwargs)
 
+    _need_to_sync = False
+
 
 def finalize():
     """Finalizes distributed configuration. For example, in case of native pytorch distributed configuration,
     it calls `dist.destroy_process_group()`.
     """
+    global _need_to_sync
     _model.finalize()
+    _need_to_sync = True
 
 
 def show_config():

@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import _sync_model, has_xla_support
+from ignite.distributed.utils import sync, has_xla_support
 
 
 def _sanity_check():
@@ -18,6 +18,11 @@ def _sanity_check():
 
 
 def test_no_distrib():
+
+    from ignite.distributed.utils import _model
+    print("test_no_distrib : dist: ", dist.is_available(), dist.is_initialized())
+    print("test_no_distrib : _model", type(_model))
+
     assert idist.backend() is None
     assert idist.device() == "cpu"
     assert idist.get_rank() == 0
@@ -149,58 +154,63 @@ def test_xla_distrib_single_node_spawn_n_procs():
         pass
 
 
-def _test_sync_model(cls):
+def _test_sync(cls):
     from ignite.distributed.utils import _set_model, _SerialModel
 
     _set_model(_SerialModel())
 
-    _sync_model()
+    sync()
 
     from ignite.distributed.utils import _model
 
     assert isinstance(_model, cls), "{} vs {}".format(type(_model), cls)
 
 
-def test__sync_model_no_dist():
+def test_sync_no_dist():
     from ignite.distributed.comp_models import _SerialModel
 
-    _test_sync_model(_SerialModel)
+    _test_sync(_SerialModel)
+
+
+def test_idist_methods_no_dist():
+    assert idist.get_world_size() < 2
+    assert idist.backend() is None, "{}".format(idist.backend())
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test__sync_model_as_xla():
+def test_sync_as_xla():
     from ignite.distributed.comp_models import _XlaDistModel
 
-    _test_sync_model(_XlaDistModel)
+    _test_sync(_XlaDistModel)
 
 
 @pytest.mark.distributed
-def test__sync_model_as_native_gloo(distributed_context_single_node_gloo):
+def test_sync_as_native_gloo(distributed_context_single_node_gloo):
     from ignite.distributed.comp_models import _NativeDistModel
 
-    _test_sync_model(_NativeDistModel)
+    _test_sync(_NativeDistModel)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__sync_model_as_native_nccl(distributed_context_single_node_nccl):
+def test_sync_as_native_nccl(distributed_context_single_node_nccl):
     from ignite.distributed.comp_models import _NativeDistModel
 
-    _test_sync_model(_NativeDistModel)
+    _test_sync(_NativeDistModel)
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test__sync_model_as_xla_in_child_proc(xmp_executor):
+def test_sync_as_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
 
     def _test_fn(index):
         from ignite.distributed.comp_models import _XlaDistModel
 
-        _test_sync_model(_XlaDistModel)
+        _test_sync(_XlaDistModel)
 
     xmp_executor(_test_fn, args=(), nprocs=n)
 
@@ -297,3 +307,23 @@ def test_idist_methods_in_native_nccl_context_set_local_rank(distributed_context
     local_rank = distributed_context_single_node_nccl["local_rank"]
     _test_idist_methods_in_native_context_set_local_rank("nccl", "cuda", local_rank)
 
+
+def test_idist_methods_overhead(distributed_context_single_node_gloo):
+    import time
+
+    n = 100000
+    start = time.time()
+    for _ in range(n):
+        _ = idist.get_world_size()
+        _ = idist.get_rank()
+    elapsed = time.time() - start
+    t1 = elapsed / n
+
+    start = time.time()
+    for _ in range(n):
+        _ = dist.get_world_size()
+        _ = idist.get_rank()
+    elapsed = time.time() - start
+    t2 = elapsed / n
+
+    assert t2 * 6 > t1, "{} * 6 vs {}".format(t2, t1)
