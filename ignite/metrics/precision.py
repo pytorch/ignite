@@ -3,6 +3,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import torch
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accuracy import _BaseClassification
 from ignite.metrics.metric import reinit__is_reduced
@@ -51,8 +52,8 @@ class _BasePrecisionRecall(_BaseClassification):
 
         if not (self._type == "multilabel" and not self._average):
             if not self._is_reduced:
-                self._true_positives = self._sync_all_reduce(self._true_positives)
-                self._positives = self._sync_all_reduce(self._positives)
+                self._true_positives = idist.all_reduce(self._true_positives)
+                self._positives = idist.all_reduce(self._positives)
                 self._is_reduced = True
 
         result = self._true_positives / (self._positives + self.eps)

@@ -308,7 +308,62 @@ def test_idist_methods_in_native_nccl_context_set_local_rank(distributed_context
     _test_idist_methods_in_native_context_set_local_rank("nccl", "cuda", local_rank)
 
 
-def test_idist_methods_overhead(distributed_context_single_node_gloo):
+def test_idist_all_reduce():
+    assert idist.all_reduce(10) == 10
+
+
+def _test_distrib__sync_all_reduce(device):
+
+    res = idist.all_reduce(10)
+    assert res == 10 * idist.get_world_size()
+
+    t = torch.tensor(10, device=device)
+    res = idist.all_reduce(t)
+    assert res.item() == 10 * idist.get_world_size()
+
+    if idist.get_world_size() > 1:
+        with pytest.raises(TypeError, match=r"Unhandled input type"):
+            idist.all_reduce("abc")
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_all_reduce_nccl(distributed_context_single_node_nccl):
+
+    device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
+    _test_distrib__sync_all_reduce(device)
+
+
+@pytest.mark.distributed
+def test_idist_all_reduce_gloo(distributed_context_single_node_gloo):
+
+    device = "cpu"
+    _test_distrib__sync_all_reduce(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_all_reduce_xla():
+    device = idist.device()
+    _test_distrib__sync_all_reduce(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_fn(index):
+        device = idist.device()
+        _test_distrib__sync_all_reduce(device)
+
+    xmp_executor(_test_fn, args=(), nprocs=n)
+
+
+@pytest.mark.distributed
+def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
     import time
 
     n = 100000
@@ -327,3 +382,26 @@ def test_idist_methods_overhead(distributed_context_single_node_gloo):
     t2 = elapsed / n
 
     assert t2 * 6 > t1, "{} * 6 vs {}".format(t2, t1)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
+    import time
+
+    n = 100000
+    start = time.time()
+    for _ in range(n):
+        _ = idist.get_world_size()
+        _ = idist.get_rank()
+    elapsed = time.time() - start
+    t1 = elapsed / n
+
+    start = time.time()
+    for _ in range(n):
+        _ = dist.get_world_size()
+        _ = idist.get_rank()
+    elapsed = time.time() - start
+    t2 = elapsed / n
+
+    assert t2 * 3 > t1, "{} * 3 vs {}".format(t2, t1)
