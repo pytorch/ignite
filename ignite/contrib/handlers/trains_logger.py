@@ -462,16 +462,7 @@ class TrainsLogger(BaseLogger):
                 "You may install trains using: \n pip install trains \n"
             )
 
-        experiment_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k
-            not in (
-                "project_name",
-                "task_name",
-                "task_type",
-            )
-        }
+        experiment_kwargs = {k: v for k, v in kwargs.items() if k not in ("project_name", "task_name", "task_type",)}
 
         if self.bypass_mode():
             warnings.warn("TrainsSaver: running in bypass mode")
