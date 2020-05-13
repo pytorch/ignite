@@ -172,7 +172,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, PolyaxonLogger):
-            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with PolyaxonLogger")
+            raise RuntimeError("Handler OptimizerParamsHandler works only with PolyaxonLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""

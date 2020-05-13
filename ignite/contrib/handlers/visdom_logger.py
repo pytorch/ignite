@@ -240,7 +240,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, VisdomLogger):
-            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with VisdomLogger")
+            raise RuntimeError("Handler OptimizerParamsHandler works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
