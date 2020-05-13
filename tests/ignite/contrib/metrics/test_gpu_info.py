@@ -76,7 +76,7 @@ def _test_gpu_info(device="cpu"):
 
 
 @pytest.mark.skipif(python_below_36 or not (torch.cuda.is_available()), reason="No pynvml for python < 3.6 and no GPU")
-def test_gpu_info():
+def test_gpu_info_on_cuda():
     _test_gpu_info(device="cuda")
 
 
