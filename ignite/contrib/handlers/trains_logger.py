@@ -403,11 +403,6 @@ class TrainsLogger(BaseLogger):
             - ``TaskTypes.train``
             - ``TaskTypes.testing``
             - ``TaskTypes.inference``
-        report_freq (int): Optional. Histogram processing frequency (handle hist values every X calls to the handler).
-           Affects ``GradsHistHandler`` and ``WeightsHistHandler``. Default value is 100.
-        histogram_update_freq_multiplier (int): Optional. Histogram report frequency (report first X histograms and
-           once every X reports afterwards). Default value is 10.
-        histogram_granularity (int): Optional. Histogram sampling granularity. Default is 50.
 
     Examples:
 
@@ -475,9 +470,6 @@ class TrainsLogger(BaseLogger):
                 "project_name",
                 "task_name",
                 "task_type",
-                "report_freq",
-                "histogram_update_freq_multiplier",
-                "histogram_granularity",
             )
         }
 
@@ -509,9 +501,6 @@ class TrainsLogger(BaseLogger):
 
         self.grad_helper = trains.binding.frameworks.tensorflow_bind.WeightsGradientHistHelper(
             logger=self.trains_logger,
-            report_freq=kwargs.get("report_freq", 100),
-            histogram_update_freq_multiplier=kwargs.get("histogram_update_freq_multiplier", 10),
-            histogram_granularity=kwargs.get("histogram_granularity", 50),
         )
 
     @classmethod
