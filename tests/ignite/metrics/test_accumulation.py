@@ -296,7 +296,6 @@ def _test_distrib_geom_average(device):
 
 
 def _test_distrib_integration(device):
-
     def _test(metric_cls, true_result_fn):
 
         size = 100

@@ -100,11 +100,12 @@ class _NativeDistModel(ComputationModel):
 
     def _get_all_hostnames(self):
         import socket
+
         device = self.device()
         name = socket.gethostname()
         name = torch.tensor(bytearray(name, "utf-8")).to(device)
         padded_t_name = torch.zeros(256, device=device, dtype=torch.long)
-        padded_t_name[:len(name)] = name
+        padded_t_name[: len(name)] = name
         out_t_names = [torch.zeros_like(padded_t_name) for _ in range(self.get_world_size())]
         dist.all_gather(out_t_names, padded_t_name)
         out_t_names = [tuple(t.cpu().tolist()) for t in out_t_names]
@@ -115,7 +116,7 @@ class _NativeDistModel(ComputationModel):
         from collections import Counter
 
         c = Counter(hostnames)
-        sizes = torch.tensor([0, ] + list(c.values()))
+        sizes = torch.tensor([0,] + list(c.values()))
         cumsum_sizes = torch.cumsum(sizes, dim=0)
         node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()
         local_rank = rank - cumsum_sizes[node_rank].item()
@@ -129,8 +130,7 @@ class _NativeDistModel(ComputationModel):
         if local_rank < 0 or self._node < 0:
             raise ValueError(
                 "Failed to correctly estimate local rank. "
-                "Debugging info: local rank: {}, node rank: {}, hostnames: {}"
-                .format(local_rank, self._node, hostnames)
+                "Debugging info: local rank: {}, node rank: {}, hostnames: {}".format(local_rank, self._node, hostnames)
             )
         return local_rank
 
