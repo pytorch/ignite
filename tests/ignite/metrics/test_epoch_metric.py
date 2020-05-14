@@ -146,11 +146,11 @@ def _test_warning():
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-
-    _test_warning()
-
     # Perform some ops otherwise, next tests fail
     import torch.distributed as dist
+
+    if dist.get_world_size() > 1:
+        _test_warning()
 
     device = "cuda:{}".format(local_rank)
 
@@ -167,11 +167,11 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
-
-    _test_warning()
-
     # Perform some ops otherwise, next tests fail
     import torch.distributed as dist
+
+    if dist.get_world_size() > 1:
+        _test_warning()
 
     device = "cpu"
 

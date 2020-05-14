@@ -119,7 +119,7 @@ def _test__native_dist_model_create_from_context_no_local_rank():
     if ComputationModel._ext_local_rank is not None:
         ComputationModel._ext_local_rank = None
 
-    with pytest.raises(RuntimeError, match=r"Can not initialize native dist model without local rank information"):
+    with pytest.warns(UserWarning, match=r"Local rank information for native distributed setting will be initialized"):
         _NativeDistModel.create_from_context()
 
 

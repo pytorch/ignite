@@ -14,6 +14,12 @@ class ComputationModel(metaclass=ABCMeta):
     # this is an additional local rank storage used when idist is setup from existing native torch dist context
     _ext_local_rank = None
 
+    def __init__(self):
+        self._backend = None
+        self._ntasks_per_node = None
+        self._nnodes = None
+        self._node = None
+
     @abstractmethod
     def get_local_rank(self) -> int:
         pass

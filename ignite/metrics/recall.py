@@ -60,10 +60,7 @@ class Recall(_BasePrecisionRecall):
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): unused argument.
 
     """
 

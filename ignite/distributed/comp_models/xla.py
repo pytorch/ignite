@@ -43,7 +43,7 @@ class _XlaDistModel(ComputationModel):
     def __init__(self, backend=None, **kwargs):
         """This is a private method. Please, use `create_from_backend` or `create_from_context`
         """
-
+        super(_XlaDistModel, self).__init__()
         if backend is not None:
             self._create_from_backend(backend, **kwargs)
         else:

@@ -31,10 +31,7 @@ class VariableAccumulation(Metric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): optional device specification for internal storage.
 
     """
 
@@ -114,8 +111,7 @@ class Average(VariableAccumulation):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device): device specification in case of distributed computation usage.
-            In most of the cases, it should defined as "cuda:local_rank".
+        device (str of torch.device, optional): optional device specification for internal storage.
 
     """
 
@@ -159,8 +155,7 @@ class GeometricAverage(VariableAccumulation):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device): device specification in case of distributed computation usage.
-            In most of the cases, it should defined as "cuda:local_rank".
+        device (str of torch.device, optional): optional device specification for internal storage.
 
     """
 

@@ -1,6 +1,6 @@
 import os
 import subprocess
-from numbers import Number
+import warnings
 from typing import Optional, Union
 
 import torch
@@ -49,6 +49,7 @@ class _NativeDistModel(ComputationModel):
     def __init__(self, backend=None, timeout=None, **kwargs):
         """This is a private method. Please, use `create_from_backend` or `create_from_context`
         """
+        super(_NativeDistModel, self).__init__()
         if backend is not None:
             self._create_from_backend(backend, timeout=timeout, **kwargs)
         else:
@@ -77,16 +78,7 @@ class _NativeDistModel(ComputationModel):
 
     def _init_from_context(self):
 
-        if "LOCAL_RANK" in os.environ:
-            self._local_rank = int(os.environ["LOCAL_RANK"])
-        elif self._ext_local_rank is not None:
-            self._local_rank = self._ext_local_rank
-        else:
-            raise RuntimeError(
-                "Can not initialize native dist model without local rank information. "
-                "Please, either set `os.environ['LOCAL_RANK']` with correct local rank index or"
-                "use `idist.set_local_rank(local_rank)`"
-            )
+        self._identify_local_rank()
 
         # for debug purposes
         self._master_port = None
@@ -94,17 +86,74 @@ class _NativeDistModel(ComputationModel):
         self._setup_attrs()
 
     def _setup_attrs(self):
-        self._ntasks_per_node = self._compute_ntasks_per_node()
-        self._nnodes = self.get_world_size() // self._ntasks_per_node
-        self._node = self.get_rank() // self._ntasks_per_node
+        if self._ntasks_per_node is None:
+            self._ntasks_per_node = self._compute_ntasks_per_node()
+        if self._nnodes is None:
+            self._nnodes = self.get_world_size() // self._ntasks_per_node
+        if self._node is None:
+            self._node = self.get_rank() // self._ntasks_per_node
 
     def _compute_ntasks_per_node(self):
         tensor = torch.tensor([self.get_local_rank() + 1]).to(self.device())
         dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
         return tensor.item()
 
+    def _get_all_hostnames(self):
+        import socket
+        device = self.device()
+        name = socket.gethostname()
+        name = torch.tensor(bytearray(name, "utf-8")).to(device)
+        padded_t_name = torch.zeros(256, device=device, dtype=torch.long)
+        padded_t_name[:len(name)] = name
+        out_t_names = [torch.zeros_like(padded_t_name) for _ in range(self.get_world_size())]
+        dist.all_gather(out_t_names, padded_t_name)
+        out_t_names = [tuple(t.cpu().tolist()) for t in out_t_names]
+        return out_t_names
+
+    @staticmethod
+    def _compute_node_and_local_ranks(rank, hostnames):
+        from collections import Counter
+
+        c = Counter(hostnames)
+        sizes = torch.tensor([0, ] + list(c.values()))
+        cumsum_sizes = torch.cumsum(sizes, dim=0)
+        node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()
+        local_rank = rank - cumsum_sizes[node_rank].item()
+        return local_rank, node_rank
+
+    def _compute_local_rank_via_hostname(self):
+        # get all hostnames
+        hostnames = self._get_all_hostnames()
+        local_rank, self._node = self._compute_node_and_local_ranks(self.get_rank(), hostnames)
+
+        if local_rank < 0 or self._node < 0:
+            raise ValueError(
+                "Failed to correctly estimate local rank. "
+                "Debugging info: local rank: {}, node rank: {}, hostnames: {}"
+                .format(local_rank, self._node, hostnames)
+            )
+        return local_rank
+
+    def _identify_local_rank(self):
+
+        if "SLURM_JOBID" in os.environ:
+            os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
+
+        if "LOCAL_RANK" in os.environ:
+            self._local_rank = int(os.environ["LOCAL_RANK"])
+        elif self._ext_local_rank is not None:
+            self._local_rank = self._ext_local_rank
+        else:
+            warnings.warn(
+                "Local rank information for native distributed setting will be initialized using heuristic approach "
+                "based on hostname which can be different of real setup. Please, either set `os.environ['LOCAL_RANK']` "
+                "ro use `idist.set_local_rank(local_rank)` with correct local rank index."
+            )
+            # use socket gethostname heuristic to determine number of nodes => local rank
+            self._local_rank = self._compute_local_rank_via_hostname()
+
     def setup_env_vars(self):
-        if "SLURM_JOB_ID" in os.environ:
+        if "SLURM_JOBID" in os.environ:
             self._setup_env_in_slurm()
             return
 

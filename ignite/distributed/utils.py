@@ -9,6 +9,15 @@ import torch.distributed as dist
 from ignite.distributed.comp_models import _SerialModel, has_xla_support, registered_computation_models
 from ignite.utils import setup_logger
 
+
+__all__ = [
+    "backend", "device", "available_backends", "model_name",
+    "get_world_size", "get_rank", "get_local_rank", "get_ntasks_per_node",
+    "get_node_rank", "get_num_nodes", "spawn", "initialize", "finalize",
+    "show_config", "set_local_rank", "all_reduce", "hostname",
+    "has_xla_support", "sync", "registered_computation_models"
+]
+
 _model = _SerialModel()
 
 _need_to_sync = True

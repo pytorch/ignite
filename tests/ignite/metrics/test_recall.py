@@ -815,20 +815,21 @@ def _test_distrib_itegration_multilabel(device):
         _test(average=True, n_epochs=1)
         _test(average=True, n_epochs=2)
 
-    with pytest.warns(
-        RuntimeWarning,
-        match="Precision/Recall metrics do not work in distributed setting when "
-        "average=False and is_multilabel=True",
-    ):
-        re = Recall(average=False, is_multilabel=True, device=device)
+    if dist.get_world_size() > 1:
+        with pytest.warns(
+            RuntimeWarning,
+            match="Precision/Recall metrics do not work in distributed setting when "
+            "average=False and is_multilabel=True",
+        ):
+            re = Recall(average=False, is_multilabel=True, device=device)
 
-    y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
-    y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
-    re.update((y_pred, y))
-    re_compute1 = re.compute()
-    re_compute2 = re.compute()
-    assert len(re_compute1) == 4 * 6 * 8
-    assert (re_compute1 == re_compute2).all()
+        y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
+        y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
+        re.update((y_pred, y))
+        re_compute1 = re.compute()
+        re_compute2 = re.compute()
+        assert len(re_compute1) == 4 * 6 * 8
+        assert (re_compute1 == re_compute2).all()
 
 
 @pytest.mark.distributed

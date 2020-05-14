@@ -20,12 +20,12 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if idist.get_world_size() > 1:
             if (not average) and is_multilabel:
                 warnings.warn(
                     "Precision/Recall metrics do not work in distributed setting when average=False "
-                    "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
-                    "corresponds to the local rank's (single GPU) result.",
+                    "and is_multilabel=True. Results are not reduced across computing devices. Computed result "
+                    "corresponds to the local rank's (single process) result.",
                     RuntimeWarning,
                 )
 
@@ -115,10 +115,7 @@ class Precision(_BasePrecisionRecall):
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): unused argument.
 
     """
 
