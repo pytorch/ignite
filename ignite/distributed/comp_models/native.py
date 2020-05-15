@@ -267,9 +267,16 @@ class _NativeDistModel(ComputationModel):
         "OR": dist.ReduceOp.BOR,
     }
 
-    def _do_reduction(self, tensor: torch.Tensor, op: str = "SUM"):
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         if op not in self._reduce_op_map:
             raise ValueError("Unsupported reduction operation: '{}'".format(op))
         op = self._reduce_op_map[op]
-        dist.barrier()
         dist.all_reduce(tensor, op)
+        return tensor
+
+    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        if tensor.ndimension() == 0:
+            tensor = tensor.unsqueeze(0)
+        output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
+        dist.all_gather(output, tensor)
+        return torch.cat(output, dim=0)

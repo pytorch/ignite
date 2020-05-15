@@ -120,7 +120,7 @@ class _XlaDistModel(ComputationModel):
             _XlaDistModel._dist_worker_task_fn, args=(backend, fn, args), nprocs=num_procs_per_node, **spawn_kwargs
         )
 
-    _reduction_dtype = torch.float
+    _collective_op_dtype = torch.float
     _reduce_op_map = {
         "SUM": "sum",
         "PRODUCT": "mul",
@@ -130,8 +130,14 @@ class _XlaDistModel(ComputationModel):
         "OR": "or",
     }
 
-    def _do_reduction(self, tensor: torch.Tensor, op: str = "SUM"):
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         if op not in self._reduce_op_map:
             raise ValueError("Unsupported reduction operation: '{}'".format(op))
         op = self._reduce_op_map[op]
         xm.all_reduce(op, [tensor,])
+        return tensor
+
+    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
+        output = xm.all_to_all(tensor, split_dimension=0, concat_dimension=0)
+        return output

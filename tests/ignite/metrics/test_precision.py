@@ -6,6 +6,7 @@ import torch
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import precision_score
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
 
@@ -765,10 +766,9 @@ def _test_distrib_itegration_multiclass(device):
 
 def _test_distrib_itegration_multilabel(device):
 
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(average, n_epochs):
@@ -777,8 +777,8 @@ def _test_distrib_itegration_multilabel(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
 
         def update(engine, i):
             return (
@@ -816,7 +816,7 @@ def _test_distrib_itegration_multilabel(device):
         _test(average=True, n_epochs=1)
         _test(average=True, n_epochs=2)
 
-    if dist.get_world_size() > 1:
+    if idist.get_world_size() > 1:
         with pytest.warns(
             RuntimeWarning,
             match="Precision/Recall metrics do not work in distributed setting when "

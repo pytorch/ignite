@@ -244,7 +244,7 @@ def _test_distrib_average(device):
 
     m = mean_var.compute()
 
-    y_true = idist.all_reduce()
+    y_true = idist.all_reduce(y_true)
     assert m.item() == pytest.approx(y_true.mean().item() / idist.get_world_size())
 
     mean_var = Average(device=device)

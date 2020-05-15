@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 
 import torch
 
@@ -71,13 +71,15 @@ class ComputationModel(metaclass=ABCMeta):
     def spawn(*args, **kwargs):
         pass
 
-    _reduction_dtype = None
+    _collective_op_dtype = None
 
-    def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
+    def _all_collective_op(
+            self, tensor: Union[torch.Tensor, Number], fn: Callable, *args, **kwargs
+    ) -> Union[torch.Tensor, Number]:
         tensor_to_number = False
         device = self.device()
         if isinstance(tensor, Number):
-            tensor = torch.tensor(tensor, device=device, dtype=self._reduction_dtype)
+            tensor = torch.tensor(tensor, device=device, dtype=self._collective_op_dtype)
             tensor_to_number = True
 
         if isinstance(tensor, torch.Tensor):
@@ -87,14 +89,24 @@ class ComputationModel(metaclass=ABCMeta):
         else:
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
-        self._do_reduction(tensor, op)
+        tensor = fn(tensor, *args, **kwargs)
 
-        if tensor_to_number:
+        if tensor_to_number and tensor.numel() == 1:
             return tensor.item()
         return tensor
 
+    def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
+        return self._all_collective_op(tensor, self._do_all_reduce, op)
+
+    def all_gather(self, tensor: Union[torch.Tensor, Number]) -> Union[torch.Tensor, Number]:
+        return self._all_collective_op(tensor, self._do_all_gather)
+
     @abstractmethod
-    def _do_reduction(self, tensor: Union[torch.Tensor, Number], op: str = "sum"):
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
         pass
 
 
@@ -150,5 +162,11 @@ class _SerialModel(ComputationModel):
     def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
         return tensor
 
-    def _do_reduction(self, tensor: Union[torch.Tensor, Number], op: str = "sum"):
+    def all_gather(self, tensor: Union[torch.Tensor, Number]) -> Union[torch.Tensor, Number]:
+        return tensor
+
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
+        pass
+
+    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
         pass

@@ -26,6 +26,7 @@ __all__ = [
     "show_config",
     "set_local_rank",
     "all_reduce",
+    "all_gather",
     "hostname",
     "has_xla_support",
     "sync",
@@ -284,6 +285,24 @@ def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[to
     return _model.all_reduce(tensor, op)
 
 
+@_sync_model_wrapper
+def all_gather(tensor: Union[torch.Tensor, Number]) -> torch.Tensor:
+    """Helper method to perform all gather operation.
+
+    Args:
+        tensor (torch.Tensor or number): tensor or number to collect across participating processes.
+
+    Returns:
+        torch.Tensor
+
+    """
+    if get_world_size() < 2:
+        # Nothing to reduce
+        return tensor
+
+    return _model.all_gather(tensor)
+
+
 def set_local_rank(index: int):
     """Method to hint the local rank in case if torch native distributed context is created by user
     without using :meth:`~ignite.distributed.utils.initialize` or :meth:`~ignite.distributed.utils.spawn`.
@@ -324,12 +343,11 @@ def initialize(backend: str, **kwargs):
 
     Examples:
 
-        Launch single node multi-GPU training with `torch.distributed.launch` utility. Please, note that we need to
-        pass local rank with `--use_env` option:
+        Launch single node multi-GPU training with `torch.distributed.launch` utility.
 
         .. code-block:: python
 
-            # >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE --use_env main.py
+            # >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE main.py
 
             # main.py
 
