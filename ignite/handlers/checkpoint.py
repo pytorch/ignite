@@ -9,10 +9,8 @@ from typing import Callable, Mapping, Optional, Union
 
 import torch
 
-from ignite.engine import Engine, Events
-
 import ignite.distributed as idist
-
+from ignite.engine import Engine, Events
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 
@@ -374,10 +372,10 @@ class DiskSaver(BaseSaveHandler):
     def _save(self, checkpoint: Mapping, filename: str):
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
+
             xm.save(checkpoint, filename)
         elif idist.get_rank() == 0:
             torch.save(checkpoint, filename)
-
 
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
