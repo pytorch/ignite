@@ -11,12 +11,7 @@ import torch
 
 from ignite.engine import Engine, Events
 
-try:
-    import torch_xla.core.xla_model as xm
-
-    on_xla_device = True
-except ImportError:
-    on_xla_device = False
+import ignite.distributed as idist
 
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
@@ -377,10 +372,12 @@ class DiskSaver(BaseSaveHandler):
                 os.rename(tmp.name, path)
 
     def _save(self, checkpoint: Mapping, filename: str):
-        if on_xla_device:
+        if idist.has_xla_support:
+            import torch_xla.core.xla_model as xm
             xm.save(checkpoint, filename)
-        else:
+        elif idist.get_rank() == 0:
             torch.save(checkpoint, filename)
+
 
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
