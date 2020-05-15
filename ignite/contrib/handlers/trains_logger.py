@@ -40,18 +40,31 @@ class OutputHandler(BaseOutputHandler):
 
             # Create a logger
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer`:
-            trains_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            trains_logger.attach(
+                evaluator,
+                log_handler=OutputHandler(
+                    tag="validation",
+                    metric_names=["nll", "accuracy"],
+                    global_step_transform=global_step_from_engine(trainer)
+                ),
+                event_name=Events.EPOCH_COMPLETED
+            )
+            # or equivalently
+            trains_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
         Another example, where model is evaluated every 500 iterations:
 
@@ -65,7 +78,10 @@ class OutputHandler(BaseOutputHandler):
 
             # Create a logger
 
-            trains_logger = TrainsLogger()
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             def global_step_transform(*args, **kwargs):
                 return trainer.state.iteration
@@ -75,11 +91,13 @@ class OutputHandler(BaseOutputHandler):
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Trains.
 
-            trains_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metrics=["nll", "accuracy"],
-                                                       global_step_transform=global_step_transform),
-                             event_name=Events.EPOCH_COMPLETED)
+            trains_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metrics=["nll", "accuracy"],
+                global_step_transform=global_step_transform
+            )
 
     Args:
         tag (str): common title for all produced plots. For example, "training"
@@ -146,19 +164,28 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
             # Create a logger
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            trains_logger.attach(trainer,
-                                 log_handler=OptimizerParamsHandler(optimizer),
-                                 event_name=Events.ITERATION_STARTED)
+            trains_logger.attach(
+                trainer,
+                log_handler=OptimizerParamsHandler(optimizer),
+                event_name=Events.ITERATION_STARTED
+            )
+            # or equivalently
+            trains_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer
+            )
 
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, generator
+        tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
     def __init__(self, optimizer, param_name="lr", tag=None):
@@ -193,19 +220,22 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
             # Create a logger
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            trains_logger.attach(trainer,
-                             log_handler=WeightsScalarHandler(model, reduction=torch.norm),
-                             event_name=Events.ITERATION_COMPLETED)
+            trains_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, generator
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -243,14 +273,17 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
             # Create a logger
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            trains_logger.attach(trainer,
-                                 log_handler=WeightsHistHandler(model),
-                                 event_name=Events.ITERATION_COMPLETED)
+            trains_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsHistHandler(model)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
@@ -294,19 +327,22 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
             # Create a logger
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            trains_logger.attach(trainer,
-                                 log_handler=GradsScalarHandler(model, reduction=torch.norm),
-                                 event_name=Events.ITERATION_COMPLETED)
+            trains_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, generator
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -343,14 +379,17 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
             # Create a logger
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            trains_logger.attach(trainer,
-                                 log_handler=GradsHistHandler(model),
-                                 event_name=Events.ITERATION_COMPLETED)
+            trains_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsHistHandler(model)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
@@ -386,7 +425,7 @@ class TrainsLogger(BaseLogger):
     `Trains <https://github.com/allegroai/trains>`_ handler to log metrics, text, model/optimizer parameters,
     plots during training and validation.
     Also supports model checkpoints logging and upload to the storage solution of your choice (i.e. Trains File server,
-     S3 bucket etc.)
+    S3 bucket etc.)
 
     .. code-block:: bash
 
@@ -403,11 +442,6 @@ class TrainsLogger(BaseLogger):
             - ``TaskTypes.train``
             - ``TaskTypes.testing``
             - ``TaskTypes.inference``
-        report_freq (int): Optional. Histogram processing frequency (handle hist values every X calls to the handler).
-           Affects ``GradsHistHandler`` and ``WeightsHistHandler``. Default value is 100.
-        histogram_update_freq_multiplier (int): Optional. Histogram report frequency (report first X histograms and
-           once every X reports afterwards). Default value is 10.
-        histogram_granularity (int): Optional. Histogram sampling granularity. Default is 50.
 
     Examples:
 
@@ -417,44 +451,55 @@ class TrainsLogger(BaseLogger):
 
             # Create a logger
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             # Attach the logger to the trainer to log training loss at each iteration
-            trains_logger.attach(trainer,
-                                 log_handler=OutputHandler(tag="training",
-                                 output_transform=lambda loss: {"loss": loss}),
-                                 event_name=Events.ITERATION_COMPLETED)
+            trains_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                output_transform=lambda loss: {"loss": loss}
+            )
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer` instead of `train_evaluator`.
-            trains_logger.attach(train_evaluator,
-                                 log_handler=OutputHandler(tag="training",
-                                                           metric_names=["nll", "accuracy"],
-                                                           global_step_transform=global_step_from_engine(trainer)),
-                                event_name=Events.EPOCH_COMPLETED)
+            trains_logger.attach_output_handler(
+                train_evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="training",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer),
+            )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
             # `trainer` instead of `evaluator`.
-            trains_logger.attach(evaluator,
-                                 log_handler=OutputHandler(tag="validation",
-                                                          metric_names=["nll", "accuracy"],
-                                                          global_step_transform=global_step_from_engine(trainer)),
-                                 event_name=Events.EPOCH_COMPLETED)
+            trains_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)),
+            )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            trains_logger.attach(trainer,
-                                 log_handler=OptimizerParamsHandler(optimizer),
-                                 event_name=Events.ITERATION_STARTED)
+            trains_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer,
+                param_name='lr'  # optional
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            trains_logger.attach(trainer,
-                                 log_handler=WeightsScalarHandler(model),
-                                 event_name=Events.ITERATION_COMPLETED)
-
+            trains_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model)
+            )
 
     """
 
@@ -467,19 +512,7 @@ class TrainsLogger(BaseLogger):
                 "You may install trains using: \n pip install trains \n"
             )
 
-        experiment_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k
-            not in (
-                "project_name",
-                "task_name",
-                "task_type",
-                "report_freq",
-                "histogram_update_freq_multiplier",
-                "histogram_granularity",
-            )
-        }
+        experiment_kwargs = {k: v for k, v in kwargs.items() if k not in ("project_name", "task_name", "task_type",)}
 
         if self.bypass_mode():
             warnings.warn("TrainsSaver: running in bypass mode")
@@ -509,9 +542,6 @@ class TrainsLogger(BaseLogger):
 
         self.grad_helper = trains.binding.frameworks.tensorflow_bind.WeightsGradientHistHelper(
             logger=self.trains_logger,
-            report_freq=kwargs.get("report_freq", 100),
-            histogram_update_freq_multiplier=kwargs.get("histogram_update_freq_multiplier", 10),
-            histogram_granularity=kwargs.get("histogram_granularity", 50),
         )
 
     @classmethod
@@ -556,16 +586,22 @@ class TrainsSaver(DiskSaver):
             from ignite.contrib.handlers.trains_logger import *
             from ignite.handlers import Checkpoint
 
-            trains_logger = TrainsLogger(project_name="pytorch-ignite-integration",
-                                         task_name="cnn-mnist"
-                                         )
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
 
             to_save = {"model": model}
 
-            handler = Checkpoint(to_save, TrainsSaver(trains_logger), n_saved=1,
-                                 score_function=lambda e: 123, score_name="acc",
-                                 filename_prefix="best",
-                                 global_step_transform=global_step_from_engine(trainer))
+            handler = Checkpoint(
+                to_save,
+                TrainsSaver(trains_logger),
+                n_saved=1,
+                score_function=lambda e: 123,
+                score_name="acc",
+                filename_prefix="best",
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
             validation_evaluator.add_event_handler(Events.EVENT_COMPLETED, handler)
 
