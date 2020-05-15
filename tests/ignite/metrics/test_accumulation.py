@@ -396,17 +396,17 @@ def test_single_device_xla():
     _test_distrib_integration(device)
 
 
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        device = idist.device()
-        _test_distrib_variable_accumulation(device)
-        _test_distrib_average(device)
-        _test_distrib_geom_average(device)
-        _test_distrib_integration(device)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+# @pytest.mark.tpu
+# @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+# @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+# def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
+#     n = int(os.environ["NUM_TPU_WORKERS"])
+#
+#     def _test_fn(index):
+#         device = idist.device()
+#         _test_distrib_variable_accumulation(device)
+#         _test_distrib_average(device)
+#         _test_distrib_geom_average(device)
+#         _test_distrib_integration(device)
+#
+#     xmp_executor(_test_fn, args=(), nprocs=n)
