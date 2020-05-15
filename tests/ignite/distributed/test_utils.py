@@ -372,7 +372,7 @@ def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
 def _test_distrib_all_gather(device):
 
     res = idist.all_gather(10)
-    true_res = torch.tensor([10, ] * idist.get_world_size(), device=device)
+    true_res = torch.tensor([10,] * idist.get_world_size(), device=device)
     assert (res == true_res).all()
 
     t = torch.tensor(idist.get_rank(), device=device)

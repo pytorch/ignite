@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Optional, Union, Callable
+from typing import Callable, Optional, Union
 
 import torch
 
@@ -74,7 +74,7 @@ class ComputationModel(metaclass=ABCMeta):
     _collective_op_dtype = None
 
     def _all_collective_op(
-            self, tensor: Union[torch.Tensor, Number], fn: Callable, *args, **kwargs
+        self, tensor: Union[torch.Tensor, Number], fn: Callable, *args, **kwargs
     ) -> Union[torch.Tensor, Number]:
         tensor_to_number = False
         device = self.device()
