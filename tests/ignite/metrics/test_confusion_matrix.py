@@ -5,6 +5,7 @@ import pytest
 import torch
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.metrics.confusion_matrix import DiceCoefficient, cmAccuracy, cmPrecision, cmRecall
@@ -536,14 +537,6 @@ def test_dice_coefficient():
 
 def _test_distrib_multiclass_images(device):
 
-    import torch.distributed as dist
-
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
-
     num_classes = 3
     cm = ConfusionMatrix(num_classes=num_classes, device=device)
 
@@ -560,7 +553,7 @@ def _test_distrib_multiclass_images(device):
     output = (th_y_logits, th_y_true)
     cm.update(output)
 
-    res = cm.compute().cpu().numpy() / dist.get_world_size()
+    res = cm.compute().cpu().numpy() / idist.get_world_size()
 
     assert np.all(true_res == res)
 
@@ -597,8 +590,8 @@ def _test_distrib_multiclass_images(device):
     res = cm.compute().cpu().numpy()
 
     # Compute confusion matrix with sklearn
-    th_y_true = _gather(th_y_true)
-    th_y_logits = _gather(th_y_logits)
+    th_y_true = idist.all_gather(th_y_true)
+    th_y_logits = idist.all_gather(th_y_logits)
 
     np_y_true = th_y_true.cpu().numpy().reshape(-1)
     np_y_pred = np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1)

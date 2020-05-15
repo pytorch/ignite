@@ -78,6 +78,7 @@ of stable version as dependency):
    engine
    handlers
    metrics
+   distributed
    exceptions
    utils
 

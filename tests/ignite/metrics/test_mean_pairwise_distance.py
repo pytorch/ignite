@@ -4,6 +4,7 @@ import pytest
 import torch
 from pytest import approx
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import MeanPairwiseDistance
 
@@ -33,18 +34,17 @@ def test_compute():
 
 def _test_distrib_itegration(device):
     import numpy as np
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     n_iters = 100
     s = 50
     offset = n_iters * s
 
-    y_true = torch.rand(offset * dist.get_world_size(), 10).to(device)
-    y_preds = torch.rand(offset * dist.get_world_size(), 10).to(device)
+    y_true = torch.rand(offset * idist.get_world_size(), 10).to(device)
+    y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
 
     def update(engine, i):
         return (
@@ -64,7 +64,7 @@ def _test_distrib_itegration(device):
     res = engine.state.metrics["mpwd"]
 
     true_res = []
-    for i in range(n_iters * dist.get_world_size()):
+    for i in range(n_iters * idist.get_world_size()):
         true_res.append(
             torch.pairwise_distance(
                 y_true[i * s : (i + 1) * s, ...], y_preds[i * s : (i + 1) * s, ...], p=m._p, eps=m._eps

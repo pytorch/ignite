@@ -43,7 +43,7 @@ class _XlaDistModel(ComputationModel):
     def __init__(self, backend=None, **kwargs):
         """This is a private method. Please, use `create_from_backend` or `create_from_context`
         """
-
+        super(_XlaDistModel, self).__init__()
         if backend is not None:
             self._create_from_backend(backend, **kwargs)
         else:
@@ -120,7 +120,7 @@ class _XlaDistModel(ComputationModel):
             _XlaDistModel._dist_worker_task_fn, args=(backend, fn, args), nprocs=num_procs_per_node, **spawn_kwargs
         )
 
-    _reduction_dtype = torch.float
+    _collective_op_dtype = torch.float
     _reduce_op_map = {
         "SUM": "sum",
         "PRODUCT": "mul",
@@ -130,8 +130,17 @@ class _XlaDistModel(ComputationModel):
         "OR": "or",
     }
 
-    def _do_reduction(self, tensor: torch.Tensor, op: str = "SUM"):
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         if op not in self._reduce_op_map:
             raise ValueError("Unsupported reduction operation: '{}'".format(op))
         op = self._reduce_op_map[op]
         xm.all_reduce(op, [tensor,])
+        return tensor
+
+    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
+        group_size = self.get_world_size()
+        output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
+        output[self.get_rank() % group_size] = tensor
+        xm.all_reduce("sum", [output,])
+        return output

@@ -9,6 +9,30 @@ import torch.distributed as dist
 from ignite.distributed.comp_models import _SerialModel, has_xla_support, registered_computation_models
 from ignite.utils import setup_logger
 
+__all__ = [
+    "backend",
+    "device",
+    "available_backends",
+    "model_name",
+    "get_world_size",
+    "get_rank",
+    "get_local_rank",
+    "get_ntasks_per_node",
+    "get_node_rank",
+    "get_num_nodes",
+    "spawn",
+    "initialize",
+    "finalize",
+    "show_config",
+    "set_local_rank",
+    "all_reduce",
+    "all_gather",
+    "hostname",
+    "has_xla_support",
+    "sync",
+    "registered_computation_models",
+]
+
 _model = _SerialModel()
 
 _need_to_sync = True
@@ -231,7 +255,9 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
         args (tuple): arguments passed to `fn`
         num_procs_per_node (int): number of processes to spawn on a single node.
         **kwargs: acceptable kwargs according to provided backend:
+
             - "nccl" or "gloo" : `num_nodes` (=1), `node_rank` (=0), `master_addr` (0.0.0.0), `master_port` (2222)
+
             - "xla-tpu" : `num_nodes` (=1), `node_rank` (=0)
 
     """
@@ -254,11 +280,21 @@ def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[to
         torch.Tensor or number
 
     """
-    if get_world_size() < 2:
-        # Nothing to reduce
-        return tensor
-
     return _model.all_reduce(tensor, op)
+
+
+@_sync_model_wrapper
+def all_gather(tensor: Union[torch.Tensor, Number]) -> torch.Tensor:
+    """Helper method to perform all gather operation.
+
+    Args:
+        tensor (torch.Tensor or number): tensor or number to collect across participating processes.
+
+    Returns:
+        torch.Tensor
+
+    """
+    return _model.all_gather(tensor)
 
 
 def set_local_rank(index: int):
@@ -267,15 +303,18 @@ def set_local_rank(index: int):
 
     Usage:
 
+        User set up torch native distributed process group
+
         .. code-block:: python
 
             import ignite.distributed as idist
 
-            dist.init_process_group(**dist_info)
+            def run(local_rank, *args, **kwargs):
 
-
-
-
+                idist.set_local_rank(local_rank)
+                # ...
+                dist.init_process_group(**dist_info)
+                # ...
 
     Args:
         index (int): local rank or current process index
@@ -302,11 +341,11 @@ def initialize(backend: str, **kwargs):
 
     Examples:
 
-        Launch single node multi-GPU training with `torch.distributed.launch` utility:
+        Launch single node multi-GPU training with `torch.distributed.launch` utility.
 
         .. code-block:: python
 
-            # >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE main.py
+            # >>> python -m torch.distributed.launch --nproc_per_node=4 main.py
 
             # main.py
 
@@ -322,13 +361,17 @@ def initialize(backend: str, **kwargs):
 
 
             idist.initialize("nccl")
-            train_fn
+            local_rank = idist.get_local_rank()
+            train_fn(local_rank, a, b, c)
             idist.finalize()
 
 
     Args:
         backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`.
-        **kwargs: TODO
+        **kwargs: acceptable kwargs according to provided backend:
+
+            - "nccl" or "gloo" : timeout(=timedelta(minutes=30))
+
 
     """
     global _model, _need_to_sync

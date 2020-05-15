@@ -3,6 +3,7 @@ import os
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import TopKCategoricalAccuracy
 
@@ -53,10 +54,9 @@ def top_k_accuracy(y_true, y_pred, k=5, normalize=True):
 
 
 def _test_distrib_itegration(device):
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(n_epochs):
@@ -65,8 +65,8 @@ def _test_distrib_itegration(device):
         n_classes = 10
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
 
         print("{}: y_true={} | y_preds={}".format(rank, y_true[:5], y_preds[:5, :2]))
 

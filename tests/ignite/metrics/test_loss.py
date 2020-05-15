@@ -6,6 +6,7 @@ from numpy.testing import assert_almost_equal
 from torch import nn
 from torch.nn.functional import nll_loss
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Loss
 
@@ -75,13 +76,6 @@ def test_reset():
 
 
 def _test_distrib_compute_on_criterion(device):
-    import torch.distributed as dist
-
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
 
     criterion = nn.NLLLoss().to(device)
     loss = Loss(criterion, device=device)
@@ -92,10 +86,10 @@ def _test_distrib_compute_on_criterion(device):
     n = loss._num_examples
     assert n == len(y)
     res = loss.compute()
-    assert n * dist.get_world_size() == loss._num_examples
+    assert n * idist.get_world_size() == loss._num_examples
 
-    y_pred = _gather(y_pred)
-    y = _gather(y)
+    y_pred = idist.all_gather(y_pred)
+    y = idist.all_gather(y)
     true_loss_value = criterion(y_pred, y)
     assert_almost_equal(res, true_loss_value.item())
 
@@ -105,10 +99,10 @@ def _test_distrib_compute_on_criterion(device):
     loss.update((y_pred, y))
     n = loss._num_examples
     res = loss.compute()
-    assert n * dist.get_world_size() == loss._num_examples
+    assert n * idist.get_world_size() == loss._num_examples
 
-    y_pred = _gather(y_pred)
-    y = _gather(y)
+    y_pred = idist.all_gather(y_pred)
+    y = idist.all_gather(y)
     true_loss_value = criterion(y_pred, y)
     assert_almost_equal(res, true_loss_value.item())
 

@@ -1,4 +1,3 @@
-import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
@@ -6,7 +5,6 @@ from functools import wraps
 from typing import Any, Callable, Optional, Union
 
 import torch
-import torch.distributed as dist
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
@@ -24,11 +22,7 @@ class Metric(metaclass=ABCMeta):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
-
+        device (str of torch.device, optional): optional device specification for internal storage.
     """
 
     _required_output_keys = ("y_pred", "y")
@@ -37,7 +31,7 @@ class Metric(metaclass=ABCMeta):
         self._output_transform = output_transform
 
         # Check device if distributed is initialized:
-        if dist.is_available() and dist.is_initialized():
+        if idist.get_world_size() > 1:
 
             # check if reset and update methods are decorated. Compute may not be decorated
             if not (hasattr(self.reset, "_decorated") and hasattr(self.update, "_decorated")):
@@ -46,9 +40,6 @@ class Metric(metaclass=ABCMeta):
                     "across all computing devices".format(self.__class__.__name__),
                     RuntimeWarning,
                 )
-            if device is None:
-                device = "cuda"
-            device = torch.device(device)
         self._device = device
         self._is_reduced = False
         self.reset()
@@ -287,7 +278,7 @@ def sync_all_reduce(*attrs) -> Callable:
         def another_wrapper(self: Metric, *args, **kwargs) -> Callable:
             if not isinstance(self, Metric):
                 raise RuntimeError(
-                    "Decorator sync_all_reduce should be used on " "ignite.metric.Metric class methods only"
+                    "Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only"
                 )
 
             if len(attrs) > 0 and not self._is_reduced:

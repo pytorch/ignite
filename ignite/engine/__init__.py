@@ -2,11 +2,16 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import torch
 
+import ignite.distributed as idist
 from ignite.engine.deterministic import DeterministicEngine
 from ignite.engine.engine import Engine
 from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, State
 from ignite.metrics import Metric
 from ignite.utils import convert_tensor
+
+if idist.has_xla_support:
+    import torch_xla.core.xla_model as xm
+
 
 __all__ = [
     "State",
@@ -78,11 +83,8 @@ def create_supervised_trainer(
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
 
-    if on_tpu:
-        try:
-            import torch_xla.core.xla_model as xm
-        except ImportError:
-            raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
+    if on_tpu and not idist.has_xla_support:
+        raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
 
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()

@@ -19,11 +19,7 @@ class RunningAverage(Metric):
             corresponds the output of process function. Otherwise it should be None.
         epoch_bound (boolean, optional): whether the running average should be reset after each epoch (defaults
             to True).
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            This is necessary when running average is computed on the output of process function.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): unused argument.
 
     Examples:
 
