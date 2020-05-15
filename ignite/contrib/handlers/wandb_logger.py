@@ -1,7 +1,7 @@
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
-    BaseOutputHandler,
     BaseOptimizerParamsHandler,
+    BaseOutputHandler,
     global_step_from_engine,
 )
 
@@ -31,11 +31,23 @@ class OutputHandler(BaseOutputHandler):
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer`:
-            wandb_logger.attach(evaluator,
-                                log_handler=OutputHandler(tag="validation",
-                                                          metric_names=["nll", "accuracy"],
-                                                          global_step_transform=global_step_from_engine(trainer)),
-                                event_name=Events.EPOCH_COMPLETED)
+            wandb_logger.attach(
+                evaluator,
+                log_handler=OutputHandler(
+                    tag="validation",
+                    metric_names=["nll", "accuracy"],
+                    global_step_transform=global_step_from_engine(trainer)
+                ),
+                event_name=Events.EPOCH_COMPLETED
+            )
+            # or equivalently
+            wandb_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
         Another example, where model is evaluated every 500 iterations:
 
@@ -66,19 +78,21 @@ class OutputHandler(BaseOutputHandler):
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Weights & Biases.
 
-            wandb_logger.attach(evaluator,
-                                log_handler=OutputHandler(tag="validation",
-                                                          metrics=["nll", "accuracy"],
-                                                          global_step_transform=global_step_transform),
-                                event_name=Events.EPOCH_COMPLETED)
+            wandb_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metrics=["nll", "accuracy"],
+                global_step_transform=global_step_transform
+            )
 
     Args:
-        tag (str): common title for all produced plots. For example, 'training'
+        tag (str): common title for all produced plots. For example, "training"
         metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
             value of event. Typically, user can provide
@@ -149,14 +163,22 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            wandb_logger.attach(trainer,
-                                log_handler=OptimizerParamsHandler(optimizer),
-                                event_name=Events.ITERATION_STARTED)
+            wandb_logger.attach(
+                trainer,
+                log_handler=OptimizerParamsHandler(optimizer),
+                event_name=Events.ITERATION_STARTED
+            )
+            # or equivalently
+            wandb_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer
+            )
 
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
         sync (bool, optional): If set to False, process calls to log in a seperate thread. Default (None) uses whatever
             the default value of wandb.log.
     """
@@ -167,7 +189,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, WandBLogger):
-            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with WandBLogger")
+            raise RuntimeError("Handler OptimizerParamsHandler works only with WandBLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
@@ -212,23 +234,42 @@ class WandBLogger(BaseLogger):
             )
 
             # Attach the logger to the trainer to log training loss at each iteration
-            wandb_logger.attach(trainer,
-                                log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
-                                event_name=Events.ITERATION_COMPLETED)
+            wandb_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                output_transform=lambda loss: {"loss": loss}
+            )
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
-            # of the `trainer` instead of `evaluator`.
-            wandb_logger.attach(evaluator,
-                                log_handler=OutputHandler(tag="validation",
-                                                          metric_names=["nll", "accuracy"],
-                                                          global_step_transform=global_step_from_engine(trainer)),
-                                event_name=Events.EPOCH_COMPLETED)
+            # of the `trainer` instead of `train_evaluator`.
+            wandb_logger.attach_output_handler(
+                train_evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="training",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer),
+            )
+
+            # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
+            # `trainer` instead of `evaluator`.
+            wandb_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)),
+            )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            wandb_logger.attach(trainer,
-                                log_handler=OptimizerParamsHandler(optimizer),
-                                event_name=Events.ITERATION_STARTED)
+            wandb_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer,
+                param_name='lr'  # optional
+            )
 
         If you want to log model gradients, the model call graph, etc., use the logger as wrapper of wandb. Refer
         to the documentation of wandb.watch for details:

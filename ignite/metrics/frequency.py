@@ -1,10 +1,9 @@
 import torch
-import torch.distributed as dist
 
+import ignite.distributed as idist
 from ignite.engine import Events
-from ignite.metrics import Metric
 from ignite.handlers.timing import Timer
-from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 
 class Frequency(Metric):
@@ -61,8 +60,8 @@ class Frequency(Metric):
     def compute(self):
         time_divisor = 1.0
 
-        if dist.is_available() and dist.is_initialized():
-            time_divisor *= dist.get_world_size()
+        if idist.get_world_size() > 1:
+            time_divisor *= idist.get_world_size()
 
         # Returns the average processed objects per second across all workers
         return self._n / self._elapsed.item() * time_divisor

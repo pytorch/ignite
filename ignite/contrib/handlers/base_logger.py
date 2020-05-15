@@ -1,12 +1,11 @@
-from abc import ABCMeta, abstractmethod
 import numbers
 import warnings
-
-from typing import Mapping, Any
+from abc import ABCMeta, abstractmethod
+from typing import Any, Mapping
 
 import torch
 
-from ignite.engine import State, Engine
+from ignite.engine import Engine, State
 from ignite.handlers import global_step_from_engine
 
 
@@ -168,7 +167,7 @@ class BaseLogger(metaclass=ABCMeta):
 
         return engine.add_event_handler(event_name, log_handler, self, name)
 
-    def attach_output_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+    def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Mapping):
         """Shortcut method to attach `OutputHandler` to the logger.
 
         Args:
@@ -183,7 +182,7 @@ class BaseLogger(metaclass=ABCMeta):
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
-    def attach_opt_params_handler(self, engine: Engine, event_name: str, *args: Any, **kwargs: Mapping):
+    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Mapping):
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
         Args:

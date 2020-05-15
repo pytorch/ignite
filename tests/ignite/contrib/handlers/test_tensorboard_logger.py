@@ -1,14 +1,12 @@
-import os
 import math
+import os
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
-
-from unittest.mock import MagicMock, call, ANY, patch
-
 import torch
 
-from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.tensorboard_logger import *
+from ignite.engine import Engine, Events, State
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -21,7 +19,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with TensorboardLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with TensorboardLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 

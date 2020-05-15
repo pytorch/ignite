@@ -1,15 +1,14 @@
 import os
-
-import torch
-
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Precision
-
-import pytest
 import warnings
 
-from sklearn.metrics import precision_score
+import pytest
+import torch
 from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.metrics import precision_score
+
+import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Precision
 
 torch.manual_seed(12)
 
@@ -767,10 +766,9 @@ def _test_distrib_itegration_multiclass(device):
 
 def _test_distrib_itegration_multilabel(device):
 
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(average, n_epochs):
@@ -779,8 +777,8 @@ def _test_distrib_itegration_multilabel(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
 
         def update(engine, i):
             return (
@@ -818,20 +816,21 @@ def _test_distrib_itegration_multilabel(device):
         _test(average=True, n_epochs=1)
         _test(average=True, n_epochs=2)
 
-    with pytest.warns(
-        RuntimeWarning,
-        match="Precision/Recall metrics do not work in distributed setting when "
-        "average=False and is_multilabel=True",
-    ):
-        pr = Precision(average=False, is_multilabel=True, device=device)
+    if idist.get_world_size() > 1:
+        with pytest.warns(
+            RuntimeWarning,
+            match="Precision/Recall metrics do not work in distributed setting when "
+            "average=False and is_multilabel=True",
+        ):
+            pr = Precision(average=False, is_multilabel=True, device=device)
 
-    y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
-    y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
-    pr.update((y_pred, y))
-    pr_compute1 = pr.compute()
-    pr_compute2 = pr.compute()
-    assert len(pr_compute1) == 4 * 6 * 8
-    assert (pr_compute1 == pr_compute2).all()
+        y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
+        y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
+        pr.update((y_pred, y))
+        pr_compute1 = pr.compute()
+        pr_compute2 = pr.compute()
+        assert len(pr_compute1) == 4 * 6 * 8
+        assert (pr_compute1 == pr_compute2).all()
 
 
 @pytest.mark.distributed

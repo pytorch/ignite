@@ -3,8 +3,7 @@ from typing import Sequence, Union
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["MeanAbsoluteError"]
 

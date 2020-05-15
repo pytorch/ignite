@@ -7,11 +7,10 @@ from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
-    BaseWeightsScalarHandler,
     BaseWeightsHistHandler,
+    BaseWeightsScalarHandler,
     global_step_from_engine,
 )
-
 
 __all__ = [
     "TensorboardLogger",
@@ -40,11 +39,23 @@ class OutputHandler(BaseOutputHandler):
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer`:
-            tb_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            tb_logger.attach(
+                evaluator,
+                log_handler=OutputHandler(
+                    tag="validation",
+                    metric_names=["nll", "accuracy"],
+                    global_step_transform=global_step_from_engine(trainer)
+                ),
+                event_name=Events.EPOCH_COMPLETED
+            )
+            # or equivalently
+            tb_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
         Another example, where model is evaluated every 500 iterations:
 
@@ -66,19 +77,21 @@ class OutputHandler(BaseOutputHandler):
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Tensorboard.
 
-            tb_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metrics=["nll", "accuracy"],
-                                                       global_step_transform=global_step_transform),
-                             event_name=Events.EPOCH_COMPLETED)
+            tb_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metrics=["nll", "accuracy"],
+                global_step_transform=global_step_transform
+            )
 
     Args:
-        tag (str): common title for all produced plots. For example, 'training'
+        tag (str): common title for all produced plots. For example, "training"
         metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
             metrics.
         output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
         another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
             value of event. Typically, user can provide
@@ -112,7 +125,6 @@ class OutputHandler(BaseOutputHandler):
         metrics = self._setup_output_metrics(engine)
 
         global_step = self.global_step_transform(engine, event_name)
-
         if not isinstance(global_step, int):
             raise TypeError(
                 "global_step must be int, got {}."
@@ -126,9 +138,7 @@ class OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     logger.writer.add_scalar("{}/{}/{}".format(self.tag, key, i), v.item(), global_step)
             else:
-                warnings.warn(
-                    "TensorboardLogger output_handler can not log " "metrics value type {}".format(type(value))
-                )
+                warnings.warn("TensorboardLogger output_handler can not log metrics value type {}".format(type(value)))
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -144,14 +154,22 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            tb_logger.attach(trainer,
-                             log_handler=OptimizerParamsHandler(optimizer),
-                             event_name=Events.ITERATION_STARTED)
+            tb_logger.attach(
+                trainer,
+                log_handler=OptimizerParamsHandler(optimizer),
+                event_name=Events.ITERATION_STARTED
+            )
+            # or equivalently
+            tb_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer
+            )
 
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
     def __init__(self, optimizer, param_name="lr", tag=None):
@@ -159,7 +177,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'OptimizerParamsHandler' works only with TensorboardLogger")
+            raise RuntimeError("Handler OptimizerParamsHandler works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
@@ -187,14 +205,16 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            tb_logger.attach(trainer,
-                             log_handler=WeightsScalarHandler(model, reduction=torch.norm),
-                             event_name=Events.ITERATION_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -231,13 +251,15 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            tb_logger.attach(trainer,
-                             log_handler=WeightsHistHandler(model),
-                             event_name=Events.ITERATION_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsHistHandler(model)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -277,14 +299,16 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            tb_logger.attach(trainer,
-                             log_handler=GradsScalarHandler(model, reduction=torch.norm),
-                             event_name=Events.ITERATION_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -320,13 +344,15 @@ class GradsHistHandler(BaseWeightsHistHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            tb_logger.attach(trainer,
-                             log_handler=GradsHistHandler(model),
-                             event_name=Events.ITERATION_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsHistHandler(model)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -359,12 +385,19 @@ class TensorboardLogger(BaseLogger):
 
         pip install tensorboardX
 
-    otherwise, it falls back to using PyTorch's SummaryWriter (>=v1.2.0).
+    otherwise, it falls back to using
+    `PyTorch's SummaryWriter
+    <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter>`_
+    (>=v1.2.0).
 
     Args:
-        *args: Positional arguments accepted from :class:`~tensorboardx.SummaryWriter`.
-        **kwargs: Keyword arguments accepted from :class:`~tensorboardx.SummaryWriter`, for example,
-            `log_dir` to setup path to the directory where to log.
+        *args: Positional arguments accepted from
+            `SummaryWriter
+            <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter>`_.
+        **kwargs: Keyword arguments accepted from
+            `SummaryWriter
+            <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter>`_.
+            For example, `log_dir` to setup path to the directory where to log.
 
     Examples:
 
@@ -376,52 +409,70 @@ class TensorboardLogger(BaseLogger):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the trainer to log training loss at each iteration
-            tb_logger.attach(trainer,
-                             log_handler=OutputHandler(tag="training", output_transform=lambda loss: {'loss': loss}),
-                             event_name=Events.ITERATION_COMPLETED)
+            tb_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                output_transform=lambda loss: {"loss": loss}
+            )
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer` instead of `train_evaluator`.
-            tb_logger.attach(train_evaluator,
-                             log_handler=OutputHandler(tag="training",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            tb_logger.attach_output_handler(
+                train_evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="training",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer),
+            )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
             # `trainer` instead of `evaluator`.
-            tb_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            tb_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)),
+            )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            tb_logger.attach(trainer,
-                             log_handler=OptimizerParamsHandler(optimizer),
-                             event_name=Events.ITERATION_STARTED)
+            tb_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer,
+                param_name='lr'  # optional
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            tb_logger.attach(trainer,
-                             log_handler=WeightsScalarHandler(model),
-                             event_name=Events.ITERATION_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model)
+            )
 
             # Attach the logger to the trainer to log model's weights as a histogram after each epoch
-            tb_logger.attach(trainer,
-                             log_handler=WeightsHistHandler(model),
-                             event_name=Events.EPOCH_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.EPOCH_COMPLETED,
+                log_handler=WeightsHistHandler(model)
+            )
 
             # Attach the logger to the trainer to log model's gradients norm after each iteration
-            tb_logger.attach(trainer,
-                             log_handler=GradsScalarHandler(model),
-                             event_name=Events.ITERATION_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model)
+            )
 
             # Attach the logger to the trainer to log model's gradients as a histogram after each epoch
-            tb_logger.attach(trainer,
-                             log_handler=GradsHistHandler(model),
-                             event_name=Events.EPOCH_COMPLETED)
+            tb_logger.attach(
+                trainer,
+                event_name=Events.EPOCH_COMPLETED,
+                log_handler=GradsHistHandler(model)
+            )
 
             # We need to close the logger with we are done
             tb_logger.close()
@@ -436,10 +487,12 @@ class TensorboardLogger(BaseLogger):
 
                 trainer = Engine(update_fn)
                 # Attach the logger to the trainer to log training loss at each iteration
-                tb_logger.attach(trainer,
-                                 log_handler=OutputHandler(tag="training",
-                                                           output_transform=lambda loss: {'loss': loss}),
-                                 event_name=Events.ITERATION_COMPLETED)
+                tb_logger.attach_output_handler(
+                    trainer,
+                    event_name=Events.ITERATION_COMPLETED,
+                    tag="training",
+                    output_transform=lambda loss: {"loss": loss}
+                )
 
     """
 

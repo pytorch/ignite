@@ -19,4 +19,3 @@ about: Submit a bug report to help us improve Ignite
  - How you installed Ignite (`conda`, `pip`, source):
  - Python version:
  - Any other relevant information:
-

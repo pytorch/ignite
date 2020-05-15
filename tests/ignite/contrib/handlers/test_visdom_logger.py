@@ -1,11 +1,11 @@
-import torch
+from unittest.mock import ANY, MagicMock, call
+
 import pytest
+import torch
 
-from unittest.mock import MagicMock, call, ANY
-
-from ignite.engine import Engine, Events, State
 from ignite.contrib.handlers.visdom_logger import *
 from ignite.contrib.handlers.visdom_logger import _DummyExecutor
+from ignite.engine import Engine, Events, State
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with VisdomLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with VisdomLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 

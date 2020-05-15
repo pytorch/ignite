@@ -1,22 +1,16 @@
+import os
 from typing import Optional
 
 import pytest
-from pytest import approx
-
 import torch
+from pytest import approx
 from torch.nn import Linear
 from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
-from ignite.engine import create_supervised_trainer, create_supervised_evaluator
+import ignite.distributed as idist
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer
 from ignite.metrics import MeanSquaredError
-
-try:
-    import torch_xla.core.xla_model as xm
-
-    has_xla = True
-except ImportError:
-    has_xla = False
 
 
 def _test_create_supervised_trainer(
@@ -112,8 +106,17 @@ def test_create_supervised_trainer_on_cuda():
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
+@pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
+def test_create_supervised_trainer_on_tpu_no_xla():
+    model_device = "cpu"
+    trainer_device = "xla"
+    with pytest.raises(RuntimeError, match=r"In order to run on TPU, please install PyTorch XLA"):
+        _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
 @pytest.mark.tpu
-@pytest.mark.skipif(not has_xla, reason="Skip if no TPU")
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_create_supervised_trainer_on_tpu():
     model_device = trainer_device = "xla"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)

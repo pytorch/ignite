@@ -1,13 +1,14 @@
 # coding: utf-8
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import pytest
 import unittest.mock as mock
 
-from ignite.contrib.engines import create_supervised_tbptt_trainer, Tbptt_Events
+import pytest
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+from ignite.contrib.engines import Tbptt_Events, create_supervised_tbptt_trainer
 from ignite.contrib.engines.tbptt import _detach_hidden
 
 

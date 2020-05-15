@@ -1,15 +1,15 @@
 import os
 import warnings
+from unittest.mock import MagicMock
 
+import pytest
 import torch
 import torch.nn as nn
 
 from ignite.engine import Engine, Events, State
-from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver
+from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
 
-import pytest
-from unittest.mock import MagicMock
 
 try:
     import torch_xla.core.xla_model as xm
@@ -18,6 +18,7 @@ try:
 except ImportError:
     on_xla_device = False
 
+    
 _PREFIX = "PREFIX"
 
 

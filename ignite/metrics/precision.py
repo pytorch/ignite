@@ -1,12 +1,13 @@
 import warnings
-from typing import Sequence, Callable, Optional, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.accuracy import _BaseClassification
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.utils import to_onehot
+from ignite.metrics.accuracy import _BaseClassification
 from ignite.metrics.metric import reinit__is_reduced
+from ignite.utils import to_onehot
 
 __all__ = ["Precision"]
 
@@ -19,12 +20,12 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Optional[Union[str, torch.device]] = None,
     ):
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if idist.get_world_size() > 1:
             if (not average) and is_multilabel:
                 warnings.warn(
                     "Precision/Recall metrics do not work in distributed setting when average=False "
-                    "and is_multilabel=True. Results are not reduced across the GPUs. Computed result "
-                    "corresponds to the local rank's (single GPU) result.",
+                    "and is_multilabel=True. Results are not reduced across computing devices. Computed result "
+                    "corresponds to the local rank's (single process) result.",
                     RuntimeWarning,
                 )
 
@@ -51,8 +52,8 @@ class _BasePrecisionRecall(_BaseClassification):
 
         if not (self._type == "multilabel" and not self._average):
             if not self._is_reduced:
-                self._true_positives = self._sync_all_reduce(self._true_positives)
-                self._positives = self._sync_all_reduce(self._positives)
+                self._true_positives = idist.all_reduce(self._true_positives)
+                self._positives = idist.all_reduce(self._positives)
                 self._is_reduced = True
 
         result = self._true_positives / (self._positives + self.eps)
@@ -114,10 +115,7 @@ class Precision(_BasePrecisionRecall):
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): unused argument.
 
     """
 

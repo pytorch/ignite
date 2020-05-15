@@ -1,10 +1,12 @@
 import os
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Accuracy
+
 import pytest
 import torch
 from sklearn.metrics import accuracy_score
 
+import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Accuracy
 
 torch.manual_seed(12)
 
@@ -604,15 +606,7 @@ def test_incorrect_type():
 def _test_distrib_multilabel_input_NHW(device):
     # Multilabel input data of shape (N, C, H, W, ...) and (N, C, H, W, ...)
 
-    import torch.distributed as dist
-
-    rank = dist.get_rank()
-
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
+    rank = idist.get_rank()
 
     def _test():
         acc = Accuracy(is_multilabel=True, device=device)
@@ -623,15 +617,15 @@ def _test_distrib_multilabel_input_NHW(device):
         acc.update((y_pred, y))
 
         # gather y_pred, y
-        y_pred = _gather(y_pred)
-        y = _gather(y)
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
 
         np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
         np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
         assert acc._type == "multilabel"
         n = acc._num_examples
         res = acc.compute()
-        assert n * dist.get_world_size() == acc._num_examples
+        assert n * idist.get_world_size() == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -642,8 +636,8 @@ def _test_distrib_multilabel_input_NHW(device):
         acc.update((y_pred, y))
 
         # gather y_pred, y
-        y_pred = _gather(y_pred)
-        y = _gather(y)
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
 
         np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
         np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
@@ -651,12 +645,12 @@ def _test_distrib_multilabel_input_NHW(device):
         assert acc._type == "multilabel"
         n = acc._num_examples
         res = acc.compute()
-        assert n * dist.get_world_size() == acc._num_examples
+        assert n * idist.get_world_size() == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
         # check that result is not changed
         res = acc.compute()
-        assert n * dist.get_world_size() == acc._num_examples
+        assert n * idist.get_world_size() == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -674,8 +668,8 @@ def _test_distrib_multilabel_input_NHW(device):
             acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
         # gather y_pred, y
-        y_pred = _gather(y_pred)
-        y = _gather(y)
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
 
         np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, L, ...) -> (N * L * ..., C)
         np_y = to_numpy_multilabel(y.cpu())  # (N, C, L, ...) -> (N * L ..., C)
@@ -683,7 +677,7 @@ def _test_distrib_multilabel_input_NHW(device):
         assert acc._type == "multilabel"
         n = acc._num_examples
         res = acc.compute()
-        assert n * dist.get_world_size() == acc._num_examples
+        assert n * idist.get_world_size() == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -694,10 +688,9 @@ def _test_distrib_multilabel_input_NHW(device):
 
 def _test_distrib_itegration_multiclass(device):
 
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(n_epochs):
@@ -706,8 +699,8 @@ def _test_distrib_itegration_multiclass(device):
         n_classes = 10
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
 
         def update(engine, i):
             return (
@@ -739,10 +732,9 @@ def _test_distrib_itegration_multiclass(device):
 
 def _test_distrib_itegration_multilabel(device):
 
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(n_epochs):
@@ -751,8 +743,8 @@ def _test_distrib_itegration_multilabel(device):
         n_classes = 10
 
         offset = n_iters * s
-        y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 8, 10)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 8, 10)).to(device)
+        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 8, 10)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 8, 10)).to(device)
 
         def update(engine, i):
             return (

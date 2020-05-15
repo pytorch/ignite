@@ -1,17 +1,17 @@
 # coding: utf-8
+import contextlib
 import logging
+import tempfile
 import warnings
 from collections.abc import Mapping
-import tempfile
-import contextlib
 from pathlib import Path
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
-from ignite.engine import Events, Engine
+from ignite.contrib.handlers.param_scheduler import LRScheduler, PiecewiseLinear
+from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint
-from ignite.contrib.handlers import LRScheduler, PiecewiseLinear
 
 
 class FastaiLRFinder:
@@ -310,7 +310,9 @@ class FastaiLRFinder:
         # store to_save
         with tempfile.TemporaryDirectory() as tmpdirname:
             obj = {k: o.state_dict() for k, o in to_save.items()}
-            cache_filepath = Path(tmpdirname) / "ignite_lr_finder_cache.pt.tar"
+            # add trainer
+            obj["trainer"] = trainer.state_dict()
+            cache_filepath = Path(tmpdirname) / "ignite_lr_finder_cache.pt"
             torch.save(obj, cache_filepath.as_posix())
 
             optimizer = to_save["optimizer"]
@@ -336,9 +338,10 @@ class FastaiLRFinder:
             self._detach(trainer)
             # restore to_save and reset trainer's state
             obj = torch.load(cache_filepath.as_posix())
-            trainer.state = None
+            trainer.load_state_dict(obj["trainer"])
             for k, o in obj.items():
-                to_save[k].load_state_dict(o)
+                if k in to_save:
+                    to_save[k].load_state_dict(o)
 
 
 class _ExponentialLR(_LRScheduler):

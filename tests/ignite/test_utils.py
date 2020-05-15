@@ -1,12 +1,13 @@
-import os
 import logging
+import os
+from collections import namedtuple
+
 import pytest
 import torch
 import torch.distributed as dist
 
-from collections import namedtuple
-from ignite.utils import convert_tensor, to_onehot, setup_logger, one_rank_only
 from ignite.engine import Engine, Events
+from ignite.utils import convert_tensor, one_rank_only, setup_logger, to_onehot
 
 
 def test_convert_tensor():

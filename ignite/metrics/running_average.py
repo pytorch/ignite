@@ -1,10 +1,9 @@
-from typing import Optional, Union, Callable, Sequence
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.engine import Events, Engine
-from ignite.metrics import Metric
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.engine import Engine, Events
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["RunningAverage"]
 
@@ -20,11 +19,7 @@ class RunningAverage(Metric):
             corresponds the output of process function. Otherwise it should be None.
         epoch_bound (boolean, optional): whether the running average should be reset after each epoch (defaults
             to True).
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            This is necessary when running average is computed on the output of process function.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): unused argument.
 
     Examples:
 

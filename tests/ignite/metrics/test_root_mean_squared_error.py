@@ -1,11 +1,11 @@
 import os
 
+import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import RootMeanSquaredError
-
-import pytest
 
 
 def test_zero_div():
@@ -33,15 +33,14 @@ def test_compute():
 
 def _test_distrib_itegration(device):
     import numpy as np
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     n_iters = 100
     s = 50
     offset = n_iters * s
 
-    y_true = torch.arange(0, offset * dist.get_world_size(), dtype=torch.float).to(device)
+    y_true = torch.arange(0, offset * idist.get_world_size(), dtype=torch.float).to(device)
     y_preds = (rank + 1) * torch.ones(offset, dtype=torch.float).to(device)
 
     def update(engine, i):
@@ -59,7 +58,7 @@ def _test_distrib_itegration(device):
     res = engine.state.metrics["rmse"]
 
     y_preds_full = []
-    for i in range(dist.get_world_size()):
+    for i in range(idist.get_world_size()):
         y_preds_full.append((i + 1) * torch.ones(offset))
     y_preds_full = torch.stack(y_preds_full).to(device).flatten()
 

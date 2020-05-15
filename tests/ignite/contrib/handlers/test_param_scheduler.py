@@ -1,13 +1,18 @@
-import pytest
-
 import numpy as np
-
+import pytest
 import torch
+from torch.optim.lr_scheduler import ExponentialLR, StepLR
 
+from ignite.contrib.handlers.param_scheduler import (
+    ConcatScheduler,
+    CosineAnnealingScheduler,
+    LinearCyclicalScheduler,
+    LRScheduler,
+    ParamGroupScheduler,
+    PiecewiseLinear,
+    create_lr_scheduler_with_warmup,
+)
 from ignite.engine import Engine, Events
-from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler, CosineAnnealingScheduler
-from ignite.contrib.handlers.param_scheduler import ConcatScheduler, LRScheduler, create_lr_scheduler_with_warmup
-from ignite.contrib.handlers.param_scheduler import ParamGroupScheduler, PiecewiseLinear
 
 
 def test_linear_scheduler():
@@ -380,6 +385,8 @@ def test_concat_scheduler_two_schedulers():
             assert lrs == pytest.approx([v for i, v in simulated_values])
             concat_scheduler.load_state_dict(state_dict)
 
+            trainer.state.param_history = None
+
     _test(duration_vals_as_np_int=False)
     _test(duration_vals_as_np_int=True)
 
@@ -452,6 +459,8 @@ def test_concat_scheduler_two_linear():
         assert lrs == pytest.approx([v for i, v in simulated_values])
         concat_scheduler.load_state_dict(state_dict)
 
+        trainer.state.param_history = None
+
 
 def test_concat_scheduler_3_schedulers():
     tensor = torch.zeros([1], requires_grad=True)
@@ -523,6 +532,8 @@ def test_concat_scheduler_3_schedulers():
         assert lrs == pytest.approx([v for i, v in simulated_values])
         concat_scheduler.load_state_dict(state_dict)
 
+        trainer.state.param_history = None
+
 
 def test_save_param_history():
     tensor = torch.zeros([1], requires_grad=True)
@@ -548,17 +559,6 @@ def test_save_param_history():
 
 
 def test_lr_scheduler_asserts():
-
-    t1 = torch.zeros([1], requires_grad=True)
-    t2 = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
-    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.98)
-
-    with pytest.raises(ValueError):
-        LRScheduler(lr_scheduler)
-
-    with pytest.raises(ValueError):
-        LRScheduler.simulate_values(num_events=100, lr_scheduler=lr_scheduler)
 
     with pytest.raises(TypeError):
         LRScheduler(123)
@@ -1018,6 +1018,8 @@ def test_create_lr_scheduler_with_warmup_on_combined_scheduler():
                 param_history = trainer.state.param_history["lr"]
                 assert lrs == pytest.approx([v[0] for v in param_history])
 
+                trainer.state.param_history = None
+
             scheduler.load_state_dict(state_dict)
 
     _test(save_history=False)
@@ -1124,3 +1126,48 @@ def test_param_group_scheduler():
         optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
     )
     _test([lr_scheduler1, lr_scheduler2], optimizer)
+
+
+def test_scheduler_with_param_groups():
+    def _test(lr_scheduler, optimizer):
+        num_iterations = 10
+        max_epochs = 20
+
+        state_dict = lr_scheduler.state_dict()
+
+        trainer = Engine(lambda engine, batch: None)
+
+        @trainer.on(Events.ITERATION_COMPLETED)
+        def save_lr():
+            lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
+
+        trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
+
+        data = [0] * num_iterations
+
+        for _ in range(2):
+            lrs = []
+            trainer.run(data, max_epochs=max_epochs)
+            assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
+            lr_scheduler.load_state_dict(state_dict)
+
+    t1 = torch.zeros([1], requires_grad=True)
+    t2 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
+
+    lr_scheduler = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
+    _test(lr_scheduler, optimizer)
+
+    lr_scheduler = PiecewiseLinear(
+        optimizer, "lr", milestones_values=[(5, 0.5), (15, 1.0), (25, 0.0), (35, 1.0), (40, 0.5)]
+    )
+    _test(lr_scheduler, optimizer)
+
+    lr_scheduler = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
+    _test(lr_scheduler, optimizer)
+
+    torch_lr_scheduler = ExponentialLR(optimizer, gamma=0.98)
+    _test(LRScheduler(torch_lr_scheduler), optimizer)
+
+    torch_lr_scheduler = StepLR(optimizer, step_size=50, gamma=0.5)
+    _test(LRScheduler(torch_lr_scheduler), optimizer)

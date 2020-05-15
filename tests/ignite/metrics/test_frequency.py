@@ -2,8 +2,7 @@ import time
 
 import pytest
 
-import torch.distributed as dist
-
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.metrics import Frequency
 
@@ -57,19 +56,17 @@ def test_frequency_with_engine():
 @pytest.mark.distributed
 def test_frequency_with_engine_distributed(distributed_context_single_node_gloo):
     device = "cpu"
-    _test_frequency_with_engine(device, workers=dist.get_world_size())
+    _test_frequency_with_engine(device, workers=idist.get_world_size())
 
 
 def test_frequency_with_engine_with_every():
     device = "cpu"
     _test_frequency_with_engine(device, workers=1, every=1)
-    _test_frequency_with_engine(device, workers=1, every=2)
     _test_frequency_with_engine(device, workers=1, every=10)
 
 
 @pytest.mark.distributed
 def test_frequency_with_engine_distributed_with_every(distributed_context_single_node_gloo):
     device = "cpu"
-    _test_frequency_with_engine(device, workers=dist.get_world_size(), every=1)
-    _test_frequency_with_engine(device, workers=dist.get_world_size(), every=2)
-    _test_frequency_with_engine(device, workers=dist.get_world_size(), every=10)
+    _test_frequency_with_engine(device, workers=idist.get_world_size(), every=1)
+    _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)

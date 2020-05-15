@@ -1,9 +1,10 @@
-from unittest.mock import call, MagicMock
+from unittest.mock import MagicMock, call
+
 import pytest
 import torch
 
-from ignite.engine import Events, State
 from ignite.contrib.handlers.wandb_logger import *
+from ignite.engine import Events, State
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -15,7 +16,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with WandBLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with WandBLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 

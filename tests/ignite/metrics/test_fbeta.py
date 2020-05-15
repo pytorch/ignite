@@ -1,14 +1,13 @@
 import os
+
 import numpy as np
+import pytest
+import torch
 from sklearn.metrics import fbeta_score
 
-import torch
-
+import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import Fbeta, Precision, Recall
-
-import pytest
-
 
 torch.manual_seed(12)
 
@@ -91,9 +90,8 @@ def test_integration():
 
 
 def _test_distrib_itegration(device):
-    import torch.distributed as dist
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(p, r, average, n_epochs):
@@ -102,8 +100,8 @@ def _test_distrib_itegration(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
 
         def update(engine, i):
             return (

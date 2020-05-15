@@ -1,10 +1,9 @@
-from typing import Callable, Union, Optional, Sequence
-
-from ignite.metrics import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
-from ignite.exceptions import NotComputableError
+from typing import Callable, Optional, Sequence, Union
 
 import torch
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["Accuracy"]
 
@@ -120,10 +119,7 @@ class Accuracy(_BaseClassification):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): unused argument.
 
     """
 

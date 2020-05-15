@@ -1,13 +1,11 @@
 import numbers
 import tempfile
-from typing import Mapping
 import warnings
+from typing import Mapping
 
 import torch
 
 import ignite
-
-from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
@@ -15,6 +13,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsScalarHandler,
     global_step_from_engine,
 )
+from ignite.handlers.checkpoint import BaseSaveHandler
 
 __all__ = [
     "NeptuneLogger",
@@ -39,21 +38,34 @@ class OutputHandler(BaseOutputHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
-                                       )
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer`:
-            npt_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            npt_logger.attach(
+                evaluator,
+                log_handler=OutputHandler(
+                    tag="validation",
+                    metric_names=["nll", "accuracy"],
+                    global_step_transform=global_step_from_engine(trainer)
+                ),
+                event_name=Events.EPOCH_COMPLETED
+            )
+            # or equivalently
+            npt_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
         Another example, where model is evaluated every 500 iterations:
 
@@ -67,12 +79,13 @@ class OutputHandler(BaseOutputHandler):
 
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite", "minst"] # Optional
-                                       )
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite", "minst"] # Optional
+            )
 
             def global_step_transform(*args, **kwargs):
                 return trainer.state.iteration
@@ -82,11 +95,13 @@ class OutputHandler(BaseOutputHandler):
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on NeptuneML.
 
-            npt_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metrics=["nll", "accuracy"],
-                                                       global_step_transform=global_step_transform),
-                             event_name=Events.EPOCH_COMPLETED)
+            npt_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metrics=["nll", "accuracy"],
+                global_step_transform=global_step_transform
+            )
 
     Args:
         tag (str): common title for all produced plots. For example, "training"
@@ -142,7 +157,7 @@ class OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     logger.log_metric("{}/{}/{}".format(self.tag, key, i), x=global_step, y=v.item())
             else:
-                warnings.warn("NeptuneLogger output_handler can not log " "metrics value type {}".format(type(value)))
+                warnings.warn("NeptuneLogger output_handler can not log metrics value type {}".format(type(value)))
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -157,22 +172,31 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
-                                       )
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            npt_logger.attach(trainer,
-                             log_handler=OptimizerParamsHandler(optimizer),
-                             event_name=Events.ITERATION_STARTED)
+            npt_logger.attach(
+                trainer,
+                log_handler=OptimizerParamsHandler(optimizer),
+                event_name=Events.ITERATION_STARTED
+            )
+            # or equivalently
+            npt_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer
+            )
 
     Args:
         optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
         param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, generator
+        tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
     def __init__(self, optimizer, param_name="lr", tag=None):
@@ -207,22 +231,25 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
-                                       )
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            npt_logger.attach(trainer,
-                             log_handler=WeightsScalarHandler(model, reduction=torch.norm),
-                             event_name=Events.ITERATION_COMPLETED)
+            npt_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, generator
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -262,22 +289,25 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
-                                       )
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            npt_logger.attach(trainer,
-                             log_handler=GradsScalarHandler(model, reduction=torch.norm),
-                             event_name=Events.ITERATION_COMPLETED)
+            npt_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model, reduction=torch.norm)
+            )
 
     Args:
         model (torch.nn.Module): model to log weights
         reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, generator
+        tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
@@ -304,8 +334,8 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
 class NeptuneLogger(BaseLogger):
     """
-    Neptune handler to log metrics, model/optimizer parameters, gradients during the training and validation.
-    It can also log model checkpoints to Neptune server.
+    `Neptune <https://neptune.ai/>`_ handler to log metrics, model/optimizer parameters, gradients during the training
+    and validation. It can also log model checkpoints to Neptune server.
 
     .. code-block:: bash
 
@@ -347,48 +377,58 @@ class NeptuneLogger(BaseLogger):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
-                                       )
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
 
             # Attach the logger to the trainer to log training loss at each iteration
-            npt_logger.attach(trainer,
-                             log_handler=OutputHandler(tag="training", output_transform=lambda loss: {"loss": loss}),
-                             event_name=Events.ITERATION_COMPLETED)
+            npt_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                output_transform=lambda loss: {'loss': loss}
+            )
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer` instead of `train_evaluator`.
-            npt_logger.attach(train_evaluator,
-                             log_handler=OutputHandler(tag="training",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            npt_logger.attach_output_handler(
+                train_evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="training",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer),
+            )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
             # `trainer` instead of `evaluator`.
-            npt_logger.attach(evaluator,
-                             log_handler=OutputHandler(tag="validation",
-                                                       metric_names=["nll", "accuracy"],
-                                                       global_step_transform=global_step_from_engine(trainer)),
-                             event_name=Events.EPOCH_COMPLETED)
+            npt_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)),
+            )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            npt_logger.attach(trainer,
-                             log_handler=OptimizerParamsHandler(optimizer),
-                             event_name=Events.ITERATION_STARTED)
+            npt_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer,
+                param_name='lr'  # optional
+            )
 
             # Attach the logger to the trainer to log model's weights norm after each iteration
-            npt_logger.attach(trainer,
-                             log_handler=WeightsScalarHandler(model),
-                             event_name=Events.ITERATION_COMPLETED)
-
-            # We need to close the logger when we are done
-            npt_logger.close()
+            npt_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model)
+            )
 
         Explore an experiment with neptune tracking here:
         https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
@@ -402,10 +442,14 @@ class NeptuneLogger(BaseLogger):
                 return engine.state.metrics["accuracy"]
 
             to_save = {"model": model}
-            handler = Checkpoint(to_save, NeptuneSaver(npt_logger), n_saved=2,
-                                 filename_prefix="best", score_function=score_function,
-                                 score_name="validation_accuracy",
-                                 global_step_transform=global_step_from_engine(trainer))
+            handler = Checkpoint(
+                to_save,
+                NeptuneSaver(npt_logger), n_saved=2,
+                filename_prefix="best",
+                score_function=score_function,
+                score_name="validation_accuracy",
+                global_step_transform=global_step_from_engine(trainer)
+            )
             validation_evaluator.add_event_handler(Events.COMPLETED, handler)
 
         It is also possible to use the logger as context manager:
@@ -416,19 +460,21 @@ class NeptuneLogger(BaseLogger):
 
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                            experiment_name="cnn-mnist", # Optional,
-                                            params={"max_epochs": 10}, # Optional,
-                                            tags=["pytorch-ignite","minst"] # Optional
-                                            ) as npt_logger:
+            with NeptuneLogger(api_token="ANONYMOUS",
+                               project_name="shared/pytorch-ignite-integration",
+                               experiment_name="cnn-mnist", # Optional,
+                               params={"max_epochs": 10}, # Optional,
+                               tags=["pytorch-ignite","minst"] # Optional
+                               ) as npt_logger:
 
                 trainer = Engine(update_fn)
                 # Attach the logger to the trainer to log training loss at each iteration
-                npt_logger.attach(trainer,
-                                 log_handler=OutputHandler(tag="training",
-                                                           output_transform=lambda loss: {"loss": loss}),
-                                 event_name=Events.ITERATION_COMPLETED)
+                npt_logger.attach_output_handler(
+                    trainer,
+                    event_name=Events.ITERATION_COMPLETED,
+                    tag="training",
+                    output_transform=lambda loss: {"loss": loss}
+                )
 
     """
 
@@ -490,12 +536,13 @@ class NeptuneSaver(BaseSaveHandler):
             # Create a logger
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
-            npt_logger = NeptuneLogger(api_token="ANONYMOUS",
-                                       project_name="shared/pytorch-ignite-integration",
-                                       experiment_name="cnn-mnist", # Optional,
-                                       params={"max_epochs": 10}, # Optional,
-                                       tags=["pytorch-ignite","minst"] # Optional
-                                       )
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
 
             ...
             evaluator = create_supervised_evaluator(model, metrics=metrics, ...)
@@ -510,10 +557,13 @@ class NeptuneSaver(BaseSaveHandler):
 
             # pass neptune logger to NeptuneServer
 
-            handler = Checkpoint(to_save, NeptuneSaver(npt_logger), n_saved=2,
-                                 filename_prefix="best", score_function=score_function,
-                                 score_name="validation_accuracy",
-                                 global_step_transform=global_step_from_engine(trainer))
+            handler = Checkpoint(
+                to_save,
+                NeptuneSaver(npt_logger), n_saved=2,
+                filename_prefix="best", score_function=score_function,
+                score_name="validation_accuracy",
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
