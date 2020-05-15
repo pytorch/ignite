@@ -9,13 +9,7 @@ import torch.nn as nn
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
-
-try:
-    import torch_xla.core.xla_model as xm
-
-    on_xla_device = True
-except ImportError:
-    on_xla_device = False
+import ignite.distributed as idist
 
 
 _PREFIX = "PREFIX"
@@ -850,7 +844,7 @@ def test_disksaver_wrong_input(dirname):
 
 
 @pytest.mark.tpu
-@pytest.mark.skipif(not on_xla_device, reason="Not on TPU device")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_tpu_saves_to_cpu(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     engine = Engine(lambda e, b: None)
@@ -866,3 +860,66 @@ def test_tpu_saves_to_cpu(dirname):
     assert os.path.exists(fname)
     loaded_objects = torch.load(fname)
     assert loaded_objects == model.cpu().state_dict()
+
+@pytest.mark.tpu
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_save_model_optimizer_lr_scheduler_with_state_dict_tpu(dirname):
+    import torch_xla.core.xla_model as xm
+
+    model = DummyModel().to(xm.xla_device())
+    optim = torch.optim.SGD(model.parameters(), lr=0.001)
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
+
+    def update_fn(engine, batch):
+        x = torch.rand((4, 1))
+        optim.zero_grad()
+        y = model(x)
+        loss = y.pow(2.0).sum()
+        loss.backward()
+        optim.step()
+        lr_scheduler.step()
+
+    engine = Engine(update_fn)
+    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
+
+    engine.add_event_handler(
+        Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
+    )
+    engine.run([0], max_epochs=4)
+
+    saved_objects = sorted(os.listdir(dirname))
+    # saved object is ['PREFIX_checkpoint_4.pt', ]
+    saved_checkpoint = os.path.join(dirname, saved_objects[0])
+
+    loaded_obj = torch.load(saved_checkpoint)
+    for f in ["model", "optimizer", "lr_scheduler"]:
+        assert f in loaded_obj
+    loaded_model_state_dict = loaded_obj["model"]
+    loaded_optimizer_state_dict = loaded_obj["optimizer"]
+    loaded_lr_scheduler_state_dict = loaded_obj["lr_scheduler"]
+
+    assert isinstance(loaded_model_state_dict, dict)
+    assert isinstance(loaded_optimizer_state_dict, dict)
+    assert isinstance(loaded_lr_scheduler_state_dict, dict)
+
+    # Specifically move device to CPU first
+    model_state_dict = model.to('cpu').state_dict()
+    for key in model_state_dict.keys():
+        assert key in loaded_model_state_dict
+        model_value = model_state_dict[key]
+        loaded_model_value = loaded_model_state_dict[key]
+        assert model_value.numpy() == loaded_model_value.numpy()
+
+    optim_state_dict = optim.state_dict()
+    for key in optim_state_dict.keys():
+        assert key in loaded_optimizer_state_dict
+        optim_value = optim_state_dict[key]
+        loaded_optim_value = loaded_optimizer_state_dict[key]
+        assert optim_value == loaded_optim_value
+
+    lr_scheduler_state_dict = lr_scheduler.state_dict()
+    for key in lr_scheduler_state_dict.keys():
+        assert key in loaded_lr_scheduler_state_dict
+        lr_scheduler_value = lr_scheduler_state_dict[key]
+        loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
+        assert lr_scheduler_value == loaded_lr_scheduler_value
