@@ -405,12 +405,6 @@ def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_all_gather_xla():
 
-    import torch_xla
-
-    v_maj, v_min, *_ = torch_xla.__version__.split(".")
-    if int(v_maj) == 1 and int(v_min) < 6:
-        pytest.skip("This version of torch_xla does not support all_gather operation")
-
     device = idist.device()
     _test_distrib_all_gather(device)
 
@@ -420,12 +414,6 @@ def test_idist_all_gather_xla():
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_all_gather_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    import torch_xla
-
-    v_maj, v_min, *_ = torch_xla.__version__.split(".")
-    if int(v_maj) == 1 and int(v_min) < 6:
-        pytest.skip("This version of torch_xla does not support all_gather operation")
 
     def _test_fn(index):
         device = idist.device()
