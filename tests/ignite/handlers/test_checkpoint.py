@@ -6,11 +6,10 @@ import pytest
 import torch
 import torch.nn as nn
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
-import ignite.distributed as idist
-
 
 _PREFIX = "PREFIX"
 
@@ -861,6 +860,7 @@ def test_tpu_saves_to_cpu(dirname):
     loaded_objects = torch.load(fname)
     assert loaded_objects == model.cpu().state_dict()
 
+
 @pytest.mark.tpu
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_save_model_optimizer_lr_scheduler_with_state_dict_tpu(dirname):
@@ -903,7 +903,7 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict_tpu(dirname):
     assert isinstance(loaded_lr_scheduler_state_dict, dict)
 
     # Specifically move device to CPU first
-    model_state_dict = model.to('cpu').state_dict()
+    model_state_dict = model.to("cpu").state_dict()
     for key in model_state_dict.keys():
         assert key in loaded_model_state_dict
         model_value = model_state_dict[key]
