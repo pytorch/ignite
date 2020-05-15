@@ -10,7 +10,6 @@ from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
 
-
 try:
     import torch_xla.core.xla_model as xm
 
@@ -18,7 +17,7 @@ try:
 except ImportError:
     on_xla_device = False
 
-    
+
 _PREFIX = "PREFIX"
 
 
