@@ -6,6 +6,7 @@ import torch
 from ignite.distributed.comp_models.base import ComputationModel
 
 try:
+    import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -138,6 +139,8 @@ class _XlaDistModel(ComputationModel):
         return tensor
 
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        if not hasattr(xm, "all_to_all"):
+            raise RuntimeError("Current version of torch_xla does not support all_gather operation")
         # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
         output = xm.all_to_all(tensor, split_dimension=0, concat_dimension=0)
         return output

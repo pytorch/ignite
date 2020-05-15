@@ -280,10 +280,6 @@ def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[to
         torch.Tensor or number
 
     """
-    if get_world_size() < 2:
-        # Nothing to reduce
-        return tensor
-
     return _model.all_reduce(tensor, op)
 
 
@@ -298,10 +294,6 @@ def all_gather(tensor: Union[torch.Tensor, Number]) -> torch.Tensor:
         torch.Tensor
 
     """
-    if get_world_size() < 2:
-        # Nothing to reduce
-        return tensor
-
     return _model.all_gather(tensor)
 
 

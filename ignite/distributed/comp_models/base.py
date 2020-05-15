@@ -86,6 +86,8 @@ class ComputationModel(metaclass=ABCMeta):
             # check if the tensor is at specified device
             if tensor.device != device:
                 tensor = tensor.to(device)
+            if self._collective_op_dtype is not None:
+                tensor = tensor.to(self._collective_op_dtype)
         else:
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
