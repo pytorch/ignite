@@ -255,7 +255,9 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
         args (tuple): arguments passed to `fn`
         num_procs_per_node (int): number of processes to spawn on a single node.
         **kwargs: acceptable kwargs according to provided backend:
+
             - "nccl" or "gloo" : `num_nodes` (=1), `node_rank` (=0), `master_addr` (0.0.0.0), `master_port` (2222)
+
             - "xla-tpu" : `num_nodes` (=1), `node_rank` (=0)
 
     """
@@ -309,14 +311,18 @@ def set_local_rank(index: int):
 
     Usage:
 
+        User set up torch native distributed process group
+
         .. code-block:: python
 
             import ignite.distributed as idist
 
-            dist.init_process_group(**dist_info)
+            def run(local_rank, *args, **kwargs):
 
-            TODO
-
+                idist.set_local_rank(local_rank)
+                # ...
+                dist.init_process_group(**dist_info)
+                # ...
 
     Args:
         index (int): local rank or current process index
@@ -347,7 +353,7 @@ def initialize(backend: str, **kwargs):
 
         .. code-block:: python
 
-            # >>> python -m torch.distributed.launch --nproc_per_node=NUM_GPUS_YOU_HAVE main.py
+            # >>> python -m torch.distributed.launch --nproc_per_node=4 main.py
 
             # main.py
 
@@ -370,7 +376,10 @@ def initialize(backend: str, **kwargs):
 
     Args:
         backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`.
-        **kwargs: TODO
+        **kwargs: acceptable kwargs according to provided backend:
+
+            - "nccl" or "gloo" : timeout(=timedelta(minutes=30))
+
 
     """
     global _model, _need_to_sync
