@@ -1,3 +1,4 @@
+import os
 import time
 
 import pytest
@@ -23,7 +24,7 @@ def test_nondistributed_average():
 def _test_frequency_with_engine(device, workers, lower_bound_factor=0.8, every=1):
 
     artificial_time = 1.0 / workers  # seconds
-    total_tokens = 1200 // workers
+    total_tokens = 400 // workers
     batch_size = 128 // workers
 
     estimated_wps = batch_size * workers / artificial_time
@@ -70,3 +71,24 @@ def test_frequency_with_engine_distributed_with_every(distributed_context_single
     device = "cpu"
     _test_frequency_with_engine(device, workers=idist.get_world_size(), every=1)
     _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_fn(index):
+        device = idist.device()
+        _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)
+
+    xmp_executor(_test_fn, args=(), nprocs=n)

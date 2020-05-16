@@ -390,7 +390,7 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_single_device_xla():
+def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
@@ -401,7 +401,7 @@ def test_single_device_xla():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
+def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
 
     def _test_fn(index):
