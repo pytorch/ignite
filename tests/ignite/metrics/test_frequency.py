@@ -23,7 +23,7 @@ def test_nondistributed_average():
 def _test_frequency_with_engine(device, workers, lower_bound_factor=0.8, every=1):
 
     artificial_time = 1.0 / workers  # seconds
-    total_tokens = 1200 // workers
+    total_tokens = 400 // workers
     batch_size = 128 // workers
 
     estimated_wps = batch_size * workers / artificial_time
