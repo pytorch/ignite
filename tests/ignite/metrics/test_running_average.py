@@ -280,6 +280,7 @@ def _test_distrib_on_output(device):
     def running_avg_output_update(engine):
         i = engine.state.iteration - 1
         o = sum([all_loss_values[i + j * k] for j in range(idist.get_world_size())]).item()
+        o /= idist.get_world_size()
         if engine.state.running_avg_output is None:
             engine.state.running_avg_output = o
         else:
