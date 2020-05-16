@@ -11,6 +11,10 @@ class GpuInfo(Metric):
     """Provides GPU information: a) used memory percentage, b) gpu utilization percentage values as Metric
     on each iterations.
 
+    .. Note ::
+
+        In case if gpu utilization reports "N/A" on a given GPU, corresponding metric value is not set.
+
     Examples:
 
         .. code-block:: python
@@ -90,11 +94,14 @@ class GpuInfo(Metric):
             util_report = data_by_rank["utilization"]
             if not ("gpu_util" in util_report):
                 warnings.warn(
-                    "GPU utilization information does not provide 'gpu_util' information in " "{}".format(util_report)
+                    "GPU utilization information does not provide 'gpu_util' information in {}".format(util_report)
                 )
                 continue
-
-            engine.state.metrics[util_name] = int(util_report["gpu_util"])
+            try:
+                engine.state.metrics[util_name] = int(util_report["gpu_util"])
+            except ValueError:
+                # Do not set GPU utilization information
+                pass
 
     def attach(self, engine, name="gpu", event_name=Events.ITERATION_COMPLETED):
         engine.add_event_handler(event_name, self.completed, name)

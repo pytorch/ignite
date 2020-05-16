@@ -29,6 +29,7 @@ The following people are currently core contributors to PyTorch-Ignite’s devel
 - Anmol Joshi `@anmolsjoshi <https://github.com/anmolsjoshi>`_
 - Sylvain Desroziers `@sdesrozis <https://github.com/sdesrozis>`_
 - Yogesh Kumar `@ykumards <https://github.com/ykumards>`_
+- Elijah Rippeth `@erip <https://github.com/erip>`_
 
 
 Emeritus Core Developers
@@ -56,7 +57,7 @@ If you use pytorch-ignite in a scientific publication, we would appreciate citat
 .. code-block:: text
 
     @misc{pytorch-ignite,
-      author = {V. Fomin, J. Anmol, S. Desroziers, Y. Kumar, J. Kriss and A. Tejani},
+      author = {V. Fomin, J. Anmol, S. Desroziers, Y. Kumar, J. Kriss, A. Tejani and E. Rippeth},
       title = {High-level library to help with training neural networks in PyTorch},
       year = {2020},
       publisher = {GitHub},

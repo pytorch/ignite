@@ -1,5 +1,5 @@
 import math
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, MagicMock, Mock, call
 
 import pytest
 import torch
@@ -623,7 +623,27 @@ def test_trains_disk_saver_integration():
     to_save_serializable = {"model": model}
 
     mock_logger = MagicMock(spec=TrainsLogger)
+    trains.Task.current_task = Mock(return_value=object())
     trains_saver = TrainsSaver(mock_logger)
+    trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+
+    checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=trains_saver, n_saved=1)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+    checkpoint(trainer)
+    trainer.state.iteration = 1
+    checkpoint(trainer)
+    assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+
+
+def test_trains_disk_saver_integration_no_logger():
+    model = torch.nn.Module()
+    to_save_serializable = {"model": model}
+
+    trains.Task.current_task = Mock(return_value=object())
+    trains_saver = TrainsSaver()
+
     trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
     checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=trains_saver, n_saved=1)
