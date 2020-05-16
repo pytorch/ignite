@@ -3,7 +3,11 @@ from typing import Callable
 
 
 def _check_signature(fn: Callable, fn_description: str, *args, **kwargs) -> None:
-    signature = inspect.signature(fn)
+    # if handler with filter, check the handler rather than the decorator
+    if hasattr(fn, "_parent"):
+        signature = inspect.signature(fn._parent())
+    else:
+        signature = inspect.signature(fn)
     try:  # try without engine
         signature.bind(*args, **kwargs)
     except TypeError as exc:
