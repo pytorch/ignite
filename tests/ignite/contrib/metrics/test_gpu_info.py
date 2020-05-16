@@ -66,18 +66,24 @@ def _test_gpu_info(device="cpu"):
     gpu_info.completed(engine, name="gpu")
 
     assert "gpu:0 mem(%)" in engine.state.metrics
-    assert "gpu:0 util(%)" in engine.state.metrics
 
     assert isinstance(engine.state.metrics["gpu:0 mem(%)"], int)
     assert int(mem_report["used"] * 100.0 / mem_report["total"]) == engine.state.metrics["gpu:0 mem(%)"]
 
-    assert isinstance(engine.state.metrics["gpu:0 util(%)"], int)
-    assert int(util_report["gpu_util"]) == engine.state.metrics["gpu:0 util(%)"]
+    if util_report["gpu_util"] != "N/A":
+        assert "gpu:0 util(%)" in engine.state.metrics
+        assert isinstance(engine.state.metrics["gpu:0 util(%)"], int)
+        assert int(util_report["gpu_util"]) == engine.state.metrics["gpu:0 util(%)"]
+    else:
+        assert "gpu:0 util(%)" not in engine.state.metrics
 
 
 @pytest.mark.skipif(python_below_36 or not (torch.cuda.is_available()), reason="No pynvml for python < 3.6 and no GPU")
 def test_gpu_info_on_cuda():
     _test_gpu_info(device="cuda")
+
+
+query_resp = None
 
 
 @pytest.fixture
@@ -95,7 +101,7 @@ def mock_pynvml_module():
         from pynvml.smi import nvidia_smi
 
         def query(*args, **kwargs):
-            return {"gpu": [{"fb_memory_usage": {"used": 100.0, "total": 11000.0}, "utilization": {"gpu_util": 50.0}}]}
+            return query_resp
 
         def getInstance():
             nvsmi = Mock()
@@ -116,8 +122,15 @@ def mock_gpu_is_available():
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="No need to mock if has GPU")
 def test_gpu_info_mock(mock_pynvml_module, mock_gpu_is_available):
+    global query_resp
+
+    query_resp = {"gpu": [{"fb_memory_usage": {"used": 100.0, "total": 11000.0}, "utilization": {"gpu_util": 50.0}}]}
 
     assert torch.cuda.is_available()
+    _test_gpu_info()
+
+    # Tests https://github.com/pytorch/ignite/issues/1040
+    query_resp = {"gpu": [{"fb_memory_usage": {"used": 100.0, "total": 11000.0}, "utilization": {"gpu_util": "N/A"}}]}
     _test_gpu_info()
 
     def _test_with_custom_query(resp, warn_msg, check_compute=False):
