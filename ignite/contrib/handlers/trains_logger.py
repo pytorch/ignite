@@ -577,7 +577,17 @@ class TrainsLogger(BaseLogger):
 
 
 class TrainsSaver(DiskSaver):
-    """Handler that saves input checkpoint as Trains artifacts
+    """
+    Handler that saves input checkpoint as Trains artifacts
+
+    Args:
+        logger (TrainsLogger): An instance of TrainsLogger, ensuring a valid Trains ``Task`` has been initialized.
+            If not provided, and a Trains Task has not been manually initialized,
+            a runtime error will be raised. (Optional)
+        output_uri (str): The default location for output models and other artifacts uploaded by Trains. For more
+            information, see ``trains.Task.init``. (Optional)
+        dirname (str): Directory path where the checkpoint will be saved. If not provided, a temporary directory
+            will be created. (Optional).
 
     Examples:
 
@@ -607,16 +617,23 @@ class TrainsSaver(DiskSaver):
 
     """
 
-    def __init__(self, logger: TrainsLogger, output_uri: str = None, dirname: str = None, *args, **kwargs):
-        if not isinstance(logger, TrainsLogger):
-            raise TypeError("logger must be an instance of TrainsLogger")
-
+    def __init__(self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args, **kwargs):
         try:
             from trains import Task
         except ImportError:
             raise RuntimeError(
                 "This contrib module requires trains to be installed. "
                 "You may install trains using: \n pip install trains \n"
+            )
+
+        if logger and not isinstance(logger, TrainsLogger):
+            raise TypeError("logger must be an instance of TrainsLogger")
+
+        self.task = Task.current_task()
+        if not self.task:
+            raise RuntimeError(
+                "TrainsSaver requires a Trains Task to be initialized."
+                "Please use the `logger` argument or call `trains.Task.init()`."
             )
 
         if not dirname:
@@ -626,9 +643,6 @@ class TrainsSaver(DiskSaver):
             warnings.warn("TrainsSaver created a temporary checkpoints directory: {}".format(dirname))
 
         super(TrainsSaver, self).__init__(dirname=dirname, *args, **kwargs)
-
-        self.logger = logger
-        self.task = Task.current_task()
 
         if output_uri:
             self.task.output_uri = output_uri
