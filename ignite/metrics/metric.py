@@ -17,7 +17,16 @@ class MetricUsage:
     """
     Base class for all usages of Metrics.
 
-    Here, usage means when a metric starts to compute, updates and completes.
+    A usage of metric defines the events when a metric starts to compute, updates and completes.
+    Valid events are from :class:`~ignite.engine.Events`.
+
+    Args:
+        started: event when the metric starts to compute. This event will be associated to
+        :func:`~ignite.metrics.Metric.started`.
+        completed: event when the metric completes. This event will be associated to
+        :func:`~ignite.metrics.Metric.completed`.
+        iteration_completed: event when the metric updates. This event will be associated to
+        :func:`~ignite.metrics.Metric.iteration_completed`.
     """
 
     def __init__(self, started, completed, iteration_completed):
@@ -42,12 +51,10 @@ class EpochWise(MetricUsage):
     """
     Epoch-wise usage of Metrics. It's the default and most common usage of metrics.
 
-    Metrics :
-    * starts to compute at Events.EPOCH_STARTED,
-    * updates each Events.ITERATION_COMPLETED and
-    * completes at Events.EPOCH_COMPLETED.
+    The method :func:`~ignite.metrics.Metric.started` is triggered at `Events.EPOCH_STARTED`.
+    The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered at `Events.ITERATION_COMPLETED`.
+    The method :func:`~ignite.metrics.Metric.completed` is triggered at `Events.EPOCH_COMPLETED`.
     """
-
     def __init__(self):
         super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
@@ -60,12 +67,10 @@ class BatchWise(MetricUsage):
     """
     Batch-wise usage of Metrics.
 
-    Metrics :
-    * starts to compute at Events.ITERATION_STARTED,
-    * updates each Events.ITERATION_COMPLETED and
-    * completes at Events.ITERATION_COMPLETED.
+    The method :func:`~ignite.metrics.Metric.started` is triggered at `Events.ITERATION_STARTED`.
+    The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered at `Events.ITERATION_COMPLETED`.
+    The method :func:`~ignite.metrics.Metric.completed` is triggered at `Events.ITERATION_COMPLETED`.
     """
-
     def __init__(self):
         super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
@@ -76,12 +81,14 @@ class BatchWise(MetricUsage):
 
 class BatchFiltered(MetricUsage):
     """
-    Batch filtered usage of Metrics. This usage is similar to epch-wise but update event is filtered.
+    Batch filtered usage of Metrics. This usage is similar to epoch-wise but update event is filtered.
 
-    Metrics :
-    * starts to compute at Events.EPOCH_STARTED,
-    * updates each Events.ITERATION_COMPLETED(filter) and
-    * completes at Events.EPOCH_COMPLETED.
+    The method :func:`~ignite.metrics.Metric.started` is triggered at `Events.EPOCH_STARTED`.
+    The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered at filtered `Events.ITERATION_COMPLETED`.
+    The method :func:`~ignite.metrics.Metric.completed` is triggered at `Events.EPOCH_COMPLETED`.
+
+    Args:
+        (*args, **kwargs): arguments for the setup of `Events.ITERATION_COMPLETED`.
     """
 
     def __init__(self, *args, **kwargs):
