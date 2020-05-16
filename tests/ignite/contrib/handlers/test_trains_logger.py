@@ -623,6 +623,7 @@ def test_trains_disk_saver_integration():
     to_save_serializable = {"model": model}
 
     mock_logger = MagicMock(spec=TrainsLogger)
+    trains.Task.current_task = Mock(return_value=object())
     trains_saver = TrainsSaver(mock_logger)
     trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
