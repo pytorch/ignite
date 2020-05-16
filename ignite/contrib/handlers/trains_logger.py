@@ -581,13 +581,13 @@ class TrainsSaver(DiskSaver):
     Handler that saves input checkpoint as Trains artifacts
 
     Args:
-        logger (TrainsLogger): An instance of TrainsLogger, ensuring a valid Trains ``Task`` has been initialized.
-            If not provided, and a Trains Task has not been manually initialized,
-            a runtime error will be raised. (Optional)
-        output_uri (str): The default location for output models and other artifacts uploaded by Trains. For more
-            information, see ``trains.Task.init``. (Optional)
-        dirname (str): Directory path where the checkpoint will be saved. If not provided, a temporary directory
-            will be created. (Optional).
+        logger (TrainsLogger, optional): An instance of :class:`~ignite.contrib.handlers.TrainsLogger`, ensuring a valid 
+            Trains ``Task`` has been initialized. If not provided, and a Trains Task has not been manually initialized,
+            a runtime error will be raised.
+        output_uri (str, optional): The default location for output models and other artifacts uploaded by Trains. For more
+            information, see ``trains.Task.init``.
+        dirname (str, optional): Directory path where the checkpoint will be saved. If not provided, a temporary directory
+            will be created.
 
     Examples:
 
