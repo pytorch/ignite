@@ -314,7 +314,7 @@ def _test_distrib_integration(device):
         np.testing.assert_almost_equal(
             state.metrics["agg_custom_var"].cpu().numpy(),
             true_result_fn(custom_variable),
-            decimal=int(np.log10(1.0 / tol))
+            decimal=int(np.log10(1.0 / tol)),
         )
 
         size = 100
