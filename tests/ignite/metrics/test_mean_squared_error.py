@@ -31,13 +31,13 @@ def test_compute():
     assert mse.compute() == 9.0
 
 
-def _test_distrib_integration(device):
+def _test_distrib_integration(device, tol=1e-6):
     import numpy as np
     from ignite.engine import Engine
 
     rank = idist.get_rank()
     n_iters = 100
-    s = 50
+    s = 10
     offset = n_iters * s
 
     y_true = torch.arange(0, offset * idist.get_world_size(), dtype=torch.float).to(device)
@@ -62,7 +62,7 @@ def _test_distrib_integration(device):
 
     true_res = np.mean(np.power((y_true - y_preds).cpu().numpy(), 2.0))
 
-    assert pytest.approx(res) == true_res
+    assert pytest.approx(res, rel=tol) == true_res
 
 
 @pytest.mark.distributed
@@ -109,6 +109,6 @@ def test_distrib_xla_nprocs(xmp_executor):
 
     def _test_fn(index):
         device = idist.device()
-        _test_distrib_integration(device)
+        _test_distrib_integration(device, tol=1e-4)
 
     xmp_executor(_test_fn, args=(), nprocs=n)
