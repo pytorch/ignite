@@ -98,7 +98,7 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_integration(device)
+    _test_distrib_integration(device, tol=1e-4)
 
 
 @pytest.mark.tpu
