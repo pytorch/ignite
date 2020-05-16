@@ -482,6 +482,7 @@ def test_event_handlers_with_decoration():
         @functools.wraps(fun)
         def wrapper(*args, **kwargs):
             return fun(*args, **kwargs)
+
         return wrapper
 
     values = []
@@ -513,7 +514,6 @@ def test_event_handlers_with_decoration():
     engine.add_event_handler(Events.EPOCH_STARTED(every=2), decorated_foo_args)
 
     class Foo:
-
         def __init__(self):
             self.values = []
 
