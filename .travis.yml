@@ -41,7 +41,7 @@ install:
   - python setup.py install
 
 script:
-  - sh tests/run_cpu_tests.sh
+  - CI_PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" sh tests/run_cpu_tests.sh
 
 after_success:
   - codecov
