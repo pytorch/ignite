@@ -845,6 +845,8 @@ def test_disksaver_wrong_input(dirname):
 @pytest.mark.tpu
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_tpu_saves_to_cpu(dirname):
+    import torch_xla.core.xla_model as xm
+
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     engine = Engine(lambda e, b: None)
     engine.state = State(epoch=0, iteration=1)
@@ -871,7 +873,7 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict_tpu(dirname):
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
 
     def update_fn(engine, batch):
-        x = torch.rand((4, 1))
+        x = torch.rand((4, 1)).to(xm.xla_device())
         optim.zero_grad()
         y = model(x)
         loss = y.pow(2.0).sum()
