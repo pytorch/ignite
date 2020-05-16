@@ -9,6 +9,7 @@ from typing import Callable, Mapping, Optional, Union
 
 import torch
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
@@ -29,7 +30,8 @@ class BaseSaveHandler(metaclass=ABCMeta):
 class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
-    storage, etc.
+    storage, etc. The Checkpoint handler also handles automatically moving data on TPU to CPU before writing
+    the checkpoint.
 
     Args:
         to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
@@ -354,11 +356,11 @@ class DiskSaver(BaseSaveHandler):
         path = os.path.join(self.dirname, filename)
 
         if not self._atomic:
-            torch.save(checkpoint, path)
+            self._save(checkpoint, path)
         else:
             tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
             try:
-                torch.save(checkpoint, tmp.file)
+                self._save(checkpoint, tmp.file)
             except BaseException:
                 tmp.close()
                 os.remove(tmp.name)
@@ -366,6 +368,14 @@ class DiskSaver(BaseSaveHandler):
             else:
                 tmp.close()
                 os.rename(tmp.name, path)
+
+    def _save(self, checkpoint: Mapping, filename: str):
+        if idist.has_xla_support:
+            import torch_xla.core.xla_model as xm
+
+            xm.save(checkpoint, filename)
+        elif idist.get_rank() == 0:
+            torch.save(checkpoint, filename)
 
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
