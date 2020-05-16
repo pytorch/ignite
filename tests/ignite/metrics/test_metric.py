@@ -604,7 +604,6 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_distrib_sync_all_reduce_decorator(device)
 
 
-
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
