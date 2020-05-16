@@ -2,6 +2,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import torch
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
@@ -106,7 +107,9 @@ class RunningAverage(Metric):
 
     @sync_all_reduce("src")
     def _get_output_value(self) -> Union[torch.Tensor, float]:
-        return self.src
+        # we need to compute average instead of sum produced by @sync_all_reduce("src")
+        output = self.src / idist.get_world_size()
+        return output
 
     def _metric_iteration_completed(self, engine: Engine) -> None:
         self.src.started(engine)
