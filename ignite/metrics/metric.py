@@ -55,6 +55,7 @@ class EpochWise(MetricUsage):
     The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered at `Events.ITERATION_COMPLETED`.
     The method :func:`~ignite.metrics.Metric.completed` is triggered at `Events.EPOCH_COMPLETED`.
     """
+
     def __init__(self):
         super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
@@ -71,6 +72,7 @@ class BatchWise(MetricUsage):
     The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered at `Events.ITERATION_COMPLETED`.
     The method :func:`~ignite.metrics.Metric.completed` is triggered at `Events.ITERATION_COMPLETED`.
     """
+
     def __init__(self):
         super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
