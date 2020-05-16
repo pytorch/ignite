@@ -143,4 +143,4 @@ class _XlaDistModel(ComputationModel):
         output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
         output[self.get_rank() % group_size] = tensor
         xm.all_reduce("sum", [output,])
-        return output
+        return output.reshape(-1, *output.shape[2:])
