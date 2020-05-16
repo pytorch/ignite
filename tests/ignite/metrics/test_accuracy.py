@@ -686,7 +686,7 @@ def _test_distrib_multilabel_input_NHW(device):
         _test()
 
 
-def _test_distrib_itegration_multiclass(device):
+def _test_distrib_integration_multiclass(device):
 
     from ignite.engine import Engine
 
@@ -730,7 +730,7 @@ def _test_distrib_itegration_multiclass(device):
         _test(n_epochs=2)
 
 
-def _test_distrib_itegration_multilabel(device):
+def _test_distrib_integration_multilabel(device):
 
     from ignite.engine import Engine
 
@@ -779,8 +779,8 @@ def _test_distrib_itegration_multilabel(device):
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
     _test_distrib_multilabel_input_NHW(device)
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
 
 
 @pytest.mark.distributed
@@ -788,8 +788,8 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = "cpu"
     _test_distrib_multilabel_input_NHW(device)
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
 
 
 @pytest.mark.multinode_distributed
@@ -797,8 +797,8 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_multilabel_input_NHW(device)
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
 
 
 @pytest.mark.multinode_distributed
@@ -806,5 +806,30 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_multilabel_input_NHW(device)
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_multilabel_input_NHW(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_fn(index):
+        device = idist.device()
+        _test_distrib_multilabel_input_NHW(device)
+        _test_distrib_integration_multiclass(device)
+        _test_distrib_integration_multilabel(device)
+
+    xmp_executor(_test_fn, args=(), nprocs=n)

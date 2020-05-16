@@ -120,7 +120,7 @@ class _XlaDistModel(ComputationModel):
             _XlaDistModel._dist_worker_task_fn, args=(backend, fn, args), nprocs=num_procs_per_node, **spawn_kwargs
         )
 
-    _collective_op_dtype = torch.float
+    _collective_op_dtype = torch.float32
     _reduce_op_map = {
         "SUM": "sum",
         "PRODUCT": "mul",
@@ -143,4 +143,4 @@ class _XlaDistModel(ComputationModel):
         output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
         output[self.get_rank() % group_size] = tensor
         xm.all_reduce("sum", [output,])
-        return output
+        return output.reshape(-1, *output.shape[2:])

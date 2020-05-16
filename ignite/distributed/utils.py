@@ -291,7 +291,7 @@ def all_gather(tensor: Union[torch.Tensor, Number]) -> torch.Tensor:
         tensor (torch.Tensor or number): tensor or number to collect across participating processes.
 
     Returns:
-        torch.Tensor
+        torch.Tensor of shape `(world_size * tensor.shape[0], tensor.shape[1], ...)`
 
     """
     return _model.all_gather(tensor)

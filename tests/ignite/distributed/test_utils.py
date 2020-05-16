@@ -384,6 +384,14 @@ def _test_distrib_all_gather(device):
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.all_gather("abc")
 
+    t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)
+    res = idist.all_gather(t)
+    assert res.shape == (idist.get_world_size() * 4, 25)
+    true_res = torch.zeros(idist.get_world_size() * 4, 25, device=device)
+    for i in range(idist.get_world_size()):
+        true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
+    assert (res == true_res).all()
+
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")

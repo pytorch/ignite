@@ -223,10 +223,10 @@ def _test_distrib_variable_accumulation(device):
     y_true = idist.all_reduce(y_true)
     a, n = mean_var.compute()
     assert n == len(y_true) * idist.get_world_size()
-    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=5)
+    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=4)
     a, n = mean_var.compute()
     assert n == len(y_true) * idist.get_world_size()
-    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=5)
+    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=4)
 
 
 def _test_distrib_average(device):
@@ -296,7 +296,7 @@ def _test_distrib_geom_average(device):
 
 
 def _test_distrib_integration(device):
-    def _test(metric_cls, true_result_fn):
+    def _test(metric_cls, true_result_fn, tol=1e-5):
 
         size = 100
         custom_variable = 10.0 + 5.0 * torch.rand(size, 12, dtype=torch.float64)
@@ -312,7 +312,9 @@ def _test_distrib_integration(device):
 
         state = engine.run([0] * size)
         np.testing.assert_almost_equal(
-            state.metrics["agg_custom_var"].cpu().numpy(), true_result_fn(custom_variable), decimal=5
+            state.metrics["agg_custom_var"].cpu().numpy(),
+            true_result_fn(custom_variable),
+            decimal=int(np.log10(1.0 / tol)),
         )
 
         size = 100
@@ -328,7 +330,7 @@ def _test_distrib_integration(device):
         custom_var_mean.attach(engine, "agg_custom_var")
 
         state = engine.run([0] * size)
-        assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable))
+        assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable), abs=tol)
 
     def _mean(y_true):
         y_true = idist.all_reduce(y_true)
@@ -341,7 +343,7 @@ def _test_distrib_integration(device):
         return np.exp(np.mean(np_t, axis=0) / idist.get_world_size())
 
     _test(Average, _mean)
-    _test(GeometricAverage, _geom_mean)
+    _test(GeometricAverage, _geom_mean, tol=1e-4)
 
 
 @pytest.mark.distributed
@@ -388,7 +390,7 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_single_device_xla():
+def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
@@ -399,7 +401,7 @@ def test_single_device_xla():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
+def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
 
     def _test_fn(index):
