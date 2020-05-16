@@ -16,7 +16,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with WandBLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with WandBLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
