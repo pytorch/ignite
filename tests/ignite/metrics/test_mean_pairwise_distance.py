@@ -54,7 +54,7 @@ def _test_distrib_integration(device):
 
     engine = Engine(update)
 
-    m = MeanPairwiseDistance(device=device)
+    m = MeanPairwiseDistance()
     m.attach(engine, "mpwd")
 
     data = list(range(n_iters))

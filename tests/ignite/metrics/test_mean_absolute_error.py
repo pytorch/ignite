@@ -51,7 +51,7 @@ def _test_distrib_integration(device):
 
     engine = Engine(update)
 
-    m = MeanAbsoluteError(device=device)
+    m = MeanAbsoluteError()
     m.attach(engine, "mae")
 
     data = list(range(n_iters))

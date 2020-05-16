@@ -48,7 +48,7 @@ def _test_distrib_integration(device):
 
     engine = Engine(update)
 
-    m = RootMeanSquaredError(device=device)
+    m = RootMeanSquaredError()
     m.attach(engine, "rmse")
 
     data = list(range(n_iters))

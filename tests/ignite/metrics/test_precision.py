@@ -717,10 +717,9 @@ def test_incorrect_y_classes():
 
 
 def _test_distrib_integration_multiclass(device):
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(average, n_epochs):
@@ -729,8 +728,8 @@ def _test_distrib_integration_multiclass(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
 
         def update(engine, i):
             return (

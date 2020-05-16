@@ -51,7 +51,7 @@ def _test_distrib_integration(device):
 
     engine = Engine(update)
 
-    m = MeanSquaredError(device=device)
+    m = MeanSquaredError()
     m.attach(engine, "mse")
 
     data = list(range(n_iters))
