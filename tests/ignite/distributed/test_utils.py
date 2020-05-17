@@ -435,7 +435,7 @@ def _test_distrib_barrier(device):
     t = torch.tensor([idist.get_rank()], device=device, dtype=torch.float)
     true_res = sum([i for i in range(idist.get_world_size())])
 
-    if idist.get_rank() == 1:
+    if idist.get_rank() == 0:
         t += 10.0
     idist.barrier()
 

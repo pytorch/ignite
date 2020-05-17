@@ -5,7 +5,8 @@ from functools import wraps
 from typing import Any, Callable, Optional, Tuple, Type, Union
 
 import torch
-import torch.distributed as dist
+
+import ignite.distributed as idist
 
 __all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger", "one_rank_only"]
 
@@ -186,10 +187,10 @@ def one_rank_only(rank: int = 0, barrier: bool = False):
         @wraps(func)
         def wrapper(*args, **kwargs):
             ret = None
-            if dist.get_rank() == rank:
+            if idist.get_rank() == rank:
                 ret = func(*args, **kwargs)
             if barrier:
-                dist.barrier()
+                idist.barrier()
             return ret
 
         return wrapper
