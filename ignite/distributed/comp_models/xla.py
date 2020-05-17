@@ -144,3 +144,6 @@ class _XlaDistModel(ComputationModel):
         output[self.get_rank() % group_size] = tensor
         xm.all_reduce("sum", [output,])
         return output.reshape(-1, *output.shape[2:])
+
+    def barrier(self):
+        xm.rendezvous("barrier")

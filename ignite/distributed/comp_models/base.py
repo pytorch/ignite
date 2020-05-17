@@ -113,6 +113,10 @@ class ComputationModel(metaclass=ABCMeta):
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
         pass
 
+    @abstractmethod
+    def barrier(self):
+        pass
+
 
 class _SerialModel(ComputationModel):
     """Private class defines non-distributed computation model for code compatibility with other distributed models.
@@ -173,4 +177,7 @@ class _SerialModel(ComputationModel):
         pass
 
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        pass
+
+    def barrier(self):
         pass
