@@ -4,7 +4,6 @@ from collections import namedtuple
 
 import pytest
 import torch
-import torch.distributed as dist
 
 from ignite.engine import Engine, Events
 from ignite.utils import convert_tensor, setup_logger, to_onehot
@@ -83,8 +82,6 @@ def test_dist_setup_logger():
 
 
 def test_setup_logger(capsys, dirname):
-
-    from ignite.engine import Engine, Events
 
     trainer = Engine(lambda e, b: None)
     evaluator = Engine(lambda e, b: None)
