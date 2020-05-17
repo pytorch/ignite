@@ -7,6 +7,8 @@ import torch.distributed as dist
 import ignite.distributed as idist
 from ignite.distributed.utils import has_xla_support, sync
 
+from ignite.engine import Engine, Events
+
 
 def _sanity_check():
     from ignite.distributed.utils import _model
@@ -523,3 +525,92 @@ def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
     t2 = elapsed / n
 
     assert t2 * 3 > t1, "{} * 3 vs {}".format(t2, t1)
+
+
+def _test_distrib_one_rank_only(device):
+    def _test(barrier):
+        # last rank
+        rank = idist.get_world_size() - 1
+
+        value = torch.tensor(0).to(device)
+
+        @idist.one_rank_only(rank=rank, with_barrier=barrier)
+        def initialize():
+            value.data = torch.tensor(100).to(device)
+
+        initialize()
+
+        value_list = idist.all_gather(tensor=value)
+
+        for r in range(idist.get_world_size()):
+            if r == rank:
+                assert value_list[r].item() == 100
+            else:
+                assert value_list[r].item() == 0
+
+    _test(barrier=True)
+    _test(barrier=False)
+
+
+def _test_distrib_one_rank_only_with_engine(device):
+    def _test(barrier):
+        engine = Engine(lambda e, b: b)
+
+        batch_sum = torch.tensor(0).to(device)
+
+        @engine.on(Events.ITERATION_COMPLETED)
+        @idist.one_rank_only(with_barrier=barrier)  # ie rank == 0
+        def _(_):
+            batch_sum.data += torch.tensor(engine.state.batch).to(device)
+
+        engine.run([1, 2, 3], max_epochs=2)
+
+        value_list = idist.all_gather(tensor=batch_sum)
+
+        for r in range(idist.get_world_size()):
+            if r == 0:
+                assert value_list[r].item() == 12
+            else:
+                assert value_list[r].item() == 0
+
+    _test(barrier=True)
+    _test(barrier=False)
+
+
+@pytest.mark.distributed
+def test_idist_one_rank_only_gloo(distributed_context_single_node_gloo):
+    device = "cpu"
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_one_rank_only_nccl(local_rank, distributed_context_single_node_nccl):
+    device = "cuda:{}".format(local_rank)
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_one_rank_only_xla():
+
+    device = idist.device()
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_one_rank_only_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_fn(index):
+        device = idist.device()
+        _test_distrib_one_rank_only(device=device)
+        _test_distrib_one_rank_only_with_engine(device=device)
+
+    xmp_executor(_test_fn, args=(), nprocs=n)

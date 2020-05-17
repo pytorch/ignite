@@ -6,9 +6,7 @@ from typing import Any, Callable, Optional, Tuple, Type, Union
 
 import torch
 
-import ignite.distributed as idist
-
-__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger", "one_rank_only"]
+__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger"]
 
 
 def convert_tensor(
@@ -159,40 +157,3 @@ def manual_seed(seed: int) -> None:
         np.random.seed(seed)
     except ImportError:
         pass
-
-
-def one_rank_only(rank: int = 0, barrier: bool = False):
-    """Decorator to filter handlers wrt a rank number
-
-    Args:
-        rank (int): rank number of the handler (default: 0).
-        barrier (bool): synchronisation with a barrier (default: False).
-
-    .. code-block:: python
-
-        engine = ...
-
-        @engine.on(...)
-        @one_rank_only() # means @one_rank_only(rank=0)
-        def some_handler(_):
-            ...
-
-        @engine.on(...)
-        @one_rank_only(rank=1)
-        def some_handler(_):
-            ...
-    """
-
-    def _one_rank_only(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            ret = None
-            if idist.get_rank() == rank:
-                ret = func(*args, **kwargs)
-            if barrier:
-                idist.barrier()
-            return ret
-
-        return wrapper
-
-    return _one_rank_only

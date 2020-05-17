@@ -32,6 +32,7 @@ __all__ = [
     "has_xla_support",
     "sync",
     "registered_computation_models",
+    "one_rank_only"
 ]
 
 _model = _SerialModel()
@@ -425,3 +426,40 @@ def show_config():
     logger.info("num tasks per_node: {}".format(get_ntasks_per_node()))
     logger.info("num nodes: {}".format(get_num_nodes()))
     logger.info("node rank: {}".format(get_node_rank()))
+
+
+def one_rank_only(rank: int = 0, with_barrier: bool = False):
+    """Decorator to filter handlers wrt a rank number
+
+    Args:
+        rank (int): rank number of the handler (default: 0).
+        with_barrier (bool): synchronisation with a barrier (default: False).
+
+    .. code-block:: python
+
+        engine = ...
+
+        @engine.on(...)
+        @one_rank_only() # means @one_rank_only(rank=0)
+        def some_handler(_):
+            ...
+
+        @engine.on(...)
+        @one_rank_only(rank=1)
+        def some_handler(_):
+            ...
+    """
+
+    def _one_rank_only(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            ret = None
+            if get_rank() == rank:
+                ret = func(*args, **kwargs)
+            if with_barrier:
+                barrier()
+            return ret
+
+        return wrapper
+
+    return _one_rank_only
