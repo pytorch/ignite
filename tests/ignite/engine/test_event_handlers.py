@@ -1,3 +1,4 @@
+import functools
 import gc
 from unittest.mock import MagicMock, call, create_autospec
 
@@ -471,3 +472,78 @@ def test_custom_exception_handler():
 
     # only one call from _run_once_over_data, since the exception is swallowed
     assert len(counter.exceptions) == 1 and counter.exceptions[0] == value_error
+
+
+def test_event_handlers_with_decoration():
+
+    engine = Engine(lambda e, b: b)
+
+    def decorated(fun):
+        @functools.wraps(fun)
+        def wrapper(*args, **kwargs):
+            return fun(*args, **kwargs)
+
+        return wrapper
+
+    values = []
+
+    def foo():
+        values.append("foo")
+
+    @decorated
+    def decorated_foo():
+        values.append("decorated_foo")
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo)
+    engine.add_event_handler(Events.EPOCH_STARTED, decorated_foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), decorated_foo)
+
+    def foo_args(e):
+        values.append("foo_args")
+        values.append(e.state.iteration)
+
+    @decorated
+    def decorated_foo_args(e):
+        values.append("decorated_foo_args")
+        values.append(e.state.iteration)
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED, decorated_foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), decorated_foo_args)
+
+    class Foo:
+        def __init__(self):
+            self.values = []
+
+        def foo(self):
+            self.values.append("foo")
+
+        @decorated
+        def decorated_foo(self):
+            self.values.append("decorated_foo")
+
+        def foo_args(self, e):
+            self.values.append("foo_args")
+            self.values.append(e.state.iteration)
+
+        @decorated
+        def decorated_foo_args(self, e):
+            self.values.append("decorated_foo_args")
+            self.values.append(e.state.iteration)
+
+    foo = Foo()
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.foo)
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.decorated_foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.decorated_foo)
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.decorated_foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.decorated_foo_args)
+
+    engine.run([0], max_epochs=2)
+
+    assert values == foo.values
