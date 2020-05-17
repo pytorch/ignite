@@ -32,7 +32,7 @@ __all__ = [
     "has_xla_support",
     "sync",
     "registered_computation_models",
-    "one_rank_only"
+    "one_rank_only",
 ]
 
 _model = _SerialModel()

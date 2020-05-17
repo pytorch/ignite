@@ -6,7 +6,6 @@ import torch.distributed as dist
 
 import ignite.distributed as idist
 from ignite.distributed.utils import has_xla_support, sync
-
 from ignite.engine import Engine, Events
 
 
