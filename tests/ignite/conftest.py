@@ -78,15 +78,19 @@ def distributed_context_single_node_gloo(local_rank):
         "timeout": timedelta(seconds=60),
     }
 
-    dist.init_process_group(**dist_info)
+    try:
+        dist.init_process_group(**dist_info)
 
-    dist.barrier()
+        dist.barrier()
 
-    yield {"local_rank": local_rank}
+        yield {"local_rank": local_rank}
 
-    dist.barrier()
+    except:
+        pass
+    finally:
+        dist.barrier()
 
-    dist.destroy_process_group()
+        dist.destroy_process_group()
 
 
 @pytest.fixture()
@@ -126,15 +130,18 @@ def distributed_context_multi_node_gloo(multi_node_conf):
     if "GLOO_SOCKET_IFNAME" not in os.environ:
         os.environ["GLOO_SOCKET_IFNAME"] = get_ifname()
 
-    dist.init_process_group(**dist_info)
+    try:
+        dist.init_process_group(**dist_info)
 
-    dist.barrier()
+        dist.barrier()
 
-    yield multi_node_conf
+        yield multi_node_conf
+    except:
+        pass
+    finally:
+        dist.barrier()
 
-    dist.barrier()
-
-    dist.destroy_process_group()
+        dist.destroy_process_group()
 
 
 @pytest.fixture()
