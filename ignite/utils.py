@@ -1,7 +1,6 @@
 import collections.abc as collections
 import logging
 import random
-from functools import wraps
 from typing import Any, Callable, Optional, Tuple, Type, Union
 
 import torch
@@ -118,10 +117,9 @@ def setup_logger(
     formatter = logging.Formatter(format)
 
     if distributed_rank is None:
-        if dist.is_available() and dist.is_initialized():
-            distributed_rank = dist.get_rank()
-        else:
-            distributed_rank = 0
+        import ignite.distributed as idist
+
+        distributed_rank = idist.get_rank()
 
     if distributed_rank > 0:
         logger.addHandler(logging.NullHandler())
