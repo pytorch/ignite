@@ -27,6 +27,7 @@ __all__ = [
     "set_local_rank",
     "all_reduce",
     "all_gather",
+    "barrier",
     "hostname",
     "has_xla_support",
     "sync",
@@ -295,6 +296,13 @@ def all_gather(tensor: Union[torch.Tensor, Number]) -> torch.Tensor:
 
     """
     return _model.all_gather(tensor)
+
+
+@_sync_model_wrapper
+def barrier():
+    """Helper method to synchronize all processes.
+    """
+    _model.barrier()
 
 
 def set_local_rank(index: int):

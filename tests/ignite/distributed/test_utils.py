@@ -430,6 +430,56 @@ def test_idist_all_gather_xla_in_child_proc(xmp_executor):
     xmp_executor(_test_fn, args=(), nprocs=n)
 
 
+def _test_distrib_barrier(device):
+
+    t = torch.tensor([idist.get_rank()], device=device, dtype=torch.float)
+    true_res = sum([i for i in range(idist.get_world_size())])
+
+    if idist.get_rank() == 1:
+        t += 10.0
+    idist.barrier()
+
+    tt = idist.all_reduce(t)
+    assert tt.item() == true_res + 10.0
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_barrier_nccl(distributed_context_single_node_nccl):
+
+    device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
+    _test_distrib_barrier(device)
+
+
+@pytest.mark.distributed
+def test_idist_barrier_gloo(distributed_context_single_node_gloo):
+
+    device = "cpu"
+    _test_distrib_barrier(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_barrier_xla():
+
+    device = idist.device()
+    _test_distrib_barrier(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_barrier_xla_in_child_proc(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_fn(index):
+        device = idist.device()
+        _test_distrib_barrier(device)
+
+    xmp_executor(_test_fn, args=(), nprocs=n)
+
+
 @pytest.mark.distributed
 def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
     import time

@@ -280,3 +280,6 @@ class _NativeDistModel(ComputationModel):
         output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
         dist.all_gather(output, tensor)
         return torch.cat(output, dim=0)
+
+    def barrier(self):
+        dist.barrier()
