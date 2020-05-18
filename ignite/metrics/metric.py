@@ -221,9 +221,7 @@ class Metric(metaclass=ABCMeta):
             if not all([k in output for k in self._required_output_keys]):
                 raise ValueError(
                     "When transformed engine's output is a mapping, "
-                    "it should contain {} keys, but given {}".format(
-                        self._required_output_keys, list(output.keys())
-                    )
+                    "it should contain {} keys, but given {}".format(self._required_output_keys, list(output.keys()))
                 )
             output = tuple(output[k] for k in self._required_output_keys)
         self.update(output)
