@@ -190,7 +190,7 @@ By default, `Metrics` are epoch-wise, it means
 Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.MetricUsage`. See the list below of usages.
 
 Complete list of usages
------------------------
+```````````````````````
 
     - :class:`~ignite.metrics.MetricUsage`
     - :class:`~ignite.metrics.EpochWise`
