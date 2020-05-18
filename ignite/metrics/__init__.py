@@ -8,7 +8,7 @@ from ignite.metrics.loss import Loss
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
-from ignite.metrics.metric import Metric
+from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.precision import Precision
 from ignite.metrics.recall import Recall
