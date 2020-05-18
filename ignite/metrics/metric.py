@@ -15,18 +15,18 @@ __all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
 
 class MetricUsage:
     """
-    Base class for all usages of Metrics.
+    Base class for all usages of metrics.
 
     A usage of metric defines the events when a metric starts to compute, updates and completes.
     Valid events are from :class:`~ignite.engine.Events`.
 
     Args:
         started: event when the metric starts to compute. This event will be associated to
-            :func:`~ignite.metrics.Metric.started`.
+            :meth:`~ignite.metrics.Metric.started`.
         completed: event when the metric completes. This event will be associated to
-            :func:`~ignite.metrics.Metric.completed`.
+            :meth:`~ignite.metrics.Metric.completed`.
         iteration_completed: event when the metric updates. This event will be associated to
-            :func:`~ignite.metrics.Metric.iteration_completed`.
+            :meth:`~ignite.metrics.Metric.iteration_completed`.
     """
 
     def __init__(self, started, completed, iteration_completed):
@@ -51,9 +51,11 @@ class EpochWise(MetricUsage):
     """
     Epoch-wise usage of Metrics. It's the default and most common usage of metrics.
 
-    - The method :func:`~ignite.metrics.Metric.started` is triggered every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
-    - The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - The method :func:`~ignite.metrics.Metric.completed` is triggered every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
+    Metric's methods are triggered on the following engine events:
+
+    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
     """
 
     def __init__(self):
@@ -68,9 +70,11 @@ class BatchWise(MetricUsage):
     """
     Batch-wise usage of Metrics.
 
-    - The method :func:`~ignite.metrics.Metric.started` is triggered every :attr:`~ignite.engine.Events.ITERATION_STARTED`.
-    - The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - The method :func:`~ignite.metrics.Metric.completed` is triggered every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
+    Metric's methods are triggered on the following engine events:
+
+    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.ITERATION_STARTED`.
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
     """
 
     def __init__(self):
@@ -85,12 +89,15 @@ class BatchFiltered(MetricUsage):
     """
     Batch filtered usage of Metrics. This usage is similar to epoch-wise but update event is filtered.
 
-    - The method :func:`~ignite.metrics.Metric.started` is triggered every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
-    - The method :func:`~ignite.metrics.Metric.iteration_completed` is triggered every filtered :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - The method :func:`~ignite.metrics.Metric.completed` is triggered every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
+    Metric's methods are triggered on the following engine events:
+
+    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on filtered :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
 
     Args:
-        args (sequence): arguments for the setup of :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
+        args (sequence): arguments for the setup of :attr:`~ignite.engine.Events.ITERATION_COMPLETED` handled by
+            :meth:`~ignite.metrics.Metric.iteration_completed`.
 
     """
 
@@ -148,7 +155,7 @@ class Metric(metaclass=ABCMeta):
         """
         Resets the metric to it's initial state.
 
-        This is called at the start of each epoch.
+        By default, this is called at the start of each epoch.
         """
         pass
 
@@ -157,7 +164,7 @@ class Metric(metaclass=ABCMeta):
         """
         Updates the metric's state using the passed batch output.
 
-        This is called once for each batch.
+        By default, this is called once for each batch.
 
         Args:
             output: the is the output from the engine's process function.
@@ -169,7 +176,7 @@ class Metric(metaclass=ABCMeta):
         """
         Computes the metric based on it's accumulated state.
 
-        This is called at the end of each epoch.
+        By default, this is called at the end of each epoch.
 
         Returns:
             Any: the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,
@@ -207,10 +214,23 @@ class Metric(metaclass=ABCMeta):
         return tensor
 
     def started(self, engine: Engine) -> None:
+        """Helper method to start data gathering for metric's computation. It is automatically attached to the
+        `engine` with :meth:`~ignite.metrics.Metric.attach`.
+
+        Args:
+            engine (Engine): the engine to which the metric must be attached
+        """
         self.reset()
 
     @torch.no_grad()
     def iteration_completed(self, engine: Engine) -> None:
+        """Helper method to update metric's computation. It is automatically attached to the
+        `engine` with :meth:`~ignite.metrics.Metric.attach`.
+
+        Args:
+            engine (Engine): the engine to which the metric must be attached
+        """
+
         output = self._output_transform(engine.state.output)
         if isinstance(output, Mapping):
             if self._required_output_keys is None:
@@ -228,6 +248,12 @@ class Metric(metaclass=ABCMeta):
         self.update(output)
 
     def completed(self, engine: Engine, name: str) -> None:
+        """Helper method to compute metric's value and put into the engine. It is automatically attached to the
+        `engine` with :meth:`~ignite.metrics.Metric.attach`.
+
+        Args:
+            engine (Engine): the engine to which the metric must be attached
+        """
         result = self.compute()
         if isinstance(result, Mapping):
             for key, value in result.items():
