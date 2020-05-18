@@ -113,9 +113,7 @@ class OutputHandler(BaseOutputHandler):
 
     """
 
-    def __init__(
-        self, tag, metric_names=None, output_transform=None, global_step_transform=None, sync=None
-    ):
+    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None, sync=None):
         super().__init__(tag, metric_names, output_transform, global_step_transform)
         self.sync = sync
 
