@@ -208,27 +208,25 @@ class Metric(metaclass=ABCMeta):
     def started(self, engine: Engine) -> None:
         self.reset()
 
-    # @torch.no_grad()
-    # unexpected error with _check_signature in engine due to mutliple wrappers
+    @torch.no_grad()
     def iteration_completed(self, engine: Engine) -> None:
-        with torch.no_grad():
-            output = self._output_transform(engine.state.output)
-            if isinstance(output, Mapping):
-                if self._required_output_keys is None:
-                    raise TypeError(
-                        "Transformed engine output for {} metric should be a tuple/list, but given {}".format(
-                            self.__class__.__name__, type(output)
-                        )
+        output = self._output_transform(engine.state.output)
+        if isinstance(output, Mapping):
+            if self._required_output_keys is None:
+                raise TypeError(
+                    "Transformed engine output for {} metric should be a tuple/list, but given {}".format(
+                        self.__class__.__name__, type(output)
                     )
-                if not all([k in output for k in self._required_output_keys]):
-                    raise ValueError(
-                        "When transformed engine's output is a mapping, "
-                        "it should contain {} keys, but given {}".format(
-                            self._required_output_keys, list(output.keys())
-                        )
+                )
+            if not all([k in output for k in self._required_output_keys]):
+                raise ValueError(
+                    "When transformed engine's output is a mapping, "
+                    "it should contain {} keys, but given {}".format(
+                        self._required_output_keys, list(output.keys())
                     )
-                output = tuple(output[k] for k in self._required_output_keys)
-            self.update(output)
+                )
+            output = tuple(output[k] for k in self._required_output_keys)
+        self.update(output)
 
     def completed(self, engine: Engine, name: str) -> None:
         result = self.compute()
