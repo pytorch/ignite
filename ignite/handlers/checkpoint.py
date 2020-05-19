@@ -455,8 +455,10 @@ class ModelCheckpoint(Checkpoint):
     ):
 
         if not save_as_state_dict:
-            raise ValueError("Argument save_as_state_dict is deprecated and should be True." 
-            "This argument will be removed in 0.5.0.")
+            raise ValueError(
+                "Argument save_as_state_dict is deprecated and should be True."
+                "This argument will be removed in 0.5.0."
+            )
         if save_interval is not None:
             msg = (
                 "Argument save_interval is deprecated and should be None. This argument will be removed in 0.5.0."
