@@ -20,7 +20,7 @@ from ignite.contrib.handlers import (
 )
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
-from ignite.handlers import EarlyStopping, Checkpoint, DiskSaver, TerminateOnNan
+from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, TerminateOnNan
 from ignite.metrics import RunningAverage
 
 
@@ -37,7 +37,7 @@ def setup_common_training_handlers(
     with_pbar_on_iters=True,
     log_every_iters=100,
     device=None,
-    stop_on_nan=True
+    stop_on_nan=True,
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -81,7 +81,7 @@ def setup_common_training_handlers(
         with_pbars=with_pbars,
         with_pbar_on_iters=with_pbar_on_iters,
         log_every_iters=log_every_iters,
-        stop_on_nan=stop_on_nan
+        stop_on_nan=stop_on_nan,
     )
     if idist.model_name() != "serial":
         _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
@@ -109,7 +109,7 @@ def _setup_common_training_handlers(
     with_pbars=True,
     with_pbar_on_iters=True,
     log_every_iters=100,
-    stop_on_nan=True
+    stop_on_nan=True,
 ):
     if stop_on_nan:
         trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
@@ -152,9 +152,9 @@ def _setup_common_training_handlers(
                 )
 
         for i, n in enumerate(output_names):
-            RunningAverage(
-                output_transform=partial(output_transform, index=i, name=n), epoch_bound=False
-            ).attach(trainer, n)
+            RunningAverage(output_transform=partial(output_transform, index=i, name=n), epoch_bound=False).attach(
+                trainer, n
+            )
 
     if with_pbars:
         if with_pbar_on_iters:
@@ -179,7 +179,7 @@ def _setup_common_distrib_training_handlers(
     with_pbars=True,
     with_pbar_on_iters=True,
     log_every_iters=100,
-    stop_on_nan=True
+    stop_on_nan=True,
 ):
 
     _setup_common_training_handlers(
@@ -193,7 +193,7 @@ def _setup_common_distrib_training_handlers(
         with_pbars=(idist.get_rank() == 0) and with_pbars,
         with_pbar_on_iters=with_pbar_on_iters,
         log_every_iters=log_every_iters,
-        stop_on_nan=stop_on_nan
+        stop_on_nan=stop_on_nan,
     )
 
     if train_sampler is not None:
