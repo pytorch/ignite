@@ -208,7 +208,14 @@ class _NativeDistModel(ComputationModel):
 
     def device(self) -> Union[torch.device, str]:
         if self.backend() == dist.Backend.NCCL:
-            return "cuda:{}".format(torch.cuda.current_device())
+            index = torch.cuda.current_device()
+            if index != self._local_rank:
+                warnings.warn(
+                    "Current CUDA device index: {} is different from local rank index: {}. "
+                    "This may cause application being stucked on collective ops."
+                    .format(index, self._local_rank)
+                )
+            return "cuda:{}".format(index)
         return "cpu"
 
     def backend(self) -> Optional[str]:

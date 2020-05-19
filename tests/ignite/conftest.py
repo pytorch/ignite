@@ -66,7 +66,7 @@ def _create_dist_context(dist_info, lrank):
     dist.init_process_group(**dist_info)
     dist.barrier()
     if dist_info["backend"] == "nccl":
-        torch.cuda.device(local_rank)
+        torch.cuda.set_device(lrank)
 
     return {"local_rank": lrank}
 
