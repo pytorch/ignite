@@ -1,8 +1,8 @@
 import itertools
-from typing import Any, Callable
+from typing import Any, Callable, Union
 
 from ignite.engine import Engine, Events
-from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced
 
 __all__ = ["MetricsLambda"]
 
@@ -87,35 +87,38 @@ class MetricsLambda(Metric):
         materialized_kwargs = {k: (v.compute() if isinstance(v, Metric) else v) for k, v in self.kwargs.items()}
         return self.function(*materialized, **materialized_kwargs)
 
-    def _internal_attach(self, engine: Engine) -> None:
+    def _internal_attach(self, engine: Engine, usage: MetricUsage) -> None:
         self.engine = engine
         for index, metric in enumerate(itertools.chain(self.args, self.kwargs.values())):
             if isinstance(metric, MetricsLambda):
-                metric._internal_attach(engine)
+                metric._internal_attach(engine, usage)
             elif isinstance(metric, Metric):
                 # NB : metrics is attached partially
                 # We must not use is_attached() but rather if these events exist
-                if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
-                    engine.add_event_handler(Events.EPOCH_STARTED, metric.started)
-                if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
-                    engine.add_event_handler(Events.ITERATION_COMPLETED, metric.iteration_completed)
+                if not engine.has_event_handler(metric.started, usage.STARTED):
+                    engine.add_event_handler(usage.STARTED, metric.started)
+                if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
+                    engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
 
-    def attach(self, engine: Engine, name: str) -> None:
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+        usage = self._check_usage(usage)
         # recursively attach all its dependencies (partially)
-        self._internal_attach(engine)
+        self._internal_attach(engine, usage)
         # attach only handler on EPOCH_COMPLETED
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self.completed, name)
+        engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine) -> None:
+    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+        usage = self._check_usage(usage)
         # remove from engine
-        super(MetricsLambda, self).detach(engine)
+        super(MetricsLambda, self).detach(engine, usage)
         self.engine = None
 
-    def is_attached(self, engine: Engine) -> bool:
+    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+        usage = self._check_usage(usage)
         # check recursively the dependencies
-        return super(MetricsLambda, self).is_attached(engine) and self._internal_is_attached(engine)
+        return super(MetricsLambda, self).is_attached(engine, usage) and self._internal_is_attached(engine, usage)
 
-    def _internal_is_attached(self, engine: Engine) -> bool:
+    def _internal_is_attached(self, engine: Engine, usage: MetricUsage) -> bool:
         # if no engine, metrics is not attached
         if engine is None:
             return False
@@ -123,11 +126,11 @@ class MetricsLambda(Metric):
         is_detached = False
         for metric in itertools.chain(self.args, self.kwargs.values()):
             if isinstance(metric, MetricsLambda):
-                if not metric._internal_is_attached(engine):
+                if not metric._internal_is_attached(engine, usage):
                     is_detached = True
             elif isinstance(metric, Metric):
-                if not engine.has_event_handler(metric.started, Events.EPOCH_STARTED):
+                if not engine.has_event_handler(metric.started, usage.STARTED):
                     is_detached = True
-                if not engine.has_event_handler(metric.iteration_completed, Events.ITERATION_COMPLETED):
+                if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
                     is_detached = True
         return not is_detached

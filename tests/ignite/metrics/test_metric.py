@@ -9,9 +9,9 @@ import torch
 from pytest import approx, raises
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
-from ignite.engine import Engine, State
-from ignite.metrics import ConfusionMatrix, Metric, Precision, Recall
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.engine import Engine, Events, State
+from ignite.metrics import ConfusionMatrix, Precision, Recall
+from ignite.metrics.metric import BatchFiltered, Metric, reinit__is_reduced
 
 
 class DummyMetric1(Metric):
@@ -665,3 +665,66 @@ def test_completed():
     m.compute = MagicMock(return_value="foo")
     m.completed(engine, "metric")
     assert engine.state.metrics == {"metric": "foo"}
+
+
+def test_batchwise_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    engine = Engine(lambda e, b: b)
+
+    m = MyMetric()
+
+    m.attach(engine, "bwm", usage="batch_wise")
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def _():
+        bwm = engine.state.metrics["bwm"]
+        assert len(bwm) == 1
+        assert bwm[0] == (engine.state.iteration - 1) % 3
+
+    engine.run([0, 1, 2], max_epochs=10)
+
+
+def test_batchfiltered_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    engine = Engine(lambda e, b: b)
+
+    m = MyMetric()
+
+    usage = BatchFiltered(every=2)
+
+    m.attach(engine, "bfm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        bfm = engine.state.metrics["bfm"]
+        print(len(bfm), bfm[0])
+        assert len(bfm) == 2
+        assert bfm[0] == 1
+
+    engine.run([0, 1, 2, 3], max_epochs=10)

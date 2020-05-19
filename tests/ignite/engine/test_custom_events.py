@@ -172,8 +172,7 @@ def test_has_handler_on_callable_events():
     assert engine.has_event_handler(bar)
     assert engine.has_event_handler(bar, Events.EPOCH_COMPLETED)
 
-    with pytest.raises(TypeError, match=r"Argument event_name should not be a filtered event"):
-        engine.has_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
+    engine.has_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
 
 
 def test_remove_event_handler_on_callable_events():
@@ -196,10 +195,12 @@ def test_remove_event_handler_on_callable_events():
     engine.add_event_handler(Events.EPOCH_COMPLETED(every=3), bar)
     assert engine.has_event_handler(bar)
     engine.remove_event_handler(bar, Events.EPOCH_COMPLETED)
-    assert not engine.has_event_handler(foo)
+    assert not engine.has_event_handler(bar)
 
-    with pytest.raises(TypeError, match=r"Argument event_name should not be a filtered event"):
-        engine.remove_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
+    engine.add_event_handler(Events.EPOCH_COMPLETED(every=3), bar)
+    assert engine.has_event_handler(bar)
+    engine.remove_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
+    assert not engine.has_event_handler(bar)
 
 
 def _test_every_event_filter_with_engine(device="cpu"):
