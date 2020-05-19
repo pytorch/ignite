@@ -212,8 +212,7 @@ class _NativeDistModel(ComputationModel):
             if index != self._local_rank:
                 warnings.warn(
                     "Current CUDA device index: {} is different from local rank index: {}. "
-                    "This may cause application being stucked on collective ops."
-                    .format(index, self._local_rank)
+                    "This may cause application being stucked on collective ops.".format(index, self._local_rank)
                 )
             return "cuda:{}".format(index)
         return "cpu"
