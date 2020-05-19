@@ -71,8 +71,8 @@ class _NativeDistModel(ComputationModel):
         # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
         dist.barrier()
 
-        if backend == "nccl":
-            torch.cuda.device(self._local_rank)
+        if backend == dist.Backend.NCCL:
+            torch.cuda.set_device(self._local_rank)
 
         self._setup_attrs()
 
@@ -207,8 +207,14 @@ class _NativeDistModel(ComputationModel):
         return self._node
 
     def device(self) -> Union[torch.device, str]:
-        if self.backend() == "nccl":
-            return "cuda:{}".format(torch.cuda.current_device())
+        if self.backend() == dist.Backend.NCCL:
+            index = torch.cuda.current_device()
+            if index != self._local_rank:
+                warnings.warn(
+                    "Current CUDA device index: {} is different from local rank index: {}. "
+                    "This may cause application being stucked on collective ops.".format(index, self._local_rank)
+                )
+            return "cuda:{}".format(index)
         return "cpu"
 
     def backend(self) -> Optional[str]:
