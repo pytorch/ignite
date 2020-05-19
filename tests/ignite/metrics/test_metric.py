@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 
 from ignite.engine import Engine, Events, State
 from ignite.metrics import ConfusionMatrix, Precision, Recall
-from ignite.metrics.metric import BatchFiltered, Metric, reinit__is_reduced
+from ignite.metrics.metric import BatchFiltered, BatchWise, Metric, reinit__is_reduced
 
 
 class DummyMetric1(Metric):
@@ -682,19 +682,25 @@ def test_batchwise_usage():
         def update(self, output):
             self.value.append(output)
 
-    engine = Engine(lambda e, b: b)
+    def test(usage):
+        engine = Engine(lambda e, b: b)
 
-    m = MyMetric()
+        m = MyMetric()
 
-    m.attach(engine, "bwm", usage="batch_wise")
+        m.attach(engine, "bwm", usage=usage)
 
-    @engine.on(Events.ITERATION_COMPLETED)
-    def _():
-        bwm = engine.state.metrics["bwm"]
-        assert len(bwm) == 1
-        assert bwm[0] == (engine.state.iteration - 1) % 3
+        @engine.on(Events.ITERATION_COMPLETED)
+        def _():
+            bwm = engine.state.metrics["bwm"]
+            assert len(bwm) == 1
+            assert bwm[0] == (engine.state.iteration - 1) % 3
 
-    engine.run([0, 1, 2], max_epochs=10)
+        engine.run([0, 1, 2], max_epochs=10)
+        m.detach(engine, usage=usage)
+
+    test("batch_wise")
+    test(BatchWise.usage_name)
+    test(BatchWise())
 
 
 def test_batchfiltered_usage():
