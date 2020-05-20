@@ -451,21 +451,24 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
         tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
 
     Returns:
-        A :class:`~ignite.handlers.checkpoint.ModelCheckpoint` handler.
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
     global_step_transform = None
     if trainer is not None:
         global_step_transform = global_step_from_engine(trainer)
 
-    best_model_handler = ModelCheckpoint(
-        dirname=output_path,
+    best_model_handler = Checkpoint(
+        {"model": model,},
+        DiskSaver(dirname=output_path, require_empty=False),
         filename_prefix="best",
         n_saved=n_saved,
         global_step_transform=global_step_transform,
         score_name="{}_{}".format(tag, metric_name.lower()),
         score_function=get_default_score_fn(metric_name),
     )
-    evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {"model": model,})
+    evaluator.add_event_handler(
+        Events.COMPLETED, best_model_handler,
+    )
 
     return best_model_handler
 
