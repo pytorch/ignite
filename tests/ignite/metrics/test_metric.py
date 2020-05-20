@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 
 from ignite.engine import Engine, Events, State
 from ignite.metrics import ConfusionMatrix, Precision, Recall
-from ignite.metrics.metric import BatchFiltered, BatchWise, Metric, reinit__is_reduced
+from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced
 
 
 class DummyMetric1(Metric):
@@ -665,6 +665,51 @@ def test_completed():
     m.compute = MagicMock(return_value="foo")
     m.completed(engine, "metric")
     assert engine.state.metrics == {"metric": "foo"}
+
+
+def test_usage_exception():
+    engine = Engine(lambda e, b: b)
+    m = DummyMetric2()
+    with pytest.raises(TypeError, match=r"Unhandled usage type"):
+        m.attach(engine, "dummy", usage=1)
+    with pytest.raises(ValueError, match=r"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name'"):
+        m.attach(engine, "dummy", usage="fake")
+
+
+def test_epochwise_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    def test(usage):
+        engine = Engine(lambda e, b: b)
+
+        m = MyMetric()
+
+        m.attach(engine, "ewm", usage=usage)
+
+        @engine.on(Events.EPOCH_COMPLETED)
+        def _():
+            ewm = engine.state.metrics["ewm"]
+            assert len(ewm) == 3
+            assert ewm == [0, 1, 2]
+
+        engine.run([0, 1, 2], max_epochs=10)
+        m.detach(engine, usage=usage)
+
+    test("epoch_wise")
+    test(EpochWise.usage_name)
+    test(EpochWise())
 
 
 def test_batchwise_usage():
