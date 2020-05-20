@@ -38,21 +38,8 @@ def test_base_output_handler_wrong_setup():
     with pytest.raises(ValueError, match="Either metric_names or output_transform should be defined"):
         DummyOutputHandler("tag", None, None)
 
-    with pytest.raises(TypeError, match="Argument another_engine should be of type Engine"):
-        DummyOutputHandler("tag", ["a", "b"], None, another_engine=123)
-
     with pytest.raises(TypeError, match="global_step_transform should be a function"):
         DummyOutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
-
-
-def test_base_output_handler_with_another_engine():
-    engine = Engine(lambda engine, batch: None)
-    true_metrics = {"a": 0, "b": 1}
-    engine.state = State(metrics=true_metrics)
-    engine.state.output = 12345
-
-    with pytest.warns(DeprecationWarning, match="Use of another_engine is deprecated"):
-        handler = DummyOutputHandler("tag", metric_names=["a", "b"], output_transform=None, another_engine=engine)
 
 
 def test_base_output_handler_setup_output_metrics():
@@ -230,19 +217,3 @@ def test_as_context_manager():
     _test(Events.COMPLETED, 1)
 
     _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
-
-
-def test_global_step_from_engine():
-
-    engine = Engine(lambda engine, batch: None)
-    engine.state = State()
-    engine.state.epoch = 1
-
-    another_engine = Engine(lambda engine, batch: None)
-    another_engine.state = State()
-    another_engine.state.epoch = 10
-
-    global_step_transform = global_step_from_engine(another_engine)
-    res = global_step_transform(engine, Events.EPOCH_COMPLETED)
-
-    assert res == another_engine.state.epoch

@@ -82,10 +82,6 @@ class OutputHandler(BaseOutputHandler):
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
-        another_engine (Engine): Deprecated (see :attr:`global_step_transform`). Another engine to use to provide the
-            value of event. Typically, user can provide
-            the trainer if this handler is attached to an evaluator and thus it logs proper trainer's
-            epoch/iteration value.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
@@ -103,8 +99,8 @@ class OutputHandler(BaseOutputHandler):
 
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, another_engine, global_step_transform)
+    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None):
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine, logger, event_name):
 
