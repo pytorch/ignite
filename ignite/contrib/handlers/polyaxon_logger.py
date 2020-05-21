@@ -251,9 +251,15 @@ class PolyaxonLogger(BaseLogger):
                 param_name='lr'  # optional
             )
 
+    Args:
+        *args: Positional arguments accepted from
+            `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
+        **kwargs: Keyword arguments accepted from
+            `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
+
     """
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         try:
             from polyaxon_client.tracking import Experiment
         except ImportError:
@@ -262,7 +268,7 @@ class PolyaxonLogger(BaseLogger):
                 "Please install it with command: \n pip install polyaxon-client"
             )
 
-        self.experiment = Experiment()
+        self.experiment = Experiment(*args, **kwargs)
 
     def __getattr__(self, attr):
         def wrapper(*args, **kwargs):
