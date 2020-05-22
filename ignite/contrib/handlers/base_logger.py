@@ -36,7 +36,7 @@ class BaseOutputHandler(BaseHandler):
     Helper handler to log engine's output and/or metrics
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, another_engine=None, global_step_transform=None):
+    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None):
 
         if metric_names is not None:
             if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
@@ -49,18 +49,6 @@ class BaseOutputHandler(BaseHandler):
 
         if output_transform is None and metric_names is None:
             raise ValueError("Either metric_names or output_transform should be defined")
-
-        if another_engine is not None:
-            if not isinstance(another_engine, Engine):
-                raise TypeError(
-                    "Argument another_engine should be of type Engine, " "but given {}".format(type(another_engine))
-                )
-            warnings.warn(
-                "Use of another_engine is deprecated and will be removed in 0.4.0. "
-                "Please use global_step_transform instead.",
-                DeprecationWarning,
-            )
-            global_step_transform = global_step_from_engine(another_engine)
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(
