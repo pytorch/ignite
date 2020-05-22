@@ -72,7 +72,6 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
         with_pbars=True,
         with_pbar_on_iters=True,
         log_every_iters=50,
-        device=device,
     )
 
     num_iters = 100
