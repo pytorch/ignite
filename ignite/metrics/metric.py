@@ -57,6 +57,8 @@ class EpochWise(MetricUsage):
     - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
     """
 
+    usage_name = "epoch_wise"
+
     def __init__(self):
         super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
@@ -75,6 +77,8 @@ class BatchWise(MetricUsage):
     - :meth:`~ignite.metrics.Metric.iteration_completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
     - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
     """
+
+    usage_name = "batch_wise"
 
     def __init__(self):
         super(BatchWise, self).__init__(
@@ -234,12 +238,14 @@ class Metric(metaclass=ABCMeta):
 
     def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
         if isinstance(usage, str):
-            if usage == "epoch_wise":
+            if usage == EpochWise.usage_name:
                 usage = EpochWise()
-            elif usage == "batch_wise":
+            elif usage == BatchWise.usage_name:
                 usage = BatchWise()
             else:
-                raise ValueError("usage should be 'epoch_wise' or 'batch_wise', get {}".format(usage))
+                raise ValueError(
+                    "usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name', get {}".format(usage)
+                )
         if not isinstance(usage, MetricUsage):
             raise TypeError("Unhandled usage type {}".format(type(usage)))
         return usage
@@ -253,7 +259,7 @@ class Metric(metaclass=ABCMeta):
             engine (Engine): the engine to which the metric must be attached
             name (str): the name of the metric to attach
             usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
-                'epoch_wise' (default) or 'batch_wise'.
+                'EpochWise.usage_name' (default) or 'BatchWise.usage_name'.
 
         Example:
 
@@ -271,11 +277,11 @@ class Metric(metaclass=ABCMeta):
         .. code-block:: python
 
             metric = ...
-            metric.attach(engine, "mymetric", usage="batch_wise")
+            metric.attach(engine, "mymetric", usage=BatchWise.usage_name)
 
             assert "mymetric" in engine.run(data).metrics
 
-            assert metric.is_attached(engine, usage="batch_wise")
+            assert metric.is_attached(engine, usage=BatchWise.usage_name)
         """
         usage = self._check_usage(usage)
         if not engine.has_event_handler(self.started, usage.STARTED):

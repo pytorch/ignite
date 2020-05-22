@@ -223,7 +223,7 @@ def _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters):
 
     if evaluators is not None:
         if not isinstance(evaluators, (Engine, Mapping)):
-            raise TypeError("Argument optimizers should be either a single optimizer or a dictionary or optimizers")
+            raise TypeError("Argument evaluators should be either a single engine or a dictionary or engines")
 
     if log_every_iters is None:
         log_every_iters = 1

@@ -613,7 +613,7 @@ class Engine(Serializable):
         """
         if seed is not None:
             warnings.warn(
-                "Argument seed is deprecated. It will be removed in future releases. "
+                "Argument seed is deprecated. It will be removed in 0.5.0. "
                 "Please, use torch.manual_seed or ignite.utils.manual_seed"
             )
 

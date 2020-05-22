@@ -173,7 +173,7 @@ class Checkpoint:
                 "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
             )
         if archived:
-            warnings.warn("Argument archived is deprecated")
+            warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
 
         self.to_save = to_save
         self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
@@ -465,10 +465,13 @@ class ModelCheckpoint(Checkpoint):
     ):
 
         if not save_as_state_dict:
-            raise ValueError("Argument save_as_state_dict is deprecated and should be True")
+            raise ValueError(
+                "Argument save_as_state_dict is deprecated and should be True."
+                "This argument will be removed in 0.5.0."
+            )
         if save_interval is not None:
             msg = (
-                "Argument save_interval is deprecated and should be None. "
+                "Argument save_interval is deprecated and should be None. This argument will be removed in 0.5.0."
                 "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
             )
             if save_interval == 1:
