@@ -38,6 +38,8 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
     lr = 0.01
     step_size = 100
     gamma = 0.5
+    num_iters = 100
+    num_epochs = 10
 
     model = DummyModel().to(device)
     if distributed and "cuda" in device:
@@ -53,12 +55,14 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
     elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite":
         from ignite.contrib.handlers import PiecewiseLinear
 
-        milestones_values = [(0, 0.0), (step_size, lr), (step_size * 1000, 0.0)]
+        milestones_values = [(0, 0.0), (step_size, lr), (num_iters * (num_epochs - 1), 0.0)]
         lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
     else:
         raise ValueError("Unknown lr_scheduler: {}".format(lr_scheduler))
 
     def update_fn(engine, batch):
+        if (engine.state.iteration - 1) % 50 == 0:
+            print("- lr:", optimizer.param_groups[0]["lr"])
         optimizer.zero_grad()
         x = torch.tensor([batch], requires_grad=True, device=device)
         y_pred = model(x)
@@ -87,8 +91,6 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
         log_every_iters=50,
     )
 
-    num_iters = 100
-    num_epochs = 10
     data = [i * 0.1 for i in range(num_iters)]
     trainer.run(data, max_epochs=num_epochs)
 
