@@ -8,24 +8,6 @@ from ignite.contrib.handlers.visdom_logger import _DummyExecutor
 from ignite.engine import Engine, Events, State
 
 
-@pytest.fixture
-def visdom_server():
-
-    import time
-    import subprocess
-
-    from visdom.server import download_scripts
-
-    download_scripts()
-
-    hostname = "localhost"
-    port = 8098
-    p = subprocess.Popen("visdom --hostname {} -port {}".format(hostname, port), shell=True)
-    time.sleep(5)
-    yield (hostname, port)
-    p.terminate()
-
-
 def test_optimizer_params_handler_wrong_setup():
 
     with pytest.raises(TypeError):
