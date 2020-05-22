@@ -45,7 +45,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def device(self) -> Union[torch.device, str]:
+    def device(self) -> torch.device:
         pass
 
     @abstractmethod
@@ -146,8 +146,8 @@ class _SerialModel(ComputationModel):
     def is_distributed(self) -> bool:
         return False
 
-    def device(self) -> Union[torch.device, str]:
-        return "cpu"
+    def device(self) -> torch.device:
+        return torch.device("cpu")
 
     def backend(self) -> Optional[str]:
         return None

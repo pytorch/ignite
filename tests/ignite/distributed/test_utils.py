@@ -26,7 +26,7 @@ def test_no_distrib():
     print("test_no_distrib : _model", type(_model))
 
     assert idist.backend() is None
-    assert idist.device() == "cpu"
+    assert idist.device().type == "cpu"
     assert idist.get_rank() == 0
     assert idist.get_world_size() == 1
     assert idist.get_local_rank() == 0
@@ -38,17 +38,18 @@ def test_no_distrib():
     assert isinstance(_model, _SerialModel)
 
 
-def _test_distrib_config(local_rank, backend, ws, device, rank=None):
+def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
     assert idist.backend() == backend, "{} vs {}".format(idist.backend(), backend)
 
+    this_device = idist.device()
+    assert isinstance(this_device, torch.device)
     if backend == "nccl":
-        d = "{}:{}".format(device, local_rank)
-        assert idist.device() == d, "{} vs {}".format(idist.device(), d)
+        true_device = torch.device("{}:{}".format(true_device, local_rank))
+        assert this_device == true_device, "{} vs {}".format(this_device, true_device)
     elif backend == "gloo":
-        assert idist.device() == device
+        assert this_device == torch.device(true_device)
     elif backend == "xla-tpu":
-        d = idist.device()
-        assert isinstance(d, torch.device) and device in d.type
+        assert true_device in this_device.type
 
     if rank is None:
         if idist.model_name() == "native-dist":
@@ -129,7 +130,7 @@ def test_xla_distrib_spawn_no_xla_support():
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_xla_distrib_single_node_no_spawn():
     idist.initialize("xla-tpu")
-    _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, device="xla")
+    _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, true_device="xla")
     idist.finalize()
 
 
@@ -225,7 +226,7 @@ def test_idist_methods_in_xla_context():
 
     _set_model(_SerialModel())
 
-    _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, device="xla", rank=0)
+    _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, true_device="xla", rank=0)
 
 
 @pytest.mark.tpu
@@ -244,7 +245,7 @@ def test_idist_methods_in_xla_context_in_child_proc(xmp_executor):
         import torch_xla.core.xla_model as xm
 
         _test_distrib_config(
-            local_rank=index, backend="xla-tpu", ws=xm.xrt_world_size(), device="xla", rank=xm.get_ordinal()
+            local_rank=index, backend="xla-tpu", ws=xm.xrt_world_size(), true_device="xla", rank=xm.get_ordinal()
         )
 
     xmp_executor(_test_fn, args=(), nprocs=n)
@@ -259,7 +260,7 @@ def _test_idist_methods_in_native_context(backend, device, local_rank):
 
     ws = dist.get_world_size()
     rank = dist.get_rank()
-    _test_distrib_config(local_rank=local_rank, backend=backend, ws=ws, device=device, rank=rank)
+    _test_distrib_config(local_rank=local_rank, backend=backend, ws=ws, true_device=device, rank=rank)
 
 
 @pytest.mark.distributed
@@ -290,7 +291,7 @@ def _test_idist_methods_in_native_context_set_local_rank(backend, device, local_
 
     idist.set_local_rank(local_rank)
 
-    _test_distrib_config(local_rank=local_rank, backend=backend, ws=ws, device=device, rank=rank)
+    _test_distrib_config(local_rank=local_rank, backend=backend, ws=ws, true_device=device, rank=rank)
 
     os.environ["LOCAL_RANK"] = str(lrank)
 
