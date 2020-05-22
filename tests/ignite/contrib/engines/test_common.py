@@ -7,6 +7,7 @@ import torch.nn as nn
 
 import ignite.contrib.handlers as handlers
 from ignite.contrib.engines.common import (
+    _setup_logging,
     add_early_stopping_by_val_score,
     save_best_model_by_val_score,
     setup_any_logging,
@@ -105,15 +106,15 @@ def test_asserts_setup_common_training_handlers():
     trainer = Engine(lambda e, b: None)
 
     with pytest.raises(
-        ValueError, match=r"If to_save argument is provided then output_path argument should be " r"also defined"
+        ValueError, match=r"If to_save argument is provided then output_path argument should be also defined"
     ):
         setup_common_training_handlers(trainer, to_save={})
 
     with pytest.warns(
-        UserWarning, match=r"Argument train_sampler distributed sampler used to call " r"`set_epoch` method on epoch"
+        UserWarning, match=r"Argument train_sampler distributed sampler used to call `set_epoch` method on epoch"
     ):
         train_sampler = MagicMock()
-        setup_common_training_handlers(trainer, train_sampler=train_sampler, with_gpu_stats=False)
+        setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
 
 def test_setup_common_training_handlers(dirname, capsys):
@@ -186,6 +187,15 @@ def test_deprecated_setup_any_logging():
 
     with pytest.raises(DeprecationWarning, match=r"is deprecated since 0\.4\.0\."):
         setup_any_logging(None, None, None, None, None, None)
+
+
+def test__setup_logging_wrong_args():
+
+    with pytest.raises(TypeError, match=r"Argument optimizers should be either a single optimizer or"):
+        _setup_logging(MagicMock(), MagicMock(), "abc", MagicMock(), 1)
+
+    with pytest.raises(TypeError, match=r"Argument evaluators should be either a single engine or"):
+        _setup_logging(MagicMock(), MagicMock(), MagicMock(spec=torch.optim.SGD), "abc", 1)
 
 
 def _test_setup_logging(
