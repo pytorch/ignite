@@ -83,7 +83,9 @@ def setup_common_training_handlers(
         log_every_iters=log_every_iters,
         stop_on_nan=stop_on_nan,
     )
-    if idist.model_name() != "serial":
+    from ignite.distributed.utils import _SerialModel
+
+    if idist.model_name() != _SerialModel.name:
         _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
     else:
         if train_sampler is not None:

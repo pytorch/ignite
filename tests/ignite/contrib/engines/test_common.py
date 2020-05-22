@@ -33,7 +33,7 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False):
+def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None):
 
     lr = 0.01
     step_size = 100
@@ -43,7 +43,20 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
     if distributed and "cuda" in device:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+
+    if lr_scheduler is None:
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+    elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite|LRScheduler":
+        from ignite.contrib.handlers import LRScheduler
+
+        lr_scheduler = LRScheduler(torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma))
+    elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite":
+        from ignite.contrib.handlers import PiecewiseLinear
+
+        milestones_values = [(0, 0.0), (step_size, lr), (step_size * 1000, 0.0)]
+        lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
+    else:
+        raise ValueError("Unknown lr_scheduler: {}".format(lr_scheduler))
 
     def update_fn(engine, batch):
         optimizer.zero_grad()
@@ -115,6 +128,20 @@ def test_asserts_setup_common_training_handlers():
     ):
         train_sampler = MagicMock()
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
+
+    with pytest.warns(UserWarning, match=r"Argument device is unused and deprecated"):
+        setup_common_training_handlers(trainer, device="cpu")
+
+
+@pytest.mark.distributed
+def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_context_single_node_gloo):
+    trainer = Engine(lambda e, b: None)
+
+    from torch.utils.data.sampler import RandomSampler
+
+    with pytest.raises(TypeError, match=r"Train sampler should have `set_epoch` method"):
+        train_sampler = RandomSampler([0, 1, 2, 3])
+        setup_common_training_handlers(trainer, train_sampler)
 
 
 def test_setup_common_training_handlers(dirname, capsys):
@@ -442,7 +469,13 @@ def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
 def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
     device = "cpu"
     local_rank = distributed_context_single_node_gloo["local_rank"]
-    _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=False)
+    _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=True)
+    _test_setup_common_training_handlers(
+        dirname, device, rank=local_rank, local_rank=local_rank, distributed=True, lr_scheduler="ignite|LRScheduler"
+    )
+    _test_setup_common_training_handlers(
+        dirname, device, rank=local_rank, local_rank=local_rank, distributed=True, lr_scheduler="ignite"
+    )
     test_add_early_stopping_by_val_score()
 
 
