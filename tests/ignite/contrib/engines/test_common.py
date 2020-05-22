@@ -40,7 +40,7 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
     gamma = 0.5
 
     model = DummyModel().to(device)
-    if distributed:
+    if distributed and "cuda" in device:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
@@ -72,6 +72,7 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
         with_pbars=True,
         with_pbar_on_iters=True,
         log_every_iters=50,
+        device=device,
     )
 
     num_iters = 100
@@ -442,7 +443,7 @@ def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
 def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
     device = "cpu"
     local_rank = distributed_context_single_node_gloo["local_rank"]
-    _test_setup_common_training_handlers(dirname, device, rank=local_rank)
+    _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=False)
     test_add_early_stopping_by_val_score()
 
 
