@@ -259,7 +259,7 @@ def _test_idist_methods_in_native_context(backend, device, local_rank):
 
     ws = dist.get_world_size()
     rank = dist.get_rank()
-    _test_distrib_config(local_rank=local_rank, backend=backend, ws=ws, device=device, rank=rank)
+    _test_distrib_config(local_rank, backend=backend, ws=ws, device=device, rank=rank)
 
 
 @pytest.mark.distributed
