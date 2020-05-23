@@ -143,9 +143,6 @@ class _SerialModel(ComputationModel):
     def get_node_rank(self) -> int:
         return 0
 
-    def is_distributed(self) -> bool:
-        return False
-
     def device(self) -> torch.device:
         return torch.device("cpu")
 

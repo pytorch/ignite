@@ -18,7 +18,7 @@ def _sanity_check():
     assert _model.get_node_rank() < _model.get_num_nodes()
 
 
-def test_no_distrib():
+def test_no_distrib(capsys):
 
     from ignite.distributed.utils import _model
 
@@ -36,6 +36,18 @@ def test_no_distrib():
 
     _sanity_check()
     assert isinstance(_model, _SerialModel)
+
+    idist.show_config()
+    captured = capsys.readouterr()
+    out = captured.err.split("\r")
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    assert "ignite.distributed.utils INFO: distributed configuration: serial" in out[-1]
+    assert "ignite.distributed.utils INFO: backend: None" in out[-1]
+    assert "ignite.distributed.utils INFO: device: cpu" in out[-1]
+    assert "ignite.distributed.utils INFO: rank: 0" in out[-1]
+    assert "ignite.distributed.utils INFO: local rank: 0" in out[-1]
+    assert "ignite.distributed.utils INFO: world size: 1" in out[-1]
 
 
 def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
