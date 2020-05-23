@@ -87,13 +87,15 @@ def test_checkpoint_default():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_0.pt".format(name))
+        metadata = {"basename": name, "score_name": None, "priority": 0}
+        save_handler.assert_called_with(obj, "{}_0.pt".format(name), metadata)
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_1234.pt".format(name))
+        metadata["priority"] = 1234
+        save_handler.assert_called_with(obj, "{}_1234.pt".format(name), metadata)
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}_0.pt".format(name))
         assert checkpointer.last_checkpoint == "{}_1234.pt".format(name)
@@ -128,13 +130,15 @@ def test_checkpoint_with_global_step_transform():
         if len(filename_prefix) > 0:
             filename_prefix += "_"
 
-        save_handler.assert_called_with(obj, "{}{}_1.pt".format(filename_prefix, name))
+        metadata = {"basename": "{}{}".format(filename_prefix, name), "score_name": None, "priority": 1}
+        save_handler.assert_called_with(obj, "{}{}_1.pt".format(filename_prefix, name), metadata)
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}{}_12.pt".format(filename_prefix, name))
+        metadata["priority"] = 1234
+        save_handler.assert_called_with(obj, "{}{}_12.pt".format(filename_prefix, name), metadata)
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}{}_1.pt".format(filename_prefix, name))
         assert checkpointer.last_checkpoint == "{}{}_12.pt".format(filename_prefix, name)
@@ -162,7 +166,8 @@ def test_checkpoint_with_score_function():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_0.7700.pt".format(name))
+        metadata = {"basename": name, "score_name": None, "priority": 0.77}
+        save_handler.assert_called_with(obj, "{}_0.7700.pt".format(name), metadata)
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
@@ -170,7 +175,8 @@ def test_checkpoint_with_score_function():
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_0.7800.pt".format(name))
+        metadata["priority"] = 0.78
+        save_handler.assert_called_with(obj, "{}_0.7800.pt".format(name), metadata)
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}_0.7700.pt".format(name))
         assert checkpointer.last_checkpoint == "{}_0.7800.pt".format(name)
@@ -199,7 +205,8 @@ def test_checkpoint_with_score_name_and_function():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_loss=-0.7700.pt".format(name))
+        metadata = {"basename": name, "score_name": "loss", "priority": -0.77}
+        save_handler.assert_called_with(obj, "{}_loss=-0.7700.pt".format(name), metadata)
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
@@ -207,7 +214,8 @@ def test_checkpoint_with_score_name_and_function():
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_loss=-0.7600.pt".format(name))
+        metadata["priority"] = -0.76
+        save_handler.assert_called_with(obj, "{}_loss=-0.7600.pt".format(name), metadata)
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}_loss=-0.7700.pt".format(name))
         assert checkpointer.last_checkpoint == "{}_loss=-0.7600.pt".format(name)
@@ -241,14 +249,16 @@ def test_checkpoint_with_int_score():
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_{}1.pt".format(name, score_name))
+        metadata = {"basename": name, "score_name": score_name[:-1] if len(score_name) > 0 else None, "priority": 1}
+        save_handler.assert_called_with(obj, "{}_{}1.pt".format(name, score_name), metadata)
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
 
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_{}12.pt".format(name, score_name))
+        metadata["priority"] = 12
+        save_handler.assert_called_with(obj, "{}_{}12.pt".format(name, score_name), metadata)
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}_{}1.pt".format(name, score_name))
         assert checkpointer.last_checkpoint == "{}_{}12.pt".format(name, score_name)
@@ -284,14 +294,16 @@ def test_checkpoint_with_score_function_and_trainer_epoch():
         checkpointer(evaluator)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_11_0.7700.pt".format(name))
+        metadata = {"basename": name, "score_name": None, "priority": 0.77}
+        save_handler.assert_called_with(obj, "{}_11_0.7700.pt".format(name), metadata)
 
         trainer.state.epoch = 12
         evaluator.state.metrics["val_acc"] = 0.78
 
         checkpointer(evaluator)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_12_0.7800.pt".format(name))
+        metadata["priority"] = 0.78
+        save_handler.assert_called_with(obj, "{}_12_0.7800.pt".format(name), metadata)
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}_11_0.7700.pt".format(name))
         assert checkpointer.last_checkpoint == "{}_12_0.7800.pt".format(name)
@@ -322,14 +334,16 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
         checkpointer(evaluator)
         assert save_handler.call_count == 1
 
-        save_handler.assert_called_with(obj, "{}_11_val_acc=0.7700.pt".format(name))
+        metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
+        save_handler.assert_called_with(obj, "{}_11_val_acc=0.7700.pt".format(name), metadata)
 
         trainer.state.epoch = 12
         evaluator.state.metrics["val_acc"] = 0.78
 
         checkpointer(evaluator)
         assert save_handler.call_count == 2
-        save_handler.assert_called_with(obj, "{}_12_val_acc=0.7800.pt".format(name))
+        metadata["priority"] = 0.78
+        save_handler.assert_called_with(obj, "{}_12_val_acc=0.7800.pt".format(name), metadata)
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}_11_val_acc=0.7700.pt".format(name))
         assert checkpointer.last_checkpoint == "{}_12_val_acc=0.7800.pt".format(name)
@@ -377,6 +391,20 @@ def test_checkpoint_last_checkpoint_on_score():
 
     assert save_handler.call_count == 10
     assert checkpointer.last_checkpoint == "{}_val_acc=0.9000.pt".format("model")
+
+
+def test_checkpoint_save_handler_callable():
+    def save_handler(c, f):
+        assert f == "model_12.pt"
+
+    to_save = {"model": DummyModel()}
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler,)
+
+    trainer = Engine(lambda e, b: None)
+
+    trainer.state = State(epoch=1, iteration=12)
+    checkpointer(trainer)
 
 
 def test_model_checkpoint_args_validation(dirname):
