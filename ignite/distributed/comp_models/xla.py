@@ -87,10 +87,10 @@ class _XlaDistModel(ComputationModel):
     def get_node_rank(self) -> int:
         return self._node
 
-    def device(self) -> Union[torch.device, str]:
+    def device(self) -> torch.device:
         return xm.xla_device()
 
-    def backend(self) -> Optional[str]:
+    def backend(self) -> str:
         return self._backend
 
     def finalize(self):

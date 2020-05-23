@@ -10,6 +10,13 @@ set -xeu
 
 py.test -vvv tests/ -k 'on_cuda'
 
-export WORLD_SIZE=$ws
+if [ "$ws" == "1" ]; then
 
-py.test --dist=each --tx $WORLD_SIZE*popen//python=python3.7 tests -m distributed -vvv
+    py.test -vvv tests/ -m distributed
+
+else
+
+    export WORLD_SIZE=$ws
+    py.test --dist=each --tx $WORLD_SIZE*popen//python=python3.7 tests -m distributed -vvv
+
+fi

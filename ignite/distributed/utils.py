@@ -68,15 +68,15 @@ def sync():
 
 
 @_sync_model_wrapper
-def device() -> Union[torch.device, str]:
+def device() -> torch.device:
     """Returns current device according to current distributed configuration.
 
-    - `cpu` if no distributed configuration or native gloo distributed configuration
-    - `cuda:local_rank` if native nccl distributed configuration
-    - `xla` device if XLA distributed configuration
+    - `torch.device("cpu")` if no distributed configuration or native gloo distributed configuration
+    - `torch.device("cuda:local_rank")` if native nccl distributed configuration
+    - `torch.device("xla:index")` if XLA distributed configuration
 
     Returns:
-        torch.device or str
+        torch.device
     """
     return _model.device()
 
@@ -183,16 +183,16 @@ def spawn(backend: str, fn: Callable, args: Tuple, kwargs_dict: Mapping = None, 
 
             import ignite.distributed as idist
 
-            def train_fn(local_rank, a, b, c):
+            def train_fn(local_rank, a, b, c, d=12):
                 import torch.distributed as dist
                 assert dist.is_available() and dist.is_initialized()
                 assert dist.get_world_size() == 4
 
                 device = idist.device()
-                assert device == "cuda:{}".format(local_rank)
+                assert device == torch.device("cuda:{}".format(local_rank))
 
 
-            idist.spawn("nccl", train_fn, args=(a, b, c), num_procs_per_node=4)
+            idist.spawn("nccl", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, num_procs_per_node=4)
 
 
         2) Launch multi-node multi-GPU training
@@ -215,7 +215,7 @@ def spawn(backend: str, fn: Callable, args: Tuple, kwargs_dict: Mapping = None, 
                 assert dist.get_world_size() == num_nodes * num_procs_per_node
 
                 device = idist.device()
-                assert device == "cuda:{}".format(local_rank)
+                assert device == torch.device("cuda:{}".format(local_rank))
 
             idist.spawn(
                 "nccl",
@@ -238,7 +238,7 @@ def spawn(backend: str, fn: Callable, args: Tuple, kwargs_dict: Mapping = None, 
 
             import ignite.distributed as idist
 
-            def train_fn(local_rank, a, b, c):
+            def train_fn(local_rank, a, b, c, d=12):
                 import torch_xla.core.xla_model as xm
                 assert xm.get_world_size() == 8
 
@@ -246,7 +246,7 @@ def spawn(backend: str, fn: Callable, args: Tuple, kwargs_dict: Mapping = None, 
                 assert "xla" in device.type
 
 
-            idist.spawn("xla-tpu", train_fn, args=(a, b, c), num_procs_per_node=8)
+            idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, num_procs_per_node=8)
 
     Args:
         backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`
@@ -376,7 +376,7 @@ def initialize(backend: str, **kwargs):
                 assert dist.get_world_size() == 4
 
                 device = idist.device()
-                assert device == "cuda:{}".format(local_rank)
+                assert device == torch.device("cuda:{}".format(local_rank))
 
 
             idist.initialize("nccl")
@@ -427,7 +427,7 @@ def show_config():
 
     logger.info("distributed configuration: {}".format(model_name()))
     logger.info("backend: {}".format(backend()))
-    logger.info("device: {}".format(device()))
+    logger.info("device: {}".format(device().type))
     logger.info("hostname: {}".format(hostname()))
     logger.info("world size: {}".format(get_world_size()))
     logger.info("rank: {}".format(get_rank()))
