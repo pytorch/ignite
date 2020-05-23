@@ -1,5 +1,4 @@
-from numbers import Number
-from typing import Optional, Union
+from typing import Callable, Mapping, Optional, Tuple
 
 import torch
 
@@ -106,7 +105,16 @@ class _XlaDistModel(ComputationModel):
         finalize()
 
     @staticmethod
-    def spawn(fn, args, kwargs_dict=None, num_procs_per_node=1, num_nodes=1, node_rank=0, backend="xla-tpu", **kwargs):
+    def spawn(
+        fn: Callable,
+        args: Tuple,
+        kwargs_dict: Optional[Mapping] = None,
+        num_procs_per_node: int = 1,
+        num_nodes: int = 1,
+        node_rank: int = 0,
+        backend: str = "xla-tpu",
+        **kwargs
+    ):
         if not has_xla_support:
             raise RuntimeError("Torch xla package is not installed.")
 

@@ -1,7 +1,7 @@
 import os
 import subprocess
 import warnings
-from typing import Optional, Union
+from typing import Callable, Mapping, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -244,15 +244,15 @@ class _NativeDistModel(ComputationModel):
 
     @staticmethod
     def spawn(
-        fn,
-        args,
-        kwargs_dict=None,
-        num_procs_per_node=1,
-        num_nodes=1,
-        node_rank=0,
-        master_addr="0.0.0.0",
-        master_port=2222,
-        backend="nccl",
+        fn: Callable,
+        args: Tuple,
+        kwargs_dict: Optional[Mapping] = None,
+        num_procs_per_node: int = 1,
+        num_nodes: int = 1,
+        node_rank: int = 0,
+        master_addr: str = "0.0.0.0",
+        master_port: int = 2222,
+        backend: str = "nccl",
         **kwargs
     ):
         world_size = num_nodes * num_procs_per_node

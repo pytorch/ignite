@@ -167,7 +167,14 @@ def hostname() -> str:
     return socket.gethostname()
 
 
-def spawn(backend: str, fn: Callable, args: Tuple, kwargs_dict: Mapping = None, num_procs_per_node: int = 1, **kwargs):
+def spawn(
+    backend: str,
+    fn: Callable,
+    args: Tuple,
+    kwargs_dict: Optional[Mapping] = None,
+    num_procs_per_node: int = 1,
+    **kwargs
+):
     """Spawns `num_procs_per_node` processes that run `fn` with `args` and initialize distributed configuration
     defined by `backend`.
 
