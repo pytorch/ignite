@@ -400,8 +400,6 @@ def initialize(backend: str, **kwargs):
 
 
     """
-    global _model, _need_to_sync
-
     if not (has_xla_support or dist.is_available()):
         # nothing to do => serial model
         # maybe warn about this
@@ -413,8 +411,6 @@ def initialize(backend: str, **kwargs):
         if backend not in comp_model_cls.available_backends:
             continue
         _set_model(comp_model_cls(backend, **kwargs))
-
-    _need_to_sync = False
 
 
 def finalize():
