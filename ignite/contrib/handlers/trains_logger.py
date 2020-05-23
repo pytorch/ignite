@@ -643,7 +643,7 @@ class TrainsSaver(DiskSaver):
         if output_uri:
             self.task.output_uri = output_uri
 
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping = None) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         super(TrainsSaver, self).__call__(checkpoint, filename, metadata)
 
         try:

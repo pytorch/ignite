@@ -24,7 +24,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping = None) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         """Method to save `checkpoint` with `filename`. Additionally, metadata dictionary is provided.
 
         Metadata contains:
@@ -384,7 +384,7 @@ class DiskSaver(BaseSaveHandler):
                     "".format(matched, dirname)
                 )
 
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping = None) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         path = os.path.join(self.dirname, filename)
 
         if not self._atomic:
