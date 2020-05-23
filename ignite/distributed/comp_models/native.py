@@ -101,7 +101,10 @@ class _NativeDistModel(ComputationModel):
     def _get_all_hostnames(self):
         import socket
 
-        device = self.device()
+        device = "cpu"
+        if self.backend() == dist.Backend.NCCL:
+            index = torch.cuda.current_device()
+            device = "cuda:{}".format(index)
         name = socket.gethostname()
         name = torch.tensor(bytearray(name, "utf-8")).to(device)
         padded_t_name = torch.zeros(256, device=device, dtype=torch.long)
@@ -206,18 +209,13 @@ class _NativeDistModel(ComputationModel):
     def get_node_rank(self) -> int:
         return self._node
 
-    def device(self) -> Union[torch.device, str]:
+    def device(self) -> torch.device:
         if self.backend() == dist.Backend.NCCL:
             index = torch.cuda.current_device()
-            if index != self._local_rank:
-                warnings.warn(
-                    "Current CUDA device index: {} is different from local rank index: {}. "
-                    "This may cause application being stucked on collective ops.".format(index, self._local_rank)
-                )
-            return "cuda:{}".format(index)
-        return "cpu"
+            return torch.device("cuda:{}".format(index))
+        return torch.device("cpu")
 
-    def backend(self) -> Optional[str]:
+    def backend(self) -> str:
         return dist.get_backend()
 
     def finalize(self):

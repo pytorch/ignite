@@ -45,7 +45,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def device(self) -> Union[torch.device, str]:
+    def device(self) -> torch.device:
         pass
 
     @abstractmethod
@@ -143,24 +143,21 @@ class _SerialModel(ComputationModel):
     def get_node_rank(self) -> int:
         return 0
 
-    def is_distributed(self) -> bool:
-        return False
+    def device(self) -> torch.device:
+        return torch.device("cpu")
 
-    def device(self) -> Union[torch.device, str]:
-        return "cpu"
-
-    def backend(self) -> Optional[str]:
+    def backend(self) -> None:
         return None
 
     def finalize(self):
         pass
 
     @staticmethod
-    def create_from_context() -> Optional["_SerialModel"]:
+    def create_from_context() -> "_SerialModel":
         return _SerialModel()
 
     @staticmethod
-    def create_from_backend(backend: str, **kwargs) -> "_SerialModel":
+    def create_from_backend(backend: Optional[str] = None, **kwargs) -> "_SerialModel":
         return _SerialModel()
 
     @staticmethod

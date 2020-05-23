@@ -45,7 +45,7 @@ def test__native_dist_model_create_from_backend_bad_config():
 
 def _assert_model(model, true_conf):
 
-    assert model.device() == true_conf["device"]
+    assert model.device() == torch.device(true_conf["device"])
     assert model.get_local_rank() == true_conf["local_rank"]
     assert model.get_rank() == true_conf["rank"]
     assert model.get_world_size() == true_conf["world_size"]
@@ -249,9 +249,9 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
     assert _model.get_local_rank() == local_rank
     assert _model.get_world_size() == world_size
     if backend == "nccl":
-        assert _model.device() == "{}:{}".format(device, local_rank)
+        assert _model.device() == torch.device("{}:{}".format(device, local_rank))
     elif backend == "gloo":
-        assert _model.device() == device
+        assert _model.device() == torch.device(device)
 
 
 def _test__native_dist_model_spawn(backend, num_workers_per_machine, device):
