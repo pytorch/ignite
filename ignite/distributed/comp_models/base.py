@@ -146,18 +146,18 @@ class _SerialModel(ComputationModel):
     def device(self) -> torch.device:
         return torch.device("cpu")
 
-    def backend(self) -> Optional[str]:
+    def backend(self) -> None:
         return None
 
     def finalize(self):
         pass
 
     @staticmethod
-    def create_from_context() -> Optional["_SerialModel"]:
+    def create_from_context() -> "_SerialModel":
         return _SerialModel()
 
     @staticmethod
-    def create_from_backend(backend: str, **kwargs) -> "_SerialModel":
+    def create_from_backend(backend: Optional[str] = None, **kwargs) -> "_SerialModel":
         return _SerialModel()
 
     @staticmethod
