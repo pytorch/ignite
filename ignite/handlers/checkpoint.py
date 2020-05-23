@@ -16,14 +16,39 @@ __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 
 
 class BaseSaveHandler(metaclass=ABCMeta):
-    """Base class for save handlers"""
+    """Base class for save handlers
+
+    Methods to override:
+
+    - :meth:`~ignite.handlers.checkpoint.BaseSaveHandler.__call__`
+    - :meth:`~ignite.handlers.checkpoint.BaseSaveHandler.remove`
+    """
 
     @abstractmethod
-    def __call__(self, checkpoint: Mapping, filename: str) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
+        """Method to save `checkpoint` with `filename`. Additionally, metadata dictionary is provided.
+
+        Metadata contains:
+
+        - `basename`: file prefix (if provided) with checkpoint name, e.g. `epoch_checkpoint`.
+        - `score_name`: score name if provided, e.g `val_acc`.
+        - `priority`: checkpoint priority value (higher is better), e.g. `12` or `0.6554435`
+
+        Args:
+            checkpoint (Mapping): checkpoint dictionary to save.
+            filename (str): filename associated with checkpoint.
+            metadata (Mapping, optional): metadata on checkpoint to save.
+
+        """
         pass
 
     @abstractmethod
     def remove(self, filename: str) -> None:
+        """Method to remove saved checkpoint.
+
+        Args:
+            filename (str): filename associated with checkpoint.
+        """
         pass
 
 
@@ -36,9 +61,9 @@ class Checkpoint:
     Args:
         to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
             load_state_dict` methods.
-        save_handler (callable or `BaseSaveHandler`): Method or callable class to use to save engine and other provided
-            objects. Function receives two objects: checkpoint as a dictionary and filename. If `save_handler` is
-            callable class, it can
+        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
+            use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
+            and filename. If `save_handler` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement `remove` method to
             keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
             `save_handler` can be defined with :class:`~ignite.handlers.DiskSaver`.
@@ -186,7 +211,7 @@ class Checkpoint:
         self.global_step_transform = global_step_transform
 
     @property
-    def last_checkpoint(self) -> str:
+    def last_checkpoint(self) -> Optional[str]:
         if len(self._saved) < 1:
             return None
         return self._saved[-1].filename
@@ -239,7 +264,16 @@ class Checkpoint:
             if any(item.filename == filename for item in self._saved):
                 return
 
-            self.save_handler(checkpoint, filename)
+            metadata = {
+                "basename": "{}{}".format(self._fname_prefix, name),
+                "score_name": self._score_name,
+                "priority": priority,
+            }
+
+            try:
+                self.save_handler(checkpoint, filename, metadata)
+            except TypeError:
+                self.save_handler(checkpoint, filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
@@ -352,7 +386,7 @@ class DiskSaver(BaseSaveHandler):
                     "".format(matched, dirname)
                 )
 
-    def __call__(self, checkpoint: Mapping, filename: str) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         path = os.path.join(self.dirname, filename)
 
         if not self._atomic:
