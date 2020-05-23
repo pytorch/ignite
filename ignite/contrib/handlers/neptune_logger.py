@@ -574,7 +574,7 @@ class NeptuneSaver(BaseSaveHandler):
     def __init__(self, neptune_logger: NeptuneLogger):
         self._logger = neptune_logger
 
-    def __call__(self, checkpoint: Mapping, filename: str) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping = None) -> None:
 
         with tempfile.NamedTemporaryFile() as tmp:
             torch.save(checkpoint, tmp.name)
