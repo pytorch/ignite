@@ -120,7 +120,7 @@ class _XlaDistModel(ComputationModel):
             _XlaDistModel._dist_worker_task_fn,
             args=(backend, fn, args, kwargs_dict),
             nprocs=num_procs_per_node,
-            **spawn_kwargs
+            **spawn_kwargs,
         )
 
     _collective_op_dtype = torch.float32
