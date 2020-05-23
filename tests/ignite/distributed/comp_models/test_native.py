@@ -258,6 +258,7 @@ def _test__native_dist_model_spawn(backend, num_workers_per_machine, device):
     _NativeDistModel.spawn(
         _test_dist_spawn_fn,
         args=(backend, num_workers_per_machine, device),
+        kwargs_dict={},
         backend=backend,
         num_procs_per_node=num_workers_per_machine,
     )

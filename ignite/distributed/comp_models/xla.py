@@ -1,5 +1,4 @@
-from numbers import Number
-from typing import Optional, Union
+from typing import Callable, Mapping, Optional, Tuple
 
 import torch
 
@@ -97,16 +96,25 @@ class _XlaDistModel(ComputationModel):
         pass
 
     @staticmethod
-    def _dist_worker_task_fn(local_rank, backend, fn, args):
-        from ignite.distributed.utils import _set_model
+    def _dist_worker_task_fn(local_rank, backend, fn, args, kwargs_dict):
+        from ignite.distributed.utils import _set_model, finalize
 
         model = _XlaDistModel.create_from_backend(backend)
         _set_model(model)
-        fn(local_rank, *args)
-        model.finalize()
+        fn(local_rank, *args, **kwargs_dict)
+        finalize()
 
     @staticmethod
-    def spawn(fn, args, num_procs_per_node, num_nodes=1, node_rank=0, backend="xla-tpu", **kwargs):
+    def spawn(
+        fn: Callable,
+        args: Tuple,
+        kwargs_dict: Optional[Mapping] = None,
+        num_procs_per_node: int = 1,
+        num_nodes: int = 1,
+        node_rank: int = 0,
+        backend: str = "xla-tpu",
+        **kwargs
+    ):
         if not has_xla_support:
             raise RuntimeError("Torch xla package is not installed.")
 
@@ -117,7 +125,10 @@ class _XlaDistModel(ComputationModel):
             spawn_kwargs["start_method"] = "fork"
 
         xmp.spawn(
-            _XlaDistModel._dist_worker_task_fn, args=(backend, fn, args), nprocs=num_procs_per_node, **spawn_kwargs
+            _XlaDistModel._dist_worker_task_fn,
+            args=(backend, fn, args, kwargs_dict),
+            nprocs=num_procs_per_node,
+            **spawn_kwargs,
         )
 
     _collective_op_dtype = torch.float32

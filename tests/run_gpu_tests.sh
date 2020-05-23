@@ -10,7 +10,7 @@ set -xeu
 
 py.test -vvv tests/ -k 'on_cuda'
 
-if [ "$ws" == "1" ]; then
+if [ "$ws" -eq "1" ]; then
 
     py.test -vvv tests/ -m distributed
 

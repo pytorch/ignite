@@ -1,7 +1,7 @@
 import socket
 from functools import wraps
 from numbers import Number
-from typing import Optional, Tuple, Union
+from typing import Callable, Mapping, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -167,7 +167,14 @@ def hostname() -> str:
     return socket.gethostname()
 
 
-def spawn(backend, fn, args, num_procs_per_node, **kwargs):
+def spawn(
+    backend: str,
+    fn: Callable,
+    args: Tuple,
+    kwargs_dict: Optional[Mapping] = None,
+    num_procs_per_node: int = 1,
+    **kwargs
+):
     """Spawns `num_procs_per_node` processes that run `fn` with `args` and initialize distributed configuration
     defined by `backend`.
 
@@ -183,7 +190,7 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
 
             import ignite.distributed as idist
 
-            def train_fn(local_rank, a, b, c):
+            def train_fn(local_rank, a, b, c, d=12):
                 import torch.distributed as dist
                 assert dist.is_available() and dist.is_initialized()
                 assert dist.get_world_size() == 4
@@ -192,7 +199,7 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
                 assert device == torch.device("cuda:{}".format(local_rank))
 
 
-            idist.spawn("nccl", train_fn, args=(a, b, c), num_procs_per_node=4)
+            idist.spawn("nccl", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, num_procs_per_node=4)
 
 
         2) Launch multi-node multi-GPU training
@@ -238,7 +245,7 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
 
             import ignite.distributed as idist
 
-            def train_fn(local_rank, a, b, c):
+            def train_fn(local_rank, a, b, c, d=12):
                 import torch_xla.core.xla_model as xm
                 assert xm.get_world_size() == 8
 
@@ -246,28 +253,35 @@ def spawn(backend, fn, args, num_procs_per_node, **kwargs):
                 assert "xla" in device.type
 
 
-            idist.spawn("xla-tpu", train_fn, args=(a, b, c), num_procs_per_node=8)
+            idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, num_procs_per_node=8)
 
     Args:
-        backend (str): backend: `nccl`, `gloo`, `xla-tpu`
+        backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`
         fn (function): function to called as the entrypoint of the spawned process.
             This function must be defined at the top level of a module so it can be pickled and spawned.
-            This is a requirement imposed by multiprocessing. The function is called as `fn(i, *args)`, where `i` is
-            the process index and args is the passed through tuple of arguments.
-        args (tuple): arguments passed to `fn`
-        num_procs_per_node (int): number of processes to spawn on a single node.
+            This is a requirement imposed by multiprocessing. The function is called as `fn(i, *args, **kwargs_dict)`,
+            where `i` is the process index and args is the passed through tuple of arguments.
+        args (tuple): arguments passed to `fn`.
+        kwargs_dict (Mapping): kwargs passed to `fn`.
+        num_procs_per_node (int): number of processes to spawn on a single node. Default, 1.
         **kwargs: acceptable kwargs according to provided backend:
 
-            - "nccl" or "gloo" : `num_nodes` (=1), `node_rank` (=0), `master_addr` (0.0.0.0), `master_port` (2222)
+            - "nccl" or "gloo" : `num_nodes` (=1), `node_rank` (=0), `master_addr` ("127.0.0.1"), `master_port` (2222)
 
             - "xla-tpu" : `num_nodes` (=1), `node_rank` (=0)
 
     """
     _assert_backend(backend)
+
+    if kwargs_dict is None:
+        kwargs_dict = {}
+
     for comp_model_cls in registered_computation_models:
         if backend not in comp_model_cls.available_backends:
             continue
-        comp_model_cls.spawn(fn, args=args, num_procs_per_node=num_procs_per_node, backend=backend, **kwargs)
+        comp_model_cls.spawn(
+            fn, args=args, kwargs_dict=kwargs_dict, num_procs_per_node=num_procs_per_node, backend=backend, **kwargs
+        )
 
 
 @_sync_model_wrapper
@@ -335,8 +349,11 @@ def set_local_rank(index: int):
 
 
 def _set_model(model):
-    global _model
+    global _model, _need_to_sync
     _model = model
+    _need_to_sync = True
+    if not isinstance(_model, _SerialModel):
+        _need_to_sync = False
 
 
 def _assert_backend(backend):
@@ -395,7 +412,7 @@ def initialize(backend: str, **kwargs):
     for comp_model_cls in registered_computation_models:
         if backend not in comp_model_cls.available_backends:
             continue
-        _model = comp_model_cls(backend, **kwargs)
+        _set_model(comp_model_cls(backend, **kwargs))
 
     _need_to_sync = False
 
@@ -404,9 +421,8 @@ def finalize():
     """Finalizes distributed configuration. For example, in case of native pytorch distributed configuration,
     it calls `dist.destroy_process_group()`.
     """
-    global _need_to_sync
     _model.finalize()
-    _need_to_sync = True
+    _set_model(_SerialModel())
 
 
 def show_config():

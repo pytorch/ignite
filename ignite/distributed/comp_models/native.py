@@ -1,7 +1,7 @@
 import os
 import subprocess
 import warnings
-from typing import Optional, Union
+from typing import Callable, Mapping, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -223,9 +223,9 @@ class _NativeDistModel(ComputationModel):
 
     @staticmethod
     def _dist_worker_task_fn(
-        local_rank, backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args
+        local_rank, backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args, kwargs_dict
     ):
-        from ignite.distributed.utils import _set_model
+        from ignite.distributed.utils import _set_model, finalize
 
         copy_env_vars = dict(os.environ)
 
@@ -237,28 +237,29 @@ class _NativeDistModel(ComputationModel):
 
         model = _NativeDistModel.create_from_backend(backend)
         _set_model(model)
-        fn(local_rank, *args)
-        model.finalize()
+        fn(local_rank, *args, **kwargs_dict)
+        finalize()
 
         os.environ = copy_env_vars
 
     @staticmethod
     def spawn(
-        fn,
-        args,
-        num_procs_per_node,
-        num_nodes=1,
-        node_rank=0,
-        master_addr="0.0.0.0",
-        master_port=2222,
-        backend="nccl",
+        fn: Callable,
+        args: Tuple,
+        kwargs_dict: Optional[Mapping] = None,
+        num_procs_per_node: int = 1,
+        num_nodes: int = 1,
+        node_rank: int = 0,
+        master_addr: str = "0.0.0.0",
+        master_port: int = 2222,
+        backend: str = "nccl",
         **kwargs
     ):
         world_size = num_nodes * num_procs_per_node
         mp.spawn(
             _NativeDistModel._dist_worker_task_fn,
             nprocs=num_procs_per_node,
-            args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args),
+            args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args, kwargs_dict),
             daemon=False,
         )
 
