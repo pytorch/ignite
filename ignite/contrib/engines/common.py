@@ -83,12 +83,11 @@ def setup_common_training_handlers(
         log_every_iters=log_every_iters,
         stop_on_nan=stop_on_nan,
     )
-    from ignite.distributed.utils import _SerialModel
 
-    if idist.model_name() != _SerialModel.name:
+    if idist.get_world_size() > 1:
         _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
     else:
-        if train_sampler is not None:
+        if train_sampler is not None and hasattr(train_sampler, "set_epoch"):
             warnings.warn(
                 "Argument train_sampler distributed sampler used to call `set_epoch` method on epoch "
                 "started event, but no distributed setting detected",

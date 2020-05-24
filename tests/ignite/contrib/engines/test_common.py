@@ -129,13 +129,24 @@ def test_asserts_setup_common_training_handlers():
         UserWarning, match=r"Argument train_sampler distributed sampler used to call `set_epoch` method on epoch"
     ):
         train_sampler = MagicMock()
+        train_sampler.set_epoch = MagicMock()
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
     with pytest.warns(UserWarning, match=r"Argument device is unused and deprecated"):
         setup_common_training_handlers(trainer, device="cpu")
 
 
+def test_no_warning_with_train_sampler(recwarn):
+    from torch.utils.data import RandomSampler
+
+    trainer = Engine(lambda e, b: None)
+    train_sampler = RandomSampler([0, 1, 2])
+    setup_common_training_handlers(trainer, train_sampler=train_sampler)
+    assert len(recwarn) == 0, recwarn.pop()
+
+
 @pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Should have more than 1 worker")
 def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_context_single_node_gloo):
     trainer = Engine(lambda e, b: None)
 
