@@ -2,7 +2,7 @@ import os
 import tempfile
 import warnings
 from datetime import datetime
-from typing import Mapping, Optional, Any
+from typing import Any, Mapping, Optional
 
 import torch
 

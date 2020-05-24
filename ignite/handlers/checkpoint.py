@@ -5,7 +5,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
-from typing import Callable, Mapping, Optional, Union, Any
+from typing import Any, Callable, Mapping, Optional, Union
 
 import torch
 

@@ -1,14 +1,14 @@
 import numbers
 import warnings
-from typing import Any, Optional, Union, List, Dict
 from collections.abc import Mapping, Sequence
 from functools import partial
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-from torch.optim.optimizer import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
-from torch.utils.data import DistributedSampler
 import torch.distributed as dist
+from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.optimizer import Optimizer
+from torch.utils.data import DistributedSampler
 
 from ignite.contrib.handlers import (
     MLflowLogger,
