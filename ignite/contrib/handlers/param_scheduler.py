@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
-from typing import List, Tuple, Optional, Union, Any
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -533,7 +533,14 @@ class ConcatScheduler(ParamScheduler):
         return self._current_scheduler.get_param()
 
     @classmethod
-    def simulate_values(cls, num_events: int, schedulers: List[ParamScheduler], durations: List[int], param_names: Optional[Union[List[str], Tuple[str]]] = None, **kwargs: Any):
+    def simulate_values(
+        cls,
+        num_events: int,
+        schedulers: List[ParamScheduler],
+        durations: List[int],
+        param_names: Optional[Union[List[str], Tuple[str]]] = None,
+        **kwargs: Any
+    ):
         """Method to simulate scheduled values during num_events events.
 
         Args:

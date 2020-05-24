@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, Any
+from typing import Any, Callable
 
 
 def _check_signature(fn: Callable, fn_description: str, *args: Any, **kwargs: Any) -> None:

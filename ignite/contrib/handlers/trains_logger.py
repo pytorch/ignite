@@ -2,7 +2,7 @@ import os
 import tempfile
 import warnings
 from datetime import datetime
-from typing import Mapping, Optional, Any
+from typing import Any, Mapping, Optional
 
 import torch
 
@@ -613,7 +613,9 @@ class TrainsSaver(DiskSaver):
 
     """
 
-    def __init__(self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args: Any, **kwargs: Any):
+    def __init__(
+        self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args: Any, **kwargs: Any
+    ):
         try:
             from trains import Task
         except ImportError:

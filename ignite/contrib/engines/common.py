@@ -1,14 +1,14 @@
 import numbers
 import warnings
-from typing import Any, Optional, Union, List, Dict
 from collections.abc import Mapping, Sequence
 from functools import partial
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-from torch.optim.optimizer import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
-from torch.utils.data import DistributedSampler
 import torch.distributed as dist
+from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.optimizer import Optimizer
+from torch.utils.data import DistributedSampler
 
 from ignite.contrib.handlers import (
     MLflowLogger,
@@ -486,7 +486,7 @@ def save_best_model_by_val_score(
     metric_name: str,
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
-    tag: str = "val"
+    tag: str = "val",
 ):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
     provided by `evaluator`.
@@ -521,12 +521,7 @@ def save_best_model_by_val_score(
     return best_model_handler
 
 
-def add_early_stopping_by_val_score(
-    patience: int,
-    evaluator: Engine,
-    trainer: Engine,
-    metric_name: str
-):
+def add_early_stopping_by_val_score(patience: int, evaluator: Engine, trainer: Engine, metric_name: str):
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
 
     Args:
