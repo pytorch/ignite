@@ -57,8 +57,8 @@ class Checkpoint:
     storage, etc.
 
     Args:
-        to_save (Mapping, optional): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
-            load_state_dict` methods.
+        to_save (Mapping, optional): Dictionary with the objects to save. Objects should have implemented `state_dict`
+            and `load_state_dict` methods.
         save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If `save_handler` is callable class, it can
