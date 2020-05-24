@@ -533,7 +533,14 @@ class ConcatScheduler(ParamScheduler):
         return self._current_scheduler.get_param()
 
     @classmethod
-    def simulate_values(cls, num_events: int, schedulers: List[ParamScheduler], durations: List[int], param_names: Optional[Union[List[str], Tuple[str]]] = None, **kwargs: Any):
+    def simulate_values(
+        cls,
+        num_events: int,
+        schedulers: List[ParamScheduler],
+        durations: List[int],
+        param_names: Optional[Union[List[str], Tuple[str]]] = None,
+        **kwargs: Any
+    ):
         """Method to simulate scheduled values during num_events events.
 
         Args:

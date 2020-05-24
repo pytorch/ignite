@@ -486,7 +486,7 @@ def save_best_model_by_val_score(
     metric_name: str,
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
-    tag: str = "val"
+    tag: str = "val",
 ):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
     provided by `evaluator`.
@@ -521,12 +521,7 @@ def save_best_model_by_val_score(
     return best_model_handler
 
 
-def add_early_stopping_by_val_score(
-    patience: int,
-    evaluator: Engine,
-    trainer: Engine,
-    metric_name: str
-):
+def add_early_stopping_by_val_score(patience: int, evaluator: Engine, trainer: Engine, metric_name: str):
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
 
     Args:
