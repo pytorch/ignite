@@ -2,7 +2,7 @@ import random
 import warnings
 from collections import OrderedDict
 from functools import wraps
-from typing import Callable, Generator, Iterator, Optional
+from typing import Callable, Generator, Iterator, Optional, Any
 
 import torch
 from torch.utils.data import DataLoader
@@ -124,7 +124,7 @@ def keep_random_state(func: Callable):
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any):
         rng_states = _get_rng_states()
         func(*args, **kwargs)
         _set_rng_states(rng_states)

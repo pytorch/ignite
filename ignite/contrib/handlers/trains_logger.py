@@ -2,7 +2,7 @@ import os
 import tempfile
 import warnings
 from datetime import datetime
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Any
 
 import torch
 
@@ -499,7 +499,7 @@ class TrainsLogger(BaseLogger):
 
     """
 
-    def __init__(self, *_, **kwargs):
+    def __init__(self, *_: Any, **kwargs: Any):
         try:
             import trains
         except ImportError:
@@ -565,10 +565,10 @@ class TrainsLogger(BaseLogger):
     def close(self):
         self.trains_logger.flush()
 
-    def _create_output_handler(self, *args, **kwargs):
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         return OptimizerParamsHandler(*args, **kwargs)
 
 
@@ -613,7 +613,7 @@ class TrainsSaver(DiskSaver):
 
     """
 
-    def __init__(self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args, **kwargs):
+    def __init__(self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args: Any, **kwargs: Any):
         try:
             from trains import Task
         except ImportError:

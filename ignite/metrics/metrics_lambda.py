@@ -1,7 +1,7 @@
 import itertools
 from typing import Any, Callable, Union
 
-from ignite.engine import Engine, Events
+from ignite.engine import Engine
 from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced
 
 __all__ = ["MetricsLambda"]
@@ -62,7 +62,7 @@ class MetricsLambda(Metric):
 
     """
 
-    def __init__(self, f: Callable, *args, **kwargs):
+    def __init__(self, f: Callable, *args: Any, **kwargs: Any):
         self.function = f
         self.args = args
         self.kwargs = kwargs

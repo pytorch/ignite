@@ -1,5 +1,6 @@
 import numbers
 import warnings
+from typing import Any
 
 import torch
 
@@ -492,7 +493,7 @@ class TensorboardLogger(BaseLogger):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
@@ -510,8 +511,8 @@ class TensorboardLogger(BaseLogger):
     def close(self):
         self.writer.close()
 
-    def _create_output_handler(self, *args, **kwargs):
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         return OptimizerParamsHandler(*args, **kwargs)

@@ -1,5 +1,6 @@
 import numbers
 import warnings
+from typing import Any
 
 import torch
 
@@ -287,7 +288,7 @@ class MLflowLogger(BaseLogger):
 
         import mlflow
 
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any):
             return getattr(mlflow, attr)(*args, **kwargs)
 
         return wrapper
@@ -297,8 +298,8 @@ class MLflowLogger(BaseLogger):
 
         mlflow.end_run()
 
-    def _create_output_handler(self, *args, **kwargs):
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         return OptimizerParamsHandler(*args, **kwargs)

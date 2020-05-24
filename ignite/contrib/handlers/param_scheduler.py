@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
-from typing import List, Optional, Union
+from typing import List, Tuple, Optional, Union, Any
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -127,7 +127,7 @@ class ParamScheduler(metaclass=ABCMeta):
         pass
 
     @classmethod
-    def simulate_values(cls, num_events, **scheduler_kwargs):
+    def simulate_values(cls, num_events: int, **scheduler_kwargs: Any):
         """Method to simulate scheduled values during `num_events` events.
 
         Args:
@@ -163,7 +163,7 @@ class ParamScheduler(metaclass=ABCMeta):
         return values
 
     @classmethod
-    def plot_values(cls, num_events, **scheduler_kwargs):
+    def plot_values(cls, num_events: int, **scheduler_kwargs: Any):
         """Method to plot simulated scheduled values during `num_events` events.
 
         This class requires `matplotlib package <https://matplotlib.org/>`_ to be installed:
@@ -533,7 +533,7 @@ class ConcatScheduler(ParamScheduler):
         return self._current_scheduler.get_param()
 
     @classmethod
-    def simulate_values(cls, num_events, schedulers, durations, param_names=None, **kwargs):
+    def simulate_values(cls, num_events: int, schedulers: List[ParamScheduler], durations: List[int], param_names: Optional[Union[List[str], Tuple[str]]] = None, **kwargs: Any):
         """Method to simulate scheduled values during num_events events.
 
         Args:
@@ -591,7 +591,7 @@ class LRScheduler(ParamScheduler):
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
 
-    def __init__(self, lr_scheduler, save_history=False, **kwds):
+    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False, **kwds: Any):
 
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
@@ -624,7 +624,7 @@ class LRScheduler(ParamScheduler):
             return lr_list
 
     @classmethod
-    def simulate_values(cls, num_events, lr_scheduler, **kwargs):
+    def simulate_values(cls, num_events: int, lr_scheduler: _LRScheduler, **kwargs: Any) -> List[Tuple[int, float]]:
         """Method to simulate scheduled values during num_events events.
 
         Args:
@@ -665,12 +665,12 @@ class LRScheduler(ParamScheduler):
 
 
 def create_lr_scheduler_with_warmup(
-    lr_scheduler,
-    warmup_start_value,
-    warmup_duration,
-    warmup_end_value=None,
-    save_history=False,
-    output_simulated_values=None,
+    lr_scheduler: Union[ParamScheduler, _LRScheduler],
+    warmup_start_value: float,
+    warmup_duration: int,
+    warmup_end_value: Optional[float] = None,
+    save_history: bool = False,
+    output_simulated_values: Optional[List[float]] = None,
 ):
     """
     Helper method to create a learning rate scheduler with a linear warm-up.
@@ -970,7 +970,7 @@ class ParamGroupScheduler(ParamScheduler):
             s.load_state_dict(sd)
 
     @classmethod
-    def simulate_values(cls, num_events, schedulers, **kwargs):
+    def simulate_values(cls, num_events: int, schedulers: _LRScheduler, **kwargs: Any):
         """Method to simulate scheduled values during num_events events.
 
         Args:
@@ -1012,7 +1012,7 @@ def _replicate_scheduler(scheduler, save_history=False):
         raise TypeError("Unknown scheduler type {}".format(type(scheduler)))
 
 
-def _get_fake_optimizer(optimizer_cls=None, **kwargs):
+def _get_fake_optimizer(optimizer_cls=None, **kwargs: Any):
     t = torch.zeros([1], requires_grad=True)
     if optimizer_cls is None:
         optimizer_cls = torch.optim.SGD

@@ -184,7 +184,7 @@ def one_rank_only(rank: int = 0, barrier: bool = False):
 
     def _one_rank_only(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any):
             ret = None
             if dist.get_rank() == rank:
                 ret = func(*args, **kwargs)

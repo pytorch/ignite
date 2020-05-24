@@ -1,7 +1,7 @@
 import numbers
 import tempfile
 import warnings
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Any
 
 import torch
 
@@ -478,12 +478,12 @@ class NeptuneLogger(BaseLogger):
 
         import neptune
 
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any):
             return getattr(neptune, attr)(*args, **kwargs)
 
         return wrapper
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             import neptune
         except ImportError:
@@ -509,10 +509,10 @@ class NeptuneLogger(BaseLogger):
     def close(self):
         self.stop()
 
-    def _create_output_handler(self, *args, **kwargs):
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         return OptimizerParamsHandler(*args, **kwargs)
 
 

@@ -203,7 +203,7 @@ class Engine(Serializable):
         # signature of the following wrapper will be inspected during registering to check if engine is necessary
         # we have to build a wrapper with relevant signature : solution is functools.wraps
         @functools.wraps(handler)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             event = self.state.get_event_attrib_value(event_name)
             if event_filter(self, event):
                 return handler(*args, **kwargs)
@@ -212,7 +212,7 @@ class Engine(Serializable):
         wrapper._parent = weakref.ref(handler)
         return wrapper
 
-    def add_event_handler(self, event_name: Any, handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any):
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
@@ -338,7 +338,7 @@ class Engine(Serializable):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
 
-    def on(self, event_name, *args, **kwargs):
+    def on(self, event_name, *args: Any, **kwargs: Any):
         """Decorator shortcut for add_event_handler.
 
         Args:
@@ -369,7 +369,7 @@ class Engine(Serializable):
 
         return decorator
 
-    def _fire_event(self, event_name: Any, *event_args, **event_kwargs) -> None:
+    def _fire_event(self, event_name: Any, *event_args: Any, **event_kwargs: Any) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event

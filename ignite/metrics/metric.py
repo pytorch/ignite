@@ -105,7 +105,7 @@ class BatchFiltered(MetricUsage):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
@@ -452,10 +452,10 @@ class Metric(metaclass=ABCMeta):
     def __getattr__(self, attr: str) -> Callable:
         from ignite.metrics.metrics_lambda import MetricsLambda
 
-        def fn(x, *args, **kwargs):
+        def fn(x: Any, *args: Any, **kwargs: Any):
             return getattr(x, attr)(*args, **kwargs)
 
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any):
             return MetricsLambda(fn, self, *args, **kwargs)
 
         return wrapper

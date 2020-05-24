@@ -5,7 +5,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
-from typing import Callable, Mapping, Optional, Union
+from typing import Callable, Mapping, Optional, Union, Any
 
 import torch
 
@@ -57,7 +57,7 @@ class Checkpoint:
     storage, etc.
 
     Args:
-        to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
+        to_save (Mapping, optional): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
             load_state_dict` methods.
         save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
@@ -166,7 +166,7 @@ class Checkpoint:
 
     def __init__(
         self,
-        to_save: Mapping,
+        to_save: Optional[Mapping],
         save_handler: Union[Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
@@ -294,7 +294,7 @@ class Checkpoint:
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
+    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs: Any) -> None:
         """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
 
         Exemples:

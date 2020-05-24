@@ -1,6 +1,7 @@
 import numbers
 import os
 import warnings
+from typing import Any
 
 import torch
 
@@ -454,7 +455,7 @@ class VisdomLogger(BaseLogger):
 
     """
 
-    def __init__(self, server=None, port=None, num_workers=1, **kwargs):
+    def __init__(self, server=None, port=None, num_workers=1, **kwargs: Any):
         try:
             import visdom
         except ImportError:
@@ -511,10 +512,10 @@ class VisdomLogger(BaseLogger):
         self.vis = None
         self.executor.shutdown()
 
-    def _create_output_handler(self, *args, **kwargs):
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         return OptimizerParamsHandler(*args, **kwargs)
 
 
@@ -526,11 +527,11 @@ class _DummyExecutor:
         def result(self):
             return self._output
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         pass
 
-    def submit(self, fn, **kwargs):
+    def submit(self, fn, **kwargs: Any):
         return _DummyExecutor._DummyFuture(fn(**kwargs))
 
-    def shutdown(self, *args, **kwargs):
+    def shutdown(self, *args: Any, **kwargs: Any):
         pass

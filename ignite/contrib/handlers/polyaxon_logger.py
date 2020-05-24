@@ -1,5 +1,6 @@
 import numbers
 import warnings
+from typing import Any
 
 import torch
 
@@ -259,7 +260,7 @@ class PolyaxonLogger(BaseLogger):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             from polyaxon_client.tracking import Experiment
         except ImportError:
@@ -270,14 +271,14 @@ class PolyaxonLogger(BaseLogger):
 
         self.experiment = Experiment(*args, **kwargs)
 
-    def __getattr__(self, attr):
-        def wrapper(*args, **kwargs):
+    def __getattr__(self, attr: Any):
+        def wrapper(*args: Any, **kwargs: Any):
             return getattr(self.experiment, attr)(*args, **kwargs)
 
         return wrapper
 
-    def _create_output_handler(self, *args, **kwargs):
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         return OptimizerParamsHandler(*args, **kwargs)

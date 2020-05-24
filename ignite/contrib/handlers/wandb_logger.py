@@ -1,3 +1,5 @@
+from typing import Any
+
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
@@ -301,7 +303,7 @@ class WandBLogger(BaseLogger):
                 Events.COMPLETED, model_checkpoint, {'model': model})
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             import wandb
 
@@ -317,8 +319,8 @@ class WandBLogger(BaseLogger):
     def __getattr__(self, attr):
         return getattr(self._wandb, attr)
 
-    def _create_output_handler(self, *args, **kwargs):
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         return OptimizerParamsHandler(*args, **kwargs)

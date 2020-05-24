@@ -1,9 +1,13 @@
 import numbers
 import warnings
+from typing import Any, Optional, Union, List, Dict
 from collections.abc import Mapping, Sequence
 from functools import partial
 
 import torch
+from torch.optim.optimizer import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
+from torch.utils.data import DistributedSampler
 import torch.distributed as dist
 
 from ignite.contrib.handlers import (
@@ -17,6 +21,7 @@ from ignite.contrib.handlers import (
     WandBLogger,
     global_step_from_engine,
 )
+from ignite.contrib.handlers.param_scheduler import ParamScheduler
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
 from ignite.handlers import EarlyStopping, ModelCheckpoint, TerminateOnNan
@@ -24,18 +29,18 @@ from ignite.metrics import RunningAverage
 
 
 def setup_common_training_handlers(
-    trainer,
-    train_sampler=None,
-    to_save=None,
-    save_every_iters=1000,
-    output_path=None,
-    lr_scheduler=None,
-    with_gpu_stats=False,
-    output_names=None,
-    with_pbars=True,
-    with_pbar_on_iters=True,
-    log_every_iters=100,
-    device="cuda",
+    trainer: Engine,
+    train_sampler: Optional[DistributedSampler] = None,
+    to_save: Mapping = None,
+    save_every_iters: int = 1000,
+    output_path: Optional[str] = None,
+    lr_scheduler: Optional[Union[ParamScheduler, _LRScheduler]] = None,
+    with_gpu_stats: bool = False,
+    output_names: List[str] = None,
+    with_pbars: bool = True,
+    with_pbar_on_iters: bool = True,
+    log_every_iters: int = 100,
+    device: str = "cuda",
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -254,7 +259,14 @@ def _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters):
             )
 
 
-def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_tb_logging(
+    output_path: str,
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any
+):
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -279,7 +291,13 @@ def setup_tb_logging(output_path, trainer, optimizers=None, evaluators=None, log
     return logger
 
 
-def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_visdom_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any
+):
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -303,7 +321,13 @@ def setup_visdom_logging(trainer, optimizers=None, evaluators=None, log_every_it
     return logger
 
 
-def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_mlflow_logging(
+    trainer,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any
+):
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -327,7 +351,13 @@ def setup_mlflow_logging(trainer, optimizers=None, evaluators=None, log_every_it
     return logger
 
 
-def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_neptune_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any
+):
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -351,7 +381,13 @@ def setup_neptune_logging(trainer, optimizers=None, evaluators=None, log_every_i
     return logger
 
 
-def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_wandb_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any
+):
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -375,7 +411,13 @@ def setup_wandb_logging(trainer, optimizers=None, evaluators=None, log_every_ite
     return logger
 
 
-def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_plx_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any
+):
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -399,7 +441,13 @@ def setup_plx_logging(trainer, optimizers=None, evaluators=None, log_every_iters
     return logger
 
 
-def setup_trains_logging(trainer, optimizers=None, evaluators=None, log_every_iters=100, **kwargs):
+def setup_trains_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any
+):
     """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -423,15 +471,23 @@ def setup_trains_logging(trainer, optimizers=None, evaluators=None, log_every_it
     return logger
 
 
-def get_default_score_fn(metric_name):
-    def wrapper(engine):
+def get_default_score_fn(metric_name: str):
+    def wrapper(engine: Engine):
         score = engine.state.metrics[metric_name]
         return score
 
     return wrapper
 
 
-def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3, trainer=None, tag="val"):
+def save_best_model_by_val_score(
+    output_path: str,
+    evaluator: Engine,
+    model: torch.nn.Module,
+    metric_name: str,
+    n_saved: int = 3,
+    trainer: Optional[Engine] = None,
+    tag: str = "val"
+):
     """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
     provided by `evaluator`.
 
@@ -465,7 +521,12 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
     return best_model_handler
 
 
-def add_early_stopping_by_val_score(patience, evaluator, trainer, metric_name):
+def add_early_stopping_by_val_score(
+    patience: int,
+    evaluator: Engine,
+    trainer: Engine,
+    metric_name: str
+):
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
 
     Args:
