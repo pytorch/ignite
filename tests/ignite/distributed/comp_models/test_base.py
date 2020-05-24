@@ -14,7 +14,10 @@ def test_serial_model():
     assert model.get_ntasks_per_node() == 1
     assert model.get_num_nodes() == 1
     assert model.get_node_rank() == 0
-    assert model.device() == torch.device("cpu")
+    if torch.cuda.is_available():
+        assert model.device().type == "cuda"
+    else:
+        assert model.device().type == "cpu"
     assert model.backend() is None
     model.finalize()
 

@@ -26,7 +26,10 @@ def test_no_distrib(capsys):
     print("test_no_distrib : _model", type(_model))
 
     assert idist.backend() is None
-    assert idist.device().type == "cpu"
+    if torch.cuda.is_available():
+        assert idist.device().type == "cuda"
+    else:
+        assert idist.device().type == "cpu"
     assert idist.get_rank() == 0
     assert idist.get_world_size() == 1
     assert idist.get_local_rank() == 0
@@ -44,7 +47,10 @@ def test_no_distrib(capsys):
     out = list(filter(None, out))
     assert "ignite.distributed.utils INFO: distributed configuration: serial" in out[-1]
     assert "ignite.distributed.utils INFO: backend: None" in out[-1]
-    assert "ignite.distributed.utils INFO: device: cpu" in out[-1]
+    if torch.cuda.is_available():
+        assert "ignite.distributed.utils INFO: device: cuda" in out[-1]
+    else:
+        assert "ignite.distributed.utils INFO: device: cpu" in out[-1]
     assert "ignite.distributed.utils INFO: rank: 0" in out[-1]
     assert "ignite.distributed.utils INFO: local rank: 0" in out[-1]
     assert "ignite.distributed.utils INFO: world size: 1" in out[-1]

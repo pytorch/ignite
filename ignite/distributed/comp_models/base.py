@@ -144,6 +144,8 @@ class _SerialModel(ComputationModel):
         return 0
 
     def device(self) -> torch.device:
+        if torch.cuda.is_available():
+            return torch.device("cuda")
         return torch.device("cpu")
 
     def backend(self) -> None:
