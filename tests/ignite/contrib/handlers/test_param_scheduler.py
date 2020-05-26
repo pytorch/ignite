@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import torch
-from torch.optim.lr_scheduler import ExponentialLR, StepLR
+from torch.optim.lr_scheduler import ExponentialLR, StepLR, MultiplicativeLR
 
 from ignite.contrib.handlers.param_scheduler import (
     ConcatScheduler,
@@ -565,7 +565,7 @@ def test_lr_scheduler_asserts():
 
 
 def test_lr_scheduler():
-    def _test(torch_lr_scheduler_cls, **kwargs):
+    def _test(torch_lr_scheduler_cls, use_step=False, **kwargs):
 
         tensor = torch.zeros([1], requires_grad=True)
         optimizer1 = torch.optim.SGD([tensor], lr=0.01)
@@ -618,27 +618,17 @@ def test_lr_scheduler():
         torch_lr_scheduler3 = torch_lr_scheduler_cls(optimizer=optimizer3, **kwargs)
 
         simulated_values = LRScheduler.simulate_values(
-            num_events=len(data) * max_epochs, lr_scheduler=torch_lr_scheduler3
+            num_events=len(data) * max_epochs, lr_scheduler=torch_lr_scheduler3, use_step=use_step
         )
+        for a, b in zip(lrs, [v for i, v in simulated_values]):
+            print(a, b)
         assert lrs == pytest.approx([v for i, v in simulated_values])
 
     _test(torch.optim.lr_scheduler.StepLR, step_size=5, gamma=0.5)
     _test(torch.optim.lr_scheduler.ExponentialLR, gamma=0.78)
-
-    # test _replicate_lr_scheduler
-    tensor = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([tensor], lr=0.01)
-    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.78)
-    init_lr_scheduler_state = dict(lr_scheduler.state_dict())
-    copy_lr_scheduler = LRScheduler._replicate_lr_scheduler(lr_scheduler)
-    for _ in range(10):
-        optimizer.step()
-        lr_scheduler.step()
-
-    assert copy_lr_scheduler.state_dict() == init_lr_scheduler_state
-
-    with pytest.raises(TypeError):
-        LRScheduler._replicate_lr_scheduler(12)
+    _test(torch.optim.lr_scheduler.MultiplicativeLR, lr_lambda=lambda epoch: 0.95)
+    # bug #813
+    #_test(torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, T_0=10, T_mult=10)
 
 
 def test_piecewiselinear_asserts():
