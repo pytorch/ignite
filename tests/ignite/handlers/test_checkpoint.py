@@ -901,3 +901,16 @@ def test_distrib_single_device_xla(dirname):
     assert "xla" in idist.device().type
     _test_tpu_saves_to_cpu(idist.device(), os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
+
+
+def _test_tpu_saves_to_cpu_nprocs(index, dirname):
+    _test_tpu_saves_to_cpu(idist.device(), os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla_nprocs(dirname, xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname, ), nprocs=n)

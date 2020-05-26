@@ -22,6 +22,14 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
     - :meth:`~ignite.handlers.checkpoint.BaseSaveHandler.__call__`
     - :meth:`~ignite.handlers.checkpoint.BaseSaveHandler.remove`
+
+
+    Note:
+        In derived class, please, make sure that in distributed configuration overridden methods are called by a single
+        process. Distributed configuration on XLA devices should be treated slightly differently: for saving checkpoint
+        with `xm.save() <https://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.save>`_  all processes
+        should pass into the function. Otherwise, application gets stuck.
+
     """
 
     @abstractmethod
@@ -48,6 +56,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
         Args:
             filename (str): filename associated with checkpoint.
+
         """
         pass
 
@@ -55,8 +64,8 @@ class BaseSaveHandler(metaclass=ABCMeta):
 class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
-    storage, etc. The Checkpoint handler also handles automatically moving data on TPU to CPU before writing
-    the checkpoint.
+    storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
+    moving data on TPU to CPU before writing the checkpoint.
 
     Args:
         to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
@@ -114,6 +123,27 @@ class Checkpoint:
             ...
             print(handler.last_checkpoint)
             > checkpoint_12345.pt
+
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and if used with
+        :class:`~ignite.handlers.DiskSaver`, checkpoint is stored by rank 0 process.
+
+    .. warning::
+
+        When running on TPUs, it should be run in all processes, otherwise application can get stuck on saving the
+        checkpoint.
+
+        .. code-block:: python
+
+            # Wrong:
+            # if idist.get_rank() == 0:
+            #     handler = Checkpoint(...)
+            #     trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
+
+            # Correct:
+            handler = Checkpoint(...)
+            trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
 
     Examples:
 
@@ -392,25 +422,37 @@ class DiskSaver(BaseSaveHandler):
         if not self._atomic:
             self._save(checkpoint, path)
         else:
-            tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
+            # All these conditions due to pytorch/xla xm.save behaviour: all processes should pass into xm.save
+            tmp_file = None
+            tmp_name = None
+            tmp = None
+            zero_rank = idist.get_rank() == 0
+            if zero_rank:
+                tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
+                tmp_file = tmp.file
+                tmp_name = tmp.name
             try:
-                self._save(checkpoint, tmp.file)
+                self._save(checkpoint, tmp_file)
             except BaseException:
-                tmp.close()
-                os.remove(tmp.name)
+                if zero_rank:
+                    tmp.close()
+                    os.remove(tmp_name)
                 raise
             else:
-                tmp.close()
-                os.rename(tmp.name, path)
+                if zero_rank:
+                    tmp.close()
+                    os.rename(tmp_name, path)
 
     def _save(self, checkpoint: Mapping, filename: str):
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
 
+            # all tpu procs should enter here as internally performs sync across device
             xm.save(checkpoint, filename)
         elif idist.get_rank() == 0:
             torch.save(checkpoint, filename)
 
+    @idist.one_rank_only()
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
         os.remove(path)
