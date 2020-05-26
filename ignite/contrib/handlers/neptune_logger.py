@@ -12,6 +12,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
     global_step_from_engine,
+    one_rank_only,
 )
 from ignite.handlers.checkpoint import BaseSaveHandler
 
@@ -483,6 +484,7 @@ class NeptuneLogger(BaseLogger):
 
         return wrapper
 
+    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             import neptune
@@ -506,6 +508,7 @@ class NeptuneLogger(BaseLogger):
 
         self.experiment = neptune.create_experiment(**self._experiment_kwargs)
 
+    @one_rank_only()
     def close(self):
         self.stop()
 
@@ -574,11 +577,13 @@ class NeptuneSaver(BaseSaveHandler):
     def __init__(self, neptune_logger: NeptuneLogger):
         self._logger = neptune_logger
 
+    @one_rank_only()
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
 
         with tempfile.NamedTemporaryFile() as tmp:
             torch.save(checkpoint, tmp.name)
             self._logger.log_artifact(tmp.name, filename)
 
+    @one_rank_only()
     def remove(self, filename: str) -> None:
         self._logger.delete_artifacts(filename)

@@ -3,6 +3,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     global_step_from_engine,
+    one_rank_only,
 )
 
 __all__ = ["WandBLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -301,6 +302,7 @@ class WandBLogger(BaseLogger):
                 Events.COMPLETED, model_checkpoint, {'model': model})
     """
 
+    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             import wandb

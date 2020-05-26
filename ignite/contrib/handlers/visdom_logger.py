@@ -10,6 +10,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
     global_step_from_engine,
+    one_rank_only,
 )
 
 __all__ = [
@@ -454,6 +455,7 @@ class VisdomLogger(BaseLogger):
 
     """
 
+    @one_rank_only()
     def __init__(self, server=None, port=None, num_workers=1, **kwargs):
         try:
             import visdom
@@ -507,6 +509,7 @@ class VisdomLogger(BaseLogger):
     def _save(self):
         self.vis.save([self.vis.env])
 
+    @one_rank_only()
     def close(self):
         self.vis = None
         self.executor.shutdown()

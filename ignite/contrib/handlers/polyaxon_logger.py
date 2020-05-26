@@ -8,6 +8,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     global_step_from_engine,
+    one_rank_only,
 )
 
 __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -259,6 +260,7 @@ class PolyaxonLogger(BaseLogger):
 
     """
 
+    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             from polyaxon_client.tracking import Experiment

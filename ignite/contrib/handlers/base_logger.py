@@ -7,6 +7,7 @@ import torch
 
 from ignite.engine import Engine, State
 from ignite.handlers import global_step_from_engine
+from ignite.distributed import one_rank_only
 
 
 class BaseHandler(metaclass=ABCMeta):
@@ -136,6 +137,7 @@ class BaseLogger(metaclass=ABCMeta):
 
     """
 
+    @one_rank_only()
     def attach(self, engine, log_handler, event_name):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
@@ -155,6 +157,7 @@ class BaseLogger(metaclass=ABCMeta):
 
         return engine.add_event_handler(event_name, log_handler, self, name)
 
+    @one_rank_only()
     def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Mapping):
         """Shortcut method to attach `OutputHandler` to the logger.
 
@@ -170,6 +173,7 @@ class BaseLogger(metaclass=ABCMeta):
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
+    @one_rank_only()
     def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Mapping):
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 

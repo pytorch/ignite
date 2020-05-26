@@ -13,6 +13,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
     global_step_from_engine,
+    one_rank_only,
 )
 from ignite.handlers.checkpoint import DiskSaver
 
@@ -499,6 +500,7 @@ class TrainsLogger(BaseLogger):
 
     """
 
+    @one_rank_only()
     def __init__(self, *_, **kwargs):
         try:
             import trains
@@ -562,6 +564,7 @@ class TrainsLogger(BaseLogger):
         """
         return getattr(cls, "_bypass", bool(os.environ.get("CI")))
 
+    @one_rank_only()
     def close(self):
         self.trains_logger.flush()
 
@@ -613,6 +616,7 @@ class TrainsSaver(DiskSaver):
 
     """
 
+    @one_rank_only()
     def __init__(self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args, **kwargs):
         try:
             from trains import Task
@@ -643,6 +647,7 @@ class TrainsSaver(DiskSaver):
         if output_uri:
             self.task.output_uri = output_uri
 
+    @one_rank_only()
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         super(TrainsSaver, self).__call__(checkpoint, filename, metadata)
 
@@ -668,6 +673,7 @@ class TrainsSaver(DiskSaver):
                     model_name=os.path.basename(filename),
                 )
 
+    @one_rank_only()
     def get_local_copy(self, filename: str) -> Optional[str]:
         """
         Get artifact local copy

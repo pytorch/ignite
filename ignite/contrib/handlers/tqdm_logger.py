@@ -4,7 +4,7 @@ from typing import Any, Mapping
 
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, one_rank_only
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter
 
@@ -208,6 +208,7 @@ class ProgressBar(BaseLogger):
         i2 = ProgressBar._events_order.index(event2)
         return i1 < i2
 
+    @one_rank_only()
     def log_message(self, message):
         """
         Logs a message, preserving the progress bar correct output format.
@@ -219,6 +220,7 @@ class ProgressBar(BaseLogger):
 
         tqdm.write(message, file=self.tqdm_kwargs.get("file", None))
 
+    @one_rank_only()
     def attach(
         self,
         engine,

@@ -10,6 +10,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
     global_step_from_engine,
+    one_rank_only,
 )
 
 __all__ = [
@@ -492,6 +493,7 @@ class TensorboardLogger(BaseLogger):
 
     """
 
+    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             from tensorboardX import SummaryWriter
@@ -507,6 +509,7 @@ class TensorboardLogger(BaseLogger):
 
         self.writer = SummaryWriter(*args, **kwargs)
 
+    @one_rank_only()
     def close(self):
         self.writer.close()
 
