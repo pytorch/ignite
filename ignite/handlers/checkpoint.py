@@ -10,8 +10,8 @@ from typing import Callable, Mapping, Optional, Union
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import Engine, Events
 from ignite.distributed import one_rank_only
+from ignite.engine import Engine, Events
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 

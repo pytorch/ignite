@@ -5,9 +5,9 @@ from typing import Any, Mapping
 
 import torch
 
+from ignite.distributed import one_rank_only
 from ignite.engine import Engine, State
 from ignite.handlers import global_step_from_engine
-from ignite.distributed import one_rank_only
 
 
 class BaseHandler(metaclass=ABCMeta):
