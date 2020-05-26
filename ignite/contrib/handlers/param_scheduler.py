@@ -1,11 +1,11 @@
 import math
 import numbers
 import tempfile
-from pathlib import Path
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
+from pathlib import Path
 from typing import List, Optional, Union
 
 import torch

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import torch
-from torch.optim.lr_scheduler import ExponentialLR, StepLR, MultiplicativeLR
+from torch.optim.lr_scheduler import ExponentialLR, MultiplicativeLR, StepLR
 
 from ignite.contrib.handlers.param_scheduler import (
     ConcatScheduler,
@@ -628,7 +628,7 @@ def test_lr_scheduler():
     _test(torch.optim.lr_scheduler.ExponentialLR, gamma=0.78)
     _test(torch.optim.lr_scheduler.MultiplicativeLR, lr_lambda=lambda epoch: 0.95)
     # bug #813
-    #_test(torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, T_0=10, T_mult=10)
+    # _test(torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, T_0=10, T_mult=10)
 
 
 def test_piecewiselinear_asserts():
