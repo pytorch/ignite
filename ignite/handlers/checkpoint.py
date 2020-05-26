@@ -365,7 +365,6 @@ class DiskSaver(BaseSaveHandler):
         require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
     """
 
-    @one_rank_only()
     def __init__(
         self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True,
     ):
@@ -388,7 +387,6 @@ class DiskSaver(BaseSaveHandler):
                     "".format(matched, dirname)
                 )
 
-    @one_rank_only()
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         path = os.path.join(self.dirname, filename)
 
@@ -414,7 +412,6 @@ class DiskSaver(BaseSaveHandler):
         elif idist.get_rank() == 0:
             torch.save(checkpoint, filename)
 
-    @one_rank_only()
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
         os.remove(path)
