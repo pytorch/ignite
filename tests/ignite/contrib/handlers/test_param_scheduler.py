@@ -565,7 +565,7 @@ def test_lr_scheduler_asserts():
 
 
 def test_lr_scheduler():
-    def _test(torch_lr_scheduler_cls, use_step=False, **kwargs):
+    def _test(torch_lr_scheduler_cls, **kwargs):
 
         tensor = torch.zeros([1], requires_grad=True)
         optimizer1 = torch.optim.SGD([tensor], lr=0.01)
@@ -618,10 +618,8 @@ def test_lr_scheduler():
         torch_lr_scheduler3 = torch_lr_scheduler_cls(optimizer=optimizer3, **kwargs)
 
         simulated_values = LRScheduler.simulate_values(
-            num_events=len(data) * max_epochs, lr_scheduler=torch_lr_scheduler3, use_step=use_step
+            num_events=len(data) * max_epochs, lr_scheduler=torch_lr_scheduler3
         )
-        for a, b in zip(lrs, [v for i, v in simulated_values]):
-            print(a, b)
         assert lrs == pytest.approx([v for i, v in simulated_values])
 
     _test(torch.optim.lr_scheduler.StepLR, step_size=5, gamma=0.5)
