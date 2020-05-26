@@ -211,6 +211,11 @@ class WandBLogger(BaseLogger):
         **kwargs: Keyword arguments accepted by `wandb.init`.
             Please see `wandb.init <https://docs.wandb.com/library/init>`_ for documentation of possible parameters.
 
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and perform logging
+        operations on rank 0 only.
+
     Examples:
 
         .. code-block:: python

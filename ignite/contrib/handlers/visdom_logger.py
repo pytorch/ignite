@@ -364,13 +364,16 @@ class VisdomLogger(BaseLogger):
     Note:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
 
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and perform logging
+        operations on rank 0 only.
 
     .. warning::
 
         Frequent logging, e.g. when logger is attached to `Events.ITERATION_COMPLETED`, can slow down the run if the
         main thread is used to send the data to visdom server (`num_workers=0`). To avoid this situation we can either
         log less frequently or set `num_workers=1`.
-
 
     Examples:
 

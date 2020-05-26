@@ -440,6 +440,11 @@ class TrainsLogger(BaseLogger):
             - ``TaskTypes.testing``
             - ``TaskTypes.inference``
 
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and perform logging
+        operations on rank 0 only.
+
     Examples:
 
         .. code-block:: python

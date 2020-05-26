@@ -258,6 +258,11 @@ class PolyaxonLogger(BaseLogger):
         **kwargs: Keyword arguments accepted from
             `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
 
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and perform logging
+        operations on rank 0 only.
+
     """
 
     @one_rank_only()

@@ -98,6 +98,11 @@ class ProgressBar(BaseLogger):
             number of epochs. If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
             "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
 
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and perform logging
+        operations on rank 0 only.
+
     Examples:
 
         Simple progress bar

@@ -365,6 +365,11 @@ class NeptuneLogger(BaseLogger):
         tags (list, optional): Optional default `[]`. Must be list of str. Tags of the experiment.
            Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
 
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and perform logging
+        operations on rank 0 only.
+
     Examples:
 
         .. code-block:: python
