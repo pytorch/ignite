@@ -913,4 +913,4 @@ def _test_tpu_saves_to_cpu_nprocs(index, dirname):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_distrib_single_device_xla_nprocs(dirname, xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname, ), nprocs=n)
+    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname,), nprocs=n)
