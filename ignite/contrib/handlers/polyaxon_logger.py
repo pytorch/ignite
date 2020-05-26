@@ -272,11 +272,9 @@ class PolyaxonLogger(BaseLogger):
 
         self.experiment = Experiment(*args, **kwargs)
 
+    @one_rank_only()
     def __getattr__(self, attr):
-        def wrapper(*args, **kwargs):
-            return getattr(self.experiment, attr)(*args, **kwargs)
-
-        return wrapper
+        return getattr(self.experiment, attr)
 
     def _create_output_handler(self, *args, **kwargs):
         return OutputHandler(*args, **kwargs)
