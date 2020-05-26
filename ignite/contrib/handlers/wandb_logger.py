@@ -316,6 +316,7 @@ class WandBLogger(BaseLogger):
         if kwargs.get("init", True):
             wandb.init(*args, **kwargs)
 
+    @one_rank_only()
     def __getattr__(self, attr):
         return getattr(self._wandb, attr)
 

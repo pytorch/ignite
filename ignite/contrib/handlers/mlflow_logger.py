@@ -285,14 +285,12 @@ class MLflowLogger(BaseLogger):
         if self.active_run is None:
             self.active_run = mlflow.start_run()
 
+    @one_rank_only()
     def __getattr__(self, attr):
 
         import mlflow
 
-        def wrapper(*args, **kwargs):
-            return getattr(mlflow, attr)(*args, **kwargs)
-
-        return wrapper
+        return getattr(mlflow, attr)
 
     @one_rank_only()
     def close(self):
