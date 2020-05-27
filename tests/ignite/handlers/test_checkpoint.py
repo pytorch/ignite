@@ -693,6 +693,9 @@ def test_valid_state_dict_save(dirname):
 
 
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
+
+    torch.manual_seed(23)
+
     model = DummyModel().to(device)
     optim = torch.optim.SGD(model.parameters(), lr=0.001)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
@@ -742,7 +745,8 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
         assert key in loaded_optimizer_state_dict
         optim_value = optim_state_dict[key]
         loaded_optim_value = loaded_optimizer_state_dict[key]
-        assert optim_value == loaded_optim_value
+        if idist.get_rank() == 0:
+            assert optim_value == loaded_optim_value
 
     lr_scheduler_state_dict = lr_scheduler.state_dict()
     for key in lr_scheduler_state_dict.keys():
@@ -873,6 +877,20 @@ def test_disksaver_wrong_input(dirname):
             DiskSaver(dirname, require_empty=True)
 
     _test(".pt")
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
+    dirname = get_rank_zero_dirname("cpu")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "1"))
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
+    device = idist.device()
+    dirname = get_rank_zero_dirname(device)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
 
 
 def _test_tpu_saves_to_cpu(device, dirname):

@@ -389,7 +389,7 @@ class DiskSaver(BaseSaveHandler):
         dirname (str): Directory path where the checkpoint will be saved
         atomic (bool, optional): if True, checkpoint is serialized to a temporary file, and then
             moved to final destination, so that files are guaranteed to not be damaged
-            (for example if exception occures during saving).
+            (for example if exception occurs during saving).
         create_dir (bool, optional): if True, will create directory 'dirname' if it doesnt exist.
         require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
     """
@@ -399,6 +399,11 @@ class DiskSaver(BaseSaveHandler):
     ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
+        self._check_and_setup(dirname, create_dir, require_empty)
+
+    @staticmethod
+    @idist.one_rank_only()
+    def _check_and_setup(dirname, create_dir, require_empty):
         if create_dir:
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
@@ -419,38 +424,44 @@ class DiskSaver(BaseSaveHandler):
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         path = os.path.join(self.dirname, filename)
 
-        if not self._atomic:
-            self._save(checkpoint, path)
+        if idist.has_xla_support:
+            self._save_xla(checkpoint, path)
         else:
-            # All these conditions due to pytorch/xla xm.save behaviour: all processes should pass into xm.save
+            self._save_native(checkpoint, path)
+        idist.barrier()
+
+    @idist.one_rank_only()
+    def _save_native(self, checkpoint: Mapping, path: str):
+        self._save_func(checkpoint, path, torch.save)
+
+    def _save_xla(self, checkpoint: Mapping, path: str):
+        import torch_xla.core.xla_model as xm
+
+        # all tpu procs should enter here as internally performs sync across device
+        self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
+
+    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0):
+        if not self._atomic:
+            func(checkpoint, path)
+        else:
             tmp_file = None
             tmp_name = None
             tmp = None
-            zero_rank = idist.get_rank() == 0
-            if zero_rank:
+            if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
                 tmp_file = tmp.file
                 tmp_name = tmp.name
             try:
-                self._save(checkpoint, tmp_file)
+                func(checkpoint, tmp_file)
             except BaseException:
-                if zero_rank:
+                if tmp is not None:
                     tmp.close()
                     os.remove(tmp_name)
-                raise
+                    raise
             else:
-                if zero_rank:
+                if tmp is not None:
                     tmp.close()
-                    os.rename(tmp_name, path)
-
-    def _save(self, checkpoint: Mapping, filename: str):
-        if idist.has_xla_support:
-            import torch_xla.core.xla_model as xm
-
-            # all tpu procs should enter here as internally performs sync across device
-            xm.save(checkpoint, filename)
-        elif idist.get_rank() == 0:
-            torch.save(checkpoint, filename)
+                    os.rename(tmp.name, path)
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:
