@@ -712,6 +712,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
         loss.backward()
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
+
             xm.optimizer_step(optim, barrier=True)
         else:
             optim.step()
