@@ -1,0 +1,12 @@
+py_config_runner
+pytorch-ignite
+trains
+torch
+tensorboard
+opencv-python
+pillow
+numpy
+torchvision
+albumentations
+tqdm
+image-dataset-viz

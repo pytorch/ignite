@@ -20,7 +20,7 @@ from py_config_runner.utils import set_seed
 from utils.handlers import predictions_gt_images_handler
 
 
-def training(config, local_rank=None, with_mlflow_logging=False, with_plx_logging=False):
+def training(config, local_rank=None, with_mlflow_logging=False, with_plx_logging=False, with_trains_logging=False):
 
     if not getattr(config, "use_fp16", True):
         raise RuntimeError("This training script uses by default fp16 AMP")
@@ -157,6 +157,11 @@ def training(config, local_rank=None, with_mlflow_logging=False, with_plx_loggin
 
         if with_plx_logging:
             common.setup_plx_logging(
+                trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
+            )
+
+        if with_trains_logging:
+            common.setup_trains_logging(
                 trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
             )
 
