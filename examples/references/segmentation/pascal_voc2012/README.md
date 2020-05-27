@@ -5,18 +5,21 @@ dataset.
 
 Features:
 - Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
-- Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/)
+- Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains)
 
 ![tb_dashboard](assets/tb_dashboard.png)
 ![mlflow_dashboard](assets/mlflow_dashboard.png)
+![trains_dashboard](assets/trains_dashboard.png)
 
-There are two possible options: 1) Experiments tracking with MLflow or 2) Experiments tracking with Polyaxon. 
-Experiments tracking with MLflow is more suitable for a local machine with GPUs. For experiments tracking with Polyaxon
+There are three possible options: 1) Experiments tracking with MLflow, 2) Experiments tracking with Polyaxon or 3) Experiments tracking with TRAINS. 
+
+Experiments tracking with TRAINS / MLflow is more suitable for a local machine with GPUs. For experiments tracking with Polyaxon
 user needs to have Polyaxon installed on a machine/cluster/cloud and can schedule experiments with `polyaxon-cli`.
 User can choose one option and skip the descriptions of another option.
 
 - Notes for [experiments tracking with MLflow](NOTES_MLflow.md)
 - Notes for [experiments tracking with Polyaxon](NOTES_Polyaxon.md)
+- Notes for [experiments tracking with TRAINS](NOTES_Trains.md)
 
 ## Implementation details
 
@@ -49,11 +52,12 @@ Training scripts are located [code/scripts](code/scripts/) and contains
 
 - `mlflow_training.py`, training script with MLflow experiments tracking
 - `plx_training.py`, training script with Polyaxon experiments tracking
+- `trains_training.py`, training script with TRAINS experiments tracking
 - `common_training.py`, common training code used by above files
  
 Training scripts contain `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
 run a script with a configuration. Training logic is setup inside `training` method and configures a distributed trainer, 
-2 evaluators and various logging handlers to tensorboard, mlflow/polyaxon logger and tqdm.
+2 evaluators and various logging handlers to tensorboard, mlflow/polyaxon/Trains logger and tqdm.
 
 
 ### Configurations
