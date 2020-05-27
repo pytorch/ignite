@@ -463,7 +463,7 @@ class DiskSaver(BaseSaveHandler):
                     tmp.close()
                     os.rename(tmp.name, path)
 
-    @idist.one_rank_only()
+    @idist.one_rank_only(with_barrier=True)
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
         os.remove(path)

@@ -697,6 +697,10 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
     torch.manual_seed(23)
 
     model = DummyModel().to(device)
+
+    nn.init.constant_(model.net.weight, 0.1)
+    nn.init.constant_(model.net.bias, 0.0)
+
     optim = torch.optim.SGD(model.parameters(), lr=0.1)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
 
@@ -708,9 +712,10 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
         loss.backward()
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
-            xm.optimizer_step(optim)
+            xm.optimizer_step(optim, barrier=True)
         else:
             optim.step()
+            pass
         lr_scheduler.step()
 
     engine = Engine(update_fn)
@@ -719,10 +724,17 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
     engine.add_event_handler(
         Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
     )
-    engine.run([0], max_epochs=4)
+    @engine.on(Events.EPOCH_COMPLETED)
+    def log_():
+        print(idist.get_rank(), model.state_dict(), flush=True)
+
+    engine.run([0], max_epochs=2)
+
+    idist.barrier()
+    assert False
 
     saved_objects = sorted(os.listdir(dirname))
-    # saved object is ['PREFIX_checkpoint_4.pt', ]
+    # saved object is ['PREFIX_checkpoint_3.pt', ]
     saved_checkpoint = os.path.join(dirname, saved_objects[0])
 
     loaded_obj = torch.load(saved_checkpoint)
