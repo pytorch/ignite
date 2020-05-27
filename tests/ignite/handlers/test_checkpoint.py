@@ -724,14 +724,8 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
     engine.add_event_handler(
         Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
     )
-    @engine.on(Events.EPOCH_COMPLETED)
-    def log_():
-        print(idist.get_rank(), model.state_dict(), flush=True)
 
     engine.run([0], max_epochs=2)
-
-    idist.barrier()
-    assert False
 
     saved_objects = sorted(os.listdir(dirname))
     # saved object is ['PREFIX_checkpoint_3.pt', ]
