@@ -698,14 +698,11 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
 
     model = DummyModel().to(device)
 
-    nn.init.constant_(model.net.weight, 0.1)
-    nn.init.constant_(model.net.bias, 0.0)
-
     optim = torch.optim.SGD(model.parameters(), lr=0.1)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
 
     def update_fn(engine, batch):
-        x = torch.ones((4, 1)).to(device)
+        x = torch.rand((4, 1)).to(device)
         optim.zero_grad()
         y = model(x)
         loss = y.pow(2.0).sum()
@@ -716,7 +713,6 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
             xm.optimizer_step(optim, barrier=True)
         else:
             optim.step()
-            pass
         lr_scheduler.step()
 
     engine = Engine(update_fn)
@@ -726,7 +722,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
         Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
     )
 
-    engine.run([0], max_epochs=2)
+    engine.run([0], max_epochs=4)
 
     saved_objects = sorted(os.listdir(dirname))
     # saved object is ['PREFIX_checkpoint_3.pt', ]
