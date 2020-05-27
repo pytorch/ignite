@@ -104,14 +104,14 @@ def test_distrib_single_device_xla():
     _test_distrib_integration(device, tol=1e-4)
 
 
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_integration(device, tol=1e-4)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        device = idist.device()
-        _test_distrib_integration(device, tol=1e-4)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
