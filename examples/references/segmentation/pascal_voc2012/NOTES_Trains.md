@@ -111,11 +111,11 @@ see [Explicit Reporting](https://allegro.ai/docs/examples/examples_explicit_repo
 In the **Trains Web-App (UI)**, track the experiment and visualize results in the experiment's details pane, 
 which is organized in tabs and provides the following information;
 
-* Source code, uncommitted changes, Python packages and versions, and other information, in the **EXECUTION** tab.
-* Hyperparameters in the **HYPERPARAMETERS** tab.
-* Input model, Configuration, Output model, and other artifacts in the **ARTIFACTS** tab.
-* Experiment Comments and General experiment information in the **INFO** tab.
-* Results in the **RESULTS** tab, including the log, scalar metric plots, plots of any data, and debug samples.
+* Source code, uncommitted changes, Python packages and versions, and other information, in the **EXECUTION** tab
+* Hyperparameters in the **HYPERPARAMETERS** tab
+* Input model, Configuration, Output model, and other artifacts in the **ARTIFACTS** tab
+* Experiment Comments and General experiment information in the **INFO** tab
+* Results in the **RESULTS** tab, including the log, scalar metric plots, plots of any data, and debug samples
 
 ## Reproducing the experiments
 
@@ -125,7 +125,7 @@ by making an exact copy of it (a clone), and remotely execute the cloned experim
 First, install ``trains-agent`` and then configure it to work with your self-hosted **Trains Server**. 
 
 Once ``trains-agent`` is installed and configured, run ``trains-agent daemon``.
-In **Trains**, we call these *workers*, they pop experiments from a queue and execute them. 
+In **Trains**, we call these *workers*, they pop experiments from a job execution queue and execute them. 
 Every machine with a *trains-agent daemon*, becomes a registered *worker* in your **trains-server** cluster.
 
 Using the **Trains Web-App**  you can easily send experiments to be remotely executed on one of these machines. 
@@ -134,41 +134,41 @@ More details can be found on the *trains-agent* [github](https://github.com/alle
 
 ### Install and configure trains-agent
 
-1. Install ``trains-agent``.
+1. Install ``trains-agent``
 
         pip install trains-agent
         
-1. Configure ``trains-agent`` by running the setup wizard.
+1. Configure ``trains-agent`` by running the setup wizard
 
         trains-agent init        
 
 ### Remotely execute the experiment
 
-1. Start a **Trains** worker. Run a ``trains-agent daemon`` listening to a queue.
+1. Start a **Trains** worker. Run a ``trains-agent daemon`` listening to a queue
 
     For example, run a ``trains-agent daemon`` listening to the ``default`` queue and using multiple GPUs.
 
         trains-agent daemon --gpus 0,1 --queue default
         
-1. Locate the experiment. In the **Trains Web-App (UI)**, Projects page, click on the project card.
+1. Locate the experiment. In the **Trains Web-App (UI)**, Projects page, click on the project card
 
-1. If you want to run a copy of the experiment, and keep the original, do the following: 
-    1. On the project page, right click the experiment.
-    1. Click **Clone**.
-    1. Select the project, type a name for the copy, and type a description, or accept the defaults.
-    1. Click **CLONE**.
+1. Make a copy of the experiment
+    1. In the experiment table, right-click the experiment
+    1. On the sub-menu, select **Clone**
+    1. Select the project, type a name for the copy, and type a description, or accept the defaults
+    1. Click the **CLONE** button
 
     The copy of the experiment is created. Its details pane opens.
     
-1. Add the experiment (the original or the copy) to a queue that the ``trains-agent daemon`` is listening to.
+1. Send the experiment for remote execution, by enqueuing it in one of the job execution queues
 
-    1. In the experiment table, right click the experiment.
-    1. Click **Enqueue**.
-    1. Select the default queue.
-    1. Click **ENQUEUE**. 
+    1. In the experiment table, right-click the experiment
+    1. On the sub-menu, select **Enqueue**
+    1. Select the *default* queue
+    1. Click the **ENQUEUE** button
     
     The experiment's status changes to Pending.
 
-When the copy of the experiment reaches the top of the queue, the ``trains-agent deamon`` fetches it, 
+When the experiment reaches the top of the job execution queue, the ``trains-agent deamon`` fetches it, 
 its status changes to Running, and ``trains-agent`` executes it while logging and monitoring. 
 You can track the experiment while it is in progress, and anytime afterwards.
