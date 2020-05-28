@@ -399,8 +399,10 @@ def _test_distrib_all_gather(device):
             idist.all_gather("abc")
 
     t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)
+    in_dtype = t.dtype
     res = idist.all_gather(t)
     assert res.shape == (idist.get_world_size() * 4, 25)
+    assert res.dtype == in_dtype
     true_res = torch.zeros(idist.get_world_size() * 4, 25, device=device)
     for i in range(idist.get_world_size()):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
