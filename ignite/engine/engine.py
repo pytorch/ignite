@@ -639,10 +639,9 @@ class Engine(Serializable):
             if max_epochs is None:
                 max_epochs = 1
             if epoch_length is None:
-                if hasattr(data, "__len__"):
-                    epoch_length = len(data)
-                    if epoch_length < 1:
-                        raise ValueError("Input data has zero size. Please provide non-empty data")
+                epoch_length = self._get_data_length(data)
+                if epoch_length is not None and epoch_length < 1:
+                    raise ValueError("Input data has zero size. Please provide non-empty data")
 
             self.state.iteration = 0
             self.state.epoch = 0
@@ -663,6 +662,16 @@ class Engine(Serializable):
     def _init_timers(state: State):
         state.times[Events.EPOCH_COMPLETED.name] = 0.0
         state.times[Events.COMPLETED.name] = 0.0
+
+    def _get_data_length(self, data):
+        data_length = None
+        try:
+            if hasattr(data, "__len__"):
+                data_length = len(data)
+        except TypeError:
+            # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
+            pass
+        return data_length
 
     def _setup_engine(self) -> None:
         iteration = self.state.iteration

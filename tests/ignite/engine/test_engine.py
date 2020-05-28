@@ -509,7 +509,10 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
 
 def test_engine_with_iterable_dataloader():
-    class MyIterableDataset(torch.utils.data.IterableDataset):
+
+    from torch.utils.data import DataLoader, IterableDataset, get_worker_info
+
+    class MyIterableDataset(IterableDataset):
         def __init__(self, start, end):
             super(MyIterableDataset).__init__()
             assert end > start, "this example code only works with end >= start"
@@ -519,19 +522,29 @@ def test_engine_with_iterable_dataloader():
         def __iter__(self):
             return iter(range(self.start, self.end))
 
-    ds = MyIterableDataset(0, 1000)
-    data_loader = torch.utils.data.DataLoader(ds, num_workers=2)
+    def _test(epoch_length=None):
 
-    counter = [0]
+        le = 50
+        num_workers = 4
+        ds = MyIterableDataset(0, le)
+        data_loader = DataLoader(ds, num_workers=num_workers)
 
-    def foo(e, b):
-        print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
-        counter[0] += 1
+        counter = [0]
 
-    engine = Engine(foo)
-    engine.run(data_loader, epoch_length=10, max_epochs=5)
+        def foo(e, b):
+            print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
+            counter[0] += 1
 
-    assert counter[0] == 50
+        engine = Engine(foo)
+        engine.run(data_loader, epoch_length=epoch_length, max_epochs=5)
+
+        epoch_length = le * num_workers if epoch_length is None else epoch_length
+        assert counter[0] == 5 * epoch_length
+
+    _test(epoch_length=20)
+
+    # tests issue : https://github.com/pytorch/ignite/issues/1076
+    _test(epoch_length=None)
 
 
 def test_engine_random_state():
@@ -621,7 +634,7 @@ def test_engine_with_dataloader_no_auto_batching():
     from torch.utils.data import DataLoader, BatchSampler, RandomSampler
 
     data = torch.rand(64, 4, 10)
-    data_loader = torch.utils.data.DataLoader(
+    data_loader = DataLoader(
         data, batch_size=None, sampler=BatchSampler(RandomSampler(data), batch_size=8, drop_last=True)
     )
 
@@ -871,14 +884,15 @@ def test_faq_fin_iterator():
 
 def test_set_data():
     # tests FR https://github.com/pytorch/ignite/issues/833
+    from torch.utils.data import DataLoader
 
     num_iters1 = 10
     num_iters2 = 20
     batch_size = 4
 
     torch.manual_seed(1)
-    data1 = torch.utils.data.DataLoader(torch.rand(num_iters1 * batch_size, 11), batch_size=batch_size)
-    data2 = torch.utils.data.DataLoader(torch.rand(num_iters2 * batch_size, 22), batch_size=batch_size)
+    data1 = DataLoader(torch.rand(num_iters1 * batch_size, 11), batch_size=batch_size)
+    data2 = DataLoader(torch.rand(num_iters2 * batch_size, 22), batch_size=batch_size)
 
     switch_iteration = 35
 
