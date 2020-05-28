@@ -193,13 +193,7 @@ class DeterministicEngine(Engine):
             torch.backends.cudnn.benchmark = False
 
     def _setup_engine(self) -> None:
-        try:
-            self._dataloader_len = None
-            if hasattr(self.state.dataloader, "__len__"):
-                self._dataloader_len = len(self.state.dataloader)
-        except TypeError:
-            # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
-            self._dataloader_len = None
+        self._dataloader_len = self._get_data_length(self.state.dataloader)
 
         # if input data is torch dataloader we replace batch sampler by a batch sampler
         # such that its random sampling indices are reproducible by prefetching them before data iteration

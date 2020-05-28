@@ -609,7 +609,7 @@ def _test_distrib_multilabel_input_NHW(device):
     rank = idist.get_rank()
 
     def _test():
-        acc = Accuracy(is_multilabel=True, device=device)
+        acc = Accuracy(is_multilabel=True)
 
         torch.manual_seed(10 + rank)
         y_pred = torch.randint(0, 2, size=(4, 5, 8, 10), device=device).long()
@@ -710,7 +710,7 @@ def _test_distrib_integration_multiclass(device):
 
         engine = Engine(update)
 
-        acc = Accuracy(device=device)
+        acc = Accuracy()
         acc.attach(engine, "acc")
 
         data = list(range(n_iters))
@@ -754,7 +754,7 @@ def _test_distrib_integration_multilabel(device):
 
         engine = Engine(update)
 
-        acc = Accuracy(is_multilabel=True, device=device)
+        acc = Accuracy(is_multilabel=True)
         acc.attach(engine, "acc")
 
         data = list(range(n_iters))
@@ -820,16 +820,16 @@ def test_distrib_single_device_xla():
     _test_distrib_integration_multilabel(device)
 
 
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_multilabel_input_NHW(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        device = idist.device()
-        _test_distrib_multilabel_input_NHW(device)
-        _test_distrib_integration_multiclass(device)
-        _test_distrib_integration_multilabel(device)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

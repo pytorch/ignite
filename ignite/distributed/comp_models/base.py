@@ -82,6 +82,8 @@ class ComputationModel(metaclass=ABCMeta):
             tensor = torch.tensor(tensor, device=device, dtype=self._collective_op_dtype)
             tensor_to_number = True
 
+        out_dtype = None
+
         if isinstance(tensor, torch.Tensor):
             # check if the tensor is at specified device
             if tensor.device != device:
@@ -89,11 +91,15 @@ class ComputationModel(metaclass=ABCMeta):
             if self._collective_op_dtype is not None:
                 # cast to _collective_op_dtype if current type is not floatX
                 if tensor.dtype not in (torch.float32, torch.float64):
+                    out_dtype = tensor.dtype
                     tensor = tensor.to(self._collective_op_dtype)
         else:
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
         tensor = fn(tensor, *args, **kwargs)
+
+        if out_dtype is not None:
+            tensor = tensor.to(dtype=out_dtype)
 
         if tensor_to_number and tensor.numel() == 1:
             return tensor.item()

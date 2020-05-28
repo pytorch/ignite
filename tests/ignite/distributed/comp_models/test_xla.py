@@ -116,30 +116,30 @@ def test__xla_dist_model_create_from_context():
     )
 
 
+def _test__xla_dist_model_create_from_context_in_child_proc(index):
+    model = _XlaDistModel.create_from_context()
+
+    assert model.backend() == "xla-tpu"
+
+    import torch_xla.core.xla_model as xm
+
+    _assert_model(
+        model,
+        {
+            "device": xm.xla_device(),
+            "local_rank": index,
+            "rank": xm.get_ordinal(),
+            "world_size": xm.xrt_world_size(),
+            "node_index": 0,
+            "num_nodes": 1,
+            "ntasks_per_node": xm.xrt_world_size(),
+        },
+    )
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test__xla_dist_model_create_from_context_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        model = _XlaDistModel.create_from_context()
-
-        assert model.backend() == "xla-tpu"
-
-        import torch_xla.core.xla_model as xm
-
-        _assert_model(
-            model,
-            {
-                "device": xm.xla_device(),
-                "local_rank": index,
-                "rank": xm.get_ordinal(),
-                "world_size": xm.xrt_world_size(),
-                "node_index": 0,
-                "num_nodes": 1,
-                "ntasks_per_node": xm.xrt_world_size(),
-            },
-        )
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test__xla_dist_model_create_from_context_in_child_proc, args=(), nprocs=n)

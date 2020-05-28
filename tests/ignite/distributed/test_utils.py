@@ -220,18 +220,18 @@ def test_sync_as_native_nccl(distributed_context_single_node_nccl):
     _test_sync(_NativeDistModel)
 
 
+def _test_sync_as_xla_in_child_proc(index):
+    from ignite.distributed.comp_models import _XlaDistModel
+
+    _test_sync(_XlaDistModel)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_sync_as_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        from ignite.distributed.comp_models import _XlaDistModel
-
-        _test_sync(_XlaDistModel)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_sync_as_xla_in_child_proc, args=(), nprocs=n)
 
 
 @pytest.mark.tpu
@@ -247,26 +247,26 @@ def test_idist_methods_in_xla_context():
     _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, true_device="xla", rank=0)
 
 
+def _test_idist_methods_in_xla_context_in_child_proc(index):
+    # We explicitly set _model as _SerialModel
+    # then call idist.* methods and check that they give correct values
+    from ignite.distributed.utils import _set_model, _SerialModel
+
+    _set_model(_SerialModel())
+
+    import torch_xla.core.xla_model as xm
+
+    _test_distrib_config(
+        local_rank=index, backend="xla-tpu", ws=xm.xrt_world_size(), true_device="xla", rank=xm.get_ordinal()
+    )
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_methods_in_xla_context_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        # We explicitly set _model as _SerialModel
-        # then call idist.* methods and check that they give correct values
-        from ignite.distributed.utils import _set_model, _SerialModel
-
-        _set_model(_SerialModel())
-
-        import torch_xla.core.xla_model as xm
-
-        _test_distrib_config(
-            local_rank=index, backend="xla-tpu", ws=xm.xrt_world_size(), true_device="xla", rank=xm.get_ordinal()
-        )
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_idist_methods_in_xla_context_in_child_proc, args=(), nprocs=n)
 
 
 def _test_idist_methods_in_native_context(backend, device, local_rank):
@@ -376,17 +376,17 @@ def test_idist_all_reduce_xla():
     _test_distrib_all_reduce(device)
 
 
+def _test_idist_all_reduce_xla_in_child_proc(index):
+    device = idist.device()
+    _test_distrib_all_reduce(device)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        device = idist.device()
-        _test_distrib_all_reduce(device)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_idist_all_reduce_xla_in_child_proc, args=(), nprocs=n)
 
 
 def _test_distrib_all_gather(device):
@@ -405,8 +405,10 @@ def _test_distrib_all_gather(device):
             idist.all_gather("abc")
 
     t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)
+    in_dtype = t.dtype
     res = idist.all_gather(t)
     assert res.shape == (idist.get_world_size() * 4, 25)
+    assert res.dtype == in_dtype
     true_res = torch.zeros(idist.get_world_size() * 4, 25, device=device)
     for i in range(idist.get_world_size()):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
@@ -437,17 +439,17 @@ def test_idist_all_gather_xla():
     _test_distrib_all_gather(device)
 
 
+def _test_idist_all_gather_xla_in_child_proc(index):
+    device = idist.device()
+    _test_distrib_all_gather(device)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_all_gather_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        device = idist.device()
-        _test_distrib_all_gather(device)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_idist_all_gather_xla_in_child_proc, args=(), nprocs=n)
 
 
 def _test_distrib_barrier(device):
@@ -487,17 +489,17 @@ def test_idist_barrier_xla():
     _test_distrib_barrier(device)
 
 
+def _test_idist_barrier_xla_in_child_proc(index):
+    device = idist.device()
+    _test_distrib_barrier(device)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_barrier_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        device = idist.device()
-        _test_distrib_barrier(device)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n)
 
 
 @pytest.mark.distributed
@@ -620,15 +622,15 @@ def test_idist_one_rank_only_xla():
     _test_distrib_one_rank_only_with_engine(device=device)
 
 
+def _test_idist_one_rank_only_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_one_rank_only(device=device)
+    _test_distrib_one_rank_only_with_engine(device=device)
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_one_rank_only_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-
-    def _test_fn(index):
-        device = idist.device()
-        _test_distrib_one_rank_only(device=device)
-        _test_distrib_one_rank_only_with_engine(device=device)
-
-    xmp_executor(_test_fn, args=(), nprocs=n)
+    xmp_executor(_test_idist_one_rank_only_xla_nprocs, args=(), nprocs=n)
