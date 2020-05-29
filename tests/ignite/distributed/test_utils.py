@@ -352,6 +352,9 @@ def _test_distrib_all_reduce(device):
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.all_reduce("abc")
 
+        with pytest.raises(ValueError, match=r"Unsupported reduction operation"):
+            idist.all_reduce(10, op="ABC")
+
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
@@ -400,9 +403,25 @@ def _test_distrib_all_gather(device):
     true_res = torch.tensor([i for i in range(idist.get_world_size())], device=device)
     assert (res == true_res).all()
 
-    if idist.get_world_size() > 1:
-        with pytest.raises(TypeError, match=r"Unhandled input type"):
-            idist.all_gather("abc")
+    x = "test-test"
+    if idist.get_rank() == 0:
+        x = "abc"
+    res = idist.all_gather(x)
+    true_res = ["abc",] + ["test-test"] * (idist.get_world_size() - 1)
+    assert res == true_res
+
+    base_x = "x" * 1026
+    x = base_x
+    if idist.get_rank() == 0:
+        x = "abc"
+
+    if idist.get_rank() > 0:
+        with pytest.warns(UserWarning, match=r"is larger than 1024 and thus will be truncated"):
+            res = idist.all_gather(x)
+    else:
+        res = idist.all_gather(x)
+    true_res = ["abc",] + [base_x[:1024]] * (idist.get_world_size() - 1)
+    assert res == true_res
 
     t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)
     in_dtype = t.dtype
@@ -413,6 +432,10 @@ def _test_distrib_all_gather(device):
     for i in range(idist.get_world_size()):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
     assert (res == true_res).all()
+
+    if idist.get_world_size() > 1:
+        with pytest.raises(TypeError, match=r"Unhandled input type"):
+            idist.all_reduce([0, 1, 2])
 
 
 @pytest.mark.distributed

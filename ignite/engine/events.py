@@ -1,12 +1,13 @@
 import numbers
+import warnings
 import weakref
 from enum import Enum
 from types import DynamicClassAttribute
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional, Union
 
 from ignite.engine.utils import _check_signature
 
-__all__ = ["Events", "State"]
+__all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State"]
 
 
 class CallableEventWithFilter:
@@ -127,6 +128,17 @@ class CallableEventWithFilter:
 
     def __or__(self, other):
         return EventsList() | self | other
+
+
+class CallableEvents(CallableEventWithFilter):
+    # For backward compatibility
+    def __init__(self, *args, **kwargs):
+        super(CallableEvents, self).__init__(*args, **kwargs)
+        warnings.warn(
+            "Class ignite.engine.events.CallableEvents is deprecated. It will be removed in 0.5.0. "
+            "Please, use ignite.engine.EventEnum instead",
+            DeprecationWarning,
+        )
 
 
 class EventEnum(CallableEventWithFilter, Enum):

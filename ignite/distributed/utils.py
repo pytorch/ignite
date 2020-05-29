@@ -1,7 +1,7 @@
 import socket
 from functools import wraps
 from numbers import Number
-from typing import Callable, Mapping, Optional, Tuple, Union
+from typing import Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -300,14 +300,15 @@ def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[to
 
 
 @_sync_model_wrapper
-def all_gather(tensor: Union[torch.Tensor, Number]) -> torch.Tensor:
+def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
     """Helper method to perform all gather operation.
 
     Args:
-        tensor (torch.Tensor or number): tensor or number to collect across participating processes.
+        tensor (torch.Tensor or number or str): tensor or number or str to collect across participating processes.
 
     Returns:
-        torch.Tensor of shape `(world_size * tensor.shape[0], tensor.shape[1], ...)`
+        torch.Tensor of shape `(world_size * tensor.shape[0], tensor.shape[1], ...)` or
+        List of strings
 
     """
     return _model.all_gather(tensor)

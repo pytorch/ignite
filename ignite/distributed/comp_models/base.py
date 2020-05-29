@@ -1,6 +1,7 @@
+import warnings
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 
@@ -73,28 +74,48 @@ class ComputationModel(metaclass=ABCMeta):
 
     _collective_op_dtype = None
 
+    @staticmethod
+    def _encode_str(x: str, device: torch.device) -> torch.Tensor:
+        # use fix padded size
+        size = 1024
+        if len(x) > size:
+            warnings.warn("Input string size {} is larger than {} and thus will be truncated".format(len(x), size))
+            x = x[:size]
+
+        name = torch.tensor(bytearray(x, "utf-8")).to(device)
+        padded_x = torch.zeros(size + 1, device=device, dtype=torch.long)
+        padded_x[: len(name)] = name
+        padded_x[-1] = len(name)
+        return padded_x.unsqueeze(0)
+
+    @staticmethod
+    def _decode_str(xs: torch.Tensor) -> List[str]:
+        # xs.shape = (world_size, 1025)
+        out = [bytearray(x[: x[-1]].tolist()).decode("utf-8") for x in xs]
+        return out
+
     def _all_collective_op(
-        self, tensor: Union[torch.Tensor, Number], fn: Callable, *args, **kwargs
-    ) -> Union[torch.Tensor, Number]:
-        tensor_to_number = False
+        self, tensor: Union[torch.Tensor, Number, str], fn: Callable, *args, **kwargs
+    ) -> Union[torch.Tensor, Number, List[str]]:
+        tensor_to_number = tensor_to_str = False
         device = self.device()
         if isinstance(tensor, Number):
-            tensor = torch.tensor(tensor, device=device, dtype=self._collective_op_dtype)
             tensor_to_number = True
+            tensor = torch.tensor(tensor, device=device, dtype=self._collective_op_dtype)
+        elif isinstance(tensor, str):
+            tensor_to_str = True
+            tensor = self._encode_str(tensor, device)
 
         out_dtype = None
 
-        if isinstance(tensor, torch.Tensor):
-            # check if the tensor is at specified device
-            if tensor.device != device:
-                tensor = tensor.to(device)
-            if self._collective_op_dtype is not None:
-                # cast to _collective_op_dtype if current type is not floatX
-                if tensor.dtype not in (torch.float32, torch.float64):
-                    out_dtype = tensor.dtype
-                    tensor = tensor.to(self._collective_op_dtype)
-        else:
-            raise TypeError("Unhandled input type {}".format(type(tensor)))
+        # check if the tensor is at specified device
+        if tensor.device != device:
+            tensor = tensor.to(device)
+        if self._collective_op_dtype is not None:
+            # cast to _collective_op_dtype if current type is not floatX
+            if tensor.dtype not in (torch.float32, torch.float64):
+                out_dtype = tensor.dtype
+                tensor = tensor.to(self._collective_op_dtype)
 
         tensor = fn(tensor, *args, **kwargs)
 
@@ -103,12 +124,20 @@ class ComputationModel(metaclass=ABCMeta):
 
         if tensor_to_number and tensor.numel() == 1:
             return tensor.item()
+        elif tensor_to_str:
+            return self._decode_str(tensor)
         return tensor
 
     def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
+        if not isinstance(tensor, (torch.Tensor, Number)):
+            raise TypeError("Unhandled input type {}".format(type(tensor)))
+
         return self._all_collective_op(tensor, self._do_all_reduce, op)
 
-    def all_gather(self, tensor: Union[torch.Tensor, Number]) -> Union[torch.Tensor, Number]:
+    def all_gather(self, tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
+        if not isinstance(tensor, (torch.Tensor, Number, str)):
+            raise TypeError("Unhandled input type {}".format(type(tensor)))
+
         return self._all_collective_op(tensor, self._do_all_gather)
 
     @abstractmethod
