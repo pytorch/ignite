@@ -4,6 +4,7 @@ import torch
 from torch.optim.lr_scheduler import ExponentialLR, MultiplicativeLR, StepLR
 
 from ignite.contrib.handlers.param_scheduler import (
+    ParamScheduler,
     ConcatScheduler,
     CosineAnnealingScheduler,
     LinearCyclicalScheduler,
@@ -13,6 +14,27 @@ from ignite.contrib.handlers.param_scheduler import (
     create_lr_scheduler_with_warmup,
 )
 from ignite.engine import Engine, Events
+
+
+def test_param_scheduler_asserts():
+    class FakeParamScheduler(ParamScheduler):
+        def get_param(self):
+            return [0]
+
+    t1 = torch.zeros([1], requires_grad=True)
+    t2 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
+
+    lr_scheduler = FakeParamScheduler(optimizer, "lr")
+
+    with pytest.raises(RuntimeError, match=r"size of value is different than optimizer_param_groups"):
+        lr_scheduler(None)
+
+    with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary, but given"):
+        lr_scheduler.load_state_dict(None)
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'event_index' is absent in provided state_dict"):
+        lr_scheduler.load_state_dict({})
 
 
 def test_linear_scheduler():
@@ -285,6 +307,12 @@ def test_concat_scheduler_asserts():
             num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names="abc"
         )
 
+    optimizer_2 = torch.optim.SGD([tensor], lr=0)
+    scheduler_3 = CosineAnnealingScheduler(optimizer_2, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
+
+    with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
+        ConcatScheduler([scheduler_1, scheduler_3], durations=[30, ])
+
 
 def test_concat_scheduler_state_dict():
     tensor = torch.zeros([1], requires_grad=True)
@@ -312,6 +340,9 @@ def test_concat_scheduler_state_dict():
 
     with pytest.raises(ValueError, match=r"Input state_dict contains 0 state_dicts of concatenated schedulers"):
         concat_scheduler.load_state_dict({"schedulers": []})
+
+    with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary, but given"):
+        concat_scheduler.load_state_dict(None)
 
 
 def test_concat_scheduler_two_schedulers():
@@ -563,6 +594,9 @@ def test_lr_scheduler_asserts():
     with pytest.raises(TypeError):
         LRScheduler(123)
 
+    with pytest.raises(TypeError):
+        LRScheduler.simulate_values(1, None)
+
 
 def test_lr_scheduler():
     def _test(torch_lr_scheduler_cls, **kwargs):
@@ -622,9 +656,9 @@ def test_lr_scheduler():
         )
         assert lrs == pytest.approx([v for i, v in simulated_values])
 
-    _test(torch.optim.lr_scheduler.StepLR, step_size=5, gamma=0.5)
-    _test(torch.optim.lr_scheduler.ExponentialLR, gamma=0.78)
-    _test(torch.optim.lr_scheduler.MultiplicativeLR, lr_lambda=lambda epoch: 0.95)
+    _test(StepLR, step_size=5, gamma=0.5)
+    _test(ExponentialLR, gamma=0.78)
+    _test(MultiplicativeLR, lr_lambda=lambda epoch: 0.95)
     # bug #813
     # _test(torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, T_0=10, T_mult=10)
 
@@ -645,6 +679,9 @@ def test_piecewiselinear_asserts():
 
     with pytest.raises(ValueError):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (5, 0.6)])
+
+    with pytest.raises(ValueError):
+        PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5, 1)])
 
 
 def test_piecewiselinear():
@@ -1073,10 +1110,20 @@ def test_param_group_scheduler_asserts():
     with pytest.raises(ValueError, match=r"Input state_dict contains 0 state_dicts of param group schedulers"):
         scheduler.load_state_dict({"schedulers": []})
 
+    with pytest.raises(ValueError, match=r"Required state attribute 'schedulers' is absent in provided state_dict"):
+        scheduler.load_state_dict({})
+
     with pytest.raises(
         ValueError, match=r"Name of scheduler from input state dict does not " r"correspond to required one"
     ):
         scheduler.load_state_dict({"schedulers": [("a", lr_scheduler1.state_dict()), ("bad_name", {})]})
+
+    optimizer2 = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
+    lr_scheduler3 = LinearCyclicalScheduler(
+        optimizer2, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
+    )
+    with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
+        ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler3])
 
 
 def test_param_group_scheduler():
@@ -1102,6 +1149,10 @@ def test_param_group_scheduler():
             trainer.run(data, max_epochs=max_epochs)
             assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
             scheduler.load_state_dict(state_dict)
+
+            values = ParamGroupScheduler.simulate_values(max_epochs*num_iterations, lr_schedulers)
+            assert [lr[1] for lr in values] == pytest.approx([lr[2] for lr in values])
+            assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in values])
 
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)

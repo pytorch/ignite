@@ -1040,9 +1040,9 @@ class ParamGroupScheduler(ParamScheduler):
             values = []
             scheduler = cls(schedulers=schedulers, **kwargs)
             for i in range(num_events):
-                scheduler(engine=None)
                 params = scheduler.get_param()
                 values.append([i] + params)
+                scheduler(engine=None)
 
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
