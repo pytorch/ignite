@@ -4,12 +4,12 @@ import torch
 from torch.optim.lr_scheduler import ExponentialLR, MultiplicativeLR, StepLR
 
 from ignite.contrib.handlers.param_scheduler import (
-    ParamScheduler,
     ConcatScheduler,
     CosineAnnealingScheduler,
     LinearCyclicalScheduler,
     LRScheduler,
     ParamGroupScheduler,
+    ParamScheduler,
     PiecewiseLinear,
     create_lr_scheduler_with_warmup,
 )
@@ -311,7 +311,7 @@ def test_concat_scheduler_asserts():
     scheduler_3 = CosineAnnealingScheduler(optimizer_2, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
 
     with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
-        ConcatScheduler([scheduler_1, scheduler_3], durations=[30, ])
+        ConcatScheduler([scheduler_1, scheduler_3], durations=[30,])
 
 
 def test_concat_scheduler_state_dict():
@@ -1150,7 +1150,7 @@ def test_param_group_scheduler():
             assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
             scheduler.load_state_dict(state_dict)
 
-            values = ParamGroupScheduler.simulate_values(max_epochs*num_iterations, lr_schedulers)
+            values = ParamGroupScheduler.simulate_values(max_epochs * num_iterations, lr_schedulers)
             assert [lr[1] for lr in values] == pytest.approx([lr[2] for lr in values])
             assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in values])
 
