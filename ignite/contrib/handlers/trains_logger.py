@@ -619,13 +619,14 @@ class TrainsSaver(DiskSaver):
         self._setup_check_trains(logger, output_uri)
 
         if not dirname:
-            dirname = ""  # empty for other procs
+            dirname = ""
             if idist.get_rank() == 0:
                 dirname = tempfile.mkdtemp(
                     prefix="ignite_checkpoints_{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S_"))
                 )
                 warnings.warn("TrainsSaver created a temporary checkpoints directory: {}".format(dirname))
-            # Maybe to do like that: dirname = idist.broadcast(dirname, src=0)
+            if idist.get_world_size() > 1:
+                dirname = idist.all_gather(dirname)[0]
             idist.barrier()
 
         # Let's set non-atomic tmp dir saving behaviour

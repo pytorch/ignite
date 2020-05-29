@@ -16,18 +16,9 @@ def dirname():
 @pytest.fixture()
 def get_rank_zero_dirname(dirname):
     def func(device):
-        import torch
         import ignite.distributed as idist
 
-        name = torch.tensor(bytearray(dirname, "utf-8")).to(device)
-        padded_t_name = torch.zeros(257, device=device, dtype=torch.long)
-        padded_t_name[: len(name)] = name
-        padded_t_name[-1] = len(name)
-        res = idist.all_gather(padded_t_name.unsqueeze(0))  # res.shape = (ws, 257)
-        assert res.shape == (idist.get_world_size(), 257)
-        zero_rank_t_name = res[0, :].to(dtype=torch.long)
-        zero_rank_dirname = zero_rank_t_name[: zero_rank_t_name[-1]].tolist()
-        zero_rank_dirname = bytearray(zero_rank_dirname).decode("utf-8")
+        zero_rank_dirname = idist.all_gather(dirname)[0]
         return zero_rank_dirname
 
     yield func
