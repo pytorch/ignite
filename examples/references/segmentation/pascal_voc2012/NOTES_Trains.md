@@ -57,7 +57,7 @@ export SBD_DATASET_PATH=/path/to/datasets
 In **Trains**, when you run the experiment code, ``trains`` stores the experiment in [trains-server](https://github.com/allegroai/trains-server). 
 
 By default, ``trains`` works with the demo **Trains Server** ([https://demoapp.trains.allegro.ai/dashboard](https://demoapp.trains.allegro.ai/dashboard)), 
-which is open to anyone (although once a week it is refreshing and deleting all data). You can also set up your own self-hosted **Trains Server**. 
+which is open to anyone (although once a week it is refreshing and deleting all data). You can also set up your own [self-hosted](https://github.com/allegroai/trains-server) **Trains Server**. 
 
 After the experiment code runs once, you can [reproduce the experiment](#reproducing-the-experiment) using the 
 **Trains Web-App (UI)**, which is part of ``trains-server``. You only need to run the code once to store it 
@@ -90,8 +90,12 @@ It opens the results in the experiment's details pane, in the **Trains Web-App (
 When the experiment code runs, **Trains** automatically logs your environment, code, and the outputs.
 Which means that you don't need to change your code.
 
-All you need is 2 lines of integration (`import` and `Task.init`) at the top of your main script,
-and the following will be logged by **Trains**:
+All you need is 2 lines of integration at the top of your main script
+```python
+from trains import Task
+Task.init('ignite', 'pascal_voc2012 segmentation example')
+```
+Once it's there, the following will be automatically logged by **Trains**:
 
 * **Resource Monitoring** CPU/GPU utilization, temperature, IO, network, etc
 * **Development Environment** Python environment, Git (repo, branch, commit) including uncommitted changes
