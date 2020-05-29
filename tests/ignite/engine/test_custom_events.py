@@ -5,7 +5,18 @@ import pytest
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEventWithFilter, EventEnum, EventsList
+from ignite.engine.events import CallableEvents, CallableEventWithFilter, EventEnum, EventsList
+
+
+def test_deprecated_callable_events_class():
+    engine = Engine(lambda engine, batch: 0)
+
+    with pytest.warns(DeprecationWarning, match=r"Class ignite\.engine\.events\.CallableEvents is deprecated"):
+
+        class CustomEvents(CallableEvents, Enum):
+            TEST_EVENT = "test_event"
+
+        engine.register_events(*CustomEvents)
 
 
 def test_custom_events():
