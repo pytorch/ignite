@@ -352,6 +352,9 @@ def _test_distrib_all_reduce(device):
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.all_reduce("abc")
 
+        with pytest.raises(ValueError, match=r"Unsupported reduction operation"):
+            idist.all_reduce(10, op="ABC")
+
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
@@ -429,6 +432,10 @@ def _test_distrib_all_gather(device):
     for i in range(idist.get_world_size()):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
     assert (res == true_res).all()
+
+    if idist.get_world_size() > 1:
+        with pytest.raises(TypeError, match=r"Unhandled input type"):
+            idist.all_reduce([0, 1, 2])
 
 
 @pytest.mark.distributed
