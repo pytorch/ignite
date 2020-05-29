@@ -9,9 +9,8 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
-    global_step_from_engine,
-    one_rank_only,
 )
+from ignite.handlers import global_step_from_engine
 
 __all__ = [
     "TensorboardLogger",
@@ -396,11 +395,6 @@ class TensorboardLogger(BaseLogger):
             <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter>`_.
             For example, `log_dir` to setup path to the directory where to log.
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
-
     Examples:
 
         .. code-block:: python
@@ -498,7 +492,6 @@ class TensorboardLogger(BaseLogger):
 
     """
 
-    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             from tensorboardX import SummaryWriter
@@ -514,7 +507,6 @@ class TensorboardLogger(BaseLogger):
 
         self.writer = SummaryWriter(*args, **kwargs)
 
-    @one_rank_only()
     def close(self):
         self.writer.close()
 

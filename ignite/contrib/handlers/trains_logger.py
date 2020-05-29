@@ -6,15 +6,15 @@ from typing import Mapping, Optional
 
 import torch
 
+import ignite.distributed as idist
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
-    global_step_from_engine,
-    one_rank_only,
 )
+from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import DiskSaver
 
 __all__ = [
@@ -440,11 +440,6 @@ class TrainsLogger(BaseLogger):
             - ``TaskTypes.testing``
             - ``TaskTypes.inference``
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
-
     Examples:
 
         .. code-block:: python
@@ -505,7 +500,6 @@ class TrainsLogger(BaseLogger):
 
     """
 
-    @one_rank_only()
     def __init__(self, *_, **kwargs):
         try:
             import trains
@@ -569,7 +563,6 @@ class TrainsLogger(BaseLogger):
         """
         return getattr(cls, "_bypass", bool(os.environ.get("CI")))
 
-    @one_rank_only()
     def close(self):
         self.trains_logger.flush()
 
@@ -621,8 +614,28 @@ class TrainsSaver(DiskSaver):
 
     """
 
-    @one_rank_only()
     def __init__(self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args, **kwargs):
+
+        self._setup_check_trains(logger, output_uri)
+
+        if not dirname:
+            dirname = ""  # empty for other procs
+            if idist.get_rank() == 0:
+                dirname = tempfile.mkdtemp(
+                    prefix="ignite_checkpoints_{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S_"))
+                )
+                warnings.warn("TrainsSaver created a temporary checkpoints directory: {}".format(dirname))
+            # Maybe to do like that: dirname = idist.broadcast(dirname, src=0)
+            idist.barrier()
+
+        # Let's set non-atomic tmp dir saving behaviour
+        if "atomic" not in kwargs:
+            kwargs["atomic"] = False
+
+        super(TrainsSaver, self).__init__(dirname=dirname, *args, **kwargs)
+
+    @idist.one_rank_only()
+    def _setup_check_trains(self, logger, output_uri):
         try:
             from trains import Task
         except ImportError:
@@ -634,58 +647,58 @@ class TrainsSaver(DiskSaver):
         if logger and not isinstance(logger, TrainsLogger):
             raise TypeError("logger must be an instance of TrainsLogger")
 
-        self.task = Task.current_task()
-        if not self.task:
+        self._task = Task.current_task()
+        if not self._task:
             raise RuntimeError(
                 "TrainsSaver requires a Trains Task to be initialized."
                 "Please use the `logger` argument or call `trains.Task.init()`."
             )
 
-        if not dirname:
-            dirname = tempfile.mkdtemp(
-                prefix="ignite_checkpoints_{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S_"))
-            )
-            warnings.warn("TrainsSaver created a temporary checkpoints directory: {}".format(dirname))
-
-        super(TrainsSaver, self).__init__(dirname=dirname, *args, **kwargs)
-
         if output_uri:
-            self.task.output_uri = output_uri
+            self._task.output_uri = output_uri
 
-    @one_rank_only()
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         super(TrainsSaver, self).__call__(checkpoint, filename, metadata)
 
-        try:
-            import trains
-        except ImportError:
-            raise RuntimeError(
-                "This contrib module requires trains to be installed. "
-                "You may install trains using: \n pip install trains \n"
-            )
+        if idist.get_rank() == 0:
+            # Maybe wont work with XLA
+            if self._atomic:
+                try:
+                    import trains
+                except ImportError:
+                    raise RuntimeError(
+                        "This contrib module requires trains to be installed. "
+                        "You may install trains using: \n pip install trains \n"
+                    )
 
-        if self._atomic:
-            # If atomic, DiskSaver's implementation first stores checkpoint into a temporary file
-            # and prohibits trains to automatically detect correct artifact path and name
-            path = os.path.join(self.dirname, filename)
-            if os.path.exists(path):
-                trains.binding.frameworks.WeightsFileHandler.create_output_model(
-                    model=checkpoint,
-                    saved_path=path,
-                    framework=trains.model.Framework.pytorch,
-                    task=self.task,
-                    singlefile=True,
-                    model_name=os.path.basename(filename),
-                )
+                # If atomic, DiskSaver's implementation first stores checkpoint into a temporary file
+                # and prohibits trains to automatically detect correct artifact path and name
+                path = os.path.join(self.dirname, filename)
+                if os.path.exists(path):
+                    trains.binding.frameworks.WeightsFileHandler.create_output_model(
+                        model=checkpoint,
+                        saved_path=path,
+                        framework=trains.model.Framework.pytorch,
+                        task=self._task,
+                        singlefile=True,
+                        model_name=os.path.basename(filename),
+                    )
 
-    @one_rank_only()
+    @idist.one_rank_only()
     def get_local_copy(self, filename: str) -> Optional[str]:
+        """Get artifact local copy.
+
+        .. warning::
+
+            In distributed configuration this method should be called on rank 0 process.
+
+        Args:
+            filename (str): artifact name.
+
+        Returns:
+             a local path to a downloaded copy of the artifact
         """
-        Get artifact local copy
-        :param filename: artifact name.
-        :return: a local path to a downloaded copy of the artifact
-        """
-        artifact = self.task.artifacts.get(filename)
+        artifact = self._task.artifacts.get(filename)
         if artifact:
             return artifact.get_local_copy()
-        self.task.get_logger().report_text("Can not find artifact {}".format(filename))
+        self._task.get_logger().report_text("Can not find artifact {}".format(filename))

@@ -1,10 +1,12 @@
 import math
+import os
 from unittest.mock import ANY, MagicMock, Mock, call
 
 import pytest
 import torch
 import trains
 
+import ignite.distributed as idist
 from ignite.contrib.handlers.trains_logger import *
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
@@ -634,17 +636,23 @@ def test_trains_disk_saver_integration():
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)
-    assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+    if trains_saver._atomic:
+        assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+    else:
+        saved_files = list(os.listdir(trains_saver.dirname))
+        assert len(saved_files) == 1
+        assert saved_files[0] == "model_1.pt"
 
 
-def test_trains_disk_saver_integration_no_logger():
-    model = torch.nn.Module()
+def _test_trains_disk_saver_integration_no_logger(device):
+    model = torch.nn.Module().to(device)
     to_save_serializable = {"model": model}
 
-    trains.Task.current_task = Mock(return_value=object())
-    trains_saver = TrainsSaver()
+    if idist.get_rank() == 0:
+        trains.Task.current_task = Mock(return_value=object())
+        trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
-    trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+    trains_saver = TrainsSaver()
 
     checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=trains_saver, n_saved=1)
 
@@ -653,4 +661,48 @@ def test_trains_disk_saver_integration_no_logger():
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)
-    assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+
+    if idist.get_rank() == 0:
+        if trains_saver._atomic:
+            assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+        else:
+            saved_files = list(os.listdir(trains_saver.dirname))
+            assert len(saved_files) == 1
+            assert saved_files[0] == "model_1.pt"
+
+
+def test_trains_disk_saver_integration_no_logger():
+    _test_trains_disk_saver_integration_no_logger("cpu")
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    _test_trains_disk_saver_integration_no_logger("cpu")
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    device = idist.device()
+    _test_trains_disk_saver_integration_no_logger(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla(dirname):
+    assert "xla" in idist.device().type
+    _test_trains_disk_saver_integration_no_logger(idist.device())
+
+
+def _test_trains_disk_saver_integration_no_logger_xla_nprocs(index):
+    device = idist.device()
+    _test_trains_disk_saver_integration_no_logger(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_trains_disk_saver_integration_no_logger_xla_nprocs, args=(), nprocs=n)

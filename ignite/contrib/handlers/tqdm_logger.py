@@ -4,7 +4,7 @@ from typing import Any, Mapping
 
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler, one_rank_only
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter
 
@@ -97,11 +97,6 @@ class ProgressBar(BaseLogger):
             By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
             number of epochs. If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
             "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
-
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
 
     Examples:
 
@@ -213,7 +208,6 @@ class ProgressBar(BaseLogger):
         i2 = ProgressBar._events_order.index(event2)
         return i1 < i2
 
-    @one_rank_only()
     def log_message(self, message):
         """
         Logs a message, preserving the progress bar correct output format.
@@ -225,7 +219,6 @@ class ProgressBar(BaseLogger):
 
         tqdm.write(message, file=self.tqdm_kwargs.get("file", None))
 
-    @one_rank_only()
     def attach(
         self,
         engine,

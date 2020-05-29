@@ -3,13 +3,8 @@ import warnings
 
 import torch
 
-from ignite.contrib.handlers.base_logger import (
-    BaseLogger,
-    BaseOptimizerParamsHandler,
-    BaseOutputHandler,
-    global_step_from_engine,
-    one_rank_only,
-)
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.handlers import global_step_from_engine
 
 __all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
@@ -208,12 +203,6 @@ class MLflowLogger(BaseLogger):
     Args:
         tracking_uri (str): MLflow tracking uri. See MLflow docs for more details
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
-
-
     Examples:
 
         .. code-block:: python
@@ -274,7 +263,6 @@ class MLflowLogger(BaseLogger):
             )
     """
 
-    @one_rank_only()
     def __init__(self, tracking_uri=None):
         try:
             import mlflow
@@ -291,14 +279,12 @@ class MLflowLogger(BaseLogger):
         if self.active_run is None:
             self.active_run = mlflow.start_run()
 
-    @one_rank_only()
     def __getattr__(self, attr):
 
         import mlflow
 
         return getattr(mlflow, attr)
 
-    @one_rank_only()
     def close(self):
         import mlflow
 

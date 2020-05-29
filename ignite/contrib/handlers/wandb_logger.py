@@ -1,10 +1,5 @@
-from ignite.contrib.handlers.base_logger import (
-    BaseLogger,
-    BaseOptimizerParamsHandler,
-    BaseOutputHandler,
-    global_step_from_engine,
-    one_rank_only,
-)
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.handlers import global_step_from_engine
 
 __all__ = ["WandBLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
@@ -211,11 +206,6 @@ class WandBLogger(BaseLogger):
         **kwargs: Keyword arguments accepted by `wandb.init`.
             Please see `wandb.init <https://docs.wandb.com/library/init>`_ for documentation of possible parameters.
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
-
     Examples:
 
         .. code-block:: python
@@ -307,7 +297,6 @@ class WandBLogger(BaseLogger):
                 Events.COMPLETED, model_checkpoint, {'model': model})
     """
 
-    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             import wandb
@@ -321,7 +310,6 @@ class WandBLogger(BaseLogger):
         if kwargs.get("init", True):
             wandb.init(*args, **kwargs)
 
-    @one_rank_only()
     def __getattr__(self, attr):
         return getattr(self._wandb, attr)
 

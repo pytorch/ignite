@@ -6,14 +6,14 @@ from typing import Mapping, Optional
 import torch
 
 import ignite
+import ignite.distributed as idist
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     BaseWeightsScalarHandler,
-    global_step_from_engine,
-    one_rank_only,
 )
+from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import BaseSaveHandler
 
 __all__ = [
@@ -365,11 +365,6 @@ class NeptuneLogger(BaseLogger):
         tags (list, optional): Optional default `[]`. Must be list of str. Tags of the experiment.
            Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
-
     Examples:
 
         .. code-block:: python
@@ -484,12 +479,8 @@ class NeptuneLogger(BaseLogger):
 
         import neptune
 
-        def wrapper(*args, **kwargs):
-            return getattr(neptune, attr)(*args, **kwargs)
+        return getattr(neptune, attr)
 
-        return wrapper
-
-    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             import neptune
@@ -513,7 +504,6 @@ class NeptuneLogger(BaseLogger):
 
         self.experiment = neptune.create_experiment(**self._experiment_kwargs)
 
-    @one_rank_only()
     def close(self):
         self.stop()
 
@@ -579,16 +569,17 @@ class NeptuneSaver(BaseSaveHandler):
 
     """
 
+    @idist.one_rank_only()
     def __init__(self, neptune_logger: NeptuneLogger):
         self._logger = neptune_logger
 
-    @one_rank_only()
+    @idist.one_rank_only()
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
 
         with tempfile.NamedTemporaryFile() as tmp:
             torch.save(checkpoint, tmp.name)
             self._logger.log_artifact(tmp.name, filename)
 
-    @one_rank_only()
+    @idist.one_rank_only()
     def remove(self, filename: str) -> None:
         self._logger.delete_artifacts(filename)

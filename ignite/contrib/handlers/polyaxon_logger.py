@@ -3,13 +3,8 @@ import warnings
 
 import torch
 
-from ignite.contrib.handlers.base_logger import (
-    BaseLogger,
-    BaseOptimizerParamsHandler,
-    BaseOutputHandler,
-    global_step_from_engine,
-    one_rank_only,
-)
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.handlers import global_step_from_engine
 
 __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
@@ -258,14 +253,8 @@ class PolyaxonLogger(BaseLogger):
         **kwargs: Keyword arguments accepted from
             `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
-
     """
 
-    @one_rank_only()
     def __init__(self, *args, **kwargs):
         try:
             from polyaxon_client.tracking import Experiment
@@ -277,7 +266,6 @@ class PolyaxonLogger(BaseLogger):
 
         self.experiment = Experiment(*args, **kwargs)
 
-    @one_rank_only()
     def __getattr__(self, attr):
         return getattr(self.experiment, attr)
 

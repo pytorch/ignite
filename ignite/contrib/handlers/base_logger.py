@@ -5,9 +5,7 @@ from typing import Any, Mapping
 
 import torch
 
-from ignite.distributed import one_rank_only
 from ignite.engine import Engine, State
-from ignite.handlers import global_step_from_engine
 
 
 class BaseHandler(metaclass=ABCMeta):
@@ -135,14 +133,8 @@ class BaseLogger(metaclass=ABCMeta):
     """
     Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class and its derived classes support automatically distributed configuration and perform logging
-        operations on rank 0 only.
-
     """
 
-    @one_rank_only()
     def attach(self, engine, log_handler, event_name):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 

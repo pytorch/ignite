@@ -9,9 +9,8 @@ from ignite.contrib.handlers.base_logger import (
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     BaseWeightsScalarHandler,
-    global_step_from_engine,
-    one_rank_only,
 )
+from ignite.handlers import global_step_from_engine
 
 __all__ = [
     "VisdomLogger",
@@ -364,10 +363,6 @@ class VisdomLogger(BaseLogger):
     Note:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
 
-    Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and perform logging
-        operations on rank 0 only.
 
     .. warning::
 
@@ -458,7 +453,6 @@ class VisdomLogger(BaseLogger):
 
     """
 
-    @one_rank_only()
     def __init__(self, server=None, port=None, num_workers=1, **kwargs):
         try:
             import visdom
@@ -512,7 +506,6 @@ class VisdomLogger(BaseLogger):
     def _save(self):
         self.vis.save([self.vis.env])
 
-    @one_rank_only()
     def close(self):
         self.vis = None
         self.executor.shutdown()
