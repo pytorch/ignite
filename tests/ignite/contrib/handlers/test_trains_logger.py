@@ -699,6 +699,11 @@ def _test_trains_disk_saver_integration_no_logger_xla_nprocs(index):
     device = idist.device()
     _test_trains_disk_saver_integration_no_logger(device)
 
+    import time
+    # hack to have all proc properly sync:
+    time.sleep(1)
+
+
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")

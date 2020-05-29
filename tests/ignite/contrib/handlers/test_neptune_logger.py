@@ -516,24 +516,3 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = idist.device()
     _test_neptune_saver_integration(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla(dirname):
-    assert "xla" in idist.device().type
-    _test_neptune_saver_integration(idist.device())
-
-
-def _test_neptune_disk_saver_integration_no_logger_xla_nprocs(index):
-    device = idist.device()
-    _test_neptune_saver_integration(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_neptune_disk_saver_integration_no_logger_xla_nprocs, args=(), nprocs=n)

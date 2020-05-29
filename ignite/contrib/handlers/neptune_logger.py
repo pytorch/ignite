@@ -575,11 +575,12 @@ class NeptuneSaver(BaseSaveHandler):
 
     @idist.one_rank_only()
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
+        # wont work on XLA
 
         with tempfile.NamedTemporaryFile() as tmp:
             torch.save(checkpoint, tmp.name)
             self._logger.log_artifact(tmp.name, filename)
 
-    @idist.one_rank_only()
+    @idist.one_rank_only(with_barrier=True)
     def remove(self, filename: str) -> None:
         self._logger.delete_artifacts(filename)
