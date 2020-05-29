@@ -680,6 +680,10 @@ class DummyModel(torch.nn.Module):
 
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device):
 
+    if idist.get_rank() == 0:
+        trains.Task.current_task = Mock(return_value=object())
+        trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+
     torch.manual_seed(23)
 
     model = DummyModel().to(device)
@@ -704,7 +708,10 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device):
     engine = Engine(update_fn)
 
     to_save = {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
-    trains_saver = TrainsSaver()
+
+    with pytest.warns(UserWarning, match=r"TrainsSaver created a temporary checkpoints directory"):
+        trains_saver = TrainsSaver()
+
     checkpoint = Checkpoint(to_save=to_save, save_handler=trains_saver, n_saved=1)
 
     engine.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
@@ -732,7 +739,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device):
         assert key in loaded_model_state_dict
         model_value = model_state_dict[key]
         loaded_model_value = loaded_model_state_dict[key]
-        assert model_value.cpu().numpy() == loaded_model_value.cpu().numpy()
+        assert (model_value.cpu().numpy() == loaded_model_value.cpu().numpy()).all()
 
     optim_state_dict = optim.state_dict()
     for key in optim_state_dict.keys():
