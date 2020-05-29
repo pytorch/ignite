@@ -9,8 +9,8 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
-    global_step_from_engine,
 )
+from ignite.handlers import global_step_from_engine
 
 __all__ = [
     "TensorboardLogger",

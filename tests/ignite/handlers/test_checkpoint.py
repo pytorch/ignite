@@ -693,8 +693,12 @@ def test_valid_state_dict_save(dirname):
 
 
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
+
+    torch.manual_seed(23)
+
     model = DummyModel().to(device)
-    optim = torch.optim.SGD(model.parameters(), lr=0.001)
+
+    optim = torch.optim.SGD(model.parameters(), lr=0.1)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
 
     def update_fn(engine, batch):
@@ -703,7 +707,12 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
         y = model(x)
         loss = y.pow(2.0).sum()
         loss.backward()
-        optim.step()
+        if idist.has_xla_support:
+            import torch_xla.core.xla_model as xm
+
+            xm.optimizer_step(optim, barrier=True)
+        else:
+            optim.step()
         lr_scheduler.step()
 
     engine = Engine(update_fn)
@@ -712,10 +721,11 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
     engine.add_event_handler(
         Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
     )
+
     engine.run([0], max_epochs=4)
 
     saved_objects = sorted(os.listdir(dirname))
-    # saved object is ['PREFIX_checkpoint_4.pt', ]
+    # saved object is ['PREFIX_checkpoint_3.pt', ]
     saved_checkpoint = os.path.join(dirname, saved_objects[0])
 
     loaded_obj = torch.load(saved_checkpoint)
@@ -742,7 +752,8 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
         assert key in loaded_optimizer_state_dict
         optim_value = optim_state_dict[key]
         loaded_optim_value = loaded_optimizer_state_dict[key]
-        assert optim_value == loaded_optim_value
+        if idist.get_rank() == 0:
+            assert optim_value == loaded_optim_value
 
     lr_scheduler_state_dict = lr_scheduler.state_dict()
     for key in lr_scheduler_state_dict.keys():
@@ -875,6 +886,20 @@ def test_disksaver_wrong_input(dirname):
     _test(".pt")
 
 
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
+    dirname = get_rank_zero_dirname("cpu")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "1"))
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
+    device = idist.device()
+    dirname = get_rank_zero_dirname(device)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
+
+
 def _test_tpu_saves_to_cpu(device, dirname):
 
     h = ModelCheckpoint(dirname, _PREFIX)
@@ -901,3 +926,18 @@ def test_distrib_single_device_xla(dirname):
     assert "xla" in idist.device().type
     _test_tpu_saves_to_cpu(idist.device(), os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
+
+
+def _test_tpu_saves_to_cpu_nprocs(index, get_rank_zero_dirname):
+    device = idist.device()
+    dirname = get_rank_zero_dirname(device)
+    _test_tpu_saves_to_cpu(device, os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"))
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla_nprocs(xmp_executor, get_rank_zero_dirname):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(get_rank_zero_dirname,), nprocs=n)

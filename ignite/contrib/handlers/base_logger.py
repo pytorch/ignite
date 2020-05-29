@@ -6,7 +6,6 @@ from typing import Any, Mapping
 import torch
 
 from ignite.engine import Engine, State
-from ignite.handlers import global_step_from_engine
 
 
 class BaseHandler(metaclass=ABCMeta):

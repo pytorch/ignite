@@ -14,6 +14,17 @@ def dirname():
 
 
 @pytest.fixture()
+def get_rank_zero_dirname(dirname):
+    def func(device):
+        import ignite.distributed as idist
+
+        zero_rank_dirname = idist.all_gather(dirname)[0]
+        return zero_rank_dirname
+
+    yield func
+
+
+@pytest.fixture()
 def local_rank(worker_id):
     """ use a different account in each xdist worker """
     import os

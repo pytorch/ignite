@@ -185,7 +185,7 @@ def _setup_common_distrib_training_handlers(
 
     _setup_common_training_handlers(
         trainer,
-        to_save=to_save if idist.get_rank() == 0 else None,
+        to_save=to_save,
         output_path=output_path,
         save_every_iters=save_every_iters,
         lr_scheduler=lr_scheduler,
