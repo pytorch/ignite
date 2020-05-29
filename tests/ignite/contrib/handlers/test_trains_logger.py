@@ -700,9 +700,9 @@ def _test_trains_disk_saver_integration_no_logger_xla_nprocs(index):
     _test_trains_disk_saver_integration_no_logger(device)
 
     import time
+
     # hack to have all proc properly sync:
     time.sleep(1)
-
 
 
 @pytest.mark.tpu
