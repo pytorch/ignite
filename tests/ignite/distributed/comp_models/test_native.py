@@ -91,6 +91,9 @@ def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_si
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == backend
 
+    with pytest.raises(RuntimeError, match=r"Can not create new distributed process group if default one is"):
+        _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
+
     _assert_model(
         model,
         {
