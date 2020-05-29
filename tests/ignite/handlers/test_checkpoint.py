@@ -728,7 +728,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
     # saved object is ['PREFIX_checkpoint_3.pt', ]
     saved_checkpoint = os.path.join(dirname, saved_objects[0])
 
-    loaded_obj = torch.load(saved_checkpoint)
+    loaded_obj = torch.load(saved_checkpoint, map_location=device)
     for f in ["model", "optimizer", "lr_scheduler"]:
         assert f in loaded_obj
     loaded_model_state_dict = loaded_obj["model"]
