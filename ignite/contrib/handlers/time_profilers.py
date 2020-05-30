@@ -15,17 +15,19 @@ class BasicTimeProfiler:
 
     .. code-block:: python
 
-        #
-        # Create an object of the profiler and attach an engine to it
-        #
-        profiler = BasicTimeProfiler()
+        from ignite.contrib.handlers import BasicTimeProfiler
+
         trainer = Engine(train_updater)
+
+        # Create an object of the profiler and attach an engine to it
+        profiler = BasicTimeProfiler()
         profiler.attach(trainer)
-        trainer.run(dataloader, max_epochs=3)
 
         @trainer.on(Events.EPOCH_COMPLETED)
         def log_intermediate_results():
             profiler.print_results(profiler.get_results())
+
+        trainer.run(dataloader, max_epochs=3)
 
         profiler.write_results('path_to_dir/time_profiling.csv')
 
@@ -344,40 +346,49 @@ class BasicTimeProfiler:
 
         .. code-block:: text
 
-            --------------------------------------------
-            - Time profiling results:
-            --------------------------------------------
-            Processing function time stats (in seconds):
-                min/index: (1.3081999895803165e-05, 1)
-                max/index: (1.433099987480091e-05, 0)
-                mean: 1.3706499885302037e-05
-                std: 8.831763693706307e-07
-                total: 2.7412999770604074e-05
+             ----------------------------------------------------
+            | Time profiling stats (in seconds):                 |
+             ----------------------------------------------------
+            total  |  min/index  |  max/index  |  mean  |  std
 
-            Dataflow time stats (in seconds):
-                min/index: (5.199999941396527e-05, 0)
-                max/index: (0.00010925399692496285, 1)
-                mean: 8.062699635047466e-05
-                std: 4.048469054396264e-05
-                total: 0.0001612539927009493
+            Processing function:
+            157.46292 | 0.01452/1501 | 0.26905/0 | 0.07730 | 0.01258
 
+            Dataflow:
+            6.11384 | 0.00008/1935 | 0.28461/1551 | 0.00300 | 0.02693
 
-            Time stats of event handlers (in seconds):
-            - Total time spent:
-                1.0080009698867798
+            Event handlers:
+            2.82721
 
-            - Events.STARTED:
-                total: 0.1256754994392395
+            - Events.STARTED: []
+            0.00000
 
-            Handlers names:
-            ['delay_start']
-            --------------------------------------------
+            - Events.EPOCH_STARTED: []
+            0.00006 | 0.00000/0 | 0.00000/17 | 0.00000 | 0.00000
+
+            - Events.ITERATION_STARTED: ['PiecewiseLinear']
+            0.03482 | 0.00001/188 | 0.00018/679 | 0.00002 | 0.00001
+
+            - Events.ITERATION_COMPLETED: ['TerminateOnNan']
+            0.20037 | 0.00006/866 | 0.00089/1943 | 0.00010 | 0.00003
+
+            - Events.EPOCH_COMPLETED: ['empty_cuda_cache', 'training.<locals>.log_elapsed_time', ]
+            2.57860 | 0.11529/0 | 0.14977/13 | 0.12893 | 0.00790
+
+            - Events.COMPLETED: []
+            not yet triggered
+
         """
 
+        def to_str(v):
+            if isinstance(v, str):
+                return v
+            elif isinstance(v, tuple):
+                return "{:.5f}/{}".format(v[0], v[1])
+            return "{:.5f}".format(v)
+
         def odict_to_str(d):
-            out = ""
-            for k, v in d.items():
-                out += "\t{}: {}\n".format(k, v)
+            out = " | ".join([to_str(v) for v in d.values()])
             return out
 
         others = {
@@ -387,50 +398,37 @@ class BasicTimeProfiler:
         others.update(results["event_handlers_names"])
 
         output_message = """
---------------------------------------------
-- Time profiling results:
---------------------------------------------
+ ----------------------------------------------------
+| Time profiling stats (in seconds):                 |
+ ----------------------------------------------------
+total  |  min/index  |  max/index  |  mean  |  std
 
-Processing function time stats (in seconds):
+Processing function:
 {processing_stats}
 
-Dataflow time stats (in seconds):
+Dataflow:
 {dataflow_stats}
 
-Time stats of event handlers (in seconds):
-- Total time spent:
-\t{total_time}
+Event handlers:
+{total_time:.5f}
 
-- Events.STARTED:
+- Events.STARTED: {STARTED_names}
 {STARTED}
-Handlers names:
-{STARTED_names}
 
-- Events.EPOCH_STARTED:
+- Events.EPOCH_STARTED: {EPOCH_STARTED_names}
 {EPOCH_STARTED}
-Handlers names:
-{EPOCH_STARTED_names}
 
-- Events.ITERATION_STARTED:
+- Events.ITERATION_STARTED: {ITERATION_STARTED_names}
 {ITERATION_STARTED}
-Handlers names:
-{ITERATION_STARTED_names}
 
-- Events.ITERATION_COMPLETED:
+- Events.ITERATION_COMPLETED: {ITERATION_COMPLETED_names}
 {ITERATION_COMPLETED}
-Handlers names:
-{ITERATION_COMPLETED_names}
 
-- Events.EPOCH_COMPLETED:
+- Events.EPOCH_COMPLETED: {EPOCH_COMPLETED_names}
 {EPOCH_COMPLETED}
-Handlers names:
-{EPOCH_COMPLETED_names}
 
-- Events.COMPLETED:
+- Events.COMPLETED: {COMPLETED_names}
 {COMPLETED}
-Handlers names:
-{COMPLETED_names}
-
 """.format(
             processing_stats=odict_to_str(results["processing_stats"]),
             dataflow_stats=odict_to_str(results["dataflow_stats"]),

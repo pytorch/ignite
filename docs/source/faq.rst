@@ -353,6 +353,100 @@ User can easily switch data provider during the training using :meth:`~ignite.en
 See an example in the documentation of the method.
 
 
+Time profiling during training
+------------------------------
+
+User can fetch times in several manners depending on complexity of required time profiling:
+
+Single epoch and total time
+```````````````````````````
+
+Simpliest way to fetch time of single epoch and complete training is to use
+``engine.state.times["EPOCH_COMPLETED"]`` and ``engine.state.times["COMPLETED"]``:
+
+.. code-block:: python
+
+    trainer = ...
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_epoch_time():
+        print("{}: {}".format(trainer.state.epoch, trainer.state.times["EPOCH_COMPLETED"]))
+
+    @trainer.on(Events.COMPLETED)
+    def log_total_time():
+        print("Total: {}".format(trainer.state.times["COMPLETED"]))
+
+
+For details, see :class:`~ignite.engine.events.State`.
+
+
+Detailed profiling
+``````````````````
+
+User can setup :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfiler` to fetch times spent in data
+processing, training step, event handlers:
+
+.. code-block:: python
+
+    from ignite.contrib.handlers import BasicTimeProfiler
+
+    trainer = ...
+
+    # Create an object of the profiler and attach an engine to it
+    profiler = BasicTimeProfiler()
+    profiler.attach(trainer)
+
+    @trainer.on(Events.EPOCH_COMPLETED(every=10))
+    def log_intermediate_results():
+        profiler.print_results(profiler.get_results())
+
+    trainer.run(dataloader, max_epochs=3)
+
+Typical output:
+
+.. code-block:: text
+
+     ----------------------------------------------------
+    | Time profiling stats (in seconds):                 |
+     ----------------------------------------------------
+    total  |  min/index  |  max/index  |  mean  |  std
+
+    Processing function:
+    157.46292 | 0.01452/1501 | 0.26905/0 | 0.07730 | 0.01258
+
+    Dataflow:
+    6.11384 | 0.00008/1935 | 0.28461/1551 | 0.00300 | 0.02693
+
+    Event handlers:
+    2.82721
+
+    - Events.STARTED: []
+    0.00000
+
+    - Events.EPOCH_STARTED: []
+    0.00006 | 0.00000/0 | 0.00000/17 | 0.00000 | 0.00000
+
+    - Events.ITERATION_STARTED: ['PiecewiseLinear']
+    0.03482 | 0.00001/188 | 0.00018/679 | 0.00002 | 0.00001
+
+    - Events.ITERATION_COMPLETED: ['TerminateOnNan']
+    0.20037 | 0.00006/866 | 0.00089/1943 | 0.00010 | 0.00003
+
+    - Events.EPOCH_COMPLETED: ['empty_cuda_cache', 'training.<locals>.log_elapsed_time', ]
+    2.57860 | 0.11529/0 | 0.14977/13 | 0.12893 | 0.00790
+
+    - Events.COMPLETED: []
+    not yet triggered
+
+For details, see :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfiler`.
+
+
+Custom time measures
+````````````````````
+
+Custom time measures can be performed using :class:`~ignite.handlers.Timer`. See its docstring for details.
+
+
 Other questions
 ---------------
 
