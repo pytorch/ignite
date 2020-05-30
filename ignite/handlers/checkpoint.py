@@ -428,7 +428,6 @@ class DiskSaver(BaseSaveHandler):
             self._save_xla(checkpoint, path)
         else:
             self._save_native(checkpoint, path)
-        idist.barrier()
 
     @idist.one_rank_only()
     def _save_native(self, checkpoint: Mapping, path: str):
@@ -463,7 +462,7 @@ class DiskSaver(BaseSaveHandler):
                     tmp.close()
                     os.rename(tmp.name, path)
 
-    @idist.one_rank_only(with_barrier=True)
+    @idist.one_rank_only()
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
         os.remove(path)
