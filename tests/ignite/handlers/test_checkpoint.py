@@ -110,6 +110,24 @@ def test_checkpoint_default():
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
 
 
+def test_checkpoint_with_dp():
+
+    model = DummyModel()
+    dp_model = nn.DataParallel(model)
+    to_save = {"model": dp_model}
+
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    checkpointer = Checkpoint(to_save, save_handler=save_handler)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
+    metadata = {"basename": "model", "score_name": None, "priority": 0}
+    save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
+
+
 def test_checkpoint_with_global_step_transform():
     def _test(filename_prefix, to_save, obj, name):
         save_handler = MagicMock(spec=BaseSaveHandler)
@@ -867,3 +885,33 @@ def test_disksaver_wrong_input(dirname):
             DiskSaver(dirname, require_empty=True)
 
     _test(".pt")
+
+
+def _test_checkpoint_with_ddp(device):
+    model = DummyModel().to(device)
+    ddp_model = nn.parallel.DistributedDataParallel(model)
+    to_save = {"model": ddp_model}
+
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    checkpointer = Checkpoint(to_save, save_handler=save_handler)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
+    metadata = {"basename": "model", "score_name": None, "priority": 0}
+    save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
+
+
+@pytest.mark.distributed
+def test_checkpoint_with_ddp_gloo(distributed_context_single_node_gloo):
+    device = "cpu"
+    _test_checkpoint_with_ddp(device=device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_checkpoint_with_ddp_nccl(local_rank, distributed_context_single_node_nccl):
+    device = "cuda:{}".format(local_rank)
+    _test_checkpoint_with_ddp(device=device)
