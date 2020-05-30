@@ -678,7 +678,7 @@ class DummyModel(torch.nn.Module):
         return self.net(x)
 
 
-def _test_save_model_optimizer_lr_scheduler_with_state_dict(device):
+def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=False):
 
     if idist.get_rank() == 0:
         trains.Task.current_task = Mock(return_value=object())
@@ -712,11 +712,13 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device):
     with pytest.warns(UserWarning, match=r"TrainsSaver created a temporary checkpoints directory"):
         trains_saver = TrainsSaver()
 
-    checkpoint = Checkpoint(to_save=to_save, save_handler=trains_saver, n_saved=1)
-
-    engine.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
+    if (not on_zero_rank) or (on_zero_rank and idist.get_rank() == 0):
+        checkpoint = Checkpoint(to_save=to_save, save_handler=trains_saver, n_saved=1)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
 
     engine.run([0], max_epochs=4)
+
+    idist.barrier()
 
     saved_objects = sorted(os.listdir(trains_saver.dirname))
     # saved object is ['PREFIX_checkpoint_3.pt', ]
@@ -763,6 +765,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device):
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
 
 
 @pytest.mark.distributed
@@ -770,6 +773,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = idist.device()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
 
 
 @pytest.mark.tpu
