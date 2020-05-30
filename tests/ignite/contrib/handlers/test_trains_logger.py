@@ -722,6 +722,9 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device):
     # saved object is ['PREFIX_checkpoint_3.pt', ]
     saved_checkpoint = os.path.join(trains_saver.dirname, saved_objects[0])
 
+    if idist.has_xla_support:
+        device = "cpu"
+
     loaded_obj = torch.load(saved_checkpoint, map_location=device)
     for f in ["model", "optimizer", "lr_scheduler"]:
         assert f in loaded_obj
