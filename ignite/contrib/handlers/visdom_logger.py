@@ -9,8 +9,8 @@ from ignite.contrib.handlers.base_logger import (
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     BaseWeightsScalarHandler,
-    global_step_from_engine,
 )
+from ignite.handlers import global_step_from_engine
 
 __all__ = [
     "VisdomLogger",
@@ -369,7 +369,6 @@ class VisdomLogger(BaseLogger):
         Frequent logging, e.g. when logger is attached to `Events.ITERATION_COMPLETED`, can slow down the run if the
         main thread is used to send the data to visdom server (`num_workers=0`). To avoid this situation we can either
         log less frequently or set `num_workers=1`.
-
 
     Examples:
 

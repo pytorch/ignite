@@ -9,6 +9,7 @@ import torch
 from pytest import approx, raises
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.metrics import ConfusionMatrix, Precision, Recall
 from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced
@@ -537,34 +538,8 @@ class DummyMetric2(Metric):
         pass
 
 
-def test__sync_all_reduce():
-    m = DummyMetric2()
-    res = m._sync_all_reduce(10)
-    assert res == 10
-
-
-def _test_distrib__sync_all_reduce(device):
-    import torch.distributed as dist
-
-    assert dist.is_available() and dist.is_initialized()
-
-    m = DummyMetric2(device=device)
-    res = m._sync_all_reduce(10)
-    assert res == 10 * dist.get_world_size()
-
-    m = DummyMetric2(device=device)
-    t = torch.tensor(10, device=device)
-    res = m._sync_all_reduce(t)
-    assert res.item() == 10 * dist.get_world_size()
-
-    m = DummyMetric2(device=device)
-    with pytest.raises(TypeError, match=r"Unhandled input type"):
-        m._sync_all_reduce("abc")
-
-
 def _test_distrib_sync_all_reduce_decorator(device):
 
-    import torch.distributed as dist
     from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
 
     class DummyMetric(Metric):
@@ -581,10 +556,10 @@ def _test_distrib_sync_all_reduce_decorator(device):
 
         @sync_all_reduce("a", "b", "c", "n")
         def compute(self):
-            assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
-            assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
-            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
-            assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+            assert (self.a.cpu() == (self.a_nocomp + 10) * idist.get_world_size()).all()
+            assert (self.b.cpu() == (self.b_nocomp - 5) * idist.get_world_size()).all()
+            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * idist.get_world_size())
+            assert self.n == (self.n_nocomp + 1) * idist.get_world_size()
 
         @reinit__is_reduced
         def update(self, output):
@@ -602,10 +577,9 @@ def _test_distrib_sync_all_reduce_decorator(device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_gpu(distributed_context_single_node_nccl):
 
-    device = "cuda:{}".format(local_rank)
-    _test_distrib__sync_all_reduce(device)
+    device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
     _test_distrib_sync_all_reduce_decorator(device)
 
 
@@ -613,7 +587,6 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = "cpu"
-    _test_distrib__sync_all_reduce(device)
     _test_distrib_sync_all_reduce_decorator(device)
 
 
@@ -621,7 +594,6 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
-    _test_distrib__sync_all_reduce(device)
     _test_distrib_sync_all_reduce_decorator(device)
 
 
@@ -629,8 +601,28 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-    _test_distrib__sync_all_reduce(device)
     _test_distrib_sync_all_reduce_decorator(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_sync_all_reduce_decorator(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_sync_all_reduce_decorator(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
 
 
 def test_completed():

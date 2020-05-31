@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy, RunningAverage
 
@@ -249,9 +250,8 @@ def test_output_is_tensor():
 
 
 def _test_distrib_on_output(device):
-    import torch.distributed as dist
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     n_iters = 10
     n_epochs = 3
     batch_size = 10
@@ -259,7 +259,7 @@ def _test_distrib_on_output(device):
     # Data per rank
     data = list(range(n_iters))
     k = n_epochs * batch_size * n_iters
-    all_loss_values = torch.arange(0, k * dist.get_world_size(), dtype=torch.float64).to(device)
+    all_loss_values = torch.arange(0, k * idist.get_world_size(), dtype=torch.float64).to(device)
     loss_values = iter(all_loss_values[k * rank : k * (rank + 1)])
 
     def update_fn(engine, batch):
@@ -279,7 +279,8 @@ def _test_distrib_on_output(device):
     @trainer.on(Events.ITERATION_COMPLETED)
     def running_avg_output_update(engine):
         i = engine.state.iteration - 1
-        o = sum([all_loss_values[i + j * k] for j in range(dist.get_world_size())]).item()
+        o = sum([all_loss_values[i + j * k] for j in range(idist.get_world_size())]).item()
+        o /= idist.get_world_size()
         if engine.state.running_avg_output is None:
             engine.state.running_avg_output = o
         else:
@@ -297,9 +298,8 @@ def _test_distrib_on_output(device):
 
 
 def _test_distrib_on_metric(device):
-    import torch.distributed as dist
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     n_iters = 10
     n_epochs = 3
     batch_size = 10
@@ -308,9 +308,9 @@ def _test_distrib_on_metric(device):
     data = list(range(n_iters))
     np.random.seed(12)
     all_y_true_batch_values = np.random.randint(
-        0, n_classes, size=(dist.get_world_size(), n_epochs * n_iters, batch_size)
+        0, n_classes, size=(idist.get_world_size(), n_epochs * n_iters, batch_size)
     )
-    all_y_pred_batch_values = np.random.rand(dist.get_world_size(), n_epochs * n_iters, batch_size, n_classes)
+    all_y_pred_batch_values = np.random.rand(idist.get_world_size(), n_epochs * n_iters, batch_size, n_classes)
 
     y_true_batch_values = iter(all_y_true_batch_values[rank, ...])
     y_pred_batch_values = iter(all_y_pred_batch_values[rank, ...])
@@ -338,7 +338,7 @@ def _test_distrib_on_metric(device):
         i = engine.state.iteration - 1
 
         true_acc_metric.reset()
-        for j in range(dist.get_world_size()):
+        for j in range(idist.get_world_size()):
             output = (
                 torch.from_numpy(all_y_pred_batch_values[j, i, :, :]),
                 torch.from_numpy(all_y_true_batch_values[j, i, :]),
@@ -393,3 +393,26 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_on_output(device)
     _test_distrib_on_metric(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_on_output(device)
+    _test_distrib_on_metric(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_on_output(device)
+    _test_distrib_on_metric(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

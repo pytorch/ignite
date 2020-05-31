@@ -3,12 +3,8 @@ import warnings
 
 import torch
 
-from ignite.contrib.handlers.base_logger import (
-    BaseLogger,
-    BaseOptimizerParamsHandler,
-    BaseOutputHandler,
-    global_step_from_engine,
-)
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.handlers import global_step_from_engine
 
 __all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
@@ -287,10 +283,7 @@ class MLflowLogger(BaseLogger):
 
         import mlflow
 
-        def wrapper(*args, **kwargs):
-            return getattr(mlflow, attr)(*args, **kwargs)
-
-        return wrapper
+        return getattr(mlflow, attr)
 
     def close(self):
         import mlflow

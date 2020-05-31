@@ -15,23 +15,21 @@
 
     Go to https://wandb.com and explore your experiment.
 """
-import sys
 from argparse import ArgumentParser
-import logging
 
 import torch
-from torch.utils.data import DataLoader
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import SGD
+from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
 
+from ignite.contrib.handlers.wandb_logger import *
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.handlers import ModelCheckpoint
-
-from ignite.contrib.handlers.wandb_logger import *
+from ignite.utils import setup_logger
 
 
 class Net(nn.Module):
@@ -74,14 +72,18 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     if torch.cuda.is_available():
         device = "cuda"
 
+    model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+    trainer.logger = setup_logger("Trainer")
 
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
 
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    train_evaluator.logger = setup_logger("Train Evaluator")
     validation_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    validation_evaluator.logger = setup_logger("Val Evaluator")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def compute_metrics(engine):
@@ -100,37 +102,24 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         },
     )
 
-    wandb_logger.attach(
+    wandb_logger.attach_output_handler(
         trainer,
-        log_handler=OutputHandler(
-            tag="training",
-            output_transform=lambda loss: {"batchloss": loss},
-            metric_names="all",
-            global_step_transform=lambda *_: trainer.state.iteration,
-        ),
         event_name=Events.ITERATION_COMPLETED(every=100),
+        tag="training",
+        output_transform=lambda loss: {"batchloss": loss},
     )
 
-    wandb_logger.attach(
-        train_evaluator,
-        log_handler=OutputHandler(
-            tag="training", metric_names=["loss", "accuracy"], global_step_transform=lambda *_: trainer.state.iteration
-        ),
-        event_name=Events.EPOCH_COMPLETED,
-    )
-
-    wandb_logger.attach(
-        validation_evaluator,
-        log_handler=OutputHandler(
-            tag="validation",
+    for tag, evaluator in [("training", train_evaluator), ("validation", validation_evaluator)]:
+        wandb_logger.attach_output_handler(
+            evaluator,
+            event_name=Events.EPOCH_COMPLETED,
+            tag=tag,
             metric_names=["loss", "accuracy"],
             global_step_transform=lambda *_: trainer.state.iteration,
-        ),
-        event_name=Events.EPOCH_COMPLETED,
-    )
+        )
 
-    wandb_logger.attach(
-        trainer, log_handler=OptimizerParamsHandler(optimizer), event_name=Events.ITERATION_COMPLETED(every=100)
+    wandb_logger.attach_opt_params_handler(
+        trainer, event_name=Events.ITERATION_COMPLETED(every=100), optimizer=optimizer
     )
     wandb_logger.watch(model, log="all")
 
@@ -143,12 +132,13 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         filename_prefix="best",
         score_function=score_function,
         score_name="validation_accuracy",
-        global_step_transform=lambda *_: trainer.state.iteration,
+        global_step_transform=global_step_from_engine(trainer),
     )
     validation_evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {"model": model})
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
+
     wandb_logger.close()
 
 
@@ -163,13 +153,5 @@ if __name__ == "__main__":
     parser.add_argument("--momentum", type=float, default=0.5, help="SGD momentum (default: 0.5)")
 
     args = parser.parse_args()
-
-    # Setup engine logger
-    logger = logging.getLogger("ignite.engine.engine.Engine")
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s %(name)-12s %(levelname)-8s %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum)

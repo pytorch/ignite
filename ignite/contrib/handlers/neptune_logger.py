@@ -6,13 +6,14 @@ from typing import Mapping, Optional
 import torch
 
 import ignite
+import ignite.distributed as idist
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     BaseWeightsScalarHandler,
-    global_step_from_engine,
 )
+from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import BaseSaveHandler
 
 __all__ = [
@@ -478,10 +479,7 @@ class NeptuneLogger(BaseLogger):
 
         import neptune
 
-        def wrapper(*args, **kwargs):
-            return getattr(neptune, attr)(*args, **kwargs)
-
-        return wrapper
+        return getattr(neptune, attr)
 
     def __init__(self, *args, **kwargs):
         try:
@@ -571,14 +569,18 @@ class NeptuneSaver(BaseSaveHandler):
 
     """
 
+    @idist.one_rank_only()
     def __init__(self, neptune_logger: NeptuneLogger):
         self._logger = neptune_logger
 
+    @idist.one_rank_only()
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
+        # wont work on XLA
 
         with tempfile.NamedTemporaryFile() as tmp:
             torch.save(checkpoint, tmp.name)
             self._logger.log_artifact(tmp.name, filename)
 
+    @idist.one_rank_only(with_barrier=True)
     def remove(self, filename: str) -> None:
         self._logger.delete_artifacts(filename)
