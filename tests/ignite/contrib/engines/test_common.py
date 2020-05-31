@@ -312,26 +312,25 @@ def test_setup_tb_logging(dirname):
 
 
 def test_setup_visdom_logging(visdom_server):
-    with pytest.warns(DeprecationWarning):
-        vis_logger = _test_setup_logging(
-            setup_logging_fn=setup_visdom_logging,
-            kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
-            output_handler_cls=handlers.visdom_logger.OutputHandler,
-            opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
-            with_eval=False,
-            with_optim=False,
-        )
-        vis_logger.close()
+    vis_logger = _test_setup_logging(
+        setup_logging_fn=setup_visdom_logging,
+        kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
+        output_handler_cls=handlers.visdom_logger.OutputHandler,
+        opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
+        with_eval=False,
+        with_optim=False,
+    )
+    vis_logger.close()
 
-        vis_logger = _test_setup_logging(
-            setup_logging_fn=setup_visdom_logging,
-            kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
-            output_handler_cls=handlers.visdom_logger.OutputHandler,
-            opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
-            with_eval=True,
-            with_optim=True,
-        )
-        vis_logger.close()
+    vis_logger = _test_setup_logging(
+        setup_logging_fn=setup_visdom_logging,
+        kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
+        output_handler_cls=handlers.visdom_logger.OutputHandler,
+        opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
+        with_eval=True,
+        with_optim=True,
+    )
+    vis_logger.close()
 
 
 def test_setup_plx_logging():
