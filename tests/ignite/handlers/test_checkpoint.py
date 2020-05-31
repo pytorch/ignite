@@ -957,6 +957,8 @@ def _test_tpu_saves_to_cpu(device, dirname):
 
     h(engine, to_save)
 
+    idist.barrier()
+
     fname = h.last_checkpoint
     assert isinstance(fname, str)
     assert os.path.join(dirname, _PREFIX) in fname
