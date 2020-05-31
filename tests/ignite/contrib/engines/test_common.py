@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 import torch.nn as nn
+from torch.utils.data.distributed import DistributedSampler
 
 import ignite.contrib.handlers as handlers
 from ignite.contrib.engines.common import (
@@ -73,7 +74,7 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
 
     train_sampler = None
     if distributed:
-        train_sampler = MagicMock()
+        train_sampler = MagicMock(spec=DistributedSampler)
         train_sampler.set_epoch = MagicMock()
 
     trainer = Engine(update_fn)
@@ -126,10 +127,9 @@ def test_asserts_setup_common_training_handlers():
         setup_common_training_handlers(trainer, to_save={})
 
     with pytest.warns(
-        UserWarning, match=r"Argument train_sampler distributed sampler used to call `set_epoch` method on epoch"
+        UserWarning, match=r"Argument train_sampler is a distributed sampler, but no distributed setting detected"
     ):
-        train_sampler = MagicMock()
-        train_sampler.set_epoch = MagicMock()
+        train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
     with pytest.warns(UserWarning, match=r"Argument device is unused and deprecated"):
@@ -152,7 +152,7 @@ def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_c
 
     from torch.utils.data.sampler import RandomSampler
 
-    with pytest.raises(TypeError, match=r"Train sampler should have `set_epoch` method"):
+    with pytest.raises(TypeError, match=r"Train sampler should be torch DistributedSampler"):
         train_sampler = RandomSampler([0, 1, 2, 3])
         setup_common_training_handlers(trainer, train_sampler)
 

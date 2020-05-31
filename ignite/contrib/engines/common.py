@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from functools import partial
 
 import torch
+from torch.utils.data.distributed import DistributedSampler
 
 import ignite.distributed as idist
 from ignite.contrib.handlers import (
@@ -38,6 +39,7 @@ def setup_common_training_handlers(
     log_every_iters=100,
     device=None,
     stop_on_nan=True,
+    clear_cuda_cache=True,
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -60,16 +62,21 @@ def setup_common_training_handlers(
             as native torch LRScheduler or ignite's parameter scheduler.
         with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
-        output_names (list/tuple): list of names associated with `update_function` output dictionary.
-        with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached
+        output_names (list/tuple, optional): list of names associated with `update_function` output dictionary.
+        with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached.
+            Default, True.
         with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
+            Default, True.
         log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
-            epoch-wise progress bar.
+            epoch-wise progress bar. Default, 100.
         stop_on_nan (bool, optional): if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.
-        device (str of torch.device, optional): deprecated argument, it will be removed since v0.5.0.
+            Default, True.
+        clear_cuda_cache (bool, optional): if True, `torch.cuda.empty_cache()` is called every end of epoch.
+            Default, True.
+        device (str of torch.device, optional): deprecated argument, it will be removed in v0.5.0.
     """
     if device is not None:
-        warnings.warn("Argument device is unused and deprecated. It will be removed since v0.5.0")
+        warnings.warn("Argument device is unused and deprecated. It will be removed in v0.5.0")
 
     kwargs = dict(
         to_save=to_save,
@@ -82,15 +89,15 @@ def setup_common_training_handlers(
         with_pbar_on_iters=with_pbar_on_iters,
         log_every_iters=log_every_iters,
         stop_on_nan=stop_on_nan,
+        clear_cuda_cache=clear_cuda_cache,
     )
 
     if idist.get_world_size() > 1:
         _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
     else:
-        if train_sampler is not None and hasattr(train_sampler, "set_epoch"):
+        if train_sampler is not None and isinstance(train_sampler, DistributedSampler):
             warnings.warn(
-                "Argument train_sampler distributed sampler used to call `set_epoch` method on epoch "
-                "started event, but no distributed setting detected",
+                "Argument train_sampler is a distributed sampler, but no distributed setting detected",
                 UserWarning,
             )
         _setup_common_training_handlers(trainer, **kwargs)
@@ -111,6 +118,7 @@ def _setup_common_training_handlers(
     with_pbar_on_iters=True,
     log_every_iters=100,
     stop_on_nan=True,
+    clear_cuda_cache=True,
 ):
     if stop_on_nan:
         trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
@@ -123,7 +131,7 @@ def _setup_common_training_handlers(
         else:
             trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and clear_cuda_cache:
         trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
 
     if to_save is not None:
@@ -181,6 +189,7 @@ def _setup_common_distrib_training_handlers(
     with_pbar_on_iters=True,
     log_every_iters=100,
     stop_on_nan=True,
+    clear_cuda_cache=True,
 ):
 
     _setup_common_training_handlers(
@@ -195,11 +204,12 @@ def _setup_common_distrib_training_handlers(
         with_pbar_on_iters=with_pbar_on_iters,
         log_every_iters=log_every_iters,
         stop_on_nan=stop_on_nan,
+        clear_cuda_cache=clear_cuda_cache,
     )
 
     if train_sampler is not None:
-        if not callable(getattr(train_sampler, "set_epoch", None)):
-            raise TypeError("Train sampler should have `set_epoch` method")
+        if not isinstance(train_sampler, DistributedSampler):
+            raise TypeError("Train sampler should be torch DistributedSampler and have `set_epoch` method")
 
         @trainer.on(Events.EPOCH_STARTED)
         def distrib_set_epoch(engine):
