@@ -11,8 +11,6 @@
     python mnist_with_trains_logger.py
     ```
 """
-import logging
-import sys
 from argparse import ArgumentParser
 
 import torch
@@ -27,8 +25,7 @@ from ignite.contrib.handlers.trains_logger import *
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import Checkpoint
 from ignite.metrics import Accuracy, Loss
-
-LOG_INTERVAL = 10
+from ignite.utils import setup_logger
 
 
 class Net(nn.Module):
@@ -75,11 +72,14 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+    trainer.logger = setup_logger("Trainer")
 
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
 
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    train_evaluator.logger = setup_logger("Train Evaluator")
     validation_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    validation_evaluator.logger = setup_logger("Val Evaluator")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def compute_metrics(engine):
@@ -88,28 +88,24 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
 
     trains_logger = TrainsLogger(project_name="examples", task_name="ignite")
 
-    trains_logger.attach(
+    trains_logger.attach_output_handler(
         trainer,
-        log_handler=OutputHandler(
-            tag="training", output_transform=lambda loss: {"batchloss": loss}, metric_names="all"
-        ),
         event_name=Events.ITERATION_COMPLETED(every=100),
+        tag="training",
+        output_transform=lambda loss: {"batchloss": loss},
     )
 
-    trains_logger.attach(
-        train_evaluator,
-        log_handler=OutputHandler(tag="training", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
-    )
+    for tag, evaluator in [("training metrics", train_evaluator), ("validation metrics", validation_evaluator)]:
+        trains_logger.attach_output_handler(
+            evaluator,
+            event_name=Events.EPOCH_COMPLETED,
+            tag=tag,
+            metric_names=["loss", "accuracy"],
+            global_step_transform=global_step_from_engine(trainer),
+        )
 
-    trains_logger.attach(
-        validation_evaluator,
-        log_handler=OutputHandler(tag="validation", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
-    )
-
-    trains_logger.attach(
-        trainer, log_handler=OptimizerParamsHandler(optimizer), event_name=Events.ITERATION_COMPLETED(every=100)
+    trains_logger.attach_opt_params_handler(
+        trainer, event_name=Events.ITERATION_COMPLETED(every=100), optimizer=optimizer
     )
 
     trains_logger.attach(
@@ -128,16 +124,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         {"model": model},
         TrainsSaver(trains_logger, dirname="~/.trains/cache/"),
         n_saved=1,
-        score_function=lambda e: 123,
-        score_name="acc",
+        score_function=lambda e: e.state.metrics["accuracy"],
+        score_name="val_acc",
         filename_prefix="best",
         global_step_transform=global_step_from_engine(trainer),
     )
-
     validation_evaluator.add_event_handler(Events.EPOCH_COMPLETED, handler)
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
+
+    trains_logger.close()
 
 
 if __name__ == "__main__":
@@ -151,13 +148,5 @@ if __name__ == "__main__":
     parser.add_argument("--momentum", type=float, default=0.5, help="SGD momentum (default: 0.5)")
 
     args = parser.parse_args()
-
-    # Setup engine logger
-    logger = logging.getLogger("ignite.engine.engine.Engine")
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s %(name)-12s %(levelname)-8s %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum)
