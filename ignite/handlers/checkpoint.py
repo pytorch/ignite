@@ -8,7 +8,9 @@ from collections import namedtuple
 from typing import Callable, Mapping, Optional, Union
 
 import torch
+import torch.nn as nn
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
@@ -21,6 +23,14 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
     - :meth:`~ignite.handlers.checkpoint.BaseSaveHandler.__call__`
     - :meth:`~ignite.handlers.checkpoint.BaseSaveHandler.remove`
+
+
+    Note:
+        In derived class, please, make sure that in distributed configuration overridden methods are called by a single
+        process. Distributed configuration on XLA devices should be treated slightly differently: for saving checkpoint
+        with `xm.save() <https://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.save>`_  all processes
+        should pass into the function. Otherwise, application gets stuck.
+
     """
 
     @abstractmethod
@@ -47,6 +57,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
         Args:
             filename (str): filename associated with checkpoint.
+
         """
         pass
 
@@ -54,11 +65,14 @@ class BaseSaveHandler(metaclass=ABCMeta):
 class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
-    storage, etc.
+    storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
+    moving data on TPU to CPU before writing the checkpoint.
 
     Args:
         to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
-            load_state_dict` methods.
+            load_state_dict` methods. If contains objects of type torch `DistributedDataParallel`_ or
+            `DataParallel`_, their internal wrapped model is automatically saved (to avoid additional key ``module.`` in
+            the state dictionary).
         save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If `save_handler` is callable class, it can
@@ -78,6 +92,9 @@ class Checkpoint:
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
+
+    .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
+    .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -112,6 +129,27 @@ class Checkpoint:
             ...
             print(handler.last_checkpoint)
             > checkpoint_12345.pt
+
+    Note:
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and if used with
+        :class:`~ignite.handlers.DiskSaver`, checkpoint is stored by rank 0 process.
+
+    .. warning::
+
+        When running on TPUs, it should be run in all processes, otherwise application can get stuck on saving the
+        checkpoint.
+
+        .. code-block:: python
+
+            # Wrong:
+            # if idist.get_rank() == 0:
+            #     handler = Checkpoint(...)
+            #     trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
+
+            # Correct:
+            handler = Checkpoint(...)
+            trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
 
     Examples:
 
@@ -284,6 +322,8 @@ class Checkpoint:
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
         for k, obj in self.to_save.items():
+            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                obj = obj.module
             checkpoint[k] = obj.state_dict()
         return checkpoint
 
@@ -357,7 +397,7 @@ class DiskSaver(BaseSaveHandler):
         dirname (str): Directory path where the checkpoint will be saved
         atomic (bool, optional): if True, checkpoint is serialized to a temporary file, and then
             moved to final destination, so that files are guaranteed to not be damaged
-            (for example if exception occures during saving).
+            (for example if exception occurs during saving).
         create_dir (bool, optional): if True, will create directory 'dirname' if it doesnt exist.
         require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
     """
@@ -367,6 +407,11 @@ class DiskSaver(BaseSaveHandler):
     ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
+        self._check_and_setup(dirname, create_dir, require_empty)
+
+    @staticmethod
+    @idist.one_rank_only()
+    def _check_and_setup(dirname, create_dir, require_empty):
         if create_dir:
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
@@ -387,20 +432,45 @@ class DiskSaver(BaseSaveHandler):
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         path = os.path.join(self.dirname, filename)
 
-        if not self._atomic:
-            torch.save(checkpoint, path)
+        if idist.has_xla_support:
+            self._save_xla(checkpoint, path)
         else:
-            tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
-            try:
-                torch.save(checkpoint, tmp.file)
-            except BaseException:
-                tmp.close()
-                os.remove(tmp.name)
-                raise
-            else:
-                tmp.close()
-                os.rename(tmp.name, path)
+            self._save_native(checkpoint, path)
 
+    @idist.one_rank_only()
+    def _save_native(self, checkpoint: Mapping, path: str):
+        self._save_func(checkpoint, path, torch.save)
+
+    def _save_xla(self, checkpoint: Mapping, path: str):
+        import torch_xla.core.xla_model as xm
+
+        # all tpu procs should enter here as internally performs sync across device
+        self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
+
+    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0):
+        if not self._atomic:
+            func(checkpoint, path)
+        else:
+            tmp_file = None
+            tmp_name = None
+            tmp = None
+            if rank == 0:
+                tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
+                tmp_file = tmp.file
+                tmp_name = tmp.name
+            try:
+                func(checkpoint, tmp_file)
+            except BaseException:
+                if tmp is not None:
+                    tmp.close()
+                    os.remove(tmp_name)
+                    raise
+            else:
+                if tmp is not None:
+                    tmp.close()
+                    os.rename(tmp.name, path)
+
+    @idist.one_rank_only()
     def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
         os.remove(path)

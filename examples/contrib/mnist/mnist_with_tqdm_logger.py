@@ -8,10 +8,9 @@ import torch.nn.functional as F
 from torchvision.transforms import Compose, ToTensor, Normalize
 from torchvision.datasets import MNIST
 
+from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss, RunningAverage
-
-from ignite.contrib.handlers import ProgressBar
 
 
 class Net(nn.Module):

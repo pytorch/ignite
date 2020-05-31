@@ -6,6 +6,7 @@ import torch
 from pytest import approx
 from sklearn.metrics import f1_score, precision_score, recall_score
 
+import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import Metric, MetricsLambda, Precision, Recall
 
@@ -317,9 +318,7 @@ def test_recursive_attachment():
 
 def _test_distrib_integration(device):
 
-    import torch.distributed as dist
-
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     np.random.seed(12)
 
     n_iters = 10
@@ -327,17 +326,17 @@ def _test_distrib_integration(device):
     n_classes = 10
 
     def _test():
-        y_true = np.arange(0, n_iters * batch_size * dist.get_world_size()) % n_classes
-        y_pred = 0.2 * np.random.rand(n_iters * batch_size * dist.get_world_size(), n_classes)
-        for i in range(n_iters * batch_size * dist.get_world_size()):
+        y_true = np.arange(0, n_iters * batch_size * idist.get_world_size()) % n_classes
+        y_pred = 0.2 * np.random.rand(n_iters * batch_size * idist.get_world_size(), n_classes)
+        for i in range(n_iters * batch_size * idist.get_world_size()):
             if np.random.rand() > 0.4:
                 y_pred[i, y_true[i]] = 1.0
             else:
                 j = np.random.randint(0, n_classes)
                 y_pred[i, j] = 0.7
 
-        y_true = y_true.reshape(n_iters * dist.get_world_size(), batch_size)
-        y_pred = y_pred.reshape(n_iters * dist.get_world_size(), batch_size, n_classes)
+        y_true = y_true.reshape(n_iters * idist.get_world_size(), batch_size)
+        y_pred = y_pred.reshape(n_iters * idist.get_world_size(), batch_size, n_classes)
 
         def update_fn(engine, i):
             y_true_batch = y_true[i + rank * n_iters, ...]
@@ -398,3 +397,24 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

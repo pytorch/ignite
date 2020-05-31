@@ -3,12 +3,8 @@ import warnings
 
 import torch
 
-from ignite.contrib.handlers.base_logger import (
-    BaseLogger,
-    BaseOptimizerParamsHandler,
-    BaseOutputHandler,
-    global_step_from_engine,
-)
+from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.handlers import global_step_from_engine
 
 __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
@@ -271,10 +267,7 @@ class PolyaxonLogger(BaseLogger):
         self.experiment = Experiment(*args, **kwargs)
 
     def __getattr__(self, attr):
-        def wrapper(*args, **kwargs):
-            return getattr(self.experiment, attr)(*args, **kwargs)
-
-        return wrapper
+        return getattr(self.experiment, attr)
 
     def _create_output_handler(self, *args, **kwargs):
         return OutputHandler(*args, **kwargs)

@@ -1,4 +1,5 @@
 import ignite.contrib
+import ignite.distributed
 import ignite.engine
 import ignite.exceptions
 import ignite.handlers

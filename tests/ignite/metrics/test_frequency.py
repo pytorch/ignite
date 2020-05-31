@@ -1,8 +1,9 @@
+import os
 import time
 
 import pytest
-import torch.distributed as dist
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.metrics import Frequency
 
@@ -56,7 +57,7 @@ def test_frequency_with_engine():
 @pytest.mark.distributed
 def test_frequency_with_engine_distributed(distributed_context_single_node_gloo):
     device = "cpu"
-    _test_frequency_with_engine(device, workers=dist.get_world_size())
+    _test_frequency_with_engine(device, workers=idist.get_world_size())
 
 
 def test_frequency_with_engine_with_every():
@@ -68,5 +69,26 @@ def test_frequency_with_engine_with_every():
 @pytest.mark.distributed
 def test_frequency_with_engine_distributed_with_every(distributed_context_single_node_gloo):
     device = "cpu"
-    _test_frequency_with_engine(device, workers=dist.get_world_size(), every=1)
-    _test_frequency_with_engine(device, workers=dist.get_world_size(), every=10)
+    _test_frequency_with_engine(device, workers=idist.get_world_size(), every=1)
+    _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

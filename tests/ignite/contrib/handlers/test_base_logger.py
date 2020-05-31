@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from ignite.contrib.handlers import CustomPeriodicEvent, global_step_from_engine
+from ignite.contrib.handlers import CustomPeriodicEvent
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
 from ignite.engine import Engine, Events, State
 
@@ -115,6 +115,16 @@ def test_attach():
     _test(Events.COMPLETED, 1)
 
     _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
+
+
+def test_attach_wrong_event_name():
+
+    trainer = Engine(lambda b, e: None)
+    logger = DummyLogger()
+    mock_log_handler = MagicMock()
+
+    with pytest.raises(RuntimeError, match="Unknown event name"):
+        logger.attach(trainer, log_handler=mock_log_handler, event_name="unknown")
 
 
 def test_attach_on_custom_event():

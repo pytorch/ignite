@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 import torch
 
-from ignite.engine import Engine, Events
+import ignite.distributed as idist
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 
@@ -198,22 +199,20 @@ def test_compute_mean_std():
 
 def _test_distrib_variable_accumulation(device):
 
-    import torch.distributed as dist
-
     mean_var = VariableAccumulation(lambda a, x: a + x, device=device)
     y_true = torch.rand(100, device=device, dtype=torch.float64)
 
     for y in y_true:
         mean_var.update(y)
 
-    dist.all_reduce(y_true)
+    y_true = idist.all_reduce(y_true)
     a, n = mean_var.compute()
     assert a.item() == pytest.approx(y_true.sum().item())
-    assert n == len(y_true) * dist.get_world_size()
+    assert n == len(y_true) * idist.get_world_size()
     # check if call compute twice
     a, n = mean_var.compute()
     assert a.item() == pytest.approx(y_true.sum().item())
-    assert n == len(y_true) * dist.get_world_size()
+    assert n == len(y_true) * idist.get_world_size()
 
     mean_var = VariableAccumulation(lambda a, x: a + x, device=device)
     y_true = torch.rand(50, 10, device=device, dtype=torch.float64)
@@ -221,18 +220,16 @@ def _test_distrib_variable_accumulation(device):
     for y in y_true:
         mean_var.update(y)
 
-    dist.all_reduce(y_true)
+    y_true = idist.all_reduce(y_true)
     a, n = mean_var.compute()
-    assert n == len(y_true) * dist.get_world_size()
-    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=5)
+    assert n == len(y_true) * idist.get_world_size()
+    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=4)
     a, n = mean_var.compute()
-    assert n == len(y_true) * dist.get_world_size()
-    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=5)
+    assert n == len(y_true) * idist.get_world_size()
+    np.testing.assert_almost_equal(a.cpu().numpy(), y_true.sum(dim=0).cpu().numpy(), decimal=4)
 
 
 def _test_distrib_average(device):
-
-    import torch.distributed as dist
 
     with pytest.raises(NotComputableError):
         v = Average(device=device)
@@ -247,8 +244,8 @@ def _test_distrib_average(device):
 
     m = mean_var.compute()
 
-    dist.all_reduce(y_true)
-    assert m.item() == pytest.approx(y_true.mean().item() / dist.get_world_size())
+    y_true = idist.all_reduce(y_true)
+    assert m.item() == pytest.approx(y_true.mean().item() / idist.get_world_size())
 
     mean_var = Average(device=device)
     y_true = torch.rand(100, 10, dtype=torch.float64) + torch.randint(0, 10, size=(100, 10)).double()
@@ -259,13 +256,13 @@ def _test_distrib_average(device):
 
     m = mean_var.compute()
 
-    dist.all_reduce(y_true)
-    np.testing.assert_almost_equal(m.cpu().numpy(), y_true.mean(dim=0).cpu().numpy() / dist.get_world_size(), decimal=5)
+    y_true = idist.all_reduce(y_true)
+    np.testing.assert_almost_equal(
+        m.cpu().numpy(), y_true.mean(dim=0).cpu().numpy() / idist.get_world_size(), decimal=5
+    )
 
 
 def _test_distrib_geom_average(device):
-
-    import torch.distributed as dist
 
     with pytest.raises(NotComputableError):
         v = GeometricAverage(device=device)
@@ -280,8 +277,8 @@ def _test_distrib_geom_average(device):
 
     m = mean_var.compute()
     log_y_true = torch.log(y_true)
-    dist.all_reduce(log_y_true)
-    assert m.item() == pytest.approx(torch.exp(log_y_true.mean(dim=0) / dist.get_world_size()).item())
+    log_y_true = idist.all_reduce(log_y_true)
+    assert m.item() == pytest.approx(torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).item())
 
     mean_var = GeometricAverage(device=device)
     y_true = torch.rand(100, 10, dtype=torch.float64) + torch.randint(0, 10, size=(100, 10)).double()
@@ -292,17 +289,14 @@ def _test_distrib_geom_average(device):
 
     m = mean_var.compute()
     log_y_true = torch.log(y_true)
-    dist.all_reduce(log_y_true)
+    log_y_true = idist.all_reduce(log_y_true)
     np.testing.assert_almost_equal(
-        m.cpu().numpy(), torch.exp(log_y_true.mean(dim=0) / dist.get_world_size()).cpu().numpy(), decimal=5
+        m.cpu().numpy(), torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).cpu().numpy(), decimal=5
     )
 
 
 def _test_distrib_integration(device):
-
-    import torch.distributed as dist
-
-    def _test(metric_cls, true_result_fn):
+    def _test(metric_cls, true_result_fn, tol=1e-5):
 
         size = 100
         custom_variable = 10.0 + 5.0 * torch.rand(size, 12, dtype=torch.float64)
@@ -318,7 +312,9 @@ def _test_distrib_integration(device):
 
         state = engine.run([0] * size)
         np.testing.assert_almost_equal(
-            state.metrics["agg_custom_var"].cpu().numpy(), true_result_fn(custom_variable), decimal=5
+            state.metrics["agg_custom_var"].cpu().numpy(),
+            true_result_fn(custom_variable),
+            decimal=int(np.log10(1.0 / tol)),
         )
 
         size = 100
@@ -334,20 +330,20 @@ def _test_distrib_integration(device):
         custom_var_mean.attach(engine, "agg_custom_var")
 
         state = engine.run([0] * size)
-        assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable))
+        assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable), abs=tol)
 
     def _mean(y_true):
-        dist.all_reduce(y_true)
-        return y_true.mean(dim=0).cpu().numpy() / dist.get_world_size()
+        y_true = idist.all_reduce(y_true)
+        return y_true.mean(dim=0).cpu().numpy() / idist.get_world_size()
 
     def _geom_mean(y_true):
         log_y_true = torch.log(y_true)
-        dist.all_reduce(log_y_true)
+        log_y_true = idist.all_reduce(log_y_true)
         np_t = log_y_true.cpu().numpy()
-        return np.exp(np.mean(np_t, axis=0) / dist.get_world_size())
+        return np.exp(np.mean(np_t, axis=0) / idist.get_world_size())
 
     _test(Average, _mean)
-    _test(GeometricAverage, _geom_mean)
+    _test(GeometricAverage, _geom_mean, tol=1e-4)
 
 
 @pytest.mark.distributed
@@ -389,3 +385,30 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
     _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_variable_accumulation(device)
+    _test_distrib_average(device)
+    _test_distrib_geom_average(device)
+    _test_distrib_integration(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_variable_accumulation(device)
+    _test_distrib_average(device)
+    _test_distrib_geom_average(device)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

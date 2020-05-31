@@ -26,10 +26,7 @@ class Loss(Metric):
             keywords arguments. If extra keywords arguments are provided they are passed to `loss_fn`.
         batch_size (callable): a callable taking a target tensor that returns the
             first dimension size (usually the batch size).
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device (str of torch.device, optional): unused argument.
 
     """
 
@@ -63,9 +60,9 @@ class Loss(Metric):
         if len(average_loss.shape) != 0:
             raise ValueError("loss_fn did not return the average loss.")
 
-        N = self._batch_size(y)
-        self._sum += average_loss.item() * N
-        self._num_examples += N
+        n = self._batch_size(y)
+        self._sum += average_loss.item() * n
+        self._num_examples += n
 
     @sync_all_reduce("_sum", "_num_examples")
     def compute(self) -> None:

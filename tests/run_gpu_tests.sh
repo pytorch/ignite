@@ -8,8 +8,15 @@ fi
 
 set -xeu
 
-py.test -vvv tests/ -k 'on_cuda'
+py.test --cov ignite --cov-report term-missing -vvv tests/ -k 'on_cuda'
 
-export WORLD_SIZE=$ws
+if [ "$ws" -eq "1" ]; then
 
-py.test --dist=each --tx $WORLD_SIZE*popen//python=python3.7 tests -m distributed -vvv
+    py.test --cov ignite --cov-append --cov-report term-missing -vvv tests/ -m distributed
+
+else
+
+    export WORLD_SIZE=$ws
+    py.test --cov ignite --cov-append --cov-report term-missing --dist=each --tx $WORLD_SIZE*popen//python=python3.7 tests -m distributed -vvv
+
+fi

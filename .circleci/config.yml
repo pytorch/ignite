@@ -115,6 +115,12 @@ jobs:
             export mnist4_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt'
             docker exec -it pthd /bin/bash -c "$mnist4_cmd"
 
+      - run:
+          name: Codecov upload
+          command: |
+            codecov -F gpu || echo 'Codecov upload failed'
+
+
   two_gpus_tests:
     <<: *two_gpus
 

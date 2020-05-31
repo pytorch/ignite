@@ -6,6 +6,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
@@ -108,6 +109,24 @@ def test_checkpoint_default():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
+
+
+def test_checkpoint_with_dp():
+
+    model = DummyModel()
+    dp_model = nn.DataParallel(model)
+    to_save = {"model": dp_model}
+
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    checkpointer = Checkpoint(to_save, save_handler=save_handler)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
+    metadata = {"basename": "model", "score_name": None, "priority": 0}
+    save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
 
 
 def test_checkpoint_with_global_step_transform():
@@ -691,33 +710,50 @@ def test_valid_state_dict_save(dirname):
         pytest.fail("Unexpected ValueError")
 
 
-def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
-    model = DummyModel()
-    optim = torch.optim.SGD(model.parameters(), lr=0.001)
+def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_zero_rank=False):
+
+    torch.manual_seed(23)
+
+    model = DummyModel().to(device)
+
+    optim = torch.optim.SGD(model.parameters(), lr=0.1)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
 
     def update_fn(engine, batch):
-        x = torch.rand((4, 1))
+        x = torch.rand((4, 1)).to(device)
         optim.zero_grad()
         y = model(x)
         loss = y.pow(2.0).sum()
         loss.backward()
-        optim.step()
+        if idist.has_xla_support:
+            import torch_xla.core.xla_model as xm
+
+            xm.optimizer_step(optim, barrier=True)
+        else:
+            optim.step()
         lr_scheduler.step()
 
     engine = Engine(update_fn)
-    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
 
-    engine.add_event_handler(
-        Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
-    )
+    if (not on_zero_rank) or (on_zero_rank and idist.get_rank() == 0):
+        handler = ModelCheckpoint(dirname, _PREFIX, create_dir=True, n_saved=1)
+
+        engine.add_event_handler(
+            Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
+        )
+
     engine.run([0], max_epochs=4)
 
+    idist.barrier()
+
     saved_objects = sorted(os.listdir(dirname))
-    # saved object is ['PREFIX_checkpoint_4.pt', ]
+    # saved object is ['PREFIX_checkpoint_3.pt', ]
     saved_checkpoint = os.path.join(dirname, saved_objects[0])
 
-    loaded_obj = torch.load(saved_checkpoint)
+    if idist.has_xla_support:
+        device = "cpu"
+
+    loaded_obj = torch.load(saved_checkpoint, map_location=device)
     for f in ["model", "optimizer", "lr_scheduler"]:
         assert f in loaded_obj
     loaded_model_state_dict = loaded_obj["model"]
@@ -728,19 +764,21 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
     assert isinstance(loaded_optimizer_state_dict, dict)
     assert isinstance(loaded_lr_scheduler_state_dict, dict)
 
-    model_state_dict = model.state_dict()
+    # Specifically move device to CPU first
+    model_state_dict = model.cpu().state_dict()
     for key in model_state_dict.keys():
         assert key in loaded_model_state_dict
         model_value = model_state_dict[key]
         loaded_model_value = loaded_model_state_dict[key]
-        assert model_value.numpy() == loaded_model_value.numpy()
+        assert model_value.cpu().numpy() == loaded_model_value.cpu().numpy()
 
     optim_state_dict = optim.state_dict()
     for key in optim_state_dict.keys():
         assert key in loaded_optimizer_state_dict
         optim_value = optim_state_dict[key]
         loaded_optim_value = loaded_optimizer_state_dict[key]
-        assert optim_value == loaded_optim_value
+        if idist.get_rank() == 0:
+            assert optim_value == loaded_optim_value
 
     lr_scheduler_state_dict = lr_scheduler.state_dict()
     for key in lr_scheduler_state_dict.keys():
@@ -748,6 +786,10 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
         lr_scheduler_value = lr_scheduler_state_dict[key]
         loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
         assert lr_scheduler_value == loaded_lr_scheduler_value
+
+
+def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", dirname)
 
 
 def test_checkpoint_load_objects():
@@ -867,3 +909,94 @@ def test_disksaver_wrong_input(dirname):
             DiskSaver(dirname, require_empty=True)
 
     _test(".pt")
+
+
+def _test_checkpoint_with_ddp(device):
+    torch.manual_seed(0)
+
+    model = DummyModel().to(device)
+    device_ids = (
+        None if "cpu" in device.type else [device,]
+    )
+    ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=device_ids)
+    to_save = {"model": ddp_model}
+
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    checkpointer = Checkpoint(to_save, save_handler=save_handler)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
+    metadata = {"basename": "model", "score_name": None, "priority": 0}
+    save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
+    device = torch.device("cpu")
+    dirname = get_rank_zero_dirname()
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"), on_zero_rank=True)
+    _test_checkpoint_with_ddp(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
+    device = idist.device()
+    dirname = get_rank_zero_dirname()
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "2"), on_zero_rank=True)
+    _test_checkpoint_with_ddp(device=device)
+
+
+def _test_tpu_saves_to_cpu(device, dirname):
+    torch.manual_seed(0)
+
+    h = ModelCheckpoint(dirname, _PREFIX)
+    engine = Engine(lambda e, b: None)
+    engine.state = State(epoch=0, iteration=1)
+
+    model = DummyModel().to(device)
+    to_save = {"model": model}
+
+    h(engine, to_save)
+
+    idist.barrier()
+
+    fname = h.last_checkpoint
+    assert isinstance(fname, str)
+    assert os.path.join(dirname, _PREFIX) in fname
+    assert os.path.exists(fname)
+    loaded_objects = torch.load(fname)
+    assert loaded_objects == model.cpu().state_dict()
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla(dirname):
+    assert "xla" in idist.device().type
+    _test_tpu_saves_to_cpu(idist.device(), os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
+
+
+def _test_tpu_saves_to_cpu_nprocs(index, dirname):
+    device = idist.device()
+    _test_tpu_saves_to_cpu(device, os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"))
+
+    import time
+
+    # hack to have all proc properly sync:
+    time.sleep(1)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla_nprocs(xmp_executor, dirname):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname,), nprocs=n)

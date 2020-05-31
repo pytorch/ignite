@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 import torch.nn as nn
+from torch.utils.data.distributed import DistributedSampler
 
 import ignite.contrib.handlers as handlers
 from ignite.contrib.engines.common import (
@@ -33,19 +34,36 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False):
+def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None):
 
     lr = 0.01
     step_size = 100
     gamma = 0.5
+    num_iters = 100
+    num_epochs = 10
 
     model = DummyModel().to(device)
     if distributed and "cuda" in device:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+
+    if lr_scheduler is None:
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+    elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite|LRScheduler":
+        from ignite.contrib.handlers import LRScheduler
+
+        lr_scheduler = LRScheduler(torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma))
+    elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite":
+        from ignite.contrib.handlers import PiecewiseLinear
+
+        milestones_values = [(0, 0.0), (step_size, lr), (num_iters * (num_epochs - 1), 0.0)]
+        lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
+    else:
+        raise ValueError("Unknown lr_scheduler: {}".format(lr_scheduler))
 
     def update_fn(engine, batch):
+        if (engine.state.iteration - 1) % 50 == 0:
+            print("- lr:", optimizer.param_groups[0]["lr"])
         optimizer.zero_grad()
         x = torch.tensor([batch], requires_grad=True, device=device)
         y_pred = model(x)
@@ -56,7 +74,7 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
 
     train_sampler = None
     if distributed:
-        train_sampler = MagicMock()
+        train_sampler = MagicMock(spec=DistributedSampler)
         train_sampler.set_epoch = MagicMock()
 
     trainer = Engine(update_fn)
@@ -72,11 +90,8 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
         with_pbars=True,
         with_pbar_on_iters=True,
         log_every_iters=50,
-        device=device,
     )
 
-    num_iters = 100
-    num_epochs = 10
     data = [i * 0.1 for i in range(num_iters)]
     trainer.run(data, max_epochs=num_epochs)
 
@@ -112,10 +127,34 @@ def test_asserts_setup_common_training_handlers():
         setup_common_training_handlers(trainer, to_save={})
 
     with pytest.warns(
-        UserWarning, match=r"Argument train_sampler distributed sampler used to call `set_epoch` method on epoch"
+        UserWarning, match=r"Argument train_sampler is a distributed sampler, but no distributed setting detected"
     ):
-        train_sampler = MagicMock()
+        train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
+
+    with pytest.warns(UserWarning, match=r"Argument device is unused and deprecated"):
+        setup_common_training_handlers(trainer, device="cpu")
+
+
+def test_no_warning_with_train_sampler(recwarn):
+    from torch.utils.data import RandomSampler
+
+    trainer = Engine(lambda e, b: None)
+    train_sampler = RandomSampler([0, 1, 2])
+    setup_common_training_handlers(trainer, train_sampler=train_sampler)
+    assert len(recwarn) == 0, recwarn.pop()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Should have more than 1 worker")
+def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_context_single_node_gloo):
+    trainer = Engine(lambda e, b: None)
+
+    from torch.utils.data.sampler import RandomSampler
+
+    with pytest.raises(TypeError, match=r"Train sampler should be torch DistributedSampler"):
+        train_sampler = RandomSampler([0, 1, 2, 3])
+        setup_common_training_handlers(trainer, train_sampler)
 
 
 def test_setup_common_training_handlers(dirname, capsys):
@@ -445,7 +484,13 @@ def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
 def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
     device = "cpu"
     local_rank = distributed_context_single_node_gloo["local_rank"]
-    _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=False)
+    _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=True)
+    _test_setup_common_training_handlers(
+        dirname, device, rank=local_rank, local_rank=local_rank, distributed=True, lr_scheduler="ignite|LRScheduler"
+    )
+    _test_setup_common_training_handlers(
+        dirname, device, rank=local_rank, local_rank=local_rank, distributed=True, lr_scheduler="ignite"
+    )
     test_add_early_stopping_by_val_score()
 
 
