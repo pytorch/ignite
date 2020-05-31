@@ -710,7 +710,7 @@ def test_valid_state_dict_save(dirname):
         pytest.fail("Unexpected ValueError")
 
 
-def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
+def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_zero_rank=False):
 
     torch.manual_seed(23)
 
@@ -734,13 +734,17 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname):
         lr_scheduler.step()
 
     engine = Engine(update_fn)
-    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=True, n_saved=1)
 
-    engine.add_event_handler(
-        Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
-    )
+    if (not on_zero_rank) or (on_zero_rank and idist.get_rank() == 0):
+        handler = ModelCheckpoint(dirname, _PREFIX, create_dir=True, n_saved=1)
+
+        engine.add_event_handler(
+            Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
+        )
 
     engine.run([0], max_epochs=4)
+
+    idist.barrier()
 
     saved_objects = sorted(os.listdir(dirname))
     # saved object is ['PREFIX_checkpoint_3.pt', ]
@@ -932,6 +936,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname
     device = torch.device("cpu")
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"), on_zero_rank=True)
     _test_checkpoint_with_ddp(device)
 
 
@@ -941,6 +946,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname
     device = idist.device()
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "2"), on_zero_rank=True)
     _test_checkpoint_with_ddp(device=device)
 
 
@@ -954,6 +960,8 @@ def _test_tpu_saves_to_cpu(device, dirname):
     to_save = {"model": model}
 
     h(engine, to_save)
+
+    idist.barrier()
 
     fname = h.last_checkpoint
     assert isinstance(fname, str)
