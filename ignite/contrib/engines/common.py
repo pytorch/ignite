@@ -247,8 +247,11 @@ def _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters):
         if isinstance(evaluators, Engine):
             evaluators = {"validation": evaluators}
 
+        gst = global_step_from_engine(trainer)
+        if isinstance(logger, WandBLogger):
+            gst = lambda *_: trainer.state.iteration
+
         for k, evaluator in evaluators.items():
-            gst = global_step_from_engine(trainer)
             logger.attach_output_handler(
                 evaluator, event_name=Events.COMPLETED, tag=k, metric_names="all", global_step_transform=gst
             )
