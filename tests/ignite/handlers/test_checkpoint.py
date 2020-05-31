@@ -913,7 +913,10 @@ def test_disksaver_wrong_input(dirname):
 
 def _test_checkpoint_with_ddp(device):
     model = DummyModel().to(device)
-    ddp_model = nn.parallel.DistributedDataParallel(model)
+    device_ids = (
+        None if "cpu" in device.type else [device,]
+    )
+    ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=device_ids)
     to_save = {"model": ddp_model}
 
     save_handler = MagicMock(spec=BaseSaveHandler)
@@ -930,17 +933,18 @@ def _test_checkpoint_with_ddp(device):
 
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
-    dirname = get_rank_zero_dirname("cpu")
-    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "1"))
-    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "2"), on_zero_rank=True)
-    _test_checkpoint_with_ddp("cpu")
+    device = torch.device("cpu")
+    dirname = get_rank_zero_dirname()
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"), on_zero_rank=True)
+    _test_checkpoint_with_ddp(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
     device = idist.device()
-    dirname = get_rank_zero_dirname(device)
+    dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "2"), on_zero_rank=True)
     _test_checkpoint_with_ddp(device=device)
@@ -978,7 +982,7 @@ def test_distrib_single_device_xla(dirname):
 
 def _test_tpu_saves_to_cpu_nprocs(index, get_rank_zero_dirname):
     device = idist.device()
-    dirname = get_rank_zero_dirname(device)
+    dirname = get_rank_zero_dirname()
     _test_tpu_saves_to_cpu(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"))
 
