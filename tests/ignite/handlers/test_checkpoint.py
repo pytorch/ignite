@@ -912,6 +912,8 @@ def test_disksaver_wrong_input(dirname):
 
 
 def _test_checkpoint_with_ddp(device):
+    torch.manual_seed(0)
+
     model = DummyModel().to(device)
     device_ids = (
         None if "cpu" in device.type else [device,]
@@ -951,6 +953,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname
 
 
 def _test_tpu_saves_to_cpu(device, dirname):
+    torch.manual_seed(0)
 
     h = ModelCheckpoint(dirname, _PREFIX)
     engine = Engine(lambda e, b: None)
@@ -980,9 +983,8 @@ def test_distrib_single_device_xla(dirname):
     _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
 
 
-def _test_tpu_saves_to_cpu_nprocs(index, get_rank_zero_dirname):
+def _test_tpu_saves_to_cpu_nprocs(index, dirname):
     device = idist.device()
-    dirname = get_rank_zero_dirname()
     _test_tpu_saves_to_cpu(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"))
 
@@ -995,6 +997,6 @@ def _test_tpu_saves_to_cpu_nprocs(index, get_rank_zero_dirname):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla_nprocs(xmp_executor, get_rank_zero_dirname):
+def test_distrib_single_device_xla_nprocs(xmp_executor, dirname):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(get_rank_zero_dirname,), nprocs=n)
+    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname,), nprocs=n)
