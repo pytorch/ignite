@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from ignite.contrib.handlers import CustomPeriodicEvent, global_step_from_engine
+from ignite.contrib.handlers import CustomPeriodicEvent
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
 from ignite.engine import Engine, Events, State
 

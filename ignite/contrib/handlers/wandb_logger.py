@@ -25,14 +25,14 @@ class OutputHandler(BaseOutputHandler):
             )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # each epoch. We setup `global_step_transform=lambda *_: trainer.state.iteration,` to take iteration value
             # of the `trainer`:
             wandb_logger.attach(
                 evaluator,
                 log_handler=OutputHandler(
                     tag="validation",
                     metric_names=["nll", "accuracy"],
-                    global_step_transform=global_step_from_engine(trainer)
+                    global_step_transform=lambda *_: trainer.state.iteration,
                 ),
                 event_name=Events.EPOCH_COMPLETED
             )
@@ -42,7 +42,7 @@ class OutputHandler(BaseOutputHandler):
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer)
+                global_step_transform=lambda *_: trainer.state.iteration,
             )
 
         Another example, where model is evaluated every 500 iterations:
@@ -232,25 +232,25 @@ class WandBLogger(BaseLogger):
             )
 
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
-            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
-            # of the `trainer` instead of `train_evaluator`.
+            # We setup `global_step_transform=lambda *_: trainer.state.iteration` to take iteration value
+            # of the `trainer`:
             wandb_logger.attach_output_handler(
                 train_evaluator,
                 event_name=Events.EPOCH_COMPLETED,
                 tag="training",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer),
+                global_step_transform=lambda *_: trainer.state.iteration,
             )
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
-            # `trainer` instead of `evaluator`.
+            # each epoch. We setup `global_step_transform=lambda *_: trainer.state.iteration` to take iteration value
+            # of the `trainer` instead of `evaluator`.
             wandb_logger.attach_output_handler(
                 evaluator,
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer)),
+                global_step_transform=lambda *_: trainer.state.iteration,
             )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
@@ -292,9 +292,9 @@ class WandBLogger(BaseLogger):
                 wandb_logger.run.dir, n_saved=2, filename_prefix='best',
                 require_empty=False, score_function=score_function,
                 score_name="validation_accuracy",
-                global_step_transform=global_step_from_engine(trainer))
-            evaluator.add_event_handler(
-                Events.COMPLETED, model_checkpoint, {'model': model})
+                global_step_transform=global_step_from_engine(trainer)
+            )
+            evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
     """
 
     def __init__(self, *args, **kwargs):
