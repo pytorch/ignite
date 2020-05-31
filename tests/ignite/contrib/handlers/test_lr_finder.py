@@ -217,8 +217,9 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
 
-    lr_finder.plot()
-    lr_finder.plot(skip_end=0)
+    with pytest.warns(UserWarning):
+        lr_finder.plot()
+        lr_finder.plot(skip_end=0)
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):

@@ -54,7 +54,7 @@ class VariableAccumulation(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.num_examples = torch.tensor(0.0, dtype=torch.long, device=self._device)
+        self.num_examples = torch.tensor(0, dtype=torch.long, device=self._device)
 
     def _check_output_type(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
         if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):

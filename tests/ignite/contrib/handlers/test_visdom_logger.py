@@ -786,8 +786,9 @@ def test_grads_scalar_handler():
 
 def test_integration_no_server():
 
-    with pytest.raises(RuntimeError, match="Failed to connect to Visdom server"):
-        VisdomLogger()
+    with pytest.warns(PendingDeprecationWarning):
+        with pytest.raises(RuntimeError, match="Failed to connect to Visdom server"):
+            VisdomLogger()
 
 
 def test_logger_init_hostname_port(visdom_server):

@@ -8,55 +8,58 @@ from ignite.engine import Engine
 
 def test_bad_input():
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent(n_iterations="a")
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent(n_iterations="a")
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent(n_iterations=0)
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent(n_iterations=0)
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent(n_iterations=10.0)
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent(n_iterations=10.0)
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent(n_epochs="a")
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent(n_epochs="a")
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent(n_epochs=0)
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent(n_epochs=0)
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent(n_epochs=10.0)
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent(n_epochs=10.0)
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent()
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent()
 
-    with pytest.raises(ValueError):
-        CustomPeriodicEvent(n_iterations=1, n_epochs=2)
+        with pytest.raises(ValueError):
+            CustomPeriodicEvent(n_iterations=1, n_epochs=2)
 
 
 def test_new_events():
     def update(*args, **kwargs):
         pass
 
-    engine = Engine(update)
-    cpe = CustomPeriodicEvent(n_iterations=5)
-    cpe.attach(engine)
+    with pytest.warns(DeprecationWarning):
+        engine = Engine(update)
+        cpe = CustomPeriodicEvent(n_iterations=5)
+        cpe.attach(engine)
 
-    assert hasattr(cpe, "Events")
-    assert hasattr(cpe.Events, "ITERATIONS_5_STARTED")
-    assert hasattr(cpe.Events, "ITERATIONS_5_COMPLETED")
+        assert hasattr(cpe, "Events")
+        assert hasattr(cpe.Events, "ITERATIONS_5_STARTED")
+        assert hasattr(cpe.Events, "ITERATIONS_5_COMPLETED")
 
-    assert engine._allowed_events[-2] == getattr(cpe.Events, "ITERATIONS_5_STARTED")
-    assert engine._allowed_events[-1] == getattr(cpe.Events, "ITERATIONS_5_COMPLETED")
+        assert engine._allowed_events[-2] == getattr(cpe.Events, "ITERATIONS_5_STARTED")
+        assert engine._allowed_events[-1] == getattr(cpe.Events, "ITERATIONS_5_COMPLETED")
 
-    cpe = CustomPeriodicEvent(n_epochs=5)
-    cpe.attach(engine)
+    with pytest.warns(DeprecationWarning):
+        cpe = CustomPeriodicEvent(n_epochs=5)
+        cpe.attach(engine)
 
-    assert hasattr(cpe, "Events")
-    assert hasattr(cpe.Events, "EPOCHS_5_STARTED")
-    assert hasattr(cpe.Events, "EPOCHS_5_COMPLETED")
+        assert hasattr(cpe, "Events")
+        assert hasattr(cpe.Events, "EPOCHS_5_STARTED")
+        assert hasattr(cpe.Events, "EPOCHS_5_COMPLETED")
 
-    assert engine._allowed_events[-2] == getattr(cpe.Events, "EPOCHS_5_STARTED")
-    assert engine._allowed_events[-1] == getattr(cpe.Events, "EPOCHS_5_COMPLETED")
+        assert engine._allowed_events[-2] == getattr(cpe.Events, "EPOCHS_5_STARTED")
+        assert engine._allowed_events[-1] == getattr(cpe.Events, "EPOCHS_5_COMPLETED")
 
 
 def test_integration_iterations():
@@ -65,9 +68,9 @@ def test_integration_iterations():
             pass
 
         engine = Engine(update)
-
-        cpe = CustomPeriodicEvent(n_iterations=n_iterations)
-        cpe.attach(engine)
+        with pytest.warns(DeprecationWarning):
+            cpe = CustomPeriodicEvent(n_iterations=n_iterations)
+            cpe.attach(engine)
         data = list(range(n_iters_per_epoch))
 
         custom_period = [0]
@@ -114,8 +117,9 @@ def test_integration_epochs():
     engine = Engine(update)
 
     n_epochs = 3
-    cpe = CustomPeriodicEvent(n_epochs=n_epochs)
-    cpe.attach(engine)
+    with pytest.warns(DeprecationWarning):
+        cpe = CustomPeriodicEvent(n_epochs=n_epochs)
+        cpe.attach(engine)
     data = list(range(16))
 
     custom_period = [1]
