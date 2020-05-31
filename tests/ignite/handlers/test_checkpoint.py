@@ -909,7 +909,9 @@ def test_disksaver_wrong_input(dirname):
 
 def _test_checkpoint_with_ddp(device):
     model = DummyModel().to(device)
-    device_ids = None if "cpu" in device.type else [device, ]
+    device_ids = (
+        None if "cpu" in device.type else [device,]
+    )
     ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=device_ids)
     to_save = {"model": ddp_model}
 
