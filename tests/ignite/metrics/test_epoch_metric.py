@@ -3,6 +3,7 @@ import os
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.metrics import EpochMetric
 from ignite.metrics.epoch_metric import EpochMetricWarning
 
@@ -146,43 +147,29 @@ def _test_warning():
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-
-    _test_warning()
-
     # Perform some ops otherwise, next tests fail
-    import torch.distributed as dist
+
+    if idist.get_world_size() > 1:
+        _test_warning()
 
     device = "cuda:{}".format(local_rank)
 
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
-
     y = torch.rand(10, 12, device=device)
-    y = _gather(y)
+    y = idist.all_gather(y)
     assert isinstance(y, torch.Tensor)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
-
-    _test_warning()
-
     # Perform some ops otherwise, next tests fail
-    import torch.distributed as dist
+
+    if idist.get_world_size() > 1:
+        _test_warning()
 
     device = "cpu"
 
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
-
     y = torch.rand(10, 12, device=device)
-    y = _gather(y)
+    y = idist.all_gather(y)
     assert isinstance(y, torch.Tensor)
 
 

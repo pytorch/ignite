@@ -5,6 +5,7 @@ import pytest
 import torch
 from sklearn.metrics import fbeta_score
 
+import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import Fbeta, Precision, Recall
 
@@ -88,10 +89,9 @@ def test_integration():
     _test(precision, recall, True, None)
 
 
-def _test_distrib_itegration(device):
-    import torch.distributed as dist
+def _test_distrib_integration(device):
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(p, r, average, n_epochs):
@@ -100,8 +100,8 @@ def _test_distrib_itegration(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
 
         def update(engine, i):
             return (
@@ -143,24 +143,45 @@ def _test_distrib_itegration(device):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo):
     device = "cpu"
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

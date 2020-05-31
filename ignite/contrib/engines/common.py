@@ -4,9 +4,11 @@ from collections.abc import Mapping, Sequence
 from functools import partial
 
 import torch
-import torch.distributed as dist
+from torch.utils.data.distributed import DistributedSampler
 
+import ignite.distributed as idist
 from ignite.contrib.handlers import (
+    LRScheduler,
     MLflowLogger,
     NeptuneLogger,
     PolyaxonLogger,
@@ -19,7 +21,7 @@ from ignite.contrib.handlers import (
 )
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
-from ignite.handlers import EarlyStopping, ModelCheckpoint, TerminateOnNan
+from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, TerminateOnNan
 from ignite.metrics import RunningAverage
 
 
@@ -35,7 +37,9 @@ def setup_common_training_handlers(
     with_pbars=True,
     with_pbar_on_iters=True,
     log_every_iters=100,
-    device="cuda",
+    device=None,
+    stop_on_nan=True,
+    clear_cuda_cache=True,
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -49,8 +53,8 @@ def setup_common_training_handlers(
             or sequence or a single tensor.
         train_sampler (torch.utils.data.DistributedSampler, optional): Optional distributed sampler used to call
             `set_epoch` method on epoch started event.
-        to_save (dict, optional): dictionary with objects to save in the checkpoint. This is used with
-            :class:`~ignite.handlers.ModelCheckpoint`.
+        to_save (dict, optional): dictionary with objects to save in the checkpoint. This argument is passed to
+            :class:`~ignite.handlers.Checkpoint` instance.
         save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
             each 1000 iterations.
         output_path (str, optional): output path to indicate where `to_save` objects are stored.
@@ -58,13 +62,22 @@ def setup_common_training_handlers(
             as native torch LRScheduler or ignite's parameter scheduler.
         with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
-        output_names (list/tuple): list of names associated with `update_function` output dictionary.
-        with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached
+        output_names (list/tuple, optional): list of names associated with `update_function` output dictionary.
+        with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached.
+            Default, True.
         with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
+            Default, True.
         log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
-            epoch-wise progress bar.
-        device (str of torch.device, optional): Optional device specification in case of distributed computation usage.
+            epoch-wise progress bar. Default, 100.
+        stop_on_nan (bool, optional): if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.
+            Default, True.
+        clear_cuda_cache (bool, optional): if True, `torch.cuda.empty_cache()` is called every end of epoch.
+            Default, True.
+        device (str of torch.device, optional): deprecated argument, it will be removed in v0.5.0.
     """
+    if device is not None:
+        warnings.warn("Argument device is unused and deprecated. It will be removed in v0.5.0")
+
     kwargs = dict(
         to_save=to_save,
         save_every_iters=save_every_iters,
@@ -75,16 +88,16 @@ def setup_common_training_handlers(
         with_pbars=with_pbars,
         with_pbar_on_iters=with_pbar_on_iters,
         log_every_iters=log_every_iters,
-        device=device,
+        stop_on_nan=stop_on_nan,
+        clear_cuda_cache=clear_cuda_cache,
     )
-    if dist.is_available() and dist.is_initialized():
+
+    if idist.get_world_size() > 1:
         _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
     else:
-        if train_sampler is not None:
+        if train_sampler is not None and isinstance(train_sampler, DistributedSampler):
             warnings.warn(
-                "Argument train_sampler distributed sampler used to call `set_epoch` method on epoch "
-                "started event, but no distributed setting detected",
-                UserWarning,
+                "Argument train_sampler is a distributed sampler, but no distributed setting detected", UserWarning,
             )
         _setup_common_training_handlers(trainer, **kwargs)
 
@@ -98,28 +111,35 @@ def _setup_common_training_handlers(
     save_every_iters=1000,
     output_path=None,
     lr_scheduler=None,
-    with_gpu_stats=True,
+    with_gpu_stats=False,
     output_names=None,
     with_pbars=True,
     with_pbar_on_iters=True,
     log_every_iters=100,
-    device="cuda",
+    stop_on_nan=True,
+    clear_cuda_cache=True,
 ):
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
+    if stop_on_nan:
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
 
     if lr_scheduler is not None:
         if isinstance(lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: lr_scheduler.step())
+        elif isinstance(lr_scheduler, LRScheduler):
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, lr_scheduler)
         else:
             trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
+    if torch.cuda.is_available() and clear_cuda_cache:
+        trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
 
     if to_save is not None:
         if output_path is None:
             raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-        checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training", require_empty=False)
-        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
+        checkpoint_handler = Checkpoint(
+            to_save, DiskSaver(dirname=output_path, require_empty=False), filename_prefix="training",
+        )
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler)
 
     if with_gpu_stats:
         GpuInfo().attach(trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters))
@@ -140,9 +160,9 @@ def _setup_common_training_handlers(
                 )
 
         for i, n in enumerate(output_names):
-            RunningAverage(
-                output_transform=partial(output_transform, index=i, name=n), epoch_bound=False, device=device
-            ).attach(trainer, n)
+            RunningAverage(output_transform=partial(output_transform, index=i, name=n), epoch_bound=False).attach(
+                trainer, n
+            )
 
     if with_pbars:
         if with_pbar_on_iters:
@@ -162,42 +182,37 @@ def _setup_common_distrib_training_handlers(
     save_every_iters=1000,
     output_path=None,
     lr_scheduler=None,
-    with_gpu_stats=True,
+    with_gpu_stats=False,
     output_names=None,
     with_pbars=True,
     with_pbar_on_iters=True,
     log_every_iters=100,
-    device="cuda",
+    stop_on_nan=True,
+    clear_cuda_cache=True,
 ):
-    if not (dist.is_available() and dist.is_initialized()):
-        raise RuntimeError("Distributed setting is not initialized, please call `dist.init_process_group` before.")
 
     _setup_common_training_handlers(
         trainer,
-        to_save=None,
+        to_save=to_save,
+        output_path=output_path,
+        save_every_iters=save_every_iters,
         lr_scheduler=lr_scheduler,
         with_gpu_stats=with_gpu_stats,
         output_names=output_names,
-        with_pbars=(dist.get_rank() == 0) and with_pbars,
+        with_pbars=(idist.get_rank() == 0) and with_pbars,
         with_pbar_on_iters=with_pbar_on_iters,
         log_every_iters=log_every_iters,
-        device=device,
+        stop_on_nan=stop_on_nan,
+        clear_cuda_cache=clear_cuda_cache,
     )
 
     if train_sampler is not None:
-        if not callable(getattr(train_sampler, "set_epoch", None)):
-            raise TypeError("Train sampler should have `set_epoch` method")
+        if not isinstance(train_sampler, DistributedSampler):
+            raise TypeError("Train sampler should be torch DistributedSampler and have `set_epoch` method")
 
         @trainer.on(Events.EPOCH_STARTED)
         def distrib_set_epoch(engine):
             train_sampler.set_epoch(engine.state.epoch - 1)
-
-    if dist.get_rank() == 0:
-        if to_save is not None:
-            if output_path is None:
-                raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-            checkpoint_handler = ModelCheckpoint(dirname=output_path, filename_prefix="training", require_empty=False)
-            trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler, to_save)
 
 
 def empty_cuda_cache(_):
@@ -447,21 +462,24 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
         tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
 
     Returns:
-        A :class:`~ignite.handlers.checkpoint.ModelCheckpoint` handler.
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
     global_step_transform = None
     if trainer is not None:
         global_step_transform = global_step_from_engine(trainer)
 
-    best_model_handler = ModelCheckpoint(
-        dirname=output_path,
+    best_model_handler = Checkpoint(
+        {"model": model,},
+        DiskSaver(dirname=output_path, require_empty=False),
         filename_prefix="best",
         n_saved=n_saved,
         global_step_transform=global_step_transform,
         score_name="{}_{}".format(tag, metric_name.lower()),
         score_function=get_default_score_fn(metric_name),
     )
-    evaluator.add_event_handler(Events.COMPLETED, best_model_handler, {"model": model,})
+    evaluator.add_event_handler(
+        Events.COMPLETED, best_model_handler,
+    )
 
     return best_model_handler
 

@@ -6,6 +6,7 @@ import torch
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import precision_score
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
 
@@ -715,11 +716,10 @@ def test_incorrect_y_classes():
     _test(average=False)
 
 
-def _test_distrib_itegration_multiclass(device):
-    import torch.distributed as dist
+def _test_distrib_integration_multiclass(device):
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(average, n_epochs):
@@ -728,8 +728,8 @@ def _test_distrib_itegration_multiclass(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * dist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * dist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
 
         def update(engine, i):
             return (
@@ -763,12 +763,11 @@ def _test_distrib_itegration_multiclass(device):
         _test(average=False, n_epochs=2)
 
 
-def _test_distrib_itegration_multilabel(device):
+def _test_distrib_integration_multilabel(device):
 
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(average, n_epochs):
@@ -777,8 +776,8 @@ def _test_distrib_itegration_multilabel(device):
         n_classes = 7
 
         offset = n_iters * s
-        y_true = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * dist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
 
         def update(engine, i):
             return (
@@ -816,48 +815,72 @@ def _test_distrib_itegration_multilabel(device):
         _test(average=True, n_epochs=1)
         _test(average=True, n_epochs=2)
 
-    with pytest.warns(
-        RuntimeWarning,
-        match="Precision/Recall metrics do not work in distributed setting when "
-        "average=False and is_multilabel=True",
-    ):
-        pr = Precision(average=False, is_multilabel=True, device=device)
+    if idist.get_world_size() > 1:
+        with pytest.warns(
+            RuntimeWarning,
+            match="Precision/Recall metrics do not work in distributed setting when "
+            "average=False and is_multilabel=True",
+        ):
+            pr = Precision(average=False, is_multilabel=True, device=device)
 
-    y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
-    y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
-    pr.update((y_pred, y))
-    pr_compute1 = pr.compute()
-    pr_compute2 = pr.compute()
-    assert len(pr_compute1) == 4 * 6 * 8
-    assert (pr_compute1 == pr_compute2).all()
+        y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
+        y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
+        pr.update((y_pred, y))
+        pr_compute1 = pr.compute()
+        pr_compute2 = pr.compute()
+        assert len(pr_compute1) == 4 * 6 * 8
+        assert (pr_compute1 == pr_compute2).all()
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
     device = "cpu"
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-    _test_distrib_itegration_multiclass(device)
-    _test_distrib_itegration_multilabel(device)
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_integration_multiclass(device)
+    _test_distrib_integration_multilabel(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

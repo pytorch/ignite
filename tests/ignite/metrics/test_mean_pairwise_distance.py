@@ -4,6 +4,7 @@ import pytest
 import torch
 from pytest import approx
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import MeanPairwiseDistance
 
@@ -31,20 +32,19 @@ def test_compute():
     assert mpd.compute() == approx(8.0)
 
 
-def _test_distrib_itegration(device):
+def _test_distrib_integration(device):
     import numpy as np
-    import torch.distributed as dist
     from ignite.engine import Engine
 
-    rank = dist.get_rank()
+    rank = idist.get_rank()
     torch.manual_seed(12)
 
     n_iters = 100
     s = 50
     offset = n_iters * s
 
-    y_true = torch.rand(offset * dist.get_world_size(), 10).to(device)
-    y_preds = torch.rand(offset * dist.get_world_size(), 10).to(device)
+    y_true = torch.rand(offset * idist.get_world_size(), 10).to(device)
+    y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
 
     def update(engine, i):
         return (
@@ -54,7 +54,7 @@ def _test_distrib_itegration(device):
 
     engine = Engine(update)
 
-    m = MeanPairwiseDistance(device=device)
+    m = MeanPairwiseDistance()
     m.attach(engine, "mpwd")
 
     data = list(range(n_iters))
@@ -64,7 +64,7 @@ def _test_distrib_itegration(device):
     res = engine.state.metrics["mpwd"]
 
     true_res = []
-    for i in range(n_iters * dist.get_world_size()):
+    for i in range(n_iters * idist.get_world_size()):
         true_res.append(
             torch.pairwise_distance(
                 y_true[i * s : (i + 1) * s, ...], y_preds[i * s : (i + 1) * s, ...], p=m._p, eps=m._eps
@@ -82,24 +82,45 @@ def _test_distrib_itegration(device):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
 def test_distrib_cpu(distributed_context_single_node_gloo):
     device = "cpu"
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-    _test_distrib_itegration(device)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

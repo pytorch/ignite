@@ -1,10 +1,12 @@
 import math
+import os
 from unittest.mock import ANY, MagicMock, Mock, call
 
 import pytest
 import torch
 import trains
 
+import ignite.distributed as idist
 from ignite.contrib.handlers.trains_logger import *
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
@@ -634,7 +636,12 @@ def test_trains_disk_saver_integration():
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)
-    assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+    if trains_saver._atomic:
+        assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+    else:
+        saved_files = list(os.listdir(trains_saver.dirname))
+        assert len(saved_files) == 1
+        assert saved_files[0] == "model_1.pt"
 
 
 def test_trains_disk_saver_integration_no_logger():
@@ -642,9 +649,9 @@ def test_trains_disk_saver_integration_no_logger():
     to_save_serializable = {"model": model}
 
     trains.Task.current_task = Mock(return_value=object())
-    trains_saver = TrainsSaver()
-
     trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+
+    trains_saver = TrainsSaver()
 
     checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=trains_saver, n_saved=1)
 
@@ -653,4 +660,144 @@ def test_trains_disk_saver_integration_no_logger():
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)
-    assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+
+    if trains_saver._atomic:
+        assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+    else:
+        saved_files = list(os.listdir(trains_saver.dirname))
+        assert len(saved_files) == 1
+        assert saved_files[0] == "model_1.pt"
+
+
+class DummyModel(torch.nn.Module):
+    def __init__(self):
+        super(DummyModel, self).__init__()
+        self.net = torch.nn.Linear(2, 2)
+
+    def forward(self, x):
+        return self.net(x)
+
+
+def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=False):
+
+    if idist.get_rank() == 0:
+        trains.Task.current_task = Mock(return_value=object())
+        trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+
+    torch.manual_seed(23)
+
+    model = DummyModel().to(device)
+
+    optim = torch.optim.SGD(model.parameters(), lr=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
+
+    def update_fn(engine, batch):
+        x = torch.rand((4, 2)).to(device)
+        optim.zero_grad()
+        y = model(x)
+        loss = y.pow(2.0).sum()
+        loss.backward()
+        if idist.has_xla_support:
+            import torch_xla.core.xla_model as xm
+
+            xm.optimizer_step(optim, barrier=True)
+        else:
+            optim.step()
+        lr_scheduler.step()
+
+    engine = Engine(update_fn)
+
+    to_save = {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
+
+    with pytest.warns(UserWarning, match=r"TrainsSaver created a temporary checkpoints directory"):
+        trains_saver = TrainsSaver()
+
+    if (not on_zero_rank) or (on_zero_rank and idist.get_rank() == 0):
+        checkpoint = Checkpoint(to_save=to_save, save_handler=trains_saver, n_saved=1)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
+
+    engine.run([0], max_epochs=4)
+
+    idist.barrier()
+
+    saved_objects = sorted(os.listdir(trains_saver.dirname))
+    # saved object is ['PREFIX_checkpoint_3.pt', ]
+    saved_checkpoint = os.path.join(trains_saver.dirname, saved_objects[0])
+
+    if idist.has_xla_support:
+        device = "cpu"
+
+    loaded_obj = torch.load(saved_checkpoint, map_location=device)
+    for f in ["model", "optimizer", "lr_scheduler"]:
+        assert f in loaded_obj
+    loaded_model_state_dict = loaded_obj["model"]
+    loaded_optimizer_state_dict = loaded_obj["optimizer"]
+    loaded_lr_scheduler_state_dict = loaded_obj["lr_scheduler"]
+
+    assert isinstance(loaded_model_state_dict, dict)
+    assert isinstance(loaded_optimizer_state_dict, dict)
+    assert isinstance(loaded_lr_scheduler_state_dict, dict)
+
+    # Specifically move device to CPU first
+    model_state_dict = model.cpu().state_dict()
+    for key in model_state_dict.keys():
+        assert key in loaded_model_state_dict
+        model_value = model_state_dict[key]
+        loaded_model_value = loaded_model_state_dict[key]
+        assert (model_value.cpu().numpy() == loaded_model_value.cpu().numpy()).all()
+
+    optim_state_dict = optim.state_dict()
+    for key in optim_state_dict.keys():
+        assert key in loaded_optimizer_state_dict
+        optim_value = optim_state_dict[key]
+        loaded_optim_value = loaded_optimizer_state_dict[key]
+        if idist.get_rank() == 0:
+            assert optim_value == loaded_optim_value
+
+    lr_scheduler_state_dict = lr_scheduler.state_dict()
+    for key in lr_scheduler_state_dict.keys():
+        assert key in loaded_lr_scheduler_state_dict
+        lr_scheduler_value = lr_scheduler_state_dict[key]
+        loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
+        assert lr_scheduler_value == loaded_lr_scheduler_value
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    device = idist.device()
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    assert "xla" in device.type
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
+
+
+def _test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs(index):
+    device = idist.device()
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
+
+    import time
+
+    # hack to have all proc properly sync:
+    time.sleep(1)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs, args=(), nprocs=n)

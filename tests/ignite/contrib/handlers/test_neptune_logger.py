@@ -1,10 +1,12 @@
 import math
+import os
 import warnings
 from unittest.mock import ANY, MagicMock, call
 
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.contrib.handlers.neptune_logger import *
 from ignite.engine import Engine, Events, State
 from ignite.handlers.checkpoint import Checkpoint
@@ -429,14 +431,17 @@ def test_neptune_saver_serializable():
     assert mock_logger.log_artifact.call_count == 1
 
 
-def test_neptune_saver_integration():
+def _test_neptune_saver_integration(device):
 
-    model = torch.nn.Module()
+    model = torch.nn.Module().to(device)
     to_save_serializable = {"model": model}
 
-    mock_logger = MagicMock(spec=NeptuneLogger)
-    mock_logger.log_artifact = MagicMock()
-    mock_logger.delete_artifacts = MagicMock()
+    mock_logger = None
+    if idist.get_rank() == 0:
+        mock_logger = MagicMock(spec=NeptuneLogger)
+        mock_logger.log_artifact = MagicMock()
+        mock_logger.delete_artifacts = MagicMock()
+
     saver = NeptuneSaver(mock_logger)
 
     checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=saver, n_saved=1)
@@ -446,8 +451,13 @@ def test_neptune_saver_integration():
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)
-    assert mock_logger.log_artifact.call_count == 2
-    assert mock_logger.delete_artifacts.call_count == 1
+    if idist.get_rank() == 0:
+        assert mock_logger.log_artifact.call_count == 2
+        assert mock_logger.delete_artifacts.call_count == 1
+
+
+def test_neptune_saver_integration():
+    _test_neptune_saver_integration("cpu")
 
 
 def test_neptune_saver_non_serializable():
@@ -494,3 +504,15 @@ def test_no_neptune_client(no_site_packages):
 
     with pytest.raises(RuntimeError, match=r"This contrib module requires neptune-client to be installed."):
         NeptuneLogger()
+
+
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    _test_neptune_saver_integration("cpu")
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    device = idist.device()
+    _test_neptune_saver_integration(device)

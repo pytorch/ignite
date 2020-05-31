@@ -117,6 +117,16 @@ def test_attach():
     _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
 
 
+def test_attach_wrong_event_name():
+
+    trainer = Engine(lambda b, e: None)
+    logger = DummyLogger()
+    mock_log_handler = MagicMock()
+
+    with pytest.raises(RuntimeError, match="Unknown event name"):
+        logger.attach(trainer, log_handler=mock_log_handler, event_name="unknown")
+
+
 def test_attach_on_custom_event():
 
     n_epochs = 10
