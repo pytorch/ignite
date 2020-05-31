@@ -44,7 +44,7 @@ script:
   - CI_PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" sh tests/run_cpu_tests.sh
 
 after_success:
-  - codecov
+  - codecov -F cpu || echo 'Codecov upload failed'
 
 jobs:
   include:
