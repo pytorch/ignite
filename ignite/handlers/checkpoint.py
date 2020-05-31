@@ -8,6 +8,7 @@ from collections import namedtuple
 from typing import Callable, Mapping, Optional, Union
 
 import torch
+import torch.nn as nn
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
@@ -69,7 +70,9 @@ class Checkpoint:
 
     Args:
         to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
-            load_state_dict` methods.
+            load_state_dict` methods. If contains objects of type torch `DistributedDataParallel`_ or
+            `DataParallel`_, their internal wrapped model is automatically saved (to avoid additional key ``module.`` in
+            the state dictionary).
         save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If `save_handler` is callable class, it can
@@ -89,6 +92,9 @@ class Checkpoint:
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
+
+    .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
+    .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -316,6 +322,8 @@ class Checkpoint:
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
         for k, obj in self.to_save.items():
+            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                obj = obj.module
             checkpoint[k] = obj.state_dict()
         return checkpoint
 
