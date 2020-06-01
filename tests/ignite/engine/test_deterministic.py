@@ -240,10 +240,10 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
     def _test(epoch_length=None):
 
         max_epochs = 5
-        batch_size = 4
+        total_batch_size = 4
         num_iters = 21
         torch.manual_seed(0)
-        data = torch.randint(0, 1000, size=(num_iters * batch_size,))
+        data = torch.randint(0, 1000, size=(num_iters * total_batch_size,))
 
         if epoch_length is None:
             epoch_length = num_iters
@@ -251,7 +251,8 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
         for resume_epoch in range(1, max_epochs):
 
             for num_workers in [0, 4]:
-                sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+                sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
+
                 orig_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
@@ -283,7 +284,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
 
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
-                sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+                sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
                 resume_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
@@ -346,10 +347,10 @@ class AugmentedData:
 def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_type=None):
     def _test(epoch_length=None):
         max_epochs = 3
-        batch_size = 4
+        total_batch_size = 4
         num_iters = 17
         torch.manual_seed(0)
-        data = torch.randint(0, 1000, size=(num_iters * batch_size,))
+        data = torch.randint(0, 1000, size=(num_iters * total_batch_size,))
 
         if epoch_length is None:
             epoch_length = num_iters
@@ -358,7 +359,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
 
             for num_workers in [0, 4]:
 
-                sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+                sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
                 orig_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
@@ -389,7 +390,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
 
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
-                sampler = _setup_sampler(sampler_type, num_iters, batch_size)
+                sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
                 resume_dataloader = DataLoader(
                     data,
                     batch_size=batch_size,
@@ -551,37 +552,35 @@ def test_resume_random_data_iterator_from_iter():
     _test_resume_random_data_iterator_from_iter("cpu")
 
 
-# TODO: Recheck why those tests are failing
-# @pytest.mark.distributed
-# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-# def test_distrib_gpu(distributed_context_single_node_nccl):
-#     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
-#     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
-#     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
+    # _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
 
-# TODO: Recheck why those tests are failing
-# @pytest.mark.distributed
-# def test_distrib_cpu(distributed_context_single_node_gloo):
-#     device = "cpu"
-#     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
-#     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
+@pytest.mark.distributed
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    device = "cpu"
+    _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
-# TODO: Recheck why those tests are failing
-# @pytest.mark.multinode_distributed
-# @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-# def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-#     device = "cpu"
-#     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
-#     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
-# TODO: Recheck why those tests are failing
-# @pytest.mark.multinode_distributed
-# @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-# def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-#     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-#     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
-#     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = "cpu"
+    _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
+    _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
 
 def test_concepts_snippet_resume():
