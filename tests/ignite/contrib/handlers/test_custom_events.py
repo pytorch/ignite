@@ -9,14 +9,21 @@ from ignite.engine import Engine
 def test_bad_input():
 
     with pytest.warns(DeprecationWarning, match=r"CustomPeriodicEvent is deprecated"):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='Argument n_iterations should be positive integer number'):
             CustomPeriodicEvent(n_iterations="a")
+        with pytest.raises(ValueError, match='Argument n_iterations should be positive integer number'):
             CustomPeriodicEvent(n_iterations=0)
+        with pytest.raises(ValueError, match='Argument n_iterations should be positive integer number'):
             CustomPeriodicEvent(n_iterations=10.0)
+        with pytest.raises(ValueError, match='Argument n_epochs should be positive integer number'):
             CustomPeriodicEvent(n_epochs="a")
+        with pytest.raises(ValueError, match='Argument n_epochs should be positive integer number'):
             CustomPeriodicEvent(n_epochs=0)
+        with pytest.raises(ValueError, match='Argument n_epochs should be positive integer number'):
             CustomPeriodicEvent(n_epochs=10.0)
+        with pytest.raises(ValueError, match='Either n_iterations or n_epochs should be defined'):
             CustomPeriodicEvent()
+        with pytest.raises(ValueError, match='Either n_iterations or n_epochs should be defined'):
             CustomPeriodicEvent(n_iterations=1, n_epochs=2)
 
 
@@ -24,7 +31,7 @@ def test_new_events():
     def update(*args, **kwargs):
         pass
 
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
         engine = Engine(update)
         cpe = CustomPeriodicEvent(n_iterations=5)
         cpe.attach(engine)
