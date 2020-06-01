@@ -376,8 +376,9 @@ def test_setup_plx_logging():
 
     os.environ["POLYAXON_NO_OP"] = "1"
 
-    with pytest.warns(DeprecationWarning,
-                      match="importing the ABCs from 'collections' instead of from 'collections.abc'"):
+    with pytest.warns(
+        DeprecationWarning, match="importing the ABCs from 'collections' instead of from 'collections.abc'"
+    ):
         _test_setup_logging(
             setup_logging_fn=setup_plx_logging,
             kwargs_dict={},

@@ -786,8 +786,9 @@ def test_grads_scalar_handler():
 
 def test_integration_no_server():
 
-    with pytest.warns(PendingDeprecationWarning,
-                      match='Visdom is eventually changing to default to raising exceptions'):
+    with pytest.warns(
+        PendingDeprecationWarning, match="Visdom is eventually changing to default to raising exceptions"
+    ):
         with pytest.raises(RuntimeError, match="Failed to connect to Visdom server"):
             VisdomLogger()
 

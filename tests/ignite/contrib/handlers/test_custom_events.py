@@ -36,7 +36,7 @@ def test_new_events():
         assert engine._allowed_events[-2] == getattr(cpe.Events, "ITERATIONS_5_STARTED")
         assert engine._allowed_events[-1] == getattr(cpe.Events, "ITERATIONS_5_COMPLETED")
 
-    with pytest.warns(DeprecationWarning, match='CustomPeriodicEvent is deprecated'):
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
         cpe = CustomPeriodicEvent(n_epochs=5)
         cpe.attach(engine)
 
@@ -54,7 +54,7 @@ def test_integration_iterations():
             pass
 
         engine = Engine(update)
-        with pytest.warns(DeprecationWarning, match='CustomPeriodicEvent is deprecated'):
+        with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
             cpe = CustomPeriodicEvent(n_iterations=n_iterations)
             cpe.attach(engine)
         data = list(range(n_iters_per_epoch))
@@ -103,7 +103,7 @@ def test_integration_epochs():
     engine = Engine(update)
 
     n_epochs = 3
-    with pytest.warns(DeprecationWarning, match='CustomPeriodicEvent is deprecated'):
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
         cpe = CustomPeriodicEvent(n_epochs=n_epochs)
         cpe.attach(engine)
     data = list(range(16))

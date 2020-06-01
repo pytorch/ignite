@@ -582,7 +582,7 @@ def test_integration(dirname):
 
     trainer = Engine(update_fn)
 
-    with pytest.warns(UserWarning, match='TrainsSaver: running in bypass mode'):
+    with pytest.warns(UserWarning, match="TrainsSaver: running in bypass mode"):
         TrainsLogger.set_bypass_mode(True)
         logger = TrainsLogger(output_uri=dirname)
 
@@ -607,7 +607,7 @@ def test_integration_as_context_manager(dirname):
     def update_fn(engine, batch):
         return next(losses_iter)
 
-    with pytest.warns(UserWarning, match='TrainsSaver: running in bypass mode'):
+    with pytest.warns(UserWarning, match="TrainsSaver: running in bypass mode"):
         TrainsLogger.set_bypass_mode(True)
         with TrainsLogger(output_uri=dirname) as trains_logger:
 
@@ -625,7 +625,7 @@ def test_integration_as_context_manager(dirname):
 def test_trains_disk_saver_integration():
     model = torch.nn.Module()
     to_save_serializable = {"model": model}
-    with pytest.warns(UserWarning, match='TrainsSaver created a temporary checkpoints directory'):
+    with pytest.warns(UserWarning, match="TrainsSaver created a temporary checkpoints directory"):
         mock_logger = MagicMock(spec=TrainsLogger)
         trains.Task.current_task = Mock(return_value=object())
         trains_saver = TrainsSaver(mock_logger)
@@ -650,7 +650,7 @@ def test_trains_disk_saver_integration_no_logger():
     model = torch.nn.Module()
     to_save_serializable = {"model": model}
 
-    with pytest.warns(UserWarning, match='TrainsSaver created a temporary checkpoints directory'):
+    with pytest.warns(UserWarning, match="TrainsSaver created a temporary checkpoints directory"):
         trains.Task.current_task = Mock(return_value=object())
         trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
         trains_saver = TrainsSaver()

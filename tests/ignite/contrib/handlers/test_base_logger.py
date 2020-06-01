@@ -153,7 +153,7 @@ def test_attach_on_custom_event():
         mock_log_handler.assert_called_with(trainer, logger, event)
         assert mock_log_handler.call_count == n_calls
 
-    with pytest.warns(DeprecationWarning, match='CustomPeriodicEvent is deprecated'):
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
         n_iterations = 10
         cpe1 = CustomPeriodicEvent(n_iterations=n_iterations)
         n = len(data) * n_epochs / n_iterations
@@ -162,7 +162,7 @@ def test_attach_on_custom_event():
         _test(cpe1.Events.ITERATIONS_10_STARTED, ns, cpe1)
         _test(cpe1.Events.ITERATIONS_10_COMPLETED, nf, cpe1)
 
-    with pytest.warns(DeprecationWarning, match='CustomPeriodicEvent is deprecated'):
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
         n_iterations = 15
         cpe2 = CustomPeriodicEvent(n_iterations=n_iterations)
         n = len(data) * n_epochs / n_iterations
@@ -171,7 +171,7 @@ def test_attach_on_custom_event():
         _test(cpe2.Events.ITERATIONS_15_STARTED, ns, cpe2)
         _test(cpe2.Events.ITERATIONS_15_COMPLETED, nf, cpe2)
 
-    with pytest.warns(DeprecationWarning, match='CustomPeriodicEvent is deprecated'):
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
         n_custom_epochs = 2
         cpe3 = CustomPeriodicEvent(n_epochs=n_custom_epochs)
         n = n_epochs / n_custom_epochs

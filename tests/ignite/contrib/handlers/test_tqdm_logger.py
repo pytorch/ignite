@@ -373,7 +373,7 @@ def test_pbar_on_custom_events(capsys):
 
     engine = Engine(update_fn)
     pbar = ProgressBar()
-    with pytest.warns(DeprecationWarning, match='CustomPeriodicEvent is deprecated'):
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
         cpe = CustomPeriodicEvent(n_iterations=15)
 
     with pytest.raises(ValueError, match=r"not in allowed events for this engine"):
