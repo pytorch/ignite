@@ -220,7 +220,8 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
     with pytest.warns(UserWarning, match="Matplotlib is currently using agg") as record:
         lr_finder.plot()
         lr_finder.plot(skip_end=0)
-    assert 0 <= len(record) <= 1
+    assert 0 <= len(record) <= 2
+
 
 def test_no_matplotlib(no_site_packages, lr_finder):
 
