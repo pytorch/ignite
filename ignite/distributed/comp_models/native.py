@@ -260,7 +260,7 @@ class _NativeDistModel(ComputationModel):
             _NativeDistModel._dist_worker_task_fn,
             nprocs=num_procs_per_node,
             args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args, kwargs_dict),
-            daemon=False,
+            **kwargs
         )
 
     _reduce_op_map = {

@@ -175,8 +175,8 @@ def spawn(
     num_procs_per_node: int = 1,
     **kwargs
 ):
-    """Spawns `num_procs_per_node` processes that run `fn` with `args` and initialize distributed configuration
-    defined by `backend`.
+    """Spawns ``num_procs_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
+    distributed configuration defined by ``backend``.
 
     Examples:
 
@@ -259,16 +259,20 @@ def spawn(
         backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`
         fn (function): function to called as the entrypoint of the spawned process.
             This function must be defined at the top level of a module so it can be pickled and spawned.
-            This is a requirement imposed by multiprocessing. The function is called as `fn(i, *args, **kwargs_dict)`,
+            This is a requirement imposed by multiprocessing. The function is called as ``fn(i, *args, **kwargs_dict)``,
             where `i` is the process index and args is the passed through tuple of arguments.
         args (tuple): arguments passed to `fn`.
         kwargs_dict (Mapping): kwargs passed to `fn`.
         num_procs_per_node (int): number of processes to spawn on a single node. Default, 1.
         **kwargs: acceptable kwargs according to provided backend:
 
-            - "nccl" or "gloo" : `num_nodes` (=1), `node_rank` (=0), `master_addr` ("127.0.0.1"), `master_port` (2222)
+            - | "nccl" or "gloo" : `num_nodes` (default, 1), `node_rank` (default, 0), `master_addr`
+              | (default, "127.0.0.1"), `master_port` (default, 2222) and kwargs to `mp.spawn`_ function.
 
-            - "xla-tpu" : `num_nodes` (=1), `node_rank` (=0)
+            - "xla-tpu" : `num_nodes` (default, 1), `node_rank` (default, 0) and kwargs to `xmp.spawn`_ function.
+
+    .. _mp.spawn: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
+    .. _xmp.spawn: http://pytorch.org/xla/release/1.5/index.html#torch_xla.distributed.xla_multiprocessing.spawn
 
     """
     _assert_backend(backend)
@@ -323,7 +327,7 @@ def barrier():
 
 def set_local_rank(index: int):
     """Method to hint the local rank in case if torch native distributed context is created by user
-    without using :meth:`~ignite.distributed.utils.initialize` or :meth:`~ignite.distributed.utils.spawn`.
+    without using :meth:`~ignite.distributed.initialize` or :meth:`~ignite.distributed.spawn`.
 
     Usage:
 
@@ -364,11 +368,11 @@ def _assert_backend(backend):
 
 
 def initialize(backend: str, **kwargs):
-    """Initializes distributed configuration according to provided `backend`
+    """Initializes distributed configuration according to provided ``backend``
 
     Examples:
 
-        Launch single node multi-GPU training with `torch.distributed.launch` utility.
+        Launch single node multi-GPU training with ``torch.distributed.launch`` utility.
 
         .. code-block:: python
 
@@ -416,14 +420,14 @@ def initialize(backend: str, **kwargs):
 
 def finalize():
     """Finalizes distributed configuration. For example, in case of native pytorch distributed configuration,
-    it calls `dist.destroy_process_group()`.
+    it calls ``dist.destroy_process_group()``.
     """
     _model.finalize()
     _set_model(_SerialModel())
 
 
 def show_config():
-    """Helper method to display distributed configuration via `logging`.
+    """Helper method to display distributed configuration via ``logging``.
     """
 
     # setup parallel logger

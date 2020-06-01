@@ -120,15 +120,14 @@ class _XlaDistModel(ComputationModel):
 
         import os
 
-        spawn_kwargs = {}
         if "COLAB_TPU_ADDR" in os.environ:
-            spawn_kwargs["start_method"] = "fork"
+            kwargs["start_method"] = "fork"
 
         xmp.spawn(
             _XlaDistModel._dist_worker_task_fn,
             args=(backend, fn, args, kwargs_dict),
             nprocs=num_procs_per_node,
-            **spawn_kwargs,
+            **kwargs,
         )
 
     _collective_op_dtype = torch.float32
