@@ -223,21 +223,21 @@ class _NativeDistModel(ComputationModel):
 
     @staticmethod
     def _dist_worker_task_fn(
-        local_rank, backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args, kwargs_dict
+        local_rank, backend, fn, args, kw_dict, world_size, nprocs_per_node, node_rank, master_addr, master_port, kw
     ):
         from ignite.distributed.utils import _set_model, finalize
 
         copy_env_vars = dict(os.environ)
 
         os.environ["LOCAL_RANK"] = str(local_rank)
-        os.environ["RANK"] = str(node_rank * num_procs_per_node + local_rank)
+        os.environ["RANK"] = str(node_rank * nprocs_per_node + local_rank)
         os.environ["WORLD_SIZE"] = str(world_size)
         os.environ["MASTER_ADDR"] = str(master_addr)
         os.environ["MASTER_PORT"] = str(master_port)
 
-        model = _NativeDistModel.create_from_backend(backend)
+        model = _NativeDistModel.create_from_backend(backend, **kw)
         _set_model(model)
-        fn(local_rank, *args, **kwargs_dict)
+        fn(local_rank, *args, **kw_dict)
         finalize()
 
         os.environ = copy_env_vars
@@ -250,17 +250,26 @@ class _NativeDistModel(ComputationModel):
         num_procs_per_node: int = 1,
         num_nodes: int = 1,
         node_rank: int = 0,
-        master_addr: str = "0.0.0.0",
+        master_addr: str = "127.0.0.1",
         master_port: int = 2222,
         backend: str = "nccl",
         **kwargs
     ):
         world_size = num_nodes * num_procs_per_node
+
+        spawn_kwargs = {
+            "join": kwargs.get("join", True),
+            "daemon": kwargs.get("daemon", False),
+            "start_method": kwargs.get("start_method", "spawn")
+        }
+        kw = kwargs
         mp.spawn(
             _NativeDistModel._dist_worker_task_fn,
             nprocs=num_procs_per_node,
-            args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args, kwargs_dict),
-            **kwargs
+            args=(
+                backend, fn, args, kwargs_dict, world_size, num_procs_per_node, node_rank, master_addr, master_port, kw
+            ),
+            **spawn_kwargs
         )
 
     _reduce_op_map = {

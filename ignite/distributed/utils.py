@@ -267,10 +267,12 @@ def spawn(
         **kwargs: acceptable kwargs according to provided backend:
 
             - | "nccl" or "gloo" : `num_nodes` (default, 1), `node_rank` (default, 0), `master_addr`
-              | (default, "127.0.0.1"), `master_port` (default, 2222) and kwargs to `mp.spawn`_ function.
+              | (default, "127.0.0.1"), `master_port` (default, 2222), `timeout` to `dist.init_process_group`_ function
+              | and kwargs for `mp.spawn`_ function.
 
             - "xla-tpu" : `num_nodes` (default, 1), `node_rank` (default, 0) and kwargs to `xmp.spawn`_ function.
 
+    .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _mp.spawn: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
     .. _xmp.spawn: http://pytorch.org/xla/release/1.5/index.html#torch_xla.distributed.xla_multiprocessing.spawn
 
