@@ -21,9 +21,9 @@ def test_bad_input():
             CustomPeriodicEvent(n_epochs=0)
         with pytest.raises(ValueError, match="Argument n_epochs should be positive integer number"):
             CustomPeriodicEvent(n_epochs=10.0)
-        with pytest.raises(ValueError, match="Either n_iterations or n_epochs should defined"):
+        with pytest.raises(ValueError, match="Either n_iterations or n_epochs should be defined"):
             CustomPeriodicEvent()
-        with pytest.raises(ValueError, match="Either n_iterations or n_epochs should defined"):
+        with pytest.raises(ValueError, match="Either n_iterations or n_epochs should be defined"):
             CustomPeriodicEvent(n_iterations=1, n_epochs=2)
 
 
