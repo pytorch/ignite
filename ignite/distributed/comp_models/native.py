@@ -260,16 +260,24 @@ class _NativeDistModel(ComputationModel):
         spawn_kwargs = {
             "join": kwargs.get("join", True),
             "daemon": kwargs.get("daemon", False),
-            "start_method": kwargs.get("start_method", "spawn")
+            "start_method": kwargs.get("start_method", "spawn"),
         }
-        kw = kwargs
         mp.spawn(
             _NativeDistModel._dist_worker_task_fn,
             nprocs=num_procs_per_node,
             args=(
-                backend, fn, args, kwargs_dict, world_size, num_procs_per_node, node_rank, master_addr, master_port, kw
+                backend,
+                fn,
+                args,
+                kwargs_dict,
+                world_size,
+                num_procs_per_node,
+                node_rank,
+                master_addr,
+                master_port,
+                kwargs,
             ),
-            **spawn_kwargs
+            **spawn_kwargs,
         )
 
     _reduce_op_map = {
