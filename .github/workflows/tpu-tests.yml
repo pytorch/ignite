@@ -1,5 +1,5 @@
 name: Run TPU tests
-on: [pull_request]
+on: [push, pull_request]
 
 jobs:
   tpu-tests:
