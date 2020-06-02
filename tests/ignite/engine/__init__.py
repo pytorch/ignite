@@ -34,7 +34,7 @@ class EpochCounter:
 
 def setup_sampler(sampler_type, num_iters, batch_size):
     if sampler_type is None:
-        return None
+        return None, batch_size
 
     if sampler_type == "weighted":
         from torch.utils.data.sampler import WeightedRandomSampler
@@ -42,7 +42,7 @@ def setup_sampler(sampler_type, num_iters, batch_size):
         w = torch.ones(num_iters * batch_size, dtype=torch.float)
         for i in range(num_iters):
             w[batch_size * i : batch_size * (i + 1)] += i * 1.0
-        return WeightedRandomSampler(w, num_samples=num_iters * batch_size, replacement=True)
+        return WeightedRandomSampler(w, num_samples=num_iters * batch_size, replacement=True), batch_size
 
     if sampler_type == "distributed":
         from torch.utils.data.distributed import DistributedSampler
@@ -55,4 +55,4 @@ def setup_sampler(sampler_type, num_iters, batch_size):
             rank = dist.get_rank()
 
         dataset = torch.zeros(num_iters * batch_size)
-        return DistributedSampler(dataset, num_replicas=num_replicas, rank=rank)
+        return DistributedSampler(dataset, num_replicas=num_replicas, rank=rank), batch_size // num_replicas
