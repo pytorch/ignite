@@ -1,5 +1,5 @@
 name: Run TPU tests
-on: [pull_request]
+on: [push, pull_request]
 
 jobs:
   tpu-tests:
@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xla-version: [1.5, nightly]
+        xla-version: [nightly, ]
 
     steps:
     - uses: actions/checkout@v2
