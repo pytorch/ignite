@@ -22,12 +22,12 @@ from tests.ignite.engine import BatchChecker, setup_sampler
 def test_update_dataloader():
     def _test(sampler_type=None):
         num_epochs = 3
-        batch_size = 4
+        total_batch_size = 4
         num_iters = 17
-        data = torch.randint(0, 1000, size=(num_iters * batch_size,))
+        data = torch.randint(0, 1000, size=(num_iters * total_batch_size,))
         num_workers = 4
 
-        sampler = setup_sampler(sampler_type, num_iters, batch_size)
+        sampler, batch_size = setup_sampler(sampler_type, num_iters, total_batch_size)
         dataloader = DataLoader(
             data,
             batch_size=batch_size,
@@ -48,7 +48,7 @@ def test_update_dataloader():
                 t.append(b)
             seen_batches.append(t)
 
-        sampler = setup_sampler(sampler_type, num_iters, batch_size)
+        sampler, batch_size = setup_sampler(sampler_type, num_iters, total_batch_size)
         dataloader = DataLoader(
             data,
             batch_size=batch_size,
@@ -556,7 +556,7 @@ def test_resume_random_data_iterator_from_iter():
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
-    # _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
+    _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
 

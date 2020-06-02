@@ -510,7 +510,7 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
 def test_engine_with_iterable_dataloader():
 
-    from torch.utils.data import DataLoader, IterableDataset, get_worker_info
+    from torch.utils.data import DataLoader, IterableDataset
 
     class MyIterableDataset(IterableDataset):
         def __init__(self, start, end):
