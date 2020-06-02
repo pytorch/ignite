@@ -50,11 +50,7 @@ def world_size():
     remove_env_var = False
 
     if "WORLD_SIZE" not in os.environ:
-        if torch.cuda.is_available():
-            ws = torch.cuda.device_count()
-        else:
-            ws = 1
-        os.environ["WORLD_SIZE"] = "{}".format(ws)
+        os.environ["WORLD_SIZE"] = "1"
         remove_env_var = True
 
     yield int(os.environ["WORLD_SIZE"])
