@@ -14,7 +14,7 @@ from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_co
 
 # add our directories to sys path
 sys.path.append(Path(__file__).parent.parent.as_posix())
-sys.path.append((Path(__file__).parent.parent / 'dataflow').as_posix())
+sys.path.append((Path(__file__).parent.parent / "dataflow").as_posix())
 
 from common_training import training
 
@@ -24,7 +24,7 @@ def run(config, logger=None, local_rank=0, **kwargs):
     assert torch.cuda.is_available()
     assert torch.backends.cudnn.enabled, "Nvidia/Amp requires cudnn backend to be enabled."
 
-    task = Task.init('ignite', 'DeeplabV3_ResNet101 pascal_voc2012 segmentation example')
+    task = Task.init("ignite", "DeeplabV3_ResNet101 pascal_voc2012 segmentation example")
 
     dist.init_process_group("nccl", init_method="env://")
 
@@ -42,9 +42,9 @@ def run(config, logger=None, local_rank=0, **kwargs):
 
     # dump python files to reproduce the run
     task.connect_configuration(config.config_filepath.as_posix())
-    task.upload_artifact('script', config.script_filepath)
+    task.upload_artifact("script", config.script_filepath)
 
-    config.output_path = Path('./artifacts')
+    config.output_path = Path("./artifacts")
 
     # log the configuration, if we are the master node
     if dist.get_rank() == 0:
