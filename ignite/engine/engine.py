@@ -708,7 +708,7 @@ class Engine(Serializable):
             hours, mins, secs = _to_hours_mins_secs(time_taken)
             self.state.times[Events.COMPLETED.name] = time_taken
             self._fire_event(Events.COMPLETED)
-            self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self.logger.info("Engine run complete. Time taken: %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
             self._dataloader_iter = None
