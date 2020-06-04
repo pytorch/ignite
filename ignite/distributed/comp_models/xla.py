@@ -5,6 +5,7 @@ import torch
 from ignite.distributed.comp_models.base import ComputationModel
 
 try:
+    import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -15,6 +16,7 @@ except ImportError:
 
 class _XlaDistModel(ComputationModel):
     """Private class for PyTorch XLA basic distributed computation model.
+    It handles single/multi-device computation model.
 
     Supported XLA devices:
 
@@ -58,11 +60,6 @@ class _XlaDistModel(ComputationModel):
         self._backend = "xla-tpu"
         self._setup_attrs()
 
-    def _setup_attrs(self):
-        self._ntasks_per_node = self._compute_ntasks_per_node()
-        self._nnodes = self.get_world_size() // self.get_ntasks_per_node()
-        self._node = self.get_rank() // self._ntasks_per_node
-
     def _compute_ntasks_per_node(self):
         tensor = torch.tensor([self.get_local_rank() + 1.0], dtype=torch.float).to(self.device())
         xm.all_reduce("max", [tensor,])
@@ -87,7 +84,8 @@ class _XlaDistModel(ComputationModel):
         return self._node
 
     def device(self) -> torch.device:
-        return xm.xla_device()
+        dev = torch_xla._XLAC._xla_get_default_device()
+        return torch.device(dev)
 
     def backend(self) -> str:
         return self._backend

@@ -452,7 +452,7 @@ def sync_all_reduce(*attrs) -> Callable:
             if len(attrs) > 0 and not self._is_reduced:
                 for attr in attrs:
                     t = getattr(self, attr, None)
-                    if t is not None:
+                    if t is not None and idist.get_world_size() > 1:
                         t = idist.all_reduce(t)
                         self._is_reduced = True
                         setattr(self, attr, t)

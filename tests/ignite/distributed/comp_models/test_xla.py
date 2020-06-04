@@ -143,3 +143,58 @@ def _test__xla_dist_model_create_from_context_in_child_proc(index):
 def test__xla_dist_model_create_from_context_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test__xla_dist_model_create_from_context_in_child_proc, args=(), nprocs=n)
+
+
+def main_fold(fold):
+    import time
+    import torch.nn as nn
+    import torch.optim as optim
+    import torch_xla.core.xla_model as xm
+    from ignite.engine import Engine, Events
+
+    device = xm.xla_device(fold + 1)
+
+    comp_model = _XlaDistModel.create_from_context()
+    assert comp_model.device() == device
+
+    model = nn.Linear(100, 10)
+    device = xm.xla_device(fold + 1)
+
+    model.to(device)  # Move model before creating optimizer
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+    def training_step(engine, _):
+        data = torch.rand(4, 100, device=device)
+        model.train()
+        data = data.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        loss = output.sum()
+        loss.backward()
+        xm.optimizer_step(optimizer, barrier=True)
+        return loss.item()
+
+    trainer = Engine(training_step)
+
+    # THIS CAN BE A CAUSE OF CRASH if DEVICE is OTHER THAN device
+    tensor = torch.tensor([fold + 1.0], dtype=torch.float).to(comp_model.device())
+    xm.all_reduce("max", [tensor,])
+
+    time.sleep(0.01 * fold)
+
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def log_progress():
+        print(".", end=" ")
+
+    trainer.run([0] * 100, max_epochs=2)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test__xla_dist_model_run_parallel_n_threads_without_sync():
+    # tests issue : https://github.com/pytorch/ignite/issues/1096
+    from joblib import Parallel, delayed
+
+    folds = 5
+    Parallel(n_jobs=folds, backend="threading")(delayed(main_fold)(i) for i in range(folds))
