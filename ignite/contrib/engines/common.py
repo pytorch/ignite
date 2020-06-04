@@ -97,7 +97,10 @@ def setup_common_training_handlers(
     else:
         if train_sampler is not None and isinstance(train_sampler, DistributedSampler):
             warnings.warn(
-                "Argument train_sampler is a distributed sampler, but no distributed setting detected", UserWarning,
+                "Argument train_sampler is a distributed sampler,"
+                " but either there is no distributed setting or world size is < 2. "
+                "Train sampler argument will be ignored",
+                UserWarning,
             )
         _setup_common_training_handlers(trainer, **kwargs)
 
