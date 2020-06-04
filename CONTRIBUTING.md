@@ -89,7 +89,9 @@ pytest tests/ignite/engine/test_terminate -vvv -k test_terminate
 ```
 To run all tests with coverage (assuming installed `pytest-cov`):
 ```bash
-sh tests/run_cpu_tests.sh
+CI_PYTHON_VERSION=<your python version, e.g 3.7> sh tests/run_cpu_tests.sh
+# for example
+# CI_PYTHON_VERSION=3.7 sh tests/run_cpu_tests.sh
 ```
 
 #### Send a PR
