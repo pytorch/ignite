@@ -21,6 +21,18 @@ class ComputationModel(metaclass=ABCMeta):
         self._nnodes = None
         self._node = None
 
+    def _setup_attrs(self):
+        if self._ntasks_per_node is None:
+            self._ntasks_per_node = self._compute_ntasks_per_node() if self.get_world_size() > 1 else 1
+        if self._nnodes is None:
+            self._nnodes = self.get_world_size() // self._ntasks_per_node
+        if self._node is None:
+            self._node = self.get_rank() // self._ntasks_per_node
+
+    @abstractmethod
+    def _compute_ntasks_per_node(self) -> int:
+        pass
+
     @abstractmethod
     def get_local_rank(self) -> int:
         pass
@@ -188,6 +200,9 @@ class _SerialModel(ComputationModel):
 
     def finalize(self):
         pass
+
+    def _compute_ntasks_per_node(self) -> int:
+        return 1
 
     @staticmethod
     def create_from_context() -> "_SerialModel":
