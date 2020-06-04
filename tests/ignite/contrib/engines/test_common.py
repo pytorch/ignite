@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.utils.data.distributed import DistributedSampler
 
 import ignite.contrib.handlers as handlers
+import ignite.distributed as idist
 from ignite.contrib.engines.common import (
     _setup_logging,
     add_early_stopping_by_val_score,
@@ -73,7 +74,7 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
         return loss
 
     train_sampler = None
-    if distributed:
+    if distributed and idist.get_world_size() > 1:
         train_sampler = MagicMock(spec=DistributedSampler)
         train_sampler.set_epoch = MagicMock()
 
@@ -126,9 +127,7 @@ def test_asserts_setup_common_training_handlers():
     ):
         setup_common_training_handlers(trainer, to_save={})
 
-    with pytest.warns(
-        UserWarning, match=r"Argument train_sampler is a distributed sampler, but no distributed setting detected"
-    ):
+    with pytest.warns(UserWarning, match=r"Argument train_sampler is a distributed sampler"):
         train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
