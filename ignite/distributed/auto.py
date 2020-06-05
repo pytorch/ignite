@@ -2,6 +2,7 @@ import warnings
 
 import torch
 import torch.nn as nn
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
@@ -131,6 +132,10 @@ def auto_model(model: nn.Module) -> nn.Module:
         model = torch.nn.parallel.DataParallel(model)
 
     return model
+
+
+def auto_optim(optimizer: Optimizer) -> Optimizer:
+    return optimizer
 
 
 class DistributedProxySampler(DistributedSampler):

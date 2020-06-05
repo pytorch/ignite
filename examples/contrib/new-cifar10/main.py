@@ -21,7 +21,7 @@ from ignite.contrib.handlers import PiecewiseLinear
 import utils
 
 
-def training(_, config):
+def training(local_rank, config):
 
     rank = idist.get_rank()
     manual_seed(config["seed"] + rank)
@@ -94,6 +94,7 @@ def training(_, config):
         weight_decay=config["weight_decay"],
         nesterov=True,
     )
+    optimizer = idist.auto_optim(optimizer)
 
     criterion = nn.CrossEntropyLoss().to(device)
 
@@ -134,7 +135,7 @@ def training(_, config):
         loss.backward()
 
         if idist.has_xla_support:
-            xm.optimizer_step(optimizer)
+            xm.optimizer_step(optimizer, barrier=True)
             if (engine.state.iteration - 1) % config["log_every_iters"] == 0:
                 batch_loss = loss.item()
                 engine.state.saved_batch_loss = batch_loss

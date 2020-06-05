@@ -108,5 +108,5 @@ def test_check_idist_parallel_spawn_n_procs_xla(exec_filepath):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_methods_in_xla_context(exec_filepath):
+def test_check_idist_parallel_spawn_xla(exec_filepath):
     _test_check_idist_parallel_spawn(exec_filepath, "xla-tpu", 1)
