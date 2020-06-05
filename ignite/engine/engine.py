@@ -698,17 +698,24 @@ class Engine(Serializable):
                 time_taken = self._run_once_on_dataset()
                 self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
                 hours, mins, secs = _to_hours_mins_secs(time_taken)
-                self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d", self.state.epoch, hours, mins, secs)
+                elapsed_time_message = "Epoch[%s] Complete. Time taken: %02d:%02d:%02d" % (
+                    self.state.epoch,
+                    hours,
+                    mins,
+                    secs,
+                )
                 if self.should_terminate:
                     self._fire_event(Events.TERMINATE)
+                    self.logger.info(elapsed_time_message)
                     break
                 self._fire_event(Events.EPOCH_COMPLETED)
+                self.logger.info(elapsed_time_message)
 
             time_taken = time.time() - start_time
             hours, mins, secs = _to_hours_mins_secs(time_taken)
             self.state.times[Events.COMPLETED.name] = time_taken
             self._fire_event(Events.COMPLETED)
-            self.logger.info("Engine run complete. Time taken %02d:%02d:%02d" % (hours, mins, secs))
+            self.logger.info("Engine run complete. Time taken: %02d:%02d:%02d" % (hours, mins, secs))
 
         except BaseException as e:
             self._dataloader_iter = None

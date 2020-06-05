@@ -85,14 +85,6 @@ class _NativeDistModel(ComputationModel):
         self._master_addr = None
         self._setup_attrs()
 
-    def _setup_attrs(self):
-        if self._ntasks_per_node is None:
-            self._ntasks_per_node = self._compute_ntasks_per_node()
-        if self._nnodes is None:
-            self._nnodes = self.get_world_size() // self._ntasks_per_node
-        if self._node is None:
-            self._node = self.get_rank() // self._ntasks_per_node
-
     def _compute_ntasks_per_node(self):
         tensor = torch.tensor([self.get_local_rank() + 1]).to(self.device())
         dist.all_reduce(tensor, op=dist.ReduceOp.MAX)

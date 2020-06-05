@@ -337,8 +337,8 @@ Features:
 
 -   Distributed training with mixed precision by
     [nvidia/apex](https://github.com/NVIDIA/apex/)
--   Experiments tracking with [MLflow](https://mlflow.org/) or
-    [Polyaxon](https://polyaxon.com/)
+-   Experiments tracking with [MLflow](https://mlflow.org/),
+    [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains/) 
 
 # Communication
 
