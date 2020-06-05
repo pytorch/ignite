@@ -610,16 +610,15 @@ def test_integration_as_context_manager(dirname):
     with pytest.warns(UserWarning, match="TrainsSaver: running in bypass mode"):
         TrainsLogger.set_bypass_mode(True)
         with TrainsLogger(output_uri=dirname) as trains_logger:
-
             trainer = Engine(update_fn)
 
-            def dummy_handler(engine, logger, event_name):
-                global_step = engine.state.get_event_attrib_value(event_name)
-                logger.trains_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
+        def dummy_handler(engine, logger, event_name):
+            global_step = engine.state.get_event_attrib_value(event_name)
+            logger.trains_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
 
-            trains_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
+        trains_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
-            trainer.run(data, max_epochs=n_epochs)
+        trainer.run(data, max_epochs=n_epochs)
 
 
 def test_trains_disk_saver_integration():

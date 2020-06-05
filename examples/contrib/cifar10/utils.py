@@ -11,10 +11,12 @@ from torchvision import models
 from torchvision import datasets
 from torchvision.transforms import Compose, ToTensor, Normalize, Pad, RandomCrop, RandomHorizontalFlip
 
+import ignite.distributed as ignite_dist
+
 import fastresnet
 
 
-device = "cuda"
+# device = "cuda"
 
 
 def get_train_test_loaders(path, batch_size, num_workers, distributed=False, pin_memory=True):
@@ -40,24 +42,32 @@ def get_train_test_loaders(path, batch_size, num_workers, distributed=False, pin
     train_ds = datasets.CIFAR10(root=path, train=True, download=download, transform=train_transform)
     test_ds = datasets.CIFAR10(root=path, train=False, download=False, transform=test_transform)
 
-    train_sampler = None
-    test_sampler = None
-    if distributed:
-        train_sampler = DistributedSampler(train_ds)
-        test_sampler = DistributedSampler(test_ds, shuffle=False)
-
-    train_labelled_loader = DataLoader(
-        train_ds,
-        batch_size=batch_size,
-        sampler=train_sampler,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
-        drop_last=True,
+    train_labelled_loader = ignite_dist.auto_dataloader(
+        train_ds, batch_size=batch_size, num_workers=num_workers, pin_memory=pin_memory, drop_last=True
     )
 
-    test_loader = DataLoader(
-        test_ds, batch_size=batch_size * 2, sampler=test_sampler, num_workers=num_workers, pin_memory=pin_memory
+    test_loader = ignite_dist.auto_dataloader(
+        test_ds, batch_size=batch_size * 2, num_workers=num_workers, pin_memory=pin_memory, shuffle=False
     )
+
+    # train_sampler = None
+    # test_sampler = None
+    # if distributed:
+    #     train_sampler = DistributedSampler(train_ds)
+    #     test_sampler = DistributedSampler(test_ds, shuffle=False)
+    #
+    # train_labelled_loader = DataLoader(
+    #     train_ds,
+    #     batch_size=batch_size,
+    #     sampler=train_sampler,
+    #     num_workers=num_workers,
+    #     pin_memory=pin_memory,
+    #     drop_last=True,
+    # )
+    #
+    # test_loader = DataLoader(
+    #     test_ds, batch_size=batch_size * 2, sampler=test_sampler, num_workers=num_workers, pin_memory=pin_memory
+    # )
 
     return train_labelled_loader, test_loader
 
@@ -74,12 +84,14 @@ def get_model(name):
 
 
 def get_model_optimizer(config, distributed=False):
-    local_rank = config["local_rank"]
-    if distributed:
-        torch.cuda.set_device(local_rank)
+    # local_rank = config["local_rank"]
+    local_rank = ignite_dist.local_rank()
+    # if distributed:
+    #     torch.cuda.set_device(local_rank)
 
     model = get_model(config["model"])
-    model = model.to(device)
+    model = model.to(ignite_dist.device())
+    model = ignite_dist.auto_model(model)
 
     optimizer = optim.SGD(
         model.parameters(),
@@ -89,21 +101,24 @@ def get_model_optimizer(config, distributed=False):
         nesterov=True,
     )
 
-    if distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,])
-    elif torch.cuda.device_count() > 0:
-        model = nn.parallel.DataParallel(model)
+    # if distributed:
+    #     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,])
+    # elif torch.cuda.device_count() > 0:
+    #     model = nn.parallel.DataParallel(model)
 
     return model, optimizer
 
 
 def get_dataflow(config, distributed=False):
 
-    # Rescale batch_size and num_workers
-    ngpus_per_node = torch.cuda.device_count() if distributed else 1
-    ngpus = dist.get_world_size() if distributed else 1
-    batch_size = config["batch_size"] // ngpus
-    num_workers = int((config["num_workers"] + ngpus_per_node - 1) / ngpus_per_node)
+    # # Rescale batch_size and num_workers
+    # ngpus_per_node = torch.cuda.device_count() if distributed else 1
+    # ngpus = dist.get_world_size() if distributed else 1
+    # batch_size = config["batch_size"] // ngpus
+    # num_workers = int((config["num_workers"] + ngpus_per_node - 1) / ngpus_per_node)
+
+    num_workers = int((config["num_workers"]))
+    batch_size = config["batch_size"]
 
     train_loader, test_loader = get_train_test_loaders(
         path=config["data_path"], batch_size=batch_size, distributed=distributed, num_workers=num_workers
@@ -129,8 +144,8 @@ def get_default_config():
         "num_warmup_epochs": 4,
         "validate_every": 3,
         # distributed settings
-        "dist_url": "env://",
-        "dist_backend": None,  # if None distributed option is disabled, set to "nccl" to enable
+        # "dist_url": "env://",
+        # "dist_backend": None,  # if None distributed option is disabled, set to "nccl" to enable
         # Logging:
         "display_iters": True,
         "log_model_grads_every": None,

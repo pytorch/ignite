@@ -137,6 +137,43 @@ jobs:
             export test_cmd='sh tests/run_gpu_tests.sh 2'
             docker exec -it pthd /bin/bash -c "$test_cmd"
 
+  two_gpus_check_dist_cifar10_example:
+    <<: *two_gpus
+
+    working_directory: << pipeline.parameters.workingdir >>
+
+    steps:
+      - checkout
+      - <<: *pull_pytorch_stable_image
+      - <<: *run_pytorch_container
+      - <<: *install_dependencies
+      - run:
+          name: "Install additional example dependencies"
+          command: |
+            docker exec -it pthd pip install fire
+      - run:
+          name: "Run without backend"
+          command: |
+            export example_path="examples/contrib/new-cifar10"
+            export test_cmd="python ${example_path}/main.py run"
+            docker exec -it pthd /bin/bash -c "$test_cmd"
+      - run:
+          name: "Run with NCCL backend using torch dist launch"
+          command: |
+            export example_path="examples/contrib/new-cifar10"
+            export test_cmd="python -u -m torch.distributed.launch --nproc_per_node=2 ${example_path}/main.py run --backend=nccl"
+            docker exec -it pthd /bin/bash -c "$test_cmd"
+      - run:
+          name: "Run with NCCL backend using spawn"
+          command: |
+            export example_path="examples/contrib/new-cifar10"
+            export test_cmd="python -u ${example_path}/main.py run --backend=nccl --num_procs_per_node=2"
+            docker exec -it pthd /bin/bash -c "$test_cmd"
+
+
+
+
+
 # -------------------------------------------------------------------------------------
 # Workflows
 # -------------------------------------------------------------------------------------
@@ -146,3 +183,4 @@ workflows:
     jobs:
       - one_gpu_tests
       - two_gpus_tests
+      - two_gpus_check_dist_cifar10_example

@@ -1,0 +1,195 @@
+import warnings
+
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import Sampler
+
+from ignite.distributed import utils as idist
+from ignite.utils import setup_logger
+
+
+def auto_dataloader(dataset, **kwargs):
+    """Helper method to create a dataloader adapted for non-distributed and distributed configurations (supporting
+    all available backends from `idist.available_backends()`).
+
+    Internally, we create a dataloader with provided kwargs while applying the following updates:
+
+    - batch size is scaled by world size: `batch_size / world_size`
+    - number of workers is scaled by number of local processes: `num_workers / nprocs`
+    - sampler : TODO
+
+    .. warning::
+
+        Custom batch sampler is not adapted for distributed configuration. Please, make sure that provided batch
+        sampler is compatible with distributed configuration.
+
+
+    Args:
+        dataset (Dataset): input torch dataset
+        **kwargs: keyword arguments
+
+    Returns:
+
+    """
+    rank = idist.get_rank()
+    world_size = idist.get_world_size()
+
+    logger = setup_logger(__name__ + ".auto_dataloader")
+
+    if world_size > 1:
+        if "batch_size" in kwargs:
+            kwargs["batch_size"] //= world_size
+
+        if "num_workers" in kwargs:
+            nproc = idist.get_ntasks_per_node()
+            kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
+
+        if "batch_sampler" not in kwargs:
+            if "sampler" in kwargs:
+                sampler = DistributedProxySampler(kwargs["sampler"], num_replicas=world_size, rank=rank)
+            else:
+                sampler = DistributedSampler(
+                    dataset, num_replicas=world_size, rank=rank, shuffle=kwargs.get("shuffle", True)
+                )
+                # we need to remove "shuffle" from kwargs if sampler is used
+                if "shuffle" in kwargs:
+                    del kwargs["shuffle"]
+
+            kwargs["sampler"] = sampler
+        else:
+            warnings.warn(
+                "Found batch_sampler in provided kwargs. Please, make sure that it is compatible "
+                "with distributed configuration"
+            )
+
+    if idist.has_xla_support and kwargs.get("pin_memory", False):
+        warnings.warn(
+            "Found incompatible options: xla support and pin_memory args equal True. "
+            "Argument `pin_memory=False` will be used to construct data loader."
+        )
+        kwargs["pin_memory"] = False
+
+    logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
+    dataloader = DataLoader(dataset, **kwargs)
+
+    if idist.has_xla_support and world_size > 1:
+        mp_device_loader_cls = _MpDeviceLoader
+        try:
+            from torch_xla.distributed.parallel_loader import MpDeviceLoader
+
+            mp_device_loader_cls = MpDeviceLoader
+        except ImportError:
+            pass
+
+        sampler = dataloader.sampler
+        dataloader = mp_device_loader_cls(dataloader, idist.device())
+        dataloader.sampler = sampler
+
+    return dataloader
+
+
+def auto_model(model: nn.Module) -> nn.Module:
+    """Helper method to adapt provided model for non-distributed and distributed configurations (supporting
+    all available backends from :meth:`~ignite.distributed.available_backends()`).
+
+    Internally, we wrap the model to:
+
+    - send model to current :meth:`~ignite.distributed.device()`.
+    - `torch DistributedDataParallel`__ for native torch distributed if world size is larger than 1
+    - `torch DataParallel`___ if no distributed context found and more than one CUDA devices available.
+
+    Args:
+        model (torch.nn.Module): model to adapt.
+
+    Returns:
+        torch.nn.Module
+
+    __ https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
+    ___ https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+    """
+    from torch.distributed import Backend
+
+    logger = setup_logger(__name__ + ".auto_model")
+
+    model.to(idist.device())
+
+    # distributed data parallel model
+    if idist.get_world_size() > 1:
+        if idist.backend() == Backend.NCCL:
+            lrank = idist.get_local_rank()
+            logger.info("Apply torch DistributedDataParallel on model, device id: {}".format(lrank))
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,])
+        elif idist.backend() == Backend.GLOO:
+            logger.info("Apply torch DistributedDataParallel on model")
+            model = torch.nn.parallel.DistributedDataParallel(model)
+
+    # not distributed but multiple GPUs reachable so data parallel model
+    elif torch.cuda.device_count() > 1 and "cuda" in idist.device().type:
+        logger.info("Apply torch DataParallel on model")
+        model = torch.nn.parallel.DataParallel(model)
+
+    return model
+
+
+class DistributedProxySampler(DistributedSampler):
+    """TODO: add docstring
+
+    .. note::
+        Input sampler is assumed to be of constant size.
+
+    Args:
+        sampler (Sampler): Input torch data sampler.
+        num_replicas (int, optional): Number of processes participating in distributed training.
+        rank (int, optional): Rank of the current process within num_replicas.
+
+    """
+
+    def __init__(self, sampler: Sampler, num_replicas=None, rank=None):
+
+        if not isinstance(sampler, Sampler):
+            raise TypeError("Argument sampler should be instance of torch Sampler, but given: {}".format(type(sampler)))
+
+        if not hasattr(sampler, "__len__"):
+            raise TypeError("Argument sampler should have length")
+
+        super(DistributedProxySampler, self).__init__(sampler, num_replicas=num_replicas, rank=rank, shuffle=False)
+        self.sampler = sampler
+
+    def __iter__(self):
+        # deterministically shuffle based on epoch
+        torch.manual_seed(self.epoch)
+        indices = list(self.sampler)
+
+        # add extra samples to make it evenly divisible
+        indices += indices[: (self.total_size - len(indices))]
+        if len(indices) != self.total_size:
+            raise RuntimeError("{} vs {}".format(len(indices), self.total_size))
+
+        # subsample
+        indices = indices[self.rank : self.total_size : self.num_replicas]
+        if len(indices) != self.num_samples:
+            raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))
+
+        return iter(indices)
+
+
+if idist.has_xla_support:
+
+    from torch_xla.distributed.parallel_loader import ParallelLoader
+
+    class _MpDeviceLoader:
+        # https://github.com/pytorch/xla/pull/2117
+        # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
+        def __init__(self, loader, device, **kwargs):
+            self._loader = loader
+            self._device = device
+            self._parallel_loader_kwargs = kwargs
+
+        def __iter__(self):
+            parallel_loader = ParallelLoader(self._loader, [self._device], **self._parallel_loader_kwargs)
+            return parallel_loader.per_device_loader(self._device)
+
+        def __len__(self):
+            return len(self._loader)

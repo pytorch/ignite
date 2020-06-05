@@ -11,7 +11,16 @@ This module wraps common methods to fetch information about distributed configur
 group or spawn multiple processes.
 
 
-Examples:
+Distributed launcher context manager
+------------------------------------
+
+We provide a context manager to simplify distributed configuration setup for all above supported backends
+
+
+
+
+
+Other examples:
 
     - Example to spawn `nprocs` processes that run `fn` with `args`: :meth:`~ignite.distributed.spawn`
 
