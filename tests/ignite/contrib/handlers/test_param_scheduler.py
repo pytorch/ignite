@@ -2,13 +2,6 @@ import numpy as np
 import pytest
 import torch
 from torch.optim.lr_scheduler import ExponentialLR, StepLR
-try:
-    from torch.optim.lr_scheduler import MultiplicativeLR
-except ImportError:
-    has_multiplicative_lr = False
-else:
-    has_multiplicative_lr = True
-
 
 from ignite.contrib.handlers.param_scheduler import (
     ConcatScheduler,
@@ -21,6 +14,13 @@ from ignite.contrib.handlers.param_scheduler import (
     create_lr_scheduler_with_warmup,
 )
 from ignite.engine import Engine, Events
+
+try:
+    from torch.optim.lr_scheduler import MultiplicativeLR
+except ImportError:
+    has_multiplicative_lr = False
+else:
+    has_multiplicative_lr = True
 
 
 def test_param_scheduler_asserts():
