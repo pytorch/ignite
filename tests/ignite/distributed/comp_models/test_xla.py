@@ -152,13 +152,12 @@ def main_fold(fold):
     import torch_xla.core.xla_model as xm
     from ignite.engine import Engine, Events
 
-    device = xm.xla_device(fold + 1)
+    device = xm.xla_device(fold)
 
     comp_model = _XlaDistModel.create_from_context()
     assert comp_model.device() == device
 
     model = nn.Linear(100, 10)
-    device = xm.xla_device(fold + 1)
 
     model.to(device)  # Move model before creating optimizer
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
@@ -196,5 +195,12 @@ def test__xla_dist_model_run_parallel_n_threads_without_sync():
     # tests issue : https://github.com/pytorch/ignite/issues/1096
     from joblib import Parallel, delayed
 
-    folds = 5
-    Parallel(n_jobs=folds, backend="threading")(delayed(main_fold)(i) for i in range(folds))
+    import torch_xla.core.xla_model as xm
+
+    devices = xm.get_xla_supported_devices()
+    folds = 1
+    d = 0
+    if len(devices) > 5:
+        folds = 5
+        d = 1
+    Parallel(n_jobs=folds, backend="threading")(delayed(main_fold)(i + d) for i in range(folds))
