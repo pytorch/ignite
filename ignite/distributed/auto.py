@@ -8,7 +8,12 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
 from ignite.distributed import utils as idist
+from ignite.distributed import native as idist_native
+from ignite.distributed import xla as idist_xla
 from ignite.utils import setup_logger
+
+
+__all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
 
 
 def auto_dataloader(dataset, **kwargs):
@@ -65,7 +70,8 @@ def auto_dataloader(dataset, **kwargs):
                 "with distributed configuration"
             )
 
-    if idist.has_xla_support and kwargs.get("pin_memory", False):
+    if idist.backend() == idist_xla.XLA_TPU and kwargs.get("pin_memory", False):
+        # TODO: How about XLA GPU ?
         warnings.warn(
             "Found incompatible options: xla support and pin_memory args equal True. "
             "Argument `pin_memory=False` will be used to construct data loader."
@@ -75,7 +81,7 @@ def auto_dataloader(dataset, **kwargs):
     logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
     dataloader = DataLoader(dataset, **kwargs)
 
-    if idist.has_xla_support and world_size > 1:
+    if idist.backend() == idist_xla.XLA_TPU and world_size > 1:
         mp_device_loader_cls = _MpDeviceLoader
         try:
             from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -110,19 +116,17 @@ def auto_model(model: nn.Module) -> nn.Module:
     __ https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
     ___ https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
     """
-    from torch.distributed import Backend
-
     logger = setup_logger(__name__ + ".auto_model")
 
     model.to(idist.device())
 
     # distributed data parallel model
     if idist.get_world_size() > 1:
-        if idist.backend() == Backend.NCCL:
+        if idist.backend() == idist_native.NCCL:
             lrank = idist.get_local_rank()
             logger.info("Apply torch DistributedDataParallel on model, device id: {}".format(lrank))
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,])
-        elif idist.backend() == Backend.GLOO:
+        elif idist.backend() == idist_native.GLOO:
             logger.info("Apply torch DistributedDataParallel on model")
             model = torch.nn.parallel.DistributedDataParallel(model)
 
@@ -135,14 +139,32 @@ def auto_model(model: nn.Module) -> nn.Module:
 
 
 def auto_optim(optimizer: Optimizer) -> Optimizer:
-    return optimizer
+    """Helper method to adapt optimizer for non-distributed and distributed configurations (supporting
+    all available backends from :meth:`~ignite.distributed.available_backends()`).
+
+    Internally, this method is no-op for non-distributed and torch native distributed configuration.
+    For XLA distributed configuration, we create a new class that inherits from provided optimizer.
+    The goal is to override the `step()` method with specific `xm.optimizer_step()` implementation.
+
+    Args:
+        optimizer (Optimizer): input torch optimizer
+
+    Returns:
+        Optimizer
+
+    """
+    if not (idist.get_world_size() > 1 and idist.backend() == idist_xla.XLA_TPU):
+        return optimizer
+
+    cls = type(optimizer.__class__.__name__, (optimizer.__class__,), dict(_XLADistributedOptimizer.__dict__))
+    return cls(optimizer)
 
 
 class DistributedProxySampler(DistributedSampler):
     """TODO: add docstring
 
     .. note::
-        Input sampler is assumed to be of constant size.
+        Input sampler is assumed to have a constant size.
 
     Args:
         sampler (Sampler): Input torch data sampler.
@@ -182,6 +204,7 @@ class DistributedProxySampler(DistributedSampler):
 
 if idist.has_xla_support:
 
+    import torch_xla.core.xla_model as xm
     from torch_xla.distributed.parallel_loader import ParallelLoader
 
     class _MpDeviceLoader:
@@ -198,3 +221,12 @@ if idist.has_xla_support:
 
         def __len__(self):
             return len(self._loader)
+
+
+    class _XLADistributedOptimizer(Optimizer):
+
+        def __init__(self, optimizer):
+            super(_XLADistributedOptimizer, self).__init__(optimizer.param_groups, optimizer.defaults)
+
+        def step(self, closure=None):
+            xm.optimizer_step(self, barrier=True)

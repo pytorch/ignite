@@ -4,6 +4,9 @@ from ignite.distributed import utils as idist
 from ignite.utils import setup_logger
 
 
+__all__ = ["Parallel", ]
+
+
 class Parallel:
     """Distributed launcher context manager to simplify distributed configuration setup for multiple backends:
 

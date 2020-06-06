@@ -17,6 +17,7 @@ from ignite.utils import manual_seed
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.handlers import PiecewiseLinear
+from ignite.utils import setup_logger
 
 import utils
 
@@ -115,9 +116,6 @@ def training(local_rank, config):
     #    - RunningAverage` on `train_step` output
     #    - Two progress bars on epochs and optionally on iterations
 
-    if idist.has_xla_support:
-        import torch_xla.core.xla_model as xm
-
     def train_step(engine, batch):
 
         x, y = batch[0], batch[1]
@@ -133,23 +131,21 @@ def training(local_rank, config):
 
         optimizer.zero_grad()
         loss.backward()
+        optimizer.step()
 
-        if idist.has_xla_support:
-            xm.optimizer_step(optimizer, barrier=True)
-            if (engine.state.iteration - 1) % config["log_every_iters"] == 0:
-                batch_loss = loss.item()
-                engine.state.saved_batch_loss = batch_loss
-            else:
-                batch_loss = engine.state.saved_batch_loss
-        else:
-            optimizer.step()
+        if (engine.state.iteration - 1) % config["log_every_iters"] == 0:
             batch_loss = loss.item()
+            engine.state.saved_batch_loss = batch_loss
+        else:
+            batch_loss = engine.state.saved_batch_loss
 
         return {
             "batch loss": batch_loss,
         }
 
     trainer = Engine(train_step)
+    trainer.logger = setup_logger("Trainer")
+
     to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     metric_names = [
         "batch loss",
@@ -176,11 +172,20 @@ def training(local_rank, config):
     # We define two evaluators as they wont have exactly similar roles:
     # - `evaluator` will save the best model based on validation score
     evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
+    evaluator.logger = setup_logger("Evaluation test")
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
+    train_evaluator = setup_logger("Evaluation train")
 
     def run_validation(engine):
-        train_evaluator.run(train_loader)
+        epoch = trainer.state.epoch
+        state = train_evaluator.run(train_loader)
+        train_evaluator.logger.info(
+            "Epoch {} - Train metrics:\n {}".format(epoch, ["\t{}: {}".format(k, v)for k, v in state.metrics.items()])
+        )
         evaluator.run(test_loader)
+        evaluator.logger.info(
+            "Epoch {} - Test metrics:\n {}".format(epoch, ["\t{}: {}".format(k, v)for k, v in state.metrics.items()])
+        )
 
     trainer.add_event_handler(Events.EPOCH_STARTED(every=config["validate_every"]), run_validation)
     trainer.add_event_handler(Events.COMPLETED, run_validation)

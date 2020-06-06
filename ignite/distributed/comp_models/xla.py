@@ -14,6 +14,9 @@ except ImportError:
     has_xla_support = False
 
 
+XLA_TPU = "xla-tpu"
+
+
 class _XlaDistModel(ComputationModel):
     """Private class for PyTorch XLA basic distributed computation model.
     It handles single/multi-device computation model.
@@ -27,7 +30,7 @@ class _XlaDistModel(ComputationModel):
 
     name = "xla-dist"
 
-    available_backends = tuple(["xla-tpu",])
+    available_backends = tuple([XLA_TPU,])
 
     @staticmethod
     def create_from_context() -> Optional["_XlaDistModel"]:

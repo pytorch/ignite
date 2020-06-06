@@ -9,6 +9,10 @@ import torch.multiprocessing as mp
 
 from ignite.distributed.comp_models.base import ComputationModel
 
+NCCL = dist.Backend.NCCL
+GLOO = dist.Backend.GLOO
+MPI = dist.Backend.MPI
+
 
 class _NativeDistModel(ComputationModel):
     """Private class for PyTorch native distributed computation model.
@@ -30,7 +34,7 @@ class _NativeDistModel(ComputationModel):
     name = "native-dist"
     available_backends = tuple(
         name
-        for name in [dist.Backend.NCCL, dist.Backend.GLOO, dist.Backend.MPI]
+        for name in [NCCL, GLOO, MPI]
         if getattr(dist, "is_{}_available".format(name))()
     )
 
