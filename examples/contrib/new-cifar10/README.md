@@ -21,14 +21,14 @@ Configurations:
 
 ## Usage:
 
-Run the example on a single GPU (script will not run without a GPU):
+Run the example on a single GPU:
 ```bash
-python main.py
+python main.py run
 ```
 
 If user would like to provide already downloaded dataset, the path can be setup in parameters as
 ```bash
---params="data_path=/path/to/cifar10/"
+--data_path="/path/to/cifar10/"
 ```
 
 
@@ -38,15 +38,16 @@ If user would like to provide already downloaded dataset, the path can be setup 
 
 Let's start training on a single node with 2 gpus:
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_backend='nccl'"
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl"
 ```
 
 If user would like to provide already downloaded dataset, the path can be setup in parameters as
 ```bash
---params="data_path=/path/to/cifar10/;batch_size=512"
+--data_path="/path/to/cifar10/"
 ```
 
-![tb1](assets/tb_logger.png)
+#### Colab, on 8 TPUs
+
 
 
 #### Multiple nodes, multiple GPUs
@@ -59,8 +60,8 @@ python -u -m torch.distributed.launch \
     --nnodes=2 \
     --nproc_per_node=2 \
     --node_rank=0 \
-    --master_addr=master --master_port=2222 \
-    main.py --params="dist_backend='nccl'"
+    --master_addr=master --master_port=2222 --use_env \
+    main.py run --backend="nccl"
 ```
 
 2) Execute on worker node
@@ -70,23 +71,8 @@ python -u -m torch.distributed.launch \
     --nproc_per_node=2 \
     --node_rank=1 \
     --master_addr=master --master_port=2222 \
-    main.py --params="dist_backend='nccl'"
+    main.py run --backend="nccl"
 ```
-
-![tb2](assets/tb_logger_gcp.png)
-
-## Reproduce trainings
-
-- To reproduce trainings with [Polyaxon](https://polyaxon.com/), please see [plx_configs/README.md](plx_configs/README.md)
-- To reproduce trainings on [GCP AI platform](https://cloud.google.com/ml-engine/docs/), please see [gcp_ai_platform](gcp_ai_platform/README.md).
-
-## Acknowledgements
-
-In this repository we are using the code from 
-- [cifar10-fast repository](https://github.com/davidcpage/cifar10-fast)
-
-Thanks to the authors for sharing their code!
-
 
 ## Check resume training
 

@@ -8,8 +8,8 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
 from ignite.distributed import utils as idist
-from ignite.distributed import native as idist_native
-from ignite.distributed import xla as idist_xla
+from ignite.distributed.comp_models import native as idist_native
+from ignite.distributed.comp_models import xla as idist_xla
 from ignite.utils import setup_logger
 
 
