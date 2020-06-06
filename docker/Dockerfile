@@ -21,7 +21,7 @@ RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b -p /opt/conda && \
     rm ~/miniconda.sh && \
-    /opt/conda/bin/conda install -y \
+    /opt/conda/bin/conda install -y -c pytorch \
         python=$PYTHON_VERSION \
         pytorch=$PYTORCH_VERSION \
         torchvision && \
@@ -36,6 +36,9 @@ RUN git clone https://github.com/pytorch/ignite && \
     python setup.py install
 
 WORKDIR /ignite
+
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
 
 CMD ["/bin/bash"]
 
