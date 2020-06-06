@@ -96,6 +96,7 @@ jobs:
       python: "3.7"
       env:
         - PYTORCH_CHANNEL=pytorch
+        - UPLOAD_USER=pytorch
       if: tag IS present
 
       # Use previously defined before_install
@@ -108,21 +109,19 @@ jobs:
 
       after_success: # Nothing to do
 
-      before_deploy:
-        # Conda deploy if on tag
+      before_deploy: &before_deploy
         # ANACONDA_TOKEN should be provided by Travis
         # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
-
         # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
         - conda install -y conda-build conda-verify anaconda-client
         - conda config --set anaconda_upload no
-        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe
+        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
         # Convert to other platforms: OSX, WIN
         - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
         # Upload to Anaconda
         # We could use --all but too much platforms to uploaded
-        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch {}
+        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u $UPLOAD_USER {}
 
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
@@ -148,26 +147,14 @@ jobs:
       if: type = cron
       env:
         - PYTORCH_CHANNEL=pytorch-nightly
+        - UPLOAD_USER=pytorch-nightly
       # Use previously defined before_install
       before_install: *before_install
       install:
         - sed -i "s/__version__ = \"\(.*\)\"/__version__ = \"\1.dev$(date -u +%Y%m%d)\"/g" ignite/__init__.py
       script: true
       after_success: # Nothing to do
-      before_deploy:
-        # ANACONDA_TOKEN should be provided by Travis
-        # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
-        # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
-        - conda install -y conda-build conda-verify anaconda-client
-        - conda config --set anaconda_upload no
-        - travis_wait 60 conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
-        # Convert to other platforms: OSX, WIN
-        - conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
-        - conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
-        # Upload to Anaconda
-        # We could use --all but too much platforms to uploaded
-        - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u pytorch-nightly {}
-
+      before_deploy: *before_deploy
       # PyPI Deployment: https://docs.travis-ci.com/user/deployment/pypi/
       deploy:
         edge: true

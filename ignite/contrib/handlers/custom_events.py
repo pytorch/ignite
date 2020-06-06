@@ -67,7 +67,7 @@ class CustomPeriodicEvent:
             raise ValueError("Argument n_epochs should be positive integer number")
 
         if (n_iterations is None and n_epochs is None) or (n_iterations and n_epochs):
-            raise ValueError("Either n_iterations or n_epochs should defined")
+            raise ValueError("Either n_iterations or n_epochs should be defined")
 
         if n_iterations:
             prefix = "iterations"
