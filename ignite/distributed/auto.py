@@ -226,7 +226,8 @@ if idist.has_xla_support:
     class _XLADistributedOptimizer(Optimizer):
 
         def __init__(self, optimizer):
-            super(_XLADistributedOptimizer, self).__init__(optimizer.param_groups, optimizer.defaults)
+            super(self.__class__, self).__init__(optimizer.param_groups)
+            self.wrapped_optimizer = optimizer
 
         def step(self, closure=None):
-            xm.optimizer_step(self, barrier=True)
+            xm.optimizer_step(self.wrapped_optimizer, barrier=True)

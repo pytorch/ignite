@@ -241,7 +241,7 @@ def run(
     weight_decay=1e-4,
     num_workers=5,
     num_epochs=24,
-    learning_rate=0.04,
+    learning_rate=0.4,
     num_warmup_epochs=4,
     validate_every=3,
     checkpoint_every=200,
