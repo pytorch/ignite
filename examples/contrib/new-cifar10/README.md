@@ -38,7 +38,13 @@ If user would like to provide already downloaded dataset, the path can be setup 
 
 Let's start training on a single node with 2 gpus:
 ```bash
+# using torch.distributed.launch
 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl"
+```
+or 
+```bash
+# using function spawn inside the code
+python -u main.py run --backend="nccl" --num_procs_per_node=2
 ```
 
 If user would like to provide already downloaded dataset, the path can be setup in parameters as
@@ -137,27 +143,3 @@ python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_
 # or same in deterministic mode
 python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="dist_backend='nccl';deterministic=True;output_path=/tmp/output-cifar10/deterministic"
 ```
-
-<!---
-Non-deterministic| Deterministic
----|---
-![img21](assets/tb_logger_2x_run_resume_ndet.png) | ![img22](assets/tb_logger_2x_run_resume_det.png) 
-
-Relative performances comparision
-![img23](assets/tb_logger_2x_det_vs_ndet.png)
-
-![tbresume](assets/tb_logger_resume1.png)
-
-- Orange curves represent the training with a crash at the iteration 1000
-- Blue curves show resumed training from the last checkpoint (iteration 800)
-- Red curves display complete training without crashing  
-
-
-**Note 2:** As we are resuming the training from an iteration between epochs, even if Ignite's engine handles the dataflow by
-correctly providing data samples for the resumed iteration, random data augmentations are not synchronized. This causes a gap  
-in validation curves (`train/loss`, `train/accuracy` etc.) at the begining of training resuming. 
-  
-![tb-resume](assets/tb_logger_resume2.png)
-
--->
-

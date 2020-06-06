@@ -377,6 +377,8 @@ class Checkpoint:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint:
+                if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                    obj = obj.module
                 obj.load_state_dict(checkpoint, strict=is_state_dict_strict)
                 return
 
@@ -384,6 +386,8 @@ class Checkpoint:
         for k, obj in to_load.items():
             if k not in checkpoint:
                 raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
+            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                obj = obj.module
             if isinstance(obj, torch.nn.Module):
                 obj.load_state_dict(checkpoint[k], strict=is_state_dict_strict)
             else:

@@ -143,6 +143,8 @@ def training(local_rank, config):
         }
 
     trainer = Engine(train_step)
+    trainer.state.saved_batch_loss = -1.0
+    trainer.state_dict_user_keys.append("saved_batch_loss")
     to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     metric_names = [
         "batch loss",
@@ -158,6 +160,7 @@ def training(local_rank, config):
         output_names=metric_names,
         with_pbar_on_iters=config["log_every_iters"] > 0,
         log_every_iters=config["log_every_iters"],
+        clear_cuda_cache=False
     )
 
     # Let's now setup evaluator engine to perform model's validation and compute metrics
@@ -176,13 +179,13 @@ def training(local_rank, config):
         state = train_evaluator.run(train_loader)
         if rank == 0:
             print(
-                "Epoch {} - Train metrics:\n {}"
+                "\nEpoch {} - Train metrics:\n {}"
                 .format(epoch, "\n".join(["\t{}: {}".format(k, v) for k, v in state.metrics.items()]))
             )
         state = evaluator.run(test_loader)
         if rank == 0:
             print(
-                "Epoch {} - Test metrics:\n {}"
+                "\nEpoch {} - Test metrics:\n {}"
                 .format(epoch, "\n".join(["\t{}: {}".format(k, v) for k, v in state.metrics.items()]))
             )
 
@@ -214,7 +217,7 @@ def training(local_rank, config):
         assert checkpoint_fp.exists(), "Checkpoint '{}' is not found".format(checkpoint_fp.as_posix())
         if rank == 0:
             print("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
-        checkpoint = torch.load(checkpoint_fp.as_posix())
+        checkpoint = torch.load(checkpoint_fp.as_posix(), map_location='cpu')        
         Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 
     try:
