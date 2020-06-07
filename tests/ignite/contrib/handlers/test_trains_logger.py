@@ -764,12 +764,14 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu")
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = idist.device()
