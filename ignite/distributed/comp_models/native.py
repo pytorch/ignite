@@ -1,6 +1,7 @@
 import os
 import subprocess
 import warnings
+from distutils.version import LooseVersion
 from typing import Callable, Mapping, Optional, Tuple
 
 import torch
@@ -252,8 +253,11 @@ class _NativeDistModel(ComputationModel):
         spawn_kwargs = {
             "join": kwargs.get("join", True),
             "daemon": kwargs.get("daemon", False),
-            "start_method": kwargs.get("start_method", "spawn"),
         }
+        # start_method in pytorch >= 1.5
+        if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+            spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
+
         mp.spawn(
             _NativeDistModel._dist_worker_task_fn,
             nprocs=num_procs_per_node,
@@ -277,9 +281,11 @@ class _NativeDistModel(ComputationModel):
         "PRODUCT": dist.ReduceOp.PRODUCT,
         "MIN": dist.ReduceOp.MIN,
         "MAX": dist.ReduceOp.MAX,
-        "AND": dist.ReduceOp.BAND,
-        "OR": dist.ReduceOp.BOR,
     }
+    if LooseVersion(torch.__version__) > LooseVersion("1.2.0"):
+        _reduce_op_map.update(
+            {"AND": dist.ReduceOp.BAND, "OR": dist.ReduceOp.BOR,}
+        )
 
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         if op not in self._reduce_op_map:

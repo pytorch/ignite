@@ -20,7 +20,10 @@ try:
 except ImportError:
     has_multiplicative_lr = False
 else:
-    has_multiplicative_lr = True
+    from distutils.version import LooseVersion
+
+    # https://github.com/pytorch/pytorch/issues/32756
+    has_multiplicative_lr = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def test_param_scheduler_asserts():
@@ -617,6 +620,7 @@ def test_lr_scheduler():
         torch_lr_scheduler1 = torch_lr_scheduler_cls(optimizer=optimizer1, **kwargs)
         scheduler = LRScheduler(torch_lr_scheduler1)
         state_dict1 = scheduler.state_dict()
+        print(state_dict1)
 
         torch_lr_scheduler2 = torch_lr_scheduler_cls(optimizer=optimizer2, **kwargs)
         state_dict2 = torch_lr_scheduler2.state_dict()
