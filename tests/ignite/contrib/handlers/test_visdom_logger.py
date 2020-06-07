@@ -1,3 +1,4 @@
+import sys
 from unittest.mock import ANY, MagicMock, call
 
 import pytest
@@ -784,6 +785,7 @@ def test_grads_scalar_handler():
     _test(tag="tag")
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_no_server():
 
     with pytest.warns(
@@ -793,12 +795,14 @@ def test_integration_no_server():
             VisdomLogger()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_logger_init_hostname_port(visdom_server):
     # Explicit hostname, port
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
     assert "main" in vd_logger.vis.get_env_list()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_logger_init_env_vars(visdom_server):
     # As env vars
     import os
@@ -815,6 +819,7 @@ def _parse_content(content):
     return json.loads(content)
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_no_executor(visdom_server):
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
 
@@ -849,6 +854,7 @@ def test_integration_no_executor(visdom_server):
     assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_with_executor(visdom_server):
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1)
 
@@ -885,6 +891,7 @@ def test_integration_with_executor(visdom_server):
     vd_logger.close()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_with_executor_as_context_manager(visdom_server):
 
     n_epochs = 5
@@ -923,6 +930,7 @@ def test_integration_with_executor_as_context_manager(visdom_server):
 @pytest.fixture
 def no_site_packages():
     import sys
+    import visdom
 
     plx_module = sys.modules["visdom"]
     del sys.modules["visdom"]

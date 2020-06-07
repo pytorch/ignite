@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
@@ -482,6 +483,7 @@ def test_run_check_triggered_events_on_iterator():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     _test_run_check_triggered_events_on_iterator()
@@ -489,12 +491,14 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     _test_run_check_triggered_events_on_iterator()
@@ -502,6 +506,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_run_check_triggered_events_on_iterator()
@@ -512,6 +517,7 @@ def test_engine_with_iterable_dataloader():
 
     from torch.utils.data import DataLoader, IterableDataset
 
+    # This can not be pickled on windows
     class MyIterableDataset(IterableDataset):
         def __init__(self, start, end):
             super(MyIterableDataset).__init__()
