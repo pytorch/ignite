@@ -12,7 +12,6 @@ from ignite.distributed.comp_models import native as idist_native
 from ignite.distributed.comp_models import xla as idist_xla
 from ignite.utils import setup_logger
 
-
 __all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
 
 
@@ -222,9 +221,7 @@ if idist.has_xla_support:
         def __len__(self):
             return len(self._loader)
 
-
     class _XLADistributedOptimizer(Optimizer):
-
         def __init__(self, optimizer):
             super(self.__class__, self).__init__(optimizer.param_groups)
             self.wrapped_optimizer = optimizer

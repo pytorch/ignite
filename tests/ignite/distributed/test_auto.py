@@ -1,8 +1,9 @@
 import os
+
 import pytest
 
 import ignite.distributed as idist
-from ignite.distributed.auto import auto_model, auto_optim, auto_dataloader
+from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim
 
 
 def _test_auto_optim():

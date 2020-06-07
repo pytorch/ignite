@@ -32,11 +32,7 @@ class _NativeDistModel(ComputationModel):
     """
 
     name = "native-dist"
-    available_backends = tuple(
-        name
-        for name in [NCCL, GLOO, MPI]
-        if getattr(dist, "is_{}_available".format(name))()
-    )
+    available_backends = tuple(name for name in [NCCL, GLOO, MPI] if getattr(dist, "is_{}_available".format(name))())
 
     @staticmethod
     def create_from_context() -> Optional["_NativeDistModel"]:
