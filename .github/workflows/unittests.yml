@@ -44,6 +44,7 @@ jobs:
         CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
 
     - name: Run MNIST Examples
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       shell: bash -l {0}
       run: |
         # MNIST
@@ -63,23 +64,27 @@ jobs:
 
     - name: Run MNIST Example With Crash
       shell: bash -l {0}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       continue-on-error: true
       run: |
         # 4) mnist_save_resume_engine.py
         python examples/mnist/mnist_save_resume_engine.py --epochs=2 --crash_iteration 1100
         
     - name: Resume MNIST from previous crash
+      shell: bash -l {0}
       run: |
         python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
 
     - name: Run GAN example
       shell: bash -l {0}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         # DCGAN
         python examples/gan/dcgan.py --dataset fake --dataroot /tmp/fakedata --output-dir /tmp/outputs-dcgan --batch-size 2 --epochs 2  --workers 0
     
     - name: Run RL Examples
       shell: bash -l {0}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         # RL
         # 1) Actor-Critic
