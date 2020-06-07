@@ -103,10 +103,3 @@ def test_check_idist_parallel_spawn_n_procs_nccl(exec_filepath):
 def test_check_idist_parallel_spawn_n_procs_xla(exec_filepath):
     n = int(os.environ["NUM_TPU_WORKERS"])
     _test_check_idist_parallel_spawn(exec_filepath, "xla-tpu", n)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_check_idist_parallel_spawn_xla(exec_filepath):
-    _test_check_idist_parallel_spawn(exec_filepath, "xla-tpu", 1)
