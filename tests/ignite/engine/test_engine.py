@@ -1,5 +1,6 @@
 import os
 import time
+from distutils.version import LooseVersion
 from unittest.mock import MagicMock, Mock, call
 
 import numpy as np
@@ -10,7 +11,7 @@ import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
-from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
+from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter, get_iterable_dataset
 
 
 def test_terminate():
@@ -513,26 +514,16 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_run_check_triggered_events()
 
 
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.2.0"), reason="No IterableDataset in torch<1.2.0")
 def test_engine_with_iterable_dataloader():
 
-    from torch.utils.data import DataLoader, IterableDataset
-
-    # This can not be pickled on windows
-    class MyIterableDataset(IterableDataset):
-        def __init__(self, start, end):
-            super(MyIterableDataset).__init__()
-            assert end > start, "this example code only works with end >= start"
-            self.start = start
-            self.end = end
-
-        def __iter__(self):
-            return iter(range(self.start, self.end))
+    from torch.utils.data import DataLoader
 
     def _test(epoch_length=None):
 
         le = 50
         num_workers = 4
-        ds = MyIterableDataset(0, le)
+        ds = get_iterable_dataset(0, le)
         data_loader = DataLoader(ds, num_workers=num_workers)
 
         counter = [0]
