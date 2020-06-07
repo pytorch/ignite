@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import has_xla_support, sync
+from ignite.distributed.utils import has_native_dist_support, has_xla_support, sync
 from ignite.engine import Engine, Events
 
 
@@ -22,7 +22,7 @@ def test_no_distrib(capsys):
 
     from ignite.distributed.utils import _model
 
-    print("test_no_distrib : dist: ", dist.is_available(), dist.is_initialized())
+    print("test_no_distrib : dist: ", dist.is_available())
     print("test_no_distrib : _model", type(_model))
 
     assert idist.backend() is None
@@ -79,14 +79,11 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
 
     assert idist.model_name() in ("native-dist", "xla-dist")
 
-    from ignite.distributed.utils import _model
-    from ignite.distributed.comp_models import _NativeDistModel, _XlaDistModel
-
     _sanity_check()
-    assert isinstance(_model, (_NativeDistModel, _XlaDistModel))
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_native_distrib_single_node_launch_tool_gloo(local_rank, world_size):
     import os
     from datetime import timedelta
@@ -101,6 +98,7 @@ def test_native_distrib_single_node_launch_tool_gloo(local_rank, world_size):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_native_distrib_single_node_launch_tool_nccl(local_rank, world_size):
     import os
@@ -114,6 +112,7 @@ def test_native_distrib_single_node_launch_tool_nccl(local_rank, world_size):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_native_distrib_single_node_spawn_gloo():
 
@@ -129,6 +128,7 @@ def test_native_distrib_single_node_spawn_gloo():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_native_distrib_single_node_spawn_nccl():
@@ -139,7 +139,7 @@ def test_native_distrib_single_node_spawn_nccl():
 
 @pytest.mark.skipif(has_xla_support, reason="Skip if has PyTorch XLA package")
 def test_xla_distrib_spawn_no_xla_support():
-    with pytest.raises(RuntimeError, match=r"Torch xla package is not installed"):
+    with pytest.raises(ValueError, match=r"Backend should be one of"):
         idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", 1, "xla"), num_procs_per_node=1)
 
 
@@ -206,6 +206,7 @@ def test_sync_as_xla():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_sync_as_native_gloo(distributed_context_single_node_gloo):
     from ignite.distributed.comp_models import _NativeDistModel
 
@@ -213,6 +214,7 @@ def test_sync_as_native_gloo(distributed_context_single_node_gloo):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_sync_as_native_nccl(distributed_context_single_node_nccl):
     from ignite.distributed.comp_models import _NativeDistModel
@@ -282,12 +284,14 @@ def _test_idist_methods_in_native_context(backend, device, local_rank):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_methods_in_native_gloo_context(distributed_context_single_node_gloo):
     local_rank = distributed_context_single_node_gloo["local_rank"]
     _test_idist_methods_in_native_context("gloo", "cpu", local_rank)
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_methods_in_native_nccl_context(distributed_context_single_node_nccl):
     local_rank = distributed_context_single_node_nccl["local_rank"]
@@ -315,12 +319,14 @@ def _test_idist_methods_in_native_context_set_local_rank(backend, device, local_
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_methods_in_native_gloo_context_set_local_rank(distributed_context_single_node_gloo):
     local_rank = distributed_context_single_node_gloo["local_rank"]
     _test_idist_methods_in_native_context_set_local_rank("gloo", "cpu", local_rank)
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_methods_in_native_nccl_context_set_local_rank(distributed_context_single_node_nccl):
     local_rank = distributed_context_single_node_nccl["local_rank"]
@@ -357,6 +363,7 @@ def _test_distrib_all_reduce(device):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_all_reduce_nccl(distributed_context_single_node_nccl):
 
@@ -365,6 +372,7 @@ def test_idist_all_reduce_nccl(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_all_reduce_gloo(distributed_context_single_node_gloo):
 
     device = "cpu"
@@ -439,6 +447,7 @@ def _test_distrib_all_gather(device):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
 
@@ -447,6 +456,7 @@ def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
 
     device = "cpu"
@@ -489,6 +499,7 @@ def _test_distrib_barrier(device):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_barrier_nccl(distributed_context_single_node_nccl):
 
@@ -497,6 +508,7 @@ def test_idist_barrier_nccl(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_barrier_gloo(distributed_context_single_node_gloo):
 
     device = "cpu"
@@ -526,6 +538,7 @@ def test_idist_barrier_xla_in_child_proc(xmp_executor):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
     import time
 
@@ -548,6 +561,7 @@ def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
     import time
@@ -621,6 +635,7 @@ def _test_distrib_one_rank_only_with_engine(device):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_one_rank_only_gloo(distributed_context_single_node_gloo):
     device = "cpu"
     _test_distrib_one_rank_only(device=device)
@@ -628,6 +643,7 @@ def test_idist_one_rank_only_gloo(distributed_context_single_node_gloo):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_one_rank_only_nccl(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)

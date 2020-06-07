@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+import ignite.distributed as idist
 from ignite.engine import Events
 from ignite.engine.deterministic import (
     DeterministicEngine,
@@ -553,6 +554,7 @@ def test_resume_random_data_iterator_from_iter():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
@@ -561,6 +563,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
     device = "cpu"
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
@@ -568,6 +571,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
@@ -576,6 +580,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])

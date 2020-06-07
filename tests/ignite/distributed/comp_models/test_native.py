@@ -4,6 +4,12 @@ import pytest
 import torch
 import torch.distributed as dist
 
+from ignite.distributed.comp_models import has_native_dist_support
+
+if not has_native_dist_support:
+    pytest.skip("Skip if no native dist support", allow_module_level=True)
+
+
 from ignite.distributed.comp_models import _NativeDistModel
 
 
