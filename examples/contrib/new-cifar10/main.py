@@ -191,9 +191,7 @@ def training(local_rank, config):
                 )
             )
 
-    trainer.add_event_handler(
-        Events.EPOCH_COMPLETED(every=config["validate_every"]) | Events.COMPLETED, run_validation
-    )
+    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=config["validate_every"]) | Events.COMPLETED, run_validation)
 
     if rank == 0:
         # Setup progress bar on evaluation engines
