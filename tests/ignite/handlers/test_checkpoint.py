@@ -934,6 +934,7 @@ def _test_checkpoint_with_ddp(device):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
     device = torch.device("cpu")
     dirname = get_rank_zero_dirname()
@@ -943,6 +944,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
     device = idist.device()

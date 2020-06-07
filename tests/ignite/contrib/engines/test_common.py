@@ -1,4 +1,5 @@
 import os
+import sys
 from unittest.mock import MagicMock
 
 import pytest
@@ -145,6 +146,7 @@ def test_no_warning_with_train_sampler(recwarn):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Should have more than 1 worker")
 def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_context_single_node_gloo):
     trainer = Engine(lambda e, b: None)
@@ -349,6 +351,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_setup_visdom_logging(visdom_server):
     vis_logger = _test_setup_logging(
         setup_logging_fn=setup_visdom_logging,
@@ -393,6 +396,7 @@ def test_setup_plx_logging():
     )
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_setup_mlflow_logging(dirname):
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
@@ -469,6 +473,7 @@ def test_setup_neptune_logging(dirname):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
     local_rank = distributed_context_single_node_nccl["local_rank"]
@@ -478,6 +483,7 @@ def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
     device = "cpu"
     local_rank = distributed_context_single_node_gloo["local_rank"]
@@ -492,6 +498,7 @@ def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
     device = "cpu"
@@ -501,6 +508,7 @@ def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(dirname, distributed_context_multi_node_nccl):
     local_rank = distributed_context_multi_node_nccl["local_rank"]

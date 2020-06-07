@@ -357,7 +357,7 @@ def test_integration():
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size) % n_classes
+    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
     y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
     for i in range(n_iters * batch_size):
         if np.random.rand() > 0.4:
@@ -576,6 +576,7 @@ def _test_distrib_sync_all_reduce_decorator(device):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
 
@@ -584,6 +585,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = "cpu"
@@ -591,6 +593,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
@@ -598,6 +601,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])

@@ -1,5 +1,6 @@
 import math
 import os
+import sys
 import warnings
 from unittest.mock import ANY, MagicMock, call
 
@@ -417,7 +418,7 @@ def test_integration_as_context_manager():
         trainer.run(data, max_epochs=n_epochs)
 
 
-def test_neptune_saver_serializable():
+def test_neptune_saver_serializable(dirname):
 
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_artifact = MagicMock()
@@ -425,7 +426,7 @@ def test_neptune_saver_serializable():
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = "test.pt"
+    fname = os.path.join(dirname, "test.pt")
     saver(to_save_serializable, fname)
 
     assert mock_logger.log_artifact.call_count == 1
@@ -483,7 +484,6 @@ def test_neptune_saver_non_serializable():
 
 @pytest.fixture
 def no_site_packages():
-    import sys
 
     neptune_client_modules = {}
     for k in sys.modules:
@@ -507,11 +507,13 @@ def test_no_neptune_client(no_site_packages):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_neptune_saver_integration("cpu")
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = idist.device()
