@@ -21,6 +21,7 @@ except ImportError:
     has_multiplicative_lr = False
 else:
     from distutils.version import LooseVersion
+
     # https://github.com/pytorch/pytorch/issues/32756
     has_multiplicative_lr = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 

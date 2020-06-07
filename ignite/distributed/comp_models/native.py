@@ -1,9 +1,8 @@
 import os
 import subprocess
 import warnings
-from typing import Callable, Mapping, Optional, Tuple
-
 from distutils.version import LooseVersion
+from typing import Callable, Mapping, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -284,10 +283,9 @@ class _NativeDistModel(ComputationModel):
         "MAX": dist.ReduceOp.MAX,
     }
     if LooseVersion(torch.__version__) > LooseVersion("1.2.0"):
-        _reduce_op_map.update({
-            "AND": dist.ReduceOp.BAND,
-            "OR": dist.ReduceOp.BOR,
-        })
+        _reduce_op_map.update(
+            {"AND": dist.ReduceOp.BAND, "OR": dist.ReduceOp.BOR,}
+        )
 
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         if op not in self._reduce_op_map:
