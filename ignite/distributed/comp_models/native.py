@@ -252,8 +252,12 @@ class _NativeDistModel(ComputationModel):
         spawn_kwargs = {
             "join": kwargs.get("join", True),
             "daemon": kwargs.get("daemon", False),
-            "start_method": kwargs.get("start_method", "spawn"),
         }
+        # start_method in pytorch >= 1.5
+        from distutils.version import LooseVersion
+        if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+            spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
+
         mp.spawn(
             _NativeDistModel._dist_worker_task_fn,
             nprocs=num_procs_per_node,
