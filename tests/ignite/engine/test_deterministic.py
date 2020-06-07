@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 from unittest.mock import patch
 
 import numpy as np
@@ -325,6 +326,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
         _test(15)
 
 
+@pytest.mark.skip(sys.platform.startswith("win"), reason="Skip extremely slow test on Windows")
 def test_resume_random_dataloader_from_epoch():
     _test_resume_random_dataloader_from_epoch("cpu", setup_sampler)
     _test_resume_random_dataloader_from_epoch("cpu", setup_sampler, sampler_type="weighted")
@@ -433,6 +435,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
         _test(11)
 
 
+@pytest.mark.skip(sys.platform.startswith("win"), reason="Skip extremely slow test on Windows")
 def test_resume_random_dataloader_from_iter():
     _test_resume_random_dataloader_from_iter("cpu", setup_sampler)
     _test_resume_random_dataloader_from_iter("cpu", setup_sampler, sampler_type="weighted")
