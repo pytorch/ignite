@@ -29,23 +29,21 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
-      shell: bash
+      shell: bash -l {0}
       run: |
-        conda install pytorch cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
+        conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
         # Keep fix in case of problem with torchvision nightly releases
-        # if [[ "${{ matrix.pytorch-channel }}" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}; fi
-        conda install torchvision cpuonly python=${{ matrix.python-version }} -c ${{ matrix.pytorch-channel }}
         pip install -r requirements-dev.txt
         python setup.py install
 
     - name: Run Tests
-      shell: bash
+      shell: bash -l {0}
       run: |
         CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
 
     - name: Run MNIST Examples
       if: ${{ matrix.os == 'ubuntu-latest' }}
-      shell: bash
+      shell: bash -l {0}
       run: |
         # MNIST
         # 1) mnist.py
@@ -63,7 +61,7 @@ jobs:
         python examples/mnist/mnist_with_tensorboard.py --epochs=1
 
     - name: Run MNIST Example With Crash
-      shell: bash
+      shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
       continue-on-error: true
       run: |
@@ -71,19 +69,19 @@ jobs:
         python examples/mnist/mnist_save_resume_engine.py --epochs=2 --crash_iteration 1100
         
     - name: Resume MNIST from previous crash
-      shell: bash
+      shell: bash -l {0}
       run: |
         python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
 
     - name: Run GAN example
-      shell: bash
+      shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         # DCGAN
         python examples/gan/dcgan.py --dataset fake --dataroot /tmp/fakedata --output-dir /tmp/outputs-dcgan --batch-size 2 --epochs 2  --workers 0
     
     - name: Run RL Examples
-      shell: bash
+      shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         # RL
@@ -93,7 +91,7 @@ jobs:
         python examples/reinforcement_learning/reinforce.py --max-episodes=2
 
     - name: Run Neural Style Example
-      shell: bash
+      shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         #fast-neural-style
