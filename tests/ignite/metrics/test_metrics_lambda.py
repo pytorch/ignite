@@ -106,7 +106,7 @@ def test_integration():
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size, dtype='int64') % n_classes
+    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
     y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
     for i in range(n_iters * batch_size):
         if np.random.rand() > 0.4:
@@ -159,7 +159,7 @@ def test_integration_ingredients_not_attached():
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size, dtype='int64') % n_classes
+    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
     y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
     for i in range(n_iters * batch_size):
         if np.random.rand() > 0.4:
@@ -326,9 +326,7 @@ def _test_distrib_integration(device):
     n_classes = 10
 
     def _test():
-        y_true = np.arange(
-            0, n_iters * batch_size * idist.get_world_size(), dtype='int64'
-        ) % n_classes
+        y_true = np.arange(0, n_iters * batch_size * idist.get_world_size(), dtype="int64") % n_classes
         y_pred = 0.2 * np.random.rand(n_iters * batch_size * idist.get_world_size(), n_classes)
         for i in range(n_iters * batch_size * idist.get_world_size()):
             if np.random.rand() > 0.4:

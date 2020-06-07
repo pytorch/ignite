@@ -7,9 +7,8 @@ from ignite.distributed.comp_models import has_xla_support
 
 if not has_xla_support:
     pytest.skip("Skip if no XLA support", allow_module_level=True)
-
-
-from ignite.distributed.comp_models import _XlaDistModel
+else:
+    from ignite.distributed.comp_models.xla import _XlaDistModel
 
 
 @pytest.mark.tpu

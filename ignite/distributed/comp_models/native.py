@@ -130,7 +130,9 @@ if has_native_dist_support:
             if local_rank < 0 or self._node < 0:
                 raise ValueError(
                     "Failed to correctly estimate local rank. "
-                    "Debugging info: local rank: {}, node rank: {}, hostnames: {}".format(local_rank, self._node, hostnames)
+                    "Debugging info: local rank: {}, node rank: {}, hostnames: {}".format(
+                        local_rank, self._node, hostnames
+                    )
                 )
             return local_rank
 
@@ -145,9 +147,10 @@ if has_native_dist_support:
                 self._local_rank = self._ext_local_rank
             else:
                 warnings.warn(
-                    "Local rank information for native distributed setting will be initialized using heuristic approach "
-                    "based on hostname which can be different of real setup. Please, either set `os.environ['LOCAL_RANK']` "
-                    "ro use `idist.set_local_rank(local_rank)` with correct local rank index."
+                    "Local rank information for native distributed setting will be initialized using "
+                    "heuristic approach based on hostname which can be different of real setup. Please, "
+                    "either set `os.environ['LOCAL_RANK']` "
+                    "or use `idist.set_local_rank(local_rank)` with correct local rank index."
                 )
                 # use socket gethostname heuristic to determine number of nodes => local rank
                 self._local_rank = self._compute_local_rank_via_hostname()
