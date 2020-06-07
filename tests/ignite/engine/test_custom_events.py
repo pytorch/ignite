@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEvents, CallableEventWithFilter, EventEnum, EventsList
 
@@ -458,12 +459,14 @@ def test_every_event_filter_with_engine_with_dataloader():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_every_event_filter_with_engine()
     _test_every_event_filter_with_engine_with_dataloader("cpu")
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])

@@ -41,7 +41,7 @@ def _test_frequency_with_engine(device, workers, lower_bound_factor=0.8, every=1
     @engine.on(event)
     def assert_wps(e):
         wps = e.state.metrics["wps"]
-        assert estimated_wps * lower_bound_factor < wps < estimated_wps, "{}: {} < {} < {}".format(
+        assert estimated_wps * lower_bound_factor < wps <= estimated_wps, "{}: {} < {} < {}".format(
             e.state.iteration, estimated_wps * lower_bound_factor, wps, estimated_wps
         )
 
@@ -55,6 +55,7 @@ def test_frequency_with_engine():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_frequency_with_engine_distributed(distributed_context_single_node_gloo):
     device = "cpu"
     _test_frequency_with_engine(device, workers=idist.get_world_size())
@@ -67,6 +68,7 @@ def test_frequency_with_engine_with_every():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_frequency_with_engine_distributed_with_every(distributed_context_single_node_gloo):
     device = "cpu"
     _test_frequency_with_engine(device, workers=idist.get_world_size(), every=1)
