@@ -132,7 +132,7 @@ def training(local_rank, config):
         loss.backward()
         optimizer.step()
 
-        if (engine.state.iteration - 1) % config["log_every_iters"] == 0:
+        if config["log_every_iters"] > 0 and (engine.state.iteration - 1) % config["log_every_iters"] == 0:
             batch_loss = loss.item()
             engine.state.saved_batch_loss = batch_loss
         else:
@@ -191,8 +191,9 @@ def training(local_rank, config):
                 )
             )
 
-    trainer.add_event_handler(Events.EPOCH_STARTED(every=config["validate_every"]), run_validation)
-    trainer.add_event_handler(Events.COMPLETED, run_validation)
+    trainer.add_event_handler(
+        Events.EPOCH_COMPLETED(every=config["validate_every"]) | Events.COMPLETED, run_validation
+    )
 
     if rank == 0:
         # Setup progress bar on evaluation engines
