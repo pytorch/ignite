@@ -113,3 +113,6 @@ def test_setup_logger(capsys, dirname):
     for source in [err, data]:
         assert "trainer INFO: Engine run starting with max_epochs=5." in source[0]
         assert "evaluator INFO: Engine run starting with max_epochs=1." in source[1]
+
+    # Needed by windows to release FileHandler in the loggers
+    logging.shutdown()

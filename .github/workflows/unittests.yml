@@ -19,6 +19,10 @@ jobs:
           - os: windows-latest
             pytorch-channel: pytorch
             python-version: 3.7
+          # includes a single build on macosx
+          - os: macos-latest
+            pytorch-channel: pytorch
+            python-version: 3.7
 
     steps:
     - uses: actions/checkout@v2
@@ -42,7 +46,6 @@ jobs:
         CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
 
     - name: Run MNIST Examples
-      if: ${{ matrix.os == 'ubuntu-latest' }}
       shell: bash -l {0}
       run: |
         # MNIST

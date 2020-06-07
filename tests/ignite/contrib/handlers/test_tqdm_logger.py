@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
+import sys
 
 import numpy as np
 import pytest
@@ -9,6 +10,10 @@ from ignite.contrib.handlers import CustomPeriodicEvent, ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan
 from ignite.metrics import RunningAverage
+
+
+if sys.platform.startswith("win"):
+    pytest.skip("Skip if on Windows", allow_module_level=True)
 
 
 def update_fn(engine, batch):
