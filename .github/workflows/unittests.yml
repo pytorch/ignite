@@ -24,6 +24,7 @@ jobs:
           - os: macos-latest
             pytorch-channel: pytorch
             python-version: 3.7
+            skip-distrib-tests: 1
 
     steps:
     - uses: actions/checkout@v2
