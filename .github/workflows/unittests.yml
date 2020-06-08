@@ -52,6 +52,11 @@ jobs:
         # MNIST
         # 1) mnist.py
         python examples/mnist/mnist.py --epochs=1
+
+    - name: Run MNIST with loggers Examples
+      shell: bash -l {0}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: |
         # 2) mnist_with_visdom.py
         python -c "from visdom.server import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
         python -m visdom.server &
@@ -74,6 +79,7 @@ jobs:
         
     - name: Resume MNIST from previous crash
       shell: bash -l {0}
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
 
