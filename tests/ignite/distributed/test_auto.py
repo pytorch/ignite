@@ -122,7 +122,7 @@ def _test_auto_methods_xla(index, ws):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_auto_methods_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_auto_methods_xla, args=(n, ), nprocs=n)
+    xmp_executor(_test_auto_methods_xla, args=(n,), nprocs=n)
 
 
 @pytest.mark.tpu
