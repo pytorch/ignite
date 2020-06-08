@@ -102,6 +102,7 @@ def test_processing_timer():
     assert processing_results["total"] == approx(true_max_epochs * true_num_iters * true_processing_time, abs=1e-1)
 
 
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_event_handler_started():
     true_event_handler_time = 0.1
     true_max_epochs = 2
@@ -122,6 +123,7 @@ def test_event_handler_started():
     assert event_results["total"] == approx(true_event_handler_time, abs=1e-1)
 
 
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_event_handler_completed():
     true_event_handler_time = 0.1
     true_max_epochs = 2
