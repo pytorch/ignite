@@ -179,7 +179,7 @@ class DistributedProxySampler(DistributedSampler):
     Args:
         sampler (Sampler): Input torch data sampler.
         num_replicas (int, optional): Number of processes participating in distributed training.
-        rank (int, optional): Rank of the current process within num_replicas.
+        rank (int, optional): Rank of the current process within ``num_replicas``.
 
     """
 
@@ -197,10 +197,11 @@ class DistributedProxySampler(DistributedSampler):
     def __iter__(self):
         # deterministically shuffle based on epoch
         torch.manual_seed(self.epoch)
-        indices = list(self.sampler)
 
-        # add extra samples to make it evenly divisible
-        indices += indices[: (self.total_size - len(indices))]
+        indices = []
+        while len(indices) < self.total_size:
+            indices += list(self.sampler)
+
         if len(indices) != self.total_size:
             raise RuntimeError("{} vs {}".format(len(indices), self.total_size))
 

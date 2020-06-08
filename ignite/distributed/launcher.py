@@ -131,7 +131,7 @@ class Parallel:
             with idist.Parallel(backend="nccl", **dist_config) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
-    .. _torch.distributed.launch:
+    .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
 
     Args:
         backend (str, optional): backend to use: `nccl`, `gloo`, `xla-tpu`. If None, no distributed configuration.

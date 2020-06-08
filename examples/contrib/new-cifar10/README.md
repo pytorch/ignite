@@ -11,6 +11,7 @@ Configurations:
 * [x] single GPU
 * [x] multi GPUs on a single node
 * [x] multi GPUs on multiple nodes
+* [x] TPUs on Colab
 
 ## Requirements:
 
@@ -24,6 +25,11 @@ Configurations:
 Run the example on a single GPU:
 ```bash
 python main.py run
+```
+
+For details on accepted arguments:
+```bash
+python main.py run -- --help
 ```
 
 If user would like to provide already downloaded dataset, the path can be setup in parameters as

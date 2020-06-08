@@ -130,3 +130,26 @@ def test_auto_methods_xla_nprocs(xmp_executor):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_auto_methods_xla():
     _test_auto_methods_xla(index=0, ws=1)
+
+
+def test_dist_proxy_sampler():
+    import torch
+    from torch.utils.data import WeightedRandomSampler
+
+    weights = torch.ones(100)
+    weights[:50] += 1
+    num_samples = 100
+    sampler = WeightedRandomSampler(weights, num_samples)
+
+    num_replicas = 4
+    dist_samplers = [DistributedProxySampler(sampler, num_replicas=num_replicas, rank=i) for i in range(num_replicas)]
+
+    torch.manual_seed(0)
+    true_indices = list(sampler)
+
+    indices_per_rank = []
+    for s in dist_samplers:
+        s.set_epoch(0)
+        indices_per_rank += list(s)
+
+    assert set(indices_per_rank) == set(true_indices)

@@ -249,12 +249,41 @@ def run(
     backend=None,
     resume_from=None,
     log_every_iters=15,
+    num_procs_per_node=None,
     **spawn_kwargs
 ):
+    """Main entry to train an model on CIFAR10 dataset.
+
+    Args:
+        seed (int): random state seed to set. Default, 543.
+        data_path (str): input dataset path. Default, "/tmp/cifar10".
+        output_path (str): output path. Default, "/tmp/output-cifar10".
+        model (str): model name (from torchvision) to setup model to train. Default, "resnet18".
+        batch_size (int): total batch size. Default, 512.
+        momentum (float): optimizer's momentum. Default, 0.9.
+        weight_decay (float): weight decay. Default, 1e-4.
+        num_workers (int): number of workers in the data loader. Default, 5.
+        num_epochs (int): number of epochs to train the model. Default, 24.
+        learning_rate (float): peak of piecewise linear learning rate scheduler. Default, 0.4.
+        num_warmup_epochs (int): number of warm-up epochs before learning rate decay. Default, 4.
+        validate_every (int): run model's validatation every ``validate_every`` epochs. Default, 3.
+        checkpoint_every (int): store training checkpoint every ``checkpoint_every`` iterations. Default, 200.
+        backend (str, optional): backend to use for distributed configuration. Possible values: None, "nccl", "xla-tpu",
+            "gloo" etc. Default, None.
+        num_procs_per_node (int, optional): optional argument to setup number of processes per node. It is useful,
+            when main python process is spawning training as child processes.
+        resume_from (str, optional): path to checkpoint to use to resume the training from. Default, None.
+        log_every_iters (int): argument to log progress every ``log_every_iters`` iterations. It can be 0 to disable it.
+            Default, 15.
+        **spawn_kwargs: Other kwargs to spawn training as child processes.
+
+    """
     # catch all local parameters
     config = locals()
     config.update(config["spawn_kwargs"])
     del config["spawn_kwargs"]
+
+    spawn_kwargs["num_procs_per_node"] = num_procs_per_node
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
         parallel.run(training, config)
