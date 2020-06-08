@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 import pytest
@@ -7,7 +8,11 @@ import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.metrics import Frequency
 
+if sys.platform.startswith("darwin"):
+    pytest.skip("Skip if on MacOS", allow_module_level=True)
 
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_nondistributed_average():
     artificial_time = 1  # seconds
     num_tokens = 100
@@ -49,6 +54,8 @@ def _test_frequency_with_engine(device, workers, lower_bound_factor=0.8, every=1
     engine.run(data, max_epochs=1)
 
 
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_frequency_with_engine():
     device = "cpu"
     _test_frequency_with_engine(device, workers=1)

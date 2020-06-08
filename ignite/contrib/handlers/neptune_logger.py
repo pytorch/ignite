@@ -578,7 +578,9 @@ class NeptuneSaver(BaseSaveHandler):
         # wont work on XLA
 
         with tempfile.NamedTemporaryFile() as tmp:
-            torch.save(checkpoint, tmp.name)
+            # we can not use tmp.name to open tmp.file twice on Win32
+            # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
+            torch.save(checkpoint, tmp.file)
             self._logger.log_artifact(tmp.name, filename)
 
     @idist.one_rank_only(with_barrier=True)
