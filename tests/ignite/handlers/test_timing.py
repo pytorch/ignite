@@ -1,7 +1,13 @@
+import sys
 import time
+
+import pytest
 
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
+
+if sys.platform.startswith("darwin"):
+    pytest.skip("Skip if on MacOS", allow_module_level=True)
 
 
 def test_timer():

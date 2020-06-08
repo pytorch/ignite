@@ -1,5 +1,13 @@
 import torch
 
+try:
+    from torch.utils.data import IterableDataset
+except ImportError:
+
+    class IterableDataset:
+
+        pass
+
 
 class BatchChecker:
     def __init__(self, data, init_counter=0):
@@ -56,3 +64,18 @@ def setup_sampler(sampler_type, num_iters, batch_size):
 
         dataset = torch.zeros(num_iters * batch_size)
         return DistributedSampler(dataset, num_replicas=num_replicas, rank=rank), batch_size // num_replicas
+
+
+class MyIterableDataset(IterableDataset):
+    def __init__(self, start, end):
+        super(MyIterableDataset).__init__()
+        assert end > start, "this example code only works with end >= start"
+        self.start = start
+        self.end = end
+
+    def __iter__(self):
+        return iter(range(self.start, self.end))
+
+
+def get_iterable_dataset(*args, **kwargs):
+    return MyIterableDataset(*args, **kwargs)

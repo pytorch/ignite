@@ -340,7 +340,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t2")},
+        kwargs_dict={"output_path": os.path.join(dirname, "t3")},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=True,

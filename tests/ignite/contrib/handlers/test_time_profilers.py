@@ -1,10 +1,15 @@
 import os
+import sys
 import time
 
+import pytest
 from pytest import approx
 
 from ignite.contrib.handlers.time_profilers import BasicTimeProfiler
 from ignite.engine import Engine, Events
+
+if sys.platform.startswith("darwin"):
+    pytest.skip("Skip if on MacOS", allow_module_level=True)
 
 
 def _do_nothing_update_fn(engine, batch):
