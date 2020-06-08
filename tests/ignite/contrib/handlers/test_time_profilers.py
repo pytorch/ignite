@@ -52,7 +52,7 @@ def get_prepared_engine(true_event_handler_time):
     return dummy_trainer
 
 
-@pytest.mark.skipif(sys.platform.startswith("mac"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_dataflow_timer():
     true_dataflow_time_per_ele = 0.1
     true_max_epochs = 1
@@ -80,7 +80,7 @@ def test_dataflow_timer():
     assert dataflow_results["total"] == approx(true_num_iters * true_dataflow_time_per_ele, abs=1e-1)
 
 
-@pytest.mark.skipif(sys.platform.startswith("mac"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_processing_timer():
     true_processing_time = 0.1
     true_max_epochs = 2
@@ -143,7 +143,7 @@ def test_event_handler_completed():
     assert event_results["total"] == approx(true_event_handler_time, abs=1e-1)
 
 
-@pytest.mark.skipif(sys.platform.startswith("mac"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_event_handler_epoch_started():
     true_event_handler_time = 0.1
     true_max_epochs = 2
@@ -192,7 +192,7 @@ def test_event_handler_epoch_completed():
     assert event_results["total"] == approx(true_max_epochs * true_event_handler_time, abs=1e-1)
 
 
-@pytest.mark.skipif(sys.platform.startswith("mac"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_event_handler_iteration_started():
     true_event_handler_time = 0.1
     true_max_epochs = 1
@@ -217,7 +217,7 @@ def test_event_handler_iteration_started():
     assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
-@pytest.mark.skipif(sys.platform.startswith("mac"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_event_handler_iteration_completed():
     true_event_handler_time = 0.1
     true_max_epochs = 1
@@ -266,7 +266,7 @@ def test_event_handler_get_batch_started():
     assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
-@pytest.mark.skipif(sys.platform.startswith("mac"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_event_handler_get_batch_completed():
     true_event_handler_time = 0.1
     true_max_epochs = 1
@@ -291,7 +291,7 @@ def test_event_handler_get_batch_completed():
     assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
-@pytest.mark.skipif(sys.platform.startswith("mac"), reason="Skip on MacOS")
+@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 def test_event_handler_total_time():
     true_event_handler_time = 0.125
     true_max_epochs = 1
