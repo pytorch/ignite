@@ -6,8 +6,10 @@ import pytest
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
 
+if sys.platform.startswith("darwin"):
+    pytest.skip("Skip if on MacOS", allow_module_level=True)
 
-@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
+
 def test_timer():
     sleep_t = 0.2
     n_iter = 3
