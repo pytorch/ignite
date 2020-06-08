@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from ignite.distributed.utils import has_xla_support
+from ignite.distributed.utils import has_native_dist_support, has_xla_support
 
 
 @pytest.fixture()
@@ -59,12 +59,14 @@ def _test_check_idist_parallel_torch_launch(fp, backend, nprocs):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test runs torch launch")
 def test_check_idist_parallel_torch_launch_n_procs_gloo(exec_filepath):
     _test_check_idist_parallel_torch_launch(exec_filepath, "gloo", 4)
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test runs torch launch")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_check_idist_parallel_torch_launch_n_procs_nccl(exec_filepath):
@@ -85,12 +87,14 @@ def _test_check_idist_parallel_spawn(fp, backend, nprocs):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_check_idist_parallel_spawn_n_procs_gloo(exec_filepath):
     _test_check_idist_parallel_spawn(exec_filepath, "gloo", 4)
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_check_idist_parallel_spawn_n_procs_nccl(exec_filepath):
@@ -102,4 +106,5 @@ def test_check_idist_parallel_spawn_n_procs_nccl(exec_filepath):
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_check_idist_parallel_spawn_n_procs_xla(exec_filepath):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    _test_check_idist_parallel_spawn(exec_filepath, "xla-tpu", n)
+    if n > 1:
+        _test_check_idist_parallel_spawn(exec_filepath, "xla-tpu", n)

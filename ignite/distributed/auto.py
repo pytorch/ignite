@@ -33,7 +33,9 @@ def auto_dataloader(dataset, **kwargs):
 
     Args:
         dataset (Dataset): input torch dataset
-        **kwargs: keyword arguments
+        **kwargs: keyword arguments for `torch DataLoader`__
+
+    __ https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
 
     Returns:
 
@@ -52,7 +54,7 @@ def auto_dataloader(dataset, **kwargs):
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
 
         if "batch_sampler" not in kwargs:
-            if "sampler" in kwargs:
+            if kwargs.get("sampler", None) is not None:
                 sampler = DistributedProxySampler(kwargs["sampler"], num_replicas=world_size, rank=rank)
             else:
                 sampler = DistributedSampler(
@@ -69,7 +71,7 @@ def auto_dataloader(dataset, **kwargs):
                 "with distributed configuration"
             )
 
-    if idist.backend() == idist_xla.XLA_TPU and kwargs.get("pin_memory", False):
+    if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and kwargs.get("pin_memory", False):
         # TODO: How about XLA GPU ?
         warnings.warn(
             "Found incompatible options: xla support and pin_memory args equal True. "
@@ -80,7 +82,7 @@ def auto_dataloader(dataset, **kwargs):
     logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
     dataloader = DataLoader(dataset, **kwargs)
 
-    if idist.backend() == idist_xla.XLA_TPU and world_size > 1:
+    if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and world_size > 1:
         mp_device_loader_cls = _MpDeviceLoader
         try:
             from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -152,7 +154,7 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
         Optimizer
 
     """
-    if not (idist.get_world_size() > 1 and idist.backend() == idist_xla.XLA_TPU):
+    if not (idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU):
         return optimizer
 
     cls = type(optimizer.__class__.__name__, (optimizer.__class__,), dict(_XLADistributedOptimizer.__dict__))
