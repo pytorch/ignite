@@ -25,11 +25,35 @@ Other examples:
     - Example to spawn `nprocs` processes that run `fn` with `args`: :meth:`~ignite.distributed.spawn`
 
 
-.. currentmodule:: ignite.distributed
+ignite.distributed.auto
+-----------------------
 
-.. automodule:: ignite.distributed
+.. currentmodule:: ignite.distributed.auto
+
+.. automodule:: ignite.distributed.auto
     :members:
-    :imported-members:
+
+
+ignite.distributed.launcher
+---------------------------
+
+.. currentmodule:: ignite.distributed.launcher
+
+.. automodule:: ignite.distributed.launcher
+    :members:
+
+
+ignite.distributed.utils
+------------------------
+
+.. currentmodule:: ignite.distributed.utils
+
+.. automodule:: ignite.distributed.utils
+    :members:
+
+    .. attribute:: has_native_dist_support
+
+        True if `torch.distributed` is available
 
     .. attribute:: has_xla_support
 

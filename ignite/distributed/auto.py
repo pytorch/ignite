@@ -17,28 +17,31 @@ __all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampl
 
 def auto_dataloader(dataset, **kwargs):
     """Helper method to create a dataloader adapted for non-distributed and distributed configurations (supporting
-    all available backends from `idist.available_backends()`).
+    all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
     Internally, we create a dataloader with provided kwargs while applying the following updates:
 
-    - batch size is scaled by world size: `batch_size / world_size`
-    - number of workers is scaled by number of local processes: `num_workers / nprocs`
-    - sampler : TODO
+    - batch size is scaled by world size: ``batch_size / world_size``.
+    - number of workers is scaled by number of local processes: ``num_workers / nprocs``.
+    - if no sampler provided by user, `torch DistributedSampler` is setup.
+    - if a sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
 
     .. warning::
 
         Custom batch sampler is not adapted for distributed configuration. Please, make sure that provided batch
         sampler is compatible with distributed configuration.
 
-
     Args:
         dataset (Dataset): input torch dataset
-        **kwargs: keyword arguments for `torch DataLoader`__
-
-    __ https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+        **kwargs: keyword arguments for `torch DataLoader`_.
 
     Returns:
+        `torch DataLoader`_ or `XLA MpDeviceLoader`_ for XLA devices
 
+    .. _torch DataLoader: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+    .. _XLA MpDeviceLoader: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/parallel_loader.py#L178
+    .. _torch DistributedSampler:
+        https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
     """
     rank = idist.get_rank()
     world_size = idist.get_world_size()
@@ -100,13 +103,13 @@ def auto_dataloader(dataset, **kwargs):
 
 def auto_model(model: nn.Module) -> nn.Module:
     """Helper method to adapt provided model for non-distributed and distributed configurations (supporting
-    all available backends from :meth:`~ignite.distributed.available_backends()`).
+    all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
-    Internally, we wrap the model to:
+    Internally, we perform to following:
 
-    - send model to current :meth:`~ignite.distributed.device()`.
-    - `torch DistributedDataParallel`__ for native torch distributed if world size is larger than 1
-    - `torch DataParallel`___ if no distributed context found and more than one CUDA devices available.
+    - send model to current :meth:`~ignite.distributed.utils.device()`.
+    - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1
+    - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
 
     Args:
         model (torch.nn.Module): model to adapt.
@@ -114,8 +117,8 @@ def auto_model(model: nn.Module) -> nn.Module:
     Returns:
         torch.nn.Module
 
-    __ https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
-    ___ https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+    .. _torch DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
+    .. _torch DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
     """
     logger = setup_logger(__name__ + ".auto_model")
 
@@ -141,17 +144,20 @@ def auto_model(model: nn.Module) -> nn.Module:
 
 def auto_optim(optimizer: Optimizer) -> Optimizer:
     """Helper method to adapt optimizer for non-distributed and distributed configurations (supporting
-    all available backends from :meth:`~ignite.distributed.available_backends()`).
+    all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
     Internally, this method is no-op for non-distributed and torch native distributed configuration.
     For XLA distributed configuration, we create a new class that inherits from provided optimizer.
-    The goal is to override the `step()` method with specific `xm.optimizer_step()` implementation.
+    The goal is to override the `step()` method with specific `xm.optimizer_step`_ implementation.
 
     Args:
         optimizer (Optimizer): input torch optimizer
 
     Returns:
         Optimizer
+
+
+    .. _xm.optimizer_step: http://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
 
     """
     if not (idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU):
@@ -162,7 +168,10 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
 
 
 class DistributedProxySampler(DistributedSampler):
-    """TODO: add docstring
+    """Distributed sampler proxy to adapt user's sampler for distributed data parallelism configuration.
+
+    Code is based on https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407
+
 
     .. note::
         Input sampler is assumed to have a constant size.

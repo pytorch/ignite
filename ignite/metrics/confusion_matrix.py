@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 

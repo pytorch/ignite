@@ -18,7 +18,7 @@ class Parallel:
 
     Examples:
 
-        1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch` tool
+        1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ tool
 
         Single node option :
 
@@ -131,6 +131,7 @@ class Parallel:
             with idist.Parallel(backend="nccl", **dist_config) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
+    .. _torch.distributed.launch:
 
     Args:
         backend (str, optional): backend to use: `nccl`, `gloo`, `xla-tpu`. If None, no distributed configuration.
