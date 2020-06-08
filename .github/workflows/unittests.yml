@@ -19,6 +19,7 @@ jobs:
           - os: windows-latest
             pytorch-channel: pytorch
             python-version: 3.7
+            skip-distrib-tests: 1
           # includes a single build on macosx
           - os: macos-latest
             pytorch-channel: pytorch
@@ -43,7 +44,7 @@ jobs:
     - name: Run Tests
       shell: bash -l {0}
       run: |
-        CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
+        SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
 
     - name: Run MNIST Examples
       shell: bash -l {0}
