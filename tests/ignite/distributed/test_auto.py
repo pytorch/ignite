@@ -5,11 +5,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torch.utils.data.sampler import RandomSampler, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import RandomSampler, WeightedRandomSampler
 
 import ignite.distributed as idist
-from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
+from ignite.distributed.auto import DistributedProxySampler, auto_dataloader, auto_model, auto_optim
 
 
 def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
@@ -49,8 +49,9 @@ def _test_auto_model_optimizer(ws, device):
     else:
         assert isinstance(model, nn.Module)
 
-    assert all([p.device.type == device for p in model.parameters()]), \
-        "{} vs {}".format([p.device.type for p in model.parameters()], device)
+    assert all([p.device.type == device for p in model.parameters()]), "{} vs {}".format(
+        [p.device.type for p in model.parameters()], device
+    )
 
     # Test auto_optim
     optimizer = optim.SGD(model.parameters(), lr=0.01)
@@ -100,6 +101,7 @@ def _test_auto_methods_xla(index, ws):
     if ws > 1:
 
         from ignite.distributed.auto import _MpDeviceLoader
+
         dl_type = _MpDeviceLoader
         try:
             from torch_xla.distributed.parallel_loader import MpDeviceLoader
