@@ -113,19 +113,11 @@ Initial training on a single node with 2 gpus with a stop on 1000 iteration (~11
 # using torch.distributed.launch
 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" --stop_iteration=1000
 ```
-or 
+
+Resume from the latest checkpoint
 ```bash
-# using function spawn inside the code
-python -u main.py run --backend="nccl" --num_procs_per_node=2
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" \
+    --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-1000/training_checkpoint_1000.pt
 ```
 
-If user would like to provide already downloaded dataset, the path can be setup in parameters as
-```bash
---data_path="/path/to/cifar10/"
-```
-
-#### Colab, on 8 TPUs
-
-```bash
-python -u main.py run --backend="xla-tpu" --num_procs_per_node=8 --num_workers=8 --log_every_iters=20
-```
+Similar commands can be adapted for other cases.
