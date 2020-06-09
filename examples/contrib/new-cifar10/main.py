@@ -21,6 +21,64 @@ from ignite.contrib.handlers import PiecewiseLinear
 import utils
 
 
+def get_dataflow(config):
+    # - Get train/test datasets
+    if idist.get_rank() > 0:
+        # Ensure that only rank 0 download the dataset
+        idist.barrier()
+
+    train_dataset, test_dataset = utils.get_train_test_datasets(config["data_path"])
+
+    if idist.get_rank() == 0:
+        # Ensure that only rank 0 download the dataset
+        idist.barrier()
+
+    # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
+    train_loader = idist.auto_dataloader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        num_workers=config["num_workers"],
+        shuffle=True,
+        pin_memory="cuda" in idist.device().type,
+        drop_last=True,
+    )
+
+    test_loader = idist.auto_dataloader(
+        test_dataset,
+        batch_size=2 * config["batch_size"],
+        num_workers=config["num_workers"],
+        shuffle=False,
+        pin_memory="cuda" in idist.device().type,
+    )
+    return train_loader, test_loader
+
+
+def initialize(config):
+    model = utils.get_model(config["model"])
+    # Adapt model for distributed settings if configured
+    model = idist.auto_model(model)
+
+    optimizer = optim.SGD(
+        model.parameters(),
+        lr=config["learning_rate"],
+        momentum=config["momentum"],
+        weight_decay=config["weight_decay"],
+        nesterov=True,
+    )
+    optimizer = idist.auto_optim(optimizer)
+    criterion = nn.CrossEntropyLoss().to(idist.device())
+    return model, optimizer, criterion
+
+
+def print_metrics(epoch, tag, metrics):
+    if idist.get_rank() == 0:
+        print(
+            "\nEpoch {} - {} metrics:\n {}".format(
+                epoch, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
+            )
+        )
+
+
 def training(local_rank, config):
 
     rank = idist.get_rank()
@@ -46,7 +104,11 @@ def training(local_rank, config):
 
     output_path = config["output_path"]
     if rank == 0:
-        now = datetime.now().strftime("%Y%m%d-%H%M%S")
+        if config["stop_iteration"] is None:
+            now = datetime.now().strftime("%Y%m%d-%H%M%S")
+        else:
+            now = "stop-on-{}".format(config["stop_iteration"])
+
         folder_name = "{}_backend-{}-{}_{}".format(config["model"], idist.backend(), idist.get_world_size(), now)
         output_path = Path(output_path) / folder_name
         if not output_path.exists():
@@ -55,48 +117,10 @@ def training(local_rank, config):
         print("Output path: {}".format(config["output_path"]))
 
     # Setup dataflow, model, optimizer, criterion
-    # - Get train/test datasets
-    if rank > 0:
-        # Ensure that only rank 0 download the dataset
-        idist.barrier()
-    train_dataset, test_dataset = utils.get_train_test_datasets(config["data_path"])
-    if rank == 0:
-        # Ensure that only rank 0 download the dataset
-        idist.barrier()
-
-    # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
-    train_loader = idist.auto_dataloader(
-        train_dataset,
-        batch_size=config["batch_size"],
-        num_workers=config["num_workers"],
-        shuffle=True,
-        pin_memory="cuda" in device.type,
-        drop_last=True,
-    )
-
-    test_loader = idist.auto_dataloader(
-        test_dataset,
-        batch_size=2 * config["batch_size"],
-        num_workers=config["num_workers"],
-        shuffle=False,
-        pin_memory="cuda" in device.type,
-    )
+    train_loader, test_loader = get_dataflow(config)
 
     # Setup model, optimizer
-    model = utils.get_model(config["model"])
-    # Adapt model for distributed settings if configured
-    model = idist.auto_model(model)
-
-    optimizer = optim.SGD(
-        model.parameters(),
-        lr=config["learning_rate"],
-        momentum=config["momentum"],
-        weight_decay=config["weight_decay"],
-        nesterov=True,
-    )
-    optimizer = idist.auto_optim(optimizer)
-
-    criterion = nn.CrossEntropyLoss().to(device)
+    model, optimizer, criterion = initialize(config)
 
     le = len(train_loader)
     milestones_values = [
@@ -132,6 +156,7 @@ def training(local_rank, config):
         loss.backward()
         optimizer.step()
 
+        # This can be helpful for XLA to avoid performance slow down if fetch loss.item() every iteration
         if config["log_every_iters"] > 0 and (engine.state.iteration - 1) % config["log_every_iters"] == 0:
             batch_loss = loss.item()
             engine.state.saved_batch_loss = batch_loss
@@ -145,6 +170,7 @@ def training(local_rank, config):
     trainer = Engine(train_step)
     trainer.state.saved_batch_loss = -1.0
     trainer.state_dict_user_keys.append("saved_batch_loss")
+
     to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     metric_names = [
         "batch loss",
@@ -157,7 +183,7 @@ def training(local_rank, config):
         save_every_iters=config["checkpoint_every"],
         output_path=output_path,
         lr_scheduler=lr_scheduler,
-        output_names=metric_names,
+        output_names=metric_names if config["log_every_iters"] > 0 else None,
         with_pbar_on_iters=config["log_every_iters"] > 0,
         log_every_iters=config["log_every_iters"],
         clear_cuda_cache=False,
@@ -177,19 +203,9 @@ def training(local_rank, config):
     def run_validation(engine):
         epoch = trainer.state.epoch
         state = train_evaluator.run(train_loader)
-        if rank == 0:
-            print(
-                "\nEpoch {} - Train metrics:\n {}".format(
-                    epoch, "\n".join(["\t{}: {}".format(k, v) for k, v in state.metrics.items()])
-                )
-            )
+        print_metrics(epoch, "Train", state.metrics)
         state = evaluator.run(test_loader)
-        if rank == 0:
-            print(
-                "\nEpoch {} - Test metrics:\n {}".format(
-                    epoch, "\n".join(["\t{}: {}".format(k, v) for k, v in state.metrics.items()])
-                )
-            )
+        print_metrics(epoch, "Test", state.metrics)
 
     trainer.add_event_handler(Events.EPOCH_COMPLETED(every=config["validate_every"]) | Events.COMPLETED, run_validation)
 
@@ -203,14 +219,25 @@ def training(local_rank, config):
         #  - Training metrics, e.g. running average loss values
         #  - Learning rate
         #  - Evaluation train/test metrics
-        tb_logger = common.setup_tb_logging(
-            output_path, trainer, optimizer, evaluators={"training": train_evaluator, "test": evaluator}
+        evaluators = {"training": train_evaluator, "test": evaluator}
+        tb_logger = common.setup_tb_logging(output_path, trainer, optimizer, evaluators=evaluators)
+
+        trains_logger = common.setup_trains_logging(
+            trainer, optimizer, evaluators=evaluators, project_name="cifar10-ignite", task_name=Path(output_path).stem
         )
 
     # Store 3 best models by validation accuracy:
     common.save_best_model_by_val_score(
         output_path, evaluator, model=model, metric_name="accuracy", n_saved=3, trainer=trainer, tag="test"
     )
+
+    # In order to check training resuming we can stop training on a given iteration
+    if config["stop_iteration"] is not None:
+
+        @trainer.on(Events.ITERATION_STARTED(once=config["stop_iteration"]))
+        def _():
+            print("Stop training on {} iteration".format(trainer.state.iteration))
+            trainer.terminate()
 
     resume_from = config["resume_from"]
     if resume_from is not None:
@@ -230,6 +257,7 @@ def training(local_rank, config):
 
     if rank == 0:
         tb_logger.close()
+        trains_logger.close()
 
 
 def run(
@@ -240,7 +268,7 @@ def run(
     batch_size=512,
     momentum=0.9,
     weight_decay=1e-4,
-    num_workers=5,
+    num_workers=12,
     num_epochs=24,
     learning_rate=0.4,
     num_warmup_epochs=4,
@@ -250,6 +278,7 @@ def run(
     resume_from=None,
     log_every_iters=15,
     num_procs_per_node=None,
+    stop_iteration=None,
     **spawn_kwargs
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -275,6 +304,7 @@ def run(
         resume_from (str, optional): path to checkpoint to use to resume the training from. Default, None.
         log_every_iters (int): argument to log progress every ``log_every_iters`` iterations. It can be 0 to disable it.
             Default, 15.
+        stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         **spawn_kwargs: Other kwargs to spawn training as child processes.
 
     """

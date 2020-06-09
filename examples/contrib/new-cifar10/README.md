@@ -61,7 +61,7 @@ If user would like to provide already downloaded dataset, the path can be setup 
 #### Colab, on 8 TPUs
 
 ```bash
-python -u main.py run --backend="xla-tpu" --num_procs_per_node=8 --num_workers=8 --log_every_iters=0
+python -u main.py run --backend="xla-tpu" --num_procs_per_node=8 --num_workers=8 --log_every_iters=20
 ```
 
 
@@ -87,4 +87,45 @@ python -u -m torch.distributed.launch \
     --node_rank=1 \
     --master_addr=master --master_port=2222 \
     main.py run --backend="nccl"
+```
+
+
+### Check resume training
+
+#### Single GPU
+
+Initial training with a stop on 1000 iteration (~11 epochs)
+```bash
+python main.py run --stop_iteration=1000
+```
+
+Resume from the latest checkpoint
+```bash
+python main.py run --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-1000/training_checkpoint_1000.pt
+```
+
+### Distributed training
+
+#### Single node, multiple GPUs
+
+Initial training on a single node with 2 gpus with a stop on 1000 iteration (~11 epochs):
+```bash
+# using torch.distributed.launch
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" --stop_iteration=1000
+```
+or 
+```bash
+# using function spawn inside the code
+python -u main.py run --backend="nccl" --num_procs_per_node=2
+```
+
+If user would like to provide already downloaded dataset, the path can be setup in parameters as
+```bash
+--data_path="/path/to/cifar10/"
+```
+
+#### Colab, on 8 TPUs
+
+```bash
+python -u main.py run --backend="xla-tpu" --num_procs_per_node=8 --num_workers=8 --log_every_iters=20
 ```

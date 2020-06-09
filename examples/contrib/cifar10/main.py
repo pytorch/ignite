@@ -18,73 +18,20 @@ from ignite.contrib.handlers import TensorboardLogger, ProgressBar
 from ignite.contrib.handlers.tensorboard_logger import OutputHandler, OptimizerParamsHandler, GradsHistHandler
 from ignite.contrib.handlers import PiecewiseLinear
 
-import ignite.distributed as idist
-
 import utils
 
 
-@idist.auto_distributed(backend="gloo")
-def run(config):
+def run(output_path, config):
 
-    # distributed = dist.is_available() and dist.is_initialized()
-    # rank = dist.get_rank() if distributed else 0
-
-    distributed = idist.world_size() > 0
-    rank = idist.rank()
-
-    if distributed:
-        # let each node print the info
-        if idist.local_rank() == 0:
-            print("\nDistributed setting:")
-            print("\tbackend: {}".format(dist.get_backend()))
-            print("\tworld size: {}".format(dist.get_world_size()))
-            print("\trank: {}".format(dist.get_rank()))
-            print("\n")
-
-    output_path = None
-    # let each node print the info
-    if idist.local_rank() == 0:
-        print("Train {} on CIFAR10".format(config["model"]))
-        print("- PyTorch version: {}".format(torch.__version__))
-        print("- Ignite version: {}".format(ignite.__version__))
-        print("- CUDA version: {}".format(torch.version.cuda))
-
-        print("\n")
-        print("Configuration:")
-        for key, value in config.items():
-            print("\t{}: {}".format(key, value))
-        print("\n")
-
-        # create log directory only by 1 node
-        if (not distributed) or (dist.get_rank() == 0):
-            from datetime import datetime
-
-            now = datetime.now().strftime("%Y%m%d-%H%M%S")
-            gpu_conf = "-single-gpu"
-            if distributed:
-                ngpus_per_node = torch.cuda.device_count()
-                nnodes = dist.get_world_size() // ngpus_per_node
-                gpu_conf = "-distributed-{}nodes-{}gpus".format(nnodes, ngpus_per_node)
-
-            output_path = Path(config["output_path"]) / "{}{}".format(now, gpu_conf)
-            if not output_path.exists():
-                output_path.mkdir(parents=True)
-            output_path = output_path.as_posix()
-            print("Output path: {}".format(output_path))
-
-    # show the distributed config
-    idist.show_config()
+    distributed = dist.is_available() and dist.is_initialized()
+    rank = dist.get_rank() if distributed else 0
 
     manual_seed(config["seed"] + rank)
 
     # Setup dataflow, model, optimizer, criterion
     train_loader, test_loader = utils.get_dataflow(config, distributed)
     model, optimizer = utils.get_model_optimizer(config, distributed)
-
-    # TODO check for tpu...
-    device = idist.device()
-
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.CrossEntropyLoss().to(utils.device)
 
     le = len(train_loader)
     milestones_values = [
@@ -105,8 +52,8 @@ def run(config):
 
     def train_step(engine, batch):
 
-        x = convert_tensor(batch[0], device=device, non_blocking=True)
-        y = convert_tensor(batch[1], device=device, non_blocking=True)
+        x = convert_tensor(batch[0], device=utils.device, non_blocking=True)
+        y = convert_tensor(batch[1], device=utils.device, non_blocking=True)
 
         model.train()
         # Supervised part
@@ -157,14 +104,14 @@ def run(config):
 
     # Let's now setup evaluator engine to perform model's validation and compute metrics
     metrics = {
-        "accuracy": Accuracy(device=device),
-        "loss": Loss(criterion, device=device),
+        "accuracy": Accuracy(device=utils.device if distributed else None),
+        "loss": Loss(criterion, device=utils.device if distributed else None),
     }
 
     # We define two evaluators as they wont have exactly similar roles:
     # - `evaluator` will save the best model based on validation score
-    evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
-    train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
+    evaluator = create_supervised_evaluator(model, metrics=metrics, device=utils.device, non_blocking=True)
+    train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=utils.device, non_blocking=True)
 
     def run_validation(engine):
         train_evaluator.run(train_loader)
@@ -245,15 +192,15 @@ if __name__ == "__main__":
         help="Override default configuration with parameters: "
         "data_path=/path/to/dataset;batch_size=64;num_workers=12 ...",
     )
-    # parser.add_argument("--local_rank", type=int, default=0, help="Local process rank in distributed computation")
+    parser.add_argument("--local_rank", type=int, default=0, help="Local process rank in distributed computation")
 
     args = parser.parse_args()
 
-    # assert torch.cuda.is_available()
-    # torch.backends.cudnn.benchmark = True
+    assert torch.cuda.is_available()
+    torch.backends.cudnn.benchmark = True
 
     config = utils.get_default_config()
-    # config["local_rank"] = args.local_rank
+    config["local_rank"] = args.local_rank
 
     # Override config:
     if args.params is not None:
@@ -263,60 +210,58 @@ if __name__ == "__main__":
                 value = eval(value)
             config[key] = value
 
-    # backend = config["dist_backend"]
-    # distributed = backend is not None
+    backend = config["dist_backend"]
+    distributed = backend is not None
 
-    # if distributed:
-    #     dist.init_process_group(backend, init_method=config["dist_url"])
-    #     # let each node print the info
-    #     if config["local_rank"] == 0:
-    #         print("\nDistributed setting:")
-    #         print("\tbackend: {}".format(dist.get_backend()))
-    #         print("\tworld size: {}".format(dist.get_world_size()))
-    #         print("\trank: {}".format(dist.get_rank()))
-    #         print("\n")
+    if distributed:
+        dist.init_process_group(backend, init_method=config["dist_url"])
+        # let each node print the info
+        if config["local_rank"] == 0:
+            print("\nDistributed setting:")
+            print("\tbackend: {}".format(dist.get_backend()))
+            print("\tworld size: {}".format(dist.get_world_size()))
+            print("\trank: {}".format(dist.get_rank()))
+            print("\n")
 
-    # output_path = None
-    # # let each node print the info
-    # if config["local_rank"] == 0:
-    #     print("Train {} on CIFAR10".format(config["model"]))
-    #     print("- PyTorch version: {}".format(torch.__version__))
-    #     print("- Ignite version: {}".format(ignite.__version__))
-    #     print("- CUDA version: {}".format(torch.version.cuda))
-    #
-    #     print("\n")
-    #     print("Configuration:")
-    #     for key, value in config.items():
-    #         print("\t{}: {}".format(key, value))
-    #     print("\n")
-    #
-    #     # create log directory only by 1 node
-    #     if (not distributed) or (dist.get_rank() == 0):
-    #         from datetime import datetime
-    #
-    #         now = datetime.now().strftime("%Y%m%d-%H%M%S")
-    #         gpu_conf = "-single-gpu"
-    #         if distributed:
-    #             ngpus_per_node = torch.cuda.device_count()
-    #             nnodes = dist.get_world_size() // ngpus_per_node
-    #             gpu_conf = "-distributed-{}nodes-{}gpus".format(nnodes, ngpus_per_node)
-    #
-    #         output_path = Path(config["output_path"]) / "{}{}".format(now, gpu_conf)
-    #         if not output_path.exists():
-    #             output_path.mkdir(parents=True)
-    #         output_path = output_path.as_posix()
-    #         print("Output path: {}".format(output_path))
-    #
-    # try:
-    #     run(output_path, config)
-    # except KeyboardInterrupt:
-    #     print("Catched KeyboardInterrupt -> exit")
-    # except Exception as e:
-    #     if distributed:
-    #         dist.destroy_process_group()
-    #     raise e
-    #
-    # if distributed:
-    #     dist.destroy_process_group()
+    output_path = None
+    # let each node print the info
+    if config["local_rank"] == 0:
+        print("Train {} on CIFAR10".format(config["model"]))
+        print("- PyTorch version: {}".format(torch.__version__))
+        print("- Ignite version: {}".format(ignite.__version__))
+        print("- CUDA version: {}".format(torch.version.cuda))
 
-    run(config)
+        print("\n")
+        print("Configuration:")
+        for key, value in config.items():
+            print("\t{}: {}".format(key, value))
+        print("\n")
+
+        # create log directory only by 1 node
+        if (not distributed) or (dist.get_rank() == 0):
+            from datetime import datetime
+
+            now = datetime.now().strftime("%Y%m%d-%H%M%S")
+            gpu_conf = "-single-gpu"
+            if distributed:
+                ngpus_per_node = torch.cuda.device_count()
+                nnodes = dist.get_world_size() // ngpus_per_node
+                gpu_conf = "-distributed-{}nodes-{}gpus".format(nnodes, ngpus_per_node)
+
+            output_path = Path(config["output_path"]) / "{}{}".format(now, gpu_conf)
+            if not output_path.exists():
+                output_path.mkdir(parents=True)
+            output_path = output_path.as_posix()
+            print("Output path: {}".format(output_path))
+
+    try:
+        run(output_path, config)
+    except KeyboardInterrupt:
+        print("Catched KeyboardInterrupt -> exit")
+    except Exception as e:
+        if distributed:
+            dist.destroy_process_group()
+        raise e
+
+    if distributed:
+        dist.destroy_process_group()
