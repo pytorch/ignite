@@ -44,7 +44,7 @@ def _test_auto_model_optimizer(ws, device):
     model = auto_model(model)
     if ws > 1:
         assert isinstance(model, nn.parallel.DistributedDataParallel)
-    elif torch.cuda.is_available() and torch.cuda.device_count() > 1:
+    elif device != "cpu" and torch.cuda.is_available() and torch.cuda.device_count() > 1:
         assert isinstance(model, nn.parallel.DataParallel)
     else:
         assert isinstance(model, nn.Module)
@@ -91,7 +91,7 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws)
     _test_auto_dataloader(ws=ws, nproc=ws, sampler_name="WeightedRandomSampler")
 
-    device = "cuda:{}".format(lrank) if ws > 1 else "cuda"
+    device = "cuda"
     _test_auto_model_optimizer(ws, device)
 
 
