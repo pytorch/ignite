@@ -80,7 +80,7 @@ jobs:
 
             # pytest on cuda
             export test_cmd='sh tests/run_gpu_tests.sh'
-            docker exec -it pthd /bin/bash -c "$test_cmd"
+            docker exec -it pthd /bin/bash -c "${test_cmd}"
 
             # MNIST tests
 
@@ -135,7 +135,58 @@ jobs:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
             export test_cmd='sh tests/run_gpu_tests.sh 2'
-            docker exec -it pthd /bin/bash -c "$test_cmd"
+            docker exec -it pthd /bin/bash -c "${test_cmd}"
+
+  two_gpus_check_dist_cifar10_example:
+    <<: *two_gpus
+
+    working_directory: << pipeline.parameters.workingdir >>
+
+    steps:
+      - checkout
+      - <<: *pull_pytorch_stable_image
+      - <<: *run_pytorch_container
+      - <<: *install_dependencies
+      - run:
+          name: "Install additional example dependencies"
+          command: |
+            docker exec -it pthd pip install fire
+      - run:
+          name: "Run without backend"
+          command: |
+            export example_path="examples/contrib/new-cifar10"
+            # initial run
+            export stop_cmd="--stop_iteration=1000"
+            export test_cmd="CI=1 python ${example_path}/main.py run"
+            docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
+            # resume
+            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-1000/training_checkpoint_1000.pt"
+            docker exec -it pthd /bin/bash -c "${test_cmd} ${resume_opt}"
+
+      - run:
+          name: "Run with NCCL backend using torch dist launch"
+          command: |
+            export example_path="examples/contrib/new-cifar10"
+            # initial run
+            export stop_cmd="--stop_iteration=1000"
+            export test_cmd="CI=1 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env ${example_path}/main.py run --backend=nccl"
+            docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
+            # resume
+            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-1000/training_checkpoint_1000.pt"
+            docker exec -it pthd /bin/bash -c "${test_cmd} ${resume_opt}"
+
+      - run:
+          name: "Run with NCCL backend using spawn"
+          command: |
+            export example_path="examples/contrib/new-cifar10"
+            # initial run
+            export stop_cmd="--stop_iteration=1000"
+            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=nccl --num_procs_per_node=2"
+            docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
+            # resume
+            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-1000/training_checkpoint_1000.pt"
+            docker exec -it pthd /bin/bash -c "${test_cmd} ${resume_opt}"
+
 
 # -------------------------------------------------------------------------------------
 # Workflows
@@ -146,3 +197,4 @@ workflows:
     jobs:
       - one_gpu_tests
       - two_gpus_tests
+      - two_gpus_check_dist_cifar10_example

@@ -75,7 +75,7 @@ def _create_dist_context(dist_info, lrank):
     if dist_info["backend"] == "nccl":
         torch.cuda.set_device(lrank)
 
-    return {"local_rank": lrank}
+    return {"local_rank": lrank, "world_size": dist_info["world_size"], "rank": dist_info["rank"]}
 
 
 def _destroy_dist_context():
