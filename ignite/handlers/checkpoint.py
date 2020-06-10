@@ -271,6 +271,11 @@ class Checkpoint:
         else:
             priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
 
+        if not self._check_lt_n_saved(or_equal=True):
+            item = self._saved.pop(0)
+            if isinstance(self.save_handler, BaseSaveHandler):
+                self.save_handler.remove(item.filename)
+
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
             priority_str = (
@@ -313,11 +318,6 @@ class Checkpoint:
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
-
-        if not self._check_lt_n_saved(or_equal=True):
-            item = self._saved.pop(0)
-            if isinstance(self.save_handler, BaseSaveHandler):
-                self.save_handler.remove(item.filename)
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
