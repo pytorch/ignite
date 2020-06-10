@@ -3,7 +3,7 @@ import tempfile
 import warnings
 from collections import defaultdict
 from datetime import datetime
-from typing import List, Mapping, Optional, Any
+from typing import Any, List, Mapping, Optional
 
 import torch
 
@@ -683,7 +683,7 @@ class TrainsSaver(DiskSaver):
                 slot = len(self._slots) - 1
 
             model_info.upload_filename = "{}_{}{}".format(self._basename, slot, os.path.splitext(self._filename)[1])
-            model_info.local_model_id = '{}:{}'.format(self._checkpoint_key, model_info.upload_filename)
+            model_info.local_model_id = "{}:{}".format(self._checkpoint_key, model_info.upload_filename)
             return model_info
 
         def post_callback(self, action: str, model_info: Any):
@@ -697,8 +697,7 @@ class TrainsSaver(DiskSaver):
                 ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none",
             )
             comment = "\n".join(
-                metadata if line.startswith(prefix) else line for line in
-                (model_info.model.comment or "").split("\n")
+                metadata if line.startswith(prefix) else line for line in (model_info.model.comment or "").split("\n")
             )
             if prefix not in comment:
                 comment += "\n" + metadata
@@ -726,7 +725,10 @@ class TrainsSaver(DiskSaver):
 
         cb_context = self._CallbacksContext(
             slots=self._checkpoint_slots[checkpoint_key],
-            checkpoint_key=str(checkpoint_key), filename=filename, basename=basename, metadata=metadata,
+            checkpoint_key=str(checkpoint_key),
+            filename=filename,
+            basename=basename,
+            metadata=metadata,
         )
 
         pre_cb_id = WeightsFileHandler.add_pre_callback(cb_context.pre_callback)
