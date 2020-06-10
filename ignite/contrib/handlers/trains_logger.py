@@ -3,7 +3,7 @@ import tempfile
 import warnings
 from collections import defaultdict
 from datetime import datetime
-from typing import List, Mapping, Optional
+from typing import List, Mapping, Optional, Any
 
 import torch
 
@@ -662,41 +662,49 @@ class TrainsSaver(DiskSaver):
             self._task.output_uri = output_uri
 
     class _CallbacksContext:
-        def __init__(self, slots: List, filename: str, basename: str, metadata: Optional[Mapping] = None):
+        def __init__(
+            self, slots: List, checkpoint_key: str, filename: str, basename: str, metadata: Optional[Mapping] = None
+        ):
             self._slots = slots
+            self._checkpoint_key = str(checkpoint_key)
             self._filename = filename
             self._basename = basename
             self._metadata = metadata
 
-        def pre_callback(self, action: str, filename: str, framework: str, task):
+        def pre_callback(self, action: str, model_info: Any):
             if action != "save":
-                return filename
+                return model_info
 
             try:
                 slot = self._slots.index(None)
-                self._slots[slot] = filename
+                self._slots[slot] = model_info.upload_filename
             except ValueError:
-                self._slots.append(filename)
+                self._slots.append(model_info.upload_filename)
                 slot = len(self._slots) - 1
 
-            return "{}_{}{}".format(self._basename, slot, os.path.splitext(self._filename)[1])
+            model_info.upload_filename = "{}_{}{}".format(self._basename, slot, os.path.splitext(self._filename)[1])
+            model_info.local_model_id = '{}:{}'.format(self._checkpoint_key, model_info.upload_filename)
+            return model_info
 
-        def post_callback(self, action: str, model, target_filename: str, saved_filename: str, framework: str, task):
-            if action is "save":
-                model.name = "{}: {}".format(task.name, self._filename)
-                prefix = "Checkpoint Metadata: "
-                metadata = "{}{}".format(
-                    prefix,
-                    ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none",
-                )
-                comment = "\n".join(
-                    metadata if line.startswith(prefix) else line for line in (model.comment or "").split("\n")
-                )
-                if prefix not in comment:
-                    comment += "\n" + metadata
-                model.comment = comment
+        def post_callback(self, action: str, model_info: Any):
+            if action != "save":
+                return model_info
 
-            return model
+            model_info.model.name = "{}: {}".format(model_info.task.name, self._filename)
+            prefix = "Checkpoint Metadata: "
+            metadata = "{}{}".format(
+                prefix,
+                ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none",
+            )
+            comment = "\n".join(
+                metadata if line.startswith(prefix) else line for line in
+                (model_info.model.comment or "").split("\n")
+            )
+            if prefix not in comment:
+                comment += "\n" + metadata
+            model_info.model.comment = comment
+
+            return model_info
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         try:
@@ -717,7 +725,8 @@ class TrainsSaver(DiskSaver):
         checkpoint_key = (self.dirname, basename)
 
         cb_context = self._CallbacksContext(
-            slots=self._checkpoint_slots[checkpoint_key], filename=filename, basename=basename, metadata=metadata,
+            slots=self._checkpoint_slots[checkpoint_key],
+            checkpoint_key=str(checkpoint_key), filename=filename, basename=basename, metadata=metadata,
         )
 
         pre_cb_id = WeightsFileHandler.add_pre_callback(cb_context.pre_callback)
