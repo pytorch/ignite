@@ -31,6 +31,21 @@ def auto_dataloader(dataset, **kwargs):
         Custom batch sampler is not adapted for distributed configuration. Please, make sure that provided batch
         sampler is compatible with distributed configuration.
 
+    Examples:
+
+    .. code-block:: python
+
+        import ignite.distribted as idist
+
+        train_loader = idist.auto_dataloader(
+            train_dataset,
+            batch_size=32,
+            num_workers=4,
+            shuffle=True,
+            pin_memory="cuda" in idist.device().type,
+            drop_last=True,
+        )
+
     Args:
         dataset (Dataset): input torch dataset
         **kwargs: keyword arguments for `torch DataLoader`_.
@@ -114,6 +129,14 @@ def auto_model(model: nn.Module) -> nn.Module:
     - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1
     - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
 
+    Examples:
+
+    .. code-block:: python
+
+        import ignite.distribted as idist
+
+        model = idist.auto_model(model)
+
     Args:
         model (torch.nn.Module): model to adapt.
 
@@ -153,12 +176,20 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
     For XLA distributed configuration, we create a new class that inherits from provided optimizer.
     The goal is to override the `step()` method with specific `xm.optimizer_step`_ implementation.
 
+    Examples:
+
+    .. code-block:: python
+
+        import ignite.distribted as idist
+
+        optimizer = idist.auto_optim(optimizer)
+
+
     Args:
         optimizer (Optimizer): input torch optimizer
 
     Returns:
         Optimizer
-
 
     .. _xm.optimizer_step: http://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
 

@@ -137,6 +137,12 @@ jobs:
             export test_cmd='sh tests/run_gpu_tests.sh 2'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
+      - run:
+          name: Codecov upload
+          command: |
+            codecov -F gpu-2 || echo 'Codecov upload failed'
+
+
   two_gpus_check_dist_cifar10_example:
     <<: *two_gpus
 

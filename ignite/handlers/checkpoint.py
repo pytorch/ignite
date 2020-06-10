@@ -335,7 +335,7 @@ class Checkpoint:
 
     @staticmethod
     def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
-        """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
+        """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
         Exemples:
 
@@ -357,6 +357,10 @@ class Checkpoint:
             checkpoint = torch.load(checkpoint_fp)
             Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
+        Note:
+            If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
+            `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
+
         Args:
             to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
@@ -364,6 +368,10 @@ class Checkpoint:
                 corresponding state_dict.
             **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
+
+        .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
+        .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):

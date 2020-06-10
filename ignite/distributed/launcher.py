@@ -15,6 +15,9 @@ class Parallel:
 
     - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_
 
+    Namely, it can 1) spawn ``num_procs_per_node`` child processes and initialize a processing group according to
+    provided ``backend`` (useful for standalone scripts) or 2) only initialize a processing group given the ``backend``
+    (useful with tools like `torch.distributed.launch`_).
 
     Examples:
 
@@ -31,12 +34,12 @@ class Parallel:
         .. code-block:: bash
 
             # node 0
-            python -m torch.distributed.launch --nnodes=2 --node_rank=0 --master_addr=master --master_port=3344 \
-                --nproc_per_node=8 --use_env main.py
+            python -m torch.distributed.launch --nnodes=2 --node_rank=0 --master_addr=master \
+                --master_port=3344 --nproc_per_node=8 --use_env main.py
 
             # node 1
-            python -m torch.distributed.launch --nnodes=2 --node_rank=1 --master_addr=master --master_port=3344 \
-                --nproc_per_node=8 --use_env main.py
+            python -m torch.distributed.launch --nnodes=2 --node_rank=1 --master_addr=master \
+                --master_port=3344 --nproc_per_node=8 --use_env main.py
 
 
         User code is the same for both options:
