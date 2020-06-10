@@ -295,7 +295,7 @@ def run(
         num_epochs (int): number of epochs to train the model. Default, 24.
         learning_rate (float): peak of piecewise linear learning rate scheduler. Default, 0.4.
         num_warmup_epochs (int): number of warm-up epochs before learning rate decay. Default, 4.
-        validate_every (int): run model's validatation every ``validate_every`` epochs. Default, 3.
+        validate_every (int): run model's validation every ``validate_every`` epochs. Default, 3.
         checkpoint_every (int): store training checkpoint every ``checkpoint_every`` iterations. Default, 200.
         backend (str, optional): backend to use for distributed configuration. Possible values: None, "nccl", "xla-tpu",
             "gloo" etc. Default, None.
@@ -305,7 +305,7 @@ def run(
         log_every_iters (int): argument to log progress every ``log_every_iters`` iterations. It can be 0 to disable it.
             Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
-        **spawn_kwargs: Other kwargs to spawn training as child processes.
+        **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, num_nodes
 
     """
     # catch all local parameters
