@@ -38,8 +38,6 @@ If user would like to provide already downloaded dataset, the path can be setup 
 --data_path="/path/to/cifar10/"
 ```
 
-TODO: LINK on TRAINS SERVER
-
 ### Distributed training
 
 #### Single node, multiple GPUs
@@ -60,12 +58,12 @@ If user would like to provide already downloaded dataset, the path can be setup 
 --data_path="/path/to/cifar10/"
 ```
 
-TODO: LINK on TRAINS SERVER
-
 
 #### Colab, on 8 TPUs
 
-TODO: LINK on Colab
+
+Same code can be run on TPUs: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E9zJrptnLJ_PKhmaP5Vhb6DTVRvyrKHx)
+
 
 #### Multiple nodes, multiple GPUs
 
@@ -91,8 +89,6 @@ python -u -m torch.distributed.launch \
     main.py run --backend="nccl"
 ```
 
-TODO: LINK on TRAINS SERVER
-
 
 ### Check resume training
 
@@ -107,8 +103,6 @@ Resume from the latest checkpoint
 ```bash
 python main.py run --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-1000/training_checkpoint_1000.pt
 ```
-
-TODO: LINK on TRAINS SERVER
 
 ### Distributed training
 
@@ -125,7 +119,5 @@ Resume from the latest checkpoint
 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" \
     --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-1000/training_checkpoint_1000.pt
 ```
-
-TODO: LINK on TRAINS SERVER
 
 Similar commands can be adapted for other cases.

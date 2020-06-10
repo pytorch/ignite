@@ -185,7 +185,7 @@ def training(local_rank, config):
         lr_scheduler=lr_scheduler,
         output_names=metric_names if config["log_every_iters"] > 0 else None,
         with_pbar_on_iters=config["log_every_iters"] > 0,
-        log_every_iters=config["log_every_iters"],
+        log_every_iters=True,
         clear_cuda_cache=False,
     )
 
@@ -285,7 +285,7 @@ def run(
     log_every_iters=15,
     num_procs_per_node=None,
     stop_iteration=None,
-    with_trains=True,
+    with_trains=False,
     **spawn_kwargs
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -312,7 +312,7 @@ def run(
         log_every_iters (int): argument to log progress every ``log_every_iters`` iterations. It can be 0 to disable it.
             Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
-        with_trains (bool): if True, experiment Trains logger is setup. Default, True.
+        with_trains (bool): if True, experiment Trains logger is setup. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, num_nodes
 
     """
