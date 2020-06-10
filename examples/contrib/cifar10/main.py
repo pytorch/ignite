@@ -222,9 +222,14 @@ def training(local_rank, config):
         evaluators = {"training": train_evaluator, "test": evaluator}
         tb_logger = common.setup_tb_logging(output_path, trainer, optimizer, evaluators=evaluators)
 
-        trains_logger = common.setup_trains_logging(
-            trainer, optimizer, evaluators=evaluators, project_name="cifar10-ignite", task_name=Path(output_path).stem
-        )
+        if config["with_trains"]:
+            trains_logger = common.setup_trains_logging(
+                trainer,
+                optimizer,
+                evaluators=evaluators,
+                project_name="cifar10-ignite",
+                task_name=Path(output_path).stem,
+            )
 
     # Store 3 best models by validation accuracy:
     common.save_best_model_by_val_score(
@@ -257,7 +262,8 @@ def training(local_rank, config):
 
     if rank == 0:
         tb_logger.close()
-        trains_logger.close()
+        if config["with_trains"]:
+            trains_logger.close()
 
 
 def run(
@@ -279,6 +285,7 @@ def run(
     log_every_iters=15,
     num_procs_per_node=None,
     stop_iteration=None,
+    with_trains=True,
     **spawn_kwargs
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -305,6 +312,7 @@ def run(
         log_every_iters (int): argument to log progress every ``log_every_iters`` iterations. It can be 0 to disable it.
             Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
+        with_trains (bool): if True, experiment Trains logger is setup. Default, True.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, num_nodes
 
     """

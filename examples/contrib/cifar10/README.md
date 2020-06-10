@@ -19,7 +19,7 @@ Configurations:
 - [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
 - [tensorboardx](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
 - [python-fire](https://github.com/google/python-fire): `pip install fire`
-- [trains](https://github.com/allegroai/trains): `pip install trains`
+- Optional: [trains](https://github.com/allegroai/trains): `pip install trains`
 
 ## Usage:
 

@@ -86,6 +86,9 @@ def auto_dataloader(dataset, **kwargs):
     dataloader = DataLoader(dataset, **kwargs)
 
     if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and world_size > 1:
+
+        logger.info("DataLoader is wrapped by `MpDeviceLoader` on XLA")
+
         mp_device_loader_cls = _MpDeviceLoader
         try:
             from torch_xla.distributed.parallel_loader import MpDeviceLoader
