@@ -17,20 +17,20 @@ class ComputationModel(metaclass=ABCMeta):
 
     def __init__(self):
         self._backend = None
-        self._ntasks_per_node = None
+        self._nproc_per_node = None
         self._nnodes = None
         self._node = None
 
     def _setup_attrs(self):
-        if self._ntasks_per_node is None:
-            self._ntasks_per_node = self._compute_ntasks_per_node() if self.get_world_size() > 1 else 1
+        if self._nproc_per_node is None:
+            self._nproc_per_node = self._compute_nproc_per_node() if self.get_world_size() > 1 else 1
         if self._nnodes is None:
-            self._nnodes = self.get_world_size() // self._ntasks_per_node
+            self._nnodes = self.get_world_size() // self._nproc_per_node
         if self._node is None:
-            self._node = self.get_rank() // self._ntasks_per_node
+            self._node = self.get_rank() // self._nproc_per_node
 
     @abstractmethod
-    def _compute_ntasks_per_node(self) -> int:
+    def _compute_nproc_per_node(self) -> int:
         pass
 
     @abstractmethod
@@ -46,11 +46,11 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_ntasks_per_node(self) -> int:
+    def get_nproc_per_node(self) -> int:
         pass
 
     @abstractmethod
-    def get_num_nodes(self) -> int:
+    def get_nnodes(self) -> int:
         pass
 
     @abstractmethod
@@ -181,10 +181,10 @@ class _SerialModel(ComputationModel):
     def get_world_size(self) -> int:
         return 1
 
-    def get_ntasks_per_node(self) -> int:
+    def get_nproc_per_node(self) -> int:
         return 1
 
-    def get_num_nodes(self) -> int:
+    def get_nnodes(self) -> int:
         return 1
 
     def get_node_rank(self) -> int:
@@ -201,7 +201,7 @@ class _SerialModel(ComputationModel):
     def finalize(self):
         pass
 
-    def _compute_ntasks_per_node(self) -> int:
+    def _compute_nproc_per_node(self) -> int:
         return 1
 
     @staticmethod
