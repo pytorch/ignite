@@ -133,7 +133,7 @@ def run(
     backend=None,
     resume_from=None,
     log_every_iters=15,
-    num_procs_per_node=None,
+    nproc_per_node=None,
     stop_iteration=None,
     with_trains=False,
     **spawn_kwargs
@@ -156,14 +156,14 @@ def run(
         checkpoint_every (int): store training checkpoint every ``checkpoint_every`` iterations. Default, 200.
         backend (str, optional): backend to use for distributed configuration. Possible values: None, "nccl", "xla-tpu",
             "gloo" etc. Default, None.
-        num_procs_per_node (int, optional): optional argument to setup number of processes per node. It is useful,
+        nproc_per_node (int, optional): optional argument to setup number of processes per node. It is useful,
             when main python process is spawning training as child processes.
         resume_from (str, optional): path to checkpoint to use to resume the training from. Default, None.
         log_every_iters (int): argument to log progress every ``log_every_iters`` iterations. It can be 0 to disable it.
             Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_trains (bool): if True, experiment Trains logger is setup. Default, False.
-        **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, num_nodes
+        **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
     # catch all local parameters
@@ -171,7 +171,7 @@ def run(
     config.update(config["spawn_kwargs"])
     del config["spawn_kwargs"]
 
-    spawn_kwargs["num_procs_per_node"] = num_procs_per_node
+    spawn_kwargs["nproc_per_node"] = nproc_per_node
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
 

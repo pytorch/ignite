@@ -50,7 +50,7 @@ python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run -
 or 
 ```bash
 # using function spawn inside the code
-python -u main.py run --backend="nccl" --num_procs_per_node=2
+python -u main.py run --backend="nccl" --nproc_per_node=2
 ```
 
 If user would like to provide already downloaded dataset, the path can be setup in parameters as

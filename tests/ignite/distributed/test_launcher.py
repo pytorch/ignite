@@ -75,9 +75,9 @@ def test_check_idist_parallel_torch_launch_n_procs_nccl(exec_filepath):
 
 
 def _test_check_idist_parallel_spawn(fp, backend, nprocs):
-    # python tests/ignite/distributed/check_idist_parallel.py --backend=backend --num_procs_per_node=nprocs
+    # python tests/ignite/distributed/check_idist_parallel.py --backend=backend --nproc_per_node=nprocs
 
-    cmd = [sys.executable, fp, "--backend={}".format(backend), "--num_procs_per_node={}".format(nprocs)]
+    cmd = [sys.executable, fp, "--backend={}".format(backend), "--nproc_per_node={}".format(nprocs)]
 
     out = execute(cmd)
     assert "backend={}".format(backend) in out
@@ -121,7 +121,7 @@ def _test_func(index, ws, device):
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_parallel_gloo():
-    with idist.Parallel(backend="gloo", num_procs_per_node=4) as parallel:
+    with idist.Parallel(backend="gloo", nproc_per_node=4) as parallel:
         parallel.run(_test_func, ws=4, device="cpu")
 
 
@@ -139,7 +139,7 @@ def test_idist_parallel_gloo_nprocs(local_rank, world_size):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_parallel_nccl():
-    with idist.Parallel(backend="nccl", num_procs_per_node=torch.cuda.device_count()) as parallel:
+    with idist.Parallel(backend="nccl", nproc_per_node=torch.cuda.device_count()) as parallel:
         parallel.run(_test_func, ws=torch.cuda.device_count(), device="cuda")
 
 

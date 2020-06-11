@@ -92,7 +92,7 @@ if has_native_dist_support:
             self._master_addr = None
             self._setup_attrs()
 
-        def _compute_ntasks_per_node(self):
+        def _compute_nproc_per_node(self):
             tensor = torch.tensor([self.get_local_rank() + 1]).to(self.device())
             dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
             return tensor.item()
@@ -202,10 +202,10 @@ if has_native_dist_support:
         def get_world_size(self) -> int:
             return dist.get_world_size()
 
-        def get_ntasks_per_node(self) -> int:
-            return self._ntasks_per_node
+        def get_nproc_per_node(self) -> int:
+            return self._nproc_per_node
 
-        def get_num_nodes(self) -> int:
+        def get_nnodes(self) -> int:
             return self._nnodes
 
         def get_node_rank(self) -> int:
@@ -249,15 +249,15 @@ if has_native_dist_support:
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
-            num_procs_per_node: int = 1,
-            num_nodes: int = 1,
+            nproc_per_node: int = 1,
+            nnodes: int = 1,
             node_rank: int = 0,
             master_addr: str = "127.0.0.1",
             master_port: int = 2222,
             backend: str = "nccl",
             **kwargs
         ):
-            world_size = num_nodes * num_procs_per_node
+            world_size = nnodes * nproc_per_node
 
             spawn_kwargs = {
                 "join": kwargs.get("join", True),
@@ -269,14 +269,14 @@ if has_native_dist_support:
 
             mp.spawn(
                 _NativeDistModel._dist_worker_task_fn,
-                nprocs=num_procs_per_node,
+                nprocs=nproc_per_node,
                 args=(
                     backend,
                     fn,
                     args,
                     kwargs_dict,
                     world_size,
-                    num_procs_per_node,
+                    nproc_per_node,
                     node_rank,
                     master_addr,
                     master_port,

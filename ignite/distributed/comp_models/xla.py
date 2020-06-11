@@ -60,7 +60,7 @@ if has_xla_support:
             self._backend = "xla-tpu"
             self._setup_attrs()
 
-        def _compute_ntasks_per_node(self):
+        def _compute_nproc_per_node(self):
             tensor = torch.tensor([self.get_local_rank() + 1.0], dtype=torch.float).to(self.device())
             xm.all_reduce("max", [tensor,])
             return int(tensor.item())
@@ -74,10 +74,10 @@ if has_xla_support:
         def get_world_size(self) -> int:
             return xm.xrt_world_size()
 
-        def get_ntasks_per_node(self) -> int:
-            return self._ntasks_per_node
+        def get_nproc_per_node(self) -> int:
+            return self._nproc_per_node
 
-        def get_num_nodes(self) -> int:
+        def get_nnodes(self) -> int:
             return self._nnodes
 
         def get_node_rank(self) -> int:
@@ -107,8 +107,8 @@ if has_xla_support:
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
-            num_procs_per_node: int = 1,
-            num_nodes: int = 1,
+            nproc_per_node: int = 1,
+            nnodes: int = 1,
             node_rank: int = 0,
             backend: str = "xla-tpu",
             **kwargs
@@ -121,7 +121,7 @@ if has_xla_support:
             xmp.spawn(
                 _XlaDistModel._dist_worker_task_fn,
                 args=(backend, fn, args, kwargs_dict),
-                nprocs=num_procs_per_node,
+                nprocs=nproc_per_node,
                 **kwargs,
             )
 

@@ -48,20 +48,20 @@ if __name__ == "__main__":
 
         - Spawn 4 procs in single node using gloo backend:
         ```
-        python tests/ignite/distributed/check_idist_parallel.py --backend=gloo --num_procs_per_node=4
+        python tests/ignite/distributed/check_idist_parallel.py --backend=gloo --nproc_per_node=4
         ```
 
         - Spawn 2 procs in 2 nodes using gloo backend:
         ```
         bash -c "python tests/ignite/distributed/check_idist_parallel.py --backend=gloo \
-            --num_procs_per_node=2 --num_nodes=2 --node_rank=0 --master_addr=localhost --master_port=3344 &" \
+            --nproc_per_node=2 --nnodes=2 --node_rank=0 --master_addr=localhost --master_port=3344 &" \
         && bash -c "python tests/ignite/distributed/check_idist_parallel.py --backend=gloo \
-            --num_procs_per_node=2 --num_nodes=2 --node_rank=1 --master_addr=localhost --master_port=3344 &"
+            --nproc_per_node=2 --nnodes=2 --node_rank=1 --master_addr=localhost --master_port=3344 &"
         ```
 
         - Spawn 8 procs in single node using xla-tpu backend:
         ```
-        python tests/ignite/distributed/check_idist_parallel.py --backend=xla-tpu --num_procs_per_node=8
+        python tests/ignite/distributed/check_idist_parallel.py --backend=xla-tpu --nproc_per_node=8
         ```
 
 
@@ -69,8 +69,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("Check idist.Parallel")
     parser.add_argument("--backend", type=str, default=None)
-    parser.add_argument("--num_procs_per_node", type=int, default=None)
-    parser.add_argument("--num_nodes", type=int, default=None)
+    parser.add_argument("--nproc_per_node", type=int, default=None)
+    parser.add_argument("--nnodes", type=int, default=None)
     parser.add_argument("--node_rank", type=int, default=None)
     parser.add_argument("--master_addr", type=str, default=None)
     parser.add_argument("--master_port", type=str, default=None)
@@ -80,8 +80,8 @@ if __name__ == "__main__":
     config = {"model": "resnet18", "lr": 0.01}
 
     dist_config = dict(
-        num_procs_per_node=args.num_procs_per_node,
-        num_nodes=args.num_nodes,
+        nproc_per_node=args.nproc_per_node,
+        nnodes=args.nnodes,
         node_rank=args.node_rank,
         master_addr=args.master_addr,
         master_port=args.master_port,
