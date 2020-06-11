@@ -316,13 +316,13 @@ class Checkpoint:
                 "priority": priority,
             }
 
+            self._saved.append(Checkpoint.Item(priority, filename))
+            self._saved.sort(key=lambda item: item[0])
+
             try:
                 self.save_handler(checkpoint, filename, metadata)
             except TypeError:
                 self.save_handler(checkpoint, filename)
-
-            self._saved.append(Checkpoint.Item(priority, filename))
-            self._saved.sort(key=lambda item: item[0])
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
