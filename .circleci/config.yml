@@ -187,7 +187,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=nccl --num_procs_per_node=2"
+            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
