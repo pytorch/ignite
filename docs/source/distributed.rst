@@ -49,7 +49,8 @@ in the code. For more details, please, see :class:`~ignite.distributed.launcher.
 :meth:`~ignite.distributed.auto.auto_model`, :meth:`~ignite.distributed.auto.auto_optim` and
 :meth:`~ignite.distributed.auto.auto_dataloader`.
 
-Complete example on training on CIFAR10 can be found: LINK
+Complete example of CIFAR10 training can be found
+`here <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10>`_.
 
 
 .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
