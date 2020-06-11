@@ -257,6 +257,11 @@ class Checkpoint:
             return True
         return len(self._saved) < self._n_saved + int(or_equal)
 
+    def _will_be_full(self):
+        if self._n_saved is None or len(self._saved) == 0:
+            return False
+        return len(self._saved) == self._n_saved
+
     def __call__(self, engine: Engine) -> None:
 
         suffix = ""
@@ -271,12 +276,12 @@ class Checkpoint:
         else:
             priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
 
-        if not self._check_lt_n_saved(or_equal=True):
+        if self._will_be_full() and len(self._saved) > 0 and self._saved[0].priority < priority:
             item = self._saved.pop(0)
             if isinstance(self.save_handler, BaseSaveHandler):
                 self.save_handler.remove(item.filename)
 
-        if self._check_lt_n_saved() or self._saved[0].priority < priority:
+        if self._check_lt_n_saved():
 
             priority_str = (
                 "{}".format(priority) if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
