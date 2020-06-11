@@ -174,12 +174,7 @@ def hostname() -> str:
 
 
 def spawn(
-    backend: str,
-    fn: Callable,
-    args: Tuple,
-    kwargs_dict: Optional[Mapping] = None,
-    nproc_per_node: int = 1,
-    **kwargs
+    backend: str, fn: Callable, args: Tuple, kwargs_dict: Optional[Mapping] = None, nproc_per_node: int = 1, **kwargs
 ):
     """Spawns ``nproc_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
     distributed configuration defined by ``backend``.
