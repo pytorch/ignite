@@ -6,7 +6,8 @@ import cv2
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
-import torch.distributed as dist
+
+import ignite.distributed as idist
 
 from torchvision.models.segmentation import deeplabv3_resnet101
 
@@ -34,10 +35,9 @@ fp16_opt_level = "O2"
 num_classes = 21
 
 
-batch_size = 9  # ~9GB GPU RAM
+batch_size = 9
 val_batch_size = 24
-non_blocking = True
-num_workers = 12 // dist.get_world_size()
+num_workers = 12
 val_interval = 1
 accumulation_steps = 4
 
@@ -84,11 +84,8 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     num_workers=num_workers,
     val_batch_size=val_batch_size,
     with_sbd=sbd_data_path,
-    train_sampler="distributed",
-    val_sampler="distributed",
     limit_train_num_samples=100 if debug else None,
     limit_val_num_samples=100 if debug else None,
-    random_seed=seed,
 )
 
 prepare_batch = prepare_batch_fp32
