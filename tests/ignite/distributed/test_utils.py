@@ -12,8 +12,8 @@ from ignite.engine import Engine, Events
 def _sanity_check():
     from ignite.distributed.utils import _model
 
-    assert _model.get_world_size() == _model.get_num_nodes() * _model.get_ntasks_per_node()
-    assert _model.get_local_rank() < _model.get_ntasks_per_node()
+    assert _model.get_world_size() == _model.get_num_nodes() * _model.get_nproc_per_node()
+    assert _model.get_local_rank() < _model.get_nproc_per_node()
     assert _model.get_rank() < _model.get_world_size()
     assert _model.get_node_rank() < _model.get_num_nodes()
 
@@ -123,7 +123,7 @@ def test_native_distrib_single_node_spawn_gloo():
     world_size = 4
 
     idist.spawn(
-        "gloo", _test_distrib_config, args=("gloo", world_size, "cpu"), num_procs_per_node=world_size, timeout=timeout
+        "gloo", _test_distrib_config, args=("gloo", world_size, "cpu"), nproc_per_node=world_size, timeout=timeout
     )
 
 
@@ -134,13 +134,13 @@ def test_native_distrib_single_node_spawn_gloo():
 def test_native_distrib_single_node_spawn_nccl():
     world_size = torch.cuda.device_count()
 
-    idist.spawn("nccl", _test_distrib_config, args=("nccl", world_size, "cuda"), num_procs_per_node=world_size)
+    idist.spawn("nccl", _test_distrib_config, args=("nccl", world_size, "cuda"), nproc_per_node=world_size)
 
 
 @pytest.mark.skipif(has_xla_support, reason="Skip if has PyTorch XLA package")
 def test_xla_distrib_spawn_no_xla_support():
     with pytest.raises(ValueError, match=r"Backend should be one of"):
-        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", 1, "xla"), num_procs_per_node=1)
+        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", 1, "xla"), nproc_per_node=1)
 
 
 @pytest.mark.tpu
@@ -157,7 +157,7 @@ def test_xla_distrib_single_node_no_spawn():
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_xla_distrib_single_node_spawn_one_proc():
     try:
-        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", 1, "xla"), num_procs_per_node=1)
+        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", 1, "xla"), nproc_per_node=1)
     except SystemExit:
         pass
 
@@ -168,7 +168,7 @@ def test_xla_distrib_single_node_spawn_one_proc():
 def test_xla_distrib_single_node_spawn_n_procs():
     n = int(os.environ["NUM_TPU_WORKERS"])
     try:
-        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", n, "xla"), num_procs_per_node=n)
+        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", n, "xla"), nproc_per_node=n)
     except SystemExit:
         pass
 

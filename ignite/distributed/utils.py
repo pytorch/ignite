@@ -22,7 +22,7 @@ __all__ = [
     "get_world_size",
     "get_rank",
     "get_local_rank",
-    "get_ntasks_per_node",
+    "get_nproc_per_node",
     "get_node_rank",
     "get_num_nodes",
     "spawn",
@@ -144,11 +144,11 @@ def get_local_rank() -> int:
 
 
 @_sync_model_wrapper
-def get_ntasks_per_node() -> int:
+def get_nproc_per_node() -> int:
     """Returns number of processes (or tasks) per node within current distributed configuration.
     Returns 1 if no distributed configuration.
     """
-    return _model.get_ntasks_per_node()
+    return _model.get_nproc_per_node()
 
 
 @_sync_model_wrapper
@@ -178,10 +178,10 @@ def spawn(
     fn: Callable,
     args: Tuple,
     kwargs_dict: Optional[Mapping] = None,
-    num_procs_per_node: int = 1,
+    nproc_per_node: int = 1,
     **kwargs
 ):
-    """Spawns ``num_procs_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
+    """Spawns ``nproc_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
     distributed configuration defined by ``backend``.
 
     Examples:
@@ -205,7 +205,7 @@ def spawn(
                 assert device == torch.device("cuda:{}".format(local_rank))
 
 
-            idist.spawn("nccl", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, num_procs_per_node=4)
+            idist.spawn("nccl", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=4)
 
 
         2) Launch multi-node multi-GPU training
@@ -222,10 +222,10 @@ def spawn(
             import torch
             import ignite.distributed as idist
 
-            def train_fn(local_rank, num_nodes, num_procs_per_node):
+            def train_fn(local_rank, num_nodes, nproc_per_node):
                 import torch.distributed as dist
                 assert dist.is_available() and dist.is_initialized()
-                assert dist.get_world_size() == num_nodes * num_procs_per_node
+                assert dist.get_world_size() == num_nodes * nproc_per_node
 
                 device = idist.device()
                 assert device == torch.device("cuda:{}".format(local_rank))
@@ -233,8 +233,8 @@ def spawn(
             idist.spawn(
                 "nccl",
                 train_fn,
-                args=(num_nodes, num_procs_per_node),
-                num_procs_per_node=num_procs_per_node,
+                args=(num_nodes, nproc_per_node),
+                nproc_per_node=nproc_per_node,
                 num_nodes=num_nodes,
                 node_rank=node_rank,
                 master_addr=master_addr,
@@ -259,7 +259,7 @@ def spawn(
                 assert "xla" in device.type
 
 
-            idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, num_procs_per_node=8)
+            idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=8)
 
     Args:
         backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`
@@ -269,7 +269,7 @@ def spawn(
             where `i` is the process index and args is the passed through tuple of arguments.
         args (tuple): arguments passed to `fn`.
         kwargs_dict (Mapping): kwargs passed to `fn`.
-        num_procs_per_node (int): number of processes to spawn on a single node. Default, 1.
+        nproc_per_node (int): number of processes to spawn on a single node. Default, 1.
         **kwargs: acceptable kwargs according to provided backend:
 
             - | "nccl" or "gloo" : `num_nodes` (default, 1), `node_rank` (default, 0), `master_addr`
@@ -292,7 +292,7 @@ def spawn(
         if backend not in comp_model_cls.available_backends:
             continue
         comp_model_cls.spawn(
-            fn, args=args, kwargs_dict=kwargs_dict, num_procs_per_node=num_procs_per_node, backend=backend, **kwargs
+            fn, args=args, kwargs_dict=kwargs_dict, nproc_per_node=nproc_per_node, backend=backend, **kwargs
         )
 
 
@@ -448,7 +448,7 @@ def show_config():
     logger.info("world size: {}".format(get_world_size()))
     logger.info("rank: {}".format(get_rank()))
     logger.info("local rank: {}".format(get_local_rank()))
-    logger.info("num tasks per_node: {}".format(get_ntasks_per_node()))
+    logger.info("num processes per_node: {}".format(get_nproc_per_node()))
     logger.info("num nodes: {}".format(get_num_nodes()))
     logger.info("node rank: {}".format(get_node_rank()))
 

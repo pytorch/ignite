@@ -57,7 +57,7 @@ def _assert_model(model, true_conf):
 
     assert model.get_node_rank() == true_conf["node_index"]
     assert model.get_num_nodes() == true_conf["num_nodes"]
-    assert model.get_ntasks_per_node() == true_conf["ntasks_per_node"]
+    assert model.get_nproc_per_node() == true_conf["nproc_per_node"]
 
 
 def _test__native_dist_model_create_from_backend_no_dist(backend, true_device):
@@ -77,7 +77,7 @@ def _test__native_dist_model_create_from_backend_no_dist(backend, true_device):
             "world_size": 1,
             "node_index": 0,
             "num_nodes": 1,
-            "ntasks_per_node": 1,
+            "nproc_per_node": 1,
         },
     )
 
@@ -108,7 +108,7 @@ def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_si
             "world_size": world_size,
             "node_index": 0,
             "num_nodes": 1,
-            "ntasks_per_node": world_size,
+            "nproc_per_node": world_size,
         },
     )
 
@@ -182,7 +182,7 @@ def _test__native_dist_model_create_from_context_no_dist(true_backend, true_devi
         "world_size": 1,
         "node_index": 0,
         "num_nodes": 1,
-        "ntasks_per_node": 1,
+        "nproc_per_node": 1,
     }
 
     _test__native_dist_model_create_from_context_env_local_rank(true_conf)
@@ -205,7 +205,7 @@ def _test__native_dist_model_create_from_context_dist(local_rank, rank, world_si
         "world_size": world_size,
         "node_index": 0,
         "num_nodes": 1,
-        "ntasks_per_node": world_size,
+        "nproc_per_node": world_size,
     }
 
     _test__native_dist_model_create_from_context_env_local_rank(true_conf)
@@ -268,7 +268,7 @@ def _test__native_dist_model_spawn(backend, num_workers_per_machine, device):
         args=(backend, num_workers_per_machine, device),
         kwargs_dict={},
         backend=backend,
-        num_procs_per_node=num_workers_per_machine,
+        nproc_per_node=num_workers_per_machine,
     )
 
 
