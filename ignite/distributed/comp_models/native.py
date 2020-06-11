@@ -15,6 +15,10 @@ has_native_dist_support = dist.is_available()
 
 if has_native_dist_support:
 
+    NCCL = dist.Backend.NCCL
+    GLOO = dist.Backend.GLOO
+    MPI = dist.Backend.MPI
+
     class _NativeDistModel(ComputationModel):
         """Private class for PyTorch native distributed computation model.
 
@@ -34,9 +38,7 @@ if has_native_dist_support:
 
         name = "native-dist"
         available_backends = tuple(
-            name
-            for name in [dist.Backend.NCCL, dist.Backend.GLOO, dist.Backend.MPI]
-            if getattr(dist, "is_{}_available".format(name))()
+            name for name in [NCCL, GLOO, MPI] if getattr(dist, "is_{}_available".format(name))()
         )
 
         @staticmethod
