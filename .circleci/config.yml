@@ -118,7 +118,7 @@ jobs:
       - run:
           name: Codecov upload
           command: |
-            codecov -F gpu || echo 'Codecov upload failed'
+            bash <(curl -s https://codecov.io/bash) -Z -F gpu
 
 
   two_gpus_tests:
@@ -140,7 +140,7 @@ jobs:
       - run:
           name: Codecov upload
           command: |
-            codecov -F gpu-2 || echo 'Codecov upload failed'
+            bash <(curl -s https://codecov.io/bash) -Z -F gpu-2
 
 
   two_gpus_check_dist_cifar10_example:
