@@ -77,7 +77,7 @@ if has_xla_support:
         def get_nproc_per_node(self) -> int:
             return self._nproc_per_node
 
-        def get_num_nodes(self) -> int:
+        def get_nnodes(self) -> int:
             return self._nnodes
 
         def get_node_rank(self) -> int:
@@ -108,7 +108,7 @@ if has_xla_support:
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
             nproc_per_node: int = 1,
-            num_nodes: int = 1,
+            nnodes: int = 1,
             node_rank: int = 0,
             backend: str = "xla-tpu",
             **kwargs

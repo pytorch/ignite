@@ -12,10 +12,10 @@ from ignite.engine import Engine, Events
 def _sanity_check():
     from ignite.distributed.utils import _model
 
-    assert _model.get_world_size() == _model.get_num_nodes() * _model.get_nproc_per_node()
+    assert _model.get_world_size() == _model.get_nnodes() * _model.get_nproc_per_node()
     assert _model.get_local_rank() < _model.get_nproc_per_node()
     assert _model.get_rank() < _model.get_world_size()
-    assert _model.get_node_rank() < _model.get_num_nodes()
+    assert _model.get_node_rank() < _model.get_nnodes()
 
 
 def test_no_distrib(capsys):

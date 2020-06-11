@@ -31,7 +31,7 @@ def _test_xla_spawn_fn(local_rank, world_size, device):
     assert _model.get_rank() == local_rank
     assert _model.get_nproc_per_node() == world_size
     assert _model.get_node_rank() == 0
-    assert _model.get_num_nodes() == 1
+    assert _model.get_nnodes() == 1
 
 
 @pytest.mark.tpu
@@ -67,7 +67,7 @@ def _assert_model(model, true_conf):
     assert model.get_world_size() == true_conf["world_size"]
 
     assert model.get_node_rank() == true_conf["node_index"]
-    assert model.get_num_nodes() == true_conf["num_nodes"]
+    assert model.get_nnodes() == true_conf["nnodes"]
     assert model.get_nproc_per_node() == true_conf["nproc_per_node"]
 
 
@@ -88,7 +88,7 @@ def test__xla_dist_model_create_from_backend():
             "rank": 0,
             "world_size": 1,
             "node_index": 0,
-            "num_nodes": 1,
+            "nnodes": 1,
             "nproc_per_node": 1,
         },
     )
@@ -115,7 +115,7 @@ def test__xla_dist_model_create_from_context():
             "rank": 0,
             "world_size": 1,
             "node_index": 0,
-            "num_nodes": 1,
+            "nnodes": 1,
             "nproc_per_node": 1,
         },
     )
@@ -136,7 +136,7 @@ def _test__xla_dist_model_create_from_context_in_child_proc(index):
             "rank": xm.get_ordinal(),
             "world_size": xm.xrt_world_size(),
             "node_index": 0,
-            "num_nodes": 1,
+            "nnodes": 1,
             "nproc_per_node": xm.xrt_world_size(),
         },
     )

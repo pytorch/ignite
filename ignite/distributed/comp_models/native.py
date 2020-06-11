@@ -205,7 +205,7 @@ if has_native_dist_support:
         def get_nproc_per_node(self) -> int:
             return self._nproc_per_node
 
-        def get_num_nodes(self) -> int:
+        def get_nnodes(self) -> int:
             return self._nnodes
 
         def get_node_rank(self) -> int:
@@ -250,14 +250,14 @@ if has_native_dist_support:
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
             nproc_per_node: int = 1,
-            num_nodes: int = 1,
+            nnodes: int = 1,
             node_rank: int = 0,
             master_addr: str = "127.0.0.1",
             master_port: int = 2222,
             backend: str = "nccl",
             **kwargs
         ):
-            world_size = num_nodes * nproc_per_node
+            world_size = nnodes * nproc_per_node
 
             spawn_kwargs = {
                 "join": kwargs.get("join", True),

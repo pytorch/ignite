@@ -50,7 +50,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_num_nodes(self) -> int:
+    def get_nnodes(self) -> int:
         pass
 
     @abstractmethod
@@ -184,7 +184,7 @@ class _SerialModel(ComputationModel):
     def get_nproc_per_node(self) -> int:
         return 1
 
-    def get_num_nodes(self) -> int:
+    def get_nnodes(self) -> int:
         return 1
 
     def get_node_rank(self) -> int:

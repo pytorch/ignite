@@ -163,7 +163,7 @@ def run(
             Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_trains (bool): if True, experiment Trains logger is setup. Default, False.
-        **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, num_nodes
+        **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
     # catch all local parameters

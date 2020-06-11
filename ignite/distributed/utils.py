@@ -24,7 +24,7 @@ __all__ = [
     "get_local_rank",
     "get_nproc_per_node",
     "get_node_rank",
-    "get_num_nodes",
+    "get_nnodes",
     "spawn",
     "initialize",
     "finalize",
@@ -152,11 +152,11 @@ def get_nproc_per_node() -> int:
 
 
 @_sync_model_wrapper
-def get_num_nodes() -> int:
+def get_nnodes() -> int:
     """Returns number of nodes within current distributed configuration.
     Returns 1 if no distributed configuration.
     """
-    return _model.get_num_nodes()
+    return _model.get_nnodes()
 
 
 @_sync_model_wrapper
@@ -207,20 +207,20 @@ def spawn(
 
         .. code-block:: python
 
-            # >>> (node 0): python main.py --node_rank=0 --num_nodes=8 --master_addr=master --master_port=2222
-            # >>> (node 1): python main.py --node_rank=1 --num_nodes=8 --master_addr=master --master_port=2222
+            # >>> (node 0): python main.py --node_rank=0 --nnodes=8 --master_addr=master --master_port=2222
+            # >>> (node 1): python main.py --node_rank=1 --nnodes=8 --master_addr=master --master_port=2222
             # >>> ...
-            # >>> (node 7): python main.py --node_rank=7 --num_nodes=8 --master_addr=master --master_port=2222
+            # >>> (node 7): python main.py --node_rank=7 --nnodes=8 --master_addr=master --master_port=2222
 
             # main.py
 
             import torch
             import ignite.distributed as idist
 
-            def train_fn(local_rank, num_nodes, nproc_per_node):
+            def train_fn(local_rank, nnodes, nproc_per_node):
                 import torch.distributed as dist
                 assert dist.is_available() and dist.is_initialized()
-                assert dist.get_world_size() == num_nodes * nproc_per_node
+                assert dist.get_world_size() == nnodes * nproc_per_node
 
                 device = idist.device()
                 assert device == torch.device("cuda:{}".format(local_rank))
@@ -228,9 +228,9 @@ def spawn(
             idist.spawn(
                 "nccl",
                 train_fn,
-                args=(num_nodes, nproc_per_node),
+                args=(nnodes, nproc_per_node),
                 nproc_per_node=nproc_per_node,
-                num_nodes=num_nodes,
+                nnodes=nnodes,
                 node_rank=node_rank,
                 master_addr=master_addr,
                 master_port=master_port
@@ -267,11 +267,11 @@ def spawn(
         nproc_per_node (int): number of processes to spawn on a single node. Default, 1.
         **kwargs: acceptable kwargs according to provided backend:
 
-            - | "nccl" or "gloo" : `num_nodes` (default, 1), `node_rank` (default, 0), `master_addr`
+            - | "nccl" or "gloo" : `nnodes` (default, 1), `node_rank` (default, 0), `master_addr`
               | (default, "127.0.0.1"), `master_port` (default, 2222), `timeout` to `dist.init_process_group`_ function
               | and kwargs for `mp.spawn`_ function.
 
-            - "xla-tpu" : `num_nodes` (default, 1), `node_rank` (default, 0) and kwargs to `xmp.spawn`_ function.
+            - "xla-tpu" : `nnodes` (default, 1), `node_rank` (default, 0) and kwargs to `xmp.spawn`_ function.
 
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _mp.spawn: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
@@ -444,7 +444,7 @@ def show_config():
     logger.info("rank: {}".format(get_rank()))
     logger.info("local rank: {}".format(get_local_rank()))
     logger.info("num processes per_node: {}".format(get_nproc_per_node()))
-    logger.info("num nodes: {}".format(get_num_nodes()))
+    logger.info("num nodes: {}".format(get_nnodes()))
     logger.info("node rank: {}".format(get_node_rank()))
 
 
