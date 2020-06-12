@@ -933,6 +933,25 @@ def _test_checkpoint_with_ddp(device):
     save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
 
 
+def _test_checkpoint_load_objects_ddp(device):
+    model = DummyModel().to(device)
+    device_ids = (
+        None if "cpu" in device.type else [device,]
+    )
+    ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=device_ids)
+    opt = torch.optim.SGD(ddp_model.parameters(), lr=0.01)
+
+    # single object:
+    to_load = {"model": ddp_model}
+    checkpoint = ddp_model.module.state_dict()
+    Checkpoint.load_objects(to_load, checkpoint)
+
+    # multiple objects:
+    to_load = {"model": ddp_model, "opt": opt}
+    checkpoint = {"model": ddp_model.module.state_dict(), "opt": opt.state_dict()}
+    Checkpoint.load_objects(to_load, checkpoint)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
@@ -941,6 +960,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"), on_zero_rank=True)
     _test_checkpoint_with_ddp(device)
+    _test_checkpoint_load_objects_ddp(device)
 
 
 @pytest.mark.distributed
@@ -952,6 +972,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "2"), on_zero_rank=True)
     _test_checkpoint_with_ddp(device=device)
+    _test_checkpoint_load_objects_ddp(device=device)
 
 
 def _test_tpu_saves_to_cpu(device, dirname):

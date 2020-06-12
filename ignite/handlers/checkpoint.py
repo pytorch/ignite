@@ -306,18 +306,18 @@ class Checkpoint:
                 "priority": priority,
             }
 
-            try:
-                self.save_handler(checkpoint, filename, metadata)
-            except TypeError:
-                self.save_handler(checkpoint, filename)
+            if not self._check_lt_n_saved():
+                item = self._saved.pop(0)
+                if isinstance(self.save_handler, BaseSaveHandler):
+                    self.save_handler.remove(item.filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
 
-        if not self._check_lt_n_saved(or_equal=True):
-            item = self._saved.pop(0)
-            if isinstance(self.save_handler, BaseSaveHandler):
-                self.save_handler.remove(item.filename)
+            try:
+                self.save_handler(checkpoint, filename, metadata)
+            except TypeError:
+                self.save_handler(checkpoint, filename)
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
@@ -335,7 +335,7 @@ class Checkpoint:
 
     @staticmethod
     def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
-        """Helper method to apply `load_state_dict` on the objects from `to_load` using states from `checkpoint`.
+        """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
         Exemples:
 
@@ -357,6 +357,10 @@ class Checkpoint:
             checkpoint = torch.load(checkpoint_fp)
             Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
+        Note:
+            If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
+            `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
+
         Args:
             to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
             checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
@@ -364,6 +368,10 @@ class Checkpoint:
                 corresponding state_dict.
             **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
+
+        .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
+        .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
@@ -377,6 +385,8 @@ class Checkpoint:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint:
+                if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                    obj = obj.module
                 obj.load_state_dict(checkpoint, strict=is_state_dict_strict)
                 return
 
@@ -384,6 +394,8 @@ class Checkpoint:
         for k, obj in to_load.items():
             if k not in checkpoint:
                 raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
+            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                obj = obj.module
             if isinstance(obj, torch.nn.Module):
                 obj.load_state_dict(checkpoint[k], strict=is_state_dict_strict)
             else:

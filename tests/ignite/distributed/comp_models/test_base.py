@@ -11,8 +11,8 @@ def test_serial_model():
     assert model.get_local_rank() == 0
     assert model.get_rank() == 0
     assert model.get_world_size() == 1
-    assert model.get_ntasks_per_node() == 1
-    assert model.get_num_nodes() == 1
+    assert model.get_nproc_per_node() == 1
+    assert model.get_nnodes() == 1
     assert model.get_node_rank() == 0
     if torch.cuda.is_available():
         assert model.device().type == "cuda"
