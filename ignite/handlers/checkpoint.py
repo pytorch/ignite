@@ -306,18 +306,18 @@ class Checkpoint:
                 "priority": priority,
             }
 
-            try:
-                self.save_handler(checkpoint, filename, metadata)
-            except TypeError:
-                self.save_handler(checkpoint, filename)
+            if not self._check_lt_n_saved():
+                item = self._saved.pop(0)
+                if isinstance(self.save_handler, BaseSaveHandler):
+                    self.save_handler.remove(item.filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
 
-        if not self._check_lt_n_saved(or_equal=True):
-            item = self._saved.pop(0)
-            if isinstance(self.save_handler, BaseSaveHandler):
-                self.save_handler.remove(item.filename)
+            try:
+                self.save_handler(checkpoint, filename, metadata)
+            except TypeError:
+                self.save_handler(checkpoint, filename)
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
