@@ -22,7 +22,6 @@ assert "DATASET_PATH" in os.environ
 data_path = os.environ["DATASET_PATH"]
 
 
-
 debug = False
 seed = 12
 

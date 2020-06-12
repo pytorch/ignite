@@ -68,22 +68,16 @@ def _plx_log_params(params_dict):
 
 
 def _mlflow_get_output_path():
-    import mlflow
-
     return mlflow.get_artifact_uri()
 
 
 @idist.one_rank_only()
 def _mlflow_log_artifact(fp):
-    import mlflow
-
     mlflow.log_artifact(fp)
 
 
 @idist.one_rank_only()
 def _mlflow_log_params(params_dict):
-    import mlflow
-
     mlflow.log_params(
         {"pytorch version": torch.__version__, "ignite version": ignite.__version__,}
     )
