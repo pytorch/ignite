@@ -11,7 +11,7 @@ training workloads on remote machines.
 Install [trains](https://github.com/allegroai/trains) by executing the following command:
 
 ```bash
-pip install trains
+pip install --upgrade trains
 ```
 
 ## Install requirements 
@@ -89,19 +89,28 @@ This environment variable helps to choose Trains as experiment tracking system a
 
 #### Training on single node and single GPU
 
+Please, make sure to adapt training data loader batch size to your GPU type. For example, a single GPU with 11GB can have a batch size of 8-9.
+
 Execute the following command: 
 
 ```bash
 export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
 export PYTHONPATH=$PWD/code:$PYTHONPATH
+
 py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```
 
 #### Training on single node and multiple GPUs
 
+For optimal devices usage, please, make sure to adapt training data loader batch size to your infrasture. 
+For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N devices, we can set it as `N * 9`.
 
 ```
+export TRAINS_OUTPUT_PATH=/path/to/output/trains
+# e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
+export PYTHONPATH=$PWD/code:$PYTHONPATH
+
 python -m torch.distributed.launch --nproc 2 --use_env -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```
 
@@ -135,8 +144,7 @@ Once it's there, the following will be automatically logged by **Trains**:
 * **Development Environment** Python environment, Git (repo, branch, commit) including uncommitted changes
 * **Configuration** Including configuration files, command line arguments (ArgParser), and general dictionaries
 * Full **stdout** and **stderr** automatic logging
-* Model snapshots, with optional automatic upload to central storage.  
-Storage options include shared folders, S3, GS, Azure, and http/s
+* Model snapshots, with optional automatic upload to central storage.
 * Artifacts log & store, including shared folders, S3, GS, Azure, and Http/s
 * Matplotlib / Seaborn / TensorBoard / TensorBoardX scalars, metrics, histograms, images, audio, video, etc 
 
