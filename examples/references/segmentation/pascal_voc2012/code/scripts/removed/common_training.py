@@ -25,10 +25,10 @@ def initialize(config):
     optimizer = config.optimizer
     # Setup Nvidia/Apex AMP
     model, optimizer = amp.initialize(model, optimizer, opt_level=getattr(config, "fp16_opt_level", "O2"), num_losses=1)
-    
+
     # Adapt model to dist conf
     model = idist.auto_model(model)
-    
+
     criterion = config.criterion.to(config.device)
 
     return model, optimizer, criterion
@@ -69,14 +69,12 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
         return output
 
     output_names = getattr(config, "output_names", ["supervised batch loss",])
-    lr_scheduler=config.lr_scheduler
+    lr_scheduler = config.lr_scheduler
 
     trainer = Engine(train_update_function)
     trainer.logger = logger
 
-    to_save = {
-        "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler, "trainer": trainer, "amp": amp
-    }
+    to_save = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler, "trainer": trainer, "amp": amp}
 
     common.setup_common_training_handlers(
         trainer,
@@ -158,13 +156,13 @@ def training(local_rank, config, with_mlflow_logging=False, with_plx_logging=Fal
 
     # Store 3 best models by validation accuracy:
     common.save_best_model_by_val_score(
-        config.output_path.as_posix(), 
+        config.output_path.as_posix(),
         evaluator,
         model=model,
         metric_name=score_metric_name,
         n_saved=3,
         trainer=trainer,
-        tag="val"
+        tag="val",
     )
 
     if idist.get_rank() == 0:

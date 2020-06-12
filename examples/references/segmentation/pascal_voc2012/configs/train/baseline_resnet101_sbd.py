@@ -34,8 +34,7 @@ fp16_opt_level = "O2"
 
 num_classes = 21
 
-
-batch_size = 9
+batch_size = 18
 val_batch_size = 24
 num_workers = 12
 val_interval = 1

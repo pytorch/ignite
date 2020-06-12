@@ -19,6 +19,7 @@ from py_config_runner.utils import set_seed
 from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_config
 
 from utils.handlers import predictions_gt_images_handler
+from utils import exp_tracking
 
 
 def initialize(config):
@@ -27,10 +28,10 @@ def initialize(config):
     optimizer = config.optimizer
     # Setup Nvidia/Apex AMP
     model, optimizer = amp.initialize(model, optimizer, opt_level=getattr(config, "fp16_opt_level", "O2"), num_losses=1)
-    
+
     # Adapt model to dist conf
     model = idist.auto_model(model)
-    
+
     criterion = config.criterion.to(config.device)
 
     return model, optimizer, criterion
@@ -71,14 +72,12 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
         return output
 
     output_names = getattr(config, "output_names", ["supervised batch loss",])
-    lr_scheduler=config.lr_scheduler
+    lr_scheduler = config.lr_scheduler
 
     trainer = Engine(train_update_function)
     trainer.logger = logger
 
-    to_save = {
-        "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler, "trainer": trainer, "amp": amp
-    }
+    to_save = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler, "trainer": trainer, "amp": amp}
 
     common.setup_common_training_handlers(
         trainer,
@@ -112,7 +111,29 @@ def create_evaluators(model, metrics, config):
     return evaluator, train_evaluator
 
 
-def training(local_rank, config, with_mlflow_logging=False, with_plx_logging=False, with_trains_logging=False):
+def log_metrics(logger, epoch, elapsed, tag, metrics):
+    logger.info(
+        "\nEpoch {} - elapsed: {} - {} metrics:\n {}".format(
+            epoch, elapsed, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
+        )
+    )
+
+
+def log_basic_info(logger, config):
+
+    msg = "\n- PyTorch version: {}".format(torch.__version__)
+    msg += "\n- Ignite version: {}".format(ignite.__version__)
+    logger.info(msg)
+
+    if idist.get_world_size() > 1:
+        msg = "\nDistributed setting:"
+        msg += "\tbackend: {}".format(idist.backend())
+        msg += "\trank: {}".format(idist.get_rank())
+        msg += "\tworld size: {}".format(idist.get_world_size())
+        logger.info(msg)
+
+
+def training(local_rank, config, logger=None):
 
     if not getattr(config, "use_fp16", True):
         raise RuntimeError("This training script uses by default fp16 AMP")
@@ -128,7 +149,7 @@ def training(local_rank, config, with_mlflow_logging=False, with_plx_logging=Fal
     model, optimizer, criterion = initialize(config)
 
     # Setup trainer for this specific task
-    trainer = create_trainer(model, optimizer, criterion, config)
+    trainer = create_trainer(model, optimizer, criterion, train_loader.sampler, config, logger)
 
     # Setup evaluators
     num_classes = config.num_classes
@@ -144,14 +165,16 @@ def training(local_rank, config, with_mlflow_logging=False, with_plx_logging=Fal
 
     evaluator, train_evaluator = create_evaluators(model, val_metrics, config)
 
-    def run_validation(_):
-        train_evaluator.run(train_eval_loader)
-        evaluator.run(val_loader)
+    @trainer.on(Events.EPOCH_COMPLETED(every=getattr(config, "val_interval", 1)) | Events.COMPLETED)
+    def run_validation():
+        epoch = trainer.state.epoch
+        state = train_evaluator.run(train_eval_loader)
+        log_metrics(logger, epoch, state.times["COMPLETED"], "Train", state.metrics)
+        state = evaluator.run(val_loader)
+        log_metrics(logger, epoch, state.times["COMPLETED"], "Test", state.metrics)
 
     if getattr(config, "start_by_validation", False):
         trainer.add_event_handler(Events.STARTED, run_validation)
-    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=getattr(config, "val_interval", 1)), run_validation)
-    trainer.add_event_handler(Events.COMPLETED, run_validation)
 
     score_metric_name = "mIoU_bg"
 
@@ -160,13 +183,13 @@ def training(local_rank, config, with_mlflow_logging=False, with_plx_logging=Fal
 
     # Store 3 best models by validation accuracy:
     common.save_best_model_by_val_score(
-        config.output_path.as_posix(), 
+        config.output_path.as_posix(),
         evaluator,
         model=model,
         metric_name=score_metric_name,
         n_saved=3,
         trainer=trainer,
-        tag="val"
+        tag="val",
     )
 
     if idist.get_rank() == 0:
@@ -178,20 +201,9 @@ def training(local_rank, config, with_mlflow_logging=False, with_plx_logging=Fal
             evaluators={"training": train_evaluator, "validation": evaluator},
         )
 
-        if with_mlflow_logging:
-            common.setup_mlflow_logging(
-                trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
-            )
-
-        if with_plx_logging:
-            common.setup_plx_logging(
-                trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
-            )
-
-        if with_trains_logging:
-            common.setup_trains_logging(
-                trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
-            )
+        exp_tracking_logger = exp_tracking.setup_logging(
+            trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
+        )
 
         # Log val predictions:
         tb_logger.attach(
@@ -206,9 +218,14 @@ def training(local_rank, config, with_mlflow_logging=False, with_plx_logging=Fal
 
     if idist.get_rank() == 0:
         tb_logger.close()
+        exp_tracking_logger.close()
 
 
-def run(config, logger=None, local_rank=0, **kwargs):
+def run(config, **kwargs):
+    """This is the main method to run the training. As this training script is launched with `py_config_runner`
+    it should obligatory contain `run(config, **kwargs)` method.
+
+    """
 
     assert torch.cuda.is_available(), torch.cuda.is_available()
     assert torch.backends.cudnn.enabled, "Nvidia/Amp requires cudnn backend to be enabled."
@@ -217,30 +234,27 @@ def run(config, logger=None, local_rank=0, **kwargs):
 
         logger = setup_logger(name="Pascal-VOC12 Training", distributed_rank=idist.get_rank())
 
-        # As we passed config with option --manual_config_load
-        assert hasattr(config, "setup"), (
-            "We need to manually setup the configuration, please set --manual_config_load to py_config_runner"
-        )
-        config = config.setup()
         assert_config(config, TRAINVAL_CONFIG)
         # The following attributes are automatically added by py_config_runner
         assert hasattr(config, "config_filepath") and isinstance(config.config_filepath, Path)
         assert hasattr(config, "script_filepath") and isinstance(config.script_filepath, Path)
 
-        from polyaxon_client.tracking import get_outputs_path, Experiment
+        if idist.get_rank() == 0 and exp_tracking.has_trains:
+            from trains import Task
 
-        config.output_path = Path(get_outputs_path())
+            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem)
+            task.connect_configuration(config.config_filepath.as_posix())
 
-        # Hide inside training
-        if idist.get_rank() == 0:
-            plx_exp = Experiment()
-            plx_exp.log_params(
-                **{"pytorch version": torch.__version__, "ignite version": ignite.__version__,}
-            )
-            plx_exp.log_params(**get_params(config, TRAINVAL_CONFIG))
+        log_basic_info(logger, config)
 
-        try:            
-            parallel.run(training, config, with_plx_logging=True)
+        config.output_path = Path(exp_tracking.get_output_path())
+        # dump python files to reproduce the run
+        exp_tracking.log_artifact(config.config_filepath.as_posix())
+        exp_tracking.log_artifact(config.script_filepath.as_posix())
+        exp_tracking.log_params(get_params(config, TRAINVAL_CONFIG))
+
+        try:
+            parallel.run(training, config, logger=logger)
         except KeyboardInterrupt:
             logger.info("Catched KeyboardInterrupt -> exit")
         except Exception as e:  # noqa

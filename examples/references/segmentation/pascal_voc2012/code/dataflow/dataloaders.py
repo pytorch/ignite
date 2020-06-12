@@ -30,7 +30,7 @@ def get_train_val_loaders(
     if with_sbd is not None:
         sbd_train_ds = get_train_noval_sbdataset(with_sbd)
         train_ds = ConcatDataset([train_ds, sbd_train_ds])
-        
+
     if limit_train_num_samples is not None:
         np.random.seed(limit_train_num_samples)
         train_indices = np.random.permutation(len(train_ds))[:limit_train_num_samples]
@@ -54,12 +54,7 @@ def get_train_val_loaders(
     train_eval_ds = TransformedDataset(train_eval_ds, transform_fn=val_transforms)
 
     train_loader = idist.auto_dataloader(
-        train_ds,
-        shuffle=True,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
-        drop_last=True,
+        train_ds, shuffle=True, batch_size=batch_size, num_workers=num_workers, pin_memory=pin_memory, drop_last=True,
     )
 
     val_batch_size = batch_size * 4 if val_batch_size is None else val_batch_size

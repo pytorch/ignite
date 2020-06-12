@@ -26,9 +26,9 @@ def run(config, logger=None, local_rank=0, **kwargs):
         logger = setup_logger(distributed_rank=idist.get_rank())
 
         # As we passed config with option --manual_config_load
-        assert hasattr(config, "setup"), (
-            "We need to manually setup the configuration, please set --manual_config_load to py_config_runner"
-        )
+        assert hasattr(
+            config, "setup"
+        ), "We need to manually setup the configuration, please set --manual_config_load to py_config_runner"
         config = config.setup()
         assert_config(config, TRAINVAL_CONFIG)
         # The following attributes are automatically added by py_config_runner
@@ -45,7 +45,7 @@ def run(config, logger=None, local_rank=0, **kwargs):
             )
             plx_exp.log_params(**get_params(config, TRAINVAL_CONFIG))
 
-        try:            
+        try:
             parallel.run(training, config, with_plx_logging=True)
         except KeyboardInterrupt:
             logger.info("Catched KeyboardInterrupt -> exit")
