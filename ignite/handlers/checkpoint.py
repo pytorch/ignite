@@ -200,6 +200,8 @@ class Checkpoint:
 
     """
 
+    filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
+    _filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
     Item = namedtuple("Item", ["priority", "filename"])
 
     def __init__(
@@ -237,13 +239,13 @@ class Checkpoint:
             warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
 
         self.to_save = to_save
-        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
+        self._fname_prefix = filename_prefix + "" if len(filename_prefix) > 0 else filename_prefix
         self.save_handler = save_handler
         self._score_function = score_function
         self._score_name = score_name
         self._n_saved = n_saved
         self._saved = []
-        self._ext = ".pt"
+        self._ext = "pt"
         self.global_step_transform = global_step_transform
 
     @property
@@ -259,10 +261,15 @@ class Checkpoint:
 
     def __call__(self, engine: Engine) -> None:
 
-        suffix = ""
+        filename_pattern_dict = {
+            "name": "",
+            "global_step": "",
+            "score_name": "",
+            "score": "",
+        }
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
-            suffix = "{}".format(global_step)
+            filename_pattern_dict["global_step"] = "{}".format(global_step)
 
         if self._score_function is not None:
             priority = self._score_function(engine)
@@ -278,15 +285,11 @@ class Checkpoint:
             )
 
             if self._score_name is not None:
-                if len(suffix) > 0:
-                    suffix += "_"
-                suffix = "{}{}={}".format(suffix, self._score_name, priority_str)
-            elif self._score_function is not None:
-                if len(suffix) > 0:
-                    suffix += "_"
-                suffix = "{}{}".format(suffix, priority_str)
-            elif len(suffix) == 0:
-                suffix = "{}".format(priority_str)
+                filename_pattern_dict["score_name"] = "{}".format(self._score_name)
+                filename_pattern_dict["score"] = "{}".format(priority_str)
+
+            elif self._score_function is not None or all(suffix == "" for suffix in filename_pattern_dict.values()):
+                filename_pattern_dict["score"] = "{}".format(priority_str)
 
             checkpoint = self._setup_checkpoint()
 
@@ -295,7 +298,15 @@ class Checkpoint:
                 for k in checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
-            filename = "{}{}_{}{}".format(self._fname_prefix, name, suffix, self._ext)
+
+            filename_pattern_dict["name"] = name
+            filename_pattern_dict["filename_prefix"] = self._fname_prefix
+            filename_pattern_dict["ext"] = self._ext
+            if Checkpoint.filename_pattern != Checkpoint._filename_pattern:
+                filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
+            else:
+                filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
+                filename = filename.replace("___", "_").replace("__", "_").replace("_=", "_").replace("_.", ".")
 
             if any(item.filename == filename for item in self._saved):
                 return
