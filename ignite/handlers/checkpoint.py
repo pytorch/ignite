@@ -262,7 +262,6 @@ class Checkpoint:
     def __call__(self, engine: Engine) -> None:
 
         filename_pattern_dict = {
-            "name": "",
             "global_step": "",
             "score_name": "",
             "score": "",
