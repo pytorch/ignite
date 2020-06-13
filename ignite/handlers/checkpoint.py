@@ -239,7 +239,8 @@ class Checkpoint:
             warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
 
         self.to_save = to_save
-        self._fname_prefix = filename_prefix + "" if len(filename_prefix) > 0 else filename_prefix
+        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
+        self.filename_prefix = filename_prefix
         self.save_handler = save_handler
         self._score_function = score_function
         self._score_name = score_name
@@ -299,13 +300,15 @@ class Checkpoint:
                 checkpoint = checkpoint[name]
 
             filename_pattern_dict["name"] = name
-            filename_pattern_dict["filename_prefix"] = self._fname_prefix
+            filename_pattern_dict["filename_prefix"] = self.filename_prefix
             filename_pattern_dict["ext"] = self._ext
             if Checkpoint.filename_pattern != Checkpoint._filename_pattern:
                 filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
             else:
                 filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
                 filename = filename.replace("___", "_").replace("__", "_").replace("_=", "_").replace("_.", ".")
+                if filename.startswith("_"):
+                    filename = filename[1:]
 
             if any(item.filename == filename for item in self._saved):
                 return
