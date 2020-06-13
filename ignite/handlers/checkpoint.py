@@ -200,8 +200,8 @@ class Checkpoint:
 
     """
 
-    filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
-    _filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
+    default_filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
+    filename_pattern = default_filename_pattern
     Item = namedtuple("Item", ["priority", "filename"])
 
     def __init__(
@@ -302,7 +302,7 @@ class Checkpoint:
             filename_pattern_dict["name"] = name
             filename_pattern_dict["filename_prefix"] = self.filename_prefix
             filename_pattern_dict["ext"] = self._ext
-            if Checkpoint.filename_pattern != Checkpoint._filename_pattern:
+            if Checkpoint.filename_pattern != Checkpoint.default_filename_pattern:
                 filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
             else:
                 filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
