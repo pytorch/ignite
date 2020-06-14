@@ -39,6 +39,8 @@ def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
     else:
         sampler_type = DistributedSampler if sampler is None else DistributedProxySampler
         assert isinstance(dataloader.sampler, sampler_type)
+    if isinstance(dataloader, DataLoader):
+        assert dataloader.pin_memory == (data.device == "cuda")
 
 
 def _test_auto_model_optimizer(ws, device):
