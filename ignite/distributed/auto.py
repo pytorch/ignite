@@ -89,7 +89,7 @@ def auto_dataloader(dataset, **kwargs):
                 "Found batch_sampler in provided kwargs. Please, make sure that it is compatible "
                 "with distributed configuration"
             )
-    
+
     if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and kwargs.get("pin_memory", False):
         # TODO: How about XLA GPU ?
         warnings.warn(
