@@ -200,8 +200,7 @@ class Checkpoint:
 
     """
 
-    default_filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
-    filename_pattern = default_filename_pattern
+    filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
     Item = namedtuple("Item", ["priority", "filename"])
 
     def __init__(
@@ -263,6 +262,8 @@ class Checkpoint:
     def __call__(self, engine: Engine) -> None:
 
         filename_pattern_dict = {
+            "filename_prefix": self.filename_prefix,
+            "ext": self._ext,
             "global_step": "",
             "score_name": "",
             "score": "",
@@ -288,7 +289,7 @@ class Checkpoint:
                 filename_pattern_dict["score_name"] = "{}".format(self._score_name)
                 filename_pattern_dict["score"] = "{}".format(priority_str)
 
-            elif self._score_function is not None or all(suffix == "" for suffix in filename_pattern_dict.values()):
+            elif self._score_function is not None or self.global_step_transform is None:
                 filename_pattern_dict["score"] = "{}".format(priority_str)
 
             checkpoint = self._setup_checkpoint()
@@ -298,17 +299,21 @@ class Checkpoint:
                 for k in checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
-
             filename_pattern_dict["name"] = name
-            filename_pattern_dict["filename_prefix"] = self.filename_prefix
-            filename_pattern_dict["ext"] = self._ext
-            if Checkpoint.filename_pattern != Checkpoint.default_filename_pattern:
-                filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
-            else:
-                filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
-                filename = filename.replace("___", "_").replace("__", "_").replace("_=", "_").replace("_.", ".")
-                if filename.startswith("_"):
-                    filename = filename[1:]
+
+            filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
+
+            if not self.filename_prefix:
+                filename = filename.replace("_{}".format(name), name)
+
+            if self.global_step_transform is None:
+                filename = filename.replace("__", "_")
+
+            if self._score_name is None:
+                filename = filename.replace("_=", "_")
+
+            if self._score_name is None and not filename_pattern_dict["score"]:
+                filename = filename.replace("_.", ".")
 
             if any(item.filename == filename for item in self._saved):
                 return
