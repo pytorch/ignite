@@ -196,7 +196,6 @@ def get_dataflow(config):
         batch_size=config["batch_size"],
         num_workers=config["num_workers"],
         shuffle=True,
-        pin_memory="cuda" in idist.device().type,
         drop_last=True,
     )
 
