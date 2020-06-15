@@ -200,7 +200,6 @@ class Checkpoint:
 
     """
 
-    filename_pattern = "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
     Item = namedtuple("Item", ["priority", "filename"])
 
     def __init__(
@@ -213,6 +212,7 @@ class Checkpoint:
         n_saved: Optional[int] = 1,
         global_step_transform: Callable = None,
         archived: bool = False,
+        filename_pattern: Optional[str] = None,
     ):
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
@@ -238,15 +238,15 @@ class Checkpoint:
             warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
 
         self.to_save = to_save
-        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
         self.filename_prefix = filename_prefix
         self.save_handler = save_handler
-        self._score_function = score_function
-        self._score_name = score_name
-        self._n_saved = n_saved
-        self._saved = []
-        self._ext = "pt"
+        self.score_function = score_function
+        self.score_name = score_name
+        self.n_saved = n_saved
+        self.ext = ".pt"
         self.global_step_transform = global_step_transform
+        self.filename_pattern = filename_pattern
+        self._saved = []
 
     @property
     def last_checkpoint(self) -> Optional[str]:
@@ -255,25 +255,31 @@ class Checkpoint:
         return self._saved[-1].filename
 
     def _check_lt_n_saved(self, or_equal=False):
-        if self._n_saved is None:
+        if self.n_saved is None:
             return True
-        return len(self._saved) < self._n_saved + int(or_equal)
+        return len(self._saved) < self.n_saved + int(or_equal)
+
+    def _add_field(self, f, sep="_"):
+        return "{}{}".format(f, sep) if len(f) > 0 else f
 
     def __call__(self, engine: Engine) -> None:
 
         filename_pattern_dict = {
             "filename_prefix": self.filename_prefix,
-            "ext": self._ext,
+            "ext": self.ext,
             "global_step": "",
             "score_name": "",
             "score": "",
+            "name": "",
         }
+        suffix = ""
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
-            filename_pattern_dict["global_step"] = "{}".format(global_step)
+            suffix = "{}".format(global_step)
+            filename_pattern_dict["global_step"] = global_step
 
-        if self._score_function is not None:
-            priority = self._score_function(engine)
+        if self.score_function is not None:
+            priority = self.score_function(engine)
             if not isinstance(priority, numbers.Number):
                 raise ValueError("Output of score_function should be a number")
         else:
@@ -285,12 +291,18 @@ class Checkpoint:
                 "{}".format(priority) if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
             )
 
-            if self._score_name is not None:
-                filename_pattern_dict["score_name"] = "{}".format(self._score_name)
-                filename_pattern_dict["score"] = "{}".format(priority_str)
-
-            elif self._score_function is not None or self.global_step_transform is None:
-                filename_pattern_dict["score"] = "{}".format(priority_str)
+            if self.score_name is not None:
+                suffix = self._add_field(suffix)
+                suffix = "{}{}={}".format(suffix, self.score_name, priority_str)
+                filename_pattern_dict["score_name"] = self.score_name
+                filename_pattern_dict["score"] = priority_str
+            elif self.score_function is not None:
+                suffix = self._add_field(suffix)
+                suffix = "{}{}".format(suffix, priority_str)
+                filename_pattern_dict["score"] = priority_str
+            elif len(suffix) == 0:
+                suffix = "{}".format(priority_str)
+                filename_pattern_dict["score"] = priority_str
 
             checkpoint = self._setup_checkpoint()
 
@@ -299,43 +311,35 @@ class Checkpoint:
                 for k in checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
-            filename_pattern_dict["name"] = name
 
-            filename = Checkpoint.filename_pattern.format(**filename_pattern_dict)
-
-            if not self.filename_prefix:
-                filename = filename.replace("_{}".format(name), name)
-
-            if self.global_step_transform is None:
-                filename = filename.replace("__", "_")
-
-            if self._score_name is None:
-                filename = filename.replace("_=", "_")
-
-            if self._score_name is None and not filename_pattern_dict["score"]:
-                filename = filename.replace("_.", ".")
+            filename_prefix = self.filename_prefix
+            if self.filename_pattern is None:
+                filename_prefix = self._add_field(filename_prefix)
+                filename = "{}{}_{}{}".format(filename_prefix, name, suffix, self.ext)
+            else:
+                filename = self.filename_pattern.format(**filename_pattern_dict)
 
             if any(item.filename == filename for item in self._saved):
                 return
 
             metadata = {
-                "basename": "{}{}".format(self._fname_prefix, name),
-                "score_name": self._score_name,
+                "basename": "{}{}".format(filename_prefix, name),
+                "score_name": self.score_name,
                 "priority": priority,
             }
+
+            if not self._check_lt_n_saved():
+                item = self._saved.pop(0)
+                if isinstance(self.save_handler, BaseSaveHandler):
+                    self.save_handler.remove(item.filename)
+
+            self._saved.append(Checkpoint.Item(priority, filename))
+            self._saved.sort(key=lambda item: item[0])
 
             try:
                 self.save_handler(checkpoint, filename, metadata)
             except TypeError:
                 self.save_handler(checkpoint, filename)
-
-            self._saved.append(Checkpoint.Item(priority, filename))
-            self._saved.sort(key=lambda item: item[0])
-
-        if not self._check_lt_n_saved(or_equal=True):
-            item = self._saved.pop(0)
-            if isinstance(self.save_handler, BaseSaveHandler):
-                self.save_handler.remove(item.filename)
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
