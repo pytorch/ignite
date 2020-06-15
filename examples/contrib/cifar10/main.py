@@ -148,7 +148,7 @@ def run(
         batch_size (int): total batch size. Default, 512.
         momentum (float): optimizer's momentum. Default, 0.9.
         weight_decay (float): weight decay. Default, 1e-4.
-        num_workers (int): number of workers in the data loader. Default, 5.
+        num_workers (int): number of workers in the data loader. Default, 12.
         num_epochs (int): number of epochs to train the model. Default, 24.
         learning_rate (float): peak of piecewise linear learning rate scheduler. Default, 0.4.
         num_warmup_epochs (int): number of warm-up epochs before learning rate decay. Default, 4.
@@ -159,8 +159,8 @@ def run(
         nproc_per_node (int, optional): optional argument to setup number of processes per node. It is useful,
             when main python process is spawning training as child processes.
         resume_from (str, optional): path to checkpoint to use to resume the training from. Default, None.
-        log_every_iters (int): argument to log progress every ``log_every_iters`` iterations. It can be 0 to disable it.
-            Default, 15.
+        log_every_iters (int): argument to log batch loss every ``log_every_iters`` iterations.
+            It can be 0 to disable it. Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_trains (bool): if True, experiment Trains logger is setup. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
@@ -192,12 +192,7 @@ def get_dataflow(config):
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
     train_loader = idist.auto_dataloader(
-        train_dataset,
-        batch_size=config["batch_size"],
-        num_workers=config["num_workers"],
-        shuffle=True,
-        pin_memory="cuda" in idist.device().type,
-        drop_last=True,
+        train_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"], shuffle=True, drop_last=True,
     )
 
     test_loader = idist.auto_dataloader(

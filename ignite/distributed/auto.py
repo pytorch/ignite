@@ -25,6 +25,7 @@ def auto_dataloader(dataset, **kwargs):
     - number of workers is scaled by number of local processes: ``num_workers / nprocs``.
     - if no sampler provided by user, `torch DistributedSampler` is setup.
     - if a sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
+    - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
 
     .. warning::
 
@@ -96,6 +97,8 @@ def auto_dataloader(dataset, **kwargs):
             "Argument `pin_memory=False` will be used to construct data loader."
         )
         kwargs["pin_memory"] = False
+    else:
+        kwargs["pin_memory"] = kwargs.get("pin_memory", idist.device() == "cuda")
 
     logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
     dataloader = DataLoader(dataset, **kwargs)

@@ -28,6 +28,9 @@ def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
     dataloader = auto_dataloader(data, batch_size=10, num_workers=2, sampler=sampler, shuffle=sampler is None)
 
     assert isinstance(dataloader, dl_type)
+    if hasattr(dataloader, "_loader"):
+        dataloader = dataloader._loader
+
     assert dataloader.batch_size == 10 // ws
     assert dataloader.num_workers == (2 + nproc - 1) // nproc
     if ws < 2:
@@ -36,13 +39,15 @@ def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
     else:
         sampler_type = DistributedSampler if sampler is None else DistributedProxySampler
         assert isinstance(dataloader.sampler, sampler_type)
+    if isinstance(dataloader, DataLoader):
+        assert dataloader.pin_memory == (data.device == "cuda")
 
 
 def _test_auto_model_optimizer(ws, device):
     # Test auto_model
     model = nn.Linear(10, 10)
     model = auto_model(model)
-    if ws > 1:
+    if ws > 1 and device in ("cuda", "cpu"):
         assert isinstance(model, nn.parallel.DistributedDataParallel)
     elif device != "cpu" and torch.cuda.is_available() and torch.cuda.device_count() > 1:
         assert isinstance(model, nn.parallel.DataParallel)
