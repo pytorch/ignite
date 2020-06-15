@@ -5,9 +5,9 @@ channels:
 dependencies:
   - python=3.7
   - numpy
-  - cudatoolkit=10.1.243=h6bb024c_0
-  - pytorch=1.5.0=py3.7_cuda10.1.243_cudnn7.6.3_0  
-  - torchvision=0.6.0=py37_cu101
+  - cudatoolkit
+  - pytorch
+  - torchvision
   - pip
   - pip:
     - mlflow

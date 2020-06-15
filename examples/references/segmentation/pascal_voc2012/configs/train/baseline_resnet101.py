@@ -7,8 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
 
-import ignite.distributed as idist
-
 from torchvision.models.segmentation import deeplabv3_resnet101
 
 import albumentations as A
