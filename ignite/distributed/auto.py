@@ -98,7 +98,7 @@ def auto_dataloader(dataset, **kwargs):
         )
         kwargs["pin_memory"] = False
     else:
-        kwargs["pin_memory"] = kwargs.get("pin_memory", idist.device().type == "cuda")
+        kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
 
     logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
     dataloader = DataLoader(dataset, **kwargs)
