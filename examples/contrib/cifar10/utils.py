@@ -36,4 +36,4 @@ def get_model(name):
     else:
         raise RuntimeError("Unknown model name {}".format(name))
 
-    return fn()
+    return fn(num_classes=10)
