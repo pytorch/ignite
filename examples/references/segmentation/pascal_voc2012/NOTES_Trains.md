@@ -1,25 +1,33 @@
 # Experiments tracking with Trains
 
-**Allegro Trains** is a full system open source ML / DL experiment manager and ML-Ops solution. 
+[Allegro Trains](https://allegro.ai/docs/) is a full system open source ML / DL experiment manager and ML-Ops solution. 
 It is composed of a server, Python SDK and web UI. **Allegro Trains** enables data scientists and data engineers 
 to effortlessly track, manage, compare and collaborate on their experiments as well as easily manage their 
 training workloads on remote machines.
 
-![trains_dashboard](assets/trains_dashboard.png)
 
 ## Install trains
 
 Install [trains](https://github.com/allegroai/trains) by executing the following command:
 
 ```bash
-pip install trains
+pip install --upgrade trains
 ```
 
-## Install The Segmentation Example Python Requirements 
+## Install requirements 
 
 ```bash
 pip install -r requirements.txt
 ```
+
+We need to also install Nvidia/APEX and libraries for opencv.
+**Important**, please, check the content of `experiments/setup_opencv.sh` before running the script.
+```bash
+sh experiments/setup_apex.sh
+ 
+sh experiments/setup_opencv.sh
+```
+
   
 ## Download Pascal VOC2012 and SDB datasets
 
@@ -41,7 +49,8 @@ This script will download and extract the following datasets into `/path/to/data
 Export the ``DATASET_PATH`` environment variable for the Pascal VOC2012 dataset.
 
 ```bash
-export DATASET_PATH=/path/to/datasets
+export DATASET_PATH=/path/to/pascal_voc2012
+# e.g. export DATASET_PATH=$PWD/input/ where VOCdevkit is located
 ```
         
 ### Setup the SBD dataset path
@@ -49,7 +58,8 @@ export DATASET_PATH=/path/to/datasets
 Export the ``SBD_DATASET_PATH`` environment variable for the SBD evaluation dataset.
 
 ```bash
-export SBD_DATASET_PATH=/path/to/datasets
+export SBD_DATASET_PATH=/path/to/SBD/benchmark_RELEASE/dataset/
+# e.g. export SBD_DATASET_PATH=/data/SBD/benchmark_RELEASE/dataset/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
 ```
 
 ## Run the experiment code
@@ -63,16 +73,50 @@ After the experiment code runs once, you can [reproduce the experiment](#reprodu
 **Trains Web-App (UI)**, which is part of ``trains-server``. You only need to run the code once to store it 
 in ``trains-server``.
 
+
+### Setup
+
+This setup is a specific for this code and is not required in general usage of Trains.
+We setup an output path as a local storage:
+```bash
+export TRAINS_OUTPUT_PATH=/path/to/output/trains
+# e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
+```
+
+This environment variable helps to choose Trains as experiment tracking system among all others.
+
 ### Run the code
+
+#### Training on single node and single GPU
+
+Please, make sure to adapt training data loader batch size to your GPU type. For example, a single GPU with 11GB can have a batch size of 8-9.
 
 Execute the following command: 
 
 ```bash
-python -m py_config_runner ./code/scripts/trains_training.py ./configs/train/baseline_resnet101.py  --manual_config_load
+export TRAINS_OUTPUT_PATH=/path/to/output/trains
+# e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
+export PYTHONPATH=$PWD/code:$PYTHONPATH
+
+py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```
 
-In **Trains Web-App** a new project named *"ignite"* will be created, 
-with an experiment named *"DeeplabV3_ResNet101 pascal_voc2012 segmentation example"* inside.
+#### Training on single node and multiple GPUs
+
+For optimal devices usage, please, make sure to adapt training data loader batch size to your infrasture. 
+For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N devices, we can set it as `N * 9`.
+
+```
+export TRAINS_OUTPUT_PATH=/path/to/output/trains
+# e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
+export PYTHONPATH=$PWD/code:$PYTHONPATH
+
+python -m torch.distributed.launch --nproc 2 --use_env -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
+```
+
+
+In **Trains Web-App** a new project named *"Pascal-VOC12 Training"* will be created, 
+with an experiment named *"baseline_resnet101"* inside.
 
 In your local environment, the console output includes the URL of the experiment's **RESULTS** page.
 
@@ -84,7 +128,6 @@ You can now view your experiment in **Trains** by clicking the link or copying t
 It opens the results in the experiment's details pane, in the **Trains Web-App (UI)**.
 
 
-
 #### Trains automatic Logging
 
 When the experiment code runs, **Trains** automatically logs your environment, code, and the outputs.
@@ -93,7 +136,7 @@ Which means that you don't need to change your code.
 All you need is 2 lines of integration at the top of your main script
 ```python
 from trains import Task
-Task.init('ignite', 'pascal_voc2012 segmentation example')
+Task.init("Pascal-VOC12 Training", "baseline_resnet101")
 ```
 Once it's there, the following will be automatically logged by **Trains**:
 
@@ -101,8 +144,7 @@ Once it's there, the following will be automatically logged by **Trains**:
 * **Development Environment** Python environment, Git (repo, branch, commit) including uncommitted changes
 * **Configuration** Including configuration files, command line arguments (ArgParser), and general dictionaries
 * Full **stdout** and **stderr** automatic logging
-* Model snapshots, with optional automatic upload to central storage.  
-Storage options include shared folders, S3, GS, Azure, and http/s
+* Model snapshots, with optional automatic upload to central storage.
 * Artifacts log & store, including shared folders, S3, GS, Azure, and Http/s
 * Matplotlib / Seaborn / TensorBoard / TensorBoardX scalars, metrics, histograms, images, audio, video, etc 
 
