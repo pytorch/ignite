@@ -43,8 +43,10 @@ class _BaseClassification(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
-        if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
-            raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
+        if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] > 1):
+            raise ValueError(
+                "y and y_pred must have same shape of (batch_size, num_categories, ...) " "and num_classes > 1."
+            )
 
     def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
