@@ -443,6 +443,10 @@ def test_multilabel_wrong_inputs():
         # incompatible y
         acc.update((torch.randint(0, 5, size=(10, 5, 6)), torch.rand(10)))
 
+    with pytest.raises(ValueError):
+        # incompatible binary shapes
+        acc.update((torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)).long()))
+
 
 def test_multilabel_input_N():
     # Multilabel input data of shape (N, C, ...) and (N, C, ...)
