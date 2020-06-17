@@ -76,7 +76,7 @@ mlflow run experiments/mlflow --experiment-name=Trainings -P config_path=configs
 
 ### Training on single node with multiple GPUs
 
-For optimal devices usage, please, make sure to adapt training data loader batch size to your infrasture. 
+For optimal devices usage, please, make sure to adapt training data loader batch size to your infrastructure. 
 For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N devices, we can set it as `N * 9`.
 
 ```bash
