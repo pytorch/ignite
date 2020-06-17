@@ -63,12 +63,11 @@ def auto_dataloader(dataset, **kwargs):
     world_size = idist.get_world_size()
 
     logger = setup_logger(__name__ + ".auto_dataloader")
-
     if world_size > 1:
-        if "batch_size" in kwargs:
+        if "batch_size" in kwargs and kwargs["batch_size"] >= world_size:
             kwargs["batch_size"] //= world_size
 
-        if "num_workers" in kwargs:
+        if "num_workers" in kwargs and kwargs["num_workers"] >= world_size:
             nproc = idist.get_nproc_per_node()
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
 
