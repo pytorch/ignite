@@ -32,12 +32,20 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 
 [![image](assets/tldr/pytorch-ignite-teaser.gif)](https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/teaser.py)
 
+*Click on the image to see complete code*
 </div>
+
+### Features
+
+- X % less code to write vs pure PyTorch ([imagenet example comparision]()).
+- Library approach and no program's control inversion (*Use it where and when you need*).  
+- <? Something about extensibilty ?>
 
 
 # Table of Contents
-- [Installation](#installation)
 - [Why Ignite?](#why-ignite)
+- [Installation](#installation)
+- [Quickstart](#)
 - [Documentation](#documentation)
 - [Structure](#structure)
 - [Examples](#examples)
@@ -52,57 +60,59 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 - [About the team](#about-the-team)
 
 
-# Installation
-
-From [pip](https://pypi.org/project/pytorch-ignite/):
-
-``` {.sourceCode .bash}
-pip install pytorch-ignite
-```
-
-From [conda](https://anaconda.org/pytorch/ignite):
-
-``` {.sourceCode .bash}
-conda install ignite -c pytorch
-```
-
-From source:
-
-``` {.sourceCode .bash}
-pip install git+https://github.com/pytorch/ignite
-```
-
-## Nightly releases
-
-From pip:
-
-``` {.sourceCode .bash}
-pip install --pre pytorch-ignite
-```
-
-From conda (this suggests to install [pytorch nightly
-release](https://anaconda.org/pytorch-nightly/pytorch) instead of stable
-version as dependency):
-
-``` {.sourceCode .bash}
-conda install ignite -c pytorch-nightly
-```
-
 # Why Ignite?
 
-Ignite\'s high level of abstraction assumes less about the type of
-network (or networks) that you are training, and we require the user to
-define the closure to be run in the training and validation loop. This
-level of abstraction allows for a great deal more of flexibility, such
-as co-training multiple models (i.e. GANs) and computing/tracking
-multiple losses and metrics in your training loop.
+Ignite is a **library** that provides three high-level features:
+
+- Engine to simplify training and validation loop
+- Out-of-the-box metrics to easily evaluate models
+- Built-in handlers to compose training pipeline, save artifacts and log parameters and metrics
+
+## Simplified training and validation loop
+
+No more coding `for/while` loops on epochs and iterations. User instantiates engines and run them. 
+
+<details>
+<summary>
+Example
+</summary>
+
+```python
+from ignite.engine import Engine, Events, create_supervised_evaluator
+from ignite.metrics import Accuracy
+
+
+# Setup training engine:
+def train_step(engine, batch):
+    # User can do whatever he/she needs on a single iteration 
+    # E.g. forward/backward pass for any number of models, optimizers etc
+    # ...
+
+trainer = Engine(train_step)
+
+# Setup single model evaluation engine
+evaluator = create_supervised_evaluator(model, metrics={"accuracy": Accuracy()})
+
+def validation():        
+    state = evaluator.run(validation_data_loader)
+    # print computed metrics 
+    print(trainer.state.epoch, state.metrics)
+
+# Run model's validation 
+trainer.add_event_handler(Events.EPOCH_COMPLETED, validation)
+
+# Start the training
+trainer.run(training_data_loader, max_epochs=100)
+```
+
+</details>
+
 
 ## Power of Events & Handlers
 
 The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be 
-any function: e.g. lambda, simple function, class method etc. The first argument can be optionally `engine`, but not necessary. 
-Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk 
-up your code and its complexity.
+any function: e.g. lambda, simple function, class method etc. Thus, we do not require to inherit from an interface and override 
+its abstract methods which could unnecessarily bulk up your code and its complexity.
 
 ### Execute any number of functions whenever you wish
 
@@ -126,7 +136,7 @@ def on_training_ended(data):
 
 trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 # call any number of functions on a single event
-trainer.add_event_handler(Events.COMPLETED, lambda engine: print("OK"))
+trainer.add_event_handler(Events.COMPLETED, lambda engine: print(engine.state.times))
 
 @trainer.on(Events.ITERATION_COMPLETED)
 def log_something(engine):
@@ -228,6 +238,42 @@ F1_mean = F1_per_class.mean()  # torch mean method
 F1_mean.attach(engine, "F1")
 ```
 
+# Installation
+
+From [pip](https://pypi.org/project/pytorch-ignite/):
+
+``` {.sourceCode .bash}
+pip install pytorch-ignite
+```
+
+From [conda](https://anaconda.org/pytorch/ignite):
+
+``` {.sourceCode .bash}
+conda install ignite -c pytorch
+```
+
+From source:
+
+``` {.sourceCode .bash}
+pip install git+https://github.com/pytorch/ignite
+```
+
+## Nightly releases
+
+From pip:
+
+``` {.sourceCode .bash}
+pip install --pre pytorch-ignite
+```
+
+From conda (this suggests to install [pytorch nightly
+release](https://anaconda.org/pytorch-nightly/pytorch) instead of stable
+version as dependency):
+
+``` {.sourceCode .bash}
+conda install ignite -c pytorch-nightly
+```
+
 
 # Documentation
 
@@ -249,15 +295,13 @@ F1_mean.attach(engine, "F1")
 -   **ignite**: Core of the library, contains an engine for training and
     evaluating, all of the classic machine learning metrics and a
     variety of handlers to ease the pain of training and validation of
-    neural networks!
+    neural networks.
 -   **ignite.contrib**: The Contrib directory contains additional
     modules that can require extra dependencies. Modules vary from TBPTT engine,
     various optimisation parameter schedulers, logging handlers and a
     metrics module containing many regression metrics
-    ([ignite.contrib.metrics.regression](https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression))!
+    ([ignite.contrib.metrics.regression](https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression)).
 
-The code in **ignite.contrib** is not as fully maintained as the core
-part of the library.
 
 # Examples
 
@@ -301,18 +345,16 @@ Basic neural network training on MNIST dataset with/without `ignite.contrib` mod
 ## Distributed CIFAR10 Example
 
 Training a small variant of ResNet on CIFAR10 in various configurations:
-1\) single gpu, 2) single node multiple gpus, 3) multiple nodes and
-multilple gpus.
+1) single gpu, 2) single node multiple gpus, 3) multiple nodes and
+multilple gpus, 4) TPUs
 
 -   [CIFAR10](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
 
 ## Other Examples
 
 -   [DCGAN](https://github.com/pytorch/ignite/tree/master/examples/gan)
--   [Reinforcement
-    Learning](https://github.com/pytorch/ignite/tree/master/examples/reinforcement_learning)
--   [Fast Neural
-    Style](https://github.com/pytorch/ignite/tree/master/examples/fast_neural_style)
+-   [Reinforcement Learning](https://github.com/pytorch/ignite/tree/master/examples/reinforcement_learning)
+-   [Fast Neural Style](https://github.com/pytorch/ignite/tree/master/examples/fast_neural_style)
 
 ## Reproducible Training Examples
 
@@ -325,10 +367,8 @@ we provide several reproducible baselines for vision tasks:
 
 Features:
 
--   Distributed training with mixed precision by
-    [nvidia/apex](https://github.com/NVIDIA/apex/)
--   Experiments tracking with [MLflow](https://mlflow.org/),
-    [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains/) 
+-   Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
+-   Experiments tracking with [MLflow](https://mlflow.org/), [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains/) 
 
 # Communication
 
@@ -377,40 +417,29 @@ As always, PRs are welcome :)
 
 ## Blog articles, tutorials, books
 
--   [State-of-the-Art Conversational AI with Transfer
-    Learning](https://github.com/huggingface/transfer-learning-conv-ai)
--   [Tutorial on Transfer Learning in NLP held at NAACL
-    2019](https://github.com/huggingface/naacl_transfer_learning_tutorial)
--   [Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by
-    Packt](https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition)
+-   [State-of-the-Art Conversational AI with Transfer Learning](https://github.com/huggingface/transfer-learning-conv-ai)
+-   [Tutorial on Transfer Learning in NLP held at NAACL 2019](https://github.com/huggingface/naacl_transfer_learning_tutorial)
+-   [Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by Packt](https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-Second-Edition)
 -   [Once Upon a Repository: How to Write Readable, Maintainable Code with PyTorch](https://towardsdatascience.com/once-upon-a-repository-how-to-write-readable-maintainable-code-with-pytorch-951f03f6a829)
+-   [The Hero Rises: Build Your Own SSD](https://allegro.ai/blog/the-hero-rises-build-your-own-ssd/)
 
 
 ## Toolkits
 
--   [Project MONAI -
-    AI Toolkit for Healthcare Imaging
-    ](https://github.com/Project-MONAI/MONAI)
+-   [Project MONAI - AI Toolkit for Healthcare Imaging](https://github.com/Project-MONAI/MONAI)
 -   [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
 -   [Nussl - a flexible, object oriented Python audio source separation library](https://github.com/nussl/nussl)
 
 ## Others
 
--   [Implementation of \"Attention is All You Need\"
-    paper](https://github.com/akurniawan/pytorch-transformer)
--   [Implementation of DropBlock: A regularization method for
-    convolutional networks in
-    PyTorch](https://github.com/miguelvr/dropblock)
--   [Kaggle Kuzushiji Recognition: 2nd place
-    solution](https://github.com/lopuhin/kaggle-kuzushiji-2019)
--   [Unsupervised Data Augmentation experiments in
-    PyTorch](https://github.com/vfdev-5/UDA-pytorch)
--   [Hyperparameters tuning with
-    Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
+-   [Implementation of \"Attention is All You Need\" paper](https://github.com/akurniawan/pytorch-transformer)
+-   [Implementation of DropBlock: A regularization method for convolutional networks in PyTorch](https://github.com/miguelvr/dropblock)
+-   [Kaggle Kuzushiji Recognition: 2nd place solution](https://github.com/lopuhin/kaggle-kuzushiji-2019)
+-   [Unsupervised Data Augmentation experiments in PyTorch](https://github.com/vfdev-5/UDA-pytorch)
+-   [Hyperparameters tuning with Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
 -   [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 
-See other projects at [\"Used
-by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
+See other projects at [\"Used by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
 
 If your project implements a paper, represents other use-cases not
 covered in our official tutorials, Kaggle competition\'s code or just
