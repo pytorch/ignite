@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 import cv2
@@ -8,6 +8,7 @@ from torch.utils.data.dataset import Subset
 from torchvision.datasets import ImageNet
 
 import ignite.distributed as idist
+
 
 def opencv_loader(path):
     img = cv2.imread(path)
