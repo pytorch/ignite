@@ -45,7 +45,7 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 # Table of Contents
 - [Why Ignite?](#why-ignite)
 - [Installation](#installation)
-- [Quickstart](#)
+- [Getting Started](#getting-started)
 - [Documentation](#documentation)
 - [Structure](#structure)
 - [Examples](#examples)
@@ -274,6 +274,10 @@ version as dependency):
 conda install ignite -c pytorch-nightly
 ```
 
+# Getting Started
+
+
+
 
 # Documentation
 
@@ -340,6 +344,7 @@ Basic neural network training on MNIST dataset with/without `ignite.contrib` mod
     torch.cuda.amp vs nvidia/apex](https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar100_bench_amp.ipynb) 
 -   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)  [MNIST training on a single 
     TPU](https://github.com/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)
+-   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E9zJrptnLJ_PKhmaP5Vhb6DTVRvyrKHx) [CIFAR10 Training on multiple TPUs](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
    
 
 ## Distributed CIFAR10 Example
