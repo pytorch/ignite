@@ -25,14 +25,18 @@ def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
 
     # Test auto_dataloader
     assert idist.get_world_size() == ws
-    dataloader = auto_dataloader(data, batch_size=10, num_workers=2, sampler=sampler, shuffle=sampler is None)
+    BATCH_SIZE = 10
+    NUM_WORKERS = 2
+    dataloader = auto_dataloader(
+        data, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, sampler=sampler, shuffle=sampler is None
+    )
 
     assert isinstance(dataloader, dl_type)
     if hasattr(dataloader, "_loader"):
         dataloader = dataloader._loader
 
-    assert dataloader.batch_size == 10 // ws
-    assert dataloader.num_workers == (2 + nproc - 1) // nproc
+    assert dataloader.batch_size == BATCH_SIZE // ws if ws < BATCH_SIZE else BATCH_SIZE
+    assert dataloader.num_workers == (NUM_WORKERS + nproc - 1) // nproc if ws < NUM_WORKERS else NUM_WORKERS
     if ws < 2:
         sampler_type = RandomSampler if sampler is None else type(sampler)
         assert isinstance(dataloader.sampler, sampler_type)
