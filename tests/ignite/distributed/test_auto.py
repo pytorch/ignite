@@ -12,7 +12,7 @@ import ignite.distributed as idist
 from ignite.distributed.auto import DistributedProxySampler, auto_dataloader, auto_model, auto_optim
 
 
-def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
+def _test_auto_dataloader(ws, nproc, batch_size, sampler_name=None, dl_type=DataLoader):
 
     data = torch.rand(100, 3, 12, 12)
 
@@ -25,18 +25,23 @@ def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
 
     # Test auto_dataloader
     assert idist.get_world_size() == ws
-    BATCH_SIZE = 10
     NUM_WORKERS = 2
     dataloader = auto_dataloader(
-        data, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, sampler=sampler, shuffle=sampler is None
+        data, batch_size=batch_size, num_workers=NUM_WORKERS, sampler=sampler, shuffle=sampler is None
     )
 
     assert isinstance(dataloader, dl_type)
     if hasattr(dataloader, "_loader"):
         dataloader = dataloader._loader
+    if ws < batch_size:
+        assert dataloader.batch_size == batch_size // ws
+    else:
+        assert dataloader.batch_size == batch_size
+    if ws < NUM_WORKERS:
+        assert dataloader.num_workers == (NUM_WORKERS + nproc - 1) // nproc
+    else:
+        assert dataloader.num_workers == NUM_WORKERS
 
-    assert dataloader.batch_size == BATCH_SIZE // ws if ws < BATCH_SIZE else BATCH_SIZE
-    assert dataloader.num_workers == (NUM_WORKERS + nproc - 1) // nproc if ws < NUM_WORKERS else NUM_WORKERS
     if ws < 2:
         sampler_type = RandomSampler if sampler is None else type(sampler)
         assert isinstance(dataloader.sampler, sampler_type)
@@ -45,6 +50,8 @@ def _test_auto_dataloader(ws, nproc, sampler_name=None, dl_type=DataLoader):
         assert isinstance(dataloader.sampler, sampler_type)
     if isinstance(dataloader, DataLoader):
         assert dataloader.pin_memory == ("cuda" in idist.device().type)
+
+    # test
 
 
 def _test_auto_model_optimizer(ws, device):
@@ -73,8 +80,10 @@ def _test_auto_model_optimizer(ws, device):
 
 def test_auto_methods_no_dist():
 
-    _test_auto_dataloader(1, 1)
-    _test_auto_dataloader(1, 1, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(1, 1, batch_size=1)
+    _test_auto_dataloader(1, 1, batch_size=10)
+    _test_auto_dataloader(1, 1, batch_size=1, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(1, 1, batch_size=10, sampler_name="WeightedRandomSampler")
 
     _test_auto_model_optimizer(1, "cpu")
 
@@ -84,8 +93,10 @@ def test_auto_methods_no_dist():
 def test_auto_methods_gloo(distributed_context_single_node_gloo):
 
     ws = distributed_context_single_node_gloo["world_size"]
-    _test_auto_dataloader(ws=ws, nproc=ws)
-    _test_auto_dataloader(ws=ws, nproc=ws, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
 
     _test_auto_model_optimizer(ws, "cpu")
 
@@ -97,8 +108,10 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
 
     ws = distributed_context_single_node_nccl["world_size"]
     lrank = distributed_context_single_node_nccl["local_rank"]
-    _test_auto_dataloader(ws=ws, nproc=ws)
-    _test_auto_dataloader(ws=ws, nproc=ws, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
 
     device = "cuda"
     _test_auto_model_optimizer(ws, device)
@@ -119,8 +132,10 @@ def _test_auto_methods_xla(index, ws):
         except ImportError:
             pass
 
-    _test_auto_dataloader(ws=ws, nproc=ws, dl_type=dl_type)
-    _test_auto_dataloader(ws=ws, nproc=ws, sampler_name="WeightedRandomSampler", dl_type=dl_type)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, dl_type=dl_type)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, dl_type=dl_type)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler", dl_type=dl_type)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler", dl_type=dl_type)
 
     device = "xla"
     _test_auto_model_optimizer(ws, device)
