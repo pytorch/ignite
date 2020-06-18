@@ -1023,3 +1023,197 @@ def _test_tpu_saves_to_cpu_nprocs(index, dirname):
 def test_distrib_single_device_xla_nprocs(xmp_executor, dirname):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname,), nprocs=n)
+
+
+def test_checkpoint_filename_pattern():
+    def _test(
+        to_save,
+        filename_prefix="",
+        score_function=None,
+        score_name=None,
+        global_step_transform=None,
+        filename_pattern=None,
+    ):
+        save_handler = MagicMock(spec=BaseSaveHandler)
+
+        checkpointer = Checkpoint(
+            to_save,
+            save_handler=save_handler,
+            filename_prefix=filename_prefix,
+            score_function=score_function,
+            score_name=score_name,
+            global_step_transform=global_step_transform,
+            filename_pattern=filename_pattern,
+        )
+
+        trainer = Engine(lambda e, b: None)
+        trainer.state = State(epoch=12, iteration=203, score=0.9999)
+
+        checkpointer(trainer)
+        return checkpointer.last_checkpoint
+
+    def _ignite_filename_pattern(
+        filename_prefix="", score_function=None, score_name=None, global_step_transform=None, filename_pattern=None
+    ):
+        if filename_pattern is None:
+            if score_function is None and score_name is None and global_step_transform is None:
+                filename_pattern = "{name}_%s.{ext}" % 203  # fake engine.state.iteration
+            elif score_function and score_name is None:
+                if global_step_transform:
+                    filename_pattern = "{name}_{global_step}_{score}.{ext}"
+                else:
+                    filename_pattern = "{name}_{score}.{ext}"
+            elif score_function and score_name:
+                if global_step_transform:
+                    filename_pattern = "{name}_{global_step}_{score_name}={score}.{ext}"
+                else:
+                    filename_pattern = "{name}_{score_name}={score}.{ext}"
+            else:
+                raise Exception("weird case score_name is not None but score_function is None")
+
+            if filename_prefix:
+                filename_pattern = "{filename_prefix}_" + filename_pattern
+
+        score = score_function() if score_function else None
+        global_step = global_step_transform() if global_step_transform else None
+
+        kwargs = {
+            "filename_prefix": filename_prefix,
+            "ext": "pt",
+            "name": "model",
+            "score_name": score_name,
+            "score": score,
+            "global_step": global_step,
+        }
+
+        return filename_pattern.format(**kwargs)
+
+    model = DummyModel()
+    to_save = {"model": model}
+
+    assert _test(to_save) == _ignite_filename_pattern()
+    assert _test(to_save, "best") == _ignite_filename_pattern("best")
+    assert _test(to_save, score_function=lambda e: e.state.score) == _ignite_filename_pattern(
+        score_function=lambda: 0.9999
+    )
+    assert _test(
+        to_save, score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch
+    ) == _ignite_filename_pattern(
+        score_function=lambda: 0.9999, global_step_transform=lambda: 12
+    )
+    assert _test(to_save, score_function=lambda e: e.state.score, score_name="acc") == _ignite_filename_pattern(
+        score_function=lambda: 0.9999, score_name="acc"
+    )
+    assert _test(
+        to_save,
+        score_function=lambda e: e.state.score,
+        score_name="acc",
+        global_step_transform=lambda e, _: e.state.epoch,
+    ) == _ignite_filename_pattern(
+        score_function=lambda: 0.9999, score_name="acc", global_step_transform=lambda: 12
+    )
+    assert _test(to_save, "best", score_function=lambda e: e.state.score) == _ignite_filename_pattern(
+        "best", score_function=lambda: 0.9999
+    )
+    assert _test(
+        to_save, "best", score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch
+    ) == _ignite_filename_pattern(
+        "best", score_function=lambda: 0.9999, global_step_transform=lambda: 12
+    )
+    assert _test(
+        to_save, "best", score_function=lambda e: e.state.score, score_name="acc"
+    ) == _ignite_filename_pattern("best", score_function=lambda: 0.9999, score_name="acc")
+    assert _test(
+        to_save,
+        "best",
+        score_function=lambda e: e.state.score,
+        score_name="acc",
+        global_step_transform=lambda e, _: e.state.epoch,
+    ) == _ignite_filename_pattern(
+        "best", score_function=lambda: 0.9999, score_name="acc", global_step_transform=lambda: 12
+    )
+
+    pattern = "SAVE:{name}--{score}.{ext}"
+    assert _test(to_save, to_save, filename_pattern=pattern) == "SAVE:model--203.pt"
+    pattern = "SAVE:{filename_prefix}--{name}--{score}.{ext}"
+    assert _test(to_save, "best", filename_pattern=pattern) == "SAVE:best--model--203.pt"
+    pattern = "SAVE:{name}--{score}.{ext}"
+    assert _test(to_save, score_function=lambda e: e.state.score, filename_pattern=pattern) == "SAVE:model--0.9999.pt"
+    pattern = "SAVE:{name}--{global_step}--{score}.{ext}"
+    assert (
+        _test(
+            to_save,
+            score_function=lambda e: e.state.score,
+            global_step_transform=lambda e, _: e.state.epoch,
+            filename_pattern=pattern,
+        )
+        == "SAVE:model--12--0.9999.pt"
+    )
+    pattern = "SAVE:{name}--{score_name}--{score}.{ext}"
+    assert (
+        _test(to_save, score_function=lambda e: e.state.score, score_name="acc", filename_pattern=pattern)
+        == "SAVE:model--acc--0.9999.pt"
+    )
+    pattern = "SAVE:{name}--{global_step}--{score_name}--{score}.{ext}"
+    assert (
+        _test(
+            to_save,
+            score_function=lambda e: e.state.score,
+            score_name="acc",
+            global_step_transform=lambda e, _: e.state.epoch,
+            filename_pattern=pattern,
+        )
+        == "SAVE:model--12--acc--0.9999.pt"
+    )
+    pattern = "SAVE:{filename_prefix}--{name}--{score}.{ext}"
+    assert (
+        _test(to_save, "best", score_function=lambda e: e.state.score, filename_pattern=pattern)
+        == "SAVE:best--model--0.9999.pt"
+    )
+    pattern = "SAVE:{filename_prefix}--{name}--{global_step}--{score}.{ext}"
+    assert (
+        _test(
+            to_save,
+            "best",
+            score_function=lambda e: e.state.score,
+            global_step_transform=lambda e, _: e.state.epoch,
+            filename_pattern=pattern,
+        )
+        == "SAVE:best--model--12--0.9999.pt"
+    )
+    pattern = "SAVE:{filename_prefix}--{name}--{score_name}--{score}.{ext}"
+    assert (
+        _test(to_save, "best", score_function=lambda e: e.state.score, score_name="acc", filename_pattern=pattern)
+        == "SAVE:best--model--acc--0.9999.pt"
+    )
+    pattern = "SAVE:{filename_prefix}--{name}--{global_step}--{score_name}--{score}.{ext}"
+    assert (
+        _test(
+            to_save,
+            "best",
+            score_function=lambda e: e.state.score,
+            score_name="acc",
+            global_step_transform=lambda e, _: e.state.epoch,
+            filename_pattern=pattern,
+        )
+        == "SAVE:best--model--12--acc--0.9999.pt"
+    )
+    pattern = "SAVE:{name}-{score_name}--{score}.pth"
+    assert (
+        _test(
+            to_save,
+            "best",
+            score_function=lambda e: e.state.score,
+            score_name="acc",
+            global_step_transform=lambda e, _: e.state.epoch,
+            filename_pattern=pattern,
+        )
+        == "SAVE:model-acc--0.9999.pth"
+    )
+
+    pattern = "SAVE:{filename_prefix}--{name}--{score_name}--{score}.{ext}"
+    assert _test(to_save, filename_pattern=pattern) == "SAVE:--model----203.pt"
+
+    with pytest.raises(KeyError, match=r"random_key"):
+        pattern = "SAVE:{random_key}.{ext}"
+        _test(to_save, filename_pattern=pattern)
