@@ -29,37 +29,19 @@ sh experiments/setup_opencv.sh
 ```
 
   
-## Download Pascal VOC2012 and SDB datasets
+#### Download ImageNet dataset
 
-Download and extract the datasets:
-
-```bash
-python code/scripts/download_dataset.py /path/to/datasets
-```
-
-This script will download and extract the following datasets into `/path/to/datasets`
-
-* The [Pascal VOC2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar) dataset
-* Optionally, the [SBD](http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz) evaluation dataset
+Since 10/2019, we need to register an account in order to download the dataset.
+To download the dataset, use the following form : http://www.image-net.org/download.php 
 
 ## Setup the environment variables
 
 ### Setup the dataset path
 
-Export the ``DATASET_PATH`` environment variable for the Pascal VOC2012 dataset.
-
+To configure the path to already existing ImageNet dataset, please specify `DATASET_PATH` environment variable
 ```bash
-export DATASET_PATH=/path/to/pascal_voc2012
-# e.g. export DATASET_PATH=$PWD/input/ where VOCdevkit is located
-```
-        
-### Setup the SBD dataset path
-
-Export the ``SBD_DATASET_PATH`` environment variable for the SBD evaluation dataset.
-
-```bash
-export SBD_DATASET_PATH=/path/to/SBD/benchmark_RELEASE/dataset/
-# e.g. export SBD_DATASET_PATH=/data/SBD/benchmark_RELEASE/dataset/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
+export DATASET_PATH=/path/to/imagenet
+# export DATASET_PATH=$PWD/input/imagenet
 ```
 
 ## Run the experiment code
@@ -89,7 +71,7 @@ This environment variable helps to choose Trains as experiment tracking system a
 
 #### Training on single node and single GPU
 
-Please, make sure to adapt training data loader batch size to your GPU type. For example, a single GPU with 11GB can have a batch size of 8-9.
+Please, make sure to adapt training data loader batch size to your GPU type. By default, batch size is 64 per process.
 
 Execute the following command: 
 
@@ -98,25 +80,23 @@ export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
 export PYTHONPATH=$PWD/code:$PYTHONPATH
 
-py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
+py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet50.py
 ```
 
 #### Training on single node and multiple GPUs
 
-For optimal devices usage, please, make sure to adapt training data loader batch size to your infrasture. 
-For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N devices, we can set it as `N * 9`.
-
+Please, make sure to adapt training data loader batch size to your GPU type. By default, batch size is 64 per process.
 ```bash
 export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
 export PYTHONPATH=$PWD/code:$PYTHONPATH
 
-python -m torch.distributed.launch --nproc 2 --use_env -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
+python -m torch.distributed.launch --nproc 2 --use_env -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet50.py
 ```
 
 
-In **Trains Web-App** a new project named *"Pascal-VOC12 Training"* will be created, 
-with an experiment named *"baseline_resnet101"* inside.
+In **Trains Web-App** a new project named *"ImageNet Training"* will be created, 
+with an experiment named *"baseline_resnet50"* inside.
 
 In your local environment, the console output includes the URL of the experiment's **RESULTS** page.
  
@@ -132,7 +112,7 @@ Which means that you don't need to change your code.
 All you need is 2 lines of integration at the top of your main script
 ```python
 from trains import Task
-Task.init("Pascal-VOC12 Training", "baseline_resnet101")
+Task.init("ImageNet Training", "baseline_resnet50")
 ```
 Once it's there, the following will be automatically logged by **Trains**:
 
