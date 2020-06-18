@@ -236,7 +236,13 @@ def function_before_backprop(engine):
 Precision, Recall, Accuracy, Confusion Matrix, IoU etc, ~20 [regression metrics](https://pytorch.org/ignite/contrib/metrics.html#regression-metrics).
 
 - Users can also [compose their own metrics](https://pytorch.org/ignite/metrics.html#metric-arithmetics) with ease from 
-existing ones using arithmetic operations or torch methods:
+existing ones using arithmetic operations or torch methods.
+
+<details>
+<summary>
+Example
+</summary>
+
 ```python
 precision = Precision(average=False)
 recall = Recall(average=False)
@@ -244,6 +250,8 @@ F1_per_class = (precision * recall * 2 / (precision + recall))
 F1_mean = F1_per_class.mean()  # torch mean method
 F1_mean.attach(engine, "F1")
 ```
+
+</details>
 
 
 <!-- ############################################################################################################### -->
@@ -292,9 +300,9 @@ conda install ignite -c pytorch-nightly
 
 Few pointers to get you started:
 
-- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html) <!-- TODO: REWRITE IT -->
-- [Concepts of the library: ](https://pytorch.org/ignite/concepts.html) <!-- TODO: REWRITE IT -->
-- [Template examples]() <!-- TODO -->
+- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html)
+- [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch.org/ignite/concepts.html)
+- [Full-featured template examples for common tasks]() <!-- TODO -->
 
 
 <!-- ############################################################################################################### -->
@@ -320,20 +328,7 @@ Few pointers to get you started:
 
 # Examples
 
-<!-- TODO: MAKE SMALLER AND KEEP ESSENTIAL -->
-
-We provide several examples ported from
-[pytorch/examples](https://github.com/pytorch/examples) using `ignite` to display how it helps to write compact and
-full-featured training loops in a few lines of code:
-
-## MNIST Example
-
-Basic neural network training on MNIST dataset with/without `ignite.contrib` module:
-
--   [MNIST with ignite.contrib TQDM/Tensorboard/Visdom
-    loggers](https://github.com/pytorch/ignite/tree/master/examples/contrib/mnist)
--   [MNIST with native TQDM/Tensorboard/Visdom
-    logging](https://github.com/pytorch/ignite/tree/master/examples/mnist)
+Complete list of examples can be found [here](https://pytorch.org/ignite/examples.html).
 
 ## Tutorials
 
@@ -358,29 +353,14 @@ Basic neural network training on MNIST dataset with/without `ignite.contrib` mod
 -   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)  [MNIST training on a single 
     TPU](https://github.com/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)
 -   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E9zJrptnLJ_PKhmaP5Vhb6DTVRvyrKHx) [CIFAR10 Training on multiple TPUs](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
-   
-
-## Distributed CIFAR10 Example
-
-Training a ResNet model on CIFAR10 in various configurations:
-1) single gpu, 2) single node multiple gpus, 3) multiple nodes and
-multilple gpus, 4) TPUs
-
--   [CIFAR10](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
-
-## Other Examples
-
--   [DCGAN](https://github.com/pytorch/ignite/tree/master/examples/gan)
--   [Reinforcement Learning](https://github.com/pytorch/ignite/tree/master/examples/reinforcement_learning)
--   [Fast Neural Style](https://github.com/pytorch/ignite/tree/master/examples/fast_neural_style)
 
 ## Reproducible Training Examples
 
 Inspired by [torchvision/references](https://github.com/pytorch/vision/tree/master/references),
 we provide several reproducible baselines for vision tasks:
 
--   [ImageNet](examples/references/classification/imagenet)
--   [Pascal VOC2012](examples/references/segmentation/pascal_voc2012)
+-   [ImageNet](examples/references/classification/imagenet) - logs on Ignite Trains server coming soon
+-   [Pascal VOC2012](examples/references/segmentation/pascal_voc2012) - logs on Ignite Trains server coming soon
 
 Features:
 
@@ -457,14 +437,14 @@ As always, PRs are welcome :)
 
 ## Others
 
--   [Implementation of \"Attention is All You Need\" paper](https://github.com/akurniawan/pytorch-transformer)
+-   [Implementation of "Attention is All You Need" paper](https://github.com/akurniawan/pytorch-transformer)
 -   [Implementation of DropBlock: A regularization method for convolutional networks in PyTorch](https://github.com/miguelvr/dropblock)
 -   [Kaggle Kuzushiji Recognition: 2nd place solution](https://github.com/lopuhin/kaggle-kuzushiji-2019)
 -   [Unsupervised Data Augmentation experiments in PyTorch](https://github.com/vfdev-5/UDA-pytorch)
 -   [Hyperparameters tuning with Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
 -   [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 
-See other projects at [\"Used by\"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
+See other projects at ["Used by"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
 
 If your project implements a paper, represents other use-cases not
 covered in our official tutorials, Kaggle competition\'s code or just
