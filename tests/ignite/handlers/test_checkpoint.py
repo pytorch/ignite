@@ -1098,9 +1098,7 @@ def test_checkpoint_filename_pattern():
     )
     assert _test(
         to_save, score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch
-    ) == _ignite_filename_pattern(
-        score_function=lambda: 0.9999, global_step_transform=lambda: 12
-    )
+    ) == _ignite_filename_pattern(score_function=lambda: 0.9999, global_step_transform=lambda: 12)
     assert _test(to_save, score_function=lambda e: e.state.score, score_name="acc") == _ignite_filename_pattern(
         score_function=lambda: 0.9999, score_name="acc"
     )
@@ -1109,20 +1107,16 @@ def test_checkpoint_filename_pattern():
         score_function=lambda e: e.state.score,
         score_name="acc",
         global_step_transform=lambda e, _: e.state.epoch,
-    ) == _ignite_filename_pattern(
-        score_function=lambda: 0.9999, score_name="acc", global_step_transform=lambda: 12
-    )
+    ) == _ignite_filename_pattern(score_function=lambda: 0.9999, score_name="acc", global_step_transform=lambda: 12)
     assert _test(to_save, "best", score_function=lambda e: e.state.score) == _ignite_filename_pattern(
         "best", score_function=lambda: 0.9999
     )
     assert _test(
         to_save, "best", score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch
-    ) == _ignite_filename_pattern(
-        "best", score_function=lambda: 0.9999, global_step_transform=lambda: 12
+    ) == _ignite_filename_pattern("best", score_function=lambda: 0.9999, global_step_transform=lambda: 12)
+    assert _test(to_save, "best", score_function=lambda e: e.state.score, score_name="acc") == _ignite_filename_pattern(
+        "best", score_function=lambda: 0.9999, score_name="acc"
     )
-    assert _test(
-        to_save, "best", score_function=lambda e: e.state.score, score_name="acc"
-    ) == _ignite_filename_pattern("best", score_function=lambda: 0.9999, score_name="acc")
     assert _test(
         to_save,
         "best",

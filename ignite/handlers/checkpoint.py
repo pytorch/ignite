@@ -313,7 +313,7 @@ class Checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
 
-            filename_pattern_dict['name'] = name
+            filename_pattern_dict["name"] = name
             filename_prefix = self.filename_prefix
             if self.filename_pattern is None:
                 filename_prefix = self._add_field(filename_prefix)
