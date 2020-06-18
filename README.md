@@ -55,10 +55,7 @@ while ensuring maximum control and simplicity
 - [Documentation](#documentation)
 - [Structure](#structure)
 - [Examples](#examples)
-  * [MNIST Example](#mnist-example)
   * [Tutorials](#tutorials)
-  * [Distributed CIFAR10 Example](#distributed-cifar10-example)
-  * [Other Examples](#other-examples)
   * [Reproducible Training Examples](#reproducible-training-examples)
 - [Communication](#communication)
 - [Contributing](#contributing)
@@ -302,7 +299,7 @@ Few pointers to get you started:
 
 - [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html)
 - [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch.org/ignite/concepts.html)
-- [Full-featured template examples for common tasks]() <!-- TODO -->
+- [Full-featured template examples for common tasks]() (coming soon ...)
 
 
 <!-- ############################################################################################################### -->
@@ -359,8 +356,8 @@ Complete list of examples can be found [here](https://pytorch.org/ignite/example
 Inspired by [torchvision/references](https://github.com/pytorch/vision/tree/master/references),
 we provide several reproducible baselines for vision tasks:
 
--   [ImageNet](examples/references/classification/imagenet) - logs on Ignite Trains server coming soon
--   [Pascal VOC2012](examples/references/segmentation/pascal_voc2012) - logs on Ignite Trains server coming soon
+-   [ImageNet](examples/references/classification/imagenet) - logs on Ignite Trains server coming soon ...
+-   [Pascal VOC2012](examples/references/segmentation/pascal_voc2012) - logs on Ignite Trains server coming soon ...
 
 Features:
 
