@@ -34,6 +34,8 @@ class ROC_AUC(EpochMetric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        check_compute_fn (bool): if True, compute_fn is run on the first batch of data to ensure there are no
+            issues. If issues exist, user is warned that there might be an issue with the compute_fn.
 
     ROC_AUC expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
     values. To apply an activation to y_pred, use output_transform as shown below:
@@ -49,8 +51,10 @@ class ROC_AUC(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
-        super(ROC_AUC, self).__init__(roc_auc_compute_fn, output_transform=output_transform)
+    def __init__(self, output_transform=lambda x: x, check_compute_fn=True):
+        super(ROC_AUC, self).__init__(
+            roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+        )
 
 
 class RocCurve(EpochMetric):
@@ -64,6 +68,8 @@ class RocCurve(EpochMetric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        check_compute_fn (bool): if True, compute_fn is run on the first batch of data to ensure there are no
+            issues. If issues exist, user is warned that there might be an issue with the compute_fn.
 
     RocCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
     values. To apply an activation to y_pred, use output_transform as shown below:
@@ -79,5 +85,7 @@ class RocCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
-        super(RocCurve, self).__init__(roc_auc_curve_compute_fn, output_transform=output_transform)
+    def __init__(self, output_transform=lambda x: x, check_compute_fn=True):
+        super(RocCurve, self).__init__(
+            roc_auc_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+        )

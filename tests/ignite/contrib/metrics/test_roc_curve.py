@@ -1,9 +1,11 @@
 import numpy as np
+import pytest
 import torch
 from sklearn.metrics import roc_curve
 
 from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine
+from ignite.metrics.epoch_metric import EpochMetricWarning
 
 
 def test_roc_curve():
@@ -89,3 +91,19 @@ def test_integration_roc_curve_with_activated_output_transform():
     assert np.array_equal(tpr, sk_tpr)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+
+
+def test_check_compute_fn():
+    y_pred = torch.zeros((8, 13))
+    y_pred[:, 1] = 1
+    y_true = torch.zeros_like(y_pred)
+    output = (y_pred, y_true)
+
+    em = RocCurve(check_compute_fn=True)
+
+    em.reset()
+    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
+        em.update(output)
+
+    em = RocCurve(check_compute_fn=False)
+    em.update(output)

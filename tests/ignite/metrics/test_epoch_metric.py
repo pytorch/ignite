@@ -144,6 +144,21 @@ def _test_warning():
         EpochMetric(compute_fn)
 
 
+def test_check_compute_fn():
+    def compute_fn(y_preds, y_targets):
+        raise Exception
+
+    em = EpochMetric(compute_fn, check_compute_fn=True)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
+        em.update(output1)
+
+    em = EpochMetric(compute_fn, check_compute_fn=False)
+    em.update(output1)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
