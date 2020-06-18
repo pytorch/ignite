@@ -111,8 +111,9 @@ class Checkpoint:
         setup by attached engine's current iteration. The filename will be
         `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
 
-        If defined a `score_function`, but without `score_name`, then suffix is defined by provided score.
-        The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pt`.
+        If defined a `score_function`, but without `score_name`, then the suffix is defined by the provided score.
+        The filename will be `{filename_prefix}_{name}_{score}.{ext}`. If `global_step_transform` is provided,
+        then the filename will be `{filename_prefix}_{name}_{global_step}_{score}.{ext}`.
 
         If defined `score_function` and `score_name`, then the filename will
         be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If `global_step_transform` is provided, then
@@ -243,7 +244,7 @@ class Checkpoint:
         self.score_function = score_function
         self.score_name = score_name
         self.n_saved = n_saved
-        self.ext = ".pt"
+        self.ext = "pt"
         self.global_step_transform = global_step_transform
         self.filename_pattern = filename_pattern
         self._saved = []
@@ -312,10 +313,11 @@ class Checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
 
+            filename_pattern_dict['name'] = name
             filename_prefix = self.filename_prefix
             if self.filename_pattern is None:
                 filename_prefix = self._add_field(filename_prefix)
-                filename = "{}{}_{}{}".format(filename_prefix, name, suffix, self.ext)
+                filename = "{}{}_{}.{}".format(filename_prefix, name, suffix, self.ext)
             else:
                 filename = self.filename_pattern.format(**filename_pattern_dict)
 
