@@ -32,7 +32,7 @@ polyaxon run -u -f experiments/plx/job_download_datasets.yml
 
 ### Training on single node with single or multiple GPU
 
-For optimal devices usage, please, make sure to adapt training data loader batch size to your infrasture. 
+For optimal devices usage, please, make sure to adapt training data loader batch size to your infrastructure. 
 For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N devices, we can set it as `N * 9`.
 Please, adapt `xp_training.yml` to your cluster configuration and run it, for example, as
 

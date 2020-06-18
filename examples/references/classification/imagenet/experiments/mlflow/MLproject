@@ -8,4 +8,4 @@ entry_points:
     parameters:
       config_path: path
       num_gpus: float
-    command: "sh setup_apex.sh && sh setup_opencv.sh && export PYTHONPATH=$PWD/../../code:$PYTHONPATH && python -m torch.distributed.launch --nproc_per_node={num_gpus} -m py_config_runner ../../code/scripts/mlflow_training.py {config_path} --manual_config_load"
+    command: "sh ../setup_apex.sh && export PYTHONPATH=$PWD/../../code:$PYTHONPATH && python -m torch.distributed.launch --nproc_per_node={num_gpus} --use_env -m py_config_runner ../../code/scripts/training.py {config_path}"
