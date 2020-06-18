@@ -22,8 +22,10 @@ class AveragePrecision(EpochMetric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): if True, compute_fn is run on the first batch of data to ensure there are no
-            issues. If issues exist, user is warned that there might be an issue with the compute_fn.
+        check_compute_fn (bool): Optional default False. If True, `sklearn.metrics.average_precision_score
+            <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
+            #sklearn.metrics.average_precision_score>`_ is run on the first batch of data to ensure there are
+            no issues. User will be warned in case there are any issues computing the function.
 
     AveragePrecision expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or
     confidence values. To apply an activation to y_pred, use output_transform as shown below:
@@ -39,7 +41,7 @@ class AveragePrecision(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn=True):
+    def __init__(self, output_transform=lambda x: x, check_compute_fn=False):
         super(AveragePrecision, self).__init__(
             average_precision_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )

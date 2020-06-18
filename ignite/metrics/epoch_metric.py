@@ -35,7 +35,7 @@ class EpochMetric(Metric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         check_compute_fn (bool): if True, compute_fn is run on the first batch of data to ensure there are no
-            issues. If issues exist, user is warned that there might be an issue with the compute_fn.
+            issues. If issues exist, user is warned that there might be an issue with the ``compute_fn``.
 
     Warnings:
         EpochMetricWarning: User is warned that there are issues with compute_fn on a batch of data processed.
