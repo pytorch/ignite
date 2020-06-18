@@ -56,8 +56,10 @@ class _BaseRegressionEpoch(EpochMetric):
     # `update` method check the shapes and call internal overloaded method `_update`.
     # Class internally stores complete history of predictions and targets of type float32.
 
-    def __init__(self, compute_fn, output_transform=lambda x: x):
-        super(_BaseRegressionEpoch, self).__init__(compute_fn=compute_fn, output_transform=output_transform)
+    def __init__(self, compute_fn, output_transform=lambda x: x, check_compute_fn=True):
+        super(_BaseRegressionEpoch, self).__init__(
+            compute_fn=compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+        )
 
     def _check_type(self, output):
         _check_output_types(output)
