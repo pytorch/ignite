@@ -37,9 +37,15 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 
 ### Features
 
-- X % less code to write vs pure PyTorch ([imagenet example comparision]()).
-- Library approach and no program's control inversion (*Use it where and when you need*).  
-- <? Something about extensibilty ?>
+- [Less code than pure PyTorch](https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png)
+while ensuring maximum control and simplicity
+
+- Library approach and no program's control inversion - *Use ignite where and when you need*
+
+- Extensible API for metrics, experiment managers, and other components
+
+
+<!-- ############################################################################################################### -->
 
 
 # Table of Contents
@@ -60,17 +66,20 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 - [About the team](#about-the-team)
 
 
+<!-- ############################################################################################################### -->
+
+
 # Why Ignite?
 
 Ignite is a **library** that provides three high-level features:
 
-- Engine to simplify training and validation loop
+- Extremely simple engine and event system
 - Out-of-the-box metrics to easily evaluate models
 - Built-in handlers to compose training pipeline, save artifacts and log parameters and metrics
 
 ## Simplified training and validation loop
 
-No more coding `for/while` loops on epochs and iterations. User instantiates engines and run them. 
+No more coding `for/while` loops on epochs and iterations. Users instantiate engines and run them. 
 
 <details>
 <summary>
@@ -84,7 +93,7 @@ from ignite.metrics import Accuracy
 
 # Setup training engine:
 def train_step(engine, batch):
-    # User can do whatever he/she needs on a single iteration 
+    # Users can do whatever they need on a single iteration 
     # E.g. forward/backward pass for any number of models, optimizers etc
     # ...
 
@@ -98,7 +107,7 @@ def validation():
     # print computed metrics 
     print(trainer.state.epoch, state.metrics)
 
-# Run model's validation 
+# Run model's validation at the end of each epoch
 trainer.add_event_handler(Events.EPOCH_COMPLETED, validation)
 
 # Start the training
@@ -110,9 +119,7 @@ trainer.run(training_data_loader, max_epochs=100)
 
 ## Power of Events & Handlers
 
-The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be 
-any function: e.g. lambda, simple function, class method etc. Thus, we do not require to inherit from an interface and override 
-its abstract methods which could unnecessarily bulk up your code and its complexity.
+The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be any function: e.g. lambda, simple function, class method etc. Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk up your code and its complexity.
 
 ### Execute any number of functions whenever you wish
 
@@ -238,23 +245,27 @@ F1_mean = F1_per_class.mean()  # torch mean method
 F1_mean.attach(engine, "F1")
 ```
 
+
+<!-- ############################################################################################################### -->
+
+
 # Installation
 
 From [pip](https://pypi.org/project/pytorch-ignite/):
 
-``` {.sourceCode .bash}
+```bash
 pip install pytorch-ignite
 ```
 
 From [conda](https://anaconda.org/pytorch/ignite):
 
-``` {.sourceCode .bash}
+```bash
 conda install ignite -c pytorch
 ```
 
 From source:
 
-``` {.sourceCode .bash}
+```bash
 pip install git+https://github.com/pytorch/ignite
 ```
 
@@ -262,21 +273,31 @@ pip install git+https://github.com/pytorch/ignite
 
 From pip:
 
-``` {.sourceCode .bash}
+```bash
 pip install --pre pytorch-ignite
 ```
 
-From conda (this suggests to install [pytorch nightly
-release](https://anaconda.org/pytorch-nightly/pytorch) instead of stable
+From conda (this suggests to install [pytorch nightly release](https://anaconda.org/pytorch-nightly/pytorch) instead of stable
 version as dependency):
 
-``` {.sourceCode .bash}
+```bash
 conda install ignite -c pytorch-nightly
 ```
 
+
+<!-- ############################################################################################################### -->
+
+
 # Getting Started
 
+Few pointers to get you started:
 
+- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html) <!-- TODO: REWRITE IT -->
+- [Concepts of the library: ](https://pytorch.org/ignite/concepts.html) <!-- TODO: REWRITE IT -->
+- [Template examples]() <!-- TODO -->
+
+
+<!-- ############################################################################################################### -->
 
 
 # Documentation
@@ -294,20 +315,12 @@ conda install ignite -c pytorch-nightly
     - [2018](https://drive.google.com/open?id=1_2vzBJ0KeCjGv1srojMHiJRvceSVbVR5)
 
 
-# Structure
-
--   **ignite**: Core of the library, contains an engine for training and
-    evaluating, all of the classic machine learning metrics and a
-    variety of handlers to ease the pain of training and validation of
-    neural networks.
--   **ignite.contrib**: The Contrib directory contains additional
-    modules that can require extra dependencies. Modules vary from TBPTT engine,
-    various optimisation parameter schedulers, logging handlers and a
-    metrics module containing many regression metrics
-    ([ignite.contrib.metrics.regression](https://github.com/pytorch/ignite/tree/master/ignite/contrib/metrics/regression)).
+<!-- ############################################################################################################### -->
 
 
 # Examples
+
+<!-- TODO: MAKE SMALLER AND KEEP ESSENTIAL -->
 
 We provide several examples ported from
 [pytorch/examples](https://github.com/pytorch/examples) using `ignite` to display how it helps to write compact and
@@ -349,7 +362,7 @@ Basic neural network training on MNIST dataset with/without `ignite.contrib` mod
 
 ## Distributed CIFAR10 Example
 
-Training a small variant of ResNet on CIFAR10 in various configurations:
+Training a ResNet model on CIFAR10 in various configurations:
 1) single gpu, 2) single node multiple gpus, 3) multiple nodes and
 multilple gpus, 4) TPUs
 
@@ -363,8 +376,7 @@ multilple gpus, 4) TPUs
 
 ## Reproducible Training Examples
 
-Inspired by
-[torchvision/references](https://github.com/pytorch/vision/tree/master/references),
+Inspired by [torchvision/references](https://github.com/pytorch/vision/tree/master/references),
 we provide several reproducible baselines for vision tasks:
 
 -   [ImageNet](examples/references/classification/imagenet)
@@ -374,6 +386,10 @@ Features:
 
 -   Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
 -   Experiments tracking with [MLflow](https://mlflow.org/), [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains/) 
+
+
+<!-- ############################################################################################################### -->
+
 
 # Communication
 
@@ -385,8 +401,7 @@ Features:
 
 ## User feedback
 
-We have created a form for [\"user
-feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
+We have created a form for [\"user feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
 appreciate any type of feedback and this is how we would like to see our
 community:
 
@@ -398,13 +413,18 @@ community:
 Thank you !
 
 
+<!-- ############################################################################################################### -->
+
+
 # Contributing
 
-Please see the [contribution
-guidelines](https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md)
-for more information.
+Please see the [contribution guidelines](https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md) for more information.
 
 As always, PRs are welcome :)
+
+
+<!-- ############################################################################################################### -->
+
 
 # Projects using Ignite
 
@@ -451,6 +471,10 @@ covered in our official tutorials, Kaggle competition\'s code or just
 your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
+
+
+
+<!-- ############################################################################################################### -->
 
 
 # About the team

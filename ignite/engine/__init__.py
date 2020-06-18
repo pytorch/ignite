@@ -48,8 +48,8 @@ def create_supervised_trainer(
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
 ) -> Engine:
-    """
-    Factory function for creating a trainer for supervised models.
+    """Factory function for creating a trainer for supervised models.
+
     Args:
         model (`torch.nn.Module`): the model to train.
         optimizer (`torch.optim.Optimizer`): the optimizer to use.
@@ -66,16 +66,22 @@ def create_supervised_trainer(
         deterministic (bool, optional): if True, returns deterministic engine of type
             :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.Engine`
             (default: False).
+
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
         of the processed batch by default.
+
     .. warning::
+
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
         For more information see:
-        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
-        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
+        - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+
+        - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
     Returns:
         Engine: a trainer engine with supervised update function.
     """
@@ -142,8 +148,9 @@ def create_supervised_evaluator(
 
         For more information see:
 
-        * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
-        * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+        - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+
+        - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     Returns:
         Engine: an evaluator engine with supervised inference function.

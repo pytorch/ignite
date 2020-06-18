@@ -5,7 +5,7 @@ Metrics provide a way to compute various quantities of interest in an online
 fashion without having to store the entire output history of a model.
 
 In practice a user needs to attach the metric instance to an engine. The metric
-value is then computed using the output of the engine's `process_function`:
+value is then computed using the output of the engine's ``process_function``:
 
 .. code-block:: python
 
@@ -17,8 +17,8 @@ value is then computed using the output of the engine's `process_function`:
     metric = Accuracy()
     metric.attach(engine, "accuracy")
 
-If the engine's output is not in the format `(y_pred, y)` or `{'y_pred': y_pred, 'y': y, ...}`, the user can
-use the `output_transform` argument to transform it:
+If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``, the user can
+use the ``output_transform`` argument to transform it:
 
 .. code-block:: python
 
@@ -40,9 +40,9 @@ use the `output_transform` argument to transform it:
 
 .. Note ::
 
-    Most of implemented metrics are adapted to distributed computations and reduce their internal states across the GPUs
-    before computing metric value. This can be helpful to run the evaluation on multiple nodes/GPU instances with a
-    distributed data sampler. Following code snippet shows in detail how to adapt metrics:
+    Most of implemented metrics are adapted to distributed computations and reduce their internal states across supported
+    devices before computing metric value. This can be helpful to run the evaluation on multiple nodes/GPU instances/TPUs
+    with a distributed data sampler. Following code snippet shows in detail how to use metrics:
 
     .. code-block:: python
 
@@ -51,10 +51,15 @@ use the `output_transform` argument to transform it:
                                                           device_ids=[local_rank, ],
                                                           output_device=local_rank)
         test_sampler = DistributedSampler(test_dataset)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, sampler=test_sampler,
-                                 num_workers=num_workers, pin_memory=True)
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=batch_size,
+            sampler=test_sampler,
+            num_workers=num_workers,
+            pin_memory=True
+        )
 
-        evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy(device=device)}, device=device)
+        evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy()}, device=device)
 
 .. Note ::
 
@@ -78,7 +83,7 @@ For example:
 
 .. note::  This example computes the mean of F1 across classes. To combine
     precision and recall to get F1 or other F metrics, we have to be careful
-    that `average=False`, i.e. to use the unaveraged precision and recall,
+    that ``average=False``, i.e. to use the unaveraged precision and recall,
     otherwise we will not be computing F-beta metrics.
 
 Metrics also support indexing operation (if metric's result is a vector/matrix/tensor). For example, this can be useful to compute mean metric (e.g. precision, recall or IoU) ignoring the background:
@@ -97,9 +102,9 @@ How to create a custom metric
 To create a custom metric one needs to create a new class inheriting from :class:`~ignite.metrics.Metric` and override
 three methods :
 
-- `reset()` : resets internal variables and accumulators
-- `update(output)` : updates internal variables and accumulators with provided batch output `(y_pred, y)`
-- `compute()` : computes custom metric and return the result
+- :meth:`~ignite.metrics.Metric.reset()` : resets internal variables and accumulators
+- :meth:`~ignite.metrics.Metric.update()` : updates internal variables and accumulators with provided batch output ``(y_pred, y)``
+- :meth:`~ignite.metrics.Metric.compute()` : computes custom metric and return the result
 
 For example, we would like to implement for illustration purposes a multi-class accuracy metric with some
 specific condition (e.g. ignore user-defined classes):
@@ -115,11 +120,11 @@ specific condition (e.g. ignore user-defined classes):
 
     class CustomAccuracy(Metric):
 
-        def __init__(self, ignored_class, output_transform=lambda x: x, device=None):
+        def __init__(self, ignored_class, output_transform=lambda x: x):
             self.ignored_class = ignored_class
             self._num_correct = None
             self._num_examples = None
-            super(CustomAccuracy, self).__init__(output_transform=output_transform, device=device)
+            super(CustomAccuracy, self).__init__(output_transform=output_transform)
 
         @reinit__is_reduced
         def reset(self):
@@ -150,9 +155,9 @@ specific condition (e.g. ignore user-defined classes):
 
 
 We imported necessary classes as :class:`~ignite.metrics.Metric`, :class:`~ignite.exceptions.NotComputableError` and
-decorators to adapt the metric for distributed setting. In `reset` method, we reset internal variables `_num_correct`
-and `_num_examples` which are used to compute the custom metric. In `updated` method we define how to update
-the internal variables. And finally in `compute` method, we compute metric value.
+decorators to adapt the metric for distributed setting. In ``reset`` method, we reset internal variables ``_num_correct``
+and ``_num_examples`` which are used to compute the custom metric. In ``updated`` method we define how to update
+the internal variables. And finally in ``compute`` method, we compute metric value.
 
 We can check this implementation in a simple case:
 
@@ -183,9 +188,9 @@ Metrics and its usages
 
 By default, `Metrics` are epoch-wise, it means
 
-- `reset()` is triggered every :attr:`~ignite.engine.Events.EPOCH_STARTED`
-- `update(output)` is triggered every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
-- `compute()` is triggered every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`
+- :meth:`~ignite.metrics.Metric.reset()` is triggered every :attr:`~ignite.engine.Events.EPOCH_STARTED`
+- :meth:`~ignite.metrics.Metric.update()` is triggered every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
+- :meth:`~ignite.metrics.Metric.compute()` is triggered every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`
 
 Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.MetricUsage`. See the list below of usages.
 
@@ -200,7 +205,12 @@ Complete list of usages
 Metrics and distributed computations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In the above example, `CustomAccuracy` constructor has `device` argument and `reset`, `update`, `compute` methods are decorated with `reinit__is_reduced`, `sync_all_reduce`. The purpose of these features is to adapt metrics in distributed computations on CUDA devices and assuming the backend to support `"all_reduce" operation <https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_reduce>`_. User can specify the device (by default, `cuda`) at metric's initialization. This device _can_ be used to store internal variables on and to collect all results from all participating devices. More precisely, in the above example we added `@sync_all_reduce("_num_examples", "_num_correct")` over `compute` method. This means that when `compute` method is called, metric's interal variables `self._num_examples` and `self._num_correct` are summed up over all participating devices. Therefore, once collected, these internal variables can be used to compute the final metric value.
+In the above example, ``CustomAccuracy`` has ``reset``, ``update``, ``compute`` methods
+decorated with ``reinit__is_reduced``, ``sync_all_reduce``. The purpose of these features is to adapt metrics in distributed
+computations on supported backend and devices (:doc:`distributed`). More precisely, in the above example we
+added ``@sync_all_reduce("_num_examples", "_num_correct")`` over ``compute`` method. This means that when ``compute`` method
+is called, metric's interal variables ``self._num_examples`` and ``self._num_correct`` are summed up over all participating
+devices. Therefore, once collected, these internal variables can be used to compute the final metric value.
 
 Complete list of metrics
 ------------------------
@@ -279,3 +289,10 @@ Complete list of metrics
 .. autoclass:: BatchWise
 
 .. autoclass:: BatchFiltered
+
+
+.. currentmodule:: ignite.metrics.metric
+
+.. autofunction:: sync_all_reduce
+
+.. autofunction:: reinit__is_reduced

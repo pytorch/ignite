@@ -81,15 +81,15 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
+    criterion = nn.NLLLoss()
 
     # Create trainer and evaluator
     trainer = create_supervised_trainer(
-        model, optimizer, F.nll_loss, device=device, output_transform=lambda x, y, y_pred, loss: [loss.item(),]
+        model, optimizer, criterion, device=device, output_transform=lambda x, y, y_pred, loss: [loss.item(),]
     )
 
-    evaluator = create_supervised_evaluator(
-        model, metrics={"accuracy": Accuracy(), "nll": Loss(F.nll_loss)}, device=device
-    )
+    val_metrics = {"accuracy": Accuracy(), "nll": Loss(criterion)}
+    evaluator = create_supervised_evaluator(model, metrics=val_metrics, device=device)
 
     tracker = xm.RateTracker()
 

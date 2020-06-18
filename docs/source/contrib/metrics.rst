@@ -13,6 +13,11 @@ Contribution module of metrics
 Regression metrics
 ------------------
 
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. automodule:: ignite.contrib.metrics.regression
+
+
 Module :mod:`ignite.contrib.metrics.regression` provides implementations of
 metrics useful for regression tasks. Definitions of metrics are based on `Botchkarev 2018`_, page 30 "Appendix 2. Metrics mathematical definitions".
 
@@ -37,8 +42,6 @@ Complete list of metrics:
     - :class:`~ignite.contrib.metrics.regression.R2Score`
     - :class:`~ignite.contrib.metrics.regression.WaveHedgesDistance`
 
-
-.. currentmodule:: ignite.contrib.metrics.regression
 
 .. autoclass:: CanberraMetric
 
