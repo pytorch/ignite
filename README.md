@@ -33,10 +33,17 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 
 <div align="center">
 
-[![image](assets/tldr/pytorch-ignite-teaser.gif)](https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/teaser.py)
+<a href="https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/teaser.py">
+ <img alt="PyTorch-Ignite teaser" 
+      src="assets/tldr/pytorch-ignite-teaser.gif" 
+      width=532">
+</a> 
 
 *Click on the image to see complete code*
 </div>
+
+<!-- [![image](assets/tldr/pytorch-ignite-teaser.gif | width=512)](https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/teaser.py) -->
+
 
 ### Features
 
