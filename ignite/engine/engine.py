@@ -16,7 +16,7 @@ __all__ = ["Engine"]
 
 
 class Engine(Serializable):
-    """Runs a given `process_function` over each batch of a dataset, emitting events as it goes.
+    """Runs a given ``process_function`` over each batch of a dataset, emitting events as it goes.
 
     Args:
         process_function (callable): A function receiving a handle to the engine and the current batch
@@ -24,8 +24,8 @@ class Engine(Serializable):
 
     Attributes:
         state (State): object that is used to pass internal and user-defined state between event handlers.
-            It is created with the engine and its attributes (e.g. `state.iteration`, `state.epoch` etc) are reset
-            on every :meth:`~ignite.engine.Engine.run`.
+            It is created with the engine and its attributes (e.g. ``state.iteration``, ``state.epoch`` etc) are reset
+            on every :meth:`~ignite.engine.engine.Engine.run`.
         last_event_name (Events): last event name triggered by the engine.
 
     Examples:
@@ -144,14 +144,13 @@ class Engine(Serializable):
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
-        This opens the door to make the :meth:`~ignite.engine.Engine.run` loop even more
+        This opens the door to make the :meth:`~ignite.engine.engine.Engine.run` loop even more
         configurable.
 
-        By default, the events from :class:`~ignite.engine.Events` are registered.
+        By default, the events from :class:`~ignite.engine.events.Events` are registered.
 
         Args:
-            *event_names: An object (ideally a string or int) to define the
-                name of the event being supported.
+            *event_names: An object (ideally a string or int) to define the name of the event being supported.
             event_to_attr (dict, optional): A dictionary to map an event to a state attribute.
 
         Example usage:
@@ -217,17 +216,17 @@ class Engine(Serializable):
 
         Args:
             event_name: An event or a list of events to attach the handler. Valid events are
-                from :class:`~ignite.engine.Events` or any `event_name` added by
-                :meth:`~ignite.engine.Engine.register_events`.
+                from :class:`~ignite.engine.events.Events` or any ``event_name`` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
             handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
                 The first argument can be optionally `engine`, the :class:`~ignite.engine.engine.Engine` object,
                 handler is bound to.
-            *args: optional args to be passed to `handler`.
-            **kwargs: optional keyword args to be passed to `handler`.
+            *args: optional args to be passed to ``handler``.
+            **kwargs: optional keyword args to be passed to ``handler``.
 
         Note:
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
-            passed here, for example during :attr:`~ignite.engine.Events.EXCEPTION_RAISED`.
+            passed here, for example during :attr:`~ignite.engine.events.Events.EXCEPTION_RAISED`.
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
@@ -253,7 +252,7 @@ class Engine(Serializable):
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
-            See :class:`~ignite.engine.Events` for more details.
+            See :class:`~ignite.engine.events.Events` for more details.
 
         """
         if isinstance(event_name, EventsList):
@@ -342,8 +341,8 @@ class Engine(Serializable):
         """Decorator shortcut for add_event_handler.
 
         Args:
-            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.Events` or
-                any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.events.Events`
+                or any ``event_name`` added by :meth:`~ignite.engine.engine.Engine.register_events`.
             *args: optional args to be passed to `handler`.
             **kwargs: optional keyword args to be passed to `handler`.
 
@@ -375,12 +374,12 @@ class Engine(Serializable):
         This method executes all handlers associated with the event
         `event_name`. Optional positional and keyword arguments can be used to
         pass arguments to **all** handlers added with this event. These
-        arguments updates arguments passed using :meth:`~ignite.engine.Engine.add_event_handler`.
+        arguments updates arguments passed using :meth:`~ignite.engine.engine.Engine.add_event_handler`.
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-                events are from :class:`~ignite.engine.Events` or any `event_name` added by
-                :meth:`~ignite.engine.Engine.register_events`.
+                events are from :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
             *event_args: optional args to be passed to all handlers.
             **event_kwargs: optional keyword args to be passed to all handlers.
 
@@ -397,11 +396,11 @@ class Engine(Serializable):
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
-        `event_name`. This is the method used in :meth:`~ignite.engine.Engine.run` to call the
-        core events found in :class:`~ignite.engine.Events`.
+        `event_name`. This is the method used in :meth:`~ignite.engine.engine.Engine.run` to call the
+        core events found in :class:`~ignite.engine.events.Events`.
 
         Custom events can be fired if they have been registered before with
-        :meth:`~ignite.engine.Engine.register_events`. The engine `state` attribute should be used
+        :meth:`~ignite.engine.engine.Engine.register_events`. The engine `state` attribute should be used
         to exchange "dynamic" data among `process_function` and handlers.
 
         This method is called automatically for core events. If no custom
@@ -410,8 +409,8 @@ class Engine(Serializable):
 
         Args:
             event_name: event for which the handlers should be executed. Valid
-                events are from :class:`~ignite.engine.Events` or any `event_name` added by
-                :meth:`~ignite.engine.Engine.register_events`.
+                events are from :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
 
         """
         return self._fire_event(event_name)
@@ -599,8 +598,8 @@ class Engine(Serializable):
             State: output state.
 
         Note:
-            User can dynamically preprocess input batch at :attr:`~ignite.engine.Events.ITERATION_STARTED` and store
-            output batch in `engine.state.batch`. Latter is passed as usually to `process_function` as argument:
+            User can dynamically preprocess input batch at :attr:`~ignite.engine.events.Events.ITERATION_STARTED` and
+            store output batch in `engine.state.batch`. Latter is passed as usually to `process_function` as argument:
 
             .. code-block:: python
 

@@ -507,7 +507,7 @@ class ModelCheckpoint(Checkpoint):
         Argument ``save_as_state_dict`` is deprecated and should not be used. It is considered as True.
 
         Argument ``save_interval`` is deprecated and should not be used. Please, use events filtering instead, e.g.
-        :attr:`~ignite.engine.Events.ITERATION_STARTED(every=1000)`
+        :attr:`~ignite.engine.events.Events.ITERATION_STARTED(every=1000)`
 
         There is no more internal counter that has been used to indicate the number of save actions. User could
         see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pt`. Actually,
@@ -532,7 +532,7 @@ class ModelCheckpoint(Checkpoint):
             occurs during saving).
         require_empty (bool, optional): If True, will raise exception if there are any files starting with
             ``filename_prefix`` in the directory ``dirname``.
-        create_dir (bool, optional): If True, will create directory ``dirname`` if it doesnt exist.
+        create_dir (bool, optional): If True, will create directory ``dirname`` if it does not exist.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.

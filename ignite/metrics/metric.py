@@ -17,7 +17,7 @@ class MetricUsage:
     Base class for all usages of metrics.
 
     A usage of metric defines the events when a metric starts to compute, updates and completes.
-    Valid events are from :class:`~ignite.engine.Events`.
+    Valid events are from :class:`~ignite.engine.events.Events`.
 
     Args:
         started: event when the metric starts to compute. This event will be associated to
@@ -52,9 +52,9 @@ class EpochWise(MetricUsage):
 
     Metric's methods are triggered on the following engine events:
 
-    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
-    - :meth:`~ignite.metrics.Metric.iteration_completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.started` on every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
     """
 
     usage_name = "epoch_wise"
@@ -73,9 +73,9 @@ class BatchWise(MetricUsage):
 
     Metric's methods are triggered on the following engine events:
 
-    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.ITERATION_STARTED`.
-    - :meth:`~ignite.metrics.Metric.iteration_completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.started` on every ``ITERATION_STARTED`` (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.Metric.completed` on every ``ITERATION_COMPLETED``.
     """
 
     usage_name = "batch_wise"
@@ -94,12 +94,12 @@ class BatchFiltered(MetricUsage):
 
     Metric's methods are triggered on the following engine events:
 
-    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
-    - :meth:`~ignite.metrics.Metric.iteration_completed` on filtered :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.started` on every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on filtered ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Args:
-        args (sequence): arguments for the setup of :attr:`~ignite.engine.Events.ITERATION_COMPLETED` handled by
+        args (sequence): arguments for the setup of :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED` handled by
             :meth:`~ignite.metrics.Metric.iteration_completed`.
 
     """

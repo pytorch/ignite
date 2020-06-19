@@ -183,9 +183,9 @@ Metrics and its usages
 
 By default, `Metrics` are epoch-wise, it means
 
-- `reset()` is triggered every :attr:`~ignite.engine.Events.EPOCH_STARTED`
-- `update(output)` is triggered every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
-- `compute()` is triggered every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`
+- `reset()` is triggered every :attr:`~ignite.engine.events.Events.EPOCH_STARTED`
+- `update(output)` is triggered every :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
+- `compute()` is triggered every :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
 
 Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.MetricUsage`. See the list below of usages.
 
