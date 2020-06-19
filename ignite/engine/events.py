@@ -146,7 +146,7 @@ class EventEnum(CallableEventWithFilter, Enum):
 
 
 class Events(EventEnum):
-    """Events that are fired by the :class:`~ignite.engine.Engine` during execution. Built-in events:
+    """Events that are fired by the :class:`~ignite.engine.engine.Engine` during execution. Built-in events:
 
     - STARTED : triggered when engine's run is started
     - EPOCH_STARTED : triggered when the epoch is started

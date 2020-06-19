@@ -118,10 +118,10 @@ class Metric(metaclass=ABCMeta):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-            By default, metrics require the output as `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+            By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
         device (str of torch.device, optional): optional device specification for internal storage.
 
     """
