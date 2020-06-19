@@ -31,11 +31,13 @@ class ROC_AUC(EpochMetric):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): if True, compute_fn is run on the first batch of data to ensure there are no
-            issues. If issues exist, user is warned that there might be an issue with the compute_fn.
+        check_compute_fn (bool): Optional default False. If True, `sklearn.metrics.roc_curve
+            <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#
+            sklearn.metrics.roc_auc_score>`_ is run on the first batch of data to ensure there are
+            no issues. User will be warned in case there are any issues computing the function.
 
     ROC_AUC expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
     values. To apply an activation to y_pred, use output_transform as shown below:
@@ -51,7 +53,7 @@ class ROC_AUC(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn=True):
+    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
         super(ROC_AUC, self).__init__(
             roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
@@ -65,7 +67,7 @@ class RocCurve(EpochMetric):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         check_compute_fn (bool): Optional default False. If True, `sklearn.metrics.roc_curve
