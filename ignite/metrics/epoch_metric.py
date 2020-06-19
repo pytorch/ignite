@@ -34,16 +34,21 @@ class EpochMetric(Metric):
             :class:`~ignite.engine.Engine`'s `process_function`'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        check_compute_fn (bool): if True, compute_fn is run on the first batch of data to ensure there are no
+            issues. If issues exist, user is warned that there might be an issue with the ``compute_fn``.
 
+    Warnings:
+        EpochMetricWarning: User is warned that there are issues with compute_fn on a batch of data processed.
     """
 
-    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x):
+    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x, check_compute_fn: bool = True):
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
         super(EpochMetric, self).__init__(output_transform=output_transform, device="cpu")
         self.compute_fn = compute_fn
+        self._check_compute_fn = check_compute_fn
 
     def reset(self) -> None:
         self._predictions = []
@@ -95,7 +100,7 @@ class EpochMetric(Metric):
         self._targets.append(y)
 
         # Check once the signature and execution of compute_fn
-        if len(self._predictions) == 1:
+        if len(self._predictions) == 1 and self._check_compute_fn:
             try:
                 self.compute_fn(self._predictions[0], self._targets[0])
             except Exception as e:
