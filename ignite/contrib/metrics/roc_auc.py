@@ -87,7 +87,7 @@ class RocCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn=False):
+    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
         super(RocCurve, self).__init__(
             roc_auc_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )

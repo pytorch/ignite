@@ -42,7 +42,7 @@ class PrecisionRecallCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn=False):
+    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
         super(PrecisionRecallCurve, self).__init__(
             precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )

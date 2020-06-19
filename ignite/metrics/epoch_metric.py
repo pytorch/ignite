@@ -41,7 +41,7 @@ class EpochMetric(Metric):
         EpochMetricWarning: User is warned that there are issues with compute_fn on a batch of data processed.
     """
 
-    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x, check_compute_fn=True):
+    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x, check_compute_fn: bool = True):
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")

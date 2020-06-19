@@ -41,7 +41,7 @@ class AveragePrecision(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn=False):
+    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
         super(AveragePrecision, self).__init__(
             average_precision_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
