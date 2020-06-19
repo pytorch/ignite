@@ -179,13 +179,13 @@ We can check this implementation in a simple case:
     # Out: 1 3 0.3333333333333333
 
 Metrics and its usages
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 By default, `Metrics` are epoch-wise, it means
 
-- `reset()` is triggered every :attr:`~ignite.engine.events.Events.EPOCH_STARTED`
-- `update(output)` is triggered every :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
-- `compute()` is triggered every :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
+- `reset()` is triggered every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+- `update(output)` is triggered every ``ITERATION_COMPLETED``.
+- `compute()` is triggered every ``EPOCH_COMPLETED``.
 
 Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.MetricUsage`. See the list below of usages.
 
@@ -198,7 +198,7 @@ Complete list of usages
     - :class:`~ignite.metrics.BatchFiltered`
 
 Metrics and distributed computations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 In the above example, `CustomAccuracy` constructor has `device` argument and `reset`, `update`, `compute` methods are decorated with `reinit__is_reduced`, `sync_all_reduce`. The purpose of these features is to adapt metrics in distributed computations on CUDA devices and assuming the backend to support `"all_reduce" operation <https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_reduce>`_. User can specify the device (by default, `cuda`) at metric's initialization. This device _can_ be used to store internal variables on and to collect all results from all participating devices. More precisely, in the above example we added `@sync_all_reduce("_num_examples", "_num_correct")` over `compute` method. This means that when `compute` method is called, metric's interal variables `self._num_examples` and `self._num_correct` are summed up over all participating devices. Therefore, once collected, these internal variables can be used to compute the final metric value.
 
