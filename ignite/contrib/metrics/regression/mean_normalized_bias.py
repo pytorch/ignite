@@ -14,7 +14,7 @@ class MeanNormalizedBias(_BaseRegression):
 
     More details can be found in the reference `Botchkarev 2018`__.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
     __ https://arxiv.org/abs/1809.03006

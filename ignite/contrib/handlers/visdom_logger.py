@@ -36,8 +36,8 @@ class _BaseVisDrawer:
             k (str): scalar name which is used to set window title and y-axis label
             v (int or float): scalar value, y-axis value
             event_name: Event name which is used to setup x-axis label. Valid events are from
-                :class:`~ignite.engine.Events` or any `event_name` added by
-                :meth:`~ignite.engine.Engine.register_events`.
+                :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
             global_step (int): global step, x-axis value
 
         """

@@ -21,8 +21,8 @@ class _OutputHandler(BaseOutputHandler):
             This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
         closing_event_name: event's name on which the progress bar is closed. Valid events are from
-            :class:`~ignite.engine.Events` or any `event_name` added by
-            :meth:`~ignite.engine.Engine.register_events`.
+            :class:`~ignite.engine.events.Events` or any `event_name` added by
+            :meth:`~ignite.engine.engine.Engine.register_events`.
 
     """
 
@@ -122,7 +122,7 @@ class ProgressBar(BaseLogger):
             pbar = ProgressBar(file=log_file)
             pbar.attach(trainer)
 
-        Attach metrics that already have been computed at :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
+        Attach metrics that already have been computed at :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
         (such as :class:`~ignite.metrics.RunningAverage`)
 
         .. code-block:: python
@@ -238,9 +238,9 @@ class ProgressBar(BaseLogger):
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
             event_name: event's name on which the progress bar advances. Valid events are from
-                :class:`~ignite.engine.Events`.
+                :class:`~ignite.engine.events.Events`.
             closing_event_name: event's name on which the progress bar is closed. Valid events are from
-                :class:`~ignite.engine.Events`.
+                :class:`~ignite.engine.events.Events`.
 
         Note: accepted output value types are numbers, 0d and 1d torch tensors and strings
 

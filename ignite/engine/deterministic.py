@@ -132,10 +132,10 @@ def keep_random_state(func: Callable):
 
 
 class DeterministicEngine(Engine):
-    """Deterministic engine derived from :class:`~ignite.engine.Engine`.
+    """Deterministic engine derived from :class:`~ignite.engine.engine.Engine`.
 
     "Deterministic" run is done by adding additional handlers to synchronize the dataflow and overriding some methods of
-    :class:`~ignite.engine.Engine`:
+    :class:`~ignite.engine.engine.Engine`:
 
     .. code-block:: python
 

@@ -12,7 +12,7 @@ __all__ = ["VariableAccumulation", "GeometricAverage", "Average"]
 class VariableAccumulation(Metric):
     """Single variable accumulator helper to compute (arithmetic, geometric, harmonic) average of a single variable.
 
-    - `update` must receive output of the form `x`.
+    - ``update`` must receive output of the form `x`.
     - `x` can be a number or `torch.Tensor`.
 
     Note:
@@ -28,7 +28,7 @@ class VariableAccumulation(Metric):
         op (callable): a callable to update accumulator. Method's signature is `(accumulator, output)`.
             For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         device (str of torch.device, optional): optional device specification for internal storage.
@@ -80,7 +80,7 @@ class VariableAccumulation(Metric):
 class Average(VariableAccumulation):
     """Helper class to compute arithmetic average of a single variable.
 
-    - `update` must receive output of the form `x`.
+    - ``update`` must receive output of the form `x`.
     - `x` can be a number or `torch.Tensor`.
 
     Note:
@@ -108,7 +108,7 @@ class Average(VariableAccumulation):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         device (str of torch.device, optional): optional device specification for internal storage.
@@ -136,8 +136,8 @@ class Average(VariableAccumulation):
 class GeometricAverage(VariableAccumulation):
     """Helper class to compute geometric average of a single variable.
 
-    - `update` must receive output of the form `x`.
-    - `x` can be a positive number or a positive `torch.Tensor`, such that `torch.log(x)` is not `nan`.
+    - ``update`` must receive output of the form `x`.
+    - `x` can be a positive number or a positive `torch.Tensor`, such that ``torch.log(x)`` is not `nan`.
 
     Note:
 
@@ -152,7 +152,7 @@ class GeometricAverage(VariableAccumulation):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         device (str of torch.device, optional): optional device specification for internal storage.

@@ -13,7 +13,7 @@ class EarlyStopping:
         patience (int):
             Number of events to wait if no improvement and then stop the training.
         score_function (callable):
-            It should be a function taking a single argument, an :class:`~ignite.engine.Engine` object,
+            It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine` object,
             and return a score `float`. An improvement is considered if the score is higher.
         trainer (Engine):
             trainer engine to stop the run if no improvement.

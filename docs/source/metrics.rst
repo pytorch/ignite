@@ -184,13 +184,13 @@ We can check this implementation in a simple case:
     # Out: 1 3 0.3333333333333333
 
 Metrics and its usages
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 By default, `Metrics` are epoch-wise, it means
 
-- :meth:`~ignite.metrics.Metric.reset()` is triggered every :attr:`~ignite.engine.Events.EPOCH_STARTED`
-- :meth:`~ignite.metrics.Metric.update()` is triggered every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`
-- :meth:`~ignite.metrics.Metric.compute()` is triggered every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`
+- :meth:`~ignite.metrics.Metric.reset()` is triggered every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+- :meth:`~ignite.metrics.Metric.update()` is triggered every ``ITERATION_COMPLETED``.
+- :meth:`~ignite.metrics.Metric.compute()` is triggered every ``EPOCH_COMPLETED``.
 
 Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.MetricUsage`. See the list below of usages.
 
@@ -203,7 +203,7 @@ Complete list of usages
     - :class:`~ignite.metrics.BatchFiltered`
 
 Metrics and distributed computations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 In the above example, ``CustomAccuracy`` has ``reset``, ``update``, ``compute`` methods
 decorated with ``reinit__is_reduced``, ``sync_all_reduce``. The purpose of these features is to adapt metrics in distributed
