@@ -23,7 +23,7 @@ Training a ResNet on CIFAR10 in various configurations:
     3) multiple nodes and multilple gpus
     4) single or multiple TPUs
 
-- `CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10>`_ - This example displays usage of :mod:`ignite.distributed` helper module.
+- `CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10>`_ - This example displays usage of :doc:`distributed` helper module.
 
 
 Other examples
