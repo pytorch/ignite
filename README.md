@@ -381,7 +381,7 @@ Features:
 
 ## User feedback
 
-We have created a form for [\"user feedback\"](https://github.com/pytorch/ignite/issues/new/choose). We
+We have created a form for ["user feedback"](https://github.com/pytorch/ignite/issues/new/choose). We
 appreciate any type of feedback and this is how we would like to see our
 community:
 
@@ -447,11 +447,10 @@ As always, PRs are welcome :)
 See other projects at ["Used by"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
 
 If your project implements a paper, represents other use-cases not
-covered in our official tutorials, Kaggle competition\'s code or just
+covered in our official tutorials, Kaggle competition's code or just
 your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
-
 
 
 <!-- ############################################################################################################### -->
