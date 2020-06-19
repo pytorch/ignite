@@ -141,8 +141,9 @@ class BaseLogger(metaclass=ABCMeta):
         Args:
             engine (Engine): engine object.
             log_handler (callable): a logging handler to execute
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: event to attach the logging handler to. Valid events are from
+                :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
@@ -159,8 +160,9 @@ class BaseLogger(metaclass=ABCMeta):
 
         Args:
             engine (Engine): engine object.
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: event to attach the logging handler to. Valid events are from
+                :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
             *args: args to initialize `OutputHandler`
             **kwargs: kwargs to initialize `OutputHandler`
 
@@ -174,8 +176,9 @@ class BaseLogger(metaclass=ABCMeta):
 
         Args:
             engine (Engine): engine object.
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: event to attach the logging handler to. Valid events are from
+                :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
             *args: args to initialize `OptimizerParamsHandler`
             **kwargs: kwargs to initialize `OptimizerParamsHandler`
 

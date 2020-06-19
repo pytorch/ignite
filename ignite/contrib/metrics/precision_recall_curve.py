@@ -20,10 +20,10 @@ class PrecisionRecallCurve(EpochMetric):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Optional default False. If True, `sklearn.metrics.precision_recall_curve
+        check_compute_fn (bool): Optional default False. If True, `precision_recall_curve
             <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
             #sklearn.metrics.precision_recall_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
