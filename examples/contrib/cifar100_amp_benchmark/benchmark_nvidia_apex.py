@@ -40,7 +40,6 @@ def main(dataset_path, batch_size=256, max_epochs=10, opt="O1"):
         y_pred = model(x)
         loss = criterion(y_pred, y)
 
-        # Runs the forward pass with autocasting.
         with amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
 
