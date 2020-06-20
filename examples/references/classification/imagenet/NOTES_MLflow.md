@@ -1,5 +1,7 @@
 # Experiments tracking with MLflow
-  
+
+User can run ImageNet training using MLflow experiments tracking system on the local machine.
+
 ## Requirements
 
 We use `conda` and [MLflow](https://github.com/mlflow/mlflow) to 
@@ -9,6 +11,14 @@ Please, install these tools:
 - [MLflow](https://github.com/mlflow/mlflow): `pip install mlflow`
 - [conda](https://conda.io/en/latest/miniconda.html)
 
+We need to also install Nvidia/APEX and libraries for opencv. APEX is automatically installed on the first run.
+Manually, all can be installed with the following commands.
+**Important**, please, check the content of `experiments/setup_opencv.sh` before running.
+```bash
+sh experiments/setup_apex.sh
+ 
+sh experiments/setup_opencv.sh
+```
 
 ## Usage
 
@@ -27,7 +37,7 @@ export DATASET_PATH=/path/to/imagenet
 
 ### MLflow setup
  
-Setup mlflow output path as 
+Setup mlflow output path as a local storage (option with remote storage is not supported):
 ```bash
 export MLFLOW_TRACKING_URI=/path/to/output/mlruns
 # e.g export MLFLOW_TRACKING_URI=$PWD/output/mlruns
@@ -42,7 +52,20 @@ or check existing experiments:
 mlflow experiments list
 ```
 
-### Single node with multiple GPUs
+### Training on single node with single GPU
+
+Please, make sure to adapt training data loader batch size to your GPU type. By default, batch size is 64.
+
+```bash
+export MLFLOW_TRACKING_URI=/path/to/output/mlruns
+# e.g export MLFLOW_TRACKING_URI=$PWD/output/mlruns
+mlflow run experiments/mlflow --experiment-name=Trainings -P config_path=configs/train/baseline_r50.py -P num_gpus=1
+```
+
+### Training on single node with multiple GPUs
+
+For optimal devices usage, please, make sure to adapt training data loader batch size to your infrastructure. 
+By default, batch size is 64 per process.
 
 ```bash
 export MLFLOW_TRACKING_URI=/path/to/output/mlruns
@@ -57,7 +80,7 @@ mlflow run experiments/mlflow --experiment-name=Trainings -P config_path=configs
 To visualize experiments and runs, user can start mlflow dashboard:
 
 ```bash
-mlflow server --backend-store-uri /path/to/output/mlruns --default-artifact-root /path/to/output/mlruns -p 6026 -h 0.0.0.0
+mlflow server --backend-store-uri /path/to/output/mlruns --default-ainfrastructure/path/to/output/mlruns -p 6026 -h 0.0.0.0
 # e.g mlflow server --backend-store-uri $PWD/output/mlruns --default-artifact-root $PWD/output/mlruns -p 6026 -h 0.0.0.0
 ```
 

@@ -5,17 +5,19 @@ dataset.
 
 Features:
 - Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
-- Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/)
+- Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains)
 
 ![tb_dashboard](assets/tb_dashboard.png)
 
-There are two possible options: 1) Experiments tracking with MLflow or 2) Experiments tracking with Polyaxon. 
-Experiments tracking with MLflow is more suitable for a local machine with GPUs. For experiments tracking with Polyaxon
+There are three possible options: 1) Experiments tracking with MLflow, 2) Experiments tracking with Polyaxon or 3) Experiments tracking with TRAINS. 
+
+Experiments tracking with TRAINS / MLflow is more suitable for a local machine with GPU(s). For experiments tracking with Polyaxon
 user needs to have Polyaxon installed on a machine/cluster/cloud and can schedule experiments with `polyaxon-cli`.
 User can choose one option and skip the descriptions of another option.
 
 - Notes for [experiments tracking with MLflow](NOTES_MLflow.md)
 - Notes for [experiments tracking with Polyaxon](NOTES_Polyaxon.md)
+- Notes for [experiments tracking with TRAINS](NOTES_Trains.md)
 
 ## Implementation details
 
@@ -23,7 +25,7 @@ Files tree description:
 ```
 code
   |___ dataflow : module privides data loaders and various transformers
-  |___ scripts : executable training scripts
+  |___ scripts : executable training script
   |___ utils : other helper modules
 
 configs
@@ -32,6 +34,7 @@ configs
 experiments 
   |___ mlflow : MLflow related files
   |___ plx : Polyaxon related files
+  |___ trains : requirements.txt to install Trains python package
  
 notebooks : jupyter notebooks to check specific parts from code modules 
 ```
@@ -42,18 +45,30 @@ notebooks : jupyter notebooks to check specific parts from code modules
 
 We use [py_config_runner](https://github.com/vfdev-5/py_config_runner) package to execute python scripts with python configuration files.
 
-### Training scripts
+### Training script
 
-Training scripts are located [code/scripts](code/scripts/) and contains  
+Training script is located [code/scripts](code/scripts/) and contains
 
-- `mlflow_training.py`, training script with MLflow experiments tracking
-- `plx_training.py`, training script with Polyaxon experiments tracking
-- `common_training.py`, common training code used by above files
+- `training.py`, single training script with possiblity to use one of MLflow / Polayaxon / Trains experiments tracking systems.
  
-Training scripts contain `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
-run a script with a configuration. Training logic is setup inside `training` method and configures a distributed trainer, 
-2 evaluators and various logging handlers to tensorboard, mlflow/polyaxon logger and tqdm.
+Training script contains `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
+run a script with a configuration. 
 
+The split between training script and configuration python file is the following. 
+Configuration file being a python script defines necessary components for neural network training:
+- Dataflow: training/validation/train evaluation data loaders with custom data augmentations 
+- Model
+- Optimizer
+- Criterion
+- LR scheduler
+- other parameters: device, number of epochs, etc
+
+Training script uses these components to setup and run training and validation loops. By default, 
+processing group with "nccl" backend is initialized for distributed configuration (even for a single GPU).
+
+Training script is generic, uses [`ignite.distributed` API](https://pytorch.org/ignite/master/distributed.html), and adapts
+training components to provided distributed configuration (e.g. uses DistribtedDataParallel model wrapper, 
+uses distributed sampling, scales batch size etc).
 
 ### Configurations
 

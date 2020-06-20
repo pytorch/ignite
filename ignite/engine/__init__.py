@@ -64,7 +64,7 @@ def create_supervised_trainer(
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         deterministic (bool, optional): if True, returns deterministic engine of type
-            :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.Engine`
+            :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.engine.Engine`
             (default: False).
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss

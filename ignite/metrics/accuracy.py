@@ -97,7 +97,7 @@ class Accuracy(_BaseClassification):
     """
     Calculates the accuracy for binary, multiclass and multilabel data.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and
@@ -118,7 +118,7 @@ class Accuracy(_BaseClassification):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.

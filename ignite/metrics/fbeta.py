@@ -26,7 +26,7 @@ def Fbeta(
         precision (Precision, optional): precision object metric with `average=False` to compute F-beta score
         recall (Precision, optional): recall object metric with `average=False` to compute F-beta score
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. It is used only if precision or recall are not provided.
         device (str of torch.device, optional): optional device specification for internal storage.
 

@@ -2,7 +2,6 @@
 # It should obligatory contain `run(config, **kwargs)` method
 
 from pathlib import Path
-from collections.abc import Mapping
 
 import torch
 
@@ -11,8 +10,8 @@ from apex import amp
 import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
-from ignite.engine import Engine, Events, create_supervised_evaluator
-from ignite.metrics import ConfusionMatrix, IoU, mIoU
+from ignite.engine import Engine, Events, create_supervised_evaluator, _prepare_batch
+from ignite.metrics import Accuracy, TopKCategoricalAccuracy
 from ignite.utils import setup_logger
 
 from py_config_runner.utils import set_seed
@@ -52,15 +51,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
         x, y = prepare_batch(batch, device=device, non_blocking=True)
         y_pred = model(x)
         y_pred = model_output_transform(y_pred)
-        loss = criterion(y_pred, y)
-
-        if isinstance(loss, Mapping):
-            assert "supervised batch loss" in loss
-            loss_dict = loss
-            output = {k: v.item() for k, v in loss_dict.items()}
-            loss = loss_dict["supervised batch loss"] / accumulation_steps
-        else:
-            output = {"supervised batch loss": loss.item()}
+        loss = criterion(y_pred, y) / accumulation_steps
 
         with amp.scale_loss(loss, optimizer, loss_id=0) as scaled_loss:
             scaled_loss.backward()
@@ -69,7 +60,9 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
             optimizer.step()
             optimizer.zero_grad()
 
-        return output
+        return {
+            "supervised batch loss": loss.item(),
+        }
 
     output_names = getattr(config, "output_names", ["supervised batch loss",])
     lr_scheduler = config.lr_scheduler
@@ -90,6 +83,8 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
         output_names=output_names,
         with_pbars=False,
     )
+
+    common.ProgressBar(persist=False).attach(trainer, metric_names="all")
 
     return trainer
 
@@ -141,23 +136,28 @@ def training(local_rank, config, logger=None):
     torch.backends.cudnn.benchmark = True
 
     set_seed(config.seed + local_rank)
-    device = config.device
 
     train_loader, val_loader, train_eval_loader = config.train_loader, config.val_loader, config.train_eval_loader
 
     # Setup model, optimizer, criterion
     model, optimizer, criterion = initialize(config)
 
+    if not hasattr(config, "prepare_batch"):
+        config.prepare_batch = _prepare_batch
+
     # Setup trainer for this specific task
     trainer = create_trainer(model, optimizer, criterion, train_loader.sampler, config, logger)
 
-    # Setup evaluators
-    num_classes = config.num_classes
-    cm_metric = ConfusionMatrix(num_classes=num_classes)
+    if getattr(config, "benchmark_dataflow", False):
+        benchmark_dataflow_num_iters = getattr(config, "benchmark_dataflow_num_iters", 1000)
+        DataflowBenchmark(benchmark_dataflow_num_iters, prepare_batch=config.prepare_batch).attach(
+            trainer, train_loader
+        )
 
+    # Setup evaluators
     val_metrics = {
-        "IoU": IoU(cm_metric),
-        "mIoU_bg": mIoU(cm_metric),
+        "Accuracy": Accuracy(),
+        "Top-5 Accuracy": TopKCategoricalAccuracy(k=5),
     }
 
     if hasattr(config, "val_metrics") and isinstance(config.val_metrics, dict):
@@ -176,7 +176,7 @@ def training(local_rank, config, logger=None):
     if getattr(config, "start_by_validation", False):
         trainer.add_event_handler(Events.STARTED, run_validation)
 
-    score_metric_name = "mIoU_bg"
+    score_metric_name = "Accuracy"
 
     if hasattr(config, "es_patience"):
         common.add_early_stopping_by_val_score(config.es_patience, evaluator, trainer, metric_name=score_metric_name)
@@ -205,13 +205,21 @@ def training(local_rank, config, logger=None):
             trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
         )
 
-        # Log val predictions:
+        # Log train/val predictions:
         tb_logger.attach(
             evaluator,
             log_handler=predictions_gt_images_handler(
                 img_denormalize_fn=config.img_denormalize, n_images=15, another_engine=trainer, prefix_tag="validation"
             ),
             event_name=Events.ITERATION_COMPLETED(once=len(val_loader) // 2),
+        )
+
+        tb_logger.attach(
+            train_evaluator,
+            log_handler=predictions_gt_images_handler(
+                img_denormalize_fn=config.img_denormalize, n_images=15, another_engine=trainer, prefix_tag="training"
+            ),
+            event_name=Events.ITERATION_COMPLETED(once=len(train_eval_loader) // 2),
         )
 
     trainer.run(train_loader, max_epochs=config.num_epochs)
@@ -232,7 +240,7 @@ def run(config, **kwargs):
 
     with idist.Parallel(backend="nccl") as parallel:
 
-        logger = setup_logger(name="Pascal-VOC12 Training", distributed_rank=idist.get_rank())
+        logger = setup_logger(name="ImageNet Training", distributed_rank=idist.get_rank())
 
         assert_config(config, TRAINVAL_CONFIG)
         # The following attributes are automatically added by py_config_runner
@@ -242,7 +250,7 @@ def run(config, **kwargs):
         if idist.get_rank() == 0 and exp_tracking.has_trains:
             from trains import Task
 
-            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem)
+            task = Task.init("ImageNet Training", config.config_filepath.stem)
             task.connect_configuration(config.config_filepath.as_posix())
 
         log_basic_info(logger, config)
@@ -260,3 +268,61 @@ def run(config, **kwargs):
         except Exception as e:  # noqa
             logger.exception("")
             raise e
+
+
+class DataflowBenchmark:
+    def __init__(self, num_iters=100, prepare_batch=None):
+
+        from ignite.handlers import Timer
+
+        device = idist.device()
+
+        def upload_to_gpu(engine, batch):
+            if prepare_batch is not None:
+                x, y = prepare_batch(batch, device=device, non_blocking=False)
+
+        self.num_iters = num_iters
+        self.benchmark_dataflow = Engine(upload_to_gpu)
+
+        @self.benchmark_dataflow.on(Events.ITERATION_COMPLETED(once=num_iters))
+        def stop_benchmark_dataflow(engine):
+            engine.terminate()
+
+        if idist.get_rank() == 0:
+
+            @self.benchmark_dataflow.on(Events.ITERATION_COMPLETED(every=num_iters // 100))
+            def show_progress_benchmark_dataflow(engine):
+                print(".", end=" ")
+
+        self.timer = Timer(average=False)
+        self.timer.attach(
+            self.benchmark_dataflow,
+            start=Events.EPOCH_STARTED,
+            resume=Events.ITERATION_STARTED,
+            pause=Events.ITERATION_COMPLETED,
+            step=Events.ITERATION_COMPLETED,
+        )
+
+    def attach(self, trainer, train_loader):
+
+        from torch.utils.data import DataLoader
+
+        @trainer.on(Events.STARTED)
+        def run_benchmark(_):
+            if idist.get_rank() == 0:
+                print("-" * 50)
+                print(" - Dataflow benchmark")
+
+            self.benchmark_dataflow.run(train_loader)
+            t = self.timer.value()
+
+            if idist.get_rank() == 0:
+                print(" ")
+                print(" Total time ({} iterations) : {:.5f} seconds".format(self.num_iters, t))
+                print(" time per iteration         : {} seconds".format(t / self.num_iters))
+
+                if isinstance(train_loader, DataLoader):
+                    num_images = train_loader.batch_size * self.num_iters
+                    print(" number of images / s       : {}".format(num_images / t))
+
+                print("-" * 50)

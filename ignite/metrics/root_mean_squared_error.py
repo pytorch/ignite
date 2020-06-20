@@ -12,7 +12,7 @@ class RootMeanSquaredError(MeanSquaredError):
     """
     Calculates the root mean squared error.
 
-    - `update` must receive output of the form (y_pred, y) or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form (y_pred, y) or `{'y_pred': y_pred, 'y': y}`.
     """
 
     def compute(self) -> Union[torch.Tensor, float]:
