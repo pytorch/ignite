@@ -10,7 +10,7 @@ __all__ = ["EpochMetric"]
 
 class EpochMetric(Metric):
     """Class for metrics that should be computed on the entire output history of a model.
-    Model's output and targets are restricted to be of shape `(batch_size, n_classes)`. Output
+    Model's output and targets are restricted to be of shape ``(batch_size, n_classes)``. Output
     datatype should be `float32`. Target datatype should be `long`.
 
     .. warning::
@@ -23,27 +23,36 @@ class EpochMetric(Metric):
         Current implementation does not work with distributed computations. Results are not gather across all devices
         and computed results are valid for a single device only.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
 
-    If target shape is `(batch_size, n_classes)` and `n_classes > 1` than it should be binary: e.g. `[[0, 1, 0, 1], ]`.
+    If target shape is ``(batch_size, n_classes)`` and ``n_classes > 1`` than it should be binary:
+    e.g. ``[[0, 1, 0, 1], ]``.
 
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
             `predictions` and `targets` and returns a scalar.
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        check_compute_fn (bool): if True, ``compute_fn`` is run on the first batch of data to ensure there are no
+            issues. If issues exist, user is warned that there might be an issue with the ``compute_fn``.
 
+    Warnings:
+        EpochMetricWarning: User is warned that there are issues with compute_fn on a batch of data processed.
     """
 
-    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x):
+    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x, check_compute_fn: bool = True):
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
-        super(EpochMetric, self).__init__(output_transform=output_transform, device="cpu")
+        self._predictions = None
+        self._targets = None
         self.compute_fn = compute_fn
+        self._check_compute_fn = check_compute_fn
+
+        super(EpochMetric, self).__init__(output_transform=output_transform, device="cpu")
 
     def reset(self) -> None:
         self._predictions = []
@@ -95,7 +104,7 @@ class EpochMetric(Metric):
         self._targets.append(y)
 
         # Check once the signature and execution of compute_fn
-        if len(self._predictions) == 1:
+        if len(self._predictions) == 1 and self._check_compute_fn:
             try:
                 self.compute_fn(self._predictions[0], self._targets[0])
             except Exception as e:

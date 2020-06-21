@@ -1,6 +1,5 @@
 name: pascal_voc2012_env
 channels:
-  - defaults
   - pytorch
 dependencies:
   - python=3.7
@@ -16,5 +15,5 @@ dependencies:
     - tensorboardX
     - py_config_runner
     - pynvml
-    - git+https://github.com/pytorch/ignite.git
+    - pytorch-ignite
     - git+https://github.com/vfdev-5/ImageDatasetViz.git

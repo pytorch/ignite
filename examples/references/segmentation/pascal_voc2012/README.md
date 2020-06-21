@@ -52,10 +52,6 @@ We use [py_config_runner](https://github.com/vfdev-5/py_config_runner) package t
 Training script is located [code/scripts](code/scripts/) and contains
 
 - `training.py`, single training script with possiblity to use one of MLflow / Polayaxon / Trains experiments tracking systems.
-<!-- - `mlflow_training.py`, training script with MLflow experiments tracking
-- `plx_training.py`, training script with Polyaxon experiments tracking
-- `trains_training.py`, training script with TRAINS experiments tracking
-- `common_training.py`, common training code used by above files -->
  
 Training script contains `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
 run a script with a configuration. 

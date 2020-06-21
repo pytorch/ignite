@@ -64,34 +64,34 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
 class Checkpoint:
     """Checkpoint handler can be used to periodically save and load objects which have attribute
-    `state_dict`/`load_state_dict`. This class can use specific save handlers to store on the disk or a cloud
+    ``state_dict`/`load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
     storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
     moving data on TPU to CPU before writing the checkpoint.
 
     Args:
-        to_save (Mapping): Dictionary with the objects to save. Objects should have implemented `state_dict` and `
-            load_state_dict` methods. If contains objects of type torch `DistributedDataParallel`_ or
+        to_save (Mapping): Dictionary with the objects to save. Objects should have implemented ``state_dict`` and
+            ``load_state_dict`` methods. If contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, their internal wrapped model is automatically saved (to avoid additional key ``module.`` in
             the state dictionary).
         save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
-            and filename. If `save_handler` is callable class, it can
-            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement `remove` method to
-            keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
-            `save_handler` can be defined with :class:`~ignite.handlers.DiskSaver`.
-        filename_prefix (str, optional): Prefix for the filename to which objects will be saved. See Note for details.
+            and filename. If ``save_handler`` is callable class, it can
+            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
+            to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
+            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
+        filename_prefix (str, optional): Prefix for the file name to which objects will be saved. See Note for details.
         score_function (callable, optional): If not None, it should be a function taking a single argument,
-            :class:`~ignite.engine.Engine` object, and returning a score (`float`). Objects with highest scores will be
-            retained.
-        score_name (str, optional): If `score_function` not None, it is possible to store its value using
-            `score_name`. See Notes for more details.
+            :class:`~ignite.engine.engine.Engine` object, and returning a score (`float`). Objects with highest scores
+            will be retained.
+        score_name (str, optional): If ``score_function`` not None, it is possible to store its value using
+            ``score_name``. See Notes for more details.
         n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
-            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Input of the function is ``(engine, event_name)``. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
+        archived (bool, optional): Deprecated argument as models saved by ``torch.save`` are already compressed.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
     .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
@@ -100,29 +100,29 @@ class Checkpoint:
         This class stores a single file as a dictionary of provided objects to save.
         The filename has the following structure: `{filename_prefix}_{name}_{suffix}.{ext}` where
 
-        - `filename_prefix` is the argument passed to the constructor,
-        - `name` is the key in `to_save` if a single object is to store, otherwise `name` is "checkpoint".
+        - ``filename_prefix`` is the argument passed to the constructor,
+        - `name` is the key in ``to_save`` if a single object is to store, otherwise `name` is "checkpoint".
         - `suffix` is composed as following `{global_step}_{score_name}={score}`.
 
         Above `global_step` defined by the output of `global_step_transform` and `score` defined by the output
         of `score_function`.
 
-        By default, none of `score_function`, `score_name`, `global_step_transform` is defined, then suffix is
+        By default, none of ``score_function``, ``score_name``, ``global_step_transform`` is defined, then suffix is
         setup by attached engine's current iteration. The filename will be
         `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
 
-        If defined a `score_function`, but without `score_name`, then the suffix is defined by the provided score.
-        The filename will be `{filename_prefix}_{name}_{score}.{ext}`. If `global_step_transform` is provided,
+        If defined a ``score_function``, but without ``score_name``, then the suffix is defined by the provided score.
+        The filename will be `{filename_prefix}_{name}_{score}.{ext}`. If ``global_step_transform`` is provided,
         then the filename will be `{filename_prefix}_{name}_{global_step}_{score}.{ext}`.
 
-        If defined `score_function` and `score_name`, then the filename will
-        be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If `global_step_transform` is provided, then
+        If defined ``score_function`` and ``score_name``, then the filename will
+        be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If ``global_step_transform`` is provided, then
         the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}`
 
-        For example, `score_name="neg_val_loss"` and `score_function` that returns `-loss` (as objects with highest
+        For example, ``score_name="neg_val_loss"`` and ``score_function`` that returns `-loss` (as objects with highest
         scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pt`.
 
-        To get the last stored filename, handler exposes attribute `last_checkpoint`:
+        To get the last stored filename, handler exposes attribute ``last_checkpoint``:
 
         .. code-block:: python
 
@@ -451,8 +451,9 @@ class DiskSaver(BaseSaveHandler):
         atomic (bool, optional): if True, checkpoint is serialized to a temporary file, and then
             moved to final destination, so that files are guaranteed to not be damaged
             (for example if exception occurs during saving).
-        create_dir (bool, optional): if True, will create directory 'dirname' if it doesnt exist.
-        require_empty (bool, optional): If True, will raise exception if there are any files in the directory 'dirname'.
+        create_dir (bool, optional): if True, will create directory ``dirname`` if it doesnt exist.
+        require_empty (bool, optional): If True, will raise exception if there are any files in the
+            directory ``dirname``.
     """
 
     def __init__(
@@ -535,7 +536,7 @@ class ModelCheckpoint(Checkpoint):
 
     This handler expects two arguments:
 
-        - an :class:`~ignite.engine.Engine` object
+        - an :class:`~ignite.engine.engine.Engine` object
         - a `dict` mapping names (`str`) to objects that should be saved to disk.
 
     See Examples for further details.
@@ -544,10 +545,10 @@ class ModelCheckpoint(Checkpoint):
 
         Behaviour of this class has been changed since v0.3.0.
 
-        Argument `save_as_state_dict` is deprecated and should not be used. It is considered as True.
+        Argument ``save_as_state_dict`` is deprecated and should not be used. It is considered as True.
 
-        Argument `save_interval` is deprecated and should not be used. Please, use events filtering instead, e.g.
-        :attr:`~ignite.engine.Events.ITERATION_STARTED(every=1000)`
+        Argument ``save_interval`` is deprecated and should not be used. Please, use events filtering instead, e.g.
+        :attr:`~ignite.engine.events.Events.ITERATION_STARTED(every=1000)`
 
         There is no more internal counter that has been used to indicate the number of save actions. User could
         see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pt`. Actually,
@@ -558,12 +559,12 @@ class ModelCheckpoint(Checkpoint):
 
     Args:
         dirname (str): Directory path where objects will be saved.
-        filename_prefix (str): Prefix for the filenames to which objects will be saved. See Notes of
+        filename_prefix (str): Prefix for the file names to which objects will be saved. See Notes of
             :class:`~ignite.handlers.Checkpoint` for more details.
         score_function (callable, optional): if not None, it should be a function taking a single argument, an
-            :class:`~ignite.engine.Engine` object, and return a score (`float`). Objects with highest scores will be
-            retained.
-        score_name (str, optional): if `score_function` not None, it is possible to store its value using
+            :class:`~ignite.engine.engine.Engine` object, and return a score (`float`). Objects with highest scores
+            will be retained.
+        score_name (str, optional): if ``score_function`` not None, it is possible to store its value using
             `score_name`. See Notes for more details.
         n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
@@ -571,8 +572,8 @@ class ModelCheckpoint(Checkpoint):
             destination, so that files are guaranteed to not be damaged (for example if exception
             occurs during saving).
         require_empty (bool, optional): If True, will raise exception if there are any files starting with
-            `filename_prefix` in the directory 'dirname'.
-        create_dir (bool, optional): If True, will create directory 'dirname' if it doesnt exist.
+            ``filename_prefix`` in the directory ``dirname``.
+        create_dir (bool, optional): If True, will create directory ``dirname`` if it does not exist.
         global_step_transform (callable, optional): global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.

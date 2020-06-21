@@ -2,9 +2,8 @@ from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Subset, ConcatDataset
-import torch.utils.data.distributed as data_dist
 
 import ignite.distributed as idist
 
@@ -18,7 +17,6 @@ def get_train_val_loaders(
     batch_size: int = 16,
     num_workers: int = 8,
     val_batch_size: Optional[int] = None,
-    pin_memory: bool = True,
     with_sbd: Optional[str] = None,
     limit_train_num_samples: Optional[int] = None,
     limit_val_num_samples: Optional[int] = None,
@@ -54,26 +52,16 @@ def get_train_val_loaders(
     train_eval_ds = TransformedDataset(train_eval_ds, transform_fn=val_transforms)
 
     train_loader = idist.auto_dataloader(
-        train_ds, shuffle=True, batch_size=batch_size, num_workers=num_workers, pin_memory=pin_memory, drop_last=True,
+        train_ds, shuffle=True, batch_size=batch_size, num_workers=num_workers, drop_last=True,
     )
 
     val_batch_size = batch_size * 4 if val_batch_size is None else val_batch_size
     val_loader = idist.auto_dataloader(
-        val_ds,
-        shuffle=False,
-        batch_size=val_batch_size,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
-        drop_last=False,
+        val_ds, shuffle=False, batch_size=val_batch_size, num_workers=num_workers, drop_last=False,
     )
 
     train_eval_loader = idist.auto_dataloader(
-        train_eval_ds,
-        shuffle=False,
-        batch_size=val_batch_size,
-        num_workers=num_workers,
-        pin_memory=pin_memory,
-        drop_last=False,
+        train_eval_ds, shuffle=False, batch_size=val_batch_size, num_workers=num_workers, drop_last=False,
     )
 
     return train_loader, val_loader, train_eval_loader
