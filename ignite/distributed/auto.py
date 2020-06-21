@@ -23,6 +23,7 @@ def auto_dataloader(dataset, **kwargs):
 
     - batch size is scaled by world size: ``batch_size / world_size``.
     - number of workers is scaled by number of local processes: ``num_workers / nprocs``.
+      - if batch size or number of workers is smaller than world size, then they are not scaled but are retained
     - if no sampler provided by user, `torch DistributedSampler` is setup.
     - if a sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
     - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
