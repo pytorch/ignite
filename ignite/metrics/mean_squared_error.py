@@ -12,7 +12,7 @@ class MeanSquaredError(Metric):
     """
     Calculates the mean squared error.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     """
 
     @reinit__is_reduced

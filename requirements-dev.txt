@@ -12,6 +12,7 @@ matplotlib
 tensorboardX
 visdom
 polyaxon-client
+wandb
 mlflow
 neptune-client
 tensorboard

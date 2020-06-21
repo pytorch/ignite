@@ -72,21 +72,10 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def create_summary_writer(model, data_loader, log_dir):
-    writer = SummaryWriter(log_dir=log_dir)
-    data_loader_iter = iter(data_loader)
-    x, y = next(data_loader_iter)
-    try:
-        writer.add_graph(model, x)
-    except Exception as e:
-        print("Failed to save model graph: {}".format(e))
-    return writer
-
-
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, log_dir):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = create_summary_writer(model, train_loader, log_dir)
+    writer = SummaryWriter(log_dir=log_dir)
     device = "cpu"
 
     if torch.cuda.is_available():
@@ -94,10 +83,11 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
-    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
-    evaluator = create_supervised_evaluator(
-        model, metrics={"accuracy": Accuracy(), "nll": Loss(F.nll_loss)}, device=device
-    )
+    criterion = nn.NLLLoss()
+    trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+
+    val_metrics = {"accuracy": Accuracy(), "nll": Loss(criterion)}
+    evaluator = create_supervised_evaluator(model, metrics=val_metrics, device=device)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):

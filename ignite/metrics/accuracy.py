@@ -43,8 +43,10 @@ class _BaseClassification(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
-        if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
-            raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
+        if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] > 1):
+            raise ValueError(
+                "y and y_pred must have same shape of (batch_size, num_categories, ...) and num_categories > 1."
+            )
 
     def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -95,10 +97,11 @@ class Accuracy(_BaseClassification):
     """
     Calculates the accuracy for binary, multiclass and multilabel data.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
-    - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) for multilabel cases.
+    - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and
+      num_categories must be greater than 1 for multilabel cases.
 
     In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
     predictions can be done as below:
@@ -115,7 +118,7 @@ class Accuracy(_BaseClassification):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
