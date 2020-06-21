@@ -1,20 +1,27 @@
 Ignite Your Networks!
 =====================
 
-:mod:`ignite` is a high-level library to help with training neural networks in PyTorch.
+:mod:`ignite` is a high-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.
 
-- ignite helps you write compact but full-featured training loops in a few lines of code
-- you get a training loop with metrics, early-stopping, model checkpointing and other features without the boilerplate
+.. .. image:: https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/pytorch-ignite-teaser.gif
+   :width: 460
+   :target: https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/teaser.py-->
 
-Below we show a side-by-side comparison of using pure pytorch and using ignite to create a training loop
-to train and validate your model with occasional checkpointing:
+.. image:: https://raw.githubusercontent.com/vfdev-5/ignite/tldr/assets/tldr/pytorch-ignite-teaser.gif
+   :width: 460
+   :target: https://github.com/vfdev-5/ignite/blob/tldr/assets/tldr/teaser.py
 
-.. image:: https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png
-   :target: https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png
+*Click on the image to see complete code*
 
-As you can see, the code is more concise and readable with ignite. Furthermore, adding additional metrics, or
-things like early stopping is a breeze in ignite, but can start to rapidly increase the complexity of
-your code when "rolling your own" training loop.
+
+Features
+--------
+
+- `Less code than pure PyTorch <https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png>`_ while ensuring maximum control and simplicity
+
+- Library approach and no program's control inversion - *Use ignite where and when you need*
+
+- Extensible API for metrics, experiment managers, and other components
 
 
 Installation
@@ -60,16 +67,36 @@ of stable version as dependency):
     conda install ignite -c pytorch-nightly
 
 
+Documentation
+=============
 
+To get started, please, read :doc:`quickstart` and :doc:`concepts`.
 
 .. toctree::
    :maxdepth: 2
    :caption: Notes
 
-   concepts
    quickstart
+   concepts
    examples
    faq
+
+
+Library structure
+=================
+
+-   :mod:`ignite`: Core of the library, contains an engine for training and
+    evaluating, most of the classic machine learning metrics and a
+    variety of handlers to ease the pain of training and validation of
+    neural networks.
+
+-   :mod:`ignite.contrib`: The contrib directory contains additional
+    modules that can require extra dependencies. Modules vary from TBPTT engine,
+    various optimisation parameter schedulers, experiment tracking system handlers and a
+    metrics module containing many regression metrics.
+
+
+.. automodule:: ignite
 
 .. toctree::
    :maxdepth: 2
@@ -82,6 +109,9 @@ of stable version as dependency):
    exceptions
    utils
 
+
+.. automodule:: ignite.contrib
+
 .. toctree::
    :maxdepth: 2
    :caption: Contrib Package Reference
@@ -89,10 +119,6 @@ of stable version as dependency):
    contrib/engines
    contrib/metrics
    contrib/handlers
-
-.. automodule:: ignite
-   :members:
-
 
 .. toctree::
    :maxdepth: 1

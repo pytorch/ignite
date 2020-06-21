@@ -36,7 +36,7 @@ As a consequence, the following code is correct too:
     evaluator.add_event_handler(Events.COMPLETED, best_model_saver, {'mymodel': model})
 
 
-More details `Events and Handlers <concepts.html#events-and-handlers>`_.
+More details :ref:`Events and Handlers`.
 
 
 Creating Custom Events based on Forward/Backward Pass
