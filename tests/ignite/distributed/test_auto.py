@@ -50,8 +50,6 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
     if isinstance(dataloader, DataLoader):
         assert dataloader.pin_memory == ("cuda" in idist.device().type)
 
-    # test
-
 
 def _test_auto_model_optimizer(ws, device):
     # Test auto_model
@@ -93,7 +91,6 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     ws = distributed_context_single_node_gloo["world_size"]
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
-    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
 
     _test_auto_model_optimizer(ws, "cpu")

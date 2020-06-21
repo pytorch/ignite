@@ -67,8 +67,8 @@ def auto_dataloader(dataset, **kwargs):
         if "batch_size" in kwargs and kwargs["batch_size"] >= world_size:
             kwargs["batch_size"] //= world_size
 
-        if "num_workers" in kwargs and kwargs["num_workers"] >= world_size:
-            nproc = idist.get_nproc_per_node()
+        nproc = idist.get_nproc_per_node()
+        if "num_workers" in kwargs and kwargs["num_workers"] >= nproc:
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
 
         if "batch_sampler" not in kwargs:
