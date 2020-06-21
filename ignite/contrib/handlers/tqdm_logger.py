@@ -202,8 +202,7 @@ class ProgressBar(BaseLogger):
             # https://github.com/tqdm/notebook.py#L240-L250
             # issue #1115 : notebook backend of tqdm checks if n < total (error or KeyboardInterrupt)
             # and the bar persists in 'danger' mode
-            if not self.pbar.leave:
-                self.pbar.n = self.pbar.total
+            self.pbar.n = self.pbar.total
             self.pbar.close()
         self.pbar = None
 
