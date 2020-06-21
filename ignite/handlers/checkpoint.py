@@ -263,21 +263,42 @@ class Checkpoint:
     def _add_field(self, f, sep="_"):
         return "{}{}".format(f, sep) if len(f) > 0 else f
 
+    def _get_filename_pattern(
+        self,
+        filename_prefix: str = "",
+        score_function: Optional[Callable] = None,
+        score_name: Optional[str] = None,
+        global_step_transform: Callable = None,
+        filename_pattern: Optional[str] = None,
+    ):
+        if filename_pattern is None:
+            if score_function is None and score_name is None and global_step_transform is None:
+                filename_pattern = "{name}_{score}.{ext}"
+            elif score_function and score_name is None:
+                if global_step_transform:
+                    filename_pattern = "{name}_{global_step}_{score}.{ext}"
+                else:
+                    filename_pattern = "{name}_{score}.{ext}"
+            elif score_function and score_name:
+                if global_step_transform:
+                    filename_pattern = "{name}_{global_step}_{score_name}={score}.{ext}"
+                else:
+                    filename_pattern = "{name}_{score_name}={score}.{ext}"
+            elif global_step_transform:
+                filename_pattern = "{name}_{global_step}.{ext}"
+            else:
+                raise Exception("weird case score_name is not None but score_function is None")
+
+            if filename_prefix:
+                filename_pattern = "{filename_prefix}_" + filename_pattern
+
+        return filename_pattern
+
     def __call__(self, engine: Engine) -> None:
 
-        filename_pattern_dict = {
-            "filename_prefix": self.filename_prefix,
-            "ext": self.ext,
-            "global_step": "",
-            "score_name": "",
-            "score": "",
-            "name": "",
-        }
-        suffix = ""
+        global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
-            suffix = "{}".format(global_step)
-            filename_pattern_dict["global_step"] = global_step
 
         if self.score_function is not None:
             priority = self.score_function(engine)
@@ -292,19 +313,6 @@ class Checkpoint:
                 "{}".format(priority) if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
             )
 
-            if self.score_name is not None:
-                suffix = self._add_field(suffix)
-                suffix = "{}{}={}".format(suffix, self.score_name, priority_str)
-                filename_pattern_dict["score_name"] = self.score_name
-                filename_pattern_dict["score"] = priority_str
-            elif self.score_function is not None:
-                suffix = self._add_field(suffix)
-                suffix = "{}{}".format(suffix, priority_str)
-                filename_pattern_dict["score"] = priority_str
-            elif len(suffix) == 0:
-                suffix = "{}".format(priority_str)
-                filename_pattern_dict["score"] = priority_str
-
             checkpoint = self._setup_checkpoint()
 
             name = "checkpoint"
@@ -313,19 +321,28 @@ class Checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
 
-            filename_pattern_dict["name"] = name
-            filename_prefix = self.filename_prefix
-            if self.filename_pattern is None:
-                filename_prefix = self._add_field(filename_prefix)
-                filename = "{}{}_{}.{}".format(filename_prefix, name, suffix, self.ext)
-            else:
-                filename = self.filename_pattern.format(**filename_pattern_dict)
+            filename_pattern = self._get_filename_pattern(
+                filename_prefix=self.filename_prefix,
+                score_function=self.score_function,
+                score_name=self.score_name,
+                global_step_transform=self.global_step_transform,
+                filename_pattern=self.filename_pattern,
+            )
+            filename_dict = {
+                "filename_prefix": self.filename_prefix,
+                "ext": self.ext,
+                "name": name,
+                "score_name": self.score_name,
+                "score": priority_str,
+                "global_step": global_step,
+            }
+            filename = filename_pattern.format(**filename_dict)
 
             if any(item.filename == filename for item in self._saved):
                 return
 
             metadata = {
-                "basename": "{}{}".format(filename_prefix, name),
+                "basename": "{}{}".format(self._add_field(self.filename_prefix), name),
                 "score_name": self.score_name,
                 "priority": priority,
             }
