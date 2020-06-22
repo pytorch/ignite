@@ -199,6 +199,11 @@ class ProgressBar(BaseLogger):
 
     def _close(self, engine):
         if self.pbar is not None:
+            # https://github.com/tqdm/notebook.py#L240-L250
+            # issue #1115 : notebook backend of tqdm checks if n < total (error or KeyboardInterrupt)
+            # and the bar persists in 'danger' mode
+            if self.pbar.total is not None:
+                self.pbar.n = self.pbar.total
             self.pbar.close()
         self.pbar = None
 
