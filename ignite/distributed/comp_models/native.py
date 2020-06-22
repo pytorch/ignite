@@ -290,11 +290,9 @@ if has_native_dist_support:
             "PRODUCT": dist.ReduceOp.PRODUCT,
             "MIN": dist.ReduceOp.MIN,
             "MAX": dist.ReduceOp.MAX,
+            "AND": dist.ReduceOp.BAND,
+            "OR": dist.ReduceOp.BOR,
         }
-        if LooseVersion(torch.__version__) > LooseVersion("1.2.0"):
-            _reduce_op_map.update(
-                {"AND": dist.ReduceOp.BAND, "OR": dist.ReduceOp.BOR,}
-            )
 
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
             if op not in self._reduce_op_map:

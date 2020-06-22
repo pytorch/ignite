@@ -23,7 +23,7 @@ readme = read("README.md")
 VERSION = find_version("ignite", "__init__.py")
 
 requirements = [
-    "torch>=1.0,<2",
+    "torch>=1.3,<2",
 ]
 
 setup(
