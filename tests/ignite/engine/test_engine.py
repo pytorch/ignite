@@ -1,6 +1,5 @@
 import os
 import time
-from distutils.version import LooseVersion
 from unittest.mock import MagicMock, Mock, call
 
 import numpy as np
@@ -512,36 +511,6 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
-
-
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.2.0"), reason="No IterableDataset in torch<1.2.0")
-def test_engine_with_iterable_dataloader():
-
-    from torch.utils.data import DataLoader
-
-    def _test(epoch_length=None):
-
-        le = 50
-        num_workers = 4
-        ds = get_iterable_dataset(0, le)
-        data_loader = DataLoader(ds, num_workers=num_workers)
-
-        counter = [0]
-
-        def foo(e, b):
-            print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
-            counter[0] += 1
-
-        engine = Engine(foo)
-        engine.run(data_loader, epoch_length=epoch_length, max_epochs=5)
-
-        epoch_length = le * num_workers if epoch_length is None else epoch_length
-        assert counter[0] == 5 * epoch_length
-
-    _test(epoch_length=20)
-
-    # tests issue : https://github.com/pytorch/ignite/issues/1076
-    _test(epoch_length=None)
 
 
 def test_engine_random_state():
