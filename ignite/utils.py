@@ -5,7 +5,7 @@ from typing import Any, Callable, Optional, Tuple, Type, Union
 
 import torch
 
-__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger"]
+__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger", "manual_seed"]
 
 
 def convert_tensor(
