@@ -1,5 +1,6 @@
 import os
 import warnings
+from collections import OrderedDict
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,7 +11,6 @@ import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
-from collections import OrderedDict
 
 _PREFIX = "PREFIX"
 
@@ -1077,3 +1077,47 @@ def _test_tpu_saves_to_cpu_nprocs(index, dirname):
 def test_distrib_single_device_xla_nprocs(xmp_executor, dirname):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname,), nprocs=n)
+
+
+def _setup_checkpoint():
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    model = DummyModel()
+    to_save = {"model": model}
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None)
+    assert checkpointer.last_checkpoint is None
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    checkpointer(trainer)
+    trainer.state.iteration = 10
+    checkpointer(trainer)
+    trainer.state.iteration = 20
+    checkpointer(trainer)
+    assert save_handler.call_count == 3
+    return checkpointer
+
+
+def test_checkpoint_state_dict():
+    checkpointer = _setup_checkpoint()
+    sd = checkpointer.state_dict()
+    assert "saved" in sd
+    assert isinstance(sd["saved"], list) and len(sd["saved"]) == len(checkpointer._saved)
+
+    for saved_item, true_item in zip(sd["saved"], checkpointer._saved):
+        assert saved_item[0] == true_item.priority
+        assert saved_item[1] == true_item.filename
+
+
+def test_checkpoint_load_state_dict():
+    true_checkpointer = _setup_checkpoint()
+
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    model = DummyModel()
+    to_save = {"model": model}
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None)
+
+    sd = {"saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
+    checkpointer.load_state_dict(sd)
+    assert checkpointer._saved == true_checkpointer._saved
