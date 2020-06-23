@@ -426,6 +426,4 @@ or can be used as stand-alone objects:
 Complete list of metrics and the API can be found in :doc:`metrics` module.
 
 
-
-
-**Where to go next?** ?????.
+**Where to go next?** Checkout our :doc:`examples` and tutorial notebooks.
