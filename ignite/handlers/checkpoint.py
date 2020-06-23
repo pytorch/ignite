@@ -111,6 +111,9 @@ class Checkpoint:
         setup by attached engine's current iteration. The filename will be
         `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
 
+        If only ``global_step_transform`` is defined, then suffix is setup using its return value. 
+        The filename will be `{filename_prefix}_{name}_{global_step}.{ext}`.
+
         If defined a ``score_function``, but without ``score_name``, then suffix is defined by provided score.
         The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pt`.
 
@@ -269,7 +272,10 @@ class Checkpoint:
             if not isinstance(priority, numbers.Number):
                 raise ValueError("Output of score_function should be a number")
         else:
-            priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
+            if self.global_step_transform is not None:
+                priority = global_step
+            else:
+                priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 

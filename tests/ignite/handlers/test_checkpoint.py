@@ -141,7 +141,7 @@ def test_checkpoint_with_global_step_transform():
         )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1)
+        trainer.state = State(epoch=2, iteration=1)
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -149,17 +149,17 @@ def test_checkpoint_with_global_step_transform():
         if len(filename_prefix) > 0:
             filename_prefix += "_"
 
-        metadata = {"basename": "{}{}".format(filename_prefix, name), "score_name": None, "priority": 1}
-        save_handler.assert_called_with(obj, "{}{}_1.pt".format(filename_prefix, name), metadata)
+        metadata = {"basename": "{}{}".format(filename_prefix, name), "score_name": None, "priority": 2}
+        save_handler.assert_called_with(obj, "{}{}_2.pt".format(filename_prefix, name), metadata)
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        metadata["priority"] = 1234
+        metadata["priority"] = 12
         save_handler.assert_called_with(obj, "{}{}_12.pt".format(filename_prefix, name), metadata)
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with("{}{}_1.pt".format(filename_prefix, name))
+        save_handler.remove.assert_called_with("{}{}_2.pt".format(filename_prefix, name))
         assert checkpointer.last_checkpoint == "{}{}_12.pt".format(filename_prefix, name)
 
     for prefix in ["", "dummytask"]:
