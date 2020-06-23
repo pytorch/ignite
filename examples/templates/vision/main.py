@@ -6,7 +6,7 @@ import ignite.distributed as idist
 from ignite.engine import Events
 from ignite.utils import manual_seed, setup_logger
 
-import utils
+from .utils import initialize, get_dataflow
 from .trainer import create_trainer
 
 try:
@@ -28,12 +28,12 @@ def training(local_rank: int, config: Mapping):
     manual_seed(config["seed"] + rank)
     device = idist.device()
 
-    model, optimizer, criterion, lr_scheduler = utils.initialize(config)
+    model, optimizer, criterion, lr_scheduler = initialize(config)
 
     if has_apex_amp:
         model, optimizer = amp.initialize(model, optimizer, opt_level=config["amp_opt_level"])
 
-    train_loader, val_loader = utils.get_dataflow(config)
+    train_loader, val_loader = get_dataflow(config)
 
     def train_step(engine, batch):
 
@@ -58,7 +58,16 @@ def training(local_rank: int, config: Mapping):
             "batch_loss": batch_loss.item(),
         }
 
-    trainer = create_trainer(train_step, ...)
+    trainer = create_trainer(
+        train_step,
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        lr_scheduler=lr_scheduler,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        config=config,
+    )
 
     num_epochs = config["num_epochs"]
 
@@ -71,11 +80,21 @@ def training(local_rank: int, config: Mapping):
 
 def get_default_config():
     return {
+        # Global configs
         "seed": 22,
+        "output_path": "/tmp/output",
+        # Model configs
+        "num_classes": 10,
         "model": "resnet18",
-        "dataset": "cifar10",
-        # Use AMP if installed
-        "amp_opt_level": "O1",
+        # Solver configs
+        "learning_rate": 0.01,
+        "step_size": 20,
+        "gamma": 0.3,
+        "num_epochs": 2,
+        # Trainer custom configs
+        "checkpoint_every": 1000,  # checkpoint training every 1000 iterations
+        "validate_every": 3,  # run model validation every 3 epochs
+        "amp_opt_level": "O1",  # Use AMP if installed
     }
 
 

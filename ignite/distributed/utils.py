@@ -77,9 +77,11 @@ def sync():
 def device() -> torch.device:
     """Returns current device according to current distributed configuration.
 
-    - `torch.device("cpu")` if no distributed configuration or native gloo distributed configuration
-    - `torch.device("cuda:local_rank")` if native nccl distributed configuration
-    - `torch.device("xla:index")` if XLA distributed configuration
+    - | ``torch.device("cpu")`` if no distributed configuration or no available GPU or native gloo
+      |  distributed configuration
+    - | ``torch.device("cuda")`` if GPU is available
+    - | ``torch.device("cuda:local_rank")`` if native nccl distributed configuration
+    - | ``torch.device("xla:index")`` if XLA distributed configuration
 
     Returns:
         torch.device
@@ -114,9 +116,9 @@ def available_backends() -> Tuple[str]:
 def model_name() -> str:
     """Returns distributed configuration name (given by ignite)
 
-    - `serial` for no distributed configuration
-    - `native-dist` for native torch distributed configuration
-    - `xla-dist` for XLA distributed configuration
+    - "serial" for no distributed configuration
+    - "native-dist" for native torch distributed configuration
+    - "xla-dist" for XLA distributed configuration
 
     """
     return _model.name
