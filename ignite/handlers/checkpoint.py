@@ -263,6 +263,7 @@ class Checkpoint:
     def __call__(self, engine: Engine) -> None:
 
         suffix = ""
+        global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
             suffix = "{}".format(global_step)
@@ -272,7 +273,7 @@ class Checkpoint:
             if not isinstance(priority, numbers.Number):
                 raise ValueError("Output of score_function should be a number")
         else:
-            if self.global_step_transform is not None:
+            if global_step is not None:
                 priority = global_step
             else:
                 priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
