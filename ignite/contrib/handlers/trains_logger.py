@@ -3,7 +3,8 @@ import tempfile
 import warnings
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, List, Mapping, Optional
+from enum import Enum
+from typing import Any, List, Mapping, Optional, Type
 
 import torch
 
@@ -663,8 +664,15 @@ class TrainsSaver(DiskSaver):
 
     class _CallbacksContext:
         def __init__(
-            self, slots: List, checkpoint_key: str, filename: str, basename: str, metadata: Optional[Mapping] = None
+            self,
+            callback_type: Type[Enum],
+            slots: List,
+            checkpoint_key: str,
+            filename: str,
+            basename: str,
+            metadata: Optional[Mapping] = None,
         ):
+            self._callback_type = callback_type
             self._slots = slots
             self._checkpoint_key = str(checkpoint_key)
             self._filename = filename
@@ -672,7 +680,7 @@ class TrainsSaver(DiskSaver):
             self._metadata = metadata
 
         def pre_callback(self, action: str, model_info: Any):
-            if action != "save":
+            if action != self._callback_type.save:
                 return model_info
 
             try:
@@ -687,7 +695,7 @@ class TrainsSaver(DiskSaver):
             return model_info
 
         def post_callback(self, action: str, model_info: Any):
-            if action != "save":
+            if action != self._callback_type.save:
                 return model_info
 
             model_info.model.name = "{}: {}".format(model_info.task.name, self._filename)
@@ -724,6 +732,7 @@ class TrainsSaver(DiskSaver):
         checkpoint_key = (self.dirname, basename)
 
         cb_context = self._CallbacksContext(
+            callback_type=WeightsFileHandler.CallbackType,
             slots=self._checkpoint_slots[checkpoint_key],
             checkpoint_key=str(checkpoint_key),
             filename=filename,

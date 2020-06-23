@@ -5,6 +5,8 @@ from unittest.mock import ANY, MagicMock, Mock, call
 import pytest
 import torch
 import trains
+from trains.binding.frameworks import WeightsFileHandler
+from trains.model import Framework
 
 import ignite.distributed as idist
 from ignite.contrib.handlers.trains_logger import *
@@ -668,6 +670,34 @@ def test_trains_disk_saver_integration_no_logger():
         saved_files = list(os.listdir(trains_saver.dirname))
         assert len(saved_files) == 1
         assert saved_files[0] == "model_1.pt"
+
+
+def test_trains_saver_callbacks():
+    mock_task = MagicMock(spec=trains.Task)
+
+    mock_model = MagicMock(spec=trains.OutputModel)
+
+    model_info = WeightsFileHandler.ModelInfo(
+        model=mock_model,
+        upload_filename="test.pt",
+        local_model_path="",
+        local_model_id="",
+        framework=Framework.pytorch,
+        task=mock_task,
+    )
+
+    mock_model_info = MagicMock(spec_set=model_info)
+
+    context = TrainsSaver._CallbacksContext(
+        callback_type=WeightsFileHandler.CallbackType,
+        slots=[],
+        checkpoint_key="test-callbacks",
+        filename="test.pt",
+        basename="test",
+    )
+
+    context.pre_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
+    context.post_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
 
 
 class DummyModel(torch.nn.Module):
