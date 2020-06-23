@@ -1,9 +1,9 @@
 import logging
+from collections import OrderedDict
 from typing import Callable, Mapping
 
 from ignite.base import Serializable
 from ignite.engine import Engine
-from collections import OrderedDict
 
 __all__ = ["EarlyStopping"]
 

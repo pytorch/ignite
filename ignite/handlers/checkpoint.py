@@ -10,8 +10,8 @@ from typing import Callable, Mapping, Optional, Union
 import torch
 import torch.nn as nn
 
-from ignite.base import Serializable
 import ignite.distributed as idist
+from ignite.base import Serializable
 from ignite.engine import Engine, Events
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
@@ -93,7 +93,7 @@ class Checkpoint(Serializable):
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by ``torch.save`` are already compressed.
-        include_self: Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
+        include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
@@ -234,8 +234,7 @@ class Checkpoint(Serializable):
             if include_self:
                 if not isinstance(to_save, collections.MutableMapping):
                     raise TypeError(
-                        "If `include_self` is True, then `to_save` must "
-                        "be mutable. It was type: {}.".format(type(to_save))
+                        "If `include_self` is True, then `to_save` must be mutable, but given {}.".format(type(to_save))
                     )
 
                 if "checkpointer" in to_save:
@@ -572,6 +571,8 @@ class ModelCheckpoint(Checkpoint):
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
+        include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
+            there must not be another object in ``to_save`` with key ``checkpointer``.
 
     Examples:
         >>> import os
@@ -603,6 +604,7 @@ class ModelCheckpoint(Checkpoint):
         save_as_state_dict: bool = True,
         global_step_transform: Optional[Callable] = None,
         archived: bool = False,
+        include_self: bool = False,
     ):
 
         if not save_as_state_dict:
@@ -633,6 +635,7 @@ class ModelCheckpoint(Checkpoint):
             n_saved=n_saved,
             global_step_transform=global_step_transform,
             archived=archived,
+            include_self=include_self,
         )
 
     @property
