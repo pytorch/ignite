@@ -1,5 +1,6 @@
 import math
 import os
+from collections import defaultdict
 from unittest.mock import ANY, MagicMock, Mock, call
 
 import pytest
@@ -674,6 +675,7 @@ def test_trains_disk_saver_integration_no_logger():
 
 def test_trains_saver_callbacks():
     mock_task = MagicMock(spec=trains.Task)
+    mock_task.name = "check-task"
 
     mock_model = MagicMock(spec=trains.OutputModel)
 
@@ -688,16 +690,69 @@ def test_trains_saver_callbacks():
 
     mock_model_info = MagicMock(spec_set=model_info)
 
-    context = TrainsSaver._CallbacksContext(
-        callback_type=WeightsFileHandler.CallbackType,
-        slots=[],
-        checkpoint_key="test-callbacks",
-        filename="test.pt",
-        basename="test",
-    )
+    # Simulate 4 calls to save model and 2 to remove (n_saved=2)
+    filenames = [
+        "best_model_5_val_acc=0.123.pt",
+        "best_model_6_val_acc=0.234.pt",
+        "best_model_7_val_acc=0.356.pt",
+        "best_model_8_val_acc=0.456.pt",
+    ]
+    metadata_list = [
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.123},
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.234},
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.345},
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.456},
+    ]
+    dirname = "/tmp/test"
 
-    context.pre_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
-    context.post_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
+    _checkpoint_slots = defaultdict(list)
+
+    n_saved = 2
+
+    for i, (filename, metadata) in enumerate(zip(filenames, metadata_list)):
+
+        mock_model_info.upload_filename = filename
+
+        if i >= n_saved:
+            # Remove
+            filename_to_remove = filenames[i % n_saved]
+            for slots in _checkpoint_slots.values():
+                try:
+                    slots[slots.index(filename_to_remove)] = None
+                except ValueError:
+                    pass
+                else:
+                    i = i % n_saved
+                    break
+
+        basename = metadata["basename"]
+        checkpoint_key = (dirname, basename)
+
+        context = TrainsSaver._CallbacksContext(
+            callback_type=WeightsFileHandler.CallbackType,
+            slots=_checkpoint_slots[checkpoint_key],
+            checkpoint_key=str(checkpoint_key),
+            filename=filename,
+            basename=basename,
+            metadata=metadata,
+        )
+
+        output_model_info = context.pre_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
+        assert (
+            hasattr(output_model_info, "upload_filename")
+            and "{}_{}.pt".format(basename, i) in output_model_info.upload_filename
+        )
+        assert hasattr(output_model_info, "local_model_id") and str(checkpoint_key) in output_model_info.local_model_id
+
+        output_model_info = context.post_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
+        assert hasattr(output_model_info, "model") and hasattr(output_model_info.model, "name")
+        assert hasattr(output_model_info, "model") and hasattr(output_model_info.model, "comment")
+        assert isinstance(output_model_info.model.name, str) and filename in output_model_info.model.name
+        assert (
+            isinstance(output_model_info.model.comment, str)
+            and metadata["basename"] in output_model_info.model.comment
+            and metadata["score_name"] in output_model_info.model.comment
+        )
 
 
 class DummyModel(torch.nn.Module):
