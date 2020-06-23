@@ -1,12 +1,14 @@
 import logging
-from typing import Callable
+from typing import Callable, Mapping
 
+from ignite.base import Serializable
 from ignite.engine import Engine
+from collections import OrderedDict
 
 __all__ = ["EarlyStopping"]
 
 
-class EarlyStopping:
+class EarlyStopping(Serializable):
     """EarlyStopping handler can be used to stop the training if no improvement after a given number of events.
 
     Args:
@@ -40,6 +42,11 @@ class EarlyStopping:
         evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
+
+    _state_dict_all_req_keys = (
+        "counter",
+        "best_score",
+    )
 
     def __init__(
         self,
@@ -87,3 +94,11 @@ class EarlyStopping:
         else:
             self.best_score = score
             self.counter = 0
+
+    def state_dict(self) -> OrderedDict:
+        return OrderedDict([("counter", self.counter), ("best_score", self.best_score)])
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        super().load_state_dict(state_dict)
+        self.counter = state_dict["counter"]
+        self.best_score = state_dict["best_score"]

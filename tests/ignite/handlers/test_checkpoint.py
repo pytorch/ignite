@@ -10,6 +10,7 @@ import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
+from collections import OrderedDict
 
 _PREFIX = "PREFIX"
 
@@ -63,6 +64,9 @@ def test_checkpoint_wrong_input():
     with pytest.warns(UserWarning, match=r"Argument archived is deprecated"):
         Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", archived=True)
 
+    with pytest.raises(ValueError, match=r"Cannot have key 'checkpointer' if `include_self` is True"):
+        Checkpoint({"checkpointer": model}, lambda x: x, include_self=True)
+
 
 def test_checkpoint_score_function_wrong_output():
     model = DummyModel()
@@ -100,6 +104,56 @@ def test_checkpoint_default():
         assert save_handler.remove.call_count == 1
         save_handler.remove.assert_called_with("{}_0.pt".format(name))
         assert checkpointer.last_checkpoint == "{}_1234.pt".format(name)
+
+    model = DummyModel()
+    to_save = {"model": model}
+    _test(to_save, model.state_dict(), "model")
+
+    model = DummyModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    to_save = {"model": model, "optimizer": optimizer}
+    _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
+
+
+def test_checkpoint_include_self_state_dict():
+    def _test(to_save, obj, name):
+        save_handler = MagicMock(spec=BaseSaveHandler)
+
+        checkpointer = Checkpoint(to_save, save_handler=save_handler, include_self=True)
+        assert checkpointer.last_checkpoint is None
+
+        trainer = Engine(lambda e, b: None)
+        trainer.state = State(epoch=0, iteration=0)
+
+        checkpointer(trainer)
+        assert save_handler.call_count == 1
+
+        fname = "{}_0.pt".format(name)
+        obj["checkpointer"] = OrderedDict([("saved", [(0, fname)])])
+
+        metadata = {"basename": name, "score_name": None, "priority": 0}
+        save_handler.assert_called_with(obj, fname, metadata)
+
+        # Swap object, state should be maintained
+        checkpointer2 = Checkpoint(to_save, save_handler=save_handler, include_self=True)
+        checkpointer2.load_state_dict(checkpointer.state_dict())
+        assert checkpointer2.last_checkpoint == fname
+
+        trainer.state.epoch = 12
+        trainer.state.iteration = 1234
+        checkpointer2(trainer)
+        assert save_handler.call_count == 2
+        metadata["priority"] = 1234
+
+        # This delete only happens if state was restored correctly.
+        save_handler.remove.assert_called_with("{}_0.pt".format(name))
+
+        fname = "{}_1234.pt".format(name)
+        obj["checkpointer"] = OrderedDict([("saved", [(1234, fname)])])
+
+        save_handler.assert_called_with(obj, fname, metadata)
+        assert save_handler.remove.call_count == 1
+        assert checkpointer2.last_checkpoint == fname
 
     model = DummyModel()
     to_save = {"model": model}
