@@ -111,7 +111,7 @@ class Checkpoint:
         setup by attached engine's current iteration. The filename will be
         `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
 
-        If only ``global_step_transform`` is defined, then suffix is setup using its return value. 
+        If only ``global_step_transform`` is defined, then suffix is setup using its return value.
         The filename will be `{filename_prefix}_{name}_{global_step}.{ext}`.
 
         If defined a ``score_function``, but without ``score_name``, then suffix is defined by provided score.
