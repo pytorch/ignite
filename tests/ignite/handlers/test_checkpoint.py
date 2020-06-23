@@ -8,7 +8,7 @@ import torch.nn as nn
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
-from ignite.handlers import Checkpoint, DiskSaver, ModelCheckpoint
+from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint, global_step_from_engine
 from ignite.handlers.checkpoint import BaseSaveHandler
 from collections import OrderedDict
 
@@ -424,7 +424,6 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
     model = DummyModel()
     to_save = {"model": model}
     _test(to_save, model.state_dict(), "model")
-
 
 def test_checkpoint_last_checkpoint():
     save_handler = MagicMock(spec=BaseSaveHandler)
@@ -844,6 +843,95 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_
 
 def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", dirname)
+
+
+def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_zero_rank=False):
+    torch.manual_seed(23)
+
+    def _build_objects(acc_list):
+
+        model = DummyModel().to(device)
+        optim = torch.optim.SGD(model.parameters(), lr=0.1)
+
+        def update_fn(engine, batch):
+            x = torch.rand((4, 1)).to(device)
+            optim.zero_grad()
+            y = model(x)
+            loss = y.pow(2.0).sum()
+            loss.backward()
+            if idist.has_xla_support:
+                import torch_xla.core.xla_model as xm
+
+                xm.optimizer_step(optim, barrier=True)
+            else:
+                optim.step()
+
+        trainer = Engine(update_fn)
+
+        evaluator = Engine(lambda e, b: None)
+        acc_iter = iter(acc_list)
+
+        @evaluator.on(Events.EPOCH_COMPLETED)
+        def setup_result():
+            evaluator.state.metrics["accuracy"] = next(acc_iter)
+
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def run_eval():
+            evaluator.run([0, 1, 2])
+
+        def score_function(engine):
+            return engine.state.metrics['accuracy']
+        
+        save_handler = DiskSaver(dirname, create_dir=True, require_empty=False)
+        early_stop = EarlyStopping(score_function=score_function, patience=2, trainer=trainer)
+        evaluator.add_event_handler(Events.COMPLETED, early_stop)
+        
+        checkpointer = Checkpoint(
+            {"trainer": trainer, "model": model, "optim": optim, "early_stop": early_stop}, 
+            save_handler, 
+            include_self=True,
+            global_step_transform=global_step_from_engine(trainer))
+        evaluator.add_event_handler(Events.COMPLETED, checkpointer)
+    
+        return trainer, evaluator, model, optim, early_stop, checkpointer
+
+    trainer, evaluator, model, optim, early, checkpointer = _build_objects([0.2, 0.3, 0.2])
+    trainer.run([0], max_epochs=3)
+
+    saved_objects = sorted(os.listdir(dirname))
+    saved_checkpoint = os.path.join(dirname, saved_objects[0])
+
+    loaded_obj = torch.load(saved_checkpoint, map_location=device)
+    for f in ["trainer", "model", "optim", "early_stop", "checkpointer"]:
+        assert f in loaded_obj
+    
+    breakpoint()
+
+    trainer2, evaluator2, model2, optim2, early2, checkpointer2 = _build_objects([0.1, 0.1, 0.1])
+    Checkpoint.load_objects(
+        {"trainer": trainer2, "model": model2, "optim": optim2, "early_stop": early2, "checkpointer": checkpointer2}, 
+        loaded_obj
+    )
+    
+    model_state_dict = model.cpu().state_dict()
+    loaded_model_state_dict = model2.cpu().state_dict()
+    for key in model_state_dict.keys():
+        assert key in loaded_model_state_dict
+        model_value = model_state_dict[key]
+        loaded_model_value = loaded_model_state_dict[key]
+        assert model_value.cpu().numpy() == loaded_model_value.cpu().numpy()
+
+    optim_state_dict = optim.state_dict()
+    loaded_optimizer_state_dict = optim2.state_dict()
+    for key in optim_state_dict.keys():
+        assert key in loaded_optimizer_state_dict
+        optim_value = optim_state_dict[key]
+        loaded_optim_value = loaded_optimizer_state_dict[key]
+        if idist.get_rank() == 0:
+            assert optim_value == loaded_optim_value
+
+def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
+    _test_save_model_optimizer_lr_scheduler_with_validation("cpu", dirname)
 
 
 def test_checkpoint_load_objects():
