@@ -58,7 +58,7 @@ Notebooks
 - `MNIST training on a single TPU <https://github.com/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb>`_
 
 
-All notebooks can be opened in Google Colab with a link:
+All notebooks can be opened on Google Colab with a link:
 
 .. code-block:: text
 
