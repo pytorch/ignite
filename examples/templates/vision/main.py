@@ -1,3 +1,5 @@
+from typing import Mapping
+
 import torch
 
 import ignite.distributed as idist
@@ -15,7 +17,7 @@ except ImportError:
     has_apex_amp = False
 
 
-def training(local_rank, config):
+def training(local_rank: int, config: Mapping):
 
     rank = idist.get_rank()
     logger = setup_logger("FixMatch Training", distributed_rank=rank)
@@ -59,6 +61,7 @@ def training(local_rank, config):
     trainer = create_trainer(train_step, ...)
 
     num_epochs = config["num_epochs"]
+
     try:
         trainer.run(train_loader, max_epochs=num_epochs)
     except Exception as e:

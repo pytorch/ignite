@@ -9,9 +9,8 @@ pip install tensorboard
 
 ## How to use
 
-- Choose your task
 - Copy files to your project
-- Adapt the code to your specificity
+- Adapt the code to your task
   - dataflow
   - model/optimizer/criterion 
   - training step
@@ -28,7 +27,7 @@ All templates are optionally structured into several files:
 ### Training on single or multiple GPU(s) 
 
 ```bash
-python -m torch.distributed.launch --nproc_per_node=1 --use_env main.py
+python main.py
 ```
 or
 ```bash

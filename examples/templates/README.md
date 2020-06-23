@@ -2,11 +2,9 @@
 
 This folder contains template code examples ranged by domain to quick start with Ignite.
 
-* [ ] Vision (Image Processing task)
+* [x] Vision (Image Processing task)
 
 * [ ] NLP
-
-* [ ] ...
 
 
 ## How to use
