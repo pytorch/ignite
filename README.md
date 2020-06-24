@@ -309,7 +309,7 @@ Few pointers to get you started:
 
 - [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html)
 - [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch.org/ignite/concepts.html)
-- [Full-featured template examples for common tasks](examples/templates)
+- [Full-featured template examples](examples/templates)
 
 
 <!-- ############################################################################################################### -->

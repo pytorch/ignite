@@ -1,4 +1,8 @@
-# Template example for Image Processing Task (Vision)
+# Template example for Supervised Multi-Model Training
+
+**WORK IN PROGRESS**
+
+Suitable for trainings of multiple models with multiple optimizers: GAN, Teacher-Student, etc
 
 ## Requirements
 
@@ -10,9 +14,9 @@ pip install tensorboard
 ## How to use
 
 - Copy files to your project
-- Adapt the code to your task
+- Adapt the code to your problem
   - dataflow
-  - model/optimizer/criterion 
+  - models/optimizers/criterions 
   - training step
   - metrics ([list](https://pytorch.org/ignite/metrics.html#complete-list-of-metrics) of available ignite metrics)
   - etc

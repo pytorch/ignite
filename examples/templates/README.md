@@ -1,10 +1,10 @@
 # Template examples with Ignite
 
-This folder contains template code examples ranged by domain to quick start with Ignite.
+This folder contains template code examples ranged by training type to quick start with Ignite.
 
-* [x] [Vision (Image Processing task)](vision)
+* [x] [Supervised Single-Model Training](supervised_single_model): vision/nlp tasks like classification
 
-* [ ] NLP (coming soon)
+* [ ] [Supervised Multi-Model Training](supervised_multi_model): GANs, Teacher-Student training, etc
 
 
 ## How to use
@@ -13,7 +13,7 @@ This folder contains template code examples ranged by domain to quick start with
 - Copy files to your project
 - Adapt the code to your specificity
   - dataflow
-  - model/optimizer/criterion 
+  - model(s)/optimizer(s)/criterion(s)
   - training step
   - metrics
   - etc
@@ -22,4 +22,4 @@ All templates are optionally structured into several files:
 
 - `main.py` - main entry-point to run training script
 - `trainer.py` - helper module to setup ignite trainer
-- `utils.py` - helper module to setup dataflow, model, optimizer, criterion, lr scheduler etc. 
+- `utils.py` - helper module to setup dataflow, model(s), optimizer(s), criterion(s), lr scheduler(s) etc. 
