@@ -1,13 +1,10 @@
 from typing import Mapping
 
-import torch
-
 import ignite.distributed as idist
-from ignite.engine import Events
 from ignite.utils import manual_seed, setup_logger
 
-from .utils import initialize, get_dataflow
-from .trainer import create_trainer
+from utils import initialize, get_dataflow
+from trainer import create_trainer
 
 try:
     from apex import amp
@@ -83,6 +80,8 @@ def get_default_config():
         # Global configs
         "seed": 22,
         "output_path": "/tmp/output",
+        "batch_size": 8,
+        "num_workers": 4,
         # Model configs
         "num_classes": 10,
         "model": "resnet18",
@@ -91,6 +90,8 @@ def get_default_config():
         "step_size": 20,
         "gamma": 0.3,
         "num_epochs": 2,
+        # number of evaluations to tolerate if no improvement before stopping the training. Set None to disable.
+        "early_stopping_patience": None,
         # Trainer custom configs
         "checkpoint_every": 1000,  # checkpoint training every 1000 iterations
         "validate_every": 3,  # run model validation every 3 epochs
@@ -101,8 +102,7 @@ def get_default_config():
 if __name__ == "__main__":
 
     # Setup distributed computation backend
-    # backend = "nccl"  # or None to disable
-    backend = "gloo"  # or None to disable
+    backend = "nccl"  # or "gloo" or None to disable
 
     config = get_default_config()
 

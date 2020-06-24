@@ -37,8 +37,8 @@ def get_dataflow(config: Mapping) -> Tuple[DataLoader, DataLoader]:
     )
     val_transform = T.Compose([T.ToTensor(), T.Normalize((0.5, 0.5, 0.5), (0.25, 0.25, 0.25))])
 
-    train_dataset = FakeData(size=1000, num_classes=num_classes, transform=train_transform)
-    val_dataset = FakeData(size=300, num_classes=num_classes, transform=val_transform)
+    train_dataset = FakeData(size=100, num_classes=num_classes, transform=train_transform)
+    val_dataset = FakeData(size=30, num_classes=num_classes, transform=val_transform)
 
     # helper method to create DataLoader adapted to current computation configuration
     train_loader = idist.auto_dataloader(

@@ -6,8 +6,9 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import ignite.distributed as idist
+import ignite.contrib.engines.common as common
 from ignite.engine import Engine, Events, create_supervised_evaluator
-from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+from ignite.handlers import Checkpoint, DiskSaver
 from ignite.metrics import RunningAverage, Accuracy, Precision, Recall
 from ignite.contrib.handlers import ProgressBar
 
@@ -72,15 +73,29 @@ def create_trainer(
         evaluator.run(val_loader)
 
     # Save 3 best models according to validation accuracy
-    handler = Checkpoint(
-        to_save={"model": model},
-        save_handler=DiskSaver(config["output_path"], require_empty=False),
-        filename_prefix="best",
-        score_name="val_acc",
-        score_function=lambda e: e.state.metrics["accuracy"],
-        global_step_transform=global_step_from_engine(trainer),
+    metric_name = "accuracy"
+    common.save_best_model_by_val_score(
+        config["output_path"],
+        evaluator=evaluator,
+        model=model,
+        metric_name=metric_name,
+        n_saved=3,
+        trainer=trainer,
+        tag="val",
     )
 
-    evaluator.add_event_handler()
+    # Setup early stopping
+    if config["early_stopping_patience"] is not None:
+        common.add_early_stopping_by_val_score(
+            config["early_stopping_patience"], evaluator=evaluator, trainer=trainer, metric_name=metric_name
+        )
+
+    # Add tensorboard experiment tracking logger
+    # Other available loggers can be added in the same way with `common.setup_*_logging`
+    if idist.get_rank() == 0:
+        tb_logger = common.setup_tb_logging(
+            config["output_path"], trainer, optimizer, evaluators={"validation": evaluator},
+        )
+        trainer.add_event_handler(Events.COMPLETED | Events.EXCEPTION_RAISED, lambda _: tb_logger.close())
 
     return trainer
