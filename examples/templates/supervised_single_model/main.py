@@ -68,7 +68,7 @@ def training(local_rank: int, config: Mapping):
         train_loader=train_loader,
         val_loader=val_loader,
         config=config,
-        logger=logger
+        logger=logger,
     )
 
     num_epochs = config["num_epochs"]

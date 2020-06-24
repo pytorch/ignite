@@ -25,7 +25,7 @@ def create_trainer(
     train_loader: DataLoader,
     val_loader: DataLoader,
     config: Mapping,
-    logger: Logger
+    logger: Logger,
 ):
 
     # Define trainer engine
