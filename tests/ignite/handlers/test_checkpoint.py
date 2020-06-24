@@ -852,6 +852,7 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
 
         model = DummyModel().to(device)
         optim = torch.optim.SGD(model.parameters(), lr=0.1)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
 
         def update_fn(engine, batch):
             x = torch.rand((4, 1)).to(device)
@@ -865,6 +866,7 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
                 xm.optimizer_step(optim, barrier=True)
             else:
                 optim.step()
+            lr_scheduler.step()
 
         trainer = Engine(update_fn)
 
@@ -887,31 +889,31 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
         evaluator.add_event_handler(Events.COMPLETED, early_stop)
         
         checkpointer = Checkpoint(
-            {"trainer": trainer, "model": model, "optim": optim, "early_stop": early_stop}, 
+            {"trainer": trainer, "model": model, "optim": optim, "lr_scheduler": lr_scheduler, "early_stop": early_stop}, 
             save_handler, 
             include_self=True,
             global_step_transform=global_step_from_engine(trainer))
         evaluator.add_event_handler(Events.COMPLETED, checkpointer)
     
-        return trainer, evaluator, model, optim, early_stop, checkpointer
+        return trainer, evaluator, model, optim, lr_scheduler, early_stop, checkpointer
 
-    trainer, evaluator, model, optim, early, checkpointer = _build_objects([0.2, 0.3, 0.2])
+    trainer, evaluator, model, optim, scheduler, early, checkpointer = _build_objects([0.2, 0.3, 0.2])
     trainer.run([0], max_epochs=3)
 
     saved_objects = sorted(os.listdir(dirname))
     saved_checkpoint = os.path.join(dirname, saved_objects[0])
 
     loaded_obj = torch.load(saved_checkpoint, map_location=device)
-    for f in ["trainer", "model", "optim", "early_stop", "checkpointer"]:
+    for f in ["trainer", "model", "optim", "lr_scheduler", "early_stop", "checkpointer"]:
         assert f in loaded_obj
     
-    breakpoint()
-
-    trainer2, evaluator2, model2, optim2, early2, checkpointer2 = _build_objects([0.1, 0.1, 0.1])
+    trainer2, evaluator2, model2, optim2, scheduler2, early2, checkpointer2 = _build_objects([0.1, 0.1, 0.1])
     Checkpoint.load_objects(
-        {"trainer": trainer2, "model": model2, "optim": optim2, "early_stop": early2, "checkpointer": checkpointer2}, 
+        {"trainer": trainer2, "model": model2, "optim": optim2, 
+        "lr_scheduler": scheduler2, "early_stop": early2, "checkpointer": checkpointer2}, 
         loaded_obj
     )
+    assert checkpointer2.last_checkpoint == checkpointer.last_checkpoint
     
     model_state_dict = model.cpu().state_dict()
     loaded_model_state_dict = model2.cpu().state_dict()
@@ -923,12 +925,40 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
 
     optim_state_dict = optim.state_dict()
     loaded_optimizer_state_dict = optim2.state_dict()
+    # "params" contains tensor IDs, which are different
+    del optim_state_dict['param_groups'][0]["params"]
+    del loaded_optimizer_state_dict['param_groups'][0]["params"]
     for key in optim_state_dict.keys():
         assert key in loaded_optimizer_state_dict
         optim_value = optim_state_dict[key]
         loaded_optim_value = loaded_optimizer_state_dict[key]
         if idist.get_rank() == 0:
             assert optim_value == loaded_optim_value
+    
+    def _check_state_dict(original, loaded):
+        original_state_dict = original.state_dict()
+        loaded_state_dict = loaded.state_dict()
+        for key in original_state_dict.keys():
+            assert key in loaded_state_dict
+            original_value = original_state_dict[key]
+            loaded_value = loaded_state_dict[key]
+            assert original_value == loaded_value
+    
+    _check_state_dict(trainer, trainer2)
+    _check_state_dict(scheduler, scheduler2)
+    _check_state_dict(early, early2)
+    _check_state_dict(checkpointer, checkpointer2)
+
+    trainer2.run([0], max_epochs=6)
+
+    # early stopping should have triggered
+    assert trainer2.state.epoch == 4  
+
+    # If Checkpoint's state was restored correctly, it should continue to respect n_saved
+    # and delete old checkpoints, and have the correct last_checkpoint.
+    assert os.listdir(dirname) == ['checkpoint_4.pt']
+    assert checkpointer2.last_checkpoint == 'checkpoint_4.pt'
+        
 
 def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
     _test_save_model_optimizer_lr_scheduler_with_validation("cpu", dirname)
