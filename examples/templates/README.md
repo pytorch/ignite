@@ -4,7 +4,7 @@ This folder contains template code examples ranged by domain to quick start with
 
 * [x] Vision (Image Processing task)
 
-* [ ] NLP
+* [ ] NLP (coming soon)
 
 
 ## How to use

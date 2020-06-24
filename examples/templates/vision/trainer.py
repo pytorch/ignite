@@ -94,7 +94,7 @@ def create_trainer(
     # Other available loggers can be added in the same way with `common.setup_*_logging`
     if idist.get_rank() == 0:
         tb_logger = common.setup_tb_logging(
-            config["output_path"], trainer, optimizer, evaluators={"validation": evaluator},
+            config["output_path"], trainer, optimizer, evaluators={"validation": evaluator}, log_every_iters=10
         )
         trainer.add_event_handler(Events.COMPLETED | Events.EXCEPTION_RAISED, lambda _: tb_logger.close())
 

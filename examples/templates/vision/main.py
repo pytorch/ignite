@@ -1,5 +1,6 @@
 from typing import Mapping
 
+import torch
 import ignite.distributed as idist
 from ignite.utils import manual_seed, setup_logger
 
@@ -9,7 +10,7 @@ from trainer import create_trainer
 try:
     from apex import amp
 
-    has_apex_amp = True
+    has_apex_amp = True and torch.cuda.is_available()
 except ImportError:
     has_apex_amp = False
 
@@ -17,7 +18,10 @@ except ImportError:
 def training(local_rank: int, config: Mapping):
 
     rank = idist.get_rank()
-    logger = setup_logger("FixMatch Training", distributed_rank=rank)
+    logger = setup_logger("Training", distributed_rank=rank)
+
+    if torch.cuda.is_available() and torch.backends.cudnn.enabled:
+        torch.backends.cudnn.benchmark = True
 
     if rank == 0:
         logger.info(repr(config))
@@ -89,7 +93,7 @@ def get_default_config():
         "learning_rate": 0.01,
         "step_size": 20,
         "gamma": 0.3,
-        "num_epochs": 2,
+        "num_epochs": 5,
         # number of evaluations to tolerate if no improvement before stopping the training. Set None to disable.
         "early_stopping_patience": None,
         # Trainer custom configs
