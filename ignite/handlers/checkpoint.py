@@ -4,13 +4,14 @@ import os
 import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 from typing import Callable, Mapping, Optional, Union
 
 import torch
 import torch.nn as nn
 
 import ignite.distributed as idist
+from ignite.base import Serializable
 from ignite.engine import Engine, Events
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
@@ -62,7 +63,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
         pass
 
 
-class Checkpoint:
+class Checkpoint(Serializable):
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     ``state_dict`/`load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
     storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
@@ -92,6 +93,8 @@ class Checkpoint:
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by ``torch.save`` are already compressed.
+        include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
+            there must not be another object in ``to_save`` with key ``checkpointer``.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
     .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
@@ -110,6 +113,9 @@ class Checkpoint:
         By default, none of ``score_function``, ``score_name``, ``global_step_transform`` is defined, then suffix is
         setup by attached engine's current iteration. The filename will be
         `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
+
+        If only ``global_step_transform`` is defined, then suffix is setup using its return value.
+        The filename will be `{filename_prefix}_{name}_{global_step}.{ext}`.
 
         If defined a ``score_function``, but without ``score_name``, then suffix is defined by provided score.
         The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pt`.
@@ -201,6 +207,7 @@ class Checkpoint:
     """
 
     Item = namedtuple("Item", ["priority", "filename"])
+    _state_dict_all_req_keys = ("saved",)
 
     def __init__(
         self,
@@ -212,6 +219,7 @@ class Checkpoint:
         n_saved: Optional[int] = 1,
         global_step_transform: Callable = None,
         archived: bool = False,
+        include_self: bool = False,
     ):
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
@@ -222,6 +230,15 @@ class Checkpoint:
                 raise ValueError("No objects to checkpoint.")
 
             self._check_objects(to_save, "state_dict")
+
+            if include_self:
+                if not isinstance(to_save, collections.MutableMapping):
+                    raise TypeError(
+                        "If `include_self` is True, then `to_save` must be mutable, but given {}.".format(type(to_save))
+                    )
+
+                if "checkpointer" in to_save:
+                    raise ValueError("Cannot have key 'checkpointer' if `include_self` is True: {}".format(to_save))
 
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
@@ -245,6 +262,7 @@ class Checkpoint:
         self._saved = []
         self._ext = ".pt"
         self.global_step_transform = global_step_transform
+        self.include_self = include_self
 
     @property
     def last_checkpoint(self) -> Optional[str]:
@@ -260,6 +278,7 @@ class Checkpoint:
     def __call__(self, engine: Engine) -> None:
 
         suffix = ""
+        global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
             suffix = "{}".format(global_step)
@@ -269,7 +288,10 @@ class Checkpoint:
             if not isinstance(priority, numbers.Number):
                 raise ValueError("Output of score_function should be a number")
         else:
-            priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
+            if global_step is not None:
+                priority = global_step
+            else:
+                priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
@@ -313,6 +335,10 @@ class Checkpoint:
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
+
+            if self.include_self:
+                # Now that we've updated _saved, we can add our own state_dict.
+                checkpoint["checkpointer"] = self.state_dict()
 
             try:
                 self.save_handler(checkpoint, filename, metadata)
@@ -400,6 +426,13 @@ class Checkpoint:
                 obj.load_state_dict(checkpoint[k], strict=is_state_dict_strict)
             else:
                 obj.load_state_dict(checkpoint[k])
+
+    def state_dict(self) -> OrderedDict:
+        return OrderedDict([("saved", [(p, f) for p, f in self._saved])])
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        super().load_state_dict(state_dict)
+        self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["saved"]]
 
 
 class DiskSaver(BaseSaveHandler):
@@ -538,6 +571,8 @@ class ModelCheckpoint(Checkpoint):
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
+        include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
+            there must not be another object in ``to_save`` with key ``checkpointer``.
 
     Examples:
         >>> import os
@@ -569,6 +604,7 @@ class ModelCheckpoint(Checkpoint):
         save_as_state_dict: bool = True,
         global_step_transform: Optional[Callable] = None,
         archived: bool = False,
+        include_self: bool = False,
     ):
 
         if not save_as_state_dict:
@@ -599,6 +635,7 @@ class ModelCheckpoint(Checkpoint):
             n_saved=n_saved,
             global_step_transform=global_step_transform,
             archived=archived,
+            include_self=include_self,
         )
 
     @property
