@@ -1,5 +1,8 @@
 from typing import Callable, Mapping
+from pathlib import Path
+from logging import Logger
 
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
@@ -22,10 +25,13 @@ def create_trainer(
     train_loader: DataLoader,
     val_loader: DataLoader,
     config: Mapping,
+    logger: Logger
 ):
 
     # Define trainer engine
     trainer = Engine(train_step)
+    # setup trainer's logger as app logger
+    trainer.logger = logger
 
     # In distributed configuration we need resample distributed sampler on every epoch
     if idist.get_world_size() > 1:
@@ -70,6 +76,7 @@ def create_trainer(
     # Run validation every n-th epochs and in the end of the training
     @trainer.on(Events.EPOCH_COMPLETED(every=config["validate_every"]) | Events.COMPLETED)
     def run_validation():
+        logger.info("Run model validation on {} epoch".format(trainer.state.epoch))
         evaluator.run(val_loader)
 
     # Save 3 best models according to validation accuracy
@@ -86,16 +93,26 @@ def create_trainer(
 
     # Setup early stopping
     if config["early_stopping_patience"] is not None:
-        common.add_early_stopping_by_val_score(
+        handler = common.add_early_stopping_by_val_score(
             config["early_stopping_patience"], evaluator=evaluator, trainer=trainer, metric_name=metric_name
         )
+        # setup early stopping's logger as app logger
+        handler.logger = logger
 
-    # Add tensorboard experiment tracking logger
+    # Add TensorBoard experiment tracking logger
     # Other available loggers can be added in the same way with `common.setup_*_logging`
     if idist.get_rank() == 0:
         tb_logger = common.setup_tb_logging(
             config["output_path"], trainer, optimizer, evaluators={"validation": evaluator}, log_every_iters=10
         )
         trainer.add_event_handler(Events.COMPLETED | Events.EXCEPTION_RAISED, lambda _: tb_logger.close())
+
+    resume_from = config["resume_from"]
+    if resume_from is not None:
+        checkpoint_fp = Path(resume_from)
+        assert checkpoint_fp.exists(), "Checkpoint '{}' is not found".format(checkpoint_fp.as_posix())
+        logger.info("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
+        checkpoint = torch.load(checkpoint_fp.as_posix(), map_location="cpu")
+        Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 
     return trainer

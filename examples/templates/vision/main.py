@@ -68,6 +68,7 @@ def training(local_rank: int, config: Mapping):
         train_loader=train_loader,
         val_loader=val_loader,
         config=config,
+        logger=logger
     )
 
     num_epochs = config["num_epochs"]
@@ -93,13 +94,14 @@ def get_default_config():
         "learning_rate": 0.01,
         "step_size": 20,
         "gamma": 0.3,
-        "num_epochs": 5,
+        "num_epochs": 50,
         # number of evaluations to tolerate if no improvement before stopping the training. Set None to disable.
-        "early_stopping_patience": None,
+        "early_stopping_patience": 3,
         # Trainer custom configs
-        "checkpoint_every": 1000,  # checkpoint training every 1000 iterations
+        "checkpoint_every": 30,  # checkpoint training every 30 iterations
         "validate_every": 3,  # run model validation every 3 epochs
         "amp_opt_level": "O1",  # Use AMP if installed
+        "resume_from": None,  # path to checkpoint to resume the training from
     }
 
 
