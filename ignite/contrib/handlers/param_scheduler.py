@@ -33,8 +33,14 @@ class ParamScheduler(metaclass=ABCMeta):
 
     def __init__(self, optimizer, param_name, save_history=False, param_group_index=None):
 
-        if not isinstance(optimizer, Optimizer):
-            raise TypeError("Argument optimizer should be torch.optim.Optimizer")
+        if not (
+            isinstance(optimizer, Optimizer)
+            or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
+        ):
+            raise TypeError(
+                "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
+                "but given {}".format(type(optimizer))
+            )
 
         self.optimizer = optimizer
         self.param_group_index = param_group_index
