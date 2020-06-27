@@ -21,8 +21,8 @@ def auto_dataloader(dataset, **kwargs):
 
     Internally, we create a dataloader with provided kwargs while applying the following updates:
 
-    - batch size is scaled by world size: ``batch_size / world_size``.
-    - number of workers is scaled by number of local processes: ``num_workers / nprocs``.
+    - batch size is scaled by world size: ``batch_size / world_size`` if larger or equal world size.
+    - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
     - if no sampler provided by user, `torch DistributedSampler` is setup.
     - if a sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
     - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
@@ -63,13 +63,12 @@ def auto_dataloader(dataset, **kwargs):
     world_size = idist.get_world_size()
 
     logger = setup_logger(__name__ + ".auto_dataloader")
-
     if world_size > 1:
-        if "batch_size" in kwargs:
+        if "batch_size" in kwargs and kwargs["batch_size"] >= world_size:
             kwargs["batch_size"] //= world_size
 
-        if "num_workers" in kwargs:
-            nproc = idist.get_nproc_per_node()
+        nproc = idist.get_nproc_per_node()
+        if "num_workers" in kwargs and kwargs["num_workers"] >= nproc:
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
 
         if "batch_sampler" not in kwargs:

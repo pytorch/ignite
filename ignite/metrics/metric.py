@@ -176,7 +176,7 @@ class Metric(metaclass=ABCMeta):
         By default, this is called at the end of each epoch.
 
         Returns:
-            Any: the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,
+            Any: | the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,
                  it will be (shallow) flattened into `engine.state.metrics` when
                  :func:`~ignite.metrics.Metric.completed` is called.
 
@@ -441,6 +441,16 @@ class Metric(metaclass=ABCMeta):
 
 
 def sync_all_reduce(*attrs) -> Callable:
+    """Helper decorator for distributed configuration to collect instance attribute value
+    across all participating processes.
+
+    See :doc:`metrics` on how to use it.
+
+    Args:
+        *attrs: attribute names of decorated class
+
+    """
+
     def wrapper(func: Callable) -> Callable:
         @wraps(func)
         def another_wrapper(self: Metric, *args, **kwargs) -> Callable:
@@ -466,6 +476,12 @@ def sync_all_reduce(*attrs) -> Callable:
 
 
 def reinit__is_reduced(func: Callable) -> Callable:
+    """Helper decorator for distributed configuration.
+
+    See :doc:`metrics` on how to use it.
+
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)

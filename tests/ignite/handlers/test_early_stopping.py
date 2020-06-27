@@ -49,6 +49,31 @@ def test_simple_early_stopping():
     assert trainer.should_terminate
 
 
+def test_state_dict():
+
+    scores = iter([1.0, 0.8, 0.88])
+
+    def score_function(engine):
+        return next(scores)
+
+    trainer = Engine(do_nothing_update_fn)
+
+    h = EarlyStopping(patience=2, score_function=score_function, trainer=trainer)
+    # Call 3 times and check if stopped
+    assert not trainer.should_terminate
+    h(None)
+    assert not trainer.should_terminate
+
+    # Swap to new object, but maintain state
+    h2 = EarlyStopping(patience=2, score_function=score_function, trainer=trainer)
+    h2.load_state_dict(h.state_dict())
+
+    h2(None)
+    assert not trainer.should_terminate
+    h2(None)
+    assert trainer.should_terminate
+
+
 def test_early_stopping_on_delta():
 
     scores = iter([1.0, 2.0, 2.01, 3.0, 3.01, 3.02])

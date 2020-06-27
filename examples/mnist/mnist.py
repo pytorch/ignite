@@ -57,11 +57,12 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
 
     model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
-    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
+    criterion = nn.NLLLoss()
+    trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
     trainer.logger = setup_logger("trainer")
-    evaluator = create_supervised_evaluator(
-        model, metrics={"accuracy": Accuracy(), "nll": Loss(F.nll_loss)}, device=device
-    )
+
+    val_metrics = {"accuracy": Accuracy(), "nll": Loss(criterion)}
+    evaluator = create_supervised_evaluator(model, metrics=val_metrics, device=device)
     evaluator.logger = setup_logger("evaluator")
 
     desc = "ITERATION - loss: {:.2f}"

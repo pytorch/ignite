@@ -38,8 +38,9 @@ jobs:
       shell: bash -l {0}
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
-        # Keep fix in case of problem with torchvision nightly releases
         pip install -r requirements-dev.txt
+        # Fixes #1153
+        pip install --upgrade scipy==1.4.1
         python setup.py install
 
     - name: Run Tests

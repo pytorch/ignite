@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
 import torch
@@ -14,6 +16,7 @@ from ignite.contrib.handlers.param_scheduler import (
     create_lr_scheduler_with_warmup,
 )
 from ignite.engine import Engine, Events
+from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
 try:
     from torch.optim.lr_scheduler import MultiplicativeLR
@@ -26,10 +29,12 @@ else:
     has_multiplicative_lr = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
+class FakeParamScheduler(ParamScheduler):
+    def get_param(self):
+        return [0]
+
+
 def test_param_scheduler_asserts():
-    class FakeParamScheduler(ParamScheduler):
-        def get_param(self):
-            return [0]
 
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
@@ -45,6 +50,9 @@ def test_param_scheduler_asserts():
 
     with pytest.raises(ValueError, match=r"Required state attribute 'event_index' is absent in provided state_dict"):
         lr_scheduler.load_state_dict({})
+
+    with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
+        FakeParamScheduler({}, "lr")
 
 
 def test_linear_scheduler():
@@ -1220,3 +1228,32 @@ def test_scheduler_with_param_groups():
 
     torch_lr_scheduler = StepLR(optimizer, step_size=50, gamma=0.5)
     _test(LRScheduler(torch_lr_scheduler), optimizer)
+
+
+def test_lr_scheduling_on_non_torch_optimizers():
+    # tests https://github.com/pytorch/ignite/issues/1162
+    optimizer = MagicMock()
+    optimizer.param_groups = [{"params": 0}]
+    FakeParamScheduler(optimizer, "lr")
+
+    tensor = torch.zeros([1], requires_grad=True)
+    base_optimizer = torch.optim.SGD([tensor], lr=0)
+    optimizer = MockFP16DeepSpeedZeroOptimizer(base_optimizer)
+
+    milestones_values = [(5, 0.5), (15, 1.0)]
+
+    scheduler = PiecewiseLinear(optimizer, "lr", milestones_values=milestones_values)
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]["lr"])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+
+    lrs = []
+    trainer.run([0] * 15, max_epochs=1)
+
+    assert lrs == list(
+        map(pytest.approx, [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,],)
+    )

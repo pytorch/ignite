@@ -196,11 +196,7 @@ def get_dataflow(config):
     )
 
     test_loader = idist.auto_dataloader(
-        test_dataset,
-        batch_size=2 * config["batch_size"],
-        num_workers=config["num_workers"],
-        shuffle=False,
-        pin_memory="cuda" in idist.device().type,
+        test_dataset, batch_size=2 * config["batch_size"], num_workers=config["num_workers"], shuffle=False,
     )
     return train_loader, test_loader
 

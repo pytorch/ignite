@@ -18,7 +18,8 @@ class ParamScheduler(metaclass=ABCMeta):
     training.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): optimizer
+        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
         param_name (str): name of optimizer's parameter to update.
         save_history (bool, optional): whether to log the parameter values to
             `engine.state.param_history`, (default=False).
@@ -33,8 +34,14 @@ class ParamScheduler(metaclass=ABCMeta):
 
     def __init__(self, optimizer, param_name, save_history=False, param_group_index=None):
 
-        if not isinstance(optimizer, Optimizer):
-            raise TypeError("Argument optimizer should be torch.optim.Optimizer")
+        if not (
+            isinstance(optimizer, Optimizer)
+            or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
+        ):
+            raise TypeError(
+                "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
+                "but given {}".format(type(optimizer))
+            )
 
         self.optimizer = optimizer
         self.param_group_index = param_group_index
@@ -212,7 +219,8 @@ class CyclicalScheduler(ParamScheduler):
     cycle of some size.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): optimizer
+        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
         param_name (str): name of optimizer's parameter to update.
         start_value (float): value at start of cycle.
         end_value (float): value at the middle of the cycle.
@@ -287,7 +295,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     adjusts it back to 'start_value' for a half-cycle.
 
     Args:
-        optimizer (`torch.optim.Optimizer`): optimizer
+        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
         param_name (str): name of optimizer's parameter to update.
         start_value (float): value at start of cycle.
         end_value (float): value at the middle of the cycle.
@@ -332,7 +341,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     wave (as suggested in [Smith17]_).
 
     Args:
-        optimizer (`torch.optim.Optimizer`): optimizer
+        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
         param_name (str): name of optimizer's parameter to update.
         start_value (float): value at start of cycle.
         end_value (float): value at the end of the cycle.
@@ -818,7 +828,8 @@ class PiecewiseLinear(ParamScheduler):
     Piecewise linear parameter scheduler
 
     Args:
-        optimizer (`torch.optim.Optimizer`): optimizer.
+        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
         param_name (str): name of optimizer's parameter to update.
         milestones_values (list of tuples (int, float)): list of tuples (event index, parameter value)
             represents milestones and parameter. Milestones should be increasing integers.

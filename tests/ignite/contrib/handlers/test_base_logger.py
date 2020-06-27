@@ -7,6 +7,7 @@ import torch
 from ignite.contrib.handlers import CustomPeriodicEvent
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
 from ignite.engine import Engine, Events, State
+from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
 
 class DummyOutputHandler(BaseOutputHandler):
@@ -15,8 +16,13 @@ class DummyOutputHandler(BaseOutputHandler):
 
 
 class DummyOptParamsHandler(BaseOptimizerParamsHandler):
-    def __call__(self, *args, **kwargs):
-        pass
+    def __call__(self, engine, logger, event_name, **kwargs):
+        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        params = {
+            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            for i, param_group in enumerate(self.optimizer.param_groups)
+        }
+        return params
 
 
 class DummyLogger(BaseLogger):
@@ -40,6 +46,9 @@ def test_base_output_handler_wrong_setup():
 
     with pytest.raises(TypeError, match="global_step_transform should be a function"):
         DummyOutputHandler("tag", metric_names=["loss"], global_step_transform="abc")
+
+    with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
+        DummyOptParamsHandler({}, "lr")
 
 
 def test_base_output_handler_setup_output_metrics():
@@ -79,6 +88,16 @@ def test_base_output_handler_setup_output_metrics():
     handler = DummyOutputHandler("tag", metric_names="all", output_transform=None)
     metrics = handler._setup_output_metrics(engine=engine)
     assert metrics == true_metrics
+
+
+def test_opt_params_handler_on_non_torch_optimizers():
+    tensor = torch.zeros([1], requires_grad=True)
+    base_optimizer = torch.optim.SGD([tensor], lr=0.1234)
+    optimizer = MockFP16DeepSpeedZeroOptimizer(base_optimizer)
+    handler = DummyOptParamsHandler(optimizer=optimizer, param_name="lr")
+    res = handler(engine=None, logger=None, event_name=None)
+    assert isinstance(res, dict)
+    assert "lr/group_0" in res and res["lr/group_0"] == 0.1234
 
 
 def test_attach():
