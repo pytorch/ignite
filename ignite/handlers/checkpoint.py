@@ -281,37 +281,6 @@ class Checkpoint(Serializable):
     def _add_field(self, f, sep="_"):
         return "{}{}".format(f, sep) if len(f) > 0 else f
 
-    def _get_filename_pattern(
-        self,
-        filename_prefix: str = "",
-        score_function: Optional[Callable] = None,
-        score_name: Optional[str] = None,
-        global_step_transform: Callable = None,
-        filename_pattern: Optional[str] = None,
-    ):
-        if filename_pattern is None:
-            if score_function is None and score_name is None and global_step_transform is None:
-                filename_pattern = "{name}_{score}.{ext}"
-            elif score_function and score_name is None:
-                if global_step_transform:
-                    filename_pattern = "{name}_{global_step}_{score}.{ext}"
-                else:
-                    filename_pattern = "{name}_{score}.{ext}"
-            elif score_function and score_name:
-                if global_step_transform:
-                    filename_pattern = "{name}_{global_step}_{score_name}={score}.{ext}"
-                else:
-                    filename_pattern = "{name}_{score_name}={score}.{ext}"
-            elif global_step_transform:
-                filename_pattern = "{name}_{global_step}.{ext}"
-            else:
-                raise Exception("weird case score_name is not None but score_function is None")
-
-            if filename_prefix:
-                filename_pattern = "{filename_prefix}_" + filename_pattern
-
-        return filename_pattern
-
     def __call__(self, engine: Engine) -> None:
 
         global_step = None
@@ -342,11 +311,11 @@ class Checkpoint(Serializable):
                     name = k
                 checkpoint = checkpoint[name]
 
-            filename_pattern = self._get_filename_pattern(
+            filename_pattern = self.setup_filename_pattern(
                 filename_prefix=self.filename_prefix,
-                score_function=self.score_function,
-                score_name=self.score_name,
-                global_step_transform=self.global_step_transform,
+                with_score=self.score_function is None,
+                with_score_name=self.score_name is None,
+                with_global_step_transform=global_step is None,
                 filename_pattern=self.filename_pattern,
             )
             filename_dict = {
@@ -392,6 +361,33 @@ class Checkpoint(Serializable):
                 obj = obj.module
             checkpoint[k] = obj.state_dict()
         return checkpoint
+
+    @staticmethod
+    def setup_filename_pattern(
+        filename_prefix, with_score, with_score_name, with_global_step_transform, filename_pattern=None,
+    ):
+        if filename_pattern is None:
+            if with_score and with_score_name and with_global_step_transform:
+                filename_pattern = "{name}_{score}.{ext}"
+            elif not with_score and with_score_name:
+                if not with_global_step_transform:
+                    filename_pattern = "{name}_{global_step}_{score}.{ext}"
+                else:
+                    filename_pattern = "{name}_{score}.{ext}"
+            elif not with_score and not with_score_name:
+                if not with_global_step_transform:
+                    filename_pattern = "{name}_{global_step}_{score_name}={score}.{ext}"
+                else:
+                    filename_pattern = "{name}_{score_name}={score}.{ext}"
+            elif not with_global_step_transform:
+                filename_pattern = "{name}_{global_step}.{ext}"
+            else:
+                raise Exception("weird case score_name is not None but score_function is None")
+
+            if filename_prefix:
+                filename_pattern = "{filename_prefix}_" + filename_pattern
+
+        return filename_pattern
 
     @staticmethod
     def _check_objects(objs: Mapping, attr: str) -> None:
