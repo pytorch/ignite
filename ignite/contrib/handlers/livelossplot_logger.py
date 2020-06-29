@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Callable, Iterable, Optional, Union
 
 import torch
-from livelossplot import PlotLosses
 from torch.optim.optimizer import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
@@ -295,6 +294,8 @@ class LivelossplotLogger(BaseLogger):
     """
 
     def __init__(self, *args, **kwargs):
+        from livelossplot import PlotLosses
+
         self.writer = PlotLosses(*args, **kwargs)
         self.drawing_handler_attached = False
 

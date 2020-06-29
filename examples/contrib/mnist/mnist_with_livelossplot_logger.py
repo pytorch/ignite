@@ -22,7 +22,6 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
 
 from ignite.contrib.handlers.livelossplot_logger import *
-from livelossplot.outputs import ExtremaPrinter
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.handlers import ModelCheckpoint
@@ -86,6 +85,9 @@ def run(run_dir: str, train_batch_size: int, val_batch_size: int, epochs: int, l
     def compute_metrics(_):
         train_evaluator.run(train_loader)
         validation_evaluator.run(val_loader)
+
+    # in order to skip external dependencies in ignite
+    from livelossplot.outputs import ExtremaPrinter
 
     group_patterns = [
         (r"^(training(\s))(.*)", "training "),
