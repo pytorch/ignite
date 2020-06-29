@@ -198,7 +198,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
 class LivelossplotLogger(BaseLogger):
     """
-    TensorBoard handler to log metrics, model/optimizer running parameters during the training and validation.
+    Livelossplot handler to log metrics, model/optimizer running parameters during the training and validation.
 
     Args:
         *args: Positional arguments accepted from
