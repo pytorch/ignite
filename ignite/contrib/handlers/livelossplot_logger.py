@@ -112,8 +112,10 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[Iterable[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        drawing_handler: bool = False,
     ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        self.drawing_handler = drawing_handler
 
     def __call__(self, engine, logger, event_name: str):
 
@@ -144,7 +146,8 @@ class OutputHandler(BaseOutputHandler):
                 )
 
         logger.writer.update(logs, current_step=global_step)
-        logger.writer.send()
+        if self.drawing_handler:
+            logger.writer.send()
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -178,8 +181,11 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(
+        self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, drawing_handler: bool = False
+    ):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+        self.drawing_handler = drawing_handler
 
     def __call__(self, engine: Engine, logger: BaseLogger, event_name: Union[CallableEventWithFilter, Enum]):
         if not isinstance(logger, LivelossplotLogger):
@@ -193,7 +199,8 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         }
 
         logger.writer.update(params, current_step=global_step)
-        logger.writer.send()
+        if self.drawing_handler:
+            logger.writer.send()
 
 
 class LivelossplotLogger(BaseLogger):
@@ -289,9 +296,16 @@ class LivelossplotLogger(BaseLogger):
 
     def __init__(self, *args, **kwargs):
         self.writer = PlotLosses(*args, **kwargs)
+        self.drawing_handler_attached = False
 
     def _create_output_handler(self, *args, **kwargs):
+        if not self.drawing_handler_attached:
+            self.drawing_handler_attached = True
+            return OutputHandler(*args, drawing_handler=True, **kwargs)
         return OutputHandler(*args, **kwargs)
 
     def _create_opt_params_handler(self, *args, **kwargs):
+        if not self.drawing_handler_attached:
+            self.drawing_handler_attached = True
+            return OptimizerParamsHandler(*args, drawing_handler=True, **kwargs)
         return OptimizerParamsHandler(*args, **kwargs)
