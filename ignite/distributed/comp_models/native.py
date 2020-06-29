@@ -74,6 +74,9 @@ if has_native_dist_support:
             if timeout is not None:
                 init_pg_kwargs["timeout"] = timeout
 
+            if backend == dist.Backend.NCCL and not torch.cuda.is_available():
+                raise RuntimeError("nccl backend is required but torch.cuda is not available")
+
             dist.init_process_group(backend, init_method="env://", **init_pg_kwargs)
             # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
             dist.barrier()
