@@ -1,3 +1,4 @@
+import numbers
 import os
 import tempfile
 import warnings
@@ -146,10 +147,15 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, (float, int)):
+            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 logger.trains_logger.report_scalar(title=self.tag, series=key, iteration=global_step, value=value)
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+                for i, v in enumerate(value):
+                    logger.trains_logger.report_scalar(
+                        title=self.tag, series="{}/{}".format(key, i), iteration=global_step, value=v.item()
+                    )
             else:
-                warnings.warn("TrainsLogger output_handler can not log " "metrics value type {}".format(type(value)))
+                warnings.warn("TrainsLogger output_handler can not log metrics value type {}".format(type(value)))
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
