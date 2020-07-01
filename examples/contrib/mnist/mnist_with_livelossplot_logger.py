@@ -8,7 +8,7 @@
 
     Run the example:
     ```bash
-    python mnist_with_livelossplot_logger.py --run-dir=/tmp/checkpoints/
+    python mnist_with_livelossplot_logger.py
     ```
 """
 from argparse import ArgumentParser
@@ -24,7 +24,6 @@ from torchvision.transforms import Compose, ToTensor, Normalize
 from ignite.contrib.handlers.livelossplot_logger import *
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
-from ignite.handlers import ModelCheckpoint
 from ignite.utils import setup_logger
 
 
@@ -60,7 +59,7 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def run(run_dir: str, train_batch_size: int, val_batch_size: int, epochs: int, lr: float, momentum: float):
+def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
     device = "cpu"
@@ -82,7 +81,7 @@ def run(run_dir: str, train_batch_size: int, val_batch_size: int, epochs: int, l
     validation_evaluator.logger = setup_logger("Val Evaluator")
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def compute_metrics(_):
+    def compute_metrics(engine):
         train_evaluator.run(train_loader)
         validation_evaluator.run(val_loader)
 
@@ -116,19 +115,6 @@ def run(run_dir: str, train_batch_size: int, val_batch_size: int, epochs: int, l
         trainer, event_name=Events.ITERATION_COMPLETED(every=100), optimizer=optimizer
     )
 
-    def score_function(engine):
-        return engine.state.metrics["accuracy"]
-
-    model_checkpoint = ModelCheckpoint(
-        run_dir,
-        n_saved=2,
-        filename_prefix="best",
-        score_function=score_function,
-        score_name="validation_accuracy",
-        global_step_transform=global_step_from_engine(trainer),
-    )
-    validation_evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {"model": model})
-
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
 
@@ -137,7 +123,6 @@ def run(run_dir: str, train_batch_size: int, val_batch_size: int, epochs: int, l
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--run-dir", type=str, help="directory to store checkpoints")
     parser.add_argument("--batch_size", type=int, default=64, help="input batch size for training (default: 64)")
     parser.add_argument(
         "--val_batch_size", type=int, default=1000, help="input batch size for validation (default: 1000)"
@@ -148,4 +133,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    run(args.run_dir, args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum)
+    run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum)

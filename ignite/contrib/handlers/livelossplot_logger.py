@@ -111,10 +111,10 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[Iterable[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-        drawing_handler: bool = False,
+        # drawing_handler: bool = False,
     ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
-        self.drawing_handler = drawing_handler
+        # self.drawing_handler = drawing_handler
 
     def __call__(self, engine, logger, event_name: str):
 
@@ -141,12 +141,12 @@ class OutputHandler(BaseOutputHandler):
                     logs["{} {} {}".format(self.tag, key, i)] = v.item()
             else:
                 warnings.warn(
-                    "LivelossplotLogger output_handler can not log " "metrics value type {}".format(type(value))
+                    "LivelossplotLogger output_handler can not log metrics value type {}".format(type(value))
                 )
 
         logger.writer.update(logs, current_step=global_step)
-        if self.drawing_handler:
-            logger.writer.send()
+        # if self.drawing_handler:
+        logger.writer.send()
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -181,10 +181,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """
 
     def __init__(
-        self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, drawing_handler: bool = False
+        self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None,  # drawing_handler: bool = False
     ):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
-        self.drawing_handler = drawing_handler
+        # self.drawing_handler = drawing_handler
 
     def __call__(self, engine: Engine, logger: BaseLogger, event_name: Union[CallableEventWithFilter, Enum]):
         if not isinstance(logger, LivelossplotLogger):
@@ -198,8 +198,8 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         }
 
         logger.writer.update(params, current_step=global_step)
-        if self.drawing_handler:
-            logger.writer.send()
+        # if self.drawing_handler:
+        logger.writer.send()
 
 
 class LivelossplotLogger(BaseLogger):
@@ -207,9 +207,6 @@ class LivelossplotLogger(BaseLogger):
     Livelossplot handler to log metrics, model/optimizer running parameters during the training and validation.
 
     Args:
-        *args: Positional arguments accepted from
-            `PlotLosses
-            <https://github.com/stared/livelossplot/blob/master/livelossplot/plot_losses.py>`_.
         **kwargs: Keyword arguments accepted from
             `PlotLosses
             <https://github.com/stared/livelossplot/blob/master/livelossplot/plot_losses.py>`_.
@@ -220,17 +217,12 @@ class LivelossplotLogger(BaseLogger):
         .. code-block:: python
 
             from ignite.contrib.handlers.livelossplot_logger import *
-            from livelossplot.outputs import MatplotlibPlot, TensorboardLogger
 
             # Create a logger
-            outputs=[
-                MatplotlibPlot(),
-                TensorboardLogger()
-            ]
-            livelossplot_logger = LivelossplotLogger(outputs=outputs)
+            llp_logger = LivelossplotLogger()
 
             # Attach the logger to the trainer to log training loss at each iteration
-            group_patterns.attach_output_handler(
+            llp_logger.attach_output_handler(
                 trainer,
                 event_name=Events.ITERATION_COMPLETED,
                 tag="online",
@@ -240,7 +232,7 @@ class LivelossplotLogger(BaseLogger):
             # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
             # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer` instead of `train_evaluator`.
-            livelossplot_logger.attach_output_handler(
+            llp_logger.attach_output_handler(
                 train_evaluator,
                 event_name=Events.EPOCH_COMPLETED,
                 tag="training",
@@ -251,7 +243,7 @@ class LivelossplotLogger(BaseLogger):
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
             # `trainer` instead of `evaluator`.
-            livelossplot_logger.attach_output_handler(
+            llp_logger.attach_output_handler(
                 evaluator,
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
@@ -260,15 +252,12 @@ class LivelossplotLogger(BaseLogger):
             )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            livelossplot_logger.attach_opt_params_handler(
+            llp_logger.attach_opt_params_handler(
                 trainer,
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer,
                 param_name='lr'  # optional
             )
-
-            # We need to close the logger with we are done
-            livelossplot_logger.close()
 
         It is also possible to use the logger as context manager:
 
@@ -276,37 +265,55 @@ class LivelossplotLogger(BaseLogger):
 
             from ignite.contrib.handlers.livelossplot_logger import *
 
-            with LivelossplotLogger() as livelossplot_logger:
+            with LivelossplotLogger() as llp_logger:
 
                 trainer = Engine(update_fn)
                 # Attach the logger to the trainer to log training loss at each iteration
-                livelossplot_logger.attach_output_handler(
+                llp_logger.attach_output_handler(
                     trainer,
                     event_name=Events.ITERATION_COMPLETED,
                     tag="training",
                     output_transform=lambda loss: {"loss": loss}
                 )
 
-        Keyword and positional arguments:
-
-            please check out livelossplot.PlotLosses and livelossplot.MainLogger docstrings
-
     """
 
     def __init__(self, *args, **kwargs):
+
+        try:
+            import livelossplot
+        except ImportError:
+            raise RuntimeError(
+                "This contrib module requires livelossplot to be installed. "
+                "You may install trains using: \n pip install livelossplot \n"
+            )
+
         from livelossplot import PlotLosses
+        from livelossplot.outputs import MatplotlibPlot
+
+        if "outputs" not in kwargs:
+            kwargs["outputs"] = [MatplotlibPlot(), ]
 
         self.writer = PlotLosses(*args, **kwargs)
-        self.drawing_handler_attached = False
+        # THIS IS AN ATTEMPT TO AVOID MULTIPLE CALLS OF .send() ON THE SAME EVENT
+        # self._
+        # self.drawing_handler_attached = False
 
     def _create_output_handler(self, *args, **kwargs):
-        if not self.drawing_handler_attached:
-            self.drawing_handler_attached = True
-            return OutputHandler(*args, drawing_handler=True, **kwargs)
+        # if not self.drawing_handler_attached:
+        #     self.drawing_handler_attached = True
+        #     return OutputHandler(*args, drawing_handler=True, **kwargs)
+
+        # Setup group_patterns based on tags if currently no group_patterns
+        # group_patterns = [
+        #     (r"^(training(\s))(.*)", "training "),
+        #     (r"^(validation(\s))(.*)", "validation "),
+        #     (r"^(online(\s)batch(\s))(.*)", "online batch "),
+        # ]
         return OutputHandler(*args, **kwargs)
 
     def _create_opt_params_handler(self, *args, **kwargs):
-        if not self.drawing_handler_attached:
-            self.drawing_handler_attached = True
-            return OptimizerParamsHandler(*args, drawing_handler=True, **kwargs)
+        # if not self.drawing_handler_attached:
+        #     self.drawing_handler_attached = True
+        #     return OptimizerParamsHandler(*args, drawing_handler=True, **kwargs)
         return OptimizerParamsHandler(*args, **kwargs)
