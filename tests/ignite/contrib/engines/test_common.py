@@ -25,7 +25,7 @@ from ignite.contrib.engines.common import (
     setup_wandb_logging,
 )
 from ignite.engine import Engine, Events
-from ignite.handlers import TerminateOnNan
+from ignite.handlers import DiskSaver, TerminateOnNan
 
 
 class DummyModel(nn.Module):
@@ -37,7 +37,9 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None):
+def _test_setup_common_training_handlers(
+    dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None, save_handler=None
+):
 
     lr = 0.01
     step_size = 100
@@ -87,6 +89,7 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
         to_save={"model": model, "optimizer": optimizer},
         save_every_iters=75,
         output_path=dirname,
+        save_handler=save_handler,
         lr_scheduler=lr_scheduler,
         with_gpu_stats=False,
         output_names=["batch_loss",],
@@ -108,6 +111,8 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
 
     # Check saved checkpoint
     if rank == 0:
+        if save_handler is not None:
+            dirname = save_handler.dirname
         checkpoints = list(os.listdir(dirname))
         assert len(checkpoints) == 1
         for v in [
@@ -125,9 +130,13 @@ def test_asserts_setup_common_training_handlers():
     trainer = Engine(lambda e, b: None)
 
     with pytest.raises(
-        ValueError, match=r"If to_save argument is provided then output_path argument should be also defined"
+        ValueError,
+        match=r"If to_save argument is provided then output_path or save_handler arguments should be also defined",
     ):
         setup_common_training_handlers(trainer, to_save={})
+
+    with pytest.raises(ValueError, match=r"Arguments output_path and save_handler are mutually exclusive"):
+        setup_common_training_handlers(trainer, to_save={}, output_path="abc", save_handler=lambda c, f, m: None)
 
     with pytest.warns(UserWarning, match=r"Argument train_sampler is a distributed sampler"):
         train_sampler = MagicMock(spec=DistributedSampler)
@@ -168,7 +177,20 @@ def test_setup_common_training_handlers(dirname, capsys):
     out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
-    assert "Epoch:" in out[-1], "{}".format(out[-1])
+    assert "Epoch:" in out[-1] or "Epoch:" in out[-2], "{}, {}".format(out[-2], out[-1])
+
+
+def test_setup_common_training_handlers_using_save_handler(dirname, capsys):
+
+    save_handler = DiskSaver(dirname=dirname, require_empty=False)
+    _test_setup_common_training_handlers(dirname=None, device="cpu", save_handler=save_handler)
+
+    # Check epoch-wise pbar
+    captured = capsys.readouterr()
+    out = captured.err.split("\r")
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    assert "Epoch:" in out[-1] or "Epoch:" in out[-2], "{}, {}".format(out[-2], out[-1])
 
 
 def test_save_best_model_by_val_score(dirname):
@@ -290,9 +312,7 @@ def _test_setup_logging(
 
         @trainer.on(Events.EPOCH_COMPLETED)
         def validate(engine):
-            evaluator.run(
-                [0,]
-            )
+            evaluator.run([0, 1])
 
         @evaluator.on(Events.EPOCH_COMPLETED)
         def set_eval_metric(engine):

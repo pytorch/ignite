@@ -41,6 +41,8 @@ def setup_common_training_handlers(
     device=None,
     stop_on_nan=True,
     clear_cuda_cache=True,
+    save_handler=None,
+    **kwargs,
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -58,7 +60,8 @@ def setup_common_training_handlers(
             :class:`~ignite.handlers.Checkpoint` instance.
         save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
             each 1000 iterations.
-        output_path (str, optional): output path to indicate where `to_save` objects are stored.
+        output_path (str, optional): output path to indicate where `to_save` objects are stored. Argument is mutually
+            exclusive with ``save_handler``.
         lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
         with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
@@ -74,12 +77,16 @@ def setup_common_training_handlers(
             Default, True.
         clear_cuda_cache (bool, optional): if True, `torch.cuda.empty_cache()` is called every end of epoch.
             Default, True.
+        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`, optional): Method or callable
+            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
+            Argument is mutually exclusive with ``output_path``.
+        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
         device (str of torch.device, optional): deprecated argument, it will be removed in v0.5.0.
     """
     if device is not None:
         warnings.warn("Argument device is unused and deprecated. It will be removed in v0.5.0")
 
-    kwargs = dict(
+    _kwargs = dict(
         to_save=to_save,
         save_every_iters=save_every_iters,
         output_path=output_path,
@@ -91,10 +98,12 @@ def setup_common_training_handlers(
         log_every_iters=log_every_iters,
         stop_on_nan=stop_on_nan,
         clear_cuda_cache=clear_cuda_cache,
+        save_handler=save_handler,
     )
+    _kwargs.update(kwargs)
 
     if idist.get_world_size() > 1:
-        _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **kwargs)
+        _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **_kwargs)
     else:
         if train_sampler is not None and isinstance(train_sampler, DistributedSampler):
             warnings.warn(
@@ -103,7 +112,7 @@ def setup_common_training_handlers(
                 "Train sampler argument will be ignored",
                 UserWarning,
             )
-        _setup_common_training_handlers(trainer, **kwargs)
+        _setup_common_training_handlers(trainer, **_kwargs)
 
 
 setup_common_distrib_training_handlers = setup_common_training_handlers
@@ -122,7 +131,14 @@ def _setup_common_training_handlers(
     log_every_iters=100,
     stop_on_nan=True,
     clear_cuda_cache=True,
+    save_handler=None,
+    **kwargs,
 ):
+    if output_path is not None and save_handler is not None:
+        raise ValueError(
+            "Arguments output_path and save_handler are mutually exclusive. Please, define only one of them"
+        )
+
     if stop_on_nan:
         trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
 
@@ -138,11 +154,15 @@ def _setup_common_training_handlers(
         trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
 
     if to_save is not None:
-        if output_path is None:
-            raise ValueError("If to_save argument is provided then output_path argument should be also defined")
-        checkpoint_handler = Checkpoint(
-            to_save, DiskSaver(dirname=output_path, require_empty=False), filename_prefix="training",
-        )
+
+        if output_path is None and save_handler is None:
+            raise ValueError(
+                "If to_save argument is provided then output_path or save_handler arguments should be also defined"
+            )
+        if output_path is not None:
+            save_handler = DiskSaver(dirname=output_path, require_empty=False)
+
+        checkpoint_handler = Checkpoint(to_save, save_handler, filename_prefix="training", **kwargs)
         trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler)
 
     if with_gpu_stats:
@@ -193,6 +213,8 @@ def _setup_common_distrib_training_handlers(
     log_every_iters=100,
     stop_on_nan=True,
     clear_cuda_cache=True,
+    save_handler=None,
+    **kwargs,
 ):
 
     _setup_common_training_handlers(
@@ -208,6 +230,8 @@ def _setup_common_distrib_training_handlers(
         log_every_iters=log_every_iters,
         stop_on_nan=stop_on_nan,
         clear_cuda_cache=clear_cuda_cache,
+        save_handler=save_handler,
+        **kwargs,
     )
 
     if train_sampler is not None:
