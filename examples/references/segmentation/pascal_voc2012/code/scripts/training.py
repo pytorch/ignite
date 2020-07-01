@@ -18,6 +18,9 @@ from ignite.utils import setup_logger
 from py_config_runner.utils import set_seed
 from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_config
 
+import sys
+sys.path.insert(0, Path(__file__).parent.parent.as_posix())
+
 from utils.handlers import predictions_gt_images_handler
 from utils import exp_tracking
 
@@ -79,17 +82,21 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
 
     to_save = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler, "trainer": trainer, "amp": amp}
 
+    save_every_iters = getattr(config, "save_every_iters", 1000)
+
     common.setup_common_training_handlers(
         trainer,
         train_sampler,
         to_save=to_save,
-        save_every_iters=1000,
+        save_every_iters=save_every_iters,
         output_path=config.output_path.as_posix(),
         lr_scheduler=lr_scheduler,
-        with_gpu_stats=True,
+        with_gpu_stats=exp_tracking.has_mlflow,
         output_names=output_names,
         with_pbars=False,
     )
+
+    common.ProgressBar(persist=False).attach(trainer, metric_names="all")
 
     return trainer
 
@@ -108,12 +115,15 @@ def create_evaluators(model, metrics, config):
     train_evaluator = create_supervised_evaluator(**evaluator_args)
     evaluator = create_supervised_evaluator(**evaluator_args)
 
+    common.ProgressBar(desc="Evaluation (train)", persist=False).attach(train_evaluator)
+    common.ProgressBar(desc="Evaluation (val)", persist=False).attach(evaluator)
+
     return evaluator, train_evaluator
 
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     logger.info(
-        "\nEpoch {} - elapsed: {} - {} metrics:\n {}".format(
+        "\nEpoch {} - Evaluation time (seconds): {} - {} metrics:\n {}".format(
             epoch, elapsed, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
         )
     )
@@ -141,7 +151,6 @@ def training(local_rank, config, logger=None):
     torch.backends.cudnn.benchmark = True
 
     set_seed(config.seed + local_rank)
-    device = config.device
 
     train_loader, val_loader, train_eval_loader = config.train_loader, config.val_loader, config.train_eval_loader
 
@@ -242,7 +251,7 @@ def run(config, **kwargs):
         if idist.get_rank() == 0 and exp_tracking.has_trains:
             from trains import Task
 
-            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem)
+            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem, auto_connect_frameworks=False)
             task.connect_configuration(config.config_filepath.as_posix())
 
         log_basic_info(logger, config)

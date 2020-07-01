@@ -9,6 +9,8 @@ import torch.optim.lr_scheduler as lrs
 
 from torchvision.models.segmentation import deeplabv3_resnet101
 
+import ignite.distributed as idist
+
 import albumentations as A
 from albumentations.pytorch import ToTensorV2 as ToTensor
 
@@ -28,13 +30,13 @@ fp16_opt_level = "O2"
 
 num_classes = 21
 
-
-batch_size = 18  # total batch size
-val_batch_size = 24
+batch_size = 9 * idist.get_world_size()  # total batch size
+val_batch_size = batch_size * 2
 num_workers = 12
 val_interval = 1
 accumulation_steps = 4
 
+start_by_validation = True
 
 val_img_size = 513
 train_img_size = 480
@@ -104,6 +106,8 @@ def model_output_transform(output):
 # ##############################
 # Setup solver
 # ##############################
+
+save_every_iters = len(train_loader)
 
 num_epochs = 100
 

@@ -58,8 +58,8 @@ export DATASET_PATH=/path/to/pascal_voc2012
 Export the ``SBD_DATASET_PATH`` environment variable for the SBD evaluation dataset.
 
 ```bash
-export SBD_DATASET_PATH=/path/to/SBD/benchmark_RELEASE/dataset/
-# e.g. export SBD_DATASET_PATH=/data/SBD/benchmark_RELEASE/dataset/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
+export SBD_DATASET_PATH=/path/to/SBD/
+# e.g. export SBD_DATASET_PATH=/data/SBD/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
 ```
 
 ## Run the experiment code
