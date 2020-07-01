@@ -116,8 +116,7 @@ def _repr_rng_state(rng_states):
 
 def keep_random_state(func: Callable):
     """Helper decorator to keep random state of torch, numpy and random intact
-    while executing a function. For more details on usage, please see
-    `"Concepts/Dataflow synchronization" <https://pytorch.org/ignite/concepts.html#dataflow-synchronization>`_.
+    while executing a function. For more details on usage, please see :ref:`Dataflow synchronization`.
 
     Args:
         func (callable): function to decorate
@@ -133,10 +132,10 @@ def keep_random_state(func: Callable):
 
 
 class DeterministicEngine(Engine):
-    """Deterministic engine derived from :class:`~ignite.engine.Engine`.
+    """Deterministic engine derived from :class:`~ignite.engine.engine.Engine`.
 
     "Deterministic" run is done by adding additional handlers to synchronize the dataflow and overriding some methods of
-    :class:`~ignite.engine.Engine`:
+    :class:`~ignite.engine.engine.Engine`:
 
     .. code-block:: python
 
@@ -161,8 +160,7 @@ class DeterministicEngine(Engine):
     Internally, `torch.backends.cudnn.deterministic = True` and `torch.backends.cudnn.benchmark = False` are also
     applied.
 
-    For more details about dataflow synchronization, please see
-    `"Concepts/Dataflow synchronization" <https://pytorch.org/ignite/concepts.html#dataflow-synchronization>`_.
+    For more details about dataflow synchronization, please see :ref:`Dataflow synchronization`.
 
     .. Note ::
 

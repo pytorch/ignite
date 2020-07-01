@@ -17,7 +17,7 @@ class MetricUsage:
     Base class for all usages of metrics.
 
     A usage of metric defines the events when a metric starts to compute, updates and completes.
-    Valid events are from :class:`~ignite.engine.Events`.
+    Valid events are from :class:`~ignite.engine.events.Events`.
 
     Args:
         started: event when the metric starts to compute. This event will be associated to
@@ -52,9 +52,9 @@ class EpochWise(MetricUsage):
 
     Metric's methods are triggered on the following engine events:
 
-    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
-    - :meth:`~ignite.metrics.Metric.iteration_completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.started` on every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
     """
 
     usage_name = "epoch_wise"
@@ -73,9 +73,9 @@ class BatchWise(MetricUsage):
 
     Metric's methods are triggered on the following engine events:
 
-    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.ITERATION_STARTED`.
-    - :meth:`~ignite.metrics.Metric.iteration_completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.started` on every ``ITERATION_STARTED`` (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.Metric.completed` on every ``ITERATION_COMPLETED``.
     """
 
     usage_name = "batch_wise"
@@ -94,12 +94,12 @@ class BatchFiltered(MetricUsage):
 
     Metric's methods are triggered on the following engine events:
 
-    - :meth:`~ignite.metrics.Metric.started` on every :attr:`~ignite.engine.Events.EPOCH_STARTED`.
-    - :meth:`~ignite.metrics.Metric.iteration_completed` on filtered :attr:`~ignite.engine.Events.ITERATION_COMPLETED`.
-    - :meth:`~ignite.metrics.Metric.completed` on every :attr:`~ignite.engine.Events.EPOCH_COMPLETED`.
+    - :meth:`~ignite.metrics.Metric.started` on every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.Metric.iteration_completed` on filtered ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Args:
-        args (sequence): arguments for the setup of :attr:`~ignite.engine.Events.ITERATION_COMPLETED` handled by
+        args (sequence): arguments for the setup of :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED` handled by
             :meth:`~ignite.metrics.Metric.iteration_completed`.
 
     """
@@ -118,10 +118,10 @@ class Metric(metaclass=ABCMeta):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-            By default, metrics require the output as `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+            By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
         device (str of torch.device, optional): optional device specification for internal storage.
 
     """
@@ -176,7 +176,7 @@ class Metric(metaclass=ABCMeta):
         By default, this is called at the end of each epoch.
 
         Returns:
-            Any: the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,
+            Any: | the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,
                  it will be (shallow) flattened into `engine.state.metrics` when
                  :func:`~ignite.metrics.Metric.completed` is called.
 
@@ -441,6 +441,16 @@ class Metric(metaclass=ABCMeta):
 
 
 def sync_all_reduce(*attrs) -> Callable:
+    """Helper decorator for distributed configuration to collect instance attribute value
+    across all participating processes.
+
+    See :doc:`metrics` on how to use it.
+
+    Args:
+        *attrs: attribute names of decorated class
+
+    """
+
     def wrapper(func: Callable) -> Callable:
         @wraps(func)
         def another_wrapper(self: Metric, *args, **kwargs) -> Callable:
@@ -466,6 +476,12 @@ def sync_all_reduce(*attrs) -> Callable:
 
 
 def reinit__is_reduced(func: Callable) -> Callable:
+    """Helper decorator for distributed configuration.
+
+    See :doc:`metrics` on how to use it.
+
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)

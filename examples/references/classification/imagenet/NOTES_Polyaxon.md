@@ -1,5 +1,7 @@
 # Experiments tracking with Polyaxon
 
+User can run ImageNet training using [Polyaxon experiments tracking system](https://polyaxon.com/).
+
 ## Requirements
 
 In this case we assume, user has [Polyaxon](https://polyaxon.com/) installed on a machine/cluster/cloud and can schedule experiments with `polyaxon-cli`.
@@ -9,11 +11,11 @@ In this case we assume, user has [Polyaxon](https://polyaxon.com/) installed on 
 ### Setup Polyaxon project
 
 Create project on the cluster
-```
+```bash
 polyaxon project create --name=imagenet --description="Classification on ImageNet"
 ```
 Initialize local project
-```
+```bash
 polyaxon init imagenet
 ``` 
 
@@ -25,7 +27,10 @@ to adapt to your cluster configuration.
 Since 10/2019, we need to register an account in order to download the dataset.
 To download the dataset, use the following form : http://www.image-net.org/download.php 
 
-### Single node with multiple GPUs
+### Training on single node with single or multiple GPU
+
+For optimal devices usage, please, make sure to adapt training data loader batch size to your infrastructure. 
+By default, batch size is 64 per process. Please, adapt `xp_training.yml` to your cluster configuration and run it, for example, as
 
 ```bash
 polyaxon run -u -f experiments/plx/xp_training.yml --name="baseline_resnet50" --tags=train,resnet50

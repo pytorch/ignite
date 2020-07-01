@@ -167,7 +167,8 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
+        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
         param_name (str): parameter name
         tag (str, optional): common title for all produced plots. For example, 'generator'
     """

@@ -13,7 +13,7 @@ class MeanPairwiseDistance(Metric):
     """
     Calculates the mean pairwise distance: average of pairwise distances computed on provided batches.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     """
 
     def __init__(

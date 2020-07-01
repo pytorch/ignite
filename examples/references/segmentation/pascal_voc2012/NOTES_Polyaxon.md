@@ -1,5 +1,7 @@
 # Experiments tracking with Polyaxon
 
+User can run Pascal VOC training using [Polyaxon experiments tracking system](https://polyaxon.com/).
+
 ## Requirements
 
 In this case we assume, user has [Polyaxon](https://polyaxon.com/) installed on a machine/cluster/cloud and can schedule experiments with `polyaxon-cli`.
@@ -9,11 +11,11 @@ In this case we assume, user has [Polyaxon](https://polyaxon.com/) installed on 
 ### Setup Polyaxon project
 
 Create project on the cluster
-```
+```bash
 polyaxon project create --name=pascal-voc2012 --description="Semantic segmentation on Pascal VOC2012"
 ```
 Initialize local project
-```
+```bash
 polyaxon init pascal-voc2012
 ``` 
 
@@ -28,8 +30,11 @@ Please rename and modify `experiments/plx/job_download_datasets.yml.tmpl` to `ex
 polyaxon run -u -f experiments/plx/job_download_datasets.yml
 ```
 
+### Training on single node with single or multiple GPU
 
-### Single node with multiple GPUs
+For optimal devices usage, please, make sure to adapt training data loader batch size to your infrastructure. 
+For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N devices, we can set it as `N * 9`.
+Please, adapt `xp_training.yml` to your cluster configuration and run it, for example, as
 
 ```bash
 polyaxon run -u -f experiments/plx/xp_training.yml --name="baseline_resnet101_sbd" --tags=train,deeplab,sbd
@@ -52,5 +57,5 @@ notebooks
 
 ### Experiments
 
-File [xp_training.yml.tmpl](experiments/mlflow/xp_training.yml.tmpl) defines all configurations and dependencies 
+File [xp_training.yml.tmpl](experiments/plx/xp_training.yml.tmpl) defines all configurations and dependencies 
 necessary for our experimentations. Part `run.cmd` starts single-node multi-GPU training script. 

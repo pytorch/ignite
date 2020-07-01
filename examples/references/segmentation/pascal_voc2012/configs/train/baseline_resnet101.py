@@ -6,7 +6,6 @@ import cv2
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
-import torch.distributed as dist
 
 from torchvision.models.segmentation import deeplabv3_resnet101
 
@@ -17,25 +16,25 @@ from dataflow.dataloaders import get_train_val_loaders
 from dataflow.transforms import ignore_mask_boundaries, prepare_batch_fp32, denormalize
 
 
-assert "DATASET_PATH" in os.environ
-data_path = os.environ["DATASET_PATH"]
+# ##############################
+# Global configs
+# ##############################
 
-
-debug = False
-seed = 12
-
+seed = 19
 device = "cuda"
+debug = False
 
 fp16_opt_level = "O2"
 
 num_classes = 21
 
 
-batch_size = 16
-val_batch_size = 20
-non_blocking = True
-num_workers = 12 // dist.get_world_size()
-val_interval = 3
+batch_size = 18  # total batch size
+val_batch_size = 24
+num_workers = 12
+val_interval = 1
+accumulation_steps = 4
+
 
 val_img_size = 513
 train_img_size = 480
@@ -43,6 +42,9 @@ train_img_size = 480
 # ##############################
 # Setup Dataflow
 # ##############################
+
+assert "DATASET_PATH" in os.environ
+data_path = os.environ["DATASET_PATH"]
 
 mean = (0.485, 0.456, 0.406)
 std = (0.229, 0.224, 0.225)
@@ -78,11 +80,8 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     batch_size=batch_size,
     num_workers=num_workers,
     val_batch_size=val_batch_size,
-    train_sampler="distributed",
-    val_sampler="distributed",
     limit_train_num_samples=100 if debug else None,
     limit_val_num_samples=100 if debug else None,
-    random_seed=seed,
 )
 
 prepare_batch = prepare_batch_fp32

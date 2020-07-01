@@ -1,8 +1,10 @@
 import os
 import tempfile
 import warnings
+from collections import defaultdict
 from datetime import datetime
-from typing import Mapping, Optional
+from enum import Enum
+from typing import Any, List, Mapping, Optional, Type
 
 import torch
 
@@ -180,7 +182,8 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer): torch optimizer which parameters to log
+        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
         param_name (str): parameter name
         tag (str, optional): common title for all produced plots. For example, "generator"
     """
@@ -502,7 +505,8 @@ class TrainsLogger(BaseLogger):
 
     def __init__(self, *_, **kwargs):
         try:
-            import trains
+            from trains import Task
+            from trains.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
         except ImportError:
             raise RuntimeError(
                 "This contrib module requires trains to be installed. "
@@ -528,18 +532,16 @@ class TrainsLogger(BaseLogger):
 
             self._task = _Stub()
         else:
-            self._task = trains.Task.init(
+            self._task = Task.init(
                 project_name=kwargs.get("project_name"),
                 task_name=kwargs.get("task_name"),
-                task_type=kwargs.get("task_type", trains.Task.TaskTypes.training),
+                task_type=kwargs.get("task_type", Task.TaskTypes.training),
                 **experiment_kwargs,
             )
 
         self.trains_logger = self._task.get_logger()
 
-        self.grad_helper = trains.binding.frameworks.tensorflow_bind.WeightsGradientHistHelper(
-            logger=self.trains_logger,
-        )
+        self.grad_helper = WeightsGradientHistHelper(logger=self.trains_logger,)
 
     @classmethod
     def set_bypass_mode(cls, bypass: bool) -> None:
@@ -634,6 +636,8 @@ class TrainsSaver(DiskSaver):
         if "atomic" not in kwargs:
             kwargs["atomic"] = False
 
+        self._checkpoint_slots = defaultdict(list)
+
         super(TrainsSaver, self).__init__(dirname=dirname, *args, **kwargs)
 
     @idist.one_rank_only()
@@ -659,32 +663,92 @@ class TrainsSaver(DiskSaver):
         if output_uri:
             self._task.output_uri = output_uri
 
+    class _CallbacksContext:
+        def __init__(
+            self,
+            callback_type: Type[Enum],
+            slots: List,
+            checkpoint_key: str,
+            filename: str,
+            basename: str,
+            metadata: Optional[Mapping] = None,
+        ):
+            self._callback_type = callback_type
+            self._slots = slots
+            self._checkpoint_key = str(checkpoint_key)
+            self._filename = filename
+            self._basename = basename
+            self._metadata = metadata
+
+        def pre_callback(self, action: str, model_info: Any):
+            if action != self._callback_type.save:
+                return model_info
+
+            try:
+                slot = self._slots.index(None)
+                self._slots[slot] = model_info.upload_filename
+            except ValueError:
+                self._slots.append(model_info.upload_filename)
+                slot = len(self._slots) - 1
+
+            model_info.upload_filename = "{}_{}{}".format(self._basename, slot, os.path.splitext(self._filename)[1])
+            model_info.local_model_id = "{}:{}".format(self._checkpoint_key, model_info.upload_filename)
+            return model_info
+
+        def post_callback(self, action: str, model_info: Any):
+            if action != self._callback_type.save:
+                return model_info
+
+            model_info.model.name = "{}: {}".format(model_info.task.name, self._filename)
+            prefix = "Checkpoint Metadata: "
+            metadata = "{}{}".format(
+                prefix,
+                ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none",
+            )
+            comment = "\n".join(
+                metadata if line.startswith(prefix) else line for line in (model_info.model.comment or "").split("\n")
+            )
+            if prefix not in comment:
+                comment += "\n" + metadata
+            model_info.model.comment = comment
+
+            return model_info
+
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
-        super(TrainsSaver, self).__call__(checkpoint, filename, metadata)
+        try:
+            from trains import Model
+            from trains.binding.frameworks import WeightsFileHandler
+        except ImportError:
+            raise RuntimeError(
+                "This contrib module requires trains to be installed. "
+                "You may install trains using: \n pip install trains \n"
+            )
 
-        if idist.get_rank() == 0:
-            # Maybe wont work with XLA
-            if self._atomic:
-                try:
-                    import trains
-                except ImportError:
-                    raise RuntimeError(
-                        "This contrib module requires trains to be installed. "
-                        "You may install trains using: \n pip install trains \n"
-                    )
+        try:
+            basename = metadata["basename"]
+        except (TypeError, KeyError):
+            warnings.warn("Checkpoint metadata missing or basename cannot be found")
+            basename = "checkpoint"
 
-                # If atomic, DiskSaver's implementation first stores checkpoint into a temporary file
-                # and prohibits trains to automatically detect correct artifact path and name
-                path = os.path.join(self.dirname, filename)
-                if os.path.exists(path):
-                    trains.binding.frameworks.WeightsFileHandler.create_output_model(
-                        model=checkpoint,
-                        saved_path=path,
-                        framework=trains.model.Framework.pytorch,
-                        task=self._task,
-                        singlefile=True,
-                        model_name=os.path.basename(filename),
-                    )
+        checkpoint_key = (self.dirname, basename)
+
+        cb_context = self._CallbacksContext(
+            callback_type=WeightsFileHandler.CallbackType,
+            slots=self._checkpoint_slots[checkpoint_key],
+            checkpoint_key=str(checkpoint_key),
+            filename=filename,
+            basename=basename,
+            metadata=metadata,
+        )
+
+        pre_cb_id = WeightsFileHandler.add_pre_callback(cb_context.pre_callback)
+        post_cb_id = WeightsFileHandler.add_post_callback(cb_context.post_callback)
+
+        try:
+            super(TrainsSaver, self).__call__(checkpoint, filename, metadata)
+        finally:
+            WeightsFileHandler.remove_pre_callback(pre_cb_id)
+            WeightsFileHandler.remove_post_callback(post_cb_id)
 
     @idist.one_rank_only()
     def get_local_copy(self, filename: str) -> Optional[str]:
@@ -704,3 +768,14 @@ class TrainsSaver(DiskSaver):
         if artifact:
             return artifact.get_local_copy()
         self._task.get_logger().report_text("Can not find artifact {}".format(filename))
+
+    @idist.one_rank_only()
+    def remove(self, filename: str) -> None:
+        super(TrainsSaver, self).remove(filename)
+        for slots in self._checkpoint_slots.values():
+            try:
+                slots[slots.index(filename)] = None
+            except ValueError:
+                pass
+            else:
+                break

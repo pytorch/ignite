@@ -54,7 +54,7 @@ def test_output_handler_with_wrong_logger_type():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_output_handler_output_transform(dirname):
+def test_output_handler_output_transform():
 
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -77,7 +77,7 @@ def test_output_handler_output_transform(dirname):
     mock_logger.writer.add_scalar.assert_called_once_with("another_tag/loss", 12345, 123)
 
 
-def test_output_handler_metric_names(dirname):
+def test_output_handler_metric_names():
 
     wrapper = OutputHandler("tag", metric_names=["a", "b"])
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -139,7 +139,7 @@ def test_output_handler_metric_names(dirname):
     mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True)
 
 
-def test_output_handler_both(dirname):
+def test_output_handler_both():
 
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -606,6 +606,7 @@ def test_no_tensorboardX_package(dirname):
     with patch.dict("sys.modules", {"tensorboardX": None}):
         tb_logger = TensorboardLogger(log_dir=dirname)
         assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
+        tb_logger.close()
 
 
 def test_no_torch_utils_tensorboard_package(dirname):
@@ -614,6 +615,7 @@ def test_no_torch_utils_tensorboard_package(dirname):
     with patch.dict("sys.modules", {"torch.utils.tensorboard": None}):
         tb_logger = TensorboardLogger(log_dir=dirname)
         assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
+        tb_logger.close()
 
 
 def test_no_tensorboardX_nor_torch_utils_tensorboard():

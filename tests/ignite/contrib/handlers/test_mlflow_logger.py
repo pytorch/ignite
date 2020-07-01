@@ -1,4 +1,5 @@
 import os
+import sys
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -217,6 +218,7 @@ def test_optimizer_params():
     mock_logger.log_metrics.assert_called_once_with({"generator lr group_0": 0.01}, step=123)
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration(dirname):
 
     n_epochs = 5
@@ -258,6 +260,7 @@ def test_integration(dirname):
         assert pytest.approx(t) == s.value
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_as_context_manager(dirname):
 
     n_epochs = 5
@@ -298,6 +301,7 @@ def test_integration_as_context_manager(dirname):
         assert pytest.approx(t) == s.value
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_mlflow_bad_metric_name_handling(dirname):
     import mlflow
 

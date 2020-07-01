@@ -75,6 +75,10 @@ mlflow_logger
 tqdm_logger
 -----------
 
+See `tqdm mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tqdm_logger.py>`_
+for detailed usage.
+
+
 .. automodule:: ignite.contrib.handlers.tqdm_logger
    :members:
 
@@ -87,6 +91,9 @@ polyaxon_logger
 
 wandb_logger
 ---------------
+
+See `wandb mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_wandb_logger.py>`_
+for detailed usage.
 
 .. automodule:: ignite.contrib.handlers.wandb_logger
    :members:

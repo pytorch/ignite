@@ -146,7 +146,7 @@ class EventEnum(CallableEventWithFilter, Enum):
 
 
 class Events(EventEnum):
-    """Events that are fired by the :class:`~ignite.engine.Engine` during execution. Built-in events:
+    """Events that are fired by the :class:`~ignite.engine.engine.Engine` during execution. Built-in events:
 
     - STARTED : triggered when engine's run is started
     - EPOCH_STARTED : triggered when the epoch is started
@@ -159,10 +159,10 @@ class Events(EventEnum):
 
     - EXCEPTION_RAISED : triggered when an exception is encountered
     - TERMINATE_SINGLE_EPOCH : triggered when the run is about to end the current epoch,
-      after receiving :meth:`~ignite.engine.Engine.terminate_epoch()` call.
+      after receiving :meth:`~ignite.engine.engine.Engine.terminate_epoch()` call.
 
     - TERMINATE : triggered when the run is about to end completely,
-      after receiving :meth:`~ignite.engine.Engine.terminate()` call.
+      after receiving :meth:`~ignite.engine.engine.Engine.terminate()` call.
 
     - EPOCH_COMPLETED : triggered when the epoch is ended
     - COMPLETED : triggered when engine's run is completed
@@ -348,7 +348,7 @@ class RemovableEventHandle:
 
     A handle that may be used to remove a registered event handler via the
     remove method, with-statement, or context manager protocol. Returned from
-    :meth:`~ignite.engine.Engine.add_event_handler`.
+    :meth:`~ignite.engine.engine.Engine.add_event_handler`.
 
 
     Args:

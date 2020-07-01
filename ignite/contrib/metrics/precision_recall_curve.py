@@ -20,9 +20,13 @@ class PrecisionRecallCurve(EpochMetric):
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        check_compute_fn (bool): Optional default False. If True, `precision_recall_curve
+            <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
+            #sklearn.metrics.precision_recall_curve>`_ is run on the first batch of data to ensure there are
+            no issues. User will be warned in case there are any issues computing the function.
 
     PrecisionRecallCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates
     or confidence values. To apply an activation to y_pred, use output_transform as shown below:
@@ -38,5 +42,7 @@ class PrecisionRecallCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
-        super(PrecisionRecallCurve, self).__init__(precision_recall_curve_compute_fn, output_transform=output_transform)
+    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
+        super(PrecisionRecallCurve, self).__init__(
+            precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+        )

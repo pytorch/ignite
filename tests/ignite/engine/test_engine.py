@@ -6,10 +6,11 @@ import numpy as np
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
-from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
+from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter, get_iterable_dataset
 
 
 def test_terminate():
@@ -482,6 +483,7 @@ def test_run_check_triggered_events_on_iterator():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     _test_run_check_triggered_events_on_iterator()
@@ -489,12 +491,14 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     _test_run_check_triggered_events_on_iterator()
@@ -502,49 +506,11 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
-
-
-def test_engine_with_iterable_dataloader():
-
-    from torch.utils.data import DataLoader, IterableDataset
-
-    class MyIterableDataset(IterableDataset):
-        def __init__(self, start, end):
-            super(MyIterableDataset).__init__()
-            assert end > start, "this example code only works with end >= start"
-            self.start = start
-            self.end = end
-
-        def __iter__(self):
-            return iter(range(self.start, self.end))
-
-    def _test(epoch_length=None):
-
-        le = 50
-        num_workers = 4
-        ds = MyIterableDataset(0, le)
-        data_loader = DataLoader(ds, num_workers=num_workers)
-
-        counter = [0]
-
-        def foo(e, b):
-            print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
-            counter[0] += 1
-
-        engine = Engine(foo)
-        engine.run(data_loader, epoch_length=epoch_length, max_epochs=5)
-
-        epoch_length = le * num_workers if epoch_length is None else epoch_length
-        assert counter[0] == 5 * epoch_length
-
-    _test(epoch_length=20)
-
-    # tests issue : https://github.com/pytorch/ignite/issues/1076
-    _test(epoch_length=None)
 
 
 def test_engine_random_state():

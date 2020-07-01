@@ -1,10 +1,13 @@
 import math
 import os
+from collections import defaultdict
 from unittest.mock import ANY, MagicMock, Mock, call
 
 import pytest
 import torch
 import trains
+from trains.binding.frameworks import WeightsFileHandler
+from trains.model import Framework
 
 import ignite.distributed as idist
 from ignite.contrib.handlers.trains_logger import *
@@ -670,6 +673,88 @@ def test_trains_disk_saver_integration_no_logger():
         assert saved_files[0] == "model_1.pt"
 
 
+def test_trains_saver_callbacks():
+    mock_task = MagicMock(spec=trains.Task)
+    mock_task.name = "check-task"
+
+    mock_model = MagicMock(spec=trains.OutputModel)
+
+    model_info = WeightsFileHandler.ModelInfo(
+        model=mock_model,
+        upload_filename="test.pt",
+        local_model_path="",
+        local_model_id="",
+        framework=Framework.pytorch,
+        task=mock_task,
+    )
+
+    mock_model_info = MagicMock(spec_set=model_info)
+
+    # Simulate 4 calls to save model and 2 to remove (n_saved=2)
+    filenames = [
+        "best_model_5_val_acc=0.123.pt",
+        "best_model_6_val_acc=0.234.pt",
+        "best_model_7_val_acc=0.356.pt",
+        "best_model_8_val_acc=0.456.pt",
+    ]
+    metadata_list = [
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.123},
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.234},
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.345},
+        {"basename": "best_model", "score_name": "val_acc", "priority": 0.456},
+    ]
+    dirname = "/tmp/test"
+
+    _checkpoint_slots = defaultdict(list)
+
+    n_saved = 2
+
+    for i, (filename, metadata) in enumerate(zip(filenames, metadata_list)):
+
+        mock_model_info.upload_filename = filename
+
+        if i >= n_saved:
+            # Remove
+            filename_to_remove = filenames[i % n_saved]
+            for slots in _checkpoint_slots.values():
+                try:
+                    slots[slots.index(filename_to_remove)] = None
+                except ValueError:
+                    pass
+                else:
+                    i = i % n_saved
+                    break
+
+        basename = metadata["basename"]
+        checkpoint_key = (dirname, basename)
+
+        context = TrainsSaver._CallbacksContext(
+            callback_type=WeightsFileHandler.CallbackType,
+            slots=_checkpoint_slots[checkpoint_key],
+            checkpoint_key=str(checkpoint_key),
+            filename=filename,
+            basename=basename,
+            metadata=metadata,
+        )
+
+        output_model_info = context.pre_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
+        assert (
+            hasattr(output_model_info, "upload_filename")
+            and "{}_{}.pt".format(basename, i) in output_model_info.upload_filename
+        )
+        assert hasattr(output_model_info, "local_model_id") and str(checkpoint_key) in output_model_info.local_model_id
+
+        output_model_info = context.post_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
+        assert hasattr(output_model_info, "model") and hasattr(output_model_info.model, "name")
+        assert hasattr(output_model_info, "model") and hasattr(output_model_info.model, "comment")
+        assert isinstance(output_model_info.model.name, str) and filename in output_model_info.model.name
+        assert (
+            isinstance(output_model_info.model.comment, str)
+            and metadata["basename"] in output_model_info.model.comment
+            and metadata["score_name"] in output_model_info.model.comment
+        )
+
+
 class DummyModel(torch.nn.Module):
     def __init__(self):
         super(DummyModel, self).__init__()
@@ -764,12 +849,14 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu")
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = idist.device()

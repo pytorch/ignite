@@ -1,19 +1,21 @@
 import logging
-from typing import Callable
+from collections import OrderedDict
+from typing import Callable, Mapping
 
+from ignite.base import Serializable
 from ignite.engine import Engine
 
 __all__ = ["EarlyStopping"]
 
 
-class EarlyStopping:
+class EarlyStopping(Serializable):
     """EarlyStopping handler can be used to stop the training if no improvement after a given number of events.
 
     Args:
         patience (int):
             Number of events to wait if no improvement and then stop the training.
         score_function (callable):
-            It should be a function taking a single argument, an :class:`~ignite.engine.Engine` object,
+            It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine` object,
             and return a score `float`. An improvement is considered if the score is higher.
         trainer (Engine):
             trainer engine to stop the run if no improvement.
@@ -40,6 +42,11 @@ class EarlyStopping:
         evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
+
+    _state_dict_all_req_keys = (
+        "counter",
+        "best_score",
+    )
 
     def __init__(
         self,
@@ -87,3 +94,11 @@ class EarlyStopping:
         else:
             self.best_score = score
             self.counter = 0
+
+    def state_dict(self) -> OrderedDict:
+        return OrderedDict([("counter", self.counter), ("best_score", self.best_score)])
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        super().load_state_dict(state_dict)
+        self.counter = state_dict["counter"]
+        self.best_score = state_dict["best_score"]

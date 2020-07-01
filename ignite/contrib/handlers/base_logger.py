@@ -1,9 +1,11 @@
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
+from collections.abc import Sequence
 from typing import Any, Mapping
 
 import torch
+from torch.optim import Optimizer
 
 from ignite.engine import Engine, State
 
@@ -20,9 +22,13 @@ class BaseOptimizerParamsHandler(BaseHandler):
     """
 
     def __init__(self, optimizer, param_name="lr", tag=None):
-        if not isinstance(optimizer, torch.optim.Optimizer):
+        if not (
+            isinstance(optimizer, Optimizer)
+            or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
+        ):
             raise TypeError(
-                "Argument optimizer should be of type torch.optim.Optimizer, " "but given {}".format(type(optimizer))
+                "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
+                "but given {}".format(type(optimizer))
             )
 
         self.optimizer = optimizer
@@ -141,8 +147,9 @@ class BaseLogger(metaclass=ABCMeta):
         Args:
             engine (Engine): engine object.
             log_handler (callable): a logging handler to execute
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: event to attach the logging handler to. Valid events are from
+                :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
@@ -159,8 +166,9 @@ class BaseLogger(metaclass=ABCMeta):
 
         Args:
             engine (Engine): engine object.
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: event to attach the logging handler to. Valid events are from
+                :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
             *args: args to initialize `OutputHandler`
             **kwargs: kwargs to initialize `OutputHandler`
 
@@ -174,8 +182,9 @@ class BaseLogger(metaclass=ABCMeta):
 
         Args:
             engine (Engine): engine object.
-            event_name: event to attach the logging handler to. Valid events are from :class:`~ignite.engine.Events`
-                or any `event_name` added by :meth:`~ignite.engine.Engine.register_events`.
+            event_name: event to attach the logging handler to. Valid events are from
+                :class:`~ignite.engine.events.Events` or any `event_name` added by
+                :meth:`~ignite.engine.engine.Engine.register_events`.
             *args: args to initialize `OptimizerParamsHandler`
             **kwargs: kwargs to initialize `OptimizerParamsHandler`
 

@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
@@ -13,7 +13,7 @@ __all__ = ["ConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "c
 class ConfusionMatrix(Metric):
     """Calculates confusion matrix for multi-class data.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must contain logits and has the following shape (batch_size, num_categories, ...)
     - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices
         with or without the background class. During the computation, argmax of `y_pred` is taken to determine
@@ -27,7 +27,7 @@ class ConfusionMatrix(Metric):
             represent class recalls. If `average="precision"` then confusion matrix values are normalized such that
             diagonal values represent class precisions.
         output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         device (str of torch.device, optional): optional device specification for internal storage.
