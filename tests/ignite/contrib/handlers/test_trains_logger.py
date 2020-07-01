@@ -161,7 +161,7 @@ def test_output_handler_metric_names(dirname):
 
     assert mock_logger.trains_logger.report_scalar.call_count == 5
     mock_logger.trains_logger.report_scalar.assert_has_calls(
-        [call(title="tag", series="vector/{}".format(i), iteration=5, value=vector[i].item()) for i in range(5)],
+        [call(title="tag/vector", series=str(i), iteration=5, value=vector[i].item()) for i in range(5)],
         any_order=True,
     )
 

@@ -152,7 +152,7 @@ class OutputHandler(BaseOutputHandler):
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
                     logger.trains_logger.report_scalar(
-                        title=self.tag, series="{}/{}".format(key, i), iteration=global_step, value=v.item()
+                        title="{}/{}".format(self.tag, key), series=str(i), iteration=global_step, value=v.item()
                     )
             else:
                 warnings.warn("TrainsLogger output_handler can not log metrics value type {}".format(type(value)))
