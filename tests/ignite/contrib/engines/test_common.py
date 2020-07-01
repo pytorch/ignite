@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 import torch
@@ -12,6 +12,7 @@ import ignite.distributed as idist
 from ignite.contrib.engines.common import (
     _setup_logging,
     add_early_stopping_by_val_score,
+    delegated_save_best_models_by_val_score,
     save_best_model_by_val_score,
     setup_any_logging,
     setup_common_training_handlers,
@@ -170,7 +171,7 @@ def test_setup_common_training_handlers(dirname, capsys):
     assert "Epoch:" in out[-1], "{}".format(out[-1])
 
 
-def test_save_best_model_by_val_score(dirname, capsys):
+def test_save_best_model_by_val_score(dirname):
 
     trainer = Engine(lambda e, b: None)
     evaluator = Engine(lambda e, b: None)
@@ -180,9 +181,7 @@ def test_save_best_model_by_val_score(dirname, capsys):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def validate(engine):
-        evaluator.run(
-            [0,]
-        )
+        evaluator.run([0, 1])
 
     @evaluator.on(Events.EPOCH_COMPLETED)
     def set_eval_metric(engine):
@@ -190,12 +189,49 @@ def test_save_best_model_by_val_score(dirname, capsys):
 
     save_best_model_by_val_score(dirname, evaluator, model, metric_name="acc", n_saved=2, trainer=trainer)
 
-    data = [
-        0,
-    ]
-    trainer.run(data, max_epochs=len(acc_scores))
+    trainer.run([0, 1], max_epochs=len(acc_scores))
 
-    assert set(os.listdir(dirname)) == set(["best_model_8_val_acc=0.6100.pt", "best_model_9_val_acc=0.7000.pt"])
+    assert set(os.listdir(dirname)) == {"best_model_8_val_acc=0.6100.pt", "best_model_9_val_acc=0.7000.pt"}
+
+
+def test_delegated_save_best_models_by_val_score():
+
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+    model = DummyModel()
+
+    acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.5, 0.6, 0.61, 0.7, 0.5]
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def validate(engine):
+        evaluator.run([0, 1])
+
+    @evaluator.on(Events.EPOCH_COMPLETED)
+    def set_eval_metric(engine):
+        engine.state.metrics = {"acc": acc_scores[trainer.state.epoch - 1]}
+
+    save_handler = MagicMock()
+
+    delegated_save_best_models_by_val_score(
+        save_handler, evaluator, {"a": model, "b": model}, metric_name="acc", n_saved=2, trainer=trainer
+    )
+
+    trainer.run([0, 1], max_epochs=len(acc_scores))
+
+    assert save_handler.call_count == len(acc_scores) - 2  # 2 score values (0.3 and 0.5) are not the best
+    print(save_handler.mock_calls)
+    obj_to_save = {"a": model.state_dict(), "b": model.state_dict()}
+    save_handler.assert_has_calls(
+        [
+            call(
+                obj_to_save,
+                "best_checkpoint_{}_val_acc={:.4f}.pt".format(e, p),
+                dict([("basename", "best_checkpoint"), ("score_name", "val_acc"), ("priority", p)]),
+            )
+            for e, p in zip([1, 2, 3, 4, 6, 7, 8, 9], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.61, 0.7])
+        ],
+        any_order=True,
+    )
 
 
 def test_add_early_stopping_by_val_score():
@@ -206,9 +242,7 @@ def test_add_early_stopping_by_val_score():
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def validate(engine):
-        evaluator.run(
-            [0,]
-        )
+        evaluator.run([0, 1])
 
     @evaluator.on(Events.EPOCH_COMPLETED)
     def set_eval_metric(engine):
@@ -216,10 +250,7 @@ def test_add_early_stopping_by_val_score():
 
     add_early_stopping_by_val_score(patience=3, evaluator=evaluator, trainer=trainer, metric_name="acc")
 
-    data = [
-        0,
-    ]
-    state = trainer.run(data, max_epochs=len(acc_scores))
+    state = trainer.run([0, 1], max_epochs=len(acc_scores))
 
     assert state.epoch == 7
 

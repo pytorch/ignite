@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from functools import partial
 
 import torch
+import torch.nn as nn
 from torch.utils.data.distributed import DistributedSampler
 
 import ignite.distributed as idist
@@ -450,9 +451,63 @@ def get_default_score_fn(metric_name):
     return wrapper
 
 
-def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_saved=3, trainer=None, tag="val"):
-    """Method adds a handler to `evaluator` to save best models based on the score (named by `metric_name`)
-    provided by `evaluator`.
+def delegated_save_best_models_by_val_score(
+    save_handler, evaluator, models, metric_name, n_saved=3, trainer=None, tag="val", **kwargs
+):
+    """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
+    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
+    The logic how to store objects is delegated to ``save_handler``.
+
+    Args:
+        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
+            use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
+            and filename. If ``save_handler`` is callable class, it can
+            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
+            to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
+            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
+        evaluator (Engine): evaluation engine used to provide the score
+        models (nn.Module or Mapping): model or dictionary with the object to save. Objects should have
+            implemented ``state_dict`` and ``load_state_dict`` methods.
+        metric_name (str): metric name to use for score evaluation. This metric should be present in
+            `evaluator.state.metrics`.
+        n_saved (int, optional): number of best models to store
+        trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.
+        tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+
+    Returns:
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
+    """
+    global_step_transform = None
+    if trainer is not None:
+        global_step_transform = global_step_from_engine(trainer)
+
+    to_save = models
+    if isinstance(models, nn.Module):
+        to_save = {"model": models}
+
+    best_model_handler = Checkpoint(
+        to_save,
+        save_handler,
+        filename_prefix="best",
+        n_saved=n_saved,
+        global_step_transform=global_step_transform,
+        score_name="{}_{}".format(tag, metric_name.lower()),
+        score_function=get_default_score_fn(metric_name),
+        **kwargs,
+    )
+    evaluator.add_event_handler(
+        Events.COMPLETED, best_model_handler,
+    )
+
+    return best_model_handler
+
+
+def save_best_model_by_val_score(
+    output_path, evaluator, model, metric_name, n_saved=3, trainer=None, tag="val", **kwargs
+):
+    """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
+    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
 
     Args:
         output_path (str): output path to indicate where to save best models
@@ -463,28 +518,21 @@ def save_best_model_by_val_score(output_path, evaluator, model, metric_name, n_s
         n_saved (int, optional): number of best models to store
         trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.
         tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
         A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
-    global_step_transform = None
-    if trainer is not None:
-        global_step_transform = global_step_from_engine(trainer)
-
-    best_model_handler = Checkpoint(
-        {"model": model,},
-        DiskSaver(dirname=output_path, require_empty=False),
-        filename_prefix="best",
+    return delegated_save_best_models_by_val_score(
+        save_handler=DiskSaver(dirname=output_path, require_empty=False),
+        evaluator=evaluator,
+        models=model,
+        metric_name=metric_name,
         n_saved=n_saved,
-        global_step_transform=global_step_transform,
-        score_name="{}_{}".format(tag, metric_name.lower()),
-        score_function=get_default_score_fn(metric_name),
+        trainer=trainer,
+        tag=tag,
+        **kwargs,
     )
-    evaluator.add_event_handler(
-        Events.COMPLETED, best_model_handler,
-    )
-
-    return best_model_handler
 
 
 def add_early_stopping_by_val_score(patience, evaluator, trainer, metric_name):
