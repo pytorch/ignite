@@ -12,7 +12,7 @@ import ignite.distributed as idist
 from ignite.contrib.engines.common import (
     _setup_logging,
     add_early_stopping_by_val_score,
-    delegated_save_best_models_by_val_score,
+    gen_save_best_models_by_val_score,
     save_best_model_by_val_score,
     setup_any_logging,
     setup_common_training_handlers,
@@ -177,7 +177,7 @@ def test_setup_common_training_handlers(dirname, capsys):
     out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
-    assert "Epoch:" in out[-1] or "Epoch:" in out[-2], "{}, {}".format(out[-2], out[-1])
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], "{}, {}".format(out[-2], out[-1])
 
 
 def test_setup_common_training_handlers_using_save_handler(dirname, capsys):
@@ -190,7 +190,7 @@ def test_setup_common_training_handlers_using_save_handler(dirname, capsys):
     out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
-    assert "Epoch:" in out[-1] or "Epoch:" in out[-2], "{}, {}".format(out[-2], out[-1])
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], "{}, {}".format(out[-2], out[-1])
 
 
 def test_save_best_model_by_val_score(dirname):
@@ -216,7 +216,7 @@ def test_save_best_model_by_val_score(dirname):
     assert set(os.listdir(dirname)) == {"best_model_8_val_acc=0.6100.pt", "best_model_9_val_acc=0.7000.pt"}
 
 
-def test_delegated_save_best_models_by_val_score():
+def test_gen_save_best_models_by_val_score():
 
     trainer = Engine(lambda e, b: None)
     evaluator = Engine(lambda e, b: None)
@@ -234,7 +234,7 @@ def test_delegated_save_best_models_by_val_score():
 
     save_handler = MagicMock()
 
-    delegated_save_best_models_by_val_score(
+    gen_save_best_models_by_val_score(
         save_handler, evaluator, {"a": model, "b": model}, metric_name="acc", n_saved=2, trainer=trainer
     )
 

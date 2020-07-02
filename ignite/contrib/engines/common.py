@@ -42,7 +42,7 @@ def setup_common_training_handlers(
     stop_on_nan=True,
     clear_cuda_cache=True,
     save_handler=None,
-    **kwargs,
+    **kwargs
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -132,7 +132,7 @@ def _setup_common_training_handlers(
     stop_on_nan=True,
     clear_cuda_cache=True,
     save_handler=None,
-    **kwargs,
+    **kwargs
 ):
     if output_path is not None and save_handler is not None:
         raise ValueError(
@@ -214,7 +214,7 @@ def _setup_common_distrib_training_handlers(
     stop_on_nan=True,
     clear_cuda_cache=True,
     save_handler=None,
-    **kwargs,
+    **kwargs
 ):
 
     _setup_common_training_handlers(
@@ -475,12 +475,12 @@ def get_default_score_fn(metric_name):
     return wrapper
 
 
-def delegated_save_best_models_by_val_score(
+def gen_save_best_models_by_val_score(
     save_handler, evaluator, models, metric_name, n_saved=3, trainer=None, tag="val", **kwargs
 ):
     """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
-    The logic how to store objects is delegated to ``save_handler``.
+    The logic of how to store objects is delegated to ``save_handler``.
 
     Args:
         save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
@@ -547,7 +547,7 @@ def save_best_model_by_val_score(
     Returns:
         A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
-    return delegated_save_best_models_by_val_score(
+    return gen_save_best_models_by_val_score(
         save_handler=DiskSaver(dirname=output_path, require_empty=False),
         evaluator=evaluator,
         models=model,
