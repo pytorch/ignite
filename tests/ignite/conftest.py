@@ -216,3 +216,12 @@ def _xla_execute(fn, args, nprocs):
 @pytest.fixture()
 def xmp_executor():
     yield _xla_execute
+
+
+@pytest.fixture()
+def mock_gpu_is_not_available():
+    from unittest.mock import patch
+
+    with patch("torch.cuda") as mock_cuda:
+        mock_cuda.is_available.return_value = False
+        yield mock_cuda
