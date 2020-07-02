@@ -33,6 +33,20 @@ def test__native_dist_model():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not dist.is_nccl_available(), reason="Skip if nccl not available")
+def test__native_nccl_but_no_gpu(mock_gpu_is_not_available):
+
+    env_backup = os.environ
+
+    with pytest.raises(RuntimeError, match=r"Nccl backend is required but no cuda capable devices"):
+        _NativeDistModel(backend="nccl")
+
+    # environ could be corrupted by _NativeDistModel
+    os.environ.clear()
+    os.environ.update(env_backup)
+
+
+@pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__native_dist_model_create_from_backend_bad_config():
     import os
