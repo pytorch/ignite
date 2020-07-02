@@ -119,7 +119,7 @@ def test_output_handler_metric_names(dirname):
     mock_logger = MagicMock(spec=TrainsLogger)
     mock_logger.trains_logger = MagicMock()
 
-    with pytest.warns(UserWarning):
+    with pytest.warns(UserWarning, match=r"TrainsLogger output_handler can not log metrics value type"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.trains_logger.report_scalar.call_count == 1
@@ -144,6 +144,24 @@ def test_output_handler_metric_names(dirname):
             call(title="tag", series="a", iteration=5, value=12.23),
             call(title="tag", series="b", iteration=5, value=23.45),
         ],
+        any_order=True,
+    )
+
+    # log a torch vector
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=TrainsLogger)
+    mock_logger.trains_logger = MagicMock()
+
+    mock_engine = MagicMock()
+    vector = torch.tensor([0.1, 0.2, 0.1, 0.2, 0.33])
+    mock_engine.state = State(metrics={"vector": vector})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.trains_logger.report_scalar.call_count == 5
+    mock_logger.trains_logger.report_scalar.assert_has_calls(
+        [call(title="tag/vector", series=str(i), iteration=5, value=vector[i].item()) for i in range(5)],
         any_order=True,
     )
 
