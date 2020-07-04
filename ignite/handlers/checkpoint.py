@@ -93,6 +93,8 @@ class Checkpoint(Serializable):
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by ``torch.save`` are already compressed.
+        filename_pattern (str, optional): If ``filename_pattern`` is provided, this pattern will be used to render
+            checkpoint filenames. If the pattern is not defined, the default pattern would be used.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
 
@@ -125,8 +127,13 @@ class Checkpoint(Serializable):
         be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If ``global_step_transform`` is provided, then
         the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}`
 
+        If ``filename_pattern`` is not specified, the filename pattern must use the default pattern described above.
+        If ``filename_pattern`` is given, then the filename template would be used to render the filenames.
+
         For example, ``score_name="neg_val_loss"`` and ``score_function`` that returns `-loss` (as objects with highest
-        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pt`.
+        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pt`. If a
+        custom ``filename_pattern`` is given ``SAVE:{filename_prefix}-{name}-{score_name}-{score}.{ext}``then the saved
+        filename will be `SAVE:{filename_prefix}-{name}-neg_val_loss-0.1234.{ext}`
 
         To get the last stored filename, handler exposes attribute ``last_checkpoint``:
 
@@ -310,14 +317,15 @@ class Checkpoint(Serializable):
                 for k in checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
-
-            filename_pattern = self.setup_filename_pattern(
-                filename_prefix=self.filename_prefix,
-                with_score=self.score_function is None,
-                with_score_name=self.score_name is None,
-                with_global_step_transform=global_step is None,
-                filename_pattern=self.filename_pattern,
-            )
+            if self.filename_pattern is None:
+                filename_pattern = self.setup_filename_pattern(
+                    filename_prefix=self.filename_prefix,
+                    with_score=self.score_function is None,
+                    with_score_name=self.score_name is None,
+                    with_global_step_transform=global_step is None,
+                )
+            else:
+                filename_pattern = self.filename_pattern
             filename_dict = {
                 "filename_prefix": self.filename_prefix,
                 "ext": self.ext,
@@ -364,28 +372,31 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def setup_filename_pattern(
-        filename_prefix, with_score, with_score_name, with_global_step_transform, filename_pattern=None,
-    ):
-        if filename_pattern is None:
-            if with_score and with_score_name and with_global_step_transform:
-                filename_pattern = "{name}_{score}.{ext}"
-            elif not with_score and with_score_name:
-                if not with_global_step_transform:
-                    filename_pattern = "{name}_{global_step}_{score}.{ext}"
-                else:
-                    filename_pattern = "{name}_{score}.{ext}"
-            elif not with_score and not with_score_name:
-                if not with_global_step_transform:
-                    filename_pattern = "{name}_{global_step}_{score_name}={score}.{ext}"
-                else:
-                    filename_pattern = "{name}_{score_name}={score}.{ext}"
-            elif not with_global_step_transform:
-                filename_pattern = "{name}_{global_step}.{ext}"
+        filename_prefix: str = "",
+        with_score: bool = False,
+        with_score_name: bool = False,
+        with_global_step_transform: bool = False,
+    ) -> str:
+        filename_pattern = None
+        if with_score and with_score_name and with_global_step_transform:
+            filename_pattern = "{name}_{score}.{ext}"
+        elif not with_score and with_score_name:
+            if not with_global_step_transform:
+                filename_pattern = "{name}_{global_step}_{score}.{ext}"
             else:
-                raise Exception("weird case score_name is not None but score_function is None")
+                filename_pattern = "{name}_{score}.{ext}"
+        elif not with_score and not with_score_name:
+            if not with_global_step_transform:
+                filename_pattern = "{name}_{global_step}_{score_name}={score}.{ext}"
+            else:
+                filename_pattern = "{name}_{score_name}={score}.{ext}"
+        elif not with_global_step_transform:
+            filename_pattern = "{name}_{global_step}.{ext}"
+        else:
+            raise ValueError("If score_name is provided, score_function can not be None")
 
-            if filename_prefix:
-                filename_pattern = "{filename_prefix}_" + filename_pattern
+        if filename_prefix:
+            filename_pattern = "{filename_prefix}_" + filename_pattern
 
         return filename_pattern
 
