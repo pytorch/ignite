@@ -36,7 +36,6 @@ num_workers = 12
 val_interval = 1
 accumulation_steps = 4
 
-
 val_img_size = 513
 train_img_size = 480
 

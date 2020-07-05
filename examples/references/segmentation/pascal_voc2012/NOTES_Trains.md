@@ -98,7 +98,7 @@ export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
 export PYTHONPATH=$PWD/code:$PYTHONPATH
 
-py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
+python -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```
 
 #### Training on single node and multiple GPUs

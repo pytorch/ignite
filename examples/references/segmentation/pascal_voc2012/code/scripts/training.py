@@ -12,6 +12,7 @@ import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.engine import Engine, Events, create_supervised_evaluator
+from ignite.handlers import DiskSaver
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.utils import setup_logger
 
@@ -19,6 +20,7 @@ from py_config_runner.utils import set_seed
 from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_config
 
 import sys
+# Adds "code" folder to python path
 sys.path.insert(0, Path(__file__).parent.parent.as_posix())
 
 from utils.handlers import predictions_gt_images_handler
@@ -38,6 +40,15 @@ def initialize(config):
     criterion = config.criterion.to(config.device)
 
     return model, optimizer, criterion
+
+
+def get_save_handler(config):
+    if exp_tracking.has_trains:
+        from ignite.contrib.handlers.trains_logger import TrainsSaver
+
+        return TrainsSaver(dirname=config.output_path.as_posix())
+
+    return DiskSaver(config.output_path.as_posix())
 
 
 def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
@@ -89,7 +100,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
         train_sampler,
         to_save=to_save,
         save_every_iters=save_every_iters,
-        output_path=config.output_path.as_posix(),
+        save_handler=get_save_handler(config),
         lr_scheduler=lr_scheduler,
         with_gpu_stats=exp_tracking.has_mlflow,
         output_names=output_names,
@@ -124,7 +135,7 @@ def create_evaluators(model, metrics, config):
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     logger.info(
         "\nEpoch {} - Evaluation time (seconds): {} - {} metrics:\n {}".format(
-            epoch, elapsed, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
+            epoch, int(elapsed), tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
         )
     )
 
@@ -191,10 +202,10 @@ def training(local_rank, config, logger=None):
         common.add_early_stopping_by_val_score(config.es_patience, evaluator, trainer, metric_name=score_metric_name)
 
     # Store 3 best models by validation accuracy:
-    common.save_best_model_by_val_score(
-        config.output_path.as_posix(),
-        evaluator,
-        model=model,
+    common.gen_save_best_models_by_val_score(
+        save_handler=get_save_handler(config),
+        evaluator=evaluator,
+        models=model,
         metric_name=score_metric_name,
         n_saved=3,
         trainer=trainer,
@@ -210,9 +221,10 @@ def training(local_rank, config, logger=None):
             evaluators={"training": train_evaluator, "validation": evaluator},
         )
 
-        exp_tracking_logger = exp_tracking.setup_logging(
-            trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
-        )
+        if not exp_tracking.has_trains:
+            exp_tracking_logger = exp_tracking.setup_logging(
+                trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
+            )
 
         # Log val predictions:
         tb_logger.attach(
@@ -251,7 +263,7 @@ def run(config, **kwargs):
         if idist.get_rank() == 0 and exp_tracking.has_trains:
             from trains import Task
 
-            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem, auto_connect_frameworks=False)
+            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem)
             task.connect_configuration(config.config_filepath.as_posix())
 
         log_basic_info(logger, config)
