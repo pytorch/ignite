@@ -54,7 +54,13 @@ def training(local_rank, config):
             task.connect_configuration(config)
             # Log hyper parameters
             hyper_params = [
-                "model", "batch_size", "momentum", "weight_decay", "num_epochs", "learning_rate", "num_warmup_epochs"
+                "model",
+                "batch_size",
+                "momentum",
+                "weight_decay",
+                "num_epochs",
+                "learning_rate",
+                "num_warmup_epochs",
             ]
             task.connect({k: config[k] for k in hyper_params})
 
