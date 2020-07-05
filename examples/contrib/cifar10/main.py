@@ -44,11 +44,19 @@ def training(local_rank, config):
         config["output_path"] = output_path.as_posix()
         logger.info("Output path: {}".format(config["output_path"]))
 
+        if "cuda" in device.type:
+            config["cuda device name"] = torch.cuda.get_device_name(local_rank)
+
         if config["with_trains"]:
             from trains import Task
 
             task = Task.init("CIFAR10-Training", task_name=output_path.stem)
             task.connect_configuration(config)
+            # Log hyper parameters
+            hyper_params = [
+                "model", "batch_size", "momentum", "weight_decay", "num_epochs", "learning_rate", "num_warmup_epochs"
+            ]
+            task.connect({k: config[k] for k in hyper_params})
 
     # Setup dataflow, model, optimizer, criterion
     train_loader, test_loader = get_dataflow(config)
@@ -87,14 +95,11 @@ def training(local_rank, config):
         evaluators = {"training": train_evaluator, "test": evaluator}
         tb_logger = common.setup_tb_logging(output_path, trainer, optimizer, evaluators=evaluators)
 
-        if config["with_trains"]:
-            trains_logger = common.setup_trains_logging(trainer, optimizer, evaluators=evaluators,)
-
     # Store 3 best models by validation accuracy:
     common.gen_save_best_models_by_val_score(
-        get_save_handler(config),
-        evaluator,
-        models=model,
+        save_handler=get_save_handler(config),
+        evaluator=evaluator,
+        models={"model": model},
         metric_name="accuracy",
         n_saved=3,
         trainer=trainer,
@@ -118,8 +123,6 @@ def training(local_rank, config):
 
     if rank == 0:
         tb_logger.close()
-        if config["with_trains"]:
-            trains_logger.close()
 
 
 def run(
@@ -311,7 +314,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     ]
 
     common.setup_common_training_handlers(
-        trainer,
+        trainer=trainer,
         train_sampler=train_sampler,
         to_save=to_save,
         save_every_iters=config["checkpoint_every"],
