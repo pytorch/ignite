@@ -57,12 +57,16 @@ if has_native_dist_support:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_NativeDistModel, self).__init__()
+            self._env_backup = None
             if backend is not None:
                 self._create_from_backend(backend, timeout=timeout, **kwargs)
             else:
                 self._init_from_context()
 
         def _create_from_backend(self, backend, timeout=None, **kwargs):
+            if backend == dist.Backend.NCCL and not torch.cuda.is_available():
+                raise RuntimeError("Nccl backend is required but no cuda capable devices")
+
             self.setup_env_vars()
 
             self._local_rank = int(os.environ["LOCAL_RANK"])
@@ -73,9 +77,6 @@ if has_native_dist_support:
             init_pg_kwargs = {}
             if timeout is not None:
                 init_pg_kwargs["timeout"] = timeout
-
-            if backend == dist.Backend.NCCL and not torch.cuda.is_available():
-                raise RuntimeError("Nccl backend is required but no cuda capable devices")
 
             dist.init_process_group(backend, init_method="env://", **init_pg_kwargs)
             # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
@@ -161,6 +162,9 @@ if has_native_dist_support:
                 self._local_rank = self._compute_local_rank_via_hostname()
 
         def setup_env_vars(self):
+
+            self._env_backup = os.environ.copy()
+
             if "SLURM_JOBID" in os.environ:
                 self._setup_env_in_slurm()
                 return
@@ -225,6 +229,10 @@ if has_native_dist_support:
 
         def finalize(self):
             dist.destroy_process_group()
+            # restore backed-up env
+            if self._env_backup is not None:
+                os.environ.clear()
+                os.environ.update(self._env_backup)
 
         @staticmethod
         def _dist_worker_task_fn(
@@ -232,7 +240,7 @@ if has_native_dist_support:
         ):
             from ignite.distributed.utils import _set_model, finalize
 
-            copy_env_vars = dict(os.environ)
+            copy_env_vars = os.environ.copy()
 
             os.environ["LOCAL_RANK"] = str(local_rank)
             os.environ["RANK"] = str(node_rank * nprocs_per_node + local_rank)
@@ -245,7 +253,8 @@ if has_native_dist_support:
             fn(local_rank, *args, **kw_dict)
             finalize()
 
-            os.environ = copy_env_vars
+            os.environ.clear()
+            os.environ.update(copy_env_vars)
 
         @staticmethod
         def spawn(
