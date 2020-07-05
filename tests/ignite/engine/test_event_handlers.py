@@ -313,7 +313,7 @@ def test_events_list_removable_handle():
 
 def test_eventslist__append_raises():
     ev_list = EventsList()
-    with pytest.raises(ValueError, match=r"Argument event should be Events or CallableEventWithFilter"):
+    with pytest.raises(TypeError, match=r"Argument event should be Events or CallableEventWithFilter"):
         ev_list._append("abc")
 
 
