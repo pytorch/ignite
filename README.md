@@ -426,6 +426,7 @@ As always, PRs are welcome :)
 -   [CNN-CASS: CNN for Classification of Coronary Artery Stenosis Score in MPR Images](https://github.com/ucuapps/CoronaryArteryStenosisScoreClassification)
 -   [Bridging Text and Video: A Universal Multimodal Transformer for Video-Audio Scene-Aware Dialog](https://github.com/ictnlp/DSTC8-AVSD)
 -   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
+-   [Uncertainty Estimation Using a Single Deep Deterministic Neural Network](https://github.com/y0ast/deterministic-uncertainty-quantification)
 
 ## Blog articles, tutorials, books
 
