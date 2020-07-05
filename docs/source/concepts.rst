@@ -229,10 +229,33 @@ event filtering function:
     trainer.run(train_loader, max_epochs=100)
 
 
-.. Note ::
+The user can also define custom events. Events defined by user should inherit from :class:`~ignite.engine.events.EventEnum`
+and be registered with :meth:`~ignite.engine.engine.Engine.register_events` in an `engine`.
 
-   User can also register custom events with :meth:`~ignite.engine.engine.Engine.register_events`, attach handlers and fire custom events
-   calling :meth:`~ignite.engine.engine.Engine.fire_event` in any handler or `process_function`.
+.. code-block:: python
+
+    class CustomEvents(EventEnum):
+        """
+        Custom events defined by user
+        """
+        CUSTOM_STARTED = 'custom_started'
+        CUSTOM_COMPLETED = 'custom_completed'
+
+    engine.register_events(*CustomEvents)
+
+These events could be used to attach any handler and are fired using :meth:`~ignite.engine.engine.Engine.fire_event`.
+
+.. code-block:: python
+
+    @engine.on(CustomEvents.CUSTOM_STARTED)
+    def call_on_custom_event(engine):
+         # do something
+
+    @engine.on(Events.STARTED)
+    def fire_custom_events(engine):
+         engine.fire_event(CustomEvents.CUSTOM_STARTED)
+
+.. Note ::
 
    See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
