@@ -1,6 +1,4 @@
 import os
-import subprocess
-import warnings
 from typing import Callable, Mapping, Optional, Tuple
 
 import torch
@@ -9,6 +7,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
+    from horovod.run.runner import run as hvd_mp_spawn
 
     has_hvd_support = True
 except ImportError:
@@ -49,7 +48,7 @@ if has_hvd_support:
 
             rank = _HorovodDistModel._get_hvd_rank()
             if has_hvd_support and rank > -1:
-                raise RuntimeError("Can not create new distributed process group if default one is already initialized")
+                raise RuntimeError("Can not re-initialize Horovod if it is already initialized")
             return _HorovodDistModel(do_init=True, **kwargs)
 
         def __init__(self, do_init=False, **kwargs):
@@ -100,29 +99,17 @@ if has_hvd_support:
 
         def finalize(self):
             hvd.shutdown()
-            # Delete hvd _basics
-            # del hvd.mpi_ops._basics
 
-        # @staticmethod
-        # def _dist_worker_task_fn(
-        #     local_rank, backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args, kwargs_dict
-        # ):
-        #     from ignite.distributed.utils import _set_model, finalize
-        #
-        #     copy_env_vars = dict(os.environ)
-        #
-        #     os.environ["LOCAL_RANK"] = str(local_rank)
-        #     os.environ["RANK"] = str(node_rank * num_procs_per_node + local_rank)
-        #     os.environ["WORLD_SIZE"] = str(world_size)
-        #     os.environ["MASTER_ADDR"] = str(master_addr)
-        #     os.environ["MASTER_PORT"] = str(master_port)
-        #
-        #     model = _NativeDistModel.create_from_backend(backend)
-        #     _set_model(model)
-        #     fn(local_rank, *args, **kwargs_dict)
-        #     finalize()
-        #
-        #     os.environ = copy_env_vars
+        @staticmethod
+        def _dist_worker_task_fn(
+            backend, fn, args, kwargs_dict
+        ):
+            from ignite.distributed.utils import _set_model, finalize
+
+            model = _HorovodDistModel.create_from_backend(backend)
+            _set_model(model)
+            fn(model.get_local_rank(), *args, **kwargs_dict)
+            finalize()
 
         @staticmethod
         def spawn(
@@ -130,21 +117,15 @@ if has_hvd_support:
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
             nproc_per_node: int = 1,
-            nnodes: int = 1,
-            node_rank: int = 0,
-            master_addr: str = "127.0.0.1",
-            master_port: int = 2222,
-            backend: str = "nccl",
+            backend: str = HOROVOD,
             **kwargs
         ):
-            raise NotImplementedError("TODO")
-            # world_size = num_nodes * num_procs_per_node
-            # mp.spawn(
-            #     _NativeDistModel._dist_worker_task_fn,
-            #     nprocs=num_procs_per_node,
-            #     args=(backend, fn, world_size, num_procs_per_node, node_rank, master_addr, master_port, args, kwargs_dict),
-            #     daemon=False,
-            # )
+            hvd_mp_spawn(
+                _HorovodDistModel._dist_worker_task_fn,
+                args=(HOROVOD, fn, args, kwargs_dict),
+                np=nproc_per_node,
+                **kwargs
+            )
 
         # _reduce_op_map = {
         #     "SUM": dist.ReduceOp.SUM,
@@ -173,5 +154,5 @@ if has_hvd_support:
 
         def barrier(self):
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
-            # hvd.allreduce(torch.tensor(0, device=self.device()), name='barrier')
-            hvd.allreduce(torch.tensor(0, device="cpu"), name='barrier')
+            # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
+            hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")

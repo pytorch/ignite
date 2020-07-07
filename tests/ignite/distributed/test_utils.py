@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import has_native_dist_support, has_xla_support, sync
+from ignite.distributed.utils import has_native_dist_support, has_xla_support, has_hvd_support, sync
 from ignite.engine import Engine, Events
 
 
@@ -61,10 +61,10 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
 
     this_device = idist.device()
     assert isinstance(this_device, torch.device)
-    if backend == "nccl":
+    if backend in ("nccl", "horovod") and "cuda" in this_device.type:
         true_device = torch.device("{}:{}".format(true_device, local_rank))
         assert this_device == true_device, "{} vs {}".format(this_device, true_device)
-    elif backend == "gloo":
+    elif backend in ("gloo", "horovod"):
         assert this_device == torch.device(true_device)
     elif backend == "xla-tpu":
         assert true_device in this_device.type
@@ -77,7 +77,7 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
     assert idist.get_world_size() == ws
     assert idist.get_local_rank() == local_rank
 
-    assert idist.model_name() in ("native-dist", "xla-dist")
+    assert idist.model_name() in ("native-dist", "xla-dist", "horovod-dist")
 
     _sanity_check()
 
@@ -173,6 +173,32 @@ def test_xla_distrib_single_node_spawn_n_procs():
         pass
 
 
+@pytest.mark.skipif(has_hvd_support, reason="Skip if has Horovod package")
+def test_hvd_distrib_spawn_no_hvd_support():
+    with pytest.raises(ValueError, match=r"Backend should be one of"):
+        idist.spawn("horovod", _test_distrib_config, args=("horovod", 1, "cpu"), nproc_per_node=1)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
+def test_hvd_distrib_single_node_spawn():
+    world_size = 4
+
+    idist.spawn("horovod", _test_distrib_config, args=("horovod", world_size, "cpu"), nproc_per_node=world_size)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_hvd_distrib_single_node_spawn_cuda():
+    world_size = torch.cuda.device_count()
+
+    idist.spawn("horovod", _test_distrib_config, args=("horovod", world_size, "cuda"), nproc_per_node=world_size)
+
+
 def _test_sync(cls):
     from ignite.distributed.utils import _set_model, _SerialModel
 
@@ -234,6 +260,20 @@ def _test_sync_as_xla_in_child_proc(index):
 def test_sync_as_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_sync_as_xla_in_child_proc, args=(), nprocs=n)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+def test_sync_as_hvd():
+    from ignite.distributed.comp_models.horovod import _HorovodDistModel
+
+    import horovod.torch as hvd
+
+    hvd.init()
+
+    _test_sync(_HorovodDistModel)
+
+    hvd.shutdown()
 
 
 @pytest.mark.tpu
@@ -330,6 +370,14 @@ def test_idist_methods_in_native_gloo_context_set_local_rank(distributed_context
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_methods_in_native_nccl_context_set_local_rank(distributed_context_single_node_nccl):
     local_rank = distributed_context_single_node_nccl["local_rank"]
+    _test_idist_methods_in_native_context_set_local_rank("nccl", "cuda", local_rank)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_methods_in_hvd_context():
+
     _test_idist_methods_in_native_context_set_local_rank("nccl", "cuda", local_rank)
 
 
