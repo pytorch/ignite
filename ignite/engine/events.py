@@ -121,7 +121,7 @@ class CallableEventWithFilter:
         elif isinstance(other, str):
             return self.name == other
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
     def __hash__(self):
         return hash(self._name_)
