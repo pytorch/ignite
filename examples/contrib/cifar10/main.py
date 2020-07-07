@@ -11,7 +11,7 @@ import ignite
 import ignite.distributed as idist
 from ignite.engine import Events, Engine, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
-from ignite.handlers import Checkpoint
+from ignite.handlers import Checkpoint, DiskSaver
 from ignite.utils import manual_seed, setup_logger
 
 from ignite.contrib.engines import common
@@ -43,6 +43,26 @@ def training(local_rank, config):
             output_path.mkdir(parents=True)
         config["output_path"] = output_path.as_posix()
         logger.info("Output path: {}".format(config["output_path"]))
+
+        if "cuda" in device.type:
+            config["cuda device name"] = torch.cuda.get_device_name(local_rank)
+
+        if config["with_trains"]:
+            from trains import Task
+
+            task = Task.init("CIFAR10-Training", task_name=output_path.stem)
+            task.connect_configuration(config)
+            # Log hyper parameters
+            hyper_params = [
+                "model",
+                "batch_size",
+                "momentum",
+                "weight_decay",
+                "num_epochs",
+                "learning_rate",
+                "num_warmup_epochs",
+            ]
+            task.connect({k: config[k] for k in hyper_params})
 
     # Setup dataflow, model, optimizer, criterion
     train_loader, test_loader = get_dataflow(config)
@@ -81,18 +101,15 @@ def training(local_rank, config):
         evaluators = {"training": train_evaluator, "test": evaluator}
         tb_logger = common.setup_tb_logging(output_path, trainer, optimizer, evaluators=evaluators)
 
-        if config["with_trains"]:
-            trains_logger = common.setup_trains_logging(
-                trainer,
-                optimizer,
-                evaluators=evaluators,
-                project_name="cifar10-ignite",
-                task_name=Path(output_path).stem,
-            )
-
     # Store 3 best models by validation accuracy:
-    common.save_best_model_by_val_score(
-        output_path, evaluator, model=model, metric_name="accuracy", n_saved=3, trainer=trainer, tag="test"
+    common.gen_save_best_models_by_val_score(
+        save_handler=get_save_handler(config),
+        evaluator=evaluator,
+        models={"model": model},
+        metric_name="accuracy",
+        n_saved=3,
+        trainer=trainer,
+        tag="test",
     )
 
     # In order to check training resuming we can stop training on a given iteration
@@ -112,8 +129,6 @@ def training(local_rank, config):
 
     if rank == 0:
         tb_logger.close()
-        if config["with_trains"]:
-            trains_logger.close()
 
 
 def run(
@@ -303,13 +318,13 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     metric_names = [
         "batch loss",
     ]
-    output_path = config["output_path"]
+
     common.setup_common_training_handlers(
-        trainer,
+        trainer=trainer,
         train_sampler=train_sampler,
         to_save=to_save,
         save_every_iters=config["checkpoint_every"],
-        output_path=output_path,
+        save_handler=get_save_handler(config),
         lr_scheduler=lr_scheduler,
         output_names=metric_names if config["log_every_iters"] > 0 else None,
         with_pbars=False,
@@ -325,6 +340,15 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
         Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 
     return trainer
+
+
+def get_save_handler(config):
+    if config["with_trains"]:
+        from ignite.contrib.handlers.trains_logger import TrainsSaver
+
+        return TrainsSaver(dirname=config["output_path"])
+
+    return DiskSaver(config["output_path"])
 
 
 if __name__ == "__main__":
