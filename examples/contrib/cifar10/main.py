@@ -348,7 +348,7 @@ def get_save_handler(config):
 
         return TrainsSaver(dirname=config["output_path"])
 
-    return DiskSaver(config["output_path"])
+    return DiskSaver(config["output_path"], require_empty=False)
 
 
 if __name__ == "__main__":
