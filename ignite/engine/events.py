@@ -207,6 +207,13 @@ class Events(EventEnum):
         def call_on_events(engine):
             # do something
 
+    Since v0.4.0, custom events defined by user should inherit from :class:`~ignite.engine.events.EventEnum` :
+
+    .. code-block:: python
+
+        class CustomEvents(EventEnum):
+            FOO_EVENT = "foo_event"
+            BAR_EVENT = "bar_event"
     """
 
     EPOCH_STARTED = "epoch_started"
