@@ -15,6 +15,7 @@ Configurations:
 
 ## Requirements:
 
+- nightly pytorch-ignite: `pip install --pre pytorch-ignite`
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
 - [tensorboardx](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
