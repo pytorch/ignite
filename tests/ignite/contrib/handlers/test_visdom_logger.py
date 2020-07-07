@@ -535,7 +535,7 @@ def test_weights_scalar_handler_wrong_setup():
     with pytest.raises(TypeError, match="Argument reduction should be callable"):
         WeightsScalarHandler(model, reduction=123)
 
-    with pytest.raises(ValueError, match="Output of the reduction function should be a scalar"):
+    with pytest.raises(TypeError, match="Output of the reduction function should be a scalar"):
         WeightsScalarHandler(model, reduction=lambda x: x)
 
     wrapper = WeightsScalarHandler(model)
