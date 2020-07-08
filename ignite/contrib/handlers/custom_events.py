@@ -60,11 +60,17 @@ class CustomPeriodicEvent:
             DeprecationWarning,
         )
 
-        if n_iterations is not None and (not isinstance(n_iterations, int) or n_iterations < 1):
-            raise ValueError("Argument n_iterations should be positive integer number")
+        if n_iterations is not None:
+            if not isinstance(n_iterations, int):
+                raise TypeError("Argument n_iterations should be an integer.")
+            if n_iterations < 1:
+                raise ValueError("Argument n_iterations should be positive.")
 
-        if n_epochs is not None and (not isinstance(n_epochs, int) or n_epochs < 1):
-            raise ValueError("Argument n_epochs should be positive integer number")
+        if n_epochs is not None:
+            if not isinstance(n_epochs, int):
+                raise TypeError("Argument n_epochs should be an integer.")
+            if n_epochs < 1:
+                raise ValueError("Argument n_epochs should be positive.")
 
         if (n_iterations is None and n_epochs is None) or (n_iterations and n_epochs):
             raise ValueError("Either n_iterations or n_epochs should be defined")
