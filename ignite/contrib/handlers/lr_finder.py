@@ -306,7 +306,7 @@ class FastaiLRFinder:
             raise ValueError("step_mode should be 'exp' or 'linear', but given {}".format(step_mode))
         if num_iter is not None:
             if not isinstance(num_iter, int):
-                raise TypeError("If provided, num_iter should be an integer, but give {}".format(num_iter))
+                raise TypeError("if provided, num_iter should be an integer, but give {}".format(num_iter))
             if num_iter <= 0:
                 raise ValueError("if provided, num_iter should be positive, but give {}".format(num_iter))
 
