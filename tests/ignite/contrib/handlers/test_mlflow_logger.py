@@ -15,7 +15,7 @@ def test_output_handler_with_wrong_logger_type():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OutputHandler' works only with MLflowLogger"):
+    with pytest.raises(TypeError, match="Handler 'OutputHandler' works only with MLflowLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -193,7 +193,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with MLflowLogger"):
+    with pytest.raises(TypeError, match="Handler OptimizerParamsHandler works only with MLflowLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 

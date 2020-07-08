@@ -89,8 +89,12 @@ def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer, 
         with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=0.0) as f:
             pass
 
-    with pytest.raises(ValueError, match=r"if provided, num_iter should be a positive integer"):
+    with pytest.raises(TypeError, match=r"if provided, num_iter should be an integer"):
         with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0.0) as f:
+            pass
+
+    with pytest.raises(ValueError, match="if provided, num_iter should be positive"):
+        with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0) as f:
             pass
 
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
