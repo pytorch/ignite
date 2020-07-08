@@ -178,7 +178,7 @@ def _setup_common_training_handlers(
             elif isinstance(x, (torch.Tensor, numbers.Number)):
                 return x
             else:
-                raise ValueError(
+                raise TypeError(
                     "Unhandled type of update_function's output. "
                     "It should either mapping or sequence, but given {}".format(type(x))
                 )
