@@ -194,6 +194,40 @@ jobs:
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
 
+  two_gpus_hvd_tests:
+    <<: *two_gpus
+
+    working_directory: << pipeline.parameters.workingdir >>
+
+    steps:
+      - checkout
+      - <<: *pull_pytorch_stable_image
+      - <<: *run_pytorch_container
+      - <<: *install_dependencies
+      - run:
+          name: "Install Horovod with NCCL communication backend"
+          command: |
+            export install_cmd="conda install -y cmake=3.16 cxx-compiler=1.0 nvcc_linux-64=10.1 nccl=2.5 cupti=10.1 cudnn=7.6 -c conda-forge"
+            docker exec -it pthd /bin/bash -c "${install_cmd}"
+
+            export install_cmd="HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install --no-binary=horovod --no-cache-dir horovod"
+            docker exec -it pthd /bin/bash -c "${install_cmd}"
+
+            docker exec -it pthd horovodrun --check-build
+
+      - run:
+          name: "Run without backend"
+          command: |
+            export example_path="examples/contrib/cifar10"
+            # initial run
+            export stop_cmd="--stop_iteration=500"
+            export test_cmd="CI=1 python ${example_path}/main.py run"
+            docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
+            # resume
+            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
+            docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
+
+
 # -------------------------------------------------------------------------------------
 # Workflows
 # -------------------------------------------------------------------------------------
@@ -204,3 +238,4 @@ workflows:
       - one_gpu_tests
       - two_gpus_tests
       - two_gpus_check_dist_cifar10_example
+      - two_gpus_hvd_tests
