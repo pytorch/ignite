@@ -238,8 +238,8 @@ class DistributedProxySampler(DistributedSampler):
         while len(indices) < self.total_size:
             indices += list(self.sampler)
 
-        if len(indices) != self.total_size:
-            raise RuntimeError("{} vs {}".format(len(indices), self.total_size))
+        if len(indices) > self.total_size:
+            indices = indices[:self.total_size]
 
         # subsample
         indices = indices[self.rank : self.total_size : self.num_replicas]
