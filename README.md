@@ -463,11 +463,6 @@ description of the project.
 
 <!-- ############################################################################################################### -->
 
+# About the team & Disclaimer
 
-# About the team
-
-Project is currently maintained by a team of volunteers.
-See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors.
-
-# Disclaimer 
-This repository is operated and maintained by the PyTorch community in their capacities as individuals (and not as representatives of their employers). A list of contributors can be found in the [CONTRIBUTORS](https://github.com/pytorch/ignite/graphs/contributors) file in the root directory. For questions, please open up an issue in this repository [here](https://github.com/pytorch/ignite/issues).
+This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals (and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors. For questions and issues, please see the various channels [here](https://github.com/pytorch/ignite#communication).
