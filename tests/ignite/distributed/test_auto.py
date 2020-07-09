@@ -172,4 +172,6 @@ def test_dist_proxy_sampler():
 
         set_indices_per_rank = set(indices_per_rank)
         set_true_indices = set(true_indices)
-        assert set_indices_per_rank == set_true_indices, "{} | {}".format(set_true_indices - set_indices_per_rank, set_indices_per_rank - set_true_indices)
+        assert set_indices_per_rank == set_true_indices, "{} | {}".format(
+            set_true_indices - set_indices_per_rank, set_indices_per_rank - set_true_indices
+        )
