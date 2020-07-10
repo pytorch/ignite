@@ -320,9 +320,9 @@ class Checkpoint(Serializable):
             if self.filename_pattern is None:
                 filename_pattern = self.setup_filename_pattern(
                     with_prefix=self.filename_prefix != "",
-                    with_score=self.score_function is None,
-                    with_score_name=self.score_name is None,
-                    with_global_step_transform=global_step is None,
+                    with_score=self.score_function is not None,
+                    with_score_name=self.score_name is not None,
+                    with_global_step_transform=global_step is not None,
                 )
             else:
                 filename_pattern = self.filename_pattern
@@ -379,16 +379,17 @@ class Checkpoint(Serializable):
     ) -> str:
         """Helper method to get the default filename pattern for a checkpoint.
         Args:
-            with_prefix (bool): If True, the `filename_prefix` with an underscore (filename_prefix_) will be added to the filename pattern.
-                By default the `filename_prefix` will not be appended to the filename pattern
-            with_score (bool): If True, this indicates that the score function is not provided, then it will look for ``with_score_name``
-                and ``with_global_step_transform`` to make the required filename pattern. If it is False then this indicates that the score
-                function is provided.
-            with_score_name (bool): If True, this indicates that the score name is not provided, then it will look for 
-                ``with_global_step_transform`` to make the required filename pattern. If it is False then this indicates that the score
-                name is provided.
-            with_global_step_transform (bool): If True, this indicates that there is no global step, then it will make the
-                required filename pattern accordingly. If it is False then this indicates that there is a global step.
+            with_prefix (bool): If True, the `filename_prefix` with an underscore (filename_prefix_) will be added to
+                the filename pattern. By default the `filename_prefix` will not be appended to the filename pattern.
+            with_score (bool): If True, this indicates that the score function is provided, then it will look for
+                ``with_score_name`` and ``with_global_step_transform`` to make the required filename pattern. If it
+                is False then this indicates that the score function is not provided.
+            with_score_name (bool): If True, this indicates that the score name is provided, then it will look for
+                ``with_global_step_transform`` to make the required filename pattern. If it is False then this indicates
+                that the score name is not provided.
+            with_global_step_transform (bool): If True, this indicates that there is a global step transform function,
+                then it will make the required filename pattern accordingly. If it is False then this indicates that
+                there is no global step transform function.
         Example:
             .. code-block:: python
 
@@ -396,22 +397,22 @@ class Checkpoint(Serializable):
 
                 filename_pattern = Checkpoint.setup_filename_pattern()
                 print(filename_pattern)
-                > "{filename_prefix}_{name}_{score}.{ext}"
+                > "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
         """
         filename_pattern = None
-        if with_score and with_score_name and with_global_step_transform:
+        if not with_score and not with_score_name and not with_global_step_transform:
             filename_pattern = "{name}_{score}.{ext}"
-        elif not with_score and with_score_name:
-            if not with_global_step_transform:
+        elif with_score and not with_score_name:
+            if with_global_step_transform:
                 filename_pattern = "{name}_{global_step}_{score}.{ext}"
             else:
                 filename_pattern = "{name}_{score}.{ext}"
-        elif not with_score and not with_score_name:
-            if not with_global_step_transform:
+        elif with_score and with_score_name:
+            if with_global_step_transform:
                 filename_pattern = "{name}_{global_step}_{score_name}={score}.{ext}"
             else:
                 filename_pattern = "{name}_{score_name}={score}.{ext}"
-        elif not with_global_step_transform:
+        elif with_global_step_transform:
             filename_pattern = "{name}_{global_step}.{ext}"
         else:
             raise ValueError("If score_name is provided, score_function can not be None")
