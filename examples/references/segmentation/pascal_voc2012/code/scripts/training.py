@@ -25,6 +25,7 @@ sys.path.insert(0, Path(__file__).parent.parent.as_posix())
 
 from utils.handlers import predictions_gt_images_handler
 from utils import exp_tracking
+from dataflow.datasets import VOCSegmentationOpencv
 
 
 def initialize(config):
@@ -144,6 +145,8 @@ def log_basic_info(logger, config):
 
     msg = "\n- PyTorch version: {}".format(torch.__version__)
     msg += "\n- Ignite version: {}".format(ignite.__version__)
+    msg += "\n- Cuda device name: {}".format(torch.cuda.get_device_name(idist.get_local_rank()))
+
     logger.info(msg)
 
     if idist.get_world_size() > 1:
@@ -235,11 +238,31 @@ def training(local_rank, config, logger=None):
             event_name=Events.ITERATION_COMPLETED(once=len(val_loader) // 2),
         )
 
+        # Log confusion matrix to Trains:
+        if exp_tracking.has_trains:
+            from trains import Task
+
+            trains_logger = Task.current_task().get_logger()
+
+            @trainer.on(Events.COMPLETED)
+            def log_cm():
+                cm = cm_metric.compute().numpy()
+                cm = cm / (cm.sum(axis=1)[:, None] + 1e-15)
+                trains_logger.report_confusion_matrix(
+                    title="Final Confusion Matrix",
+                    series="cm-preds-gt",
+                    matrix=cm,
+                    iteration=trainer.state.iteration,
+                    xlabels=VOCSegmentationOpencv.target_names,
+                    ylabels=VOCSegmentationOpencv.target_names,
+                )
+
     trainer.run(train_loader, max_epochs=config.num_epochs)
 
     if idist.get_rank() == 0:
         tb_logger.close()
-        exp_tracking_logger.close()
+        if not exp_tracking.has_trains:
+            exp_tracking_logger.close()
 
 
 def run(config, **kwargs):

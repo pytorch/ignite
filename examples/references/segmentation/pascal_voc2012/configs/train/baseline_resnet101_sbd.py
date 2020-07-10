@@ -33,7 +33,7 @@ num_classes = 21
 batch_size = 9 * idist.get_world_size()  # total batch size
 val_batch_size = batch_size * 2
 num_workers = 12
-val_interval = 1
+val_interval = 3
 accumulation_steps = 4
 
 val_img_size = 513

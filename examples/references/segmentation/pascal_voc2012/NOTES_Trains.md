@@ -96,7 +96,6 @@ Execute the following command:
 ```bash
 export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
-export PYTHONPATH=$PWD/code:$PYTHONPATH
 
 python -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```
@@ -109,7 +108,6 @@ For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N dev
 ```bash
 export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
-export PYTHONPATH=$PWD/code:$PYTHONPATH
 
 python -m torch.distributed.launch --nproc 2 --use_env -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```

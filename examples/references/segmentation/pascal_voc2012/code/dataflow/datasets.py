@@ -28,6 +28,31 @@ class TransformedDataset(Dataset):
 
 
 class VOCSegmentationOpencv(VOCSegmentation):
+
+    target_names = [
+        "background",
+        "aeroplane",
+        "bicycle",
+        "bird",
+        "boat",
+        "bottle",
+        "bus",
+        "car",
+        "cat",
+        "chair",
+        "cow",
+        "diningtable",
+        "dog",
+        "horse",
+        "motorbike",
+        "person",
+        "plant",
+        "sheep",
+        "sofa",
+        "train",
+        "tv/monitor"
+    ]
+
     def __init__(self, *args, return_meta: bool = False, **kwargs):
         super(VOCSegmentationOpencv, self).__init__(*args, **kwargs)
         self.return_meta = return_meta
