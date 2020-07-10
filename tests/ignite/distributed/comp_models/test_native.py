@@ -33,14 +33,21 @@ def test__native_dist_model():
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not dist.is_nccl_available(), reason="Skip if nccl not available")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test__native_nccl_but_no_gpu(mock_gpu_is_not_available):
+
+    with pytest.raises(RuntimeError, match=r"Nccl backend is required but no cuda capable devices"):
+        _NativeDistModel(backend="nccl")
+
+
+@pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__native_dist_model_create_from_backend_bad_config():
     import os
     from datetime import timedelta
 
     os.environ["RANK"] = "1"
-
-    print("ENV", os.environ)
 
     with pytest.raises(RuntimeError, match=r"PyTorch distributed configuration should define env variables"):
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
@@ -91,6 +98,9 @@ def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_si
     timeout = timedelta(seconds=20)
     os.environ["RANK"] = "{}".format(rank)
 
+    assert "MASTER_ADDR" not in os.environ
+    assert "MASTER_PORT" not in os.environ
+
     model = _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
 
     assert dist.is_available() and dist.is_initialized()
@@ -115,6 +125,10 @@ def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_si
     model.finalize()
 
     del os.environ["RANK"]
+
+    assert "MASTER_ADDR" not in os.environ
+    assert "MASTER_PORT" not in os.environ
+    assert "RANK" not in os.environ
 
 
 def _test__native_dist_model_create_from_context_no_local_rank():
