@@ -697,12 +697,12 @@ class Engine(Serializable):
                 time_taken = self._run_once_on_dataset()
                 # time is available for handlers but must be update after fire
                 self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
-                fire_start_time = time.time()
+                handlers_start_time = time.time()
                 if self.should_terminate:
                     self._fire_event(Events.TERMINATE)
                 else:
                     self._fire_event(Events.EPOCH_COMPLETED)
-                time_taken += time.time() - fire_start_time
+                time_taken += time.time() - handlers_start_time
                 # update time wrt handlers
                 self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
                 hours, mins, secs = _to_hours_mins_secs(time_taken)
@@ -715,9 +715,9 @@ class Engine(Serializable):
             time_taken = time.time() - start_time
             # time is available for handlers but must be update after fire
             self.state.times[Events.COMPLETED.name] = time_taken
-            fire_start_time = time.time()
+            handlers_start_time = time.time()
             self._fire_event(Events.COMPLETED)
-            time_taken += time.time() - fire_start_time
+            time_taken += time.time() - handlers_start_time
             # update time wrt handlers
             self.state.times[Events.COMPLETED.name] = time_taken
             hours, mins, secs = _to_hours_mins_secs(time_taken)
