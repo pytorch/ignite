@@ -109,7 +109,8 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
         with_pbars=False,
     )
 
-    common.ProgressBar(persist=False).attach(trainer, metric_names="all")
+    if idist.get_rank() == 0:
+        common.ProgressBar(persist=False).attach(trainer, metric_names="all")
 
     return trainer
 
@@ -128,8 +129,9 @@ def create_evaluators(model, metrics, config):
     train_evaluator = create_supervised_evaluator(**evaluator_args)
     evaluator = create_supervised_evaluator(**evaluator_args)
 
-    common.ProgressBar(desc="Evaluation (train)", persist=False).attach(train_evaluator)
-    common.ProgressBar(desc="Evaluation (val)", persist=False).attach(evaluator)
+    if idist.get_rank() == 0:
+        common.ProgressBar(desc="Evaluation (train)", persist=False).attach(train_evaluator)
+        common.ProgressBar(desc="Evaluation (val)", persist=False).attach(evaluator)
 
     return evaluator, train_evaluator
 
