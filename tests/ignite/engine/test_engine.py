@@ -377,18 +377,28 @@ def test_state_get_event_attrib_value():
 def test_time_stored_in_state():
     def _test(data, max_epochs, epoch_length):
         sleep_time = 0.01
+        extra_sleep_time = 0.1
         engine = Engine(lambda e, b: time.sleep(sleep_time))
 
-        def check_epoch_time(engine):
+        @engine.on(Events.EPOCH_COMPLETED)
+        def check_epoch_time():
             assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length
+            time.sleep(extra_sleep_time)
 
-        def check_completed_time(engine):
-            assert engine.state.times[Events.COMPLETED.name] >= sleep_time * epoch_length * max_epochs
-
-        engine.add_event_handler(Events.EPOCH_COMPLETED, lambda e: check_epoch_time(e))
-        engine.add_event_handler(Events.COMPLETED, lambda e: check_completed_time(e))
+        @engine.on(Events.COMPLETED)
+        def check_completed_time():
+            assert (
+                engine.state.times[Events.COMPLETED.name] >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs
+            )
+            time.sleep(extra_sleep_time)
 
         engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+        assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length + extra_sleep_time
+        assert (
+            engine.state.times[Events.COMPLETED.name]
+            >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs + extra_sleep_time
+        )
 
     _test(list(range(100)), max_epochs=2, epoch_length=100)
     _test(list(range(200)), max_epochs=2, epoch_length=100)
