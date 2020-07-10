@@ -294,7 +294,7 @@ class FastaiLRFinder:
             raise ValueError("Mapping to_save should contain 'optimizer' key")
 
         if not isinstance(to_save["optimizer"], torch.optim.Optimizer):
-            raise ValueError(
+            raise TypeError(
                 "Object to_save['optimizer'] should be torch optimizer, but given {}".format(type(to_save["optimizer"]))
             )
 
@@ -304,8 +304,11 @@ class FastaiLRFinder:
             raise ValueError("diverge_th should be larger than 1")
         if step_mode not in ["exp", "linear"]:
             raise ValueError("step_mode should be 'exp' or 'linear', but given {}".format(step_mode))
-        if num_iter is not None and (not isinstance(num_iter, int) or num_iter <= 0):
-            raise ValueError("if provided, num_iter should be a positive integer, but given {}".format(num_iter))
+        if num_iter is not None:
+            if not isinstance(num_iter, int):
+                raise TypeError("if provided, num_iter should be an integer, but give {}".format(num_iter))
+            if num_iter <= 0:
+                raise ValueError("if provided, num_iter should be positive, but give {}".format(num_iter))
 
         # store to_save
         with tempfile.TemporaryDirectory() as tmpdirname:

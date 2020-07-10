@@ -135,7 +135,7 @@ class OutputHandler(BaseOutputHandler):
     def __call__(self, engine, logger, event_name):
 
         if not isinstance(logger, NeptuneLogger):
-            raise RuntimeError("Handler OutputHandler works only with NeptuneLogger")
+            raise TypeError("Handler OutputHandler works only with NeptuneLogger")
 
         metrics = self._setup_output_metrics(engine)
 
@@ -202,7 +202,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, NeptuneLogger):
-            raise RuntimeError("Handler OptimizerParamsHandler works only with NeptuneLogger")
+            raise TypeError("Handler OptimizerParamsHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
@@ -257,7 +257,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     def __call__(self, engine, logger, event_name):
 
         if not isinstance(logger, NeptuneLogger):
-            raise RuntimeError("Handler WeightsScalarHandler works only with NeptuneLogger")
+            raise TypeError("Handler WeightsScalarHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
@@ -314,7 +314,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     def __call__(self, engine, logger, event_name):
         if not isinstance(logger, NeptuneLogger):
-            raise RuntimeError("Handler GradsScalarHandler works only with NeptuneLogger")
+            raise TypeError("Handler GradsScalarHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = "{}/".format(self.tag) if self.tag else ""
