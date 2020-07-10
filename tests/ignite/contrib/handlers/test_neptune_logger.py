@@ -22,7 +22,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler OptimizerParamsHandler works only with NeptuneLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -51,7 +51,7 @@ def test_output_handler_with_wrong_logger_type():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler OutputHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler OutputHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -232,13 +232,13 @@ def test_weights_scalar_handler_wrong_setup():
     with pytest.raises(TypeError, match="Argument reduction should be callable"):
         WeightsScalarHandler(model, reduction=123)
 
-    with pytest.raises(ValueError, match="Output of the reduction function should be a scalar"):
+    with pytest.raises(TypeError, match="Output of the reduction function should be a scalar"):
         WeightsScalarHandler(model, reduction=lambda x: x)
 
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler WeightsScalarHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler WeightsScalarHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -310,7 +310,7 @@ def test_grads_scalar_handler_wrong_setup():
     wrapper = GradsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler GradsScalarHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler GradsScalarHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
