@@ -38,6 +38,7 @@ try:
         raise ImportError("TRAINS_OUTPUT_PATH should be defined")
 
     has_trains = True
+    trains_output_path = None
 except ImportError:
     has_trains = False
 
@@ -85,11 +86,16 @@ def _mlflow_log_params(params_dict):
 
 
 def _trains_get_output_path():
-    from datetime import datetime
+    global trains_output_path
 
-    output_path = Path(os.environ["TRAINS_OUTPUT_PATH"])
-    output_path = output_path / "trains" / datetime.now().strftime("%Y%m%d-%H%M%S")
-    return output_path.as_posix()
+    if trains_output_path is None:
+        from datetime import datetime
+
+        output_path = Path(os.environ["TRAINS_OUTPUT_PATH"])
+        output_path = output_path / "trains" / datetime.now().strftime("%Y%m%d-%H%M%S")
+        trains_output_path = output_path
+
+    return trains_output_path.as_posix()
 
 
 @idist.one_rank_only()

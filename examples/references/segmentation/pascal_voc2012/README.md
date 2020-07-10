@@ -7,9 +7,12 @@ Features:
 - Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
 - Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains)
 
-![tb_dashboard](assets/tb_dashboard.png)
-![mlflow_dashboard](assets/mlflow_dashboard.png)
-![trains_dashboard](assets/trains_dashboard.png)
+ Tensorboard | MLflow 
+---|---
+ ![tb_dashboard](assets/tb_dashboard.png) | ![mlflow_dashboard](assets/mlflow_dashboard.png) 
+
+
+<!-- Trains Server: https://demoapp.trains.allegro.ai/projects/f36e8adf88bd4e08a123f3f1f82c29b0 -->  
 
 There are three possible options: 1) Experiments tracking with MLflow, 2) Experiments tracking with Polyaxon or 3) Experiments tracking with TRAINS. 
 
