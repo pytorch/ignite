@@ -20,6 +20,7 @@ from py_config_runner.utils import set_seed
 from py_config_runner.config_utils import get_params, TRAINVAL_CONFIG, assert_config
 
 import sys
+
 # Adds "code" folder to python path
 sys.path.insert(0, Path(__file__).parent.parent.as_posix())
 

@@ -50,7 +50,7 @@ class VOCSegmentationOpencv(VOCSegmentation):
         "sheep",
         "sofa",
         "train",
-        "tv/monitor"
+        "tv/monitor",
     ]
 
     def __init__(self, *args, return_meta: bool = False, **kwargs):
