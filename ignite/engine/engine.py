@@ -706,7 +706,9 @@ class Engine(Serializable):
                     # update time wrt handlers
                     self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
                 hours, mins, secs = _to_hours_mins_secs(time_taken)
-                self.logger.info("Epoch[%s] Complete. Time taken: %02d:%02d:%02d" % (self.state.epoch, hours, mins, secs))
+                self.logger.info(
+                    "Epoch[%s] Complete. Time taken: %02d:%02d:%02d" % (self.state.epoch, hours, mins, secs)
+                )
                 if self.should_terminate:
                     break
 
