@@ -319,7 +319,7 @@ class Checkpoint(Serializable):
                 checkpoint = checkpoint[name]
             if self.filename_pattern is None:
                 filename_pattern = self.setup_filename_pattern(
-                    filename_prefix=self.filename_prefix,
+                    with_prefix=self.filename_prefix != "",
                     with_score=self.score_function is None,
                     with_score_name=self.score_name is None,
                     with_global_step_transform=global_step is None,
@@ -372,11 +372,32 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def setup_filename_pattern(
-        filename_prefix: str = "",
-        with_score: bool = False,
-        with_score_name: bool = False,
-        with_global_step_transform: bool = False,
+        with_prefix: bool = True,
+        with_score: bool = True,
+        with_score_name: bool = True,
+        with_global_step_transform: bool = True,
     ) -> str:
+        """Helper method to get the default filename pattern for a checkpoint.
+        Args:
+            with_prefix (bool): If True, the `filename_prefix` with an underscore (filename_prefix_) will be added to the filename pattern.
+                By default the `filename_prefix` will not be appended to the filename pattern
+            with_score (bool): If True, this indicates that the score function is not provided, then it will look for ``with_score_name``
+                and ``with_global_step_transform`` to make the required filename pattern. If it is False then this indicates that the score
+                function is provided.
+            with_score_name (bool): If True, this indicates that the score name is not provided, then it will look for 
+                ``with_global_step_transform`` to make the required filename pattern. If it is False then this indicates that the score
+                name is provided.
+            with_global_step_transform (bool): If True, this indicates that there is no global step, then it will make the
+                required filename pattern accordingly. If it is False then this indicates that there is a global step.
+        Example:
+            .. code-block:: python
+
+                from ignite.handlers import Checkpoint
+
+                filename_pattern = Checkpoint.setup_filename_pattern()
+                print(filename_pattern)
+                > "{filename_prefix}_{name}_{score}.{ext}"
+        """
         filename_pattern = None
         if with_score and with_score_name and with_global_step_transform:
             filename_pattern = "{name}_{score}.{ext}"
@@ -395,7 +416,7 @@ class Checkpoint(Serializable):
         else:
             raise ValueError("If score_name is provided, score_function can not be None")
 
-        if filename_prefix:
+        if with_prefix:
             filename_pattern = "{filename_prefix}_" + filename_pattern
 
         return filename_pattern

@@ -1364,50 +1364,55 @@ def test_checkpoint_filename_pattern():
 
 
 def test_setup_filename_pattern():
-    has_score_funtion = True
-    has_score_name = True
-    has_global_step = True
+    with_prefix = True
+    without_score_funtion = True
+    without_score_name = True
+    without_global_step = True
     # default filename pattern
-    assert Checkpoint.setup_filename_pattern() == "{name}_{global_step}_{score_name}={score}.{ext}"
+    assert Checkpoint.setup_filename_pattern() == "{filename_prefix}_{name}_{score}.{ext}"
     assert (
-        Checkpoint.setup_filename_pattern("model")
-        == "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern("model", False, False, False)
-        == "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern("model", has_score_funtion, False, False)
-        == "{filename_prefix}_{name}_{global_step}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern("model", False, has_score_name, False)
-        == "{filename_prefix}_{name}_{global_step}_{score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern("model", False, False, has_global_step)
-        == "{filename_prefix}_{name}_{score_name}={score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern("model", has_score_funtion, has_score_name, False)
-        == "{filename_prefix}_{name}_{global_step}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern("model", False, has_score_name, False)
-        == "{filename_prefix}_{name}_{global_step}_{score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern("model", False, has_score_name, has_global_step)
+        Checkpoint.setup_filename_pattern(with_prefix)
         == "{filename_prefix}_{name}_{score}.{ext}"
     )
     assert (
-        Checkpoint.setup_filename_pattern("model", has_score_funtion, has_score_name, has_global_step)
+        Checkpoint.setup_filename_pattern(False)
+        == "{name}_{score}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, False, False, False)
+        == "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, without_score_funtion, False, False)
+        == "{filename_prefix}_{name}_{global_step}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, False, without_score_name, False)
+        == "{filename_prefix}_{name}_{global_step}_{score}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, False, False, without_global_step)
+        == "{filename_prefix}_{name}_{score_name}={score}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, without_score_funtion, without_score_name, False)
+        == "{filename_prefix}_{name}_{global_step}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, False, without_score_name, False)
+        == "{filename_prefix}_{name}_{global_step}_{score}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, False, without_score_name, without_global_step)
+        == "{filename_prefix}_{name}_{score}.{ext}"
+    )
+    assert (
+        Checkpoint.setup_filename_pattern(with_prefix, without_score_funtion, without_score_name, without_global_step)
         == "{filename_prefix}_{name}_{score}.{ext}"
     )
     with pytest.raises(ValueError, match=r"If score_name is provided, score_function can not be None"):
         assert (
-            Checkpoint.setup_filename_pattern("model", has_score_funtion, False, has_global_step)
+            Checkpoint.setup_filename_pattern(with_prefix, without_score_funtion, False, without_global_step)
             == "{filename_prefix}_{name}_{global_step}.{ext}"
         )
 
