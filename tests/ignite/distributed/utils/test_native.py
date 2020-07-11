@@ -218,11 +218,11 @@ def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
     start = time.time()
     for _ in range(n):
         _ = dist.get_world_size()
-        _ = idist.get_rank()
+        _ = dist.get_rank()
     elapsed = time.time() - start
     t2 = elapsed / n
 
-    assert t2 * 6 > t1, "{} * 6 vs {}".format(t2, t1)
+    assert t2 * 3 > t1, "{} * 3 vs {}".format(t2, t1)
 
 
 @pytest.mark.distributed
@@ -242,7 +242,7 @@ def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
     start = time.time()
     for _ in range(n):
         _ = dist.get_world_size()
-        _ = idist.get_rank()
+        _ = dist.get_rank()
     elapsed = time.time() - start
     t2 = elapsed / n
 

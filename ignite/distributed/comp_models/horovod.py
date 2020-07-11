@@ -52,7 +52,7 @@ if has_hvd_support:
             return _HorovodDistModel(do_init=True, **kwargs)
 
         def __init__(self, do_init=False, **kwargs):
-            """This is a private method. Please, use `create` or `create_from_context`
+            """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_HorovodDistModel, self).__init__()
             self._backend = HOROVOD
@@ -127,30 +127,22 @@ if has_hvd_support:
                 **kwargs
             )
 
-        # _reduce_op_map = {
-        #     "SUM": dist.ReduceOp.SUM,
-        #     "PRODUCT": dist.ReduceOp.PRODUCT,
-        #     "MIN": dist.ReduceOp.MIN,
-        #     "MAX": dist.ReduceOp.MAX,
-        #     "AND": dist.ReduceOp.BAND,
-        #     "OR": dist.ReduceOp.BOR,
-        # }
+        _reduce_op_map = {
+            "SUM": hvd.mpi_ops.Sum,
+            "AVERAGE": hvd.mpi_ops.Average,
+            "ADASUM": hvd.mpi_ops.Adasum,
+        }
 
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
-            raise NotImplementedError("TODO")
-            # if op not in self._reduce_op_map:
-            #     raise ValueError("Unsupported reduction operation: '{}'".format(op))
-            # op = self._reduce_op_map[op]
-            # dist.all_reduce(tensor, op)
-            # return tensor
+            if op not in self._reduce_op_map:
+                raise ValueError("Unsupported reduction operation: '{}'".format(op))
+            op = self._reduce_op_map[op]
+            return hvd.allreduce(tensor, op=op)
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
-            raise NotImplementedError("TODO")
-            # if tensor.ndimension() == 0:
-            #     tensor = tensor.unsqueeze(0)
-            # output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
-            # dist.all_gather(output, tensor)
-            # return torch.cat(output, dim=0)
+            if tensor.ndimension() == 0:
+                tensor = tensor.unsqueeze(0)
+            return hvd.allgather(tensor)
 
         def barrier(self):
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603

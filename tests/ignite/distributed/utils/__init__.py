@@ -21,10 +21,10 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
 
     this_device = idist.device()
     assert isinstance(this_device, torch.device)
-    if backend == "nccl":
+    if backend in ("nccl", "horovod") and "cuda" in this_device.type:
         true_device = torch.device("{}:{}".format(true_device, local_rank))
         assert this_device == true_device, "{} vs {}".format(this_device, true_device)
-    elif backend == "gloo":
+    elif backend in ("gloo", "horovod"):
         assert this_device == torch.device(true_device)
     elif backend == "xla-tpu":
         assert true_device in this_device.type
@@ -32,12 +32,14 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
     if rank is None:
         if idist.model_name() == "native-dist":
             rank = dist.get_rank()
-            assert idist.get_rank() == rank
+
+    if rank is not None:
+        assert idist.get_rank() == rank
 
     assert idist.get_world_size() == ws
     assert idist.get_local_rank() == local_rank
 
-    assert idist.model_name() in ("native-dist", "xla-dist")
+    assert idist.model_name() in ("native-dist", "xla-dist", "horovod-dist")
 
     _sanity_check()
 
