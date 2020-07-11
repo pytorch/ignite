@@ -71,7 +71,7 @@ def _test_sync_as_hvd():
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif(os.getenv('HOROVOD_RANK', -1) == -1, reason="Skip as controller is not Gloo")
+@pytest.mark.skipif(os.getenv("HOROVOD_RANK", -1) == -1, reason="Skip as controller is not Gloo")
 def test_sync_as_hvd():
     _test_sync_as_hvd()
 
@@ -118,7 +118,7 @@ def test_idist_all_reduce_hvd(gloo_hvd_executor):
 
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_all_reduce, (device, ), np=np, do_init=True)
+    gloo_hvd_executor(_test_distrib_all_reduce, (device,), np=np, do_init=True)
 
 
 @pytest.mark.distributed
@@ -127,7 +127,7 @@ def test_idist_all_gather_hvd(gloo_hvd_executor):
 
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_all_gather, (device, ), np=np, do_init=True)
+    gloo_hvd_executor(_test_distrib_all_gather, (device,), np=np, do_init=True)
 
 
 @pytest.mark.distributed
@@ -136,7 +136,7 @@ def test_idist_barrier_hvd(gloo_hvd_executor):
 
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_barrier, (device, ), np=np, do_init=True)
+    gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True)
 
 
 def _test_idist_methods_overhead_hvd():

@@ -24,7 +24,7 @@ if has_hvd_support:
 
         name = "horovod-dist"
 
-        available_backends = tuple([HOROVOD, ])
+        available_backends = tuple([HOROVOD,])
 
         @staticmethod
         def _get_hvd_rank():
@@ -101,9 +101,7 @@ if has_hvd_support:
             hvd.shutdown()
 
         @staticmethod
-        def _dist_worker_task_fn(
-            backend, fn, args, kwargs_dict
-        ):
+        def _dist_worker_task_fn(backend, fn, args, kwargs_dict):
             from ignite.distributed.utils import _set_model, finalize
 
             model = _HorovodDistModel.create_from_backend(backend)
@@ -124,7 +122,7 @@ if has_hvd_support:
                 _HorovodDistModel._dist_worker_task_fn,
                 args=(HOROVOD, fn, args, kwargs_dict),
                 np=nproc_per_node,
-                **kwargs
+                **kwargs,
             )
 
         _reduce_op_map = {

@@ -3,14 +3,13 @@ import os
 import pytest
 import torch
 
+import horovod.torch as hvd
 from ignite.distributed.comp_models import has_hvd_support
 
 if not has_hvd_support:
     pytest.skip("Skip if no Horovod package", allow_module_level=True)
 else:
     from ignite.distributed.comp_models.horovod import _HorovodDistModel
-
-import horovod.torch as hvd
 
 
 @pytest.mark.distributed
@@ -149,23 +148,15 @@ def test__hvd_dist_model_create_no_dist_cuda(gloo_hvd_executor):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
 def test__hvd_dist_model_create_dist(gloo_hvd_executor):
-    gloo_hvd_executor(
-        _test__hvd_dist_model_create_from_backend_dist, ("horovod", "cpu"), np=4
-    )
-    gloo_hvd_executor(
-        _test__hvd_dist_model_create_from_context_dist, ("horovod", "cpu"), np=4
-    )
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cpu"), np=4)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cpu"), np=4)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__hvd_dist_model_create_dist_cuda(gloo_hvd_executor):
-    gloo_hvd_executor(
-        _test__hvd_dist_model_create_from_backend_dist, ("horovod", "cuda"), np=torch.cuda.device_count()
-    )
-    gloo_hvd_executor(
-        _test__hvd_dist_model_create_from_context_dist, ("horovod", "cuda"), np=torch.cuda.device_count()
-    )
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cuda"), np=torch.cuda.device_count())
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cuda"), np=torch.cuda.device_count())
 
 
 def _test_dist_spawn_fn(local_rank, backend, world_size, device):
@@ -194,7 +185,7 @@ def test__hvd_dist_model_spawn():
         args=("horovod", num_workers_per_machine, "cpu"),
         kwargs_dict={},
         nproc_per_node=num_workers_per_machine,
-        use_gloo=True
+        use_gloo=True,
     )
 
 
@@ -207,5 +198,5 @@ def test__hvd_dist_model_spawn_cuda():
         args=("horovod", num_workers_per_machine, "cuda"),
         kwargs_dict={},
         nproc_per_node=num_workers_per_machine,
-        use_gloo=True
+        use_gloo=True,
     )

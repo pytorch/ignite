@@ -8,9 +8,9 @@ import torch.distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
+    has_hvd_support,
     has_native_dist_support,
     has_xla_support,
-    has_hvd_support,
     registered_computation_models,
 )
 from ignite.utils import setup_logger
