@@ -3,6 +3,7 @@ import os
 import pytest
 import torch
 
+import horovod.torch as hvd
 from ignite.distributed.comp_models import has_hvd_support
 
 if not has_hvd_support:
@@ -10,7 +11,6 @@ if not has_hvd_support:
 else:
     from ignite.distributed.comp_models.horovod import _HorovodDistModel
 
-import horovod.torch as hvd
 
 @pytest.mark.distributed
 def test__hvd_dist_model():

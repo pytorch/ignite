@@ -169,7 +169,7 @@ def _test_idist_methods_overhead(ok_factor):
 def test_idist_methods_overhead_hvd(gloo_hvd_executor):
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     ok_factor = 3.5
-    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, ), np=np, do_init=True)
+    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
 
     idist.sync()
     from ignite.distributed.utils import _model
@@ -178,7 +178,7 @@ def test_idist_methods_overhead_hvd(gloo_hvd_executor):
     assert isinstance(_model, _HorovodDistModel)
 
     ok_factor = 3.5
-    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, ), np=np, do_init=True)
+    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
 
 
 @pytest.mark.distributed
