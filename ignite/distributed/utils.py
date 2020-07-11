@@ -49,16 +49,20 @@ _need_to_sync = True
 def _sync_model_wrapper(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if isinstance(_model, _SerialModel) and _need_to_sync:
-            sync()
+        if _need_to_sync and isinstance(_model, _SerialModel):
+            sync(temporary=True)
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def sync():
+def sync(temporary=False):
     """Helper method to force this module to synchronize with current distributed context.
     This method should be used when distributed context is manually created or destroyed.
+
+    Args:
+        temporary (bool): If True, distributed model synchronization is done every call of ``idist.get_*`` methods.
+            This may have performance negative impact.
     """
     global _model
 
@@ -67,7 +71,7 @@ def sync():
             continue
         model = comp_model_cls.create_from_context()
         if model is not None:
-            _model = model
+            _set_model(model, temporary=temporary)
             return
 
     _model = _SerialModel()
@@ -356,11 +360,11 @@ def set_local_rank(index: int):
     ComputationModel._ext_local_rank = index
 
 
-def _set_model(model):
+def _set_model(model, temporary=False):
     global _model, _need_to_sync
     _model = model
     _need_to_sync = True
-    if not isinstance(_model, _SerialModel):
+    if not isinstance(_model, _SerialModel) and not temporary:
         _need_to_sync = False
 
 
@@ -408,7 +412,7 @@ def initialize(backend: str, **kwargs):
 
 
     """
-    if not (has_xla_support or dist.is_available()):
+    if not (has_xla_support or has_native_dist_support):
         # nothing to do => serial model
         # maybe warn about this
         return
