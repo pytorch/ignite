@@ -127,8 +127,8 @@ def auto_model(model: nn.Module) -> nn.Module:
 
     Internally, we perform to following:
 
-    - send model to current :meth:`~ignite.distributed.utils.device()`.
-    - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1
+    - send model to current :meth:`~ignite.distributed.utils.device()` if model's parameters are not on the device.
+    - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1.
     - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
 
     Examples:
