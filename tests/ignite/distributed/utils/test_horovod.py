@@ -143,7 +143,7 @@ def _test_idist_methods_overhead(ok_factor):
     import time
     import horovod.torch as hvd
 
-    n = 100000
+    n = 1000000
 
     start = time.time()
     for _ in range(n):
@@ -151,9 +151,6 @@ def _test_idist_methods_overhead(ok_factor):
         _ = hvd.rank()
     elapsed = time.time() - start
     t2 = elapsed / n
-
-    # Update model
-    idist.get_world_size()
 
     start = time.time()
     for _ in range(n):
@@ -168,15 +165,27 @@ def _test_idist_methods_overhead(ok_factor):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_methods_overhead_hvd(gloo_hvd_executor):
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    ok_factor = 6.0
+    ok_factor = 3.5
+    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, ), np=np, do_init=True)
+
+    idist.sync()
+    from ignite.distributed.utils import _model
+    from ignite.distributed.comp_models.horovod import _HorovodDistModel
+
+    assert isinstance(_model, _HorovodDistModel)
+
+    ok_factor = 3.5
     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, ), np=np, do_init=True)
 
 
-# @pytest.mark.distributed
-# @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-# def test_idist_one_rank_only_gloo(distributed_context_single_node_gloo):
-#     device = "cpu"
-#     _test_distrib_one_rank_only(device=device)
-#     _test_distrib_one_rank_only_with_engine(device=device)
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+def test_idist_one_rank_only(gloo_hvd_executor):
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_one_rank_only, (device,), np=np, do_init=True)
+    gloo_hvd_executor(_test_distrib_one_rank_only_with_engine, (device,), np=np, do_init=True)
