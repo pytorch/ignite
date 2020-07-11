@@ -9,6 +9,8 @@ import torch.optim.lr_scheduler as lrs
 
 from torchvision.models.segmentation import deeplabv3_resnet101
 
+import ignite.distributed as idist
+
 import albumentations as A
 from albumentations.pytorch import ToTensorV2 as ToTensor
 
@@ -16,28 +18,23 @@ from dataflow.dataloaders import get_train_val_loaders
 from dataflow.transforms import ignore_mask_boundaries, prepare_batch_fp32, denormalize
 
 
-assert "DATASET_PATH" in os.environ
-data_path = os.environ["DATASET_PATH"]
+# ##############################
+# Global configs
+# ##############################
 
-assert "SBD_DATASET_PATH" in os.environ
-sbd_data_path = os.environ["SBD_DATASET_PATH"]
-
-
-debug = False
-seed = 12
-
+seed = 19
 device = "cuda"
+debug = False
 
 fp16_opt_level = "O2"
 
 num_classes = 21
 
-batch_size = 18
-val_batch_size = 24
+batch_size = 9 * idist.get_world_size()  # total batch size
+val_batch_size = batch_size * 2
 num_workers = 12
-val_interval = 1
+val_interval = 3
 accumulation_steps = 4
-
 
 val_img_size = 513
 train_img_size = 480
@@ -45,6 +42,12 @@ train_img_size = 480
 # ##############################
 # Setup Dataflow
 # ##############################
+
+assert "DATASET_PATH" in os.environ
+data_path = os.environ["DATASET_PATH"]
+
+assert "SBD_DATASET_PATH" in os.environ
+sbd_data_path = os.environ["SBD_DATASET_PATH"]
 
 mean = (0.485, 0.456, 0.406)
 std = (0.229, 0.224, 0.225)
@@ -105,6 +108,8 @@ def model_output_transform(output):
 # ##############################
 # Setup solver
 # ##############################
+
+save_every_iters = len(train_loader)
 
 num_epochs = 100
 
