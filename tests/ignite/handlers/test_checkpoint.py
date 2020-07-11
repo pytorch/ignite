@@ -1244,119 +1244,111 @@ def test_checkpoint_filename_pattern():
     assert _test(to_save) == "model_203.pt"
     assert _test(to_save, "best") == "best_model_203.pt"
     assert _test(to_save, score_function=lambda e: e.state.score) == "model_0.9999.pt"
-    assert (
-        _test(to_save, score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch)
-        == "model_12_0.9999.pt"
-    )
+
+    res = _test(to_save, score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch)
+    assert res == "model_12_0.9999.pt"
+
     assert _test(to_save, score_function=lambda e: e.state.score, score_name="acc") == "model_acc=0.9999.pt"
-    assert (
-        _test(
-            to_save,
-            score_function=lambda e: e.state.score,
-            score_name="acc",
-            global_step_transform=lambda e, _: e.state.epoch,
-        )
-        == "model_12_acc=0.9999.pt"
+
+    res = _test(
+        to_save,
+        score_function=lambda e: e.state.score,
+        score_name="acc",
+        global_step_transform=lambda e, _: e.state.epoch,
     )
+    assert res == "model_12_acc=0.9999.pt"
+
     assert _test(to_save, "best", score_function=lambda e: e.state.score) == "best_model_0.9999.pt"
-    assert (
-        _test(to_save, "best", score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch)
-        == "best_model_12_0.9999.pt"
+
+    res = _test(
+        to_save, "best", score_function=lambda e: e.state.score, global_step_transform=lambda e, _: e.state.epoch
     )
-    assert (
-        _test(to_save, "best", score_function=lambda e: e.state.score, score_name="acc") == "best_model_acc=0.9999.pt"
+    assert res == "best_model_12_0.9999.pt"
+
+    res = _test(to_save, "best", score_function=lambda e: e.state.score, score_name="acc")
+    assert res == "best_model_acc=0.9999.pt"
+
+    res = _test(
+        to_save,
+        "best",
+        score_function=lambda e: e.state.score,
+        score_name="acc",
+        global_step_transform=lambda e, _: e.state.epoch,
     )
-    assert (
-        _test(
-            to_save,
-            "best",
-            score_function=lambda e: e.state.score,
-            score_name="acc",
-            global_step_transform=lambda e, _: e.state.epoch,
-        )
-        == "best_model_12_acc=0.9999.pt"
+    assert res == "best_model_12_acc=0.9999.pt"
+
+    pattern = "chk-{name}--{global_step}.{ext}"
+    assert _test(to_save, to_save, filename_pattern=pattern) == "chk-model--203.pt"
+    pattern = "chk-{filename_prefix}--{name}--{global_step}.{ext}"
+    assert _test(to_save, "best", filename_pattern=pattern) == "chk-best--model--203.pt"
+    pattern = "chk-{name}--{score}.{ext}"
+    assert _test(to_save, score_function=lambda e: e.state.score, filename_pattern=pattern) == "chk-model--0.9999.pt"
+    pattern = "{global_step}-{name}-{score}.chk.{ext}"
+    res = _test(
+        to_save,
+        score_function=lambda e: e.state.score,
+        global_step_transform=lambda e, _: e.state.epoch,
+        filename_pattern=pattern,
+    )
+    assert res == "12-model-0.9999.chk.pt"
+
+    pattern = "chk-{name}--{score_name}--{score}.{ext}"
+    res = _test(to_save, score_function=lambda e: e.state.score, score_name="acc", filename_pattern=pattern)
+    assert res == "chk-model--acc--0.9999.pt"
+
+    pattern = "chk-{name}-{global_step}-{score_name}-{score}.{ext}"
+    res = _test(
+        to_save,
+        score_function=lambda e: e.state.score,
+        score_name="acc",
+        global_step_transform=lambda e, _: e.state.epoch,
+        filename_pattern=pattern,
+    )
+    assert res == "chk-model-12-acc-0.9999.pt"
+
+    pattern = "{filename_prefix}-{name}-{score}.chk"
+    res = _test(to_save, "best", score_function=lambda e: e.state.score, filename_pattern=pattern)
+    assert res == "best-model-0.9999.chk"
+
+    pattern = "resnet-{filename_prefix}-{name}-{global_step}-{score}.chk"
+    res = _test(
+        to_save,
+        "best",
+        score_function=lambda e: e.state.score,
+        global_step_transform=lambda e, _: e.state.epoch,
+        filename_pattern=pattern,
+    )
+    assert res == "resnet-best-model-12-0.9999.chk"
+
+    pattern = "{filename_prefix}-{name}-{score_name}-{score}.chk"
+    res = _test(to_save, "best", score_function=lambda e: e.state.score, score_name="acc", filename_pattern=pattern)
+    assert res == "best-model-acc-0.9999.chk"
+
+    pattern = "{global_step}-{filename_prefix}-{name}-{score_name}-{score}"
+    res = _test(
+        to_save,
+        "best",
+        score_function=lambda e: e.state.score,
+        score_name="acc",
+        global_step_transform=lambda e, _: e.state.epoch,
+        filename_pattern=pattern,
+    )
+    assert res == "12-best-model-acc-0.9999"
+
+    pattern = "SAVE:{name}-{score_name}-{score}.pth"
+    res = _test(
+        to_save,
+        "best",
+        score_function=lambda e: e.state.score,
+        score_name="acc",
+        global_step_transform=lambda e, _: e.state.epoch,
+        filename_pattern=pattern,
     )
 
-    pattern = "SAVE:{name}--{score}.{ext}"
-    assert _test(to_save, to_save, filename_pattern=pattern) == "SAVE:model--203.pt"
-    pattern = "SAVE:{filename_prefix}--{name}--{score}.{ext}"
-    assert _test(to_save, "best", filename_pattern=pattern) == "SAVE:best--model--203.pt"
-    pattern = "SAVE:{name}--{score}.{ext}"
-    assert _test(to_save, score_function=lambda e: e.state.score, filename_pattern=pattern) == "SAVE:model--0.9999.pt"
-    pattern = "SAVE:{name}--{global_step}--{score}.{ext}"
-    assert (
-        _test(
-            to_save,
-            score_function=lambda e: e.state.score,
-            global_step_transform=lambda e, _: e.state.epoch,
-            filename_pattern=pattern,
-        )
-        == "SAVE:model--12--0.9999.pt"
-    )
-    pattern = "SAVE:{name}--{score_name}--{score}.{ext}"
-    assert (
-        _test(to_save, score_function=lambda e: e.state.score, score_name="acc", filename_pattern=pattern)
-        == "SAVE:model--acc--0.9999.pt"
-    )
-    pattern = "SAVE:{name}--{global_step}--{score_name}--{score}.{ext}"
-    assert (
-        _test(
-            to_save,
-            score_function=lambda e: e.state.score,
-            score_name="acc",
-            global_step_transform=lambda e, _: e.state.epoch,
-            filename_pattern=pattern,
-        )
-        == "SAVE:model--12--acc--0.9999.pt"
-    )
-    pattern = "SAVE:{filename_prefix}--{name}--{score}.{ext}"
-    assert (
-        _test(to_save, "best", score_function=lambda e: e.state.score, filename_pattern=pattern)
-        == "SAVE:best--model--0.9999.pt"
-    )
-    pattern = "SAVE:{filename_prefix}--{name}--{global_step}--{score}.{ext}"
-    assert (
-        _test(
-            to_save,
-            "best",
-            score_function=lambda e: e.state.score,
-            global_step_transform=lambda e, _: e.state.epoch,
-            filename_pattern=pattern,
-        )
-        == "SAVE:best--model--12--0.9999.pt"
-    )
-    pattern = "SAVE:{filename_prefix}--{name}--{score_name}--{score}.{ext}"
-    assert (
-        _test(to_save, "best", score_function=lambda e: e.state.score, score_name="acc", filename_pattern=pattern)
-        == "SAVE:best--model--acc--0.9999.pt"
-    )
-    pattern = "SAVE:{filename_prefix}--{name}--{global_step}--{score_name}--{score}.{ext}"
-    assert (
-        _test(
-            to_save,
-            "best",
-            score_function=lambda e: e.state.score,
-            score_name="acc",
-            global_step_transform=lambda e, _: e.state.epoch,
-            filename_pattern=pattern,
-        )
-        == "SAVE:best--model--12--acc--0.9999.pt"
-    )
-    pattern = "SAVE:{name}-{score_name}--{score}.pth"
-    assert (
-        _test(
-            to_save,
-            "best",
-            score_function=lambda e: e.state.score,
-            score_name="acc",
-            global_step_transform=lambda e, _: e.state.epoch,
-            filename_pattern=pattern,
-        )
-        == "SAVE:model-acc--0.9999.pth"
-    )
+    assert res == "SAVE:model-acc-0.9999.pth"
 
-    pattern = "SAVE:{filename_prefix}--{name}--{global_step}--{score_name}--{score}.{ext}"
-    assert _test(to_save, filename_pattern=pattern) == "SAVE:--model--None--None--203.pt"
+    pattern = "{global_step}-chk-{filename_prefix}-{name}-{score_name}-{score}.{ext}"
+    assert _test(to_save, filename_pattern=pattern) == "203-chk--model-None-None.pt"
 
     with pytest.raises(KeyError, match=r"random_key"):
         pattern = "SAVE:{random_key}.{ext}"
@@ -1364,46 +1356,20 @@ def test_checkpoint_filename_pattern():
 
 
 def test_setup_filename_pattern():
-    with_prefix = True
-    with_score_function = True
-    with_score_name = True
-    with_global_step = True
     # default filename pattern
     assert Checkpoint.setup_filename_pattern() == "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix)
-        == "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
-    )
+
     assert Checkpoint.setup_filename_pattern(False) == "{name}_{global_step}_{score_name}={score}.{ext}"
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix, False, False, False) == "{filename_prefix}_{name}_{score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix, with_score_function, False, False)
-        == "{filename_prefix}_{name}_{score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix, False, False, with_global_step)
-        == "{filename_prefix}_{name}_{global_step}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix, with_score_function, with_score_name, False)
-        == "{filename_prefix}_{name}_{score_name}={score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix, False, with_score_name, with_global_step)
-        == "{filename_prefix}_{name}_{global_step}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix, with_score_function, with_score_name, with_global_step)
-        == "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
-    )
-    assert (
-        Checkpoint.setup_filename_pattern(with_prefix, with_score_function, False, with_global_step)
-        == "{filename_prefix}_{name}_{global_step}_{score}.{ext}"
-    )
-    with pytest.raises(ValueError, match=r"If score_name is provided, score_function can not be None"):
-        Checkpoint.setup_filename_pattern(with_prefix, False, with_score_name, False)
+    assert Checkpoint.setup_filename_pattern(False, False, False) == "{name}_{global_step}.{ext}"
+    assert Checkpoint.setup_filename_pattern(False, True, False) == "{name}_{global_step}_{score}.{ext}"
+    assert Checkpoint.setup_filename_pattern(False, True, False, False) == "{name}_{score}.{ext}"
+    assert Checkpoint.setup_filename_pattern(False, True, True, False) == "{name}_{score_name}={score}.{ext}"
+
+    with pytest.raises(ValueError, match=r"At least one of with_score and with_global_step should be True."):
+        Checkpoint.setup_filename_pattern(False, False, False, False)
+
+    with pytest.raises(ValueError, match=r"If with_score_name is True, with_score should be also True"):
+        Checkpoint.setup_filename_pattern(True, False, True, True)
 
 
 def _setup_checkpoint():
