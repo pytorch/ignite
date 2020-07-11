@@ -139,6 +139,15 @@ def auto_model(model: nn.Module) -> nn.Module:
 
         model = idist.auto_model(model)
 
+    In addition with NVidia/Apex, it can be used in the following way:
+
+    .. code-block:: python
+
+        import ignite.distribted as idist
+
+        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
+        model = idist.auto_optim(model)
+
     Args:
         model (torch.nn.Module): model to adapt.
 
@@ -150,7 +159,10 @@ def auto_model(model: nn.Module) -> nn.Module:
     """
     logger = setup_logger(__name__ + ".auto_model")
 
-    model.to(idist.device())
+    # Put model's parameters to device if its parameters are not on the device
+    device = idist.device()
+    if not all([p.device == device for p in model.parameters()]):
+        model.to(device)
 
     # distributed data parallel model
     if idist.get_world_size() > 1:
