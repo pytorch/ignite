@@ -139,20 +139,11 @@ def test_idist_barrier_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True)
 
 
-def _test_idist_methods_overhead_hvd():
+def _test_idist_methods_overhead(ok_factor):
     import time
     import horovod.torch as hvd
 
-    # Setup model
-    idist.get_world_size()
-
     n = 100000
-    start = time.time()
-    for _ in range(n):
-        _ = idist.get_world_size()
-        _ = idist.get_rank()
-    elapsed = time.time() - start
-    t1 = elapsed / n
 
     start = time.time()
     for _ in range(n):
@@ -161,14 +152,26 @@ def _test_idist_methods_overhead_hvd():
     elapsed = time.time() - start
     t2 = elapsed / n
 
-    assert t2 * 5 > t1, "{} * 5 vs {}".format(t2, t1)
+    # Update model
+    idist.get_world_size()
+
+    start = time.time()
+    for _ in range(n):
+        _ = idist.get_world_size()
+        _ = idist.get_rank()
+    elapsed = time.time() - start
+    t1 = elapsed / n
+
+    overhead_factor = t1 / t2
+    assert overhead_factor < ok_factor, "{} vs {} | {} vs {}".format(overhead_factor, ok_factor, t2, t1)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
 def test_idist_methods_overhead_hvd(gloo_hvd_executor):
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_idist_methods_overhead_hvd, (), np=np, do_init=True)
+    ok_factor = 6.0
+    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, ), np=np, do_init=True)
 
 
 # @pytest.mark.distributed

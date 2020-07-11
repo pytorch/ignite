@@ -409,7 +409,7 @@ def initialize(backend: str, **kwargs):
 
 
     """
-    if not (has_xla_support or dist.is_available()):
+    if not (has_xla_support or has_native_dist_support or has_hvd_support):
         # nothing to do => serial model
         # maybe warn about this
         return
