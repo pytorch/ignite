@@ -227,20 +227,6 @@ def _test_idist_methods_overhead(ok_factor):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
-    _test_idist_methods_overhead(2.5)
-
-    idist.sync()
-    from ignite.distributed.utils import _model
-    from ignite.distributed.comp_models.native import _NativeDistModel
-
-    assert isinstance(_model, _NativeDistModel)
-
-    _test_idist_methods_overhead(1.9)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
     _test_idist_methods_overhead(2.5)
