@@ -93,6 +93,9 @@ class Checkpoint(Serializable):
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         archived (bool, optional): Deprecated argument as models saved by ``torch.save`` are already compressed.
+        filename_pattern (str, optional): If ``filename_pattern`` is provided, this pattern will be used to render
+            checkpoint filenames. If the pattern is not defined, the default pattern would be used. See Note for
+            details.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
 
@@ -101,32 +104,52 @@ class Checkpoint(Serializable):
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
-        The filename has the following structure: `{filename_prefix}_{name}_{suffix}.{ext}` where
+        The filename is defined by ``filename_pattern`` and by default has the following
+        structure: ``{filename_prefix}_{name}_{suffix}.{ext}`` where
 
         - ``filename_prefix`` is the argument passed to the constructor,
         - `name` is the key in ``to_save`` if a single object is to store, otherwise `name` is "checkpoint".
-        - `suffix` is composed as following `{global_step}_{score_name}={score}`.
+        - `suffix` is composed as following ``{global_step}_{score_name}={score}``.
 
-        Above `global_step` defined by the output of `global_step_transform` and `score` defined by the output
-        of `score_function`.
+    +----------------+------------+-----------------------+----------------------------------------------+
+    | score_function | score_name | global_step_transform |  suffix                                      |
+    +================+============+=======================+==============================================+
+    |      None      |   None     |        None           | ``{engine.state.iteration}``                 |
+    +----------------+------------+-----------------------+----------------------------------------------+
+    |       X        |   None     |        None           | ``{score}``                                  |
+    +----------------+------------+-----------------------+----------------------------------------------+
+    |       X        |   None     |         X             | ``{global_step}_{score}``                    |
+    +----------------+------------+-----------------------+----------------------------------------------+
+    |       X        |    X       |         X             | ``{global_step}_{score_name}={score}``       |
+    +----------------+------------+-----------------------+----------------------------------------------+
+    |      None      |   None     |         X             | ``{global_step}``                            |
+    +----------------+------------+-----------------------+----------------------------------------------+
+    |       X        |    X       |        None           | ``{score_name}={score}``                     |
+    +----------------+------------+-----------------------+----------------------------------------------+
 
-        By default, none of ``score_function``, ``score_name``, ``global_step_transform`` is defined, then suffix is
-        setup by attached engine's current iteration. The filename will be
-        `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
+    Above `global_step` defined by the output of `global_step_transform` and `score` defined by the output
+    of `score_function`.
 
-        If only ``global_step_transform`` is defined, then suffix is setup using its return value.
-        The filename will be `{filename_prefix}_{name}_{global_step}.{ext}`.
+    By default, none of ``score_function``, ``score_name``, ``global_step_transform`` is defined, then suffix is
+    setup by attached engine's current iteration. The filename will be
+    `{filename_prefix}_{name}_{engine.state.iteration}.{ext}`.
 
-        If defined a ``score_function``, but without ``score_name``, then suffix is defined by provided score.
-        The filename will be `{filename_prefix}_{name}_{global_step}_{score}.pt`.
+    For example, ``score_name="neg_val_loss"`` and ``score_function`` that returns `-loss` (as objects with highest
+    scores will be retained), then saved filename will be ``{filename_prefix}_{name}_neg_val_loss=-0.1234.pt``.
 
-        If defined ``score_function`` and ``score_name``, then the filename will
-        be `{filename_prefix}_{name}_{score_name}={score}.{ext}`. If ``global_step_transform`` is provided, then
-        the filename will be `{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}`
+    Note:
+        If ``filename_pattern`` is given, it will be used to render the filenames. ``filename_pattern`` is a string
+        that can contain ``{filename_prefix}``, ``{name}``, ``{score}``, ``{score_name}`` and ``{global_step}`` as
+        templates.
 
-        For example, ``score_name="neg_val_loss"`` and ``score_function`` that returns `-loss` (as objects with highest
-        scores will be retained), then saved filename will be `{filename_prefix}_{name}_neg_val_loss=-0.1234.pt`.
+        For example, let ``filename_pattern="{global_step}-{name}-{score}.pt"`` then the saved filename will be
+        ``30000-checkpoint-94.pt``
 
+        **Warning:** Please, keep in mind that if filename collide with already used one to saved a checkpoint,
+        new checkpoint will not be stored. This means that filename like ``checkpoint.pt`` will be saved only once
+        and will not be overwritten by newer checkpoints.
+
+    Note:
         To get the last stored filename, handler exposes attribute ``last_checkpoint``:
 
         .. code-block:: python
@@ -143,8 +166,8 @@ class Checkpoint(Serializable):
 
     .. warning::
 
-        When running on TPUs, it should be run in all processes, otherwise application can get stuck on saving the
-        checkpoint.
+        When running on XLA devices, it should be run in all processes, otherwise application can get stuck on
+        saving the checkpoint.
 
         .. code-block:: python
 
@@ -219,6 +242,7 @@ class Checkpoint(Serializable):
         n_saved: Optional[int] = 1,
         global_step_transform: Callable = None,
         archived: bool = False,
+        filename_pattern: Optional[str] = None,
         include_self: bool = False,
     ):
 
@@ -254,14 +278,15 @@ class Checkpoint(Serializable):
             warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
 
         self.to_save = to_save
-        self._fname_prefix = filename_prefix + "_" if len(filename_prefix) > 0 else filename_prefix
+        self.filename_prefix = filename_prefix
         self.save_handler = save_handler
-        self._score_function = score_function
-        self._score_name = score_name
-        self._n_saved = n_saved
-        self._saved = []
-        self._ext = ".pt"
+        self.score_function = score_function
+        self.score_name = score_name
+        self.n_saved = n_saved
+        self.ext = "pt"
         self.global_step_transform = global_step_transform
+        self.filename_pattern = filename_pattern
+        self._saved = []
         self.include_self = include_self
 
     @property
@@ -271,44 +296,30 @@ class Checkpoint(Serializable):
         return self._saved[-1].filename
 
     def _check_lt_n_saved(self, or_equal=False):
-        if self._n_saved is None:
+        if self.n_saved is None:
             return True
-        return len(self._saved) < self._n_saved + int(or_equal)
+        return len(self._saved) < self.n_saved + int(or_equal)
 
     def __call__(self, engine: Engine) -> None:
 
-        suffix = ""
         global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
-            suffix = "{}".format(global_step)
 
-        if self._score_function is not None:
-            priority = self._score_function(engine)
+        if self.score_function is not None:
+            priority = self.score_function(engine)
             if not isinstance(priority, numbers.Number):
                 raise ValueError("Output of score_function should be a number")
         else:
-            if global_step is not None:
-                priority = global_step
-            else:
-                priority = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
+            if global_step is None:
+                global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
+            priority = global_step
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
             priority_str = (
                 "{}".format(priority) if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
             )
-
-            if self._score_name is not None:
-                if len(suffix) > 0:
-                    suffix += "_"
-                suffix = "{}{}={}".format(suffix, self._score_name, priority_str)
-            elif self._score_function is not None:
-                if len(suffix) > 0:
-                    suffix += "_"
-                suffix = "{}{}".format(suffix, priority_str)
-            elif len(suffix) == 0:
-                suffix = "{}".format(priority_str)
 
             checkpoint = self._setup_checkpoint()
 
@@ -317,14 +328,33 @@ class Checkpoint(Serializable):
                 for k in checkpoint:
                     name = k
                 checkpoint = checkpoint[name]
-            filename = "{}{}_{}{}".format(self._fname_prefix, name, suffix, self._ext)
+
+            if self.filename_pattern is None:
+                filename_pattern = self.setup_filename_pattern(
+                    with_prefix=len(self.filename_prefix) > 0,
+                    with_score=self.score_function is not None,
+                    with_score_name=self.score_name is not None,
+                    with_global_step=global_step is not None,
+                )
+            else:
+                filename_pattern = self.filename_pattern
+
+            filename_dict = {
+                "filename_prefix": self.filename_prefix,
+                "ext": self.ext,
+                "name": name,
+                "score_name": self.score_name,
+                "score": priority_str if (self.score_function is not None) else None,
+                "global_step": global_step,
+            }
+            filename = filename_pattern.format(**filename_dict)
 
             if any(item.filename == filename for item in self._saved):
                 return
 
             metadata = {
-                "basename": "{}{}".format(self._fname_prefix, name),
-                "score_name": self._score_name,
+                "basename": "{}{}{}".format(self.filename_prefix, "_" * int(len(self.filename_prefix) > 0), name),
+                "score_name": self.score_name,
                 "priority": priority,
             }
 
@@ -352,6 +382,56 @@ class Checkpoint(Serializable):
                 obj = obj.module
             checkpoint[k] = obj.state_dict()
         return checkpoint
+
+    @staticmethod
+    def setup_filename_pattern(
+        with_prefix: bool = True, with_score: bool = True, with_score_name: bool = True, with_global_step: bool = True,
+    ) -> str:
+        """Helper method to get the default filename pattern for a checkpoint.
+
+        Args:
+            with_prefix (bool): If True, the ``filename_prefix`` is added to the filename pattern:
+                ``{filename_prefix}_{name}...``. Default, True.
+            with_score (bool): If True, ``score`` is added to the filename pattern: ``..._{score}.{ext}``.
+                Default, True. At least one of ``with_score`` and ``with_global_step`` should be True.
+            with_score_name (bool): If True, ``score_name`` is added to the filename pattern:
+                ``..._{score_name}={score}.{ext}``. If activated, argument ``with_score`` should be
+                also True, otherwise an error is raised. Default, True.
+            with_global_step (bool): If True, ``{global_step}`` is added to the
+                filename pattern: ``...{name}_{global_step}...``.
+                At least one of ``with_score`` and ``with_global_step`` should be True.
+
+        Example:
+
+            .. code-block:: python
+
+                from ignite.handlers import Checkpoint
+
+                filename_pattern = Checkpoint.setup_filename_pattern()
+
+                print(filename_pattern)
+                > "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
+        """
+        filename_pattern = "{name}"
+
+        if not (with_global_step or with_score):
+            raise ValueError("At least one of with_score and with_global_step should be True.")
+
+        if with_global_step:
+            filename_pattern += "_{global_step}"
+
+        if with_score_name and with_score:
+            filename_pattern += "_{score_name}={score}"
+        elif with_score:
+            filename_pattern += "_{score}"
+        elif with_score_name:
+            raise ValueError("If with_score_name is True, with_score should be also True")
+
+        if with_prefix:
+            filename_pattern = "{filename_prefix}_" + filename_pattern
+
+        filename_pattern += ".{ext}"
+        return filename_pattern
 
     @staticmethod
     def _check_objects(objs: Mapping, attr: str) -> None:
