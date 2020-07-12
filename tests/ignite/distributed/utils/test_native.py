@@ -243,7 +243,7 @@ def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
 
     assert isinstance(_model, _NativeDistModel)
 
-    _test_idist_methods_overhead(1.5)
+    _test_idist_methods_overhead(1.7)
 
 
 @pytest.mark.distributed
