@@ -205,24 +205,44 @@ def test_idist_barrier_gloo(distributed_context_single_node_gloo):
 def _test_idist_methods_overhead(ok_factor):
     import time
 
-    n = 1000000
+    n = 100000
+    m = 5
 
-    start = time.time()
-    for _ in range(n):
-        _ = dist.get_world_size()
-        _ = dist.get_rank()
-    elapsed = time.time() - start
-    t2 = elapsed / n
+    t2 = 0.0
+    t1 = 0.0
+    for j in range(m):
+        start = time.time()
+        for _ in range(n):
+            _ = dist.get_world_size()
+            _ = dist.get_rank()
+        elapsed = time.time() - start
+        t2 += elapsed / n / m
 
-    start = time.time()
-    for _ in range(n):
-        _ = idist.get_world_size()
-        _ = idist.get_rank()
-    elapsed = time.time() - start
-    t1 = elapsed / n
+        start = time.time()
+        for _ in range(n):
+            _ = idist.get_world_size()
+            _ = idist.get_rank()
+        elapsed = time.time() - start
+        t1 += elapsed / n / m
 
     overhead_factor = t1 / t2
     assert overhead_factor < ok_factor, "{} vs {} | {} vs {}".format(overhead_factor, ok_factor, t2, t1)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="Do not want to run this test on Github or Travis, but CircleCI")
+def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
+    _test_idist_methods_overhead(2.5)
+
+    idist.sync()
+    from ignite.distributed.utils import _model
+    from ignite.distributed.comp_models.native import _NativeDistModel
+
+    assert isinstance(_model, _NativeDistModel)
+
+    _test_idist_methods_overhead(1.5)
 
 
 @pytest.mark.distributed
@@ -237,7 +257,7 @@ def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
 
     assert isinstance(_model, _NativeDistModel)
 
-    _test_idist_methods_overhead(1.9)
+    _test_idist_methods_overhead(1.5)
 
 
 @pytest.mark.distributed

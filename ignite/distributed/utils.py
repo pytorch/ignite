@@ -4,7 +4,6 @@ from numbers import Number
 from typing import Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
@@ -46,16 +45,6 @@ _model = _SerialModel()
 _need_to_sync = True
 
 
-def _sync_model_wrapper(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if _need_to_sync and isinstance(_model, _SerialModel):
-            sync(temporary=True)
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
 def sync(temporary=False):
     """Helper method to force this module to synchronize with current distributed context.
     This method should be used when distributed context is manually created or destroyed.
@@ -77,7 +66,6 @@ def sync(temporary=False):
     _model = _SerialModel()
 
 
-@_sync_model_wrapper
 def device() -> torch.device:
     """Returns current device according to current distributed configuration.
 
@@ -88,10 +76,12 @@ def device() -> torch.device:
     Returns:
         torch.device
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.device()
 
 
-@_sync_model_wrapper
 def backend() -> Optional[str]:
     """Returns computation model's backend.
 
@@ -102,6 +92,9 @@ def backend() -> Optional[str]:
     Returns:
         str or None
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.backend()
 
 
@@ -114,7 +107,6 @@ def available_backends() -> Tuple[str]:
     return out
 
 
-@_sync_model_wrapper
 def model_name() -> str:
     """Returns distributed configuration name (given by ignite)
 
@@ -123,51 +115,66 @@ def model_name() -> str:
     - `xla-dist` for XLA distributed configuration
 
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.name
 
 
-@_sync_model_wrapper
 def get_world_size() -> int:
     """Returns world size of current distributed configuration. Returns 1 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_world_size()
 
 
-@_sync_model_wrapper
 def get_rank() -> int:
     """Returns process rank within current distributed configuration. Returns 0 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_rank()
 
 
-@_sync_model_wrapper
 def get_local_rank() -> int:
     """Returns local process rank within current distributed configuration. Returns 0 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_local_rank()
 
 
-@_sync_model_wrapper
 def get_nproc_per_node() -> int:
     """Returns number of processes (or tasks) per node within current distributed configuration.
     Returns 1 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_nproc_per_node()
 
 
-@_sync_model_wrapper
 def get_nnodes() -> int:
     """Returns number of nodes within current distributed configuration.
     Returns 1 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_nnodes()
 
 
-@_sync_model_wrapper
 def get_node_rank() -> int:
     """Returns node rank within current distributed configuration.
     Returns 0 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_node_rank()
 
 
@@ -295,7 +302,6 @@ def spawn(
         )
 
 
-@_sync_model_wrapper
 def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[torch.Tensor, Number]:
     """Helper method to perform all reduce operation.
 
@@ -307,10 +313,12 @@ def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[to
         torch.Tensor or number
 
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.all_reduce(tensor, op)
 
 
-@_sync_model_wrapper
 def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
     """Helper method to perform all gather operation.
 
@@ -322,13 +330,18 @@ def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, 
         List of strings
 
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.all_gather(tensor)
 
 
-@_sync_model_wrapper
 def barrier():
     """Helper method to synchronize all processes.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     _model.barrier()
 
 
