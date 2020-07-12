@@ -162,23 +162,23 @@ def _test_idist_methods_overhead(ok_factor):
     overhead_factor = t1 / t2
     assert overhead_factor < ok_factor, "{} vs {} | {} vs {}".format(overhead_factor, ok_factor, t2, t1)
 
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_idist_methods_overhead_hvd(gloo_hvd_executor):
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    ok_factor = 3.5
-    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
-
-    idist.sync()
-    from ignite.distributed.utils import _model
-    from ignite.distributed.comp_models.horovod import _HorovodDistModel
-
-    assert isinstance(_model, _HorovodDistModel)
-
-    ok_factor = 3.5
-    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
+# TODO: Once https://github.com/pytorch/ignite/pull/1196 is merged
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+# def test_idist_methods_overhead_hvd(gloo_hvd_executor):
+#     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+#     ok_factor = 3.5
+#     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
+#
+#     idist.sync()
+#     from ignite.distributed.utils import _model
+#     from ignite.distributed.comp_models.horovod import _HorovodDistModel
+#
+#     assert isinstance(_model, _HorovodDistModel)
+#
+#     ok_factor = 3.5
+#     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
 
 
 @pytest.mark.distributed

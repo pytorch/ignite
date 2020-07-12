@@ -115,9 +115,17 @@ if has_hvd_support:
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
             nproc_per_node: int = 1,
+            nnodes: int = 1,
+            node_rank: int = 0,
+            master_addr: str = "127.0.0.1",
+            master_port: int = 2222,
             backend: str = HOROVOD,
             **kwargs
         ):
+            # nnodes, node_rank, master_addr, master_port
+            if "nnodes":
+                pass
+
             hvd_mp_spawn(
                 _HorovodDistModel._dist_worker_task_fn,
                 args=(HOROVOD, fn, args, kwargs_dict),

@@ -4,7 +4,6 @@ from numbers import Number
 from typing import Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,

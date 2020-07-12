@@ -3,13 +3,13 @@ import os
 import pytest
 import torch
 
-import horovod.torch as hvd
 from ignite.distributed.comp_models import has_hvd_support
 
 if not has_hvd_support:
     pytest.skip("Skip if no Horovod package", allow_module_level=True)
 else:
     from ignite.distributed.comp_models.horovod import _HorovodDistModel
+    import horovod.torch as hvd
 
 
 @pytest.mark.distributed
