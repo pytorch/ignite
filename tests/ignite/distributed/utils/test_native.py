@@ -231,8 +231,7 @@ def _test_idist_methods_overhead(ok_factor):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
-@pytest.mark.skipif(torch.cuda.is_available(), reason="Do not want to run this test on Github or Travis, but CircleCI")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Do not want to run this test on Github or Travis, but CircleCI")
 def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
     _test_idist_methods_overhead(2.5)
 
@@ -257,7 +256,7 @@ def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
 
     assert isinstance(_model, _NativeDistModel)
 
-    _test_idist_methods_overhead(1.5)
+    _test_idist_methods_overhead(1.7)
 
 
 @pytest.mark.distributed
