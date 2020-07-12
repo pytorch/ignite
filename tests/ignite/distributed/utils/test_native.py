@@ -231,7 +231,9 @@ def _test_idist_methods_overhead(ok_factor):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Do not want to run this test on Github or Travis, but CircleCI")
+@pytest.mark.skipif(
+    not torch.cuda.is_available(), reason="Do not want to run this test on Github or Travis, but CircleCI"
+)
 def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
     _test_idist_methods_overhead(2.5)
 
