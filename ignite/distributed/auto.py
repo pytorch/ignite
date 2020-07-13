@@ -145,8 +145,8 @@ def auto_model(model: nn.Module) -> nn.Module:
 
         import ignite.distribted as idist
 
-        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
-        model = idist.auto_optim(model)
+        model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
+        model = idist.auto_model(model)
 
     Args:
         model (torch.nn.Module): model to adapt.
