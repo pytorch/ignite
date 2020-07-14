@@ -161,7 +161,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[str] = None,
-        **spawn_kwargs,
+        **spawn_kwargs
     ):
         if backend is not None:
             if backend not in idist.available_backends():
