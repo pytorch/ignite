@@ -158,3 +158,21 @@ def test_idist_parallel_no_dist():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     with idist.Parallel(backend=None) as parallel:
         parallel.run(_test_func, ws=1, device=device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_parallel_spawn_params():
+
+    res = idist.Parallel._setup_spawn_params(
+        nproc_per_node=8, nnodes=None, node_rank=None, master_addr=None, master_port=None, start_method="fork"
+    )
+    assert "nproc_per_node" in res and res["nproc_per_node"] == 8
+    assert "start_method" in res and res["start_method"] == "fork"
+
+    with idist.Parallel(backend="xla-tpu", nproc_per_node=8, start_method="fork") as parallel:
+        assert parallel.backend == "xla-tpu"
+        res = parallel._spawn_params
+        assert "nproc_per_node" in res and res["nproc_per_node"] == 8
+        assert "start_method" in res and res["start_method"] == "fork"
