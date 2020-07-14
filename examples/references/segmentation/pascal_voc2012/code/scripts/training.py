@@ -179,7 +179,7 @@ def training(local_rank, config, logger=None):
 
     # Setup evaluators
     num_classes = config.num_classes
-    cm_metric = ConfusionMatrix(num_classes=num_classes)
+    cm_metric = ConfusionMatrix(num_classes=num_classes, average="recall")
 
     val_metrics = {
         "IoU": IoU(cm_metric),
@@ -249,8 +249,7 @@ def training(local_rank, config, logger=None):
 
             @trainer.on(Events.COMPLETED)
             def log_cm():
-                cm = cm_metric.compute().numpy()
-                cm = cm / (cm.sum(axis=1)[:, None] + 1e-15)
+                cm = cm_metric.compute().cpu().numpy()
                 trains_logger.report_confusion_matrix(
                     title="Final Confusion Matrix",
                     series="cm-preds-gt",
