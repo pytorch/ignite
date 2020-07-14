@@ -241,15 +241,17 @@ def training(local_rank, config, logger=None):
             event_name=Events.ITERATION_COMPLETED(once=len(val_loader) // 2),
         )
 
-        # Log confusion matrix to Trains:
-        if exp_tracking.has_trains:
-            from trains import Task
+    # Log confusion matrix to Trains:
+    if exp_tracking.has_trains:
 
-            trains_logger = Task.current_task().get_logger()
+        @trainer.on(Events.COMPLETED)
+        def compute_and_log_cm():
+            cm = cm_metric.compute().cpu().numpy()
 
-            @trainer.on(Events.COMPLETED)
-            def log_cm():
-                cm = cm_metric.compute().cpu().numpy()
+            if idist.get_rank() == 0:
+                from trains import Task
+
+                trains_logger = Task.current_task().get_logger()
                 trains_logger.report_confusion_matrix(
                     title="Final Confusion Matrix",
                     series="cm-preds-gt",
