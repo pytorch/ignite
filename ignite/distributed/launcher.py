@@ -150,6 +150,7 @@ class Parallel:
             (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
         master_port (int, optional): optional argument, master node port for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
+        **spawn_kwargs: kwargs to ``idist.spawn`` function.
     """
 
     def __init__(
@@ -160,6 +161,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[str] = None,
+        **spawn_kwargs,
     ):
         if backend is not None:
             if backend not in idist.available_backends():
@@ -183,7 +185,7 @@ class Parallel:
         if self.backend is not None:
             if nproc_per_node is not None:
                 self._spawn_params = self._setup_spawn_params(
-                    nproc_per_node, nnodes, node_rank, master_addr, master_port
+                    nproc_per_node, nnodes, node_rank, master_addr, master_port, **spawn_kwargs
                 )
 
         if self._spawn_params is not None:
@@ -191,7 +193,8 @@ class Parallel:
             msg = "\n\t".join(["{}: {}".format(k, v) for k, v in self._spawn_params.items() if v is not None])
             self.logger.info("- Parameters to spawn processes: \n\t{}".format(msg))
 
-    def _setup_spawn_params(self, nproc_per_node, nnodes, node_rank, master_addr, master_port):
+    @staticmethod
+    def _setup_spawn_params(nproc_per_node, nnodes, node_rank, master_addr, master_port, **spawn_kwargs):
         if nproc_per_node < 1:
             raise ValueError("Argument nproc_per_node should positive, but given {}".format(nproc_per_node))
         if nnodes is None:
@@ -218,6 +221,7 @@ class Parallel:
             "master_addr": master_addr,
             "master_port": master_port,
         }
+        params.update(spawn_kwargs)
         return {k: v for k, v in params.items() if v is not None}
 
     def run(self, func: Callable, *args, **kwargs):
