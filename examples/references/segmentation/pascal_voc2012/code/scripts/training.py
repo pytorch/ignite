@@ -179,7 +179,7 @@ def training(local_rank, config, logger=None):
 
     # Setup evaluators
     num_classes = config.num_classes
-    cm_metric = ConfusionMatrix(num_classes=num_classes, average="recall")
+    cm_metric = ConfusionMatrix(num_classes=num_classes)
 
     val_metrics = {
         "IoU": IoU(cm_metric),
@@ -246,7 +246,9 @@ def training(local_rank, config, logger=None):
 
         @trainer.on(Events.COMPLETED)
         def compute_and_log_cm():
-            cm = cm_metric.compute().cpu().numpy()
+            cm = cm_metric.compute()
+            # CM: values are normalized such that diagonal values represent class recalls
+            cm = ConfusionMatrix.normalize(cm, "recall").cpu().numpy()
 
             if idist.get_rank() == 0:
                 from trains import Task
