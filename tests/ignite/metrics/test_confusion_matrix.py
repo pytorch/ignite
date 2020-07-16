@@ -297,7 +297,6 @@ def test_iou_wrong_input():
 
 
 def test_iou():
-
     def _test(average=None):
 
         y_true, y_pred = get_y_true_y_pred()
