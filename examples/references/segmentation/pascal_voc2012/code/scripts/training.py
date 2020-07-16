@@ -191,13 +191,18 @@ def training(local_rank, config, logger=None):
 
     evaluator, train_evaluator = create_evaluators(model, val_metrics, config)
 
-    @trainer.on(Events.EPOCH_COMPLETED(every=getattr(config, "val_interval", 1)) | Events.COMPLETED)
+    val_interval = getattr(config, "val_interval", 1)
+
+    @trainer.on(Events.EPOCH_COMPLETED(every=val_interval))
     def run_validation():
         epoch = trainer.state.epoch
         state = train_evaluator.run(train_eval_loader)
         log_metrics(logger, epoch, state.times["COMPLETED"], "Train", state.metrics)
         state = evaluator.run(val_loader)
         log_metrics(logger, epoch, state.times["COMPLETED"], "Test", state.metrics)
+
+    if config.num_epochs % val_interval != 0:
+        trainer.add_event_handler(Events.COMPLETED, run_validation)
 
     if getattr(config, "start_by_validation", False):
         trainer.add_event_handler(Events.STARTED, run_validation)
@@ -232,13 +237,23 @@ def training(local_rank, config, logger=None):
                 trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
             )
 
-        # Log val predictions:
+        # Log validation predictions as images
+        # We define a custom event filter to log less frequently the images (to reduce storage size)
+        # - we plot images with masks of the middle validation batch
+        # - once every 3 validations and
+        # - at the end of the training
+        def custom_event_filter(_, val_iteration):
+            c1 = val_iteration == len(val_loader) // 2
+            c2 = trainer.state.epoch % (getattr(config, "val_interval", 1) * 3) == 0
+            c2 |= (trainer.state.epoch == config.num_epochs)
+            return c1 and c2
+
         tb_logger.attach(
             evaluator,
             log_handler=predictions_gt_images_handler(
                 img_denormalize_fn=config.img_denormalize, n_images=15, another_engine=trainer, prefix_tag="validation"
             ),
-            event_name=Events.ITERATION_COMPLETED(once=len(val_loader) // 2),
+            event_name=Events.ITERATION_COMPLETED(event_filter=custom_event_filter),
         )
 
     # Log confusion matrix to Trains:
