@@ -245,7 +245,7 @@ def training(local_rank, config, logger=None):
         def custom_event_filter(_, val_iteration):
             c1 = val_iteration == len(val_loader) // 2
             c2 = trainer.state.epoch % (getattr(config, "val_interval", 1) * 3) == 0
-            c2 |= (trainer.state.epoch == config.num_epochs)
+            c2 |= trainer.state.epoch == config.num_epochs
             return c1 and c2
 
         tb_logger.attach(
