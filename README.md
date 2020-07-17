@@ -319,7 +319,9 @@ Few pointers to get you started:
 
 - Stable API documentation and an overview of the library: https://pytorch.org/ignite/
 - Development version API documentation: https://pytorch.org/ignite/master/
-- [FAQ](https://pytorch.org/ignite/faq.html) and ["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+).
+- [FAQ](https://pytorch.org/ignite/faq.html), 
+["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+) and 
+["Questions on Discuss.PyTorch"](https://discuss.pytorch.org/c/ignite).
 - [Project's Roadmap](https://github.com/pytorch/ignite/wiki/Roadmap)
 
 ## Additional Materials
@@ -463,8 +465,6 @@ description of the project.
 
 <!-- ############################################################################################################### -->
 
+# About the team & Disclaimer
 
-# About the team
-
-Project is currently maintained by a team of volunteers.
-See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors.
+This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals (and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors. For questions and issues, please see the various channels [here](https://github.com/pytorch/ignite#communication).
