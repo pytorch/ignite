@@ -39,6 +39,9 @@ def test_multiclass_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument average can None or one of"):
         ConfusionMatrix(num_classes=10, average="abc")
 
+    with pytest.raises(ValueError, match=r"Argument average one of 'samples', 'recall', 'precision'"):
+        ConfusionMatrix.normalize(None, None)
+
 
 def test_multiclass_input_N():
     # Multiclass input data of shape (N, )
@@ -294,38 +297,46 @@ def test_iou_wrong_input():
 
 
 def test_iou():
+    def _test(average=None):
 
-    y_true, y_pred = get_y_true_y_pred()
-    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+        y_true, y_pred = get_y_true_y_pred()
+        th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
 
-    true_res = [0, 0, 0]
-    for index in range(3):
-        bin_y_true = y_true == index
-        bin_y_pred = y_pred == index
-        intersection = bin_y_true & bin_y_pred
-        union = bin_y_true | bin_y_pred
-        true_res[index] = intersection.sum() / union.sum()
+        true_res = [0, 0, 0]
+        for index in range(3):
+            bin_y_true = y_true == index
+            bin_y_pred = y_pred == index
+            intersection = bin_y_true & bin_y_pred
+            union = bin_y_true | bin_y_pred
+            true_res[index] = intersection.sum() / union.sum()
 
-    cm = ConfusionMatrix(num_classes=3)
-    iou_metric = IoU(cm)
+        cm = ConfusionMatrix(num_classes=3, average=average)
+        iou_metric = IoU(cm)
 
-    # Update metric
-    output = (th_y_logits, th_y_true)
-    cm.update(output)
-
-    res = iou_metric.compute().numpy()
-
-    assert np.all(res == true_res)
-
-    for ignore_index in range(3):
-        cm = ConfusionMatrix(num_classes=3)
-        iou_metric = IoU(cm, ignore_index=ignore_index)
         # Update metric
         output = (th_y_logits, th_y_true)
         cm.update(output)
+
         res = iou_metric.compute().numpy()
-        true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
-        assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
+
+        assert np.all(res == true_res)
+
+        for ignore_index in range(3):
+            cm = ConfusionMatrix(num_classes=3)
+            iou_metric = IoU(cm, ignore_index=ignore_index)
+            # Update metric
+            output = (th_y_logits, th_y_true)
+            cm.update(output)
+            res = iou_metric.compute().numpy()
+            true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
+            assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
+
+    _test()
+    _test(average="samples")
+
+    with pytest.raises(ValueError, match=r"ConfusionMatrix should have average attribute either"):
+        cm = ConfusionMatrix(num_classes=3, average="precision")
+        IoU(cm)
 
 
 def test_miou():
