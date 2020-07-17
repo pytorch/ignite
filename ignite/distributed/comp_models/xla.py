@@ -113,9 +113,7 @@ if has_xla_support:
             backend: str = XLA_TPU,
             **kwargs
         ):
-            import os
-
-            if "COLAB_TPU_ADDR" in os.environ:
+            if "start_method" not in kwargs:
                 kwargs["start_method"] = "fork"
 
             xmp.spawn(

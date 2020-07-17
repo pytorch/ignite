@@ -47,7 +47,7 @@ class ConfusionMatrix(Metric):
         device: Optional[Union[str, torch.device]] = None,
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
-            raise ValueError("Argument average can None or one of ['samples', 'recall', 'precision']")
+            raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")
 
         self.num_classes = num_classes
         self._num_examples = 0
@@ -116,11 +116,19 @@ class ConfusionMatrix(Metric):
             self.confusion_matrix = self.confusion_matrix.float()
             if self.average == "samples":
                 return self.confusion_matrix / self._num_examples
-            elif self.average == "recall":
-                return self.confusion_matrix / (self.confusion_matrix.sum(dim=1).unsqueeze(1) + 1e-15)
-            elif self.average == "precision":
-                return self.confusion_matrix / (self.confusion_matrix.sum(dim=0) + 1e-15)
+            else:
+                return self.normalize(self.confusion_matrix, self.average)
         return self.confusion_matrix
+
+    @staticmethod
+    def normalize(matrix: torch.Tensor, average: str) -> torch.Tensor:
+        if average not in ("recall", "precision"):
+            raise ValueError("Argument average one of 'samples', 'recall', 'precision'")
+
+        if average == "recall":
+            return matrix / (matrix.sum(dim=1).unsqueeze(1) + 1e-15)
+        elif average == "precision":
+            return matrix / (matrix.sum(dim=0) + 1e-15)
 
 
 def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
@@ -148,6 +156,9 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
     """
     if not isinstance(cm, ConfusionMatrix):
         raise TypeError("Argument cm should be instance of ConfusionMatrix, but given {}".format(type(cm)))
+
+    if not (cm.average in (None, "samples")):
+        raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):

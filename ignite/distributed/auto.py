@@ -127,8 +127,8 @@ def auto_model(model: nn.Module) -> nn.Module:
 
     Internally, we perform to following:
 
-    - send model to current :meth:`~ignite.distributed.utils.device()`.
-    - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1
+    - send model to current :meth:`~ignite.distributed.utils.device()` if model's parameters are not on the device.
+    - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1.
     - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
 
     Examples:
@@ -137,6 +137,15 @@ def auto_model(model: nn.Module) -> nn.Module:
 
         import ignite.distribted as idist
 
+        model = idist.auto_model(model)
+
+    In addition with NVidia/Apex, it can be used in the following way:
+
+    .. code-block:: python
+
+        import ignite.distribted as idist
+
+        model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
         model = idist.auto_model(model)
 
     Args:
@@ -150,7 +159,10 @@ def auto_model(model: nn.Module) -> nn.Module:
     """
     logger = setup_logger(__name__ + ".auto_model")
 
-    model.to(idist.device())
+    # Put model's parameters to device if its parameters are not on the device
+    device = idist.device()
+    if not all([p.device == device for p in model.parameters()]):
+        model.to(device)
 
     # distributed data parallel model
     if idist.get_world_size() > 1:
@@ -238,8 +250,8 @@ class DistributedProxySampler(DistributedSampler):
         while len(indices) < self.total_size:
             indices += list(self.sampler)
 
-        if len(indices) != self.total_size:
-            raise RuntimeError("{} vs {}".format(len(indices), self.total_size))
+        if len(indices) > self.total_size:
+            indices = indices[: self.total_size]
 
         # subsample
         indices = indices[self.rank : self.total_size : self.num_replicas]
