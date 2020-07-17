@@ -314,7 +314,7 @@ def test_concat_scheduler_asserts():
     with pytest.raises(ValueError):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[10, 5])
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2, scheduler_2], durations=[15, 12.0])
 
     with pytest.raises(TypeError):
@@ -1109,10 +1109,10 @@ def test_param_group_scheduler_asserts():
         optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
     )
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         ParamGroupScheduler(schedulers=[0, 1, 2], names=["a", "b", "c"])
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         ParamGroupScheduler(schedulers=[lr_scheduler1, "2"], names=["a", "b"])
 
     with pytest.raises(TypeError):
