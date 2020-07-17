@@ -42,7 +42,7 @@ def test_param_scheduler_asserts():
 
     lr_scheduler = FakeParamScheduler(optimizer, "lr")
 
-    with pytest.raises(RuntimeError, match=r"size of value is different than optimizer_param_groups"):
+    with pytest.raises(ValueError, match=r"size of value is different than optimizer_param_groups"):
         lr_scheduler(None)
 
     with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary, but given"):
@@ -314,13 +314,13 @@ def test_concat_scheduler_asserts():
     with pytest.raises(ValueError):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[10, 5])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2, scheduler_2], durations=[15, 12.0])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations="abc")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ConcatScheduler.simulate_values(
             num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names="abc"
         )
@@ -698,7 +698,7 @@ def test_piecewiselinear_asserts():
     with pytest.raises(ValueError):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (5, 0.6)])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5, 1)])
 
 
@@ -895,7 +895,7 @@ def test_create_lr_scheduler_with_warmup():
             torch_lr_scheduler, warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=1
         )
 
-    with pytest.raises(ValueError, match=r"Argument warmup_duration should be at least 2 events"):
+    with pytest.raises(TypeError, match=r"Argument warmup_duration should be integer"):
         create_lr_scheduler_with_warmup(
             torch_lr_scheduler, warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration="abc"
         )
@@ -1109,13 +1109,13 @@ def test_param_group_scheduler_asserts():
         optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ParamGroupScheduler(schedulers=[0, 1, 2], names=["a", "b", "c"])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ParamGroupScheduler(schedulers=[lr_scheduler1, "2"], names=["a", "b"])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names="ab")
 
     with pytest.raises(ValueError):
