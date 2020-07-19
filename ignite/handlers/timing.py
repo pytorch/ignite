@@ -15,7 +15,7 @@ class Timer:
 
     Attributes:
         total (float): total time elapsed when the Timer was running (in seconds).
-        step_count (int): internal counter, usefull to measure average time, e.g. of processing a single batch.
+        step_count (int): internal counter, useful to measure average time, e.g. of processing a single batch.
             Incremented with the ``.step()`` method.
         running (bool): flag indicating if timer is measuring time.
 
