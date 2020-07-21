@@ -342,12 +342,12 @@ class State:
         return getattr(self, State.event_to_attr[event_name])
 
     def __repr__(self) -> str:
-        s = "State:\n"
+        s = ["State:"]
         for attr, value in self.__dict__.items():
             if not isinstance(value, (numbers.Number, str)):
                 value = type(value)
-            s += "\t{}: {}\n".format(attr, value)
-        return s
+            s.append(f"{attr}: {value}")
+        return "\n\t".join(s) + "\n"
 
 
 class RemovableEventHandle:
