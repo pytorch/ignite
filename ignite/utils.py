@@ -38,16 +38,15 @@ def apply_to_type(
     """
     if isinstance(input_, input_type):
         return func(input_)
-    elif isinstance(input_, (str, bytes)):
+    if isinstance(input_, (str, bytes)):
         return input_
-    elif isinstance(input_, collections.Mapping):
+    if isinstance(input_, collections.Mapping):
         return type(input_)({k: apply_to_type(sample, input_type, func) for k, sample in input_.items()})
-    elif isinstance(input_, tuple) and hasattr(input_, "_fields"):  # namedtuple
+    if isinstance(input_, tuple) and hasattr(input_, "_fields"):  # namedtuple
         return type(input_)(*(apply_to_type(sample, input_type, func) for sample in input_))
-    elif isinstance(input_, collections.Sequence):
+    if isinstance(input_, collections.Sequence):
         return type(input_)([apply_to_type(sample, input_type, func) for sample in input_])
-    else:
-        raise TypeError(("input must contain {}, dicts or lists; found {}".format(input_type, type(input_))))
+    raise TypeError(("input must contain {}, dicts or lists; found {}".format(input_type, type(input_))))
 
 
 def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
