@@ -1,4 +1,5 @@
 import random
+
 import pytest
 
 
@@ -39,9 +40,9 @@ def visdom_server():
         except ConnectionError:
             pass
 
-        vd_server_process = subprocess.Popen([
-            "python", "-m", "visdom.server", "--hostname", vd_hostname, "-port", str(vd_port)
-        ])
+        vd_server_process = subprocess.Popen(
+            ["python", "-m", "visdom.server", "--hostname", vd_hostname, "-port", str(vd_port)]
+        )
         time.sleep(5)
 
         vis = Visdom(server=vd_hostname, port=vd_port)
