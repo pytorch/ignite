@@ -739,7 +739,7 @@ def _test_distrib_integration_multiclass(device):
 
         engine = Engine(update)
 
-        pr = Precision(average=average, device=device)
+        pr = Precision(average=average)
         pr.attach(engine, "pr")
 
         data = list(range(n_iters))
@@ -748,6 +748,7 @@ def _test_distrib_integration_multiclass(device):
         assert "pr" in engine.state.metrics
         res = engine.state.metrics["pr"]
         if isinstance(res, torch.Tensor):
+            assert res.device.type == "cpu"
             res = res.cpu().numpy()
 
         true_res = precision_score(
@@ -787,7 +788,7 @@ def _test_distrib_integration_multilabel(device):
 
         engine = Engine(update)
 
-        pr = Precision(average=average, is_multilabel=True, device=device)
+        pr = Precision(average=average, is_multilabel=True)
         pr.attach(engine, "pr")
 
         data = list(range(n_iters))
@@ -821,7 +822,7 @@ def _test_distrib_integration_multilabel(device):
             match="Precision/Recall metrics do not work in distributed setting when "
             "average=False and is_multilabel=True",
         ):
-            pr = Precision(average=False, is_multilabel=True, device=device)
+            pr = Precision(average=False, is_multilabel=True)
 
         y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
         y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()

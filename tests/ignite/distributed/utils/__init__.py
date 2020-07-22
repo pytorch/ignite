@@ -76,6 +76,10 @@ def _test_distrib_all_reduce(device):
         with pytest.raises(ValueError, match=r"Unsupported reduction operation"):
             idist.all_reduce(10, op="ABC")
 
+        t = torch.tensor([0, 1, 2])
+        res = idist.all_reduce(t)
+        assert res.device == t.device, "{} vs {}".format(res.device, t.device)
+
 
 def _test_distrib_all_gather(device):
 

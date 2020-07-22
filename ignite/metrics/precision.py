@@ -44,7 +44,7 @@ class _BasePrecisionRecall(_BaseClassification):
         self._positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
         super(_BasePrecisionRecall, self).reset()
 
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> Union[torch.Tensor, float]:
         if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
             raise NotComputableError(
                 "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
