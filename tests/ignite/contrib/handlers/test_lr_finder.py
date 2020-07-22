@@ -199,14 +199,13 @@ def test_num_iter_is_not_enough(lr_finder, to_save, dummy_engine, dataloader):
         assert dummy_engine.state.iteration == len(dataloader)
 
 
-def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader):
+def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn):
     with lr_finder.attach(dummy_engine, to_save, end_lr=100, diverge_th=2) as trainer_with_finder:
-        with pytest.warns(None) as record:
-            trainer_with_finder.run(dataloader)
-            assert len(record) == 0
+        trainer_with_finder.run(dataloader)
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
+    assert len(recwarn) == 0
 
 
 def test_lr_suggestion(lr_finder, to_save, dummy_engine, dataloader):

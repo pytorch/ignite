@@ -788,36 +788,28 @@ def test_grads_scalar_handler():
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_no_server():
 
-    with pytest.warns(
-        PendingDeprecationWarning, match="Visdom is eventually changing to default to raising exceptions"
-    ):
-        with pytest.raises(RuntimeError, match="Failed to connect to Visdom server"):
-            VisdomLogger()
+    with pytest.raises(ConnectionError, match="Error connecting to Visdom server"):
+        VisdomLogger()
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_logger_init_hostname_port(visdom_server):
     # Explicit hostname, port
-    with pytest.warns(None) as record:
-        vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
-        assert "main" in vd_logger.vis.get_env_list()
-        vd_logger.close()
-        assert len(record) == 0
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+    assert "main" in vd_logger.vis.get_env_list()
+    vd_logger.close()
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_logger_init_env_vars(visdom_server):
-    with pytest.warns(None) as record:
+    # As env vars
+    import os
 
-        # As env vars
-        import os
-
-        os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
-        os.environ["VISDOM_PORT"] = str(visdom_server[1])
-        vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
-        assert "main" in vd_logger.vis.get_env_list()
-        vd_logger.close()
-        assert len(record) == 0
+    os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
+    os.environ["VISDOM_PORT"] = str(visdom_server[1])
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+    assert "main" in vd_logger.vis.get_env_list()
+    vd_logger.close()
 
 
 def _parse_content(content):
@@ -828,84 +820,79 @@ def _parse_content(content):
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_no_executor(visdom_server):
-    with pytest.warns(None) as record:
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
 
-        vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+    # close all windows in 'main' environment
+    vd_logger.vis.close()
 
-        # close all windows in 'main' environment
-        vd_logger.vis.close()
+    n_epochs = 3
+    data = list(range(10))
 
-        n_epochs = 3
-        data = list(range(10))
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
-        losses = torch.rand(n_epochs * len(data))
-        losses_iter = iter(losses)
+    def update_fn(engine, batch):
+        return next(losses_iter)
 
-        def update_fn(engine, batch):
-            return next(losses_iter)
+    trainer = Engine(update_fn)
+    output_handler = OutputHandler(tag="training", output_transform=lambda x: {"loss": x})
+    vd_logger.attach(trainer, log_handler=output_handler, event_name=Events.ITERATION_COMPLETED)
 
-        trainer = Engine(update_fn)
-        output_handler = OutputHandler(tag="training", output_transform=lambda x: {"loss": x})
-        vd_logger.attach(trainer, log_handler=output_handler, event_name=Events.ITERATION_COMPLETED)
+    trainer.run(data, max_epochs=n_epochs)
 
-        trainer.run(data, max_epochs=n_epochs)
-
-        assert len(output_handler.windows) == 1
-        assert "training/loss" in output_handler.windows
-        win_name = output_handler.windows["training/loss"]["win"]
-        data = vd_logger.vis.get_window_data(win=win_name)
-        data = _parse_content(data)
-        assert "content" in data and "data" in data["content"]
-        data = data["content"]["data"][0]
-        assert "x" in data and "y" in data
-        x_vals, y_vals = data["x"], data["y"]
-        assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
-        assert all([y == y_true for y, y_true in zip(y_vals, losses)])
-        vd_logger.close()
-        assert len(record) == 0
+    assert len(output_handler.windows) == 1
+    assert "training/loss" in output_handler.windows
+    win_name = output_handler.windows["training/loss"]["win"]
+    data = vd_logger.vis.get_window_data(win=win_name)
+    data = _parse_content(data)
+    assert "content" in data and "data" in data["content"]
+    data = data["content"]["data"][0]
+    assert "x" in data and "y" in data
+    x_vals, y_vals = data["x"], data["y"]
+    assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+    assert all([y == y_true for y, y_true in zip(y_vals, losses)])
+    vd_logger.close()
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_with_executor(visdom_server):
-    with pytest.warns(None) as record:
-        vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1)
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1)
 
-        # close all windows in 'main' environment
-        vd_logger.vis.close()
+    # close all windows in 'main' environment
+    vd_logger.vis.close()
 
-        n_epochs = 5
-        data = list(range(50))
+    n_epochs = 5
+    data = list(range(50))
 
-        losses = torch.rand(n_epochs * len(data))
-        losses_iter = iter(losses)
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
-        def update_fn(engine, batch):
-            return next(losses_iter)
+    def update_fn(engine, batch):
+        return next(losses_iter)
 
-        trainer = Engine(update_fn)
-        output_handler = OutputHandler(tag="training", output_transform=lambda x: {"loss": x})
-        vd_logger.attach(trainer, log_handler=output_handler, event_name=Events.ITERATION_COMPLETED)
+    trainer = Engine(update_fn)
+    output_handler = OutputHandler(tag="training", output_transform=lambda x: {"loss": x})
+    vd_logger.attach(trainer, log_handler=output_handler, event_name=Events.ITERATION_COMPLETED)
 
-        trainer.run(data, max_epochs=n_epochs)
+    trainer.run(data, max_epochs=n_epochs)
 
-        assert len(output_handler.windows) == 1
-        assert "training/loss" in output_handler.windows
-        win_name = output_handler.windows["training/loss"]["win"]
-        data = vd_logger.vis.get_window_data(win=win_name)
-        data = _parse_content(data)
-        assert "content" in data and "data" in data["content"]
-        data = data["content"]["data"][0]
-        assert "x" in data and "y" in data
-        x_vals, y_vals = data["x"], data["y"]
-        assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
-        assert all([y == y_true for y, y_true in zip(y_vals, losses)])
+    assert len(output_handler.windows) == 1
+    assert "training/loss" in output_handler.windows
+    win_name = output_handler.windows["training/loss"]["win"]
+    data = vd_logger.vis.get_window_data(win=win_name)
+    data = _parse_content(data)
+    assert "content" in data and "data" in data["content"]
+    data = data["content"]["data"][0]
+    assert "x" in data and "y" in data
+    x_vals, y_vals = data["x"], data["y"]
+    assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+    assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
-        vd_logger.close()
-        assert len(record) == 0
+    vd_logger.close()
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
-def test_integration_with_executor_as_context_manager(visdom_server):
+def test_integration_with_executor_as_context_manager(visdom_server, visdom_server_stop):
 
     n_epochs = 5
     data = list(range(50))

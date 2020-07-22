@@ -454,7 +454,7 @@ class VisdomLogger(BaseLogger):
 
     """
 
-    def __init__(self, server=None, port=None, num_workers=1, **kwargs):
+    def __init__(self, server=None, port=None, num_workers=1, raise_exceptions=True, **kwargs):
         try:
             import visdom
         except ImportError:
@@ -491,11 +491,11 @@ class VisdomLogger(BaseLogger):
             password = os.environ.get("VISDOM_PASSWORD", None)
             kwargs["password"] = password
 
-        self.vis = visdom.Visdom(server=server, port=port, **kwargs)
+        self.vis = visdom.Visdom(server=server, port=port, raise_exceptions=raise_exceptions, **kwargs)
 
-        if not self.vis.check_connection():
+        if not self.vis.offline and not self.vis.check_connection():
             raise RuntimeError(
-                "Failed to connect to Visdom server at {}. " "Did you run python -m visdom.server ?".format(server)
+                "Failed to connect to Visdom server at {}. Did you run python -m visdom.server ?".format(server)
             )
 
         self.executor = _DummyExecutor()
@@ -508,8 +508,8 @@ class VisdomLogger(BaseLogger):
         self.vis.save([self.vis.env])
 
     def close(self):
-        self.vis = None
         self.executor.shutdown()
+        self.vis = None
 
     def _create_output_handler(self, *args, **kwargs):
         return OutputHandler(*args, **kwargs)
