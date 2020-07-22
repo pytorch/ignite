@@ -25,7 +25,6 @@ def test_hvd_distrib_spawn_no_hvd_support():
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
 def test_hvd_distrib_single_node_single_device():
-    import os
     import horovod.torch as hvd
 
     idist.initialize("horovod")
@@ -46,6 +45,18 @@ def test_hvd_distrib_single_node_spawn():
     world_size = 4
 
     idist.spawn("horovod", _test_distrib_config, args=("horovod", world_size, "cpu"), nproc_per_node=world_size)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_hvd_distrib_multi_node_spawn_raise_error():
+    world_size = 4
+
+    with pytest.raises(RuntimeError, match=r"For multi-node configuration, please set 'hosts' argument instead"):
+        idist.spawn(
+            "horovod", _test_distrib_config, args=("horovod", world_size, "cpu"), nproc_per_node=world_size, nnodes=2
+        )
 
 
 @pytest.mark.distributed

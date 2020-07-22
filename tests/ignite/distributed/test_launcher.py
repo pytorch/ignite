@@ -75,7 +75,7 @@ def test_check_idist_parallel_torch_launch_n_procs_nccl(exec_filepath):
 
 
 def _test_check_idist_parallel_hvdrun(fp, backend, nprocs):
-    # horovodrun -np=nprocs tests/ignite/distributed/check_idist_parallel.py --backend=backend
+    # horovodrun -np=nprocs python tests/ignite/distributed/check_idist_parallel.py --backend=backend
 
     cmd = [
         "horovodrun",

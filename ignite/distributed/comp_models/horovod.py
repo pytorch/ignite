@@ -115,21 +115,29 @@ if has_hvd_support:
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
             nproc_per_node: int = 1,
-            nnodes: int = 1,
-            node_rank: int = 0,
-            master_addr: str = "127.0.0.1",
-            master_port: int = 2222,
+            hosts=None,
             backend: str = HOROVOD,
             **kwargs
         ):
-            # nnodes, node_rank, master_addr, master_port
-            if "nnodes":
-                pass
+            c1 = "nnodes" in kwargs and kwargs["nnodes"] > 1
+            c2 = "node_rank" in kwargs and kwargs["node_rank"] > 0
+            if c1 or c2:
+                raise RuntimeError(
+                    "For multi-node configuration, please set 'hosts' argument instead according to "
+                    "horovod.run API."
+                )
+            if "nnodes" in kwargs:
+                # Remove 'nnodes=1' as it is an unexpected keyword argument for horovod.run
+                del kwargs["nnodes"]
+            if "node_rank" in kwargs:
+                # Remove 'node_rank=0' as it is an unexpected keyword argument for horovod.run
+                del kwargs["node_rank"]
 
             hvd_mp_spawn(
                 _HorovodDistModel._dist_worker_task_fn,
                 args=(HOROVOD, fn, args, kwargs_dict),
                 np=nproc_per_node,
+                hosts=hosts,
                 **kwargs,
             )
 
