@@ -173,6 +173,7 @@ def _test_idist_methods_overhead(ok_factor):
     overhead_factor = t1 / t2
     assert overhead_factor < ok_factor, "{} vs {} | {} vs {}".format(overhead_factor, ok_factor, t2, t1)
 
+
 # TODO: Once https://github.com/pytorch/ignite/pull/1196 is merged
 # @pytest.mark.distributed
 # @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")

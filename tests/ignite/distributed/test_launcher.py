@@ -7,7 +7,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.distributed.utils import has_native_dist_support, has_xla_support, has_hvd_support
+from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
 
 
 @pytest.fixture()
