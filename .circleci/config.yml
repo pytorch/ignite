@@ -61,6 +61,17 @@ run_pytorch_container: &run_pytorch_container
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
 
+
+run_pytorch_devel_container: &run_pytorch_devel_container
+  - run:
+      name: Start Pytorch dev container
+      environment:
+        wd: << pipeline.parameters.workingdir >>
+      command: |
+        docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image_devel >>
+        docker exec -it pthd nvidia-smi
+        docker exec -it pthd ls
+
 install_dependencies: &install_dependencies
   - run:
       name: Install dependencies
@@ -212,7 +223,7 @@ jobs:
     steps:
       - checkout
       - <<: *pull_pytorch_stable_devel_image
-      - <<: *run_pytorch_container
+      - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
       - run:
           name: "Install Horovod with NCCL GPU ops"

@@ -150,47 +150,53 @@ def test_idist_barrier_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True)
 
 
-def _test_idist_methods_overhead(ok_factor):
+def _test_idist_methods_overhead(ok_factor, sync_model):
     import time
     import horovod.torch as hvd
 
-    n = 1000000
+    if sync_model:
+        idist.sync()
+        from ignite.distributed.utils import _model
+        from ignite.distributed.comp_models.horovod import _HorovodDistModel
 
-    start = time.time()
-    for _ in range(n):
-        _ = hvd.size()
-        _ = hvd.rank()
-    elapsed = time.time() - start
-    t2 = elapsed / n
+        assert isinstance(_model, _HorovodDistModel)
 
-    start = time.time()
-    for _ in range(n):
-        _ = idist.get_world_size()
-        _ = idist.get_rank()
-    elapsed = time.time() - start
-    t1 = elapsed / n
+    n = 100000
+    m = 5
+
+    t2 = 0.0
+    t1 = 0.0
+    for j in range(m):
+        start = time.time()
+        for _ in range(n):
+            _ = hvd.size()
+            _ = hvd.rank()
+        elapsed = time.time() - start
+        t2 += elapsed / n / m
+
+        start = time.time()
+        for _ in range(n):
+            _ = idist.get_world_size()
+            _ = idist.get_rank()
+        elapsed = time.time() - start
+        t1 += elapsed / n / m
 
     overhead_factor = t1 / t2
     assert overhead_factor < ok_factor, "{} vs {} | {} vs {}".format(overhead_factor, ok_factor, t2, t1)
 
 
-# TODO: Once https://github.com/pytorch/ignite/pull/1196 is merged
-# @pytest.mark.distributed
-# @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-# def test_idist_methods_overhead_hvd(gloo_hvd_executor):
-#     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-#     ok_factor = 3.5
-#     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
-#
-#     idist.sync()
-#     from ignite.distributed.utils import _model
-#     from ignite.distributed.comp_models.horovod import _HorovodDistModel
-#
-#     assert isinstance(_model, _HorovodDistModel)
-#
-#     ok_factor = 3.5
-#     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor,), np=np, do_init=True)
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_methods_overhead_hvd(gloo_hvd_executor):
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    ok_factor = 6.0
+    sync_model = False
+    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
+
+    ok_factor = 1.7
+    sync_model = True
+    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
 
 
 @pytest.mark.distributed

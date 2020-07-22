@@ -36,6 +36,7 @@ __all__ = [
     "hostname",
     "has_xla_support",
     "has_native_dist_support",
+    "has_hvd_support",
     "sync",
     "registered_computation_models",
     "one_rank_only",
