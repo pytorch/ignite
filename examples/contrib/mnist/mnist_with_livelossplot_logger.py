@@ -89,11 +89,18 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     from livelossplot.outputs import ExtremaPrinter
 
     group_patterns = [
-        (r"^(training(\s))(.*)", "training "),
-        (r"^(validation(\s))(.*)", "validation "),
-        (r"^(online(\s)batch(\s))(.*)", "online batch "),
+        (r"^(training(\s))(.*)", "training"),
+        (r"^(validation(\s))(.*)", "validation"),
+        (r"^(online(\s)batch(\s))(.*)", "online batch"),
     ]
-    livelossplot_logger = LivelossplotLogger(group_patterns=group_patterns, outputs=[ExtremaPrinter()])
+    step_names = {
+        "training": "epoch",
+        "validation": "epoch",
+        "online batch": "iteration",
+    }
+    livelossplot_logger = LivelossplotLogger(
+        group_patterns=group_patterns, outputs=[ExtremaPrinter()], step_names=step_names
+    )
 
     livelossplot_logger.attach_output_handler(
         trainer,
