@@ -90,6 +90,7 @@ def backend() -> Optional[str]:
     - `None` for no distributed configuration
     - "nccl" or "gloo" or "mpi" for native torch distributed configuration
     - "xla-tpu" for XLA distributed configuration
+    - "horovod" for Horovod distributed framework
 
     Returns:
         str or None
@@ -115,6 +116,7 @@ def model_name() -> str:
     - `serial` for no distributed configuration
     - `native-dist` for native torch distributed configuration
     - `xla-dist` for XLA distributed configuration
+    - `horovod` for Horovod distributed framework
 
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
@@ -270,7 +272,7 @@ def spawn(
             idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=8)
 
     Args:
-        backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`
+        backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`
         fn (function): function to called as the entrypoint of the spawned process.
             This function must be defined at the top level of a module so it can be pickled and spawned.
             This is a requirement imposed by multiprocessing. The function is called as ``fn(i, *args, **kwargs_dict)``,
@@ -314,6 +316,7 @@ def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[to
     Args:
         tensor (torch.Tensor or number): tensor or number to collect across participating processes.
         op (str): reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
+            Please, several values are not supported for the backend like "horovod".
 
     Returns:
         torch.Tensor or number
@@ -424,7 +427,7 @@ def initialize(backend: str, **kwargs):
 
 
     Args:
-        backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`.
+        backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
         **kwargs: acceptable kwargs according to provided backend:
 
             - "nccl" or "gloo" : timeout(=timedelta(minutes=30))

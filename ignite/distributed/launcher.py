@@ -11,33 +11,41 @@ __all__ = [
 class Parallel:
     """Distributed launcher context manager to simplify distributed configuration setup for multiple backends:
 
-    - backends from native torch distributed configuration: "nccl", "gloo", "mpi"
+    - backends from native torch distributed configuration: "nccl", "gloo", "mpi" (if available)
 
-    - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_
+    - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_ (if installed)
+
+    - using `Horovod distributed framework <https://horovod.readthedocs.io>`_ (if installed)
 
     Namely, it can 1) spawn ``nproc_per_node`` child processes and initialize a processing group according to
     provided ``backend`` (useful for standalone scripts) or 2) only initialize a processing group given the ``backend``
-    (useful with tools like `torch.distributed.launch`_).
+    (useful with tools like `torch.distributed.launch`_, `horovodrun`_, etc).
 
     Examples:
 
-        1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ tool
+        1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ or `horovodrun`_
+        tools
 
-        Single node option :
+        Single node option : 4 GPUs
 
         .. code-block:: bash
 
             python -m torch.distributed.launch --nproc_per_node=4 --use_env main.py
+            # or if installed horovod
+            horovodrun -np=4 python main.py
 
-        Multi-node option :
+        Multi-node option : 2 nodes and 8 GPUs each
 
         .. code-block:: bash
 
-            # node 0
+            ## node 0
             python -m torch.distributed.launch --nnodes=2 --node_rank=0 --master_addr=master \
                 --master_port=3344 --nproc_per_node=8 --use_env main.py
 
-            # node 1
+            # or if installed horovod
+            horovodrun -np 16 -H hostname1:8,hostname2:8 python main.py
+
+            ## node 1
             python -m torch.distributed.launch --nnodes=2 --node_rank=1 --master_addr=master \
                 --master_port=3344 --nproc_per_node=8 --use_env main.py
 
@@ -55,7 +63,9 @@ class Parallel:
                 print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
                 # ...
 
-            with idist.Parallel(backend="nccl") as parallel:
+            backend = "nccl"  # or "horovod" if package is installed
+
+            with idist.Parallel(backend=backend) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
 
@@ -76,7 +86,9 @@ class Parallel:
                 print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
                 # ...
 
-            with idist.Parallel(backend="nccl", nproc_per_node=4) as parallel:
+            backend = "nccl"  # or "horovod" if package is installed
+
+            with idist.Parallel(backend=backend, nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
 
@@ -135,17 +147,23 @@ class Parallel:
                 parallel.run(training, config, a=1, b=2)
 
     .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
+    .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
     Args:
-        backend (str, optional): backend to use: `nccl`, `gloo`, `xla-tpu`. If None, no distributed configuration.
+        backend (str, optional): backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
+            configuration.
         nproc_per_node (int, optional): optional argument, number of processes per
             node to specify. If not None, :meth:`~ignite.distributed.Parallel.run` will spawn ``nproc_per_node``
             processes that run input function with its arguments.
         nnodes (int, optional): optional argument, number of nodes participating in distributed configuration.
             If not None, :meth:`~ignite.distributed.Parallel.run` will spawn ``nproc_per_node``
             processes that run input function with its arguments. Total world size is `nproc_per_node * nnodes`.
+            This option is only supported by native torch distributed module. For other modules, please setup
+            ``spawn_kwargs`` with backend specific arguments.
         node_rank (int, optional): optional argument, current machine index. Mandatory argument if ``nnodes`` is
             specified and larger than one.
+            This option is only supported by native torch distributed module. For other modules, please setup
+            ``spawn_kwargs`` with backend specific arguments.
         master_addr (str, optional): optional argument, master node TCP/IP address for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
         master_port (int, optional): optional argument, master node port for torch native backends
@@ -235,6 +253,9 @@ class Parallel:
                 # ...
                 print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
                 # ...
+
+            with idist.Parallel(backend=backend) as parallel:
+                parallel.run(training, config, a=1, b=2)
 
         Args:
             func (Callable): function to execute. First argument of the function should be `local_rank` - local process

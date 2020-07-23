@@ -636,7 +636,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
-    gloo_hvd_executor(_test_distrib_multiclass_images, (device, ), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_multiclass_images, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
