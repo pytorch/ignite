@@ -3,6 +3,7 @@ import sys
 import time
 
 import pytest
+import torch
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
@@ -26,7 +27,10 @@ def test_nondistributed_average():
     assert average_lower_bound < average < average_upper_bound
 
 
-def _test_frequency_with_engine(device, workers, lower_bound_factor=0.8, every=1):
+def _test_frequency_with_engine(device, workers=None, lower_bound_factor=0.8, every=1):
+
+    if workers is None:
+        workers = idist.get_world_size()
 
     artificial_time = 1.0 / workers  # seconds
     total_tokens = 400 // workers
@@ -80,6 +84,18 @@ def test_frequency_with_engine_distributed_with_every(distributed_context_single
     device = "cpu"
     _test_frequency_with_engine(device, workers=idist.get_world_size(), every=1)
     _test_frequency_with_engine(device, workers=idist.get_world_size(), every=10)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_frequency_with_engine, (device, None, 0.8, 1), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_frequency_with_engine, (device, None, 0.8, 10), np=nproc, do_init=True)
 
 
 @pytest.mark.tpu

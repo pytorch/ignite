@@ -380,6 +380,20 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     _test_distrib_integration(device)
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_variable_accumulation, (device, ), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_average, (device, ), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_geom_average, (device, ), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration, (device, ), np=nproc, do_init=True)
+
+
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
