@@ -7,7 +7,13 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
-    from horovod.run.runner import run as hvd_mp_spawn
+
+    try:
+        # old API
+        from horovod.run.runner import run as hvd_mp_spawn
+    except ImportError:
+        # new API: https://github.com/horovod/horovod/pull/2099
+        from horovod import run as hvd_mp_spawn
 
     has_hvd_support = True
 except ImportError:

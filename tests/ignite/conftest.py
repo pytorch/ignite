@@ -236,7 +236,12 @@ def _hvd_task_with_init(func, args):
 
 
 def _gloo_hvd_execute(func, args, np=1, do_init=False):
-    from horovod.run.runner import run
+    try:
+        # old API
+        from horovod.run.runner import run
+    except ImportError:
+        # new API: https://github.com/horovod/horovod/pull/2099
+        from horovod import run
 
     kwargs = dict(use_gloo=True, np=np)
 

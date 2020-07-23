@@ -240,7 +240,10 @@ jobs:
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
-            export test_cmd='sh tests/run_gpu_tests.sh 2'
+            export test_cmd='sh tests/run_gpu_tests.sh'
+            docker exec -it pthd /bin/bash -c "${test_cmd}"
+            # no CUDA devices Horovod tests
+            export test_cmd='CUDA_VISIBLE_DEVICES="" py.test --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
       - run:
@@ -251,10 +254,11 @@ jobs:
       - run:
           name: "Check CIFAR10 using horovodrun"
           command: |
+            docker exec -it pthd pip install fire
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 horovodrun -np 2 python -u ${example_path}/main.py run --backend=horovod"
+            export test_cmd="cd ${example_path} && CI=1 horovodrun -np 2 python -u main.py run --backend=horovod"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
@@ -266,7 +270,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=horovod --nproc_per_node=2"
+            export test_cmd="cd ${example_path} && CI=1 python -u main.py run --backend=horovod --nproc_per_node=2"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
