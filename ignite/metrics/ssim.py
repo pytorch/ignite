@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -28,14 +28,48 @@ class SSIM(Metric):
 
     Example:
 
+    To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+    The output of the engine's ``process_function`` needs to be in the format of
+    ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
     .. code-block:: python
 
-            >>> y_pred = torch.rand([16, 1, 16, 16])
-            >>> y = y_pred * 1.25
-            >>> ssim = SSIM()
-            >>> ssim.update((y_pred, y))
-            >>> ssim.compute()
-            tensor(0.9520)
+        def process_function(engine, batch):
+            # ...
+            return y_pred, y
+        engine = Engine(process_function)
+        metric = SSIM()
+        metric.attach(engine, "ssim")
+
+    If the output of the engine is not in the format above, ``output_transform`` argument can be used to transform it.
+
+    .. code-block:: python
+
+        def process_function(engine, batch):
+            # ...
+            return {'prediction': y_pred, 'target': y, ...}
+
+        engine = Engine(process_function)
+
+        def output_transform(output):
+            # `output` variable is returned by above `process_function`
+            y_pred = output['prediction']
+            y = output['target']
+            return y_pred, y  # output format is according to `Accuracy` docs
+
+        metric = SSIM(output_transform=output_transform)
+        metric.attach(engine, "ssim")
+
+    The user even can use the metric with ``update`` and ``compute`` methods.
+
+    .. code-block:: python
+
+        >>> y_pred = torch.rand([16, 1, 16, 16])
+        >>> y = y_pred * 1.25
+        >>> ssim = SSIM()
+        >>> ssim.update((y_pred, y))
+        >>> ssim.compute()
+        tensor(0.9520)
     """
 
     def __init__(
@@ -45,7 +79,7 @@ class SSIM(Metric):
         data_range: float = None,
         k1: float = 0.01,
         k2: float = 0.03,
-        output_transform: Optional[Callable] = None,
+        output_transform: Callable = lambda x: x,
     ):
         if len(kernel_size) != 2 or len(sigma) != 2:
             raise ValueError(

@@ -3,7 +3,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-.vscode
+
 # Distribution / packaging
 .Python
 build/
@@ -38,3 +38,7 @@ coverage.xml
 # Documentation
 /docs/src/
 /docs/build/
+
+# IDE hidden files
+.vscode
+.idea
