@@ -83,15 +83,16 @@ class SSIM(Metric):
     ):
         if len(kernel_size) != 2 or len(sigma) != 2:
             raise ValueError(
-                "Expected `kernel_size` and `sigma` to have the length of two."
-                f" Got kernel_size: {len(kernel_size)} and sigma: {len(sigma)}."
+                "Expected `kernel_size` and `sigma` to have the length of two. Got kernel_size: {}, sigma: {}.".format(
+                    len(kernel_size), len(sigma)
+                )
             )
 
         if any(x % 2 == 0 or x <= 0 for x in kernel_size):
-            raise ValueError(f"Expected `kernel_size` to have odd positive number. Got {kernel_size}.")
+            raise ValueError("Expected `kernel_size` to have odd positive number. Got {}.".format(kernel_size))
 
         if any(y <= 0 for y in sigma):
-            raise ValueError(f"Expected `sigma` to have positive number. Got {sigma}.")
+            raise ValueError("Expected `sigma` to have positive number. Got {}.".format(sigma))
 
         self.kernel_size = kernel_size
         self.sigma = sigma
@@ -105,16 +106,16 @@ class SSIM(Metric):
         self._sum_of_batchwise_ssim = 0.0
         self._num_examples = 0
 
-    def _gaussian_kernel(self, channel, kernel_size, sigma, device):
-        def gaussian(kernel_size, sigma, device):
-            gauss = torch.arange(
-                start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
-            )
-            gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
-            return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
+    def _gaussian(self, kernel_size, sigma, device):
+        gauss = torch.arange(
+            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
+        )
+        gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
+        return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
-        gaussian_kernel_x = gaussian(kernel_size[0], sigma[0], device)
-        gaussian_kernel_y = gaussian(kernel_size[1], sigma[1], device)
+    def _gaussian_kernel(self, channel, kernel_size, sigma, device):
+        gaussian_kernel_x = self._gaussian(kernel_size[0], sigma[0], device)
+        gaussian_kernel_y = self._gaussian(kernel_size[1], sigma[1], device)
         kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
 
         return kernel.expand(channel, 1, kernel_size[0], kernel_size[1])
@@ -124,17 +125,23 @@ class SSIM(Metric):
         y_pred, y = output
         if y_pred.dtype != y.dtype:
             raise TypeError(
-                f"Expected `y_pred` and `y` to have the same data type. Got y_pred: {y_pred.dtype} and y: {y.dtype}."
+                "Expected `y_pred` and `y` to have the same data type. Got y_pred: {} and y: {}.".format(
+                    y_pred.dtype, y.dtype
+                )
             )
 
         if y_pred.shape != y.shape:
             raise ValueError(
-                f"Expected `y_pred` and `y` to have the same shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
+                "Expected `y_pred` and `y` to have the same shape. Got y_pred: {} and y: {}.".format(
+                    y_pred.shape, y.shape
+                )
             )
 
         if len(y_pred.shape) != 4 or len(y.shape) != 4:
             raise ValueError(
-                f"Expected `y_pred` and `y` to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
+                "Expected `y_pred` and `y` to have BxCxHxW shape. Got y_pred: {} and y: {}.".format(
+                    y_pred.shape, y.shape
+                )
             )
 
         if self.data_range is None:
