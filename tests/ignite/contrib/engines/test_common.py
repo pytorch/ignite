@@ -403,10 +403,10 @@ def test_setup_tb_logging(dirname):
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
-def test_setup_visdom_logging(visdom_server):
+def test_setup_visdom_logging(visdom_offline_logfile):
     vis_logger = _test_setup_logging(
         setup_logging_fn=setup_visdom_logging,
-        kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
+        kwargs_dict={"offline": True, "log_to_filename": visdom_offline_logfile},
         output_handler_cls=handlers.visdom_logger.OutputHandler,
         opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -416,7 +416,7 @@ def test_setup_visdom_logging(visdom_server):
 
     vis_logger = _test_setup_logging(
         setup_logging_fn=setup_visdom_logging,
-        kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
+        kwargs_dict={"offline": True, "log_to_filename": visdom_offline_logfile},
         output_handler_cls=handlers.visdom_logger.OutputHandler,
         opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
         with_eval=True,

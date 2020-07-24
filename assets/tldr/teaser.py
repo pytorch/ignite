@@ -74,7 +74,6 @@ def get_dataflow(config):
         batch_size=2 * config.get("batch_size", 512),
         num_workers=config.get("num_workers", 8),
         shuffle=False,
-        pin_memory="cuda" in idist.device().type,
     )
     return train_loader, test_loader
 
