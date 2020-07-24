@@ -14,7 +14,7 @@ class SSIM(Metric):
     Computes Structual Similarity Index Measure
 
     Args:
-        kernel_size: Size of the gaussian kernel. Default: (11, 11)
+        kernel_size (list or tuple of int): Size of the gaussian kernel. Default: (11, 11)
         sigma: Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
         data_range: Range of the image. If ``None``, it is determined from the image (max - min)
         k1: Parameter of SSIM. Default: 0.01
