@@ -453,5 +453,6 @@ Custom time measures can be performed using :class:`~ignite.handlers.Timer`. See
 Other questions
 ---------------
 
-Other answers can be found on the github among the issues labeled by
-`question <https://github.com/pytorch/ignite/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Aquestion+>`_.
+Other questions and answers can be also found on the github among the issues labeled by
+`question <https://github.com/pytorch/ignite/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Aquestion+>`_ and on the forum
+`Discuss.PyTorch <https://discuss.pytorch.org/c/ignite>`_, category "Ignite".

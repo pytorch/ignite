@@ -317,7 +317,9 @@ Few pointers to get you started:
 
 - Stable API documentation and an overview of the library: https://pytorch.org/ignite/
 - Development version API documentation: https://pytorch.org/ignite/master/
-- [FAQ](https://pytorch.org/ignite/faq.html) and ["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+).
+- [FAQ](https://pytorch.org/ignite/faq.html), 
+["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+) and 
+["Questions on Discuss.PyTorch"](https://discuss.pytorch.org/c/ignite).
 - [Project's Roadmap](https://github.com/pytorch/ignite/wiki/Roadmap)
 
 ## Additional Materials
