@@ -38,7 +38,3 @@ coverage.xml
 # Documentation
 /docs/src/
 /docs/build/
-
-# IDE hidden files
-.vscode
-.idea
