@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pytest
 import torch
-from skimage.metrics import structural_similarity as ski_ssim
+from skimage.measure import compare_ssim as ski_ssim
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -11,13 +11,42 @@ from ignite.metrics import SSIM
 
 
 def test_zero_div():
-    ssim = SSIM()
+    ssim = SSIM(data_range=1.0)
     with pytest.raises(NotComputableError):
         ssim.compute()
 
 
+def test_invalid_ssim():
+    y_pred = torch.rand(16, 3, 32, 32)
+    y = y_pred + 0.125
+    with pytest.raises(ValueError):
+        ssim = SSIM(data_range=1.0, kernel_size=10)
+        ssim.update((y_pred, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError):
+        ssim = SSIM(data_range=1.0, kernel_size=-1)
+        ssim.update((y_pred, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError):
+        ssim = SSIM(data_range=1.0, kernel_size=1.0)
+        ssim.update((y_pred, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError):
+        ssim = SSIM(data_range=1.0, sigma=-1)
+        ssim.update((y_pred, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError):
+        ssim = SSIM(data_range=1.0, sigma=1)
+        ssim.update((y_pred, y))
+        ssim.compute()
+
+
 def test_ssim():
-    ssim = SSIM()
+    ssim = SSIM(data_range=1.0)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     y_pred = torch.rand(16, 3, 32, 32, device=device)
     y = y_pred + 0.125
@@ -51,7 +80,7 @@ def _test_distrib_integration(device, tol=1e-3):
         )
 
     engine = Engine(update)
-    SSIM().attach(engine, "ssim")
+    SSIM(data_range=1.0).attach(engine, "ssim")
 
     data = list(range(n_iters))
     engine.run(data=data, max_epochs=1)

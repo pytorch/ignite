@@ -1,4 +1,4 @@
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Union
 
 import torch
 import torch.nn.functional as F
@@ -15,22 +15,22 @@ class SSIM(Metric):
 
     Args:
         kernel_size (list or tuple of int): Size of the gaussian kernel. Default: (11, 11)
-        sigma: Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
-        data_range: Range of the image. If ``None``, it is determined from the image (max - min)
-        k1: Parameter of SSIM. Default: 0.01
-        k2: Parameter of SSIM. Default: 0.03
+        sigma (list or tuple of float): Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
+        data_range (int or float): Range of the image. Typically, ``1.0`` or ``255``.
+        k1 (float): Parameter of SSIM. Default: 0.01
+        k2 (float): Parameter of SSIM. Default: 0.03
         output_transform: A callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric.
-
-    Returns:
-        A Tensor with SSIM
 
     Example:
 
     To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
     The output of the engine's ``process_function`` needs to be in the format of
     ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+    ``y_pred`` and ``y`` can be an un-normalized image tensor or a normalized image tensor.
+    Depending on that, the user might need to adjust ``data_range``.
 
     .. code-block:: python
 
@@ -65,34 +65,39 @@ class SSIM(Metric):
     .. code-block:: python
 
         >>> y_pred = torch.rand([16, 1, 16, 16])
-        >>> y = y_pred * 1.25
-        >>> ssim = SSIM()
+        >>> y = y_pred * 0.85
+        >>> ssim = SSIM(data_range=1.0)
         >>> ssim.update((y_pred, y))
         >>> ssim.compute()
-        tensor(0.9520)
+        tensor(0.9741)
     """
 
     def __init__(
         self,
-        kernel_size: Sequence[int] = (11, 11),
-        sigma: Sequence[float] = (1.5, 1.5),
-        data_range: float = None,
+        data_range: Union[int, float],
+        kernel_size: Union[int, Sequence[int]] = (11, 11),
+        sigma: Union[float, Sequence[float]] = (1.5, 1.5),
         k1: float = 0.01,
         k2: float = 0.03,
         output_transform: Callable = lambda x: x,
     ):
-        if len(kernel_size) != 2 or len(sigma) != 2:
-            raise ValueError(
-                "Expected `kernel_size` and `sigma` to have the length of two. Got kernel_size: {}, sigma: {}.".format(
-                    len(kernel_size), len(sigma)
-                )
-            )
+        if isinstance(kernel_size, int):
+            if kernel_size % 2 == 0 or kernel_size <= 0:
+                raise ValueError("Expected `kernel_size` to have odd positive number. Got {}.".format(kernel_size))
+        elif isinstance(kernel_size, Sequence):
+            if any(x % 2 == 0 or x <= 0 for x in kernel_size):
+                raise ValueError("Expected `kernel_size` to have odd positive number. Got {}.".format(kernel_size))
+        else:
+            raise ValueError("Invalid `kernel_size`.")
 
-        if any(x % 2 == 0 or x <= 0 for x in kernel_size):
-            raise ValueError("Expected `kernel_size` to have odd positive number. Got {}.".format(kernel_size))
-
-        if any(y <= 0 for y in sigma):
-            raise ValueError("Expected `sigma` to have positive number. Got {}.".format(sigma))
+        if isinstance(sigma, float):
+            if sigma <= 0:
+                raise ValueError("Expected `sigma` to have positive number. Got {}.".format(sigma))
+        elif isinstance(sigma, Sequence):
+            if any(y <= 0 for y in sigma):
+                raise ValueError("Expected `sigma` to have positive number. Got {}.".format(sigma))
+        else:
+            raise ValueError("Invalid `sigma`.")
 
         self.kernel_size = kernel_size
         self.sigma = sigma
@@ -114,8 +119,21 @@ class SSIM(Metric):
         return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
     def _gaussian_kernel(self, channel, kernel_size, sigma, device):
-        gaussian_kernel_x = self._gaussian(kernel_size[0], sigma[0], device)
-        gaussian_kernel_y = self._gaussian(kernel_size[1], sigma[1], device)
+        if isinstance(kernel_size, int) and isinstance(sigma, float):
+            gaussian_kernel_x = self._gaussian(kernel_size, sigma, device)
+            gaussian_kernel_y = self._gaussian(kernel_size, sigma, device)
+        elif isinstance(kernel_size, Sequence) and isinstance(sigma, float):
+            gaussian_kernel_x = self._gaussian(kernel_size[0], sigma, device)
+            gaussian_kernel_y = self._gaussian(kernel_size[1], sigma, device)
+        elif isinstance(kernel_size, int) and isinstance(sigma, Sequence):
+            gaussian_kernel_x = self._gaussian(kernel_size, sigma[0], device)
+            gaussian_kernel_y = self._gaussian(kernel_size, sigma[1], device)
+        elif isinstance(kernel_size, Sequence) and isinstance(sigma, Sequence):
+            gaussian_kernel_x = self._gaussian(kernel_size[0], sigma[0], device)
+            gaussian_kernel_y = self._gaussian(kernel_size[1], sigma[1], device)
+        else:
+            raise TypeError("Invalid input type for `kernel_size` and `sigma`.")
+
         kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
 
         return kernel.expand(channel, 1, kernel_size[0], kernel_size[1])
@@ -143,9 +161,6 @@ class SSIM(Metric):
                     y_pred.shape, y.shape
                 )
             )
-
-        if self.data_range is None:
-            self.data_range = max(y_pred.max() - y_pred.min(), y.max() - y.min())
 
         C1 = pow(self.k1 * self.data_range, 2)
         C2 = pow(self.k2 * self.data_range, 2)
