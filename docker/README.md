@@ -1,21 +1,7 @@
-# Docker for Ignite examples
+# Convenient docker images
 
-Usage:
+In this folder we provide Dockerfiles to build docker images with PyTorch, Ignite and other convenient libraries:
 
-Pulling ignite-examples image:
-```
-docker pull pytorchignite/ignite-examples:latest
-```
-Running "/bin/sh" in the container with a mount point on "examples" from Ignite root folder:
-```
-docker run -v ${PWD}/examples:/workspace/examples -it pytorchignite/ignite-examples:latest
-```
-In the container, launching MNIST example:
-```
-cd examples/mnist
-python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
-```
-With GPU support: 
-```
-docker run --gpus 1 -v ${PWD}/examples:/workspace/examples -it pytorchignite/ignite-examples:latest
-```
+- [basic](basic/Dockerfile): latest stable PyTorch, latest stable Ignite, OpenCV, Albumentations, Nvidia/Apex, etc
+<!-- For example, this dockerfile I'll provide once Horovod is done -->
+- [ignite-hvd](ignite-hvd/Dockerfile) : latest stable PyTorch, latest stable Ignite, Horovod
