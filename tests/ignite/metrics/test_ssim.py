@@ -17,7 +17,7 @@ def test_zero_div():
 
 
 def test_invalid_ssim():
-    y_pred = torch.rand(16, 3, 32, 32)
+    y_pred = torch.rand(16, 1, 32, 32)
     y = y_pred + 0.125
     with pytest.raises(ValueError):
         ssim = SSIM(data_range=1.0, kernel_size=10)

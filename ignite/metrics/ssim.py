@@ -40,36 +40,6 @@ class SSIM(Metric):
         engine = Engine(process_function)
         metric = SSIM()
         metric.attach(engine, "ssim")
-
-    If the output of the engine is not in the format above, ``output_transform`` argument can be used to transform it.
-
-    .. code-block:: python
-
-        def process_function(engine, batch):
-            # ...
-            return {'prediction': y_pred, 'target': y, ...}
-
-        engine = Engine(process_function)
-
-        def output_transform(output):
-            # `output` variable is returned by above `process_function`
-            y_pred = output['prediction']
-            y = output['target']
-            return y_pred, y  # output format is according to `Accuracy` docs
-
-        metric = SSIM(output_transform=output_transform)
-        metric.attach(engine, "ssim")
-
-    The user even can use the metric with ``update`` and ``compute`` methods.
-
-    .. code-block:: python
-
-        >>> y_pred = torch.rand([16, 1, 16, 16])
-        >>> y = y_pred * 0.85
-        >>> ssim = SSIM(data_range=1.0)
-        >>> ssim.update((y_pred, y))
-        >>> ssim.compute()
-        tensor(0.9741)
     """
 
     def __init__(
@@ -82,28 +52,29 @@ class SSIM(Metric):
         output_transform: Callable = lambda x: x,
     ):
         if isinstance(kernel_size, int):
-            if kernel_size % 2 == 0 or kernel_size <= 0:
-                raise ValueError("Expected `kernel_size` to have odd positive number. Got {}.".format(kernel_size))
+            self.kernel_size = [kernel_size, kernel_size]
         elif isinstance(kernel_size, Sequence):
-            if any(x % 2 == 0 or x <= 0 for x in kernel_size):
-                raise ValueError("Expected `kernel_size` to have odd positive number. Got {}.".format(kernel_size))
+            self.kernel_size = kernel_size
         else:
-            raise ValueError("Invalid `kernel_size`.")
+            raise ValueError("Argument kernel_size should be either int or a sequence of int.")
 
         if isinstance(sigma, float):
-            if sigma <= 0:
-                raise ValueError("Expected `sigma` to have positive number. Got {}.".format(sigma))
+            self.sigma = [sigma, sigma]
         elif isinstance(sigma, Sequence):
-            if any(y <= 0 for y in sigma):
-                raise ValueError("Expected `sigma` to have positive number. Got {}.".format(sigma))
+            self.sigma = sigma
         else:
-            raise ValueError("Invalid `sigma`.")
+            raise ValueError("Argument sigma should be either float or a sequence of float.")
 
-        self.kernel_size = kernel_size
-        self.sigma = sigma
+        if any(x % 2 == 0 or x <= 0 for x in self.kernel_size):
+            raise ValueError("Expected kernel_size to have odd positive number. Got {}.".format(kernel_size))
+
+        if any(y <= 0 for y in self.sigma):
+            raise ValueError("Expected sigma to have positive number. Got {}.".format(sigma))
+
         self.data_range = data_range
         self.k1 = k1
         self.k2 = k2
+        self.kernel = self._gaussian_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
         super(SSIM, self).__init__(output_transform=output_transform)
 
     @reinit__is_reduced
@@ -111,73 +82,56 @@ class SSIM(Metric):
         self._sum_of_batchwise_ssim = 0.0
         self._num_examples = 0
 
-    def _gaussian(self, kernel_size, sigma, device):
-        gauss = torch.arange(
-            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=device
-        )
+    def _gaussian(self, kernel_size, sigma):
+        gauss = torch.arange(start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32)
         gauss = torch.exp(-gauss.pow(2) / (2 * pow(sigma, 2)))
         return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
-    def _gaussian_kernel(self, channel, kernel_size, sigma, device):
-        if isinstance(kernel_size, int) and isinstance(sigma, float):
-            gaussian_kernel_x = self._gaussian(kernel_size, sigma, device)
-            gaussian_kernel_y = self._gaussian(kernel_size, sigma, device)
-        elif isinstance(kernel_size, Sequence) and isinstance(sigma, float):
-            gaussian_kernel_x = self._gaussian(kernel_size[0], sigma, device)
-            gaussian_kernel_y = self._gaussian(kernel_size[1], sigma, device)
-        elif isinstance(kernel_size, int) and isinstance(sigma, Sequence):
-            gaussian_kernel_x = self._gaussian(kernel_size, sigma[0], device)
-            gaussian_kernel_y = self._gaussian(kernel_size, sigma[1], device)
-        elif isinstance(kernel_size, Sequence) and isinstance(sigma, Sequence):
-            gaussian_kernel_x = self._gaussian(kernel_size[0], sigma[0], device)
-            gaussian_kernel_y = self._gaussian(kernel_size[1], sigma[1], device)
-        else:
-            raise TypeError("Invalid input type for `kernel_size` and `sigma`.")
+    def _gaussian_kernel(self, kernel_size, sigma):
+        gaussian_kernel_x = self._gaussian(kernel_size[0], sigma[0])
+        gaussian_kernel_y = self._gaussian(kernel_size[1], sigma[1])
 
-        kernel = torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
-
-        return kernel.expand(channel, 1, kernel_size[0], kernel_size[1])
+        return torch.matmul(gaussian_kernel_x.t(), gaussian_kernel_y)  # (kernel_size, 1) * (1, kernel_size)
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
         if y_pred.dtype != y.dtype:
             raise TypeError(
-                "Expected `y_pred` and `y` to have the same data type. Got y_pred: {} and y: {}.".format(
+                "Expected y_pred and y to have the same data type. Got y_pred: {} and y: {}.".format(
                     y_pred.dtype, y.dtype
                 )
             )
 
         if y_pred.shape != y.shape:
             raise ValueError(
-                "Expected `y_pred` and `y` to have the same shape. Got y_pred: {} and y: {}.".format(
-                    y_pred.shape, y.shape
-                )
+                "Expected y_pred and y to have the same shape. Got y_pred: {} and y: {}.".format(y_pred.shape, y.shape)
             )
 
         if len(y_pred.shape) != 4 or len(y.shape) != 4:
             raise ValueError(
-                "Expected `y_pred` and `y` to have BxCxHxW shape. Got y_pred: {} and y: {}.".format(
-                    y_pred.shape, y.shape
-                )
+                "Expected y_pred and y to have BxCxHxW shape. Got y_pred: {} and y: {}.".format(y_pred.shape, y.shape)
             )
 
         C1 = pow(self.k1 * self.data_range, 2)
         C2 = pow(self.k2 * self.data_range, 2)
+        channel = y_pred.size(1)
+        self.kernel = self.kernel.expand(channel, 1, -1, -1)
         device = y_pred.device
 
-        channel = y_pred.size(1)
-        kernel = self._gaussian_kernel(channel, self.kernel_size, self.sigma, device)
-        mu_pred = F.conv2d(y_pred, kernel, groups=channel)
-        mu_target = F.conv2d(y, kernel, groups=channel)
+        if device is not self.kernel.device:
+            self.kernel.to(device=device)
+
+        mu_pred = F.conv2d(y_pred, self.kernel, groups=channel)
+        mu_target = F.conv2d(y, self.kernel, groups=channel)
 
         mu_pred_sq = mu_pred.pow(2)
         mu_target_sq = mu_target.pow(2)
         mu_pred_target = mu_pred * mu_target
 
-        sigma_pred_sq = F.conv2d(y_pred * y_pred, kernel, groups=channel) - mu_pred_sq
-        sigma_target_sq = F.conv2d(y * y, kernel, groups=channel) - mu_target_sq
-        sigma_pred_target = F.conv2d(y_pred * y, kernel, groups=channel) - mu_pred_target
+        sigma_pred_sq = F.conv2d(y_pred * y_pred, self.kernel, groups=channel) - mu_pred_sq
+        sigma_target_sq = F.conv2d(y * y, self.kernel, groups=channel) - mu_target_sq
+        sigma_pred_target = F.conv2d(y_pred * y, self.kernel, groups=channel) - mu_pred_target
 
         UPPER = 2 * sigma_pred_target + C2
         LOWER = sigma_pred_sq + sigma_target_sq + C2
