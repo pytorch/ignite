@@ -88,7 +88,7 @@ def _test_distrib_integration(device, tol=1e-3):
     assert "ssim" in engine.state.metrics
     res = engine.state.metrics["ssim"]
 
-    np_pred = y_pred.permute(0, 2, 3, 1).numpy()
+    np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
     np_true = np.add(np_pred, 0.125)
     true_res = ski_ssim(np_pred, np_true, win_size=11, multichannel=True, gaussian_weights=True)
 
