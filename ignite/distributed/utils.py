@@ -116,7 +116,7 @@ def model_name() -> str:
     - `serial` for no distributed configuration
     - `native-dist` for native torch distributed configuration
     - `xla-dist` for XLA distributed configuration
-    - `horovod` for Horovod distributed framework
+    - `horovod-dist` for Horovod distributed framework
 
     """
     if _need_to_sync and isinstance(_model, _SerialModel):

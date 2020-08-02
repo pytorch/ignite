@@ -50,7 +50,7 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, every=1):
     @engine.on(event)
     def assert_wps(e):
         wps = e.state.metrics["wps"]
-        # Skip iterations 2, 3, 4 if backend is Horovod on CUDA, 
+        # Skip iterations 2, 3, 4 if backend is Horovod on CUDA,
         # wps is abnormally low for these iterations
         # otherwise, other values of wps are OK
         if idist.model_name() == "horovod-dist" and e.state.iteration in (2, 3, 4):
