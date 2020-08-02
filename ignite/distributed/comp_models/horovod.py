@@ -30,7 +30,7 @@ if has_hvd_support:
 
         name = "horovod-dist"
 
-        available_backends = tuple([HOROVOD,])
+        available_backends = (HOROVOD,)
 
         @staticmethod
         def _get_hvd_rank():
