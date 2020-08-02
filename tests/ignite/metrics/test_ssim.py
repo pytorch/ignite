@@ -19,27 +19,27 @@ def test_zero_div():
 def test_invalid_ssim():
     y_pred = torch.rand(16, 1, 32, 32)
     y = y_pred + 0.125
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Expected kernel_size to have odd positive number. Got 10."):
         ssim = SSIM(data_range=1.0, kernel_size=10)
         ssim.update((y_pred, y))
         ssim.compute()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Expected kernel_size to have odd positive number. Got -1."):
         ssim = SSIM(data_range=1.0, kernel_size=-1)
         ssim.update((y_pred, y))
         ssim.compute()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument kernel_size should be either int or a sequence of int."):
         ssim = SSIM(data_range=1.0, kernel_size=1.0)
         ssim.update((y_pred, y))
         ssim.compute()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument sigma should be either float or a sequence of float."):
         ssim = SSIM(data_range=1.0, sigma=-1)
         ssim.update((y_pred, y))
         ssim.compute()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument sigma should be either float or a sequence of float."):
         ssim = SSIM(data_range=1.0, sigma=1)
         ssim.update((y_pred, y))
         ssim.compute()
@@ -52,7 +52,7 @@ def test_ssim():
     y = y_pred + 0.125
     ssim.update((y_pred, y))
 
-    np_pred = np.random.rand(16, 32, 32, 3)
+    np_pred = y_pred.permute(0, 2, 3, 1).numpy()
     np_y = np.add(np_pred, 0.125)
     np_ssim = ski_ssim(np_pred, np_y, win_size=11, multichannel=True, gaussian_weights=True)
 
@@ -88,7 +88,7 @@ def _test_distrib_integration(device, tol=1e-3):
     assert "ssim" in engine.state.metrics
     res = engine.state.metrics["ssim"]
 
-    np_pred = np.random.rand(offset * idist.get_world_size(), 28, 28, 3)
+    np_pred = y_pred.permute(0, 2, 3, 1).numpy()
     np_true = np.add(np_pred, 0.125)
     true_res = ski_ssim(np_pred, np_true, win_size=11, multichannel=True, gaussian_weights=True)
 

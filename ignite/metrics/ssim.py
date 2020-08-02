@@ -116,11 +116,8 @@ class SSIM(Metric):
         C1 = pow(self.k1 * self.data_range, 2)
         C2 = pow(self.k2 * self.data_range, 2)
         channel = y_pred.size(1)
-        self.kernel = self.kernel.expand(channel, 1, -1, -1)
         device = y_pred.device
-
-        if device is not self.kernel.device:
-            self.kernel.to(device=device)
+        self.kernel = self.kernel.expand(channel, 1, -1, -1).to(device=device)
 
         mu_pred = F.conv2d(y_pred, self.kernel, groups=channel)
         mu_target = F.conv2d(y, self.kernel, groups=channel)
