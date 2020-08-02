@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pytest
 import torch
-from skimage.measure import compare_ssim as ski_ssim
+from skimage.metrics import structural_similarity as ski_ssim
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -52,17 +52,15 @@ def test_ssim():
     y = y_pred + 0.125
     ssim.update((y_pred, y))
 
-    np_pred = y_pred.permute(0, 2, 3, 1).numpy()
+    np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
     np_y = np.add(np_pred, 0.125)
     np_ssim = ski_ssim(np_pred, np_y, win_size=11, multichannel=True, gaussian_weights=True)
 
     assert isinstance(ssim.compute(), torch.Tensor)
-    assert torch.allclose(
-        ssim.compute(), torch.tensor(np_ssim, dtype=torch.float32, device=device), atol=1e-3, rtol=1e-3
-    )
+    assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float32, device=device))
 
 
-def _test_distrib_integration(device, tol=1e-3):
+def _test_distrib_integration(device, tol=1e-6):
     from ignite.engine import Engine
 
     rank = idist.get_rank()

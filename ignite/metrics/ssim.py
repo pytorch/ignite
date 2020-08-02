@@ -14,12 +14,12 @@ class SSIM(Metric):
     Computes Structual Similarity Index Measure
 
     Args:
-        kernel_size (list or tuple of int): Size of the gaussian kernel. Default: (11, 11)
-        sigma (list or tuple of float): Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
+        kernel_size (int or list or tuple of int): Size of the gaussian kernel. Default: (11, 11)
+        sigma (float or list or tuple of float): Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
         data_range (int or float): Range of the image. Typically, ``1.0`` or ``255``.
         k1 (float): Parameter of SSIM. Default: 0.01
         k2 (float): Parameter of SSIM. Default: 0.03
-        output_transform: A callable that is used to transform the
+        output_transform (callable, optional): A callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric.
 
@@ -29,8 +29,8 @@ class SSIM(Metric):
     The output of the engine's ``process_function`` needs to be in the format of
     ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
-    ``y_pred`` and ``y`` can be an un-normalized image tensor or a normalized image tensor.
-    Depending on that, the user might need to adjust ``data_range``.
+    ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
+    to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
 
     .. code-block:: python
 
@@ -38,7 +38,7 @@ class SSIM(Metric):
             # ...
             return y_pred, y
         engine = Engine(process_function)
-        metric = SSIM()
+        metric = SSIM(data_range=1.0)
         metric.attach(engine, "ssim")
     """
 
@@ -74,13 +74,14 @@ class SSIM(Metric):
         self.data_range = data_range
         self.k1 = k1
         self.k2 = k2
-        self.kernel = self._gaussian_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
+        self._kernel = self._gaussian_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
         super(SSIM, self).__init__(output_transform=output_transform)
 
     @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_batchwise_ssim = 0.0
         self._num_examples = 0
+        self._kernel = self._gaussian_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
     def _gaussian(self, kernel_size, sigma):
         gauss = torch.arange(start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32)
@@ -113,27 +114,31 @@ class SSIM(Metric):
                 "Expected y_pred and y to have BxCxHxW shape. Got y_pred: {} and y: {}.".format(y_pred.shape, y.shape)
             )
 
-        C1 = pow(self.k1 * self.data_range, 2)
-        C2 = pow(self.k2 * self.data_range, 2)
-        channel = y_pred.size(1)
-        device = y_pred.device
-        self.kernel = self.kernel.expand(channel, 1, -1, -1).to(device=device)
+        c1 = (self.k1 * self.data_range) ** 2
+        c2 = (self.k2 * self.data_range) ** 2
 
-        mu_pred = F.conv2d(y_pred, self.kernel, groups=channel)
-        mu_target = F.conv2d(y, self.kernel, groups=channel)
+        channel = y_pred.size(1)
+        if len(self._kernel.shape) < 4:
+            self._kernel = self._kernel.expand(channel, 1, -1, -1).to(device=y_pred.device)
+
+        mu_pred = F.conv2d(y_pred, self._kernel, groups=channel)
+        mu_target = F.conv2d(y, self._kernel, groups=channel)
 
         mu_pred_sq = mu_pred.pow(2)
         mu_target_sq = mu_target.pow(2)
         mu_pred_target = mu_pred * mu_target
 
-        sigma_pred_sq = F.conv2d(y_pred * y_pred, self.kernel, groups=channel) - mu_pred_sq
-        sigma_target_sq = F.conv2d(y * y, self.kernel, groups=channel) - mu_target_sq
-        sigma_pred_target = F.conv2d(y_pred * y, self.kernel, groups=channel) - mu_pred_target
+        sigma_pred_sq = F.conv2d(y_pred * y_pred, self._kernel, groups=channel) - mu_pred_sq
+        sigma_target_sq = F.conv2d(y * y, self._kernel, groups=channel) - mu_target_sq
+        sigma_pred_target = F.conv2d(y_pred * y, self._kernel, groups=channel) - mu_pred_target
 
-        UPPER = 2 * sigma_pred_target + C2
-        LOWER = sigma_pred_sq + sigma_target_sq + C2
+        a1 = 2 * mu_pred_target + c1
+        a2 = 2 * sigma_pred_target + c2
+        b1 = mu_pred_sq + mu_target_sq + c1
+        b2 = sigma_pred_sq + sigma_target_sq + c2
 
-        ssim_idx = ((2 * mu_pred_target + C1) * UPPER) / ((mu_pred_sq + mu_target_sq + C1) * LOWER)
+        ssim_idx = (a1 * a2) / (b1 * b2)
+
         self._sum_of_batchwise_ssim += torch.mean(ssim_idx, (1, 2, 3))
         self._num_examples += y.shape[0]
 
