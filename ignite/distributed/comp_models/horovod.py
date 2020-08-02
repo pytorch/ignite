@@ -129,7 +129,7 @@ if has_hvd_support:
             c2 = "node_rank" in kwargs and kwargs["node_rank"] > 0
             if c1 or c2:
                 raise RuntimeError(
-                    "For multi-node configuration, please set 'hosts' argument instead according to " "horovod.run API."
+                    "For multi-node configuration, please set 'hosts' argument instead according to horovod.run API."
                 )
             if "nnodes" in kwargs:
                 # Remove 'nnodes=1' as it is an unexpected keyword argument for horovod.run

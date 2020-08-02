@@ -53,7 +53,7 @@ def sync(temporary=False):
 
     Args:
         temporary (bool): If True, distributed model synchronization is done every call of ``idist.get_*`` methods.
-            This may have performance negative impact.
+            This may have a negative performance impact.
     """
     global _model
 
@@ -71,8 +71,8 @@ def sync(temporary=False):
 def device() -> torch.device:
     """Returns current device according to current distributed configuration.
 
-    - `torch.device("cpu")` if no distributed configuration or native gloo distributed configuration
-    - `torch.device("cuda:local_rank")` if native nccl distributed configuration
+    - `torch.device("cpu")` if no distributed configuration or torch native gloo distributed configuration
+    - `torch.device("cuda:local_rank")` if torch native nccl or horovod distributed configuration
     - `torch.device("xla:index")` if XLA distributed configuration
 
     Returns:
@@ -196,7 +196,7 @@ def spawn(
 
     Examples:
 
-        1) Launch single node multi-GPU training
+        1) Launch single node multi-GPU training using torch native distributed framework
 
         .. code-block:: python
 
@@ -218,7 +218,7 @@ def spawn(
             idist.spawn("nccl", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=4)
 
 
-        2) Launch multi-node multi-GPU training
+        2) Launch multi-node multi-GPU training using torch native distributed framework
 
         .. code-block:: python
 
@@ -251,7 +251,7 @@ def spawn(
                 master_port=master_port
             )
 
-        3) Launch single node multi-TPU training (for example on Google Colab)
+        3) Launch single node multi-TPU training (for example on Google Colab) using PyTorch/XLA
 
         .. code-block:: python
 
@@ -430,11 +430,14 @@ def initialize(backend: str, **kwargs):
         backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
         **kwargs: acceptable kwargs according to provided backend:
 
-            - "nccl" or "gloo" : timeout(=timedelta(minutes=30))
+            - "nccl" or "gloo" : timeout(=timedelta(minutes=30)).
 
+            - "horovod" : comm(=None), more info: `hvd_init`_.
+
+    .. _hvd_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
 
     """
-    if not (has_xla_support or has_native_dist_support):
+    if not (has_xla_support or has_native_dist_support or has_hvd_support):
         # nothing to do => serial model
         # maybe warn about this
         return

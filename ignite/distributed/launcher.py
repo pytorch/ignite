@@ -26,7 +26,7 @@ class Parallel:
         1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ or `horovodrun`_
         tools
 
-        Single node option : 4 GPUs
+        Single node option with 4 GPUs
 
         .. code-block:: bash
 
@@ -34,7 +34,7 @@ class Parallel:
             # or if installed horovod
             horovodrun -np=4 python main.py
 
-        Multi-node option : 2 nodes and 8 GPUs each
+        Multi-node option : 2 nodes with 8 GPUs each
 
         .. code-block:: bash
 
@@ -114,6 +114,8 @@ class Parallel:
 
 
         4) Multi-node, Multi-GPU training launched with `python`. For example, 2 nodes with 8 GPUs:
+
+        Using torch native distributed framework:
 
         .. code-block:: bash
 
