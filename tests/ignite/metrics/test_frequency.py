@@ -67,8 +67,7 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, every=1):
 @pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_frequency_with_engine():
-    device = "cpu"
-    _test_frequency_with_engine(device, workers=1)
+    _test_frequency_with_engine(workers=1)
 
 
 @pytest.mark.distributed
