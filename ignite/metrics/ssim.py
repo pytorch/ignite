@@ -121,16 +121,16 @@ class SSIM(Metric):
         if len(self._kernel.shape) < 4:
             self._kernel = self._kernel.expand(channel, 1, -1, -1).to(device=y_pred.device)
 
-        mu_pred = F.conv2d(y_pred, self._kernel, groups=channel)
-        mu_target = F.conv2d(y, self._kernel, groups=channel)
+        input_list = [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
+        output_list = [F.conv2d(x, self._kernel, groups=channel) for x in input_list]
 
-        mu_pred_sq = mu_pred.pow(2)
-        mu_target_sq = mu_target.pow(2)
-        mu_pred_target = mu_pred * mu_target
+        mu_pred_sq = output_list[0].pow(2)
+        mu_target_sq = output_list[1].pow(2)
+        mu_pred_target = output_list[0] * output_list[1]
 
-        sigma_pred_sq = F.conv2d(y_pred * y_pred, self._kernel, groups=channel) - mu_pred_sq
-        sigma_target_sq = F.conv2d(y * y, self._kernel, groups=channel) - mu_target_sq
-        sigma_pred_target = F.conv2d(y_pred * y, self._kernel, groups=channel) - mu_pred_target
+        sigma_pred_sq = output_list[2] - mu_pred_sq
+        sigma_target_sq = output_list[3] - mu_target_sq
+        sigma_pred_target = output_list[4] - mu_pred_target
 
         a1 = 2 * mu_pred_target + c1
         a2 = 2 * sigma_pred_target + c2

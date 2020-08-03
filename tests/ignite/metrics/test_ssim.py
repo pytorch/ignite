@@ -1,9 +1,8 @@
 import os
 
-import numpy as np
 import pytest
 import torch
-from skimage.metrics import structural_similarity as ski_ssim
+from skimage.measure import compare_ssim as ski_ssim
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -49,12 +48,12 @@ def test_ssim():
     ssim = SSIM(data_range=1.0)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     y_pred = torch.rand(16, 3, 32, 32, device=device)
-    y = y_pred + 0.125
+    y = y_pred * 0.65
     ssim.update((y_pred, y))
 
     np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
-    np_y = np.add(np_pred, 0.125)
-    np_ssim = ski_ssim(np_pred, np_y, win_size=11, multichannel=True, gaussian_weights=True)
+    np_y = np_pred * 0.65
+    np_ssim = ski_ssim(np_pred, np_y, win_size=11, multichannel=True, gaussian_weights=True, data_range=1.0)
 
     assert isinstance(ssim.compute(), torch.Tensor)
     assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float32, device=device))
@@ -69,7 +68,7 @@ def _test_distrib_integration(device, tol=1e-6):
     offset = n_iters * s
 
     y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, dtype=torch.float, device=device)
-    y = y_pred + 0.125
+    y = y_pred * 0.65
 
     def update(engine, i):
         return (
@@ -87,8 +86,8 @@ def _test_distrib_integration(device, tol=1e-6):
     res = engine.state.metrics["ssim"]
 
     np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
-    np_true = np.add(np_pred, 0.125)
-    true_res = ski_ssim(np_pred, np_true, win_size=11, multichannel=True, gaussian_weights=True)
+    np_true = np_pred * 0.65
+    true_res = ski_ssim(np_pred, np_true, win_size=11, multichannel=True, gaussian_weights=True, data_range=1.0)
 
     assert pytest.approx(res, rel=tol) == true_res
 
