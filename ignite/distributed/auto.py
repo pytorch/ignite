@@ -8,6 +8,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
 from ignite.distributed import utils as idist
+from ignite.distributed.comp_models import horovod as idist_hvd
 from ignite.distributed.comp_models import native as idist_native
 from ignite.distributed.comp_models import xla as idist_xla
 from ignite.utils import setup_logger
@@ -130,6 +131,7 @@ def auto_model(model: nn.Module) -> nn.Module:
     - send model to current :meth:`~ignite.distributed.utils.device()` if model's parameters are not on the device.
     - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1.
     - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
+    - broadcast the initial variable states from rank 0 to all other processes if Horovod distributed framework is used.
 
     Examples:
 
@@ -166,13 +168,19 @@ def auto_model(model: nn.Module) -> nn.Module:
 
     # distributed data parallel model
     if idist.get_world_size() > 1:
-        if idist.backend() == idist_native.NCCL:
+        bnd = idist.backend()
+        if idist.has_native_dist_support and bnd == idist_native.NCCL:
             lrank = idist.get_local_rank()
             logger.info("Apply torch DistributedDataParallel on model, device id: {}".format(lrank))
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,])
-        elif idist.backend() == idist_native.GLOO:
+        elif idist.has_native_dist_support and bnd == idist_native.GLOO:
             logger.info("Apply torch DistributedDataParallel on model")
             model = torch.nn.parallel.DistributedDataParallel(model)
+        elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
+            import horovod.torch as hvd
+
+            logger.info("Broadcast the initial variable states from rank 0 to all other processes")
+            hvd.broadcast_parameters(model.state_dict(), root_rank=0)
 
     # not distributed but multiple GPUs reachable so data parallel model
     elif torch.cuda.device_count() > 1 and "cuda" in idist.device().type:
@@ -187,14 +195,18 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
     Internally, this method is no-op for non-distributed and torch native distributed configuration.
+
     For XLA distributed configuration, we create a new class that inherits from provided optimizer.
     The goal is to override the `step()` method with specific `xm.optimizer_step`_ implementation.
+
+    For Horovod distributed configuration, optimizer is wrapped with Horovod Distributed Optimizer and
+    its state is broadcasted from rank 0 to all other processes.
 
     Examples:
 
     .. code-block:: python
 
-        import ignite.distribted as idist
+        import ignite.distributed as idist
 
         optimizer = idist.auto_optim(optimizer)
 
@@ -208,11 +220,19 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
     .. _xm.optimizer_step: http://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
 
     """
-    if not (idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU):
+    bnd = idist.backend()
+    if idist.has_xla_support and bnd == idist_xla.XLA_TPU:
+        cls = type(optimizer.__class__.__name__, (optimizer.__class__,), dict(_XLADistributedOptimizer.__dict__))
+        return cls(optimizer)
+
+    if idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
+        import horovod.torch as hvd
+
+        optimizer = hvd.DistributedOptimizer(optimizer)
+        hvd.broadcast_optimizer_state(optimizer, root_rank=0)
         return optimizer
 
-    cls = type(optimizer.__class__.__name__, (optimizer.__class__,), dict(_XLADistributedOptimizer.__dict__))
-    return cls(optimizer)
+    return optimizer
 
 
 class DistributedProxySampler(DistributedSampler):
