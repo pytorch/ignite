@@ -2,11 +2,15 @@ import os
 
 import pytest
 import torch
-from skimage.measure import compare_ssim as ski_ssim
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import SSIM
+
+try:
+    from skimage.metrics import structural_similarity as ski_ssim
+except ImportError:
+    from skimage.measure import compare_ssim as ski_ssim
 
 
 def test_zero_div():
@@ -47,7 +51,7 @@ def test_invalid_ssim():
 def test_ssim():
     ssim = SSIM(data_range=1.0)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    y_pred = torch.rand(16, 3, 32, 32, device=device)
+    y_pred = torch.rand(16, 3, 64, 64, device=device)
     y = y_pred * 0.65
     ssim.update((y_pred, y))
 
@@ -56,10 +60,23 @@ def test_ssim():
     np_ssim = ski_ssim(np_pred, np_y, win_size=11, multichannel=True, gaussian_weights=True, data_range=1.0)
 
     assert isinstance(ssim.compute(), torch.Tensor)
-    assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float32, device=device))
+    assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float64, device=device), atol=1e-4)
+
+    ssim = SSIM(data_range=1.0, gaussian=False, kernel_size=7)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    y_pred = torch.rand(16, 3, 227, 227, device=device)
+    y = y_pred * 0.65
+    ssim.update((y_pred, y))
+
+    np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
+    np_y = np_pred * 0.65
+    np_ssim = ski_ssim(np_pred, np_y, win_size=7, multichannel=True, gaussian_weights=False, data_range=1.0)
+
+    assert isinstance(ssim.compute(), torch.Tensor)
+    assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float64, device=device), atol=1e-4)
 
 
-def _test_distrib_integration(device, tol=1e-6):
+def _test_distrib_integration(device, tol=1e-4):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -89,7 +106,22 @@ def _test_distrib_integration(device, tol=1e-6):
     np_true = np_pred * 0.65
     true_res = ski_ssim(np_pred, np_true, win_size=11, multichannel=True, gaussian_weights=True, data_range=1.0)
 
-    assert pytest.approx(res, rel=tol) == true_res
+    assert pytest.approx(res, abs=tol) == true_res
+
+    engine = Engine(update)
+    SSIM(data_range=1.0, gaussian=False, kernel_size=7).attach(engine, "ssim")
+
+    data = list(range(n_iters))
+    engine.run(data=data, max_epochs=1)
+
+    assert "ssim" in engine.state.metrics
+    res = engine.state.metrics["ssim"]
+
+    np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
+    np_true = np_pred * 0.65
+    true_res = ski_ssim(np_pred, np_true, win_size=7, multichannel=True, gaussian_weights=False, data_range=1.0)
+
+    assert pytest.approx(res, abs=tol) == true_res
 
 
 @pytest.mark.distributed
