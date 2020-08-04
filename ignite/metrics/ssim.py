@@ -16,7 +16,7 @@ class SSIM(Metric):
     Args:
         data_range (int or float): Range of the image. Typically, ``1.0`` or ``255``.
         kernel_size (int or list or tuple of int): Size of the kernel. Default: (11, 11)
-        sigma (float or list or tuple of float): Standard deviation of the gaussian kernel. 
+        sigma (float or list or tuple of float): Standard deviation of the gaussian kernel.
             Argument is used if ``gaussian=True``. Default: (1.5, 1.5)
         k1 (float): Parameter of SSIM. Default: 0.01
         k2 (float): Parameter of SSIM. Default: 0.03
