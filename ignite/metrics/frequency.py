@@ -54,7 +54,7 @@ class Frequency(Metric):
     def update(self, output):
         self._acc += output
         self._n = self._acc
-        self._elapsed = torch.tensor(self._timer.value(), device=self._device)
+        self._elapsed = self._timer.value()
 
     @sync_all_reduce("_n", "_elapsed")
     def compute(self):
@@ -64,7 +64,7 @@ class Frequency(Metric):
             time_divisor *= idist.get_world_size()
 
         # Returns the average processed objects per second across all workers
-        return self._n / self._elapsed.item() * time_divisor
+        return self._n / self._elapsed * time_divisor
 
     def completed(self, engine, name):
         engine.state.metrics[name] = int(self.compute())

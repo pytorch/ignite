@@ -234,6 +234,7 @@ Complete list of metrics
     - :class:`~ignite.metrics.Recall`
     - :class:`~ignite.metrics.RootMeanSquaredError`
     - :class:`~ignite.metrics.RunningAverage`
+    - :class:`~ignite.metrics.SSIM`
     - :class:`~ignite.metrics.TopKCategoricalAccuracy`
     - :class:`~ignite.metrics.VariableAccumulation`
 
@@ -277,6 +278,8 @@ Complete list of metrics
 .. autoclass:: RootMeanSquaredError
 
 .. autoclass:: RunningAverage
+
+.. autoclass:: SSIM
 
 .. autoclass:: TopKCategoricalAccuracy
 
