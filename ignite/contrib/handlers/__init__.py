@@ -12,6 +12,7 @@ from ignite.contrib.handlers.param_scheduler import (
     create_lr_scheduler_with_warmup,
 )
 from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger
+from ignite.contrib.handlers.stores import EpochOutputStore
 from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger
 from ignite.contrib.handlers.time_profilers import BasicTimeProfiler
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
