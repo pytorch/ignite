@@ -4,6 +4,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
+from ignite.engine import Engine
 from ignite.metrics import EpochMetric
 from ignite.metrics.epoch_metric import EpochMetricWarning
 
@@ -159,47 +160,80 @@ def test_check_compute_fn():
     em.update(output1)
 
 
+def _test_distrib_integration(device=None):
+
+    if device is None:
+        device = idist.device()
+
+    rank = idist.get_rank()
+    torch.manual_seed(12)
+
+    n_iters = 60
+    s = 16
+    n_classes = 7
+
+    offset = n_iters * s
+    y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+    y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
+
+    def update(engine, i):
+        return (
+            y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+            y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+        )
+
+    engine = Engine(update)
+
+    def assert_data_fn(all_preds, all_targets):
+        assert all_preds.equal(y_preds), "{} vs {}".format(all_preds.shape, y_preds.shape)
+        assert all_targets.equal(y_true), "{} vs {}".format(all_targets.shape, y_true.shape)
+        return all_preds.shape
+
+    ep_metric = EpochMetric(assert_data_fn, check_compute_fn=False)
+    ep_metric.attach(engine, "epm")
+
+    data = list(range(n_iters))
+    engine.run(data=data, max_epochs=3)
+    assert engine.state.metrics["epm"] == y_preds.shape
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    # Perform some ops otherwise, next tests fail
-
-    if idist.get_world_size() > 1:
-        _test_warning()
-
-    device = "cuda:{}".format(local_rank)
-
-    y = torch.rand(10, 12, device=device)
-    y = idist.all_gather(y)
-    assert isinstance(y, torch.Tensor)
+def test_distrib_gpu(distributed_context_single_node_nccl):
+    _test_distrib_integration()
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
-    # Perform some ops otherwise, next tests fail
-
-    if idist.get_world_size() > 1:
-        _test_warning()
-
-    device = "cpu"
-
-    y = torch.rand(10, 12, device=device)
-    y = idist.all_gather(y)
-    assert isinstance(y, torch.Tensor)
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    _test_distrib_integration()
 
 
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    _test_distrib_integration()
 
-    _test_warning()
+
+def _test_distrib_xla_nprocs(index):
+    _test_distrib_integration()
 
 
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    _test_warning()
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_integration, (None,), np=nproc, do_init=True)

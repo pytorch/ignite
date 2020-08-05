@@ -3,7 +3,8 @@ from typing import Callable, Sequence
 
 import torch
 
-from ignite.metrics.metric import Metric
+import ignite.distributed as idist
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 __all__ = ["EpochMetric"]
 
@@ -52,8 +53,9 @@ class EpochMetric(Metric):
         self.compute_fn = compute_fn
         self._check_compute_fn = check_compute_fn
 
-        super(EpochMetric, self).__init__(output_transform=output_transform, device="cpu")
+        super(EpochMetric, self).__init__(output_transform=output_transform)
 
+    @reinit__is_reduced
     def reset(self) -> None:
         self._predictions = []
         self._targets = []
@@ -87,6 +89,7 @@ class EpochMetric(Metric):
                 "Incoherent types between input y and stored targets: " "{} vs {}".format(dtype_targets, y.type())
             )
 
+    @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
         y_pred, y = output
@@ -96,8 +99,8 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        y_pred = y_pred.cpu().clone()
-        y = y.cpu().clone()
+        y_pred = y_pred.clone()
+        y = y.clone()
 
         self._check_type((y_pred, y))
         self._predictions.append(y_pred)
@@ -113,6 +116,12 @@ class EpochMetric(Metric):
     def compute(self) -> None:
         _prediction_tensor = torch.cat(self._predictions, dim=0)
         _target_tensor = torch.cat(self._targets, dim=0)
+
+        if not self._is_reduced:
+            _prediction_tensor = idist.all_gather(_prediction_tensor)
+            _target_tensor = idist.all_gather(_target_tensor)
+            self._is_reduced = True
+
         return self.compute_fn(_prediction_tensor, _target_tensor)
 
 
