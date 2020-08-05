@@ -1,8 +1,7 @@
-from ignite.engine.engine import Engine, Events
-
 import pytest
 
 from ignite.contrib.handlers import EpochOutputStore
+from ignite.engine.engine import Engine, Events
 
 
 @pytest.fixture
@@ -57,4 +56,3 @@ def test_attatch(dummy_evaluator, eos):
     eos.attach(dummy_evaluator)
     assert dummy_evaluator.has_event_handler(eos.reset, Events.EPOCH_STARTED)
     assert dummy_evaluator.has_event_handler(eos.update, Events.ITERATION_COMPLETED)
-
