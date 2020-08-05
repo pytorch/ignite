@@ -19,10 +19,9 @@ class EpochMetric(Metric):
         Current implementation stores all input data (output and target) in as tensors before computing a metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
 
-    .. warning::
-
-        Current implementation does not work with distributed computations. Results are not gather across all devices
-        and computed results are valid for a single device only.
+        In distributed configuration, all stored data (output and target) is collected from all processes on rank zero
+        process this can potentially lead to a memory error on the node zero.
+        Final result is broadcasted to all processes.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
 
