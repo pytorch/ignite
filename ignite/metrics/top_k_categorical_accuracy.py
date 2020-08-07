@@ -23,7 +23,7 @@ class TopKCategoricalAccuracy(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct = 0
+        self._num_correct = torch.tensor(0, device=self._device)
         self._num_examples = 0
 
     @reinit__is_reduced
@@ -32,7 +32,7 @@ class TopKCategoricalAccuracy(Metric):
         sorted_indices = torch.topk(y_pred, self._k, dim=1)[1]
         expanded_y = y.view(-1, 1).expand(-1, self._k)
         correct = torch.sum(torch.eq(sorted_indices, expanded_y), dim=1)
-        self._num_correct += torch.sum(correct).item()
+        self._num_correct += torch.sum(correct).to(self._device)
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_correct", "_num_examples")
@@ -41,4 +41,4 @@ class TopKCategoricalAccuracy(Metric):
             raise NotComputableError(
                 "TopKCategoricalAccuracy must have at" "least one example before it can be computed."
             )
-        return self._num_correct / self._num_examples
+        return self._num_correct.item() / self._num_examples
