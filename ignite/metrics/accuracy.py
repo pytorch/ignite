@@ -138,7 +138,7 @@ class Accuracy(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct = 0
+        self._num_correct = torch.tensor(0, device=self._device)
         self._num_examples = 0
         super(Accuracy, self).reset()
 
@@ -161,11 +161,11 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
-        self._num_correct += torch.sum(correct).item()
+        self._num_correct += torch.sum(correct).to(self._device)
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        return self._num_correct / self._num_examples
+        return self._num_correct.item() / self._num_examples

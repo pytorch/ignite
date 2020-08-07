@@ -345,7 +345,7 @@ def _test_distrib_on_metric(device):
             )
             true_acc_metric.update(output)
 
-        batch_acc = true_acc_metric._num_correct * 1.0 / true_acc_metric._num_examples
+        batch_acc = true_acc_metric._num_correct.item() * 1.0 / true_acc_metric._num_examples
 
         if running_avg_acc[0] is None:
             running_avg_acc[0] = batch_acc
