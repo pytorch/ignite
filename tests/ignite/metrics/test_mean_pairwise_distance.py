@@ -78,12 +78,35 @@ def _test_distrib_integration(device):
     assert pytest.approx(res) == true_res
 
 
+def _test_distrib_accumulator_device(device):
+    device = torch.device(device)
+    mpd = MeanPairwiseDistance(device=device)
+    assert mpd._device == device
+
+    y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
+    y = torch.zeros(2, 2)
+    mpd.update((y_pred, y))
+
+    assert mpd._sum_of_distances.device == device
+
+
+def test_accumulator_detached():
+    mpd = MeanPairwiseDistance()
+
+    y_pred = torch.tensor([[3.0, 4.0], [-3.0, -4.0]], requires_grad=True)
+    y = torch.zeros(2, 2)
+    mpd.update((y_pred, y))
+
+    assert not mpd._sum_of_distances.requires_grad
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -91,6 +114,7 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
     device = "cpu"
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -102,6 +126,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -110,6 +135,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
@@ -118,6 +144,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -126,11 +153,13 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu

@@ -29,18 +29,18 @@ class MeanPairwiseDistance(Metric):
 
     @reinit__is_reduced
     def reset(self):
-        self._sum_of_distances = 0.0
+        self._sum_of_distances = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
         distances = pairwise_distance(y_pred, y, p=self._p, eps=self._eps)
-        self._sum_of_distances += torch.sum(distances).item()
+        self._sum_of_distances += torch.sum(distances).detach().to(self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_distances", "_num_examples")
     def compute(self) -> Union[float, torch.Tensor]:
         if self._num_examples == 0:
             raise NotComputableError("MeanAbsoluteError must have at least one example before it can be computed.")
-        return self._sum_of_distances / self._num_examples
+        return self._sum_of_distances.item() / self._num_examples
