@@ -18,7 +18,7 @@ class _BasePrecisionRecall(_BaseClassification):
         output_transform: Callable = lambda x: x,
         average: bool = False,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
     ):
         if idist.get_world_size() > 1:
             if (not average) and is_multilabel:
@@ -39,13 +39,20 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        dtype = torch.float64
-        self._true_positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
-        self._positives = torch.tensor([], dtype=dtype) if (self._is_multilabel and not self._average) else 0
+        if self._is_multilabel:
+            init_value = 0.0 if self._average else []
+            kws = {'dtype': torch.float64, 'device': self._device}
+            self._true_positives = torch.tensor(init_value, **kws)
+            self._positives = torch.tensor(init_value, **kws)
+        else:
+            self._true_positives = 0
+            self._positives = 0
+
         super(_BasePrecisionRecall, self).reset()
 
     def compute(self) -> Union[torch.Tensor, float]:
-        if not (isinstance(self._positives, torch.Tensor) or self._positives > 0):
+        is_scalar = not isinstance(self._positives, torch.Tensor) or self._positives.ndim == 0
+        if is_scalar and self._positives == 0:
             raise NotComputableError(
                 "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
             )
@@ -124,7 +131,7 @@ class Precision(_BasePrecisionRecall):
         output_transform: Callable = lambda x: x,
         average: bool = False,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
     ):
         super(Precision, self).__init__(
             output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
@@ -155,17 +162,16 @@ class Precision(_BasePrecisionRecall):
             y_pred = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
             y = torch.transpose(y, 1, 0).reshape(num_classes, -1)
 
-        y = y.to(y_pred)
+        # Convert from int cuda/cpu to double on self._device
+        y_pred = y_pred.to(dtype=torch.float64, device=self._device)
+        y = y.to(dtype=torch.float64, device=self._device)
         correct = y * y_pred
-        all_positives = y_pred.sum(dim=0).type(torch.DoubleTensor)  # Convert from int cuda/cpu to double cpu
+        all_positives = y_pred.sum(dim=0)
 
         if correct.sum() == 0:
             true_positives = torch.zeros_like(all_positives)
         else:
             true_positives = correct.sum(dim=0)
-        # Convert from int cuda/cpu to double cpu
-        # We need double precision for the division true_positives / all_positives
-        true_positives = true_positives.type(torch.DoubleTensor)
 
         if self._type == "multilabel":
             if not self._average:

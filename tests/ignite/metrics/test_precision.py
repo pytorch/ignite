@@ -833,6 +833,42 @@ def _test_distrib_integration_multilabel(device):
         assert (pr_compute1 == pr_compute2).all()
 
 
+def _test_distrib_accumulator_device(device):
+    # Binary accuracy on input of shape (N, 1) or (N, )
+    device = torch.device(device)
+
+    def _test(average):
+        pr = Precision(average=average, device=device)
+        assert pr._device == device
+
+        y_pred = torch.randint(0, 2, size=(10,))
+        y = torch.randint(0, 2, size=(10,)).long()
+        pr.update((y_pred, y))
+
+        assert pr._true_positives.device == device
+        assert pr._positives.device == device
+
+    _test(True)
+    _test(False)
+
+
+def _test_distrib_multilabel_accumulator_device(device):
+    # Multiclass input data of shape (N, ) and (N, C)
+    device = torch.device(device)
+
+    def _test(average):
+        pr = Precision(is_multilabel=True, average=average, device=device)
+        y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+        y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
+        pr.update((y_pred, y))
+
+        assert pr._true_positives.device == device
+        assert pr._positives.device == device
+
+    _test(True)
+    _test(False)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
@@ -840,6 +876,8 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = "cuda:{}".format(local_rank)
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -848,6 +886,8 @@ def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
     device = "cpu"
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -860,6 +900,8 @@ def test_distrib_hvd(gloo_hvd_executor):
 
     gloo_hvd_executor(_test_distrib_integration_multiclass, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_distrib_integration_multilabel, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration_multilabel, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -869,6 +911,8 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
@@ -878,6 +922,8 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -887,12 +933,16 @@ def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.tpu
