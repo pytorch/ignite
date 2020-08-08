@@ -41,7 +41,7 @@ class _BasePrecisionRecall(_BaseClassification):
     def reset(self) -> None:
         if self._is_multilabel:
             init_value = 0.0 if self._average else []
-            kws = {'dtype': torch.float64, 'device': self._device}
+            kws = {"dtype": torch.float64, "device": self._device}
             self._true_positives = torch.tensor(init_value, **kws)
             self._positives = torch.tensor(init_value, **kws)
         else:
