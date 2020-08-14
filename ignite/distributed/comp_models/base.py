@@ -177,7 +177,7 @@ class _SerialModel(ComputationModel):
     """
 
     name = "serial"
-    available_backends = tuple()
+    available_backends = ()
 
     def get_local_rank(self) -> int:
         return 0

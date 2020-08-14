@@ -31,7 +31,7 @@ if has_xla_support:
 
         name = "xla-dist"
 
-        available_backends = tuple([XLA_TPU,])
+        available_backends = (XLA_TPU,)
 
         @staticmethod
         def create_from_context() -> Optional["_XlaDistModel"]:
