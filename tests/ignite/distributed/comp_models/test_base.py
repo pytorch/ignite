@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ignite.distributed.comp_models.base import _SerialModel
+from ignite.distributed.comp_models.base import ComputationModel, _SerialModel
 
 
 def test_serial_model():
@@ -29,3 +29,15 @@ def test_serial_model():
     model._do_all_reduce(torch.tensor(1))
     model._do_all_gather(torch.tensor(1))
     model.barrier()
+
+
+def test__encode_str__decode_str():
+    device = torch.device("cpu")
+    s = "test-abcedfg"
+
+    encoded_s = ComputationModel._encode_str(s, device)
+    assert isinstance(encoded_s, torch.Tensor) and encoded_s.shape == (1, 1025)
+
+    decoded_s = ComputationModel._decode_str(encoded_s)
+    assert isinstance(decoded_s, list) and len(decoded_s) == 1
+    assert decoded_s[0] == s
