@@ -161,6 +161,7 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
+        # Don't need to detach here because torch.eq is not differentiable, so the computation graph is detached anyway.
         self._num_correct += torch.sum(correct).to(self._device)
         self._num_examples += correct.shape[0]
 
