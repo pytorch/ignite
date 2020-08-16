@@ -1,7 +1,7 @@
 import warnings
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 
@@ -128,7 +128,7 @@ class ComputationModel(metaclass=ABCMeta):
             return tensor.to(dtype=out_dtype, device=tensor_device)
         if out_dtype is not None:
             return tensor.to(dtype=out_dtype)
-        elif tensor_device is not None:
+        if tensor_device is not None:
             return tensor.to(device=tensor_device)
         return tensor
 
@@ -269,9 +269,7 @@ class _SerialModel(ComputationModel):
     def all_gather(self, tensor: Union[torch.Tensor, Number]) -> Union[torch.Tensor, Number]:
         return tensor
 
-    def broadcast(
-        self, tensor: Union[torch.Tensor, Number, str], src: int = 0, broadcast_size: bool = True
-    ) -> Union[torch.Tensor, Number, str]:
+    def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
         return tensor
 
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
