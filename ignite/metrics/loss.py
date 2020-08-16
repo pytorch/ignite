@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Sequence, Union
 
 import torch
 
@@ -37,7 +37,7 @@ class Loss(Metric):
         loss_fn: Callable,
         output_transform: Callable = lambda x: x,
         batch_size: Callable = lambda x: len(x),
-        device: Optional[Union[str, torch.device]] = None,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         super(Loss, self).__init__(output_transform, device=device)
         self._loss_fn = loss_fn
@@ -45,7 +45,7 @@ class Loss(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum = 0
+        self._sum = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
 
     @reinit__is_reduced
@@ -61,11 +61,11 @@ class Loss(Metric):
             raise ValueError("loss_fn did not return the average loss.")
 
         n = self._batch_size(y)
-        self._sum += average_loss.item() * n
+        self._sum += average_loss.detach().to(self._device) * n
         self._num_examples += n
 
     @sync_all_reduce("_sum", "_num_examples")
     def compute(self) -> None:
         if self._num_examples == 0:
             raise NotComputableError("Loss must have at least one example before it can be computed.")
-        return self._sum / self._num_examples
+        return self._sum.item() / self._num_examples

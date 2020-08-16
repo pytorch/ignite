@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Sequence, Union
 
 import torch
 
@@ -13,7 +13,7 @@ class _BaseClassification(Metric):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._is_multilabel = is_multilabel
         self._type = None
@@ -130,7 +130,7 @@ class Accuracy(_BaseClassification):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._num_correct = None
         self._num_examples = None
@@ -138,7 +138,7 @@ class Accuracy(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct = 0
+        self._num_correct = torch.tensor(0, device=self._device)
         self._num_examples = 0
         super(Accuracy, self).reset()
 
@@ -161,11 +161,12 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
-        self._num_correct += torch.sum(correct).item()
+        # Don't need to detach here because torch.eq is not differentiable, so the computation graph is detached anyway.
+        self._num_correct += torch.sum(correct).to(self._device)
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        return self._num_correct / self._num_examples
+        return self._num_correct.item() / self._num_examples
