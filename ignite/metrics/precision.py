@@ -54,7 +54,7 @@ class _BasePrecisionRecall(_BaseClassification):
         is_scalar = not isinstance(self._positives, torch.Tensor) or self._positives.ndim == 0
         if is_scalar and self._positives == 0:
             raise NotComputableError(
-                "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
+                "{} must have at least one example before it can be computed.".format(self.__class__.__name__)
             )
 
         if not (self._type == "multilabel" and not self._average):
