@@ -266,7 +266,7 @@ class CyclicalScheduler(ParamScheduler):
 
         if self.cycle_size < 2:
             raise ValueError(
-                "Argument cycle_size should be positive and larger than one, but given {}".format(cycle_size)
+                "Argument cycle_size should be positive and larger than 1, but given {}".format(cycle_size)
             )
 
         self._state_attrs += [
