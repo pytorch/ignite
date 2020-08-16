@@ -21,7 +21,7 @@ class MeanPairwiseDistance(Metric):
         p: int = 2,
         eps: float = 1e-6,
         output_transform: Callable = lambda x: x,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
     ):
         super(MeanPairwiseDistance, self).__init__(output_transform, device=device)
         self._p = p

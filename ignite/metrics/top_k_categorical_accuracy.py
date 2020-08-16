@@ -16,7 +16,10 @@ class TopKCategoricalAccuracy(Metric):
     """
 
     def __init__(
-        self, k=5, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None
+        self,
+        k=5,
+        output_transform: Callable = lambda x: x,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
     ):
         super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device)
         self._k = k

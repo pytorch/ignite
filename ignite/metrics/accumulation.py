@@ -38,7 +38,10 @@ class VariableAccumulation(Metric):
     _required_output_keys = None
 
     def __init__(
-        self, op: Callable, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None
+        self,
+        op: Callable,
+        output_transform: Callable = lambda x: x,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
     ):
         if not callable(op):
             raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
@@ -115,7 +118,9 @@ class Average(VariableAccumulation):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None):
+    def __init__(
+        self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = torch.device("cpu")
+    ):
         def _mean_op(a, x):
             if isinstance(x, torch.Tensor) and x.ndim > 1:
                 x = x.sum(dim=0)
@@ -159,7 +164,9 @@ class GeometricAverage(VariableAccumulation):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None):
+    def __init__(
+        self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = torch.device("cpu")
+    ):
         def _geom_op(a: torch.Tensor, x: Union[Any, numbers.Number, torch.Tensor]) -> torch.Tensor:
             if not isinstance(x, torch.Tensor):
                 x = torch.tensor(x)

@@ -13,7 +13,7 @@ class _BaseClassification(Metric):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
     ):
         self._is_multilabel = is_multilabel
         self._type = None
@@ -130,7 +130,7 @@ class Accuracy(_BaseClassification):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
     ):
         self._num_correct = None
         self._num_examples = None
