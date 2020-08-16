@@ -302,6 +302,9 @@ def test_concat_scheduler_asserts():
     scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
     scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
 
+    with pytest.raises(TypeError, match=r"Argument schedulers should be a sequence"):
+        ConcatScheduler(schedulers=None, durations=[])
+
     with pytest.raises(ValueError, match=r"Argument schedulers should be of more than one parameter schedulers"):
         ConcatScheduler(schedulers=[], durations=[])
 
@@ -323,6 +326,11 @@ def test_concat_scheduler_asserts():
     with pytest.raises(TypeError, match=r"Argument param_names should be list or tuple"):
         ConcatScheduler.simulate_values(
             num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names="abc"
+        )
+
+    with pytest.raises(ValueError, match=r"Argument param_names should be list or tuple of strings"):
+        ConcatScheduler.simulate_values(
+                num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names=[1]
         )
 
     optimizer_2 = torch.optim.SGD([tensor], lr=0)
@@ -685,6 +693,9 @@ def test_piecewiselinear_asserts():
 
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
+
+    with pytest.raises(TypeError, match=r"Argument milestones_values should be a list or tuple"):
+        PiecewiseLinear(optimizer, "lr", milestones_values=None)
 
     with pytest.raises(ValueError, match=r"Argument milestones_values should be with at least one value"):
         PiecewiseLinear(optimizer, "lr", milestones_values=[])
@@ -1109,6 +1120,9 @@ def test_param_group_scheduler_asserts():
         optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
     )
 
+    with pytest.raises(TypeError, match=r"Argument schedulers should be a list/tuple"):
+        ParamGroupScheduler(schedulers=None, names=["a", "b", "c"])
+
     with pytest.raises(ValueError, match=r"Argument schedulers should be a list/tuple of parameter schedulers"):
         ParamGroupScheduler(schedulers=[0, 1, 2], names=["a", "b", "c"])
 
@@ -1117,6 +1131,9 @@ def test_param_group_scheduler_asserts():
 
     with pytest.raises(TypeError, match=r"Argument names should be a list/tuple"):
         ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names="ab")
+
+    with pytest.raises(ValueError, match=r"Argument names should be a list/tuple of parameter scheduler's names"):
+        ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names=[1, 2])
 
     with pytest.raises(ValueError, match=r"\d should be equal \d"):
         ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names=["a"])
