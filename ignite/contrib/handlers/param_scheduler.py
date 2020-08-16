@@ -266,7 +266,7 @@ class CyclicalScheduler(ParamScheduler):
 
         if self.cycle_size < 2:
             raise ValueError(
-                "Argument cycle_size should be positive and larger than 1, " "but given {}".format(cycle_size)
+                "Argument cycle_size should be positive and larger than 1, but given {}".format(cycle_size)
             )
 
         self._state_attrs += [
@@ -576,11 +576,11 @@ class ConcatScheduler(ParamScheduler):
         if param_names is not None:
             if not isinstance(param_names, (list, tuple)):
                 raise TypeError(
-                    "Argument param_names should be list or tuple, " "but given {}".format(type(param_names))
+                    "Argument param_names should be list or tuple, but given {}".format(type(param_names))
                 )
             if not all(isinstance(item, str) for item in param_names):
                 raise ValueError(
-                    "Argument param_names should be list or tuple of strings, " "but given {}".format(param_names)
+                    "Argument param_names should be list or tuple of strings, but given {}".format(param_names)
                 )
 
         # This scheduler uses `ParamScheduler` which
@@ -875,7 +875,7 @@ class PiecewiseLinear(ParamScheduler):
 
         if not isinstance(milestones_values, Sequence):
             raise TypeError(
-                "Argument milestones_values should be a list or tuple, " "but given {}".format(type(milestones_values))
+                "Argument milestones_values should be a list or tuple, but given {}".format(type(milestones_values))
             )
         if len(milestones_values) < 1:
             raise ValueError(
@@ -963,7 +963,7 @@ class ParamGroupScheduler(ParamScheduler):
 
         if not all(isinstance(scheduler, ParamScheduler) for scheduler in schedulers):
             raise ValueError(
-                "Argument schedulers should be a list/tuple of parameter schedulers, " "but given {}".format(schedulers)
+                "Argument schedulers should be a list/tuple of parameter schedulers, but given {}".format(schedulers)
             )
 
         if names is None:
@@ -974,7 +974,7 @@ class ParamGroupScheduler(ParamScheduler):
 
         if not all(isinstance(n, str) for n in names):
             raise ValueError(
-                "Argument names should be a list/tuple of parameter scheduler's names, " "but given {}".format(names)
+                "Argument names should be a list/tuple of parameter scheduler's names, but given {}".format(names)
             )
 
         if len(names) != len(schedulers):
