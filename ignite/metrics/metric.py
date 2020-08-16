@@ -2,7 +2,7 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 import torch
 
@@ -129,9 +129,7 @@ class Metric(metaclass=ABCMeta):
     _required_output_keys = ("y_pred", "y")
 
     def __init__(
-        self,
-        output_transform: Callable = lambda x: x,
-        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._output_transform = output_transform
 

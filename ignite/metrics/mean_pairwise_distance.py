@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Sequence, Union
 
 import torch
 from torch.nn.functional import pairwise_distance
@@ -21,7 +21,7 @@ class MeanPairwiseDistance(Metric):
         p: int = 2,
         eps: float = 1e-6,
         output_transform: Callable = lambda x: x,
-        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         super(MeanPairwiseDistance, self).__init__(output_transform, device=device)
         self._p = p

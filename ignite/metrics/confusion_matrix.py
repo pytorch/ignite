@@ -44,7 +44,7 @@ class ConfusionMatrix(Metric):
         num_classes: int,
         average: Optional[str] = None,
         output_transform: Callable = lambda x: x,
-        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")

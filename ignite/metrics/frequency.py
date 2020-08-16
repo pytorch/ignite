@@ -38,7 +38,7 @@ class Frequency(Metric):
     """
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = torch.device("cpu")
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
         self._timer = None
         self._acc = None

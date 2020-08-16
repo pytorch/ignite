@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Sequence, Union
 
 import torch
 
@@ -18,7 +18,7 @@ class _BasePrecisionRecall(_BaseClassification):
         output_transform: Callable = lambda x: x,
         average: bool = False,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if idist.get_world_size() > 1:
             if (not average) and is_multilabel:
@@ -131,7 +131,7 @@ class Precision(_BasePrecisionRecall):
         output_transform: Callable = lambda x: x,
         average: bool = False,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = torch.device("cpu"),
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         super(Precision, self).__init__(
             output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
