@@ -302,25 +302,25 @@ def test_concat_scheduler_asserts():
     scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
     scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument schedulers should be of more than one parameter schedulers"):
         ConcatScheduler(schedulers=[], durations=[])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument schedulers should be of more than one parameter schedulers"):
         ConcatScheduler(schedulers=[scheduler_1], durations=[10])
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Value at index 1 of schedulers should be a parameter scheduler"):
         ConcatScheduler(schedulers=[scheduler_1, 12], durations=[10])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Incorrect number schedulers or duration values"):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[10, 5])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument durations should be list/tuple of integers"):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2, scheduler_2], durations=[15, 12.0])
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument durations should be list/tuple"):
         ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations="abc")
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument param_names should be list or tuple"):
         ConcatScheduler.simulate_values(
             num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names="abc"
         )
@@ -609,10 +609,10 @@ def test_save_param_history():
 
 def test_lr_scheduler_asserts():
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"):
         LRScheduler(123)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"):
         LRScheduler.simulate_values(1, None)
 
 
@@ -686,19 +686,19 @@ def test_piecewiselinear_asserts():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument milestones_values should be with at least one value"):
         PiecewiseLinear(optimizer, "lr", milestones_values=[])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument milestones_values should be a list of pairs"):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5,)])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument milestones_values should be a list of pairs"):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (0.6,)])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Milestones should be increasing integers"):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(10, 0.5), (5, 0.6)])
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Value of a milestone should be integer"):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5, 1)])
 
 
@@ -1109,16 +1109,16 @@ def test_param_group_scheduler_asserts():
         optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument schedulers should be a list/tuple of parameter schedulers"):
         ParamGroupScheduler(schedulers=[0, 1, 2], names=["a", "b", "c"])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Argument schedulers should be a list/tuple of parameter schedulers"):
         ParamGroupScheduler(schedulers=[lr_scheduler1, "2"], names=["a", "b"])
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument names should be a list/tuple"):
         ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names="ab")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"\d should be equal \d"):
         ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names=["a"])
 
     scheduler = ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names=["a", "b"])
