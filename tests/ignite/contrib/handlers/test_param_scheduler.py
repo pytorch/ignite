@@ -330,7 +330,7 @@ def test_concat_scheduler_asserts():
 
     with pytest.raises(ValueError, match=r"Argument param_names should be list or tuple of strings"):
         ConcatScheduler.simulate_values(
-                num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names=[1]
+            num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names=[1]
         )
 
     optimizer_2 = torch.optim.SGD([tensor], lr=0)
@@ -617,10 +617,14 @@ def test_save_param_history():
 
 def test_lr_scheduler_asserts():
 
-    with pytest.raises(TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"):
+    with pytest.raises(
+        TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"
+    ):
         LRScheduler(123)
 
-    with pytest.raises(TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"):
+    with pytest.raises(
+        TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"
+    ):
         LRScheduler.simulate_values(1, None)
 
 
