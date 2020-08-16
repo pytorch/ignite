@@ -575,9 +575,7 @@ class ConcatScheduler(ParamScheduler):
         """
         if param_names is not None:
             if not isinstance(param_names, (list, tuple)):
-                raise TypeError(
-                    "Argument param_names should be list or tuple, but given {}".format(type(param_names))
-                )
+                raise TypeError("Argument param_names should be list or tuple, but given {}".format(type(param_names)))
             if not all(isinstance(item, str) for item in param_names):
                 raise ValueError(
                     "Argument param_names should be list or tuple of strings, but given {}".format(param_names)
