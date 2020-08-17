@@ -225,3 +225,32 @@ def mock_gpu_is_not_available():
     with patch("torch.cuda") as mock_cuda:
         mock_cuda.is_available.return_value = False
         yield mock_cuda
+
+
+def _hvd_task_with_init(func, args):
+    import horovod.torch as hvd
+
+    hvd.init()
+    func(*args)
+    hvd.shutdown()
+
+
+def _gloo_hvd_execute(func, args, np=1, do_init=False):
+    try:
+        # old API
+        from horovod.run.runner import run
+    except ImportError:
+        # new API: https://github.com/horovod/horovod/pull/2099
+        from horovod import run
+
+    kwargs = dict(use_gloo=True, np=np)
+
+    if do_init:
+        return run(_hvd_task_with_init, args=(func, args), **kwargs)
+
+    return run(func, args=args, **kwargs)
+
+
+@pytest.fixture()
+def gloo_hvd_executor():
+    yield _gloo_hvd_execute
