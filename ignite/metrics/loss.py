@@ -27,7 +27,7 @@ class Loss(Metric):
         batch_size (callable): a callable taking a target tensor that returns the
             first dimension size (usually the batch size).
         device (str or torch.device): specifies which device updates are accumulated on. Setting the
-            metric's device to be the same as your `update` arguments ensures the `update` method is
+            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
     """
