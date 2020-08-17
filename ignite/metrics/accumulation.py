@@ -32,7 +32,7 @@ class VariableAccumulation(Metric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your `update` arguments ensures the `update` method is non-blocking. By
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
     """
