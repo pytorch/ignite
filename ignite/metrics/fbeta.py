@@ -29,7 +29,7 @@ def Fbeta(
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. It is used only if precision or recall are not provided.
         device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your `update` arguments ensures the `update` method is non-blocking. By
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
     Returns:
