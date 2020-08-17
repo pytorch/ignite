@@ -144,6 +144,8 @@ specific condition (e.g. ignore user-defined classes):
             indices = indices[mask]
             correct = torch.eq(indices, y).view(-1)
 
+            # We must detach tensors before adding them to the internal variables. In this case, torch.eq is not
+            # differentiable, so the computation graph is detached implicitly
             self._num_correct += torch.sum(correct).to(self._device)
             self._num_examples += correct.shape[0]
 
