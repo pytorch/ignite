@@ -123,7 +123,7 @@ class Metric(metaclass=ABCMeta):
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
         device (str or torch.device): specifies which device updates are accumulated on. Setting the
-            metric's device to be the same as your `update` arguments ensures the `update` method is
+            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
     """
