@@ -48,6 +48,17 @@ def test_custom_events():
     assert handle.called
 
 
+def test_custom_events_asserts():
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0)
+
+    with pytest.raises(ValueError, match=r"Value at \d of event_names should be a str or EventEnum"):
+        engine.register_events(None)
+
+    with pytest.raises(ValueError, match=r"Value at \d of event_names should be a str or EventEnum"):
+        engine.register_events("str", None)
+
+
 def test_custom_events_with_event_to_attr():
     class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
