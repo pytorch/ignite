@@ -8,6 +8,7 @@ from tests.ignite.distributed.utils import (
     _test_distrib_all_gather,
     _test_distrib_all_reduce,
     _test_distrib_barrier,
+    _test_distrib_broadcast,
     _test_distrib_config,
     _test_distrib_one_rank_only,
     _test_distrib_one_rank_only_with_engine,
@@ -150,6 +151,28 @@ def _test_idist_all_gather_xla_in_child_proc(index):
 def test_idist_all_gather_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_idist_all_gather_xla_in_child_proc, args=(), nprocs=n)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_broadcast_xla():
+
+    device = idist.device()
+    _test_distrib_broadcast(device)
+
+
+def _test_idist_broadcast_xla_in_child_proc(index):
+    device = idist.device()
+    _test_distrib_broadcast(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_broadcast_xla_in_child_proc(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_idist_broadcast_xla_in_child_proc, args=(), nprocs=n)
 
 
 @pytest.mark.tpu
