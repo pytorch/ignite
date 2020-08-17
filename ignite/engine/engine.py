@@ -9,7 +9,7 @@ from typing import Any, Callable, Iterable, List, Optional, Union
 
 from ignite._utils import _to_hours_mins_secs
 from ignite.base import Serializable
-from ignite.engine.events import CallableEventWithFilter, Events, EventsList, RemovableEventHandle, State, EventEnum
+from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
 from ignite.engine.utils import _check_signature
 
 __all__ = ["Engine"]
@@ -140,7 +140,9 @@ class Engine(Serializable):
 
         _check_signature(process_function, "process_function", self, None)
 
-    def register_events(self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None) -> None:
+    def register_events(
+        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
+    ) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user fire these events at any point.
@@ -193,8 +195,7 @@ class Engine(Serializable):
 
         for index, e in enumerate(event_names):
             if not isinstance(e, (str, EventEnum)):
-                raise ValueError(f"Value at {index} of event_names should be a str or EventEnum, "
-                                 f"but given {e}")
+                raise ValueError(f"Value at {index} of event_names should be a str or EventEnum, " f"but given {e}")
             self._allowed_events.append(e)
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
