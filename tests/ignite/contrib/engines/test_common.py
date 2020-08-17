@@ -67,8 +67,6 @@ def _test_setup_common_training_handlers(
         raise ValueError("Unknown lr_scheduler: {}".format(lr_scheduler))
 
     def update_fn(engine, batch):
-        if (engine.state.iteration - 1) % 50 == 0:
-            print("- lr:", optimizer.param_groups[0]["lr"])
         optimizer.zero_grad()
         x = torch.tensor([batch], requires_grad=True, device=device)
         y_pred = model(x)
@@ -241,7 +239,6 @@ def test_gen_save_best_models_by_val_score():
     trainer.run([0, 1], max_epochs=len(acc_scores))
 
     assert save_handler.call_count == len(acc_scores) - 2  # 2 score values (0.3 and 0.5) are not the best
-    print(save_handler.mock_calls)
     obj_to_save = {"a": model.state_dict(), "b": model.state_dict()}
     save_handler.assert_has_calls(
         [
