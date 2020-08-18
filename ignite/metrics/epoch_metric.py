@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Union
 
 import torch
 
@@ -19,9 +19,10 @@ class EpochMetric(Metric):
         Current implementation stores all input data (output and target) in as tensors before computing a metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
 
-        In distributed configuration, all stored data (output and target) is collected from all processes on rank zero
-        process this can potentially lead to a memory error on the node zero.
-        Final result is broadcasted to all processes.
+        In distributed configuration, all stored data (output and target) is mutually collected across all processes
+        using all gather collective operation. This can potentially lead to a memory error.
+        Compute method executes ``compute_fn`` on zero rank process only and final result is broadcasted to
+        all processes.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
 
@@ -37,12 +38,21 @@ class EpochMetric(Metric):
             you want to compute the metric with respect to one of the outputs.
         check_compute_fn (bool): if True, ``compute_fn`` is run on the first batch of data to ensure there are no
             issues. If issues exist, user is warned that there might be an issue with the ``compute_fn``.
+            Default, True.
+        device (str or torch.device, optional): optional device specification for internal storage.
 
     Warnings:
-        EpochMetricWarning: User is warned that there are issues with compute_fn on a batch of data processed.
+        EpochMetricWarning: User is warned that there are issues with ``compute_fn`` on a batch of data processed.
+        To disable the warning, set ``check_compute_fn=False``.
     """
 
-    def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x, check_compute_fn: bool = True):
+    def __init__(
+            self,
+            compute_fn: Callable,
+            output_transform: Callable = lambda x: x,
+            check_compute_fn: bool = True,
+            device: Union[str, torch.device] = torch.device("cpu")
+    ):
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
@@ -52,7 +62,7 @@ class EpochMetric(Metric):
         self.compute_fn = compute_fn
         self._check_compute_fn = check_compute_fn
 
-        super(EpochMetric, self).__init__(output_transform=output_transform)
+        super(EpochMetric, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -98,8 +108,8 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        y_pred = y_pred.clone()
-        y = y.clone()
+        y_pred = y_pred.detach().clone().to(self._device)
+        y = y.clone().to(self._device)
 
         self._check_type((y_pred, y))
         self._predictions.append(y_pred)
@@ -113,15 +123,29 @@ class EpochMetric(Metric):
                 warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
     def compute(self) -> None:
+        # Check if self._predictions, self._targets are not empty
         _prediction_tensor = torch.cat(self._predictions, dim=0)
         _target_tensor = torch.cat(self._targets, dim=0)
 
-        if not self._is_reduced:
+        ws = idist.get_world_size()
+
+        if ws > 1 and not self._is_reduced:
+            # All gather across all processes
             _prediction_tensor = idist.all_gather(_prediction_tensor)
             _target_tensor = idist.all_gather(_target_tensor)
-            self._is_reduced = True
 
-        return self.compute_fn(_prediction_tensor, _target_tensor)
+        self._is_reduced = True
+
+        result = 0.0
+        if idist.get_rank() == 0:
+            # Run compute_fn on zero rank only
+            result = self.compute_fn(_prediction_tensor, _target_tensor)
+
+        if ws > 1:
+            # broadcast result to all processes
+            result = idist.broadcast(result, src=0)
+
+        return result
 
 
 class EpochMetricWarning(UserWarning):

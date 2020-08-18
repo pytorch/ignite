@@ -122,7 +122,7 @@ class Metric(metaclass=ABCMeta):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-        device (str of torch.device, optional): optional device specification for internal storage.
+        device (str or torch.device, optional): optional device specification for internal storage.
 
     """
 
@@ -458,14 +458,17 @@ def sync_all_reduce(*attrs) -> Callable:
                 raise RuntimeError(
                     "Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only"
                 )
-
+            ws = idist.get_world_size()
             if len(attrs) > 0 and not self._is_reduced:
-                for attr in attrs:
-                    t = getattr(self, attr, None)
-                    if t is not None and idist.get_world_size() > 1:
-                        t = idist.all_reduce(t)
-                        self._is_reduced = True
-                        setattr(self, attr, t)
+                if ws > 1:
+                    for attr in attrs:
+                        t = getattr(self, attr, None)
+                        if t is not None:
+                            t = idist.all_reduce(t)
+                            self._is_reduced = True
+                            setattr(self, attr, t)
+                else:
+                    self._is_reduced = True
 
             return func(self, *args, **kwargs)
 

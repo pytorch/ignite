@@ -187,14 +187,14 @@ def _test_distrib_integration(device=None):
     def assert_data_fn(all_preds, all_targets):
         assert all_preds.equal(y_preds), "{} vs {}".format(all_preds.shape, y_preds.shape)
         assert all_targets.equal(y_true), "{} vs {}".format(all_targets.shape, y_true.shape)
-        return all_preds.shape
+        return (all_preds.argmax(dim=1) == all_targets).sum().item()
 
     ep_metric = EpochMetric(assert_data_fn, check_compute_fn=False)
     ep_metric.attach(engine, "epm")
 
     data = list(range(n_iters))
     engine.run(data=data, max_epochs=3)
-    assert engine.state.metrics["epm"] == y_preds.shape
+    assert engine.state.metrics["epm"] == (y_preds.argmax(dim=1) == y_true).sum().item()
 
 
 @pytest.mark.distributed
