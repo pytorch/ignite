@@ -49,31 +49,49 @@ def _test_distrib_integration(device, tol=1e-6):
             y_true[i * s + offset * rank : (i + 1) * s + offset * rank],
         )
 
-    engine = Engine(update)
+    def _test(metric_device):
+        engine = Engine(update)
 
-    m = MeanSquaredError()
-    m.attach(engine, "mse")
+        m = MeanSquaredError(device=metric_device)
+        m.attach(engine, "mse")
 
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
 
-    assert "mse" in engine.state.metrics
-    res = engine.state.metrics["mse"]
+        assert "mse" in engine.state.metrics
+        res = engine.state.metrics["mse"]
 
-    true_res = np.mean(np.power((y_true - y_preds).cpu().numpy(), 2.0))
+        true_res = np.mean(np.power((y_true - y_preds).cpu().numpy(), 2.0))
 
-    assert pytest.approx(res, rel=tol) == true_res
+        assert pytest.approx(res, rel=tol) == true_res
+
+    _test("cpu")
+    _test(idist.device())
 
 
 def _test_distrib_accumulator_device(device):
-    device = torch.device(device)
-    mse = MeanSquaredError(device=device)
-    assert mse._device == device
 
-    y_pred = torch.tensor([[2.0], [-2.0]])
-    y = torch.zeros(2)
-    mse.update((y_pred, y))
-    assert mse._sum_of_squared_errors.device == device
+    for metric_device in [torch.device("cpu"), idist.device()]:
+
+        device = torch.device(device)
+        mse = MeanSquaredError(device=device)
+        assert mse._device == device
+        assert mse._sum_of_squared_errors.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mse._sum_of_squared_errors.device),
+            mse._sum_of_squared_errors.device,
+            type(metric_device),
+            metric_device,
+        )
+
+        y_pred = torch.tensor([[2.0], [-2.0]])
+        y = torch.zeros(2)
+        mse.update((y_pred, y))
+        assert mse._sum_of_squared_errors.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mse._sum_of_squared_errors.device),
+            mse._sum_of_squared_errors.device,
+            type(metric_device),
+            metric_device,
+        )
 
 
 def test_accumulator_detached():

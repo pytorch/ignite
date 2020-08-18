@@ -325,7 +325,7 @@ def _test_distrib_integration(device):
     batch_size = 10
     n_classes = 10
 
-    def _test():
+    def _test(metric_device):
         y_true = np.arange(0, n_iters * batch_size * idist.get_world_size(), dtype="int64") % n_classes
         y_pred = 0.2 * np.random.rand(n_iters * batch_size * idist.get_world_size(), n_classes)
         for i in range(n_iters * batch_size * idist.get_world_size()):
@@ -345,8 +345,8 @@ def _test_distrib_integration(device):
 
         evaluator = Engine(update_fn)
 
-        precision = Precision(average=False, device=device)
-        recall = Recall(average=False, device=device)
+        precision = Precision(average=False, device=metric_device)
+        recall = Recall(average=False, device=metric_device)
 
         def Fbeta(r, p, beta):
             return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
@@ -367,7 +367,8 @@ def _test_distrib_integration(device):
         assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
     for _ in range(5):
-        _test()
+        _test("cpu")
+        _test(idist.device())
 
 
 @pytest.mark.distributed

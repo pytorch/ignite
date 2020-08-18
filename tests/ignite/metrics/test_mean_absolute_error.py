@@ -49,31 +49,47 @@ def _test_distrib_integration(device):
             y_true[i * s + offset * rank : (i + 1) * s + offset * rank],
         )
 
-    engine = Engine(update)
+    def _test(metric_device):
+        engine = Engine(update)
 
-    m = MeanAbsoluteError()
-    m.attach(engine, "mae")
+        m = MeanAbsoluteError(device=metric_device)
+        m.attach(engine, "mae")
 
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
 
-    assert "mae" in engine.state.metrics
-    res = engine.state.metrics["mae"]
+        assert "mae" in engine.state.metrics
+        res = engine.state.metrics["mae"]
 
-    true_res = np.mean(np.abs((y_true - y_preds).cpu().numpy()))
+        true_res = np.mean(np.abs((y_true - y_preds).cpu().numpy()))
 
-    assert pytest.approx(res) == true_res
+        assert pytest.approx(res) == true_res
+
+    _test("cpu")
+    _test(idist.device())
 
 
 def _test_distrib_accumulator_device(device):
-    device = torch.device(device)
-    mae = MeanAbsoluteError(device=device)
-    assert mae._device == device
 
-    y_pred = torch.tensor([[2.0], [-2.0]])
-    y = torch.zeros(2)
-    mae.update((y_pred, y))
-    assert mae._sum_of_absolute_errors.device == device
+    for metric_device in [torch.device("cpu"), idist.device()]:
+        mae = MeanAbsoluteError(device=metric_device)
+        assert mae._device == metric_device
+        assert mae._sum_of_absolute_errors.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mae._sum_of_absolute_errors.device),
+            mae._sum_of_absolute_errors.device,
+            type(metric_device),
+            metric_device,
+        )
+
+        y_pred = torch.tensor([[2.0], [-2.0]])
+        y = torch.zeros(2)
+        mae.update((y_pred, y))
+        assert mae._sum_of_absolute_errors.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mae._sum_of_absolute_errors.device),
+            mae._sum_of_absolute_errors.device,
+            type(metric_device),
+            metric_device,
+        )
 
 
 def test_accumulator_detached():

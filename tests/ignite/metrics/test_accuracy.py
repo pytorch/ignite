@@ -823,18 +823,6 @@ def _test_distrib_accumulator_device(device):
         )
 
 
-def _test_distrib_accumulator_device(device):
-    device = torch.device(device)
-    acc = Accuracy(device=device)
-    assert acc._device == device
-
-    y_pred = torch.randint(0, 2, size=(10,)).long()
-    y = torch.randint(0, 2, size=(10,)).long()
-    acc.update((y_pred, y))
-
-    assert acc._num_correct.device == device
-
-
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")

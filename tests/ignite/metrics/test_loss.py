@@ -76,47 +76,56 @@ def test_reset():
 
 
 def _test_distrib_compute_on_criterion(device):
+    def _test(metric_device):
+        criterion = nn.NLLLoss().to(device)
+        loss = Loss(criterion, device=metric_device)
 
-    criterion = nn.NLLLoss().to(device)
-    loss = Loss(criterion, device=device)
+        y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
+        y = torch.tensor([2, 2], device=device).long()
+        loss.update((y_pred, y))
+        n = loss._num_examples
+        assert n == len(y)
+        res = loss.compute()
+        assert n * idist.get_world_size() == loss._num_examples
 
-    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
-    y = torch.tensor([2, 2], device=device).long()
-    loss.update((y_pred, y))
-    n = loss._num_examples
-    assert n == len(y)
-    res = loss.compute()
-    assert n * idist.get_world_size() == loss._num_examples
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
+        true_loss_value = criterion(y_pred, y)
+        assert_almost_equal(res, true_loss_value.item())
 
-    y_pred = idist.all_gather(y_pred)
-    y = idist.all_gather(y)
-    true_loss_value = criterion(y_pred, y)
-    assert_almost_equal(res, true_loss_value.item())
+        loss.reset()
+        y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
+        y = torch.tensor([2, 0, 2], device=device).long()
+        loss.update((y_pred, y))
+        n = loss._num_examples
+        res = loss.compute()
+        assert n * idist.get_world_size() == loss._num_examples
 
-    loss.reset()
-    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
-    y = torch.tensor([2, 0, 2], device=device).long()
-    loss.update((y_pred, y))
-    n = loss._num_examples
-    res = loss.compute()
-    assert n * idist.get_world_size() == loss._num_examples
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
+        true_loss_value = criterion(y_pred, y)
+        assert_almost_equal(res, true_loss_value.item())
 
-    y_pred = idist.all_gather(y_pred)
-    y = idist.all_gather(y)
-    true_loss_value = criterion(y_pred, y)
-    assert_almost_equal(res, true_loss_value.item())
+    _test("cpu")
+    _test(idist.device())
 
 
 def _test_distrib_sum_device(device):
-    device = torch.device(device)
-    loss = Loss(nll_loss, device=device)
-    assert loss._device == device
 
-    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
-    y = torch.tensor([2, 2]).long()
-    loss.update((y_pred, y))
+    for metric_device in [torch.device("cpu"), idist.device()]:
+        loss = Loss(nll_loss, device=metric_device)
+        assert loss._device == metric_device
+        assert loss._sum.device == metric_device, "{}:{} vs {}:{}".format(
+            type(loss._sum.device), loss._sum.device, type(metric_device), metric_device
+        )
 
-    assert loss._sum.device == device
+        y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
+        y = torch.tensor([2, 2]).long()
+        loss.update((y_pred, y))
+
+        assert loss._sum.device == metric_device, "{}:{} vs {}:{}".format(
+            type(loss._sum.device), loss._sum.device, type(metric_device), metric_device
+        )
 
 
 def test_sum_detached():

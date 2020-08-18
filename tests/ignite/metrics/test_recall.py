@@ -722,7 +722,7 @@ def _test_distrib_integration_multiclass(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(average, n_epochs):
+    def _test(average, n_epochs, metric_device):
         n_iters = 60
         s = 16
         n_classes = 7
@@ -739,7 +739,7 @@ def _test_distrib_integration_multiclass(device):
 
         engine = Engine(update)
 
-        re = Recall(average=average)
+        re = Recall(average=average, device=metric_device)
         re.attach(engine, "re")
 
         data = list(range(n_iters))
@@ -758,10 +758,11 @@ def _test_distrib_integration_multiclass(device):
         assert pytest.approx(res) == true_res
 
     for _ in range(2):
-        _test(average=True, n_epochs=1)
-        _test(average=True, n_epochs=2)
-        _test(average=False, n_epochs=1)
-        _test(average=False, n_epochs=2)
+        for metric_device in ["cpu", idist.device()]:
+            _test(average=True, n_epochs=1, metric_device=metric_device)
+            _test(average=True, n_epochs=2, metric_device=metric_device)
+            _test(average=False, n_epochs=1, metric_device=metric_device)
+            _test(average=False, n_epochs=2, metric_device=metric_device)
 
 
 def _test_distrib_integration_multilabel(device):
@@ -771,7 +772,7 @@ def _test_distrib_integration_multilabel(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(average, n_epochs):
+    def _test(average, n_epochs, metric_device):
         n_iters = 60
         s = 16
         n_classes = 7
@@ -788,7 +789,7 @@ def _test_distrib_integration_multilabel(device):
 
         engine = Engine(update)
 
-        re = Recall(average=average, is_multilabel=True)
+        re = Recall(average=average, is_multilabel=True, device=metric_device)
         re.attach(engine, "re")
 
         data = list(range(n_iters))
@@ -813,8 +814,9 @@ def _test_distrib_integration_multilabel(device):
         assert pytest.approx(res) == true_res
 
     for _ in range(2):
-        _test(average=True, n_epochs=1)
-        _test(average=True, n_epochs=2)
+        for metric_device in ["cpu", idist.device()]:
+            _test(average=True, n_epochs=1, metric_device=metric_device)
+            _test(average=True, n_epochs=2, metric_device=metric_device)
 
     if idist.get_world_size() > 1:
         with pytest.warns(
@@ -835,38 +837,57 @@ def _test_distrib_integration_multilabel(device):
 
 def _test_distrib_accumulator_device(device):
     # Binary accuracy on input of shape (N, 1) or (N, )
-    device = torch.device(device)
 
-    def _test(average):
-        re = Recall(average=average, device=device)
-        assert re._device == device
+    def _test(average, metric_device):
+        re = Recall(average=average, device=metric_device)
+        assert re._device == metric_device
+        # Since the shape of the accumulated amount isn't known before the first update
+        # call, the internal variables aren't tensors on the right device yet.
 
         y_reed = torch.randint(0, 2, size=(10,))
         y = torch.randint(0, 2, size=(10,)).long()
         re.update((y_reed, y))
 
-        assert re._true_positives.device == device
-        assert re._positives.device == device
+        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
+        )
+        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._positives.device), re._positives.device, type(metric_device), metric_device
+        )
 
-    _test(True)
-    _test(False)
+    for metric_device in [torch.device("cpu"), idist.device()]:
+        _test(True, metric_device=metric_device)
+        _test(False, metric_device=metric_device)
 
 
 def _test_distrib_multilabel_accumulator_device(device):
     # Multiclass input data of shape (N, ) and (N, C)
-    device = torch.device(device)
 
-    def _test(average):
-        re = Recall(is_multilabel=True, average=average, device=device)
+    def _test(average, metric_device):
+        re = Recall(is_multilabel=True, average=average, device=metric_device)
+
+        assert re._device == metric_device
+        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
+        )
+        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._positives.device), re._positives.device, type(metric_device), metric_device
+        )
+
         y_reed = torch.randint(0, 2, size=(10, 4, 20, 23))
         y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
         re.update((y_reed, y))
 
-        assert re._true_positives.device == device
-        assert re._positives.device == device
+        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
+        )
+        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._positives.device), re._positives.device, type(metric_device), metric_device
+        )
 
-    _test(True)
-    _test(False)
+    for metric_device in [torch.device("cpu"), idist.device()]:
+        _test(True, metric_device=metric_device)
+        _test(False, metric_device=metric_device)
 
 
 @pytest.mark.distributed
