@@ -26,8 +26,10 @@ def test_serial_model():
 
     model.all_reduce(1)
     model.all_gather(1)
+    model.broadcast(1)
     model._do_all_reduce(torch.tensor(1))
     model._do_all_gather(torch.tensor(1))
+    model._do_broadcast(torch.tensor(1), src=0)
     model.barrier()
 
 
