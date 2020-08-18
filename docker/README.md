@@ -1,6 +1,9 @@
 # Docker for users
+
 We provide Dockerfiles in order to build containerized execution environment that ease the use of Ignite for computer vision and NLP tasks.
+
 ## Installation
+
 - [main/Dockerfile.base](main/Dockerfile.base): latest stable PyTorch, Ignite with minimal dependencies
     * `docker pull pytorchignite/base:latest`
 - [main/Dockerfile.vision](main/Dockerfile.vision): base image with useful computer vision libraries 
@@ -13,5 +16,9 @@ We provide Dockerfiles in order to build containerized execution environment tha
     * `docker pull pytorchignite/apex-vision:latest`
 - [main/Dockerfile.apex-nlp](main/Dockerfile.nlp): base apex with useful NLP libraries
     * `docker pull pytorchignite/apex-nlp:latest`
+
 ## How to use
-    `docker run --rm -it pytorchignite/base:latest`
+
+```bash
+docker run --rm -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
+```
