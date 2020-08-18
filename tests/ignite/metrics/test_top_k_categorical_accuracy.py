@@ -94,7 +94,7 @@ def _test_distrib_integration(device):
 
         assert pytest.approx(res) == true_res
 
-    for _ in range(5):
+    for _ in range(3):
         for metric_device in ["cpu", idist.device()]:
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
