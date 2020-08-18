@@ -366,7 +366,7 @@ def _test_distrib_integration(device):
         assert f1_true == approx(state.metrics["f1"])
         assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
-    for _ in range(5):
+    for _ in range(3):
         _test("cpu")
         _test(idist.device())
 

@@ -22,7 +22,7 @@ class RunningAverage(Metric):
             to True).
         device (str or torch.device, optional): specifies which device updates are accumulated on. Should be
             None when ``src`` is an instance of :class:`~ignite.metrics.Metric`, as the running average will
-            use the `src`'s device. Otherwise, defaults to CPU. Only applicable when the computed value
+            use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
             from the metric is a tensor.
 
 
