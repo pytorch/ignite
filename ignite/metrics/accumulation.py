@@ -31,7 +31,9 @@ class VariableAccumulation(Metric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): optional device specification for internal storage.
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
     """
 
@@ -70,6 +72,9 @@ class VariableAccumulation(Metric):
                 output = output.to(self._device)
 
         self.accumulator = self._op(self.accumulator, output)
+        if isinstance(self.accumulator, torch.Tensor):
+            self.accumulator = self.accumulator.to(self._device)
+
         if hasattr(output, "shape"):
             self.num_examples += output.shape[0] if len(output.shape) > 1 else 1
         else:
@@ -114,8 +119,9 @@ class Average(VariableAccumulation):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): optional device specification for internal storage.
-
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
     """
 
     def __init__(
@@ -160,7 +166,9 @@ class GeometricAverage(VariableAccumulation):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): optional device specification for internal storage.
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
     """
 

@@ -30,7 +30,9 @@ class ConfusionMatrix(Metric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): optional device specification for internal storage.
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
     Note:
         In case of the targets `y` in `(batch_size, ...)` format, target indices between 0 and `num_classes` only

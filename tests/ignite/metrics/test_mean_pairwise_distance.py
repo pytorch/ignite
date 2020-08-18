@@ -52,42 +52,53 @@ def _test_distrib_integration(device):
             y_true[i * s + offset * rank : (i + 1) * s + offset * rank, ...],
         )
 
-    engine = Engine(update)
+    def _test(metric_device):
+        engine = Engine(update)
 
-    m = MeanPairwiseDistance()
-    m.attach(engine, "mpwd")
+        m = MeanPairwiseDistance(device=metric_device)
+        m.attach(engine, "mpwd")
 
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
 
-    assert "mpwd" in engine.state.metrics
-    res = engine.state.metrics["mpwd"]
+        assert "mpwd" in engine.state.metrics
+        res = engine.state.metrics["mpwd"]
 
-    true_res = []
-    for i in range(n_iters * idist.get_world_size()):
-        true_res.append(
-            torch.pairwise_distance(
-                y_true[i * s : (i + 1) * s, ...], y_preds[i * s : (i + 1) * s, ...], p=m._p, eps=m._eps
+        true_res = []
+        for i in range(n_iters * idist.get_world_size()):
+            true_res.append(
+                torch.pairwise_distance(
+                    y_true[i * s : (i + 1) * s, ...], y_preds[i * s : (i + 1) * s, ...], p=m._p, eps=m._eps
+                )
+                .cpu()
+                .numpy()
             )
-            .cpu()
-            .numpy()
-        )
-    true_res = np.array(true_res).ravel()
-    true_res = true_res.mean()
+        true_res = np.array(true_res).ravel()
+        true_res = true_res.mean()
 
-    assert pytest.approx(res) == true_res
+        assert pytest.approx(res) == true_res
+
+    _test("cpu")
+    _test(idist.device())
 
 
 def _test_distrib_accumulator_device(device):
-    device = torch.device(device)
-    mpd = MeanPairwiseDistance(device=device)
-    assert mpd._device == device
 
-    y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
-    y = torch.zeros(2, 2)
-    mpd.update((y_pred, y))
+    for metric_device in [torch.device("cpu"), idist.device()]:
 
-    assert mpd._sum_of_distances.device == device
+        mpd = MeanPairwiseDistance(device=metric_device)
+        assert mpd._device == metric_device
+        assert mpd._sum_of_distances.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mpd._sum_of_distances.device), mpd._sum_of_distances.device, type(metric_device), metric_device
+        )
+
+        y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
+        y = torch.zeros(2, 2)
+        mpd.update((y_pred, y))
+
+        assert mpd._sum_of_distances.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mpd._sum_of_distances.device), mpd._sum_of_distances.device, type(metric_device), metric_device
+        )
 
 
 def test_accumulator_detached():

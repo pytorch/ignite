@@ -46,25 +46,29 @@ def _test_distrib_integration(device, tol=1e-6):
     def update(engine, i):
         return y_preds[i * s : (i + 1) * s], y_true[i * s + offset * rank : (i + 1) * s + offset * rank]
 
-    engine = Engine(update)
+    def _test(metric_device):
+        engine = Engine(update)
 
-    m = RootMeanSquaredError()
-    m.attach(engine, "rmse")
+        m = RootMeanSquaredError(device=metric_device)
+        m.attach(engine, "rmse")
 
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
 
-    assert "rmse" in engine.state.metrics
-    res = engine.state.metrics["rmse"]
+        assert "rmse" in engine.state.metrics
+        res = engine.state.metrics["rmse"]
 
-    y_preds_full = []
-    for i in range(idist.get_world_size()):
-        y_preds_full.append((i + 1) * torch.ones(offset))
-    y_preds_full = torch.stack(y_preds_full).to(device).flatten()
+        y_preds_full = []
+        for i in range(idist.get_world_size()):
+            y_preds_full.append((i + 1) * torch.ones(offset))
+        y_preds_full = torch.stack(y_preds_full).to(device).flatten()
 
-    true_res = np.sqrt(np.mean(np.square((y_true - y_preds_full).cpu().numpy())))
+        true_res = np.sqrt(np.mean(np.square((y_true - y_preds_full).cpu().numpy())))
 
-    assert pytest.approx(res, rel=tol) == true_res
+        assert pytest.approx(res, rel=tol) == true_res
+
+    _test("cpu")
+    _test(idist.device())
 
 
 @pytest.mark.distributed

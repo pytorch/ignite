@@ -59,7 +59,7 @@ def _test_distrib_integration(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(n_epochs):
+    def _test(n_epochs, metric_device):
         n_iters = 100
         s = 16
         n_classes = 10
@@ -79,7 +79,7 @@ def _test_distrib_integration(device):
         engine = Engine(update)
 
         k = 5
-        acc = TopKCategoricalAccuracy(k=k, device=device)
+        acc = TopKCategoricalAccuracy(k=k, device=metric_device)
         acc.attach(engine, "acc")
 
         data = list(range(n_iters))
@@ -94,20 +94,29 @@ def _test_distrib_integration(device):
 
         assert pytest.approx(res) == true_res
 
-    for _ in range(5):
-        _test(n_epochs=1)
-        _test(n_epochs=2)
+    for _ in range(3):
+        for metric_device in ["cpu", idist.device()]:
+            _test(n_epochs=1, metric_device=metric_device)
+            _test(n_epochs=2, metric_device=metric_device)
 
 
 def _test_distrib_accumulator_device(device):
-    device = torch.device(device)
-    acc = TopKCategoricalAccuracy(2, device=device)
-    assert acc._device == device
 
-    y_pred = torch.tensor([[0.2, 0.4, 0.6, 0.8], [0.8, 0.6, 0.4, 0.2]])
-    y = torch.ones(2).long()
-    acc.update((y_pred, y))
-    assert acc._num_correct.device == device
+    for metric_device in [torch.device("cpu"), idist.device()]:
+
+        acc = TopKCategoricalAccuracy(2, device=metric_device)
+        assert acc._device == metric_device
+        assert acc._num_correct.device == metric_device, "{}:{} vs {}:{}".format(
+            type(acc._num_correct.device), acc._num_correct.device, type(metric_device), metric_device
+        )
+
+        y_pred = torch.tensor([[0.2, 0.4, 0.6, 0.8], [0.8, 0.6, 0.4, 0.2]])
+        y = torch.ones(2).long()
+        acc.update((y_pred, y))
+
+        assert acc._num_correct.device == metric_device, "{}:{} vs {}:{}".format(
+            type(acc._num_correct.device), acc._num_correct.device, type(metric_device), metric_device
+        )
 
 
 @pytest.mark.distributed

@@ -122,7 +122,9 @@ class Precision(_BasePrecisionRecall):
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
         is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
-        device (str of torch.device, optional): unused argument.
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
     """
 
