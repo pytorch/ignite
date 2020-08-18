@@ -74,7 +74,7 @@ def _test_distrib_accumulator_device(device):
     for metric_device in [torch.device("cpu"), idist.device()]:
 
         device = torch.device(device)
-        mse = MeanSquaredError(device=device)
+        mse = MeanSquaredError(device=metric_device)
         assert mse._device == device
         assert mse._sum_of_squared_errors.device == metric_device, "{}:{} vs {}:{}".format(
             type(mse._sum_of_squared_errors.device),

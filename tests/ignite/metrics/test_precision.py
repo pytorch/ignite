@@ -748,7 +748,7 @@ def _test_distrib_integration_multiclass(device):
         assert "pr" in engine.state.metrics
         res = engine.state.metrics["pr"]
         if isinstance(res, torch.Tensor):
-            assert res.device.type == "cpu"
+            assert res.device == metric_device
             res = res.cpu().numpy()
 
         true_res = precision_score(
@@ -758,7 +758,7 @@ def _test_distrib_integration_multiclass(device):
         assert pytest.approx(res) == true_res
 
     for _ in range(2):
-        for metric_device in ["cpu", idist.device()]:
+        for metric_device in [torch.device("cpu"), idist.device()]:
             _test(average=True, n_epochs=1, metric_device=metric_device)
             _test(average=True, n_epochs=2, metric_device=metric_device)
             _test(average=False, n_epochs=1, metric_device=metric_device)

@@ -104,7 +104,7 @@ def _test_distrib_accumulator_device(device):
 
     for metric_device in [torch.device("cpu"), idist.device()]:
 
-        acc = TopKCategoricalAccuracy(2, device=device)
+        acc = TopKCategoricalAccuracy(2, device=metric_device)
         assert acc._device == metric_device
         assert acc._num_correct.device == metric_device, "{}:{} vs {}:{}".format(
             type(acc._num_correct.device), acc._num_correct.device, type(metric_device), metric_device
