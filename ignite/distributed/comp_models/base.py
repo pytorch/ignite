@@ -119,10 +119,13 @@ class ComputationModel(metaclass=ABCMeta):
             tensor = self._encode_str(tensor, device)
 
         out_dtype = None
+        tensor_device = None
 
         # check if the tensor is at specified device
         if tensor.device != device:
+            tensor_device = tensor.device
             tensor = tensor.to(device)
+
         if self._collective_op_dtype is not None:
             # cast to _collective_op_dtype if current type is not floatX
             if tensor.dtype not in (torch.float32, torch.float64):
@@ -131,8 +134,12 @@ class ComputationModel(metaclass=ABCMeta):
 
         tensor = fn(tensor, *args, **kwargs)
 
-        if out_dtype is not None:
+        if out_dtype is not None and tensor_device is not None:
+            tensor = tensor.to(dtype=out_dtype, device=tensor_device)
+        elif out_dtype is not None:
             tensor = tensor.to(dtype=out_dtype)
+        elif tensor_device is not None:
+            tensor = tensor.to(device=tensor_device)
 
         if tensor_to_number and tensor.numel() == 1:
             return tensor.item()
@@ -170,7 +177,7 @@ class _SerialModel(ComputationModel):
     """
 
     name = "serial"
-    available_backends = tuple()
+    available_backends = ()
 
     def get_local_rank(self) -> int:
         return 0

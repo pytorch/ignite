@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 import torch
@@ -12,6 +12,7 @@ import ignite.distributed as idist
 from ignite.contrib.engines.common import (
     _setup_logging,
     add_early_stopping_by_val_score,
+    gen_save_best_models_by_val_score,
     save_best_model_by_val_score,
     setup_any_logging,
     setup_common_training_handlers,
@@ -24,7 +25,7 @@ from ignite.contrib.engines.common import (
     setup_wandb_logging,
 )
 from ignite.engine import Engine, Events
-from ignite.handlers import TerminateOnNan
+from ignite.handlers import DiskSaver, TerminateOnNan
 
 
 class DummyModel(nn.Module):
@@ -36,7 +37,9 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
-def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None):
+def _test_setup_common_training_handlers(
+    dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None, save_handler=None
+):
 
     lr = 0.01
     step_size = 100
@@ -86,6 +89,7 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
         to_save={"model": model, "optimizer": optimizer},
         save_every_iters=75,
         output_path=dirname,
+        save_handler=save_handler,
         lr_scheduler=lr_scheduler,
         with_gpu_stats=False,
         output_names=["batch_loss",],
@@ -107,6 +111,8 @@ def _test_setup_common_training_handlers(dirname, device, rank=0, local_rank=0, 
 
     # Check saved checkpoint
     if rank == 0:
+        if save_handler is not None:
+            dirname = save_handler.dirname
         checkpoints = list(os.listdir(dirname))
         assert len(checkpoints) == 1
         for v in [
@@ -124,9 +130,13 @@ def test_asserts_setup_common_training_handlers():
     trainer = Engine(lambda e, b: None)
 
     with pytest.raises(
-        ValueError, match=r"If to_save argument is provided then output_path argument should be also defined"
+        ValueError,
+        match=r"If to_save argument is provided then output_path or save_handler arguments should be also defined",
     ):
         setup_common_training_handlers(trainer, to_save={})
+
+    with pytest.raises(ValueError, match=r"Arguments output_path and save_handler are mutually exclusive"):
+        setup_common_training_handlers(trainer, to_save={}, output_path="abc", save_handler=lambda c, f, m: None)
 
     with pytest.warns(UserWarning, match=r"Argument train_sampler is a distributed sampler"):
         train_sampler = MagicMock(spec=DistributedSampler)
@@ -167,10 +177,23 @@ def test_setup_common_training_handlers(dirname, capsys):
     out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
-    assert "Epoch:" in out[-1], "{}".format(out[-1])
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], "{}, {}".format(out[-2], out[-1])
 
 
-def test_save_best_model_by_val_score(dirname, capsys):
+def test_setup_common_training_handlers_using_save_handler(dirname, capsys):
+
+    save_handler = DiskSaver(dirname=dirname, require_empty=False)
+    _test_setup_common_training_handlers(dirname=None, device="cpu", save_handler=save_handler)
+
+    # Check epoch-wise pbar
+    captured = capsys.readouterr()
+    out = captured.err.split("\r")
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], "{}, {}".format(out[-2], out[-1])
+
+
+def test_save_best_model_by_val_score(dirname):
 
     trainer = Engine(lambda e, b: None)
     evaluator = Engine(lambda e, b: None)
@@ -180,9 +203,7 @@ def test_save_best_model_by_val_score(dirname, capsys):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def validate(engine):
-        evaluator.run(
-            [0,]
-        )
+        evaluator.run([0, 1])
 
     @evaluator.on(Events.EPOCH_COMPLETED)
     def set_eval_metric(engine):
@@ -190,12 +211,49 @@ def test_save_best_model_by_val_score(dirname, capsys):
 
     save_best_model_by_val_score(dirname, evaluator, model, metric_name="acc", n_saved=2, trainer=trainer)
 
-    data = [
-        0,
-    ]
-    trainer.run(data, max_epochs=len(acc_scores))
+    trainer.run([0, 1], max_epochs=len(acc_scores))
 
-    assert set(os.listdir(dirname)) == set(["best_model_8_val_acc=0.6100.pt", "best_model_9_val_acc=0.7000.pt"])
+    assert set(os.listdir(dirname)) == {"best_model_8_val_acc=0.6100.pt", "best_model_9_val_acc=0.7000.pt"}
+
+
+def test_gen_save_best_models_by_val_score():
+
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+    model = DummyModel()
+
+    acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.5, 0.6, 0.61, 0.7, 0.5]
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def validate(engine):
+        evaluator.run([0, 1])
+
+    @evaluator.on(Events.EPOCH_COMPLETED)
+    def set_eval_metric(engine):
+        engine.state.metrics = {"acc": acc_scores[trainer.state.epoch - 1]}
+
+    save_handler = MagicMock()
+
+    gen_save_best_models_by_val_score(
+        save_handler, evaluator, {"a": model, "b": model}, metric_name="acc", n_saved=2, trainer=trainer
+    )
+
+    trainer.run([0, 1], max_epochs=len(acc_scores))
+
+    assert save_handler.call_count == len(acc_scores) - 2  # 2 score values (0.3 and 0.5) are not the best
+    print(save_handler.mock_calls)
+    obj_to_save = {"a": model.state_dict(), "b": model.state_dict()}
+    save_handler.assert_has_calls(
+        [
+            call(
+                obj_to_save,
+                "best_checkpoint_{}_val_acc={:.4f}.pt".format(e, p),
+                dict([("basename", "best_checkpoint"), ("score_name", "val_acc"), ("priority", p)]),
+            )
+            for e, p in zip([1, 2, 3, 4, 6, 7, 8, 9], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.61, 0.7])
+        ],
+        any_order=True,
+    )
 
 
 def test_add_early_stopping_by_val_score():
@@ -206,9 +264,7 @@ def test_add_early_stopping_by_val_score():
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def validate(engine):
-        evaluator.run(
-            [0,]
-        )
+        evaluator.run([0, 1])
 
     @evaluator.on(Events.EPOCH_COMPLETED)
     def set_eval_metric(engine):
@@ -216,10 +272,7 @@ def test_add_early_stopping_by_val_score():
 
     add_early_stopping_by_val_score(patience=3, evaluator=evaluator, trainer=trainer, metric_name="acc")
 
-    data = [
-        0,
-    ]
-    state = trainer.run(data, max_epochs=len(acc_scores))
+    state = trainer.run([0, 1], max_epochs=len(acc_scores))
 
     assert state.epoch == 7
 
@@ -259,9 +312,7 @@ def _test_setup_logging(
 
         @trainer.on(Events.EPOCH_COMPLETED)
         def validate(engine):
-            evaluator.run(
-                [0,]
-            )
+            evaluator.run([0, 1])
 
         @evaluator.on(Events.EPOCH_COMPLETED)
         def set_eval_metric(engine):
@@ -352,10 +403,10 @@ def test_setup_tb_logging(dirname):
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
-def test_setup_visdom_logging(visdom_server):
+def test_setup_visdom_logging(visdom_offline_logfile):
     vis_logger = _test_setup_logging(
         setup_logging_fn=setup_visdom_logging,
-        kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
+        kwargs_dict={"offline": True, "log_to_filename": visdom_offline_logfile},
         output_handler_cls=handlers.visdom_logger.OutputHandler,
         opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -365,7 +416,7 @@ def test_setup_visdom_logging(visdom_server):
 
     vis_logger = _test_setup_logging(
         setup_logging_fn=setup_visdom_logging,
-        kwargs_dict={"server": visdom_server[0], "port": str(visdom_server[1])},
+        kwargs_dict={"offline": True, "log_to_filename": visdom_offline_logfile},
         output_handler_cls=handlers.visdom_logger.OutputHandler,
         opt_params_handler_cls=handlers.visdom_logger.OptimizerParamsHandler,
         with_eval=True,

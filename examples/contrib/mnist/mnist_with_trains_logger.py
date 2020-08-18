@@ -122,7 +122,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
 
     handler = Checkpoint(
         {"model": model},
-        TrainsSaver(trains_logger, dirname="./TRAINS"),
+        TrainsSaver(),
         n_saved=1,
         score_function=lambda e: e.state.metrics["accuracy"],
         score_name="val_acc",

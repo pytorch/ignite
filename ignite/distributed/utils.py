@@ -4,10 +4,10 @@ from numbers import Number
 from typing import Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
+    has_hvd_support,
     has_native_dist_support,
     has_xla_support,
     registered_computation_models,
@@ -36,6 +36,7 @@ __all__ = [
     "hostname",
     "has_xla_support",
     "has_native_dist_support",
+    "has_hvd_support",
     "sync",
     "registered_computation_models",
     "one_rank_only",
@@ -46,19 +47,13 @@ _model = _SerialModel()
 _need_to_sync = True
 
 
-def _sync_model_wrapper(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if isinstance(_model, _SerialModel) and _need_to_sync:
-            sync()
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
-def sync():
+def sync(temporary=False):
     """Helper method to force this module to synchronize with current distributed context.
     This method should be used when distributed context is manually created or destroyed.
+
+    Args:
+        temporary (bool): If True, distributed model synchronization is done every call of ``idist.get_*`` methods.
+            This may have a negative performance impact.
     """
     global _model
 
@@ -67,37 +62,42 @@ def sync():
             continue
         model = comp_model_cls.create_from_context()
         if model is not None:
-            _model = model
+            _set_model(model, temporary=temporary)
             return
 
     _model = _SerialModel()
 
 
-@_sync_model_wrapper
 def device() -> torch.device:
     """Returns current device according to current distributed configuration.
 
-    - `torch.device("cpu")` if no distributed configuration or native gloo distributed configuration
-    - `torch.device("cuda:local_rank")` if native nccl distributed configuration
+    - `torch.device("cpu")` if no distributed configuration or torch native gloo distributed configuration
+    - `torch.device("cuda:local_rank")` if torch native nccl or horovod distributed configuration
     - `torch.device("xla:index")` if XLA distributed configuration
 
     Returns:
         torch.device
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.device()
 
 
-@_sync_model_wrapper
 def backend() -> Optional[str]:
     """Returns computation model's backend.
 
     - `None` for no distributed configuration
     - "nccl" or "gloo" or "mpi" for native torch distributed configuration
     - "xla-tpu" for XLA distributed configuration
+    - "horovod" for Horovod distributed framework
 
     Returns:
         str or None
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.backend()
 
 
@@ -110,60 +110,75 @@ def available_backends() -> Tuple[str]:
     return out
 
 
-@_sync_model_wrapper
 def model_name() -> str:
     """Returns distributed configuration name (given by ignite)
 
     - `serial` for no distributed configuration
     - `native-dist` for native torch distributed configuration
     - `xla-dist` for XLA distributed configuration
+    - `horovod-dist` for Horovod distributed framework
 
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.name
 
 
-@_sync_model_wrapper
 def get_world_size() -> int:
     """Returns world size of current distributed configuration. Returns 1 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_world_size()
 
 
-@_sync_model_wrapper
 def get_rank() -> int:
     """Returns process rank within current distributed configuration. Returns 0 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_rank()
 
 
-@_sync_model_wrapper
 def get_local_rank() -> int:
     """Returns local process rank within current distributed configuration. Returns 0 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_local_rank()
 
 
-@_sync_model_wrapper
 def get_nproc_per_node() -> int:
     """Returns number of processes (or tasks) per node within current distributed configuration.
     Returns 1 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_nproc_per_node()
 
 
-@_sync_model_wrapper
 def get_nnodes() -> int:
     """Returns number of nodes within current distributed configuration.
     Returns 1 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_nnodes()
 
 
-@_sync_model_wrapper
 def get_node_rank() -> int:
     """Returns node rank within current distributed configuration.
     Returns 0 if no distributed configuration.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.get_node_rank()
 
 
@@ -181,7 +196,7 @@ def spawn(
 
     Examples:
 
-        1) Launch single node multi-GPU training
+        1) Launch single node multi-GPU training using torch native distributed framework
 
         .. code-block:: python
 
@@ -203,7 +218,7 @@ def spawn(
             idist.spawn("nccl", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=4)
 
 
-        2) Launch multi-node multi-GPU training
+        2) Launch multi-node multi-GPU training using torch native distributed framework
 
         .. code-block:: python
 
@@ -236,7 +251,7 @@ def spawn(
                 master_port=master_port
             )
 
-        3) Launch single node multi-TPU training (for example on Google Colab)
+        3) Launch single node multi-TPU training (for example on Google Colab) using PyTorch/XLA
 
         .. code-block:: python
 
@@ -257,7 +272,7 @@ def spawn(
             idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=8)
 
     Args:
-        backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`
+        backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`
         fn (function): function to called as the entrypoint of the spawned process.
             This function must be defined at the top level of a module so it can be pickled and spawned.
             This is a requirement imposed by multiprocessing. The function is called as ``fn(i, *args, **kwargs_dict)``,
@@ -271,11 +286,15 @@ def spawn(
               | (default, "127.0.0.1"), `master_port` (default, 2222), `timeout` to `dist.init_process_group`_ function
               | and kwargs for `mp.spawn`_ function.
 
-            - "xla-tpu" : `nnodes` (default, 1), `node_rank` (default, 0) and kwargs to `xmp.spawn`_ function.
+            - | "xla-tpu" : `nnodes` (default, 1), `node_rank` (default, 0) and kwargs to `xmp.spawn`_ function.
+
+            - | "horovod": `hosts` (default, None) and other kwargs to `hvd_run`_ function. Arguments `nnodes=1`
+              | and `node_rank=0` are tolerated and ignored, otherwise an exception is raised.
 
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _mp.spawn: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
     .. _xmp.spawn: http://pytorch.org/xla/release/1.5/index.html#torch_xla.distributed.xla_multiprocessing.spawn
+    .. _hvd_run: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
     """
     _assert_backend(backend)
@@ -291,22 +310,24 @@ def spawn(
         )
 
 
-@_sync_model_wrapper
 def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[torch.Tensor, Number]:
     """Helper method to perform all reduce operation.
 
     Args:
         tensor (torch.Tensor or number): tensor or number to collect across participating processes.
         op (str): reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
+            Please, several values are not supported for the backend like "horovod".
 
     Returns:
         torch.Tensor or number
 
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.all_reduce(tensor, op)
 
 
-@_sync_model_wrapper
 def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
     """Helper method to perform all gather operation.
 
@@ -318,13 +339,18 @@ def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, 
         List of strings
 
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     return _model.all_gather(tensor)
 
 
-@_sync_model_wrapper
 def barrier():
     """Helper method to synchronize all processes.
     """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
     _model.barrier()
 
 
@@ -356,11 +382,11 @@ def set_local_rank(index: int):
     ComputationModel._ext_local_rank = index
 
 
-def _set_model(model):
+def _set_model(model, temporary=False):
     global _model, _need_to_sync
     _model = model
     _need_to_sync = True
-    if not isinstance(_model, _SerialModel):
+    if not isinstance(_model, _SerialModel) and not temporary:
         _need_to_sync = False
 
 
@@ -401,14 +427,17 @@ def initialize(backend: str, **kwargs):
 
 
     Args:
-        backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`.
+        backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
         **kwargs: acceptable kwargs according to provided backend:
 
-            - "nccl" or "gloo" : timeout(=timedelta(minutes=30))
+            - "nccl" or "gloo" : timeout(=timedelta(minutes=30)).
 
+            - "horovod" : comm(=None), more info: `hvd_init`_.
+
+    .. _hvd_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
 
     """
-    if not (has_xla_support or dist.is_available()):
+    if not (has_xla_support or has_native_dist_support or has_hvd_support):
         # nothing to do => serial model
         # maybe warn about this
         return

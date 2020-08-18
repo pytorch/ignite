@@ -58,8 +58,8 @@ export DATASET_PATH=/path/to/pascal_voc2012
 Export the ``SBD_DATASET_PATH`` environment variable for the SBD evaluation dataset.
 
 ```bash
-export SBD_DATASET_PATH=/path/to/SBD/benchmark_RELEASE/dataset/
-# e.g. export SBD_DATASET_PATH=/data/SBD/benchmark_RELEASE/dataset/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
+export SBD_DATASET_PATH=/path/to/SBD/
+# e.g. export SBD_DATASET_PATH=/data/SBD/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
 ```
 
 ## Run the experiment code
@@ -96,9 +96,8 @@ Execute the following command:
 ```bash
 export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
-export PYTHONPATH=$PWD/code:$PYTHONPATH
 
-py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
+python -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```
 
 #### Training on single node and multiple GPUs
@@ -109,7 +108,6 @@ For example, a single GPU with 11GB can have a batch size of 8-9, thus, on N dev
 ```bash
 export TRAINS_OUTPUT_PATH=/path/to/output/trains
 # e.g export TRAINS_OUTPUT_PATH=$PWD/output/trains
-export PYTHONPATH=$PWD/code:$PYTHONPATH
 
 python -m torch.distributed.launch --nproc 2 --use_env -m py_config_runner ./code/scripts/training.py ./configs/train/baseline_resnet101.py
 ```

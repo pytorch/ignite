@@ -9,7 +9,7 @@ jobs:
       with:
         python-version: '3.7'
     - run: |
-        python -m pip install autopep8 black isort
+        python -m pip install autopep8 black "isort==4.3.21"
         isort -rc .
         autopep8 --recursive --in-place --aggressive --aggressive .
         black .
