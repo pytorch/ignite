@@ -127,6 +127,52 @@ def _test_distrib_all_gather(device):
             idist.all_reduce([0, 1, 2])
 
 
+def _test_distrib_broadcast(device):
+
+    rank = idist.get_rank()
+    ws = idist.get_world_size()
+    for src in range(ws):
+
+        d = 10 if rank == src else 0
+        res = idist.broadcast(d, src=src)
+        true_res = 10
+        assert res == true_res
+
+        if rank == src:
+            t = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
+        else:
+            t = torch.empty(2, device=device)
+
+        res = idist.broadcast(t, src=src)
+        true_res = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
+        assert (res == true_res).all(), "{} vs {}".format(res, true_res)
+
+        if rank == src:
+            t = "test-abcdefg"
+        else:
+            t = ""
+
+        res = idist.broadcast(t, src=src)
+        true_res = "test-abcdefg"
+        assert res == true_res
+
+        if rank == src:
+            t = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
+        else:
+            t = torch.empty(4, 25, dtype=torch.long, device=device)
+
+        in_dtype = torch.long
+        res = idist.broadcast(t, src)
+        assert res.shape == (4, 25)
+        assert res.dtype == in_dtype
+        true_res = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
+        assert (res == true_res).all()
+
+    if idist.get_world_size() > 1:
+        with pytest.raises(TypeError, match=r"Unhandled input type"):
+            idist.broadcast([0, 1, 2], src=0)
+
+
 def _test_distrib_barrier(device):
 
     t = torch.tensor([idist.get_rank()], device=device, dtype=torch.float)
