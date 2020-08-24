@@ -148,5 +148,12 @@ if has_xla_support:
             xm.all_reduce("sum", [output,])
             return output.reshape(-1, *output.shape[2:])
 
+        def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
+            # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
+            if src != self.get_rank():
+                tensor.fill_(0.0)
+            xm.all_reduce("sum", [tensor,])
+            return tensor
+
         def barrier(self):
             xm.rendezvous("barrier")

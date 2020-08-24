@@ -10,6 +10,7 @@ from tests.ignite.distributed.utils import (
     _test_distrib_all_gather,
     _test_distrib_all_reduce,
     _test_distrib_barrier,
+    _test_distrib_broadcast,
     _test_distrib_config,
     _test_distrib_one_rank_only,
     _test_distrib_one_rank_only_with_engine,
@@ -183,6 +184,23 @@ def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
 
     device = "cpu"
     _test_distrib_all_gather(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_broadcast_nccl(distributed_context_single_node_nccl):
+
+    device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
+    _test_distrib_broadcast(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+def test_idist_broadcast_gloo(distributed_context_single_node_gloo):
+
+    device = "cpu"
+    _test_distrib_broadcast(device)
 
 
 @pytest.mark.distributed

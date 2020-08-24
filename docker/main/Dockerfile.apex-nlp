@@ -1,0 +1,10 @@
+# Dockerfile.apex-nlp
+FROM pytorchignite/apex
+
+# Ignite NLP dependencies
+RUN pip install --upgrade --no-cache-dir torchtext \
+                                         transformers \
+                                         spacy \
+                                         nltk
+
+ENTRYPOINT ["/bin/bash"]
