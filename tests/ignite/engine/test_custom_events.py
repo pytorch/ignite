@@ -68,6 +68,14 @@ def test_custom_events_asserts():
     with pytest.raises(TypeError, match=r"Value at \d of event_names should be a str or EventEnum"):
         engine.register_events(A())
 
+    assert Events.EPOCH_COMPLETED != 1
+    assert Events.EPOCH_COMPLETED != "abc"
+    assert Events.ITERATION_COMPLETED != Events.EPOCH_COMPLETED
+    assert Events.ITERATION_COMPLETED != Events.EPOCH_COMPLETED(every=2)
+    # In current implementation, EPOCH_COMPLETED and EPOCH_COMPLETED with event filter are the same
+    assert Events.EPOCH_COMPLETED == Events.EPOCH_COMPLETED(every=2)
+    assert Events.ITERATION_COMPLETED == Events.ITERATION_COMPLETED(every=2)
+
 
 def test_custom_events_with_event_to_attr():
     class CustomEvents(EventEnum):
