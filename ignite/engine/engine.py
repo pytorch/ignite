@@ -5,11 +5,11 @@ import warnings
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Iterable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional, Union
 
 from ignite._utils import _to_hours_mins_secs
 from ignite.base import Serializable
-from ignite.engine.events import CallableEventWithFilter, Events, EventsList, RemovableEventHandle, State
+from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
 from ignite.engine.utils import _check_signature
 
 __all__ = ["Engine"]
@@ -140,32 +140,58 @@ class Engine(Serializable):
 
         _check_signature(process_function, "process_function", self, None)
 
-    def register_events(self, *event_names: Any, event_to_attr: Optional[dict] = None) -> None:
+    def register_events(
+        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
+    ) -> None:
         """Add events that can be fired.
 
-        Registering an event will let the user fire these events at any point.
+        Registering an event will let the user trigger these events at any point.
         This opens the door to make the :meth:`~ignite.engine.engine.Engine.run` loop even more
         configurable.
 
         By default, the events from :class:`~ignite.engine.events.Events` are registered.
 
         Args:
-            *event_names: An object (ideally a string or int) to define the name of the event being supported.
+            *event_names (iterable): Defines the name of the event being supported. New events can be a str
+                or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
             event_to_attr (dict, optional): A dictionary to map an event to a state attribute.
 
         Example usage:
 
         .. code-block:: python
 
-            from ignite.engine import Engine, EventEnum
+            from ignite.engine import Engine, Events, EventEnum
 
             class CustomEvents(EventEnum):
                 FOO_EVENT = "foo_event"
                 BAR_EVENT = "bar_event"
 
-            engine = Engine(process_function)
-            engine.register_events(*CustomEvents)
+            def process_function(e, batch):
+                # ...
+                trainer.fire_event("bwd_event")
+                loss.backward()
+                # ...
+                trainer.fire_event("opt_event")
+                optimizer.step()
 
+            trainer = Engine(process_function)
+            trainer.register_events(*CustomEvents)
+            trainer.register_events("bwd_event", "opt_event")
+
+            @trainer.on(Events.EPOCH_COMPLETED)
+            def trigger_custom_event():
+                if required(...):
+                    trainer.fire_event(CustomEvents.FOO_EVENT)
+                else:
+                    trainer.fire_event(CustomEvents.BAR_EVENT)
+
+            @trainer.on(CustomEvents.FOO_EVENT)
+            def do_foo_op():
+                # ...
+
+            @trainer.on(CustomEvents.BAR_EVENT)
+            def do_bar_op():
+                # ...
 
         Example with State Attribute:
 
@@ -191,7 +217,11 @@ class Engine(Serializable):
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
             raise ValueError("Expected event_to_attr to be dictionary. Got {}.".format(type(event_to_attr)))
 
-        for e in event_names:
+        for index, e in enumerate(event_names):
+            if not isinstance(e, (str, EventEnum)):
+                raise TypeError(
+                    "Value at {} of event_names should be a str or EventEnum, but given {}".format(index, e)
+                )
             self._allowed_events.append(e)
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
