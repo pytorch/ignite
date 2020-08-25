@@ -195,7 +195,7 @@ class Engine(Serializable):
 
         for index, e in enumerate(event_names):
             if not isinstance(e, (str, EventEnum)):
-                raise ValueError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
+                raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
             self._allowed_events.append(e)
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]

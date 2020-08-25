@@ -17,7 +17,8 @@ def test_deprecated_callable_events_class():
         class CustomEvents(CallableEvents, Enum):
             TEST_EVENT = "test_event"
 
-        engine.register_events(*CustomEvents)
+        with pytest.raises(TypeError, match=r"Value at \d of event_names should be a str or EventEnum"):
+            engine.register_events(*CustomEvents)
 
 
 def test_custom_events():
@@ -52,11 +53,20 @@ def test_custom_events_asserts():
     # Dummy engine
     engine = Engine(lambda engine, batch: 0)
 
-    with pytest.raises(ValueError, match=r"Value at \d of event_names should be a str or EventEnum"):
+    class A:
+        pass
+
+    with pytest.raises(TypeError, match=r"Value at \d of event_names should be a str or EventEnum"):
         engine.register_events(None)
 
-    with pytest.raises(ValueError, match=r"Value at \d of event_names should be a str or EventEnum"):
+    with pytest.raises(TypeError, match=r"Value at \d of event_names should be a str or EventEnum"):
         engine.register_events("str", None)
+
+    with pytest.raises(TypeError, match=r"Value at \d of event_names should be a str or EventEnum"):
+        engine.register_events(1)
+
+    with pytest.raises(TypeError, match=r"Value at \d of event_names should be a str or EventEnum"):
+        engine.register_events(A())
 
 
 def test_custom_events_with_event_to_attr():
