@@ -1,0 +1,53 @@
+# Multi-stage build
+# 1/Building apex and hvd with pytorch:1.6.0-cuda10.1-cudnn7-devel
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS apex-hvd-builder
+
+ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
+ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
+
+# Install git
+RUN apt-get update && apt-get install -y --no-install-recommends git
+
+# Build apex
+RUN echo "Setup NVIDIA Apex" && \
+    tmp_apex_path="/tmp/apex" && \
+    rm -rf $tmp_apex_path && \
+    git clone https://github.com/NVIDIA/apex $tmp_apex_path && \
+    cd $tmp_apex_path && \
+    pip wheel --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
+
+# Build Horovod
+RUN apt-get update && apt-get install -y git && \
+        git clone --recursive https://github.com/horovod/horovod.git /horovod && \
+        conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
+        cd /horovod && python setup.py sdist && \
+        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig && \
+        rm -rf /var/lib/apt/lists/* && rm -rf /horovod
+
+RUN git clone https://github.com/pytorch/ignite.git /ignite
+
+# 2/ Build the runtime image
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+
+COPY --from=apex-hvd-builder /opt/conda /opt/conda
+
+COPY --from=apex-hvd-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
+RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
+    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+
+# Install tzdata / git
+RUN apt-get update && \
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    apt-get install -y tzdata && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    apt-get -y install --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ignite main dependencies
+RUN pip install tensorboardX tensorboard trains tqdm && \
+    # Horovod support is available in >0.4.1 and in nightly releases:
+    pip install --pre pytorch-ignite
+
+COPY --from=apex-hvd-builder /ignite/examples /workspace/pytorch-ignite-examples
+
+ENTRYPOINT ["/bin/bash"]
