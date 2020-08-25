@@ -1,12 +1,12 @@
 import os
 import warnings
 from collections import OrderedDict
-from pkg_resources import parse_version
 from unittest.mock import MagicMock
 
 import pytest
 import torch
 import torch.nn as nn
+from pkg_resources import parse_version
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
