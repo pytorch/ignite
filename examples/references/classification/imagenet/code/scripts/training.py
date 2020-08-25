@@ -72,11 +72,13 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
 
     to_save = {"model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler, "trainer": trainer, "amp": amp}
 
+    save_every_iters = getattr(config, "save_every_iters", 1000)
+
     common.setup_common_training_handlers(
         trainer,
         train_sampler,
         to_save=to_save,
-        save_every_iters=1000,
+        save_every_iters=save_every_iters,
         output_path=config.output_path.as_posix(),
         lr_scheduler=lr_scheduler,
         with_gpu_stats=True,
@@ -103,12 +105,15 @@ def create_evaluators(model, metrics, config):
     train_evaluator = create_supervised_evaluator(**evaluator_args)
     evaluator = create_supervised_evaluator(**evaluator_args)
 
+    common.ProgressBar(persist=False).attach(train_evaluator)
+    common.ProgressBar(persist=False).attach(evaluator)
+
     return evaluator, train_evaluator
 
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     logger.info(
-        "\nEpoch {} - elapsed: {} - {} metrics:\n {}".format(
+        "\nEpoch {} - Evaluation time (seconds): {} - {} metrics:\n {}".format(
             epoch, elapsed, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
         )
     )

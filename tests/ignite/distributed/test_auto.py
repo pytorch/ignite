@@ -24,7 +24,7 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
         raise RuntimeError("Unknown sampler name: {}".format(sampler_name))
 
     # Test auto_dataloader
-    assert idist.get_world_size() == ws
+    assert idist.get_world_size() == ws, "{} vs {}".format(idist.get_world_size(), ws)
     dataloader = auto_dataloader(
         data, batch_size=batch_size, num_workers=num_workers, sampler=sampler, shuffle=sampler is None
     )
@@ -55,8 +55,12 @@ def _test_auto_model_optimizer(ws, device):
     # Test auto_model
     model = nn.Linear(10, 10)
     model = auto_model(model)
+    bnd = idist.backend()
     if ws > 1 and device in ("cuda", "cpu"):
-        assert isinstance(model, nn.parallel.DistributedDataParallel)
+        if idist.has_native_dist_support and bnd in ("nccl" or "gloo"):
+            assert isinstance(model, nn.parallel.DistributedDataParallel)
+        elif idist.has_hvd_support and bnd in ("horovod",):
+            assert isinstance(model, nn.Module)
     elif device != "cpu" and torch.cuda.is_available() and torch.cuda.device_count() > 1:
         assert isinstance(model, nn.parallel.DataParallel)
     else:
@@ -69,8 +73,10 @@ def _test_auto_model_optimizer(ws, device):
     # Test auto_optim
     optimizer = optim.SGD(model.parameters(), lr=0.01)
     optimizer = auto_optim(optimizer)
-    if "xla" in device:
+    if idist.has_xla_support and "xla" in device:
         assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "wrapped_optimizer")
+    elif idist.has_hvd_support and bnd in ("horovod",):
+        assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "_allreduce_grad_async")
     else:
         assert isinstance(optimizer, optim.SGD) and not hasattr(optimizer, "wrapped_optimizer")
 
@@ -102,13 +108,27 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
 def test_auto_methods_nccl(distributed_context_single_node_nccl):
 
     ws = distributed_context_single_node_nccl["world_size"]
-    lrank = distributed_context_single_node_nccl["local_rank"]
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
 
     device = "cuda"
     _test_auto_model_optimizer(ws, device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_auto_methods_hvd(gloo_hvd_executor):
+
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1), np=np, do_init=True)
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 10), np=np, do_init=True)
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1, 1, "WeightedRandomSampler"), np=np, do_init=True)
+
+    gloo_hvd_executor(_test_auto_model_optimizer, args=(np, device), np=np, do_init=True)
 
 
 def _test_auto_methods_xla(index, ws):
@@ -155,18 +175,23 @@ def test_dist_proxy_sampler():
 
     weights = torch.ones(100)
     weights[:50] += 1
-    num_samples = 100
+    num_samples = 200
     sampler = WeightedRandomSampler(weights, num_samples)
 
-    num_replicas = 4
+    num_replicas = 8
     dist_samplers = [DistributedProxySampler(sampler, num_replicas=num_replicas, rank=i) for i in range(num_replicas)]
 
-    torch.manual_seed(0)
-    true_indices = list(sampler)
+    for seed in range(100):
+        torch.manual_seed(seed)
+        true_indices = list(sampler)
 
-    indices_per_rank = []
-    for s in dist_samplers:
-        s.set_epoch(0)
-        indices_per_rank += list(s)
+        indices_per_rank = []
+        for s in dist_samplers:
+            s.set_epoch(seed)
+            indices_per_rank += list(s)
 
-    assert set(indices_per_rank) == set(true_indices)
+        set_indices_per_rank = set(indices_per_rank)
+        set_true_indices = set(true_indices)
+        assert set_indices_per_rank == set_true_indices, "{} | {}".format(
+            set_true_indices - set_indices_per_rank, set_indices_per_rank - set_true_indices
+        )

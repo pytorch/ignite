@@ -31,7 +31,7 @@ if has_xla_support:
 
         name = "xla-dist"
 
-        available_backends = tuple([XLA_TPU,])
+        available_backends = (XLA_TPU,)
 
         @staticmethod
         def create_from_context() -> Optional["_XlaDistModel"]:
@@ -113,9 +113,7 @@ if has_xla_support:
             backend: str = XLA_TPU,
             **kwargs
         ):
-            import os
-
-            if "COLAB_TPU_ADDR" in os.environ:
+            if "start_method" not in kwargs:
                 kwargs["start_method"] = "fork"
 
             xmp.spawn(
@@ -149,6 +147,13 @@ if has_xla_support:
             output[self.get_rank() % group_size] = tensor
             xm.all_reduce("sum", [output,])
             return output.reshape(-1, *output.shape[2:])
+
+        def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
+            # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
+            if src != self.get_rank():
+                tensor.fill_(0.0)
+            xm.all_reduce("sum", [tensor,])
+            return tensor
 
         def barrier(self):
             xm.rendezvous("barrier")

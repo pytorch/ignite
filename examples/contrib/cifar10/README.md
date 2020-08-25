@@ -15,6 +15,7 @@ Configurations:
 
 ## Requirements:
 
+- nightly pytorch-ignite: `pip install --pre pytorch-ignite`
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
 - [tensorboardx](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
@@ -53,9 +54,19 @@ or
 python -u main.py run --backend="nccl" --nproc_per_node=2
 ```
 
-If user would like to provide already downloaded dataset, the path can be setup in parameters as
+##### Using [Horovod](https://horovod.readthedocs.io/en/latest/index.html) as distributed backend
+
+Please, make sure to have Horovod installed before running.
+
+Let's start training on a single node with 2 gpus:
 ```bash
---data_path="/path/to/cifar10/"
+# horovodrun
+horovodrun -np=2 python -u main.py run --backend="horovod"
+```
+or 
+```bash
+# using function spawn inside the code
+python -u main.py run --backend="horovod" --nproc_per_node=2
 ```
 
 

@@ -7,7 +7,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.distributed.utils import has_native_dist_support, has_xla_support
+from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
 
 
 @pytest.fixture()
@@ -61,17 +61,43 @@ def _test_check_idist_parallel_torch_launch(fp, backend, nprocs):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test runs torch launch")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
 def test_check_idist_parallel_torch_launch_n_procs_gloo(exec_filepath):
     _test_check_idist_parallel_torch_launch(exec_filepath, "gloo", 4)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test runs torch launch")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_check_idist_parallel_torch_launch_n_procs_nccl(exec_filepath):
     _test_check_idist_parallel_torch_launch(exec_filepath, "nccl", torch.cuda.device_count())
+
+
+def _test_check_idist_parallel_hvdrun(fp, backend, nprocs):
+    # horovodrun -np=nprocs python tests/ignite/distributed/check_idist_parallel.py --backend=backend
+
+    cmd = [
+        "horovodrun",
+        "-np",
+        "{}".format(nprocs),
+        sys.executable,
+        fp,
+        "--backend={}".format(backend),
+    ]
+
+    out = execute(cmd)
+    assert "backend={}".format(backend) in out
+    assert "in {} processes".format(nprocs) in out
+    assert "End of run" in out
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses horovodrun")
+def test_check_idist_parallel_hvdrun_launch_n_procs(exec_filepath):
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    _test_check_idist_parallel_hvdrun(exec_filepath, "horovod", np)
 
 
 def _test_check_idist_parallel_spawn(fp, backend, nprocs):
@@ -109,6 +135,14 @@ def test_check_idist_parallel_spawn_n_procs_xla(exec_filepath):
     n = int(os.environ["NUM_TPU_WORKERS"])
     if n > 1:
         _test_check_idist_parallel_spawn(exec_filepath, "xla-tpu", n)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_check_idist_parallel_spawn_n_procs_hvd(exec_filepath):
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    _test_check_idist_parallel_spawn(exec_filepath, "horovod", np)
 
 
 def _test_func(index, ws, device):
@@ -158,3 +192,21 @@ def test_idist_parallel_no_dist():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     with idist.Parallel(backend=None) as parallel:
         parallel.run(_test_func, ws=1, device=device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_parallel_spawn_params():
+
+    res = idist.Parallel._setup_spawn_params(
+        nproc_per_node=8, nnodes=None, node_rank=None, master_addr=None, master_port=None, start_method="fork"
+    )
+    assert "nproc_per_node" in res and res["nproc_per_node"] == 8
+    assert "start_method" in res and res["start_method"] == "fork"
+
+    with idist.Parallel(backend="xla-tpu", nproc_per_node=8, start_method="fork") as parallel:
+        assert parallel.backend == "xla-tpu"
+        res = parallel._spawn_params
+        assert "nproc_per_node" in res and res["nproc_per_node"] == 8
+        assert "start_method" in res and res["start_method"] == "fork"
