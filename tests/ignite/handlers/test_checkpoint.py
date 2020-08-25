@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 import torch.nn as nn
+from pkg_resources import parse_version
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
@@ -590,6 +591,31 @@ def test_disk_saver_atomic(dirname):
 
     _test_existance(atomic=True, _to_save=to_save_serializable, expected=True)
     _test_existance(atomic=True, _to_save=to_save_non_serializable, expected=False)
+
+
+@pytest.mark.skipif(
+    parse_version(torch.__version__) < parse_version("1.4.0"), reason="Zipfile serialization was introduced in 1.4.0"
+)
+def test_disk_saver_zipfile_serialization_keyword(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+
+    saver = DiskSaver(dirname, create_dir=False, _use_new_zipfile_serialization=False)
+    fname = "test.pt"
+    saver(to_save, fname)
+    fp = os.path.join(saver.dirname, fname)
+    assert os.path.exists(fp)
+    saver.remove(fname)
+
+
+def test_disk_saver_unknown_keyword(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+
+    saver = DiskSaver(dirname, create_dir=False, unknown_keyword="")
+    fname = "test.pt"
+    with pytest.raises(TypeError, match=r"got an unexpected keyword argument 'unknown_keyword'"):
+        saver(to_save, fname)
 
 
 def test_last_k(dirname):
