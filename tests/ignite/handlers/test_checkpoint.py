@@ -608,14 +608,14 @@ def test_disk_saver_zipfile_serialization_keyword(dirname):
     saver.remove(fname)
 
 
-@pytest.mark.xfail
 def test_disk_saver_unknown_keyword(dirname):
     model = DummyModel()
     to_save = {"model": model}
 
     saver = DiskSaver(dirname, create_dir=False, unknown_keyword="")
     fname = "test.pt"
-    saver(to_save, fname)
+    with pytest.raises(TypeError, match=r"got an unexpected keyword argument 'unknown_keyword'"):
+        saver(to_save, fname)
 
 
 def test_last_k(dirname):
