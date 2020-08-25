@@ -1,6 +1,7 @@
 import os
 import warnings
 from collections import OrderedDict
+from pkg_resources import parse_version
 from unittest.mock import MagicMock
 
 import pytest
@@ -590,6 +591,31 @@ def test_disk_saver_atomic(dirname):
 
     _test_existance(atomic=True, _to_save=to_save_serializable, expected=True)
     _test_existance(atomic=True, _to_save=to_save_non_serializable, expected=False)
+
+
+@pytest.mark.skipif(
+    parse_version(torch.__version__) < parse_version("1.4.0"), reason="Zipfile serialization was introduced in 1.4.0"
+)
+def test_disk_saver_zipfile_serialization_keyword(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+
+    saver = DiskSaver(dirname, create_dir=False, _use_new_zipfile_serialization=False)
+    fname = "test.pt"
+    saver(to_save, fname)
+    fp = os.path.join(saver.dirname, fname)
+    assert os.path.exists(fp)
+    saver.remove(fname)
+
+
+@pytest.mark.xfail
+def test_disk_saver_unknown_keyword(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+
+    saver = DiskSaver(dirname, create_dir=False, unknown_keyword="")
+    fname = "test.pt"
+    saver(to_save, fname)
 
 
 def test_last_k(dirname):
