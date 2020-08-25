@@ -28,25 +28,34 @@ def test_custom_events():
     # Dummy engine
     engine = Engine(lambda engine, batch: 0)
     engine.register_events(*CustomEvents)
+    engine.register_events("a", "b", "c")
+
+    evs = [CustomEvents.TEST_EVENT, "a", "b", "c"]
 
     # Handle is never called
-    handle = MagicMock()
-    engine.add_event_handler(CustomEvents.TEST_EVENT, handle)
+    handlers = [(e, MagicMock()) for e in evs]
+    for e, h in handlers:
+        engine.add_event_handler(e, h)
     engine.run(range(1))
-    assert not handle.called
+    for _, h in handlers:
+        assert not h.called
 
     # Advanced engine
     def process_func(engine, batch):
-        engine.fire_event(CustomEvents.TEST_EVENT)
+        for e, _ in handlers:
+            engine.fire_event(e)
 
     engine = Engine(process_func)
     engine.register_events(*CustomEvents)
+    engine.register_events("a", "b", "c")
 
     # Handle should be called
-    handle = MagicMock()
-    engine.add_event_handler(CustomEvents.TEST_EVENT, handle)
+    handlers = [(e, MagicMock()) for e in evs]
+    for e, h in handlers:
+        engine.add_event_handler(e, h)
     engine.run(range(1))
-    assert handle.called
+    for _, h in handlers:
+        assert h.called
 
 
 def test_custom_events_asserts():
