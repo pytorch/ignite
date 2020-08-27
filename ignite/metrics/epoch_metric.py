@@ -49,11 +49,11 @@ class EpochMetric(Metric):
     """
 
     def __init__(
-            self,
-            compute_fn: Callable,
-            output_transform: Callable = lambda x: x,
-            check_compute_fn: bool = True,
-            device: Union[str, torch.device] = torch.device("cpu")
+        self,
+        compute_fn: Callable,
+        output_transform: Callable = lambda x: x,
+        check_compute_fn: bool = True,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
 
         if not callable(compute_fn):

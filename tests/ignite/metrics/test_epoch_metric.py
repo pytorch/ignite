@@ -53,7 +53,7 @@ def test_epoch_metric_wrong_setup_or_input():
         em.update(output2)
 
     with pytest.raises(
-            NotComputableError, match="EpochMetric must have at least one example before it can be computed"
+        NotComputableError, match="EpochMetric must have at least one example before it can be computed"
     ):
         em = EpochMetric(compute_fn)
         em.compute()
