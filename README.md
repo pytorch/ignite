@@ -296,15 +296,17 @@ version as dependency):
 ```bash
 conda install ignite -c pytorch-nightly
 ```
-##Docker Images
-###Using pre-built images
+## Docker Images
+
+### Using pre-built images
+
 Just pull a pre-built docker image from Docker Hub and run with docker v19.03+
 
 ```bash
 docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
 ```
 
-###Building the image yourself
+### Building the image yourself
 
 The [Dockerfiles](docker/README.md) are supplied to build images with dependencies that ease the use of Ignite for computer vision / NLP tasks:
 
