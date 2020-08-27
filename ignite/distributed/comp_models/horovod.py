@@ -163,6 +163,9 @@ if has_hvd_support:
                 tensor = tensor.unsqueeze(0)
             return hvd.allgather(tensor)
 
+        def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
+            return hvd.broadcast(tensor, root_rank=src)
+
         def barrier(self):
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")

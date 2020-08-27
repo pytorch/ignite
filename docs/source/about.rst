@@ -28,7 +28,6 @@ The following people are currently core contributors to PyTorch-Ignite’s devel
 - Victor Fomin `@vfdev-5 <https://github.com/vfdev-5>`_
 - Anmol Joshi `@anmolsjoshi <https://github.com/anmolsjoshi>`_
 - Sylvain Desroziers `@sdesrozis <https://github.com/sdesrozis>`_
-- Elijah Rippeth `@erip <https://github.com/erip>`_
 
 
 Emeritus Core Developers
@@ -45,7 +44,8 @@ Join Core Team
 
 We are looking for motivated contributors to become collaborators and help out with the project.
 We can start considering a candidate after several successfully merged Github pull requests.
-If you are interested, for more details, please, contact Victor (@vfdev-5) on `PyTorch Slack <https://pytorch.slack.com>`_ or via email `vfdev.5` at `gmail.com`.
+If you are interested, for more details, please, contact Victor (@vfdev-5) on `PyTorch Slack <https://pytorch.slack.com>`_
+or via email `vfdev.5` at `gmail.com`.
 
 
 Citing PyTorch-Ignite
@@ -56,7 +56,7 @@ If you use pytorch-ignite in a scientific publication, we would appreciate citat
 .. code-block:: text
 
     @misc{pytorch-ignite,
-      author = {V. Fomin, J. Anmol, S. Desroziers, J. Kriss, A. Tejani and E. Rippeth},
+      author = {V. Fomin, J. Anmol, S. Desroziers, J. Kriss and A. Tejani},
       title = {High-level library to help with training neural networks in PyTorch},
       year = {2020},
       publisher = {GitHub},
@@ -74,8 +74,8 @@ We are also grateful to Soumith Chintala `@soumith <https://github.com/soumith>`
 from Facebook for their help and to `PyTorch group <https://github.com/pytorch>`_ for infrastructure support
 (GPU CI and hosting of conda releases and our documentation).
 
-In particular, Victor Fomin `@vfdev-5 <https://github.com/vfdev-5>`_ acknowledges `Magellium <https://www.magellium.com/>`_ for supporting project's development.
-
+In particular, Victor Fomin `@vfdev-5 <https://github.com/vfdev-5>`_ acknowledges `Magellium <https://www.magellium.com/>`_
+and `Quansight <https://www.quansight.com/>`_ for supporting project's development.
 
 We also acknowledge `scikit-learn project <https://scikit-learn.org>`_'s documentation on governance, author's presentation etc
 from which this project is highly inspired.
