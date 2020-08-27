@@ -34,25 +34,38 @@ If you modify the code, you will most probably also need to code some tests to e
 New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests, 
 please run lint checking and tests:
 
-#### Formatting Code without pre-commit
-If you choose not to use pre-commit, you can take advantage of IDE extensions configured to black format or invoke black manually to format files and commit them.
+#### Formatting Code
+
+To ensure the codebase complies with a style guide, we use [flake8](https://flake8.pycqa.org/en/latest/),
+[black](https://black.readthedocs.io/en/stable/) and [isort](https://pycqa.github.io/isort/) tools to
+format and check codebase for compliance with PEP8. To install those tools with pip, please run
 
 ```bash
-pip install black
-black .
+pip install flake8 "black==19.10b0" "isort==4.3.21"
+```
+  
+##### Formatting without pre-commit
+
+If you choose not to use pre-commit, you can take advantage of IDE extensions configured to black format or invoke 
+black manually to format files and commit them.
+
+```bash
 # This should autoformat the files
+isort -rc .
+black .
+# Run lint checking
+flake8 ignite/ tests/ examples/
+# If everything is OK, then commit
 git add .
-git commit -m "....."
+git commit -m "Added awesome feature"
 ```
 
-#### with pre-commit
-
-To ensure the codebase complies with a style guide, we use [black](https://black.readthedocs.io/en/stable/) and [flake8](https://flake8.pycqa.org/en/latest/) to format and check codebase for compliance with PEP8. 
+#### Formatting with pre-commit
 
 To automate the process, we have configured the repo with [pre-commit hooks](https://pre-commit.com/) to use black to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
 
 1. Install pre-commit in your python environment.
-2. Run pre-commit install that configures a virtual environment to invoke black and flake8 on commits.
+2. Run pre-commit install that configures a virtual environment to invoke black, isort and flake8 on commits.
 
 ```bash
 pip install pre-commit
@@ -67,18 +80,13 @@ pre-commit install
 git add .
 git commit -m "Added awesome feature"
 # DONT'T WORRY IF ERRORS ARE RAISED.
-# YOUR CODE IS NOT COMPLIANT WITH FLAKE8 or BLACK
+# YOUR CODE IS NOT COMPLIANT WITH flake8, isort or black
 # Fix any flake8 errors by following their suggestions
-# black will automatically format the files so they might look different, but you'll need to stage the files again for committing
+# isort and black will automatically format the files so they might look different, but you'll need to stage the files 
+# again for committing
 # After fixing any flake8 errors
 git add .
 git commit -m "Added feature"
-```
-
-
-#### Run lint checking
-```bash
-flake8 ignite/ tests/ examples/
 ```
 
 #### Run tests:
