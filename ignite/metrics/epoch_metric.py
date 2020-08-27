@@ -4,6 +4,7 @@ from typing import Callable, Sequence, Union
 import torch
 
 import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
 
 __all__ = ["EpochMetric"]
@@ -31,7 +32,8 @@ class EpochMetric(Metric):
 
     Args:
         compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
-            `predictions` and `targets` and returns a scalar.
+            `predictions` and `targets` and returns a scalar. Input tensors will be on specified ``device``
+            (see arg below).
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -109,7 +111,7 @@ class EpochMetric(Metric):
             y = y.squeeze(dim=-1)
 
         y_pred = y_pred.detach().clone().to(self._device)
-        y = y.clone().to(self._device)
+        y = y.detach().clone().to(self._device)
 
         self._check_type((y_pred, y))
         self._predictions.append(y_pred)
@@ -123,7 +125,9 @@ class EpochMetric(Metric):
                 warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
     def compute(self) -> None:
-        # Check if self._predictions, self._targets are not empty
+        if len(self._predictions) < 1 or len(self._targets) < 1:
+            raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
+
         _prediction_tensor = torch.cat(self._predictions, dim=0)
         _target_tensor = torch.cat(self._targets, dim=0)
 
@@ -133,7 +137,6 @@ class EpochMetric(Metric):
             # All gather across all processes
             _prediction_tensor = idist.all_gather(_prediction_tensor)
             _target_tensor = idist.all_gather(_target_tensor)
-
         self._is_reduced = True
 
         result = 0.0

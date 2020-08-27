@@ -6,7 +6,7 @@ import torch
 import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import EpochMetric
-from ignite.metrics.epoch_metric import EpochMetricWarning
+from ignite.metrics.epoch_metric import EpochMetricWarning, NotComputableError
 
 
 def test_epoch_metric_wrong_setup_or_input():
@@ -51,6 +51,12 @@ def test_epoch_metric_wrong_setup_or_input():
     with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
         output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32))
         em.update(output2)
+
+    with pytest.raises(
+            NotComputableError, match="EpochMetric must have at least one example before it can be computed"
+    ):
+        em = EpochMetric(compute_fn)
+        em.compute()
 
 
 def test_epoch_metric():
@@ -137,14 +143,6 @@ def test_bad_compute_fn():
         em.update(output1)
 
 
-def _test_warning():
-    def compute_fn(y_preds, y_targets):
-        return 0.0
-
-    with pytest.warns(RuntimeWarning, match="EpochMetric class does not support distributed setting"):
-        EpochMetric(compute_fn)
-
-
 def test_check_compute_fn():
     def compute_fn(y_preds, y_targets):
         raise Exception
@@ -173,8 +171,8 @@ def _test_distrib_integration(device=None):
     n_classes = 7
 
     offset = n_iters * s
-    y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-    y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
+    y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),), device=device)
+    y_preds = torch.rand(offset * idist.get_world_size(), n_classes, device=device)
 
     def update(engine, i):
         return (
@@ -189,7 +187,7 @@ def _test_distrib_integration(device=None):
         assert all_targets.equal(y_true), "{} vs {}".format(all_targets.shape, y_true.shape)
         return (all_preds.argmax(dim=1) == all_targets).sum().item()
 
-    ep_metric = EpochMetric(assert_data_fn, check_compute_fn=False)
+    ep_metric = EpochMetric(assert_data_fn, check_compute_fn=False, device=device)
     ep_metric.attach(engine, "epm")
 
     data = list(range(n_iters))
@@ -201,13 +199,13 @@ def _test_distrib_integration(device=None):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
-    _test_distrib_integration()
+    _test_distrib_integration(device="cuda")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
-    _test_distrib_integration()
+    _test_distrib_integration(device="cpu")
 
 
 @pytest.mark.tpu
