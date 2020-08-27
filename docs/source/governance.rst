@@ -33,5 +33,5 @@ against merging a pull-request, and can be involved in deciding major changes to
 
 New core developers can be nominated by any existing core developers.
 
-Core developers that have not contributed to the project (commits or GitHub comments) in the past 12 months will be asked
+Core developers that have not contributed to the project (commits or GitHub comments) in the past 2 months will be asked
 if they want to become emeritus core developers and recant their commit rights until they become active again.
