@@ -306,7 +306,7 @@ docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 1
 
 ###Building the image yourself
 
-The [Dockerfiles](docker/README.md) are supplied to build images with dependencies that ease the use of Ignite for computer vision and NLP tasks..
+The [Dockerfiles](docker/README.md) are supplied to build images with dependencies that ease the use of Ignite for computer vision / NLP tasks:
 
 ```bash
 cd docker/main
