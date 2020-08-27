@@ -16,6 +16,7 @@ from ignite.utils import setup_logger
 
 __all__ = [
     "backend",
+    "broadcast",
     "device",
     "available_backends",
     "model_name",
@@ -335,14 +336,58 @@ def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, 
         tensor (torch.Tensor or number or str): tensor or number or str to collect across participating processes.
 
     Returns:
-        torch.Tensor of shape `(world_size * tensor.shape[0], tensor.shape[1], ...)` or
-        List of strings
+        torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)`` if input is a tensor or
+        torch.Tensor of shape ``(world_size, )`` if input is a number or
+        List of strings if input is a string
 
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
     return _model.all_gather(tensor)
+
+
+def broadcast(tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
+    """Helper method to perform broadcast operation.
+
+    Args:
+        tensor (torch.Tensor or number or str): tensor or number or str to broadcast to participating processes.
+            Make sure to respect dtype of torch tensor input for all processes, otherwise execution will crash.
+        src (int): source rank. Default, 0.
+
+    Returns:
+        torch.Tensor or string or number
+
+    Examples:
+
+        .. code-block:: python
+
+            if idist.get_rank() == 0:
+                t1 = torch.rand(4, 5, 6, device=idist.device())
+                s1 = "abc"
+                x = 12.3456
+            else:
+                t1 = torch.empty(4, 5, 6, device=idist.device())
+                s1 = ""
+                x = 0.0
+
+            # Broadcast tensor t1 from rank 0 to all processes
+            t1 = idist.broadcast(t1, src=0)
+            assert isinstance(t1, torch.Tensor)
+
+            # Broadcast string s1 from rank 0 to all processes
+            s1 = idist.broadcast(s1, src=0)
+            # >>> s1 = "abc"
+
+            # Broadcast float number x from rank 0 to all processes
+            x = idist.broadcast(x, src=0)
+            # >>> x = 12.3456
+
+    """
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
+    return _model.broadcast(tensor, src=src)
 
 
 def barrier():
