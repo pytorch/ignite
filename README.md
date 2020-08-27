@@ -301,7 +301,7 @@ conda install ignite -c pytorch-nightly
 Just pull a pre-built docker image from Docker Hub and run with docker v19.03+
 
 ```bash
-docker run --gpus all --rm -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
+docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
 ```
 
 ###Building the image yourself
