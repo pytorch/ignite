@@ -4,12 +4,6 @@ ignite.contrib.handlers
 Contribution module of handlers
 
 
-custom_events
--------------
-
-.. automodule:: ignite.contrib.handlers.custom_events
-   :members:
-
 param_scheduler
 ---------------
 
