@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import torch
 
-from ignite.contrib.handlers import CustomPeriodicEvent, ProgressBar
+from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan
 from ignite.metrics import RunningAverage
