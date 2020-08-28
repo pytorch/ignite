@@ -372,6 +372,7 @@ def test_pbar_wrong_events_order():
     with pytest.raises(ValueError, match="should not be a filtered event"):
         pbar.attach(engine, event_name=Events.ITERATION_STARTED, closing_event_name=Events.EPOCH_COMPLETED(every=10))
 
+
 def test_pbar_with_nan_input():
     def update(engine, batch):
         x = batch
