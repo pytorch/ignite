@@ -300,37 +300,22 @@ conda install ignite -c pytorch-nightly
 
 ### Using pre-built images
 
-Just pull a pre-built docker image from [Docker Hub Ignite repository](https://hub.docker.com/orgs/pytorchignite/repositories) and run with docker v19.03+.
- 
-Available pre-built images are :
-
-- [main/Dockerfile.base](docker/main/Dockerfile.base): latest stable PyTorch, Ignite with minimal dependencies
-    * `docker pull pytorchignite/base:latest`
-- [main/Dockerfile.vision](docker/main/Dockerfile.vision): base image with useful computer vision libraries 
-    * `docker pull pytorchignite/vision:latest`
-- [main/Dockerfile.nlp](docker/main/Dockerfile.nlp): base image with useful NLP libraries 
-    * `docker pull pytorchignite/nlp:latest`
-- [main/Dockerfile.apex](docker/main/Dockerfile.apex): multi-stage NVIDIA/apex build with latest Pytorch, Ignite image with minimal dependencies
-    * `docker pull pytorchignite/apex:latest`
-- [main/Dockerfile.apex-vision](docker/main/Dockerfile.nlp): base apex with useful computer vision libraries
-    * `docker pull pytorchignite/apex-vision:latest`
-- [main/Dockerfile.apex-nlp](docker/main/Dockerfile.nlp): base apex with useful NLP libraries
-    * `docker pull pytorchignite/apex-nlp:latest`
-
-Run a container suitable for your needs with:       
+Pull a pre-built docker image from [our Docker Hub](https://hub.docker.com/u/pytorchignite) and run it with docker v19.03+.
 
 ```bash
 docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
 ```
 
-### Building the image yourself
+Available pre-built images are :
 
-The [Dockerfiles](docker/README.md) are supplied to build images with dependencies that ease the use of Ignite for computer vision / NLP tasks:
+- `pytorchignite/base:latest`  
+- `pytorchignite/apex:latest`
+- `pytorchignite/vision:latest` 
+- `pytorchignite/apex-vision:latest`
+- `pytorchignite/nlp:latest`
+- `pytorchignite/apex-nlp:latest`
 
-```bash
-cd docker/main
-docker build -t pytorchignite/base:latest -f Dockerfile.base . 
-```
+For more details, see [here](docker).
 
 <!-- ############################################################################################################### -->
 
