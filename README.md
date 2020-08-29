@@ -446,6 +446,7 @@ As always, PRs are welcome :)
 -   [Bridging Text and Video: A Universal Multimodal Transformer for Video-Audio Scene-Aware Dialog](https://github.com/ictnlp/DSTC8-AVSD)
 -   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
 -   [Uncertainty Estimation Using a Single Deep Deterministic Neural Network](https://github.com/y0ast/deterministic-uncertainty-quantification)
+-   [DeepSphere: a graph-based spherical CNN](https://github.com/deepsphere/deepsphere-pytorch)
 
 ## Blog articles, tutorials, books
 
