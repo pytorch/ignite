@@ -480,7 +480,8 @@ def gen_save_best_models_by_val_score(
 ):
     """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
-    The logic of how to store objects is delegated to ``save_handler``.
+    Models with highest metric value will be retained. The logic of how to store objects is delegated to
+    ``save_handler``.
 
     Args:
         save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
@@ -532,6 +533,7 @@ def save_best_model_by_val_score(
 ):
     """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
+    Models with highest metric value will be retained.
 
     Args:
         output_path (str): output path to indicate where to save best models
@@ -561,6 +563,7 @@ def save_best_model_by_val_score(
 
 def add_early_stopping_by_val_score(patience, evaluator, trainer, metric_name):
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
+    Metric value should increase in order to keep training and not early stop.
 
     Args:
         patience (int): number of events to wait if no improvement and then stop the training.
