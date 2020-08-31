@@ -57,13 +57,13 @@ class Loss(Metric):
             kwargs = {}
         else:
             y_pred, y, kwargs = output
-        average_loss = self._loss_fn(y_pred, y, **kwargs)
+        average_loss = self._loss_fn(y_pred.detach(), y.detach(), **kwargs)
 
         if len(average_loss.shape) != 0:
             raise ValueError("loss_fn did not return the average loss.")
 
         n = self._batch_size(y)
-        self._sum += average_loss.detach().to(self._device) * n
+        self._sum += average_loss.to(self._device) * n
         self._num_examples += n
 
     @sync_all_reduce("_sum", "_num_examples")
