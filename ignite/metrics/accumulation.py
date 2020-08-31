@@ -72,8 +72,6 @@ class VariableAccumulation(Metric):
                 output = output.to(self._device)
 
         self.accumulator = self._op(self.accumulator, output)
-        if isinstance(self.accumulator, torch.Tensor):
-            self.accumulator = self.accumulator.to(self._device)
 
         if hasattr(output, "shape"):
             self.num_examples += output.shape[0] if len(output.shape) > 1 else 1
