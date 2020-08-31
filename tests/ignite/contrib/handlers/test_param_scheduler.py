@@ -325,12 +325,6 @@ def test_concat_scheduler_asserts():
             num_events=123, schedulers=[scheduler_1, scheduler_2], durations=[15], param_names="abc"
         )
 
-    optimizer_2 = torch.optim.SGD([tensor], lr=0)
-    scheduler_3 = CosineAnnealingScheduler(optimizer_2, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
-
-    with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
-        ConcatScheduler([scheduler_1, scheduler_3], durations=[30,])
-
 
 def test_concat_scheduler_state_dict():
     tensor = torch.zeros([1], requires_grad=True)
@@ -1136,16 +1130,9 @@ def test_param_group_scheduler_asserts():
     ):
         scheduler.load_state_dict({"schedulers": [("a", lr_scheduler1.state_dict()), ("bad_name", {})]})
 
-    optimizer2 = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
-    lr_scheduler3 = LinearCyclicalScheduler(
-        optimizer2, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
-    )
-    with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
-        ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler3])
-
 
 def test_param_group_scheduler():
-    def _test(lr_schedulers, optimizer):
+    def _test(lr_schedulers, _save_lrs_from_same_optimizer):
         num_iterations = 10
         max_epochs = 20
 
@@ -1154,17 +1141,15 @@ def test_param_group_scheduler():
 
         trainer = Engine(lambda engine, batch: None)
 
-        @trainer.on(Events.ITERATION_COMPLETED)
-        def save_lr(engine):
-            lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
-
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
         data = [0] * num_iterations
 
         for _ in range(2):
             lrs = []
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, _save_lrs_from_same_optimizer, lrs)
             trainer.run(data, max_epochs=max_epochs)
+            trainer.remove_event_handler(_save_lrs_from_same_optimizer, Events.ITERATION_COMPLETED)
             assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
             scheduler.load_state_dict(state_dict)
 
@@ -1174,15 +1159,36 @@ def test_param_group_scheduler():
 
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
+    optimizer1 = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
 
     lr_scheduler1 = LinearCyclicalScheduler(
-        optimizer, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
+        optimizer1, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
     )
     lr_scheduler2 = LinearCyclicalScheduler(
-        optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
+        optimizer1, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
     )
-    _test([lr_scheduler1, lr_scheduler2], optimizer)
+
+    def _save_lrs_from_same_optimizer(engine, lrs):
+        lrs.append((optimizer1.param_groups[0]["lr"], optimizer1.param_groups[1]["lr"]))
+
+    _test([lr_scheduler1, lr_scheduler2], _save_lrs_from_same_optimizer)
+
+    optimizer2 = torch.optim.SGD([{"params": t1, "lr": 0.1}])
+
+    lr_scheduler3 = LinearCyclicalScheduler(
+        optimizer2, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
+    )
+
+    optimizer3 = torch.optim.SGD([{"params": t2, "lr": 0.1}])
+
+    lr_scheduler4 = LinearCyclicalScheduler(
+        optimizer3, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
+    )
+
+    def _save_lrs_from_different_optimizers(engine, lrs):
+        lrs.append((optimizer2.param_groups[0]["lr"], optimizer3.param_groups[0]["lr"]))
+
+    _test([lr_scheduler3, lr_scheduler4], _save_lrs_from_different_optimizers)
 
 
 def test_scheduler_with_param_groups():

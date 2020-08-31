@@ -402,6 +402,20 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
+class _ParamGroupsOptimizer:
+    """Internal tools to concat a list of parameters from different optimizers.
+    """
+
+    def __init__(self, param_groups):
+        self.param_groups = param_groups
+
+    def state_dict(self):
+        return self.param_groups
+
+    def load_state_dict(self, state):
+        self.param_groups = state
+
+
 class ConcatScheduler(ParamScheduler):
     """Concat a list of parameter schedulers.
 
@@ -462,9 +476,8 @@ class ConcatScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.durations = durations
 
-        self.optimizer = self.schedulers[0].optimizer
-        if not (all(id(s.optimizer) == id(self.optimizer) for s in self.schedulers)):
-            raise ValueError("schedulers should be related to same optimizer")
+        param_groups = [s.optimizer_param_groups[0] for s in schedulers]
+        self.optimizer = _ParamGroupsOptimizer(param_groups)
 
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
@@ -575,11 +588,13 @@ class ConcatScheduler(ParamScheduler):
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
-            objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
-            # all schedulers should be related to the same optimizer
-            objs["optimizer"] = schedulers[0].optimizer.state_dict()
-
-            torch.save(objs, cache_filepath.as_posix())
+            scheduler_objs = {
+                "lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)
+            }
+            optimizer_objs = {
+                "optimizer_{}".format(i): s.optimizer.state_dict() for i, s in enumerate(schedulers)
+            }
+            torch.save({**scheduler_objs, **optimizer_objs}, cache_filepath.as_posix())
 
             # do not save_history
             for s in schedulers:
@@ -600,7 +615,7 @@ class ConcatScheduler(ParamScheduler):
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs["lr_scheduler_{}".format(i)])
-                s.optimizer.load_state_dict(objs["optimizer"])
+                s.optimizer.load_state_dict(objs["optimizer_{}".format(i)])
 
             return output
 
@@ -955,9 +970,8 @@ class ParamGroupScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.names = names
 
-        self.optimizer = self.schedulers[0].optimizer
-        if not (all(id(s.optimizer) == id(self.optimizer) for s in schedulers)):
-            raise ValueError("schedulers should be related to same optimizer")
+        param_groups = [s.optimizer_param_groups[0] for s in schedulers]
+        self.optimizer = _ParamGroupsOptimizer(param_groups)
 
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
@@ -1042,11 +1056,13 @@ class ParamGroupScheduler(ParamScheduler):
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
-            objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
-            # all schedulers should be related to the same optimizer
-            objs["optimizer"] = schedulers[0].optimizer.state_dict()
-
-            torch.save(objs, cache_filepath.as_posix())
+            scheduler_objs = {
+                "lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)
+            }
+            optimizer_objs = {
+                "optimizer_{}".format(i): s.optimizer.state_dict() for i, s in enumerate(schedulers)
+            }
+            torch.save({**scheduler_objs, **optimizer_objs}, cache_filepath.as_posix())
 
             values = []
             scheduler = cls(schedulers=schedulers, **kwargs)
@@ -1058,7 +1074,7 @@ class ParamGroupScheduler(ParamScheduler):
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs["lr_scheduler_{}".format(i)])
-                s.optimizer.load_state_dict(objs["optimizer"])
+                s.optimizer.load_state_dict(objs["optimizer_{}".format(i)])
 
             return values
 
