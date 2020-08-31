@@ -526,14 +526,16 @@ class DiskSaver(BaseSaveHandler):
         create_dir (bool, optional): if True, will create directory ``dirname`` if it doesnt exist.
         require_empty (bool, optional): If True, will raise exception if there are any files in the
             directory ``dirname``.
+        **kwargs: Accepted keyword arguments for `torch.save` or `xm.save`.
     """
 
     def __init__(
-        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True,
+        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs
     ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
         self._check_and_setup(dirname, create_dir, require_empty)
+        self.kwargs = kwargs
 
     @staticmethod
     @idist.one_rank_only()
@@ -575,7 +577,7 @@ class DiskSaver(BaseSaveHandler):
 
     def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0):
         if not self._atomic:
-            func(checkpoint, path)
+            func(checkpoint, path, **self.kwargs)
         else:
             tmp_file = None
             tmp_name = None
@@ -585,7 +587,7 @@ class DiskSaver(BaseSaveHandler):
                 tmp_file = tmp.file
                 tmp_name = tmp.name
             try:
-                func(checkpoint, tmp_file)
+                func(checkpoint, tmp_file, **self.kwargs)
             except BaseException:
                 if tmp is not None:
                     tmp.close()
@@ -653,6 +655,7 @@ class ModelCheckpoint(Checkpoint):
         archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        **kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
 
     Examples:
         >>> import os
@@ -685,6 +688,7 @@ class ModelCheckpoint(Checkpoint):
         global_step_transform: Optional[Callable] = None,
         archived: bool = False,
         include_self: bool = False,
+        **kwargs
     ):
 
         if not save_as_state_dict:
@@ -704,7 +708,7 @@ class ModelCheckpoint(Checkpoint):
                 # No choice
                 raise ValueError(msg)
 
-        disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty,)
+        disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
 
         super(ModelCheckpoint, self).__init__(
             to_save=None,
