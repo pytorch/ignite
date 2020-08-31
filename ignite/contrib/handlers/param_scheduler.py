@@ -56,7 +56,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
         if isinstance(value, list):
             if len(value) != len(self.optimizer_param_groups):
-                raise RuntimeError(
+                raise ValueError(
                     "size of value is different than optimizer_param_groups {} != {}".format(
                         len(value), len(self.optimizer_param_groups)
                     )
@@ -266,7 +266,7 @@ class CyclicalScheduler(ParamScheduler):
 
         if self.cycle_size < 2:
             raise ValueError(
-                "Argument cycle_size should be positive and larger than 1, " "but given {}".format(cycle_size)
+                "Argument cycle_size should be positive and larger than 1, but given {}".format(cycle_size)
             )
 
         self._state_attrs += [
@@ -451,14 +451,20 @@ class ConcatScheduler(ParamScheduler):
 
     def __init__(self, schedulers, durations, save_history=False):
 
-        if not isinstance(schedulers, Sequence) or len(schedulers) < 2:
+        if not isinstance(schedulers, Sequence):
+            raise TypeError("Argument schedulers should be a sequence, but given {}".format(schedulers))
+
+        if len(schedulers) < 2:
             raise ValueError(
-                "Argument schedulers should be a sequence of more than one parameter schedulers, "
+                "Argument schedulers should be of more than one parameter schedulers, "
                 "but given {}".format(schedulers)
             )
 
-        if not isinstance(durations, Sequence) or not all([isinstance(t, numbers.Integral) for t in durations]):
-            raise ValueError("Argument durations should be list/tuple of integers, " "but given {}".format(durations))
+        if not isinstance(durations, (list, tuple)):
+            raise TypeError("Argument durations should be list/tuple, but given {}".format(durations))
+
+        if not all([isinstance(t, numbers.Integral) for t in durations]):
+            raise ValueError("Argument durations should be list/tuple of integers, but given {}".format(durations))
 
         if len(schedulers) != len(durations) + 1:
             raise ValueError(
@@ -580,8 +586,13 @@ class ConcatScheduler(ParamScheduler):
             list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
 
         """
-        if param_names is not None and not isinstance(param_names, (list, tuple)):
-            raise ValueError("Argument param_names should be list or tuple of strings")
+        if param_names is not None:
+            if not isinstance(param_names, (list, tuple)):
+                raise TypeError("Argument param_names should be list or tuple, but given {}".format(type(param_names)))
+            if not all(isinstance(item, str) for item in param_names):
+                raise ValueError(
+                    "Argument param_names should be list or tuple of strings, but given {}".format(param_names)
+                )
 
         # This scheduler uses `ParamScheduler` which
         # should be replicated in order to simulate LR values and
@@ -777,7 +788,10 @@ def create_lr_scheduler_with_warmup(
             "ParamScheduler, but given {}".format(type(lr_scheduler))
         )
 
-    if not (isinstance(warmup_duration, numbers.Integral) and warmup_duration > 1):
+    if not isinstance(warmup_duration, numbers.Integral):
+        raise TypeError("Argument warmup_duration should be integer, but given {}".format(warmup_duration))
+
+    if not (warmup_duration > 1):
         raise ValueError("Argument warmup_duration should be at least 2 events, but given {}".format(warmup_duration))
 
     warmup_schedulers = []
@@ -872,10 +886,14 @@ class PiecewiseLinear(ParamScheduler):
     def __init__(self, optimizer, param_name, milestones_values, save_history=False, param_group_index=None):
         super(PiecewiseLinear, self).__init__(optimizer, param_name, save_history, param_group_index=param_group_index)
 
-        if not isinstance(milestones_values, Sequence) or len(milestones_values) < 1:
+        if not isinstance(milestones_values, Sequence):
+            raise TypeError(
+                "Argument milestones_values should be a list or tuple, but given {}".format(type(milestones_values))
+            )
+        if len(milestones_values) < 1:
             raise ValueError(
-                "Argument milestones_values should be a list or tuple with at least one value, "
-                "but given {}".format(type(milestones_values))
+                "Argument milestones_values should be with at least one value, "
+                "but given {}".format(milestones_values)
             )
 
         values = []
@@ -884,7 +902,7 @@ class PiecewiseLinear(ParamScheduler):
             if not isinstance(pair, Sequence) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
             if not isinstance(pair[0], numbers.Integral):
-                raise ValueError("Value of a milestone should be integer, but given {}".format(type(pair[0])))
+                raise TypeError("Value of a milestone should be integer, but given {}".format(type(pair[0])))
             if len(milestones) > 0 and pair[0] < milestones[-1]:
                 raise ValueError(
                     "Milestones should be increasing integers, but given {} is smaller "
@@ -953,16 +971,24 @@ class ParamGroupScheduler(ParamScheduler):
     """
 
     def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None, save_history=False):
-        if not (
-            isinstance(schedulers, Sequence) and all(isinstance(scheduler, ParamScheduler) for scheduler in schedulers)
-        ):
-            raise ValueError("Argument schedulers should be a list/tuple of parameter schedulers")
+        if not isinstance(schedulers, Sequence):
+            raise TypeError("Argument schedulers should be a list/tuple, but given {}".format(schedulers))
+
+        if not all(isinstance(scheduler, ParamScheduler) for scheduler in schedulers):
+            raise ValueError(
+                "Argument schedulers should be a list/tuple of parameter schedulers, but given {}".format(schedulers)
+            )
 
         if names is None:
             names = [s.param_name for s in schedulers]
 
-        if not (isinstance(names, (list, tuple)) and all(isinstance(n, str) for n in names)):
-            raise ValueError("Argument names should be a list/tuple of parameter scheduler's names")
+        if not isinstance(names, (list, tuple)):
+            raise TypeError("Argument names should be a list/tuple, but given {}".format(names))
+
+        if not all(isinstance(n, str) for n in names):
+            raise ValueError(
+                "Argument names should be a list/tuple of parameter scheduler's names, but given {}".format(names)
+            )
 
         if len(names) != len(schedulers):
             raise ValueError("{} should be equal {}".format(len(schedulers), len(names)))

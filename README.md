@@ -296,7 +296,26 @@ version as dependency):
 ```bash
 conda install ignite -c pytorch-nightly
 ```
+## Docker Images
 
+### Using pre-built images
+
+Pull a pre-built docker image from [our Docker Hub](https://hub.docker.com/u/pytorchignite) and run it with docker v19.03+.
+
+```bash
+docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
+```
+
+Available pre-built images are :
+
+- `pytorchignite/base:latest`  
+- `pytorchignite/apex:latest`
+- `pytorchignite/vision:latest` 
+- `pytorchignite/apex-vision:latest`
+- `pytorchignite/nlp:latest`
+- `pytorchignite/apex-nlp:latest`
+
+For more details, see [here](docker).
 
 <!-- ############################################################################################################### -->
 
@@ -427,6 +446,7 @@ As always, PRs are welcome :)
 -   [Bridging Text and Video: A Universal Multimodal Transformer for Video-Audio Scene-Aware Dialog](https://github.com/ictnlp/DSTC8-AVSD)
 -   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
 -   [Uncertainty Estimation Using a Single Deep Deterministic Neural Network](https://github.com/y0ast/deterministic-uncertainty-quantification)
+-   [DeepSphere: a graph-based spherical CNN](https://github.com/deepsphere/deepsphere-pytorch)
 
 ## Blog articles, tutorials, books
 
