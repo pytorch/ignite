@@ -1,0 +1,10 @@
+# Dockerfile.nlp
+FROM pytorchignite/base:latest
+
+# Ignite NLP dependencies
+RUN pip install --upgrade --no-cache-dir torchtext \
+                                         transformers \
+                                         spacy \
+                                         nltk
+
+ENTRYPOINT ["/bin/bash"]
