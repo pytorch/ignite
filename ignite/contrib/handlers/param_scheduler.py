@@ -588,12 +588,8 @@ class ConcatScheduler(ParamScheduler):
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
-            scheduler_objs = {
-                "lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)
-            }
-            optimizer_objs = {
-                "optimizer_{}".format(i): s.optimizer.state_dict() for i, s in enumerate(schedulers)
-            }
+            scheduler_objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
+            optimizer_objs = {"optimizer_{}".format(i): s.optimizer.state_dict() for i, s in enumerate(schedulers)}
             torch.save({**scheduler_objs, **optimizer_objs}, cache_filepath.as_posix())
 
             # do not save_history
@@ -1056,12 +1052,8 @@ class ParamGroupScheduler(ParamScheduler):
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
-            scheduler_objs = {
-                "lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)
-            }
-            optimizer_objs = {
-                "optimizer_{}".format(i): s.optimizer.state_dict() for i, s in enumerate(schedulers)
-            }
+            scheduler_objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
+            optimizer_objs = {"optimizer_{}".format(i): s.optimizer.state_dict() for i, s in enumerate(schedulers)}
             torch.save({**scheduler_objs, **optimizer_objs}, cache_filepath.as_posix())
 
             values = []
