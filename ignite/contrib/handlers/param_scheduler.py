@@ -406,8 +406,18 @@ class _ParamGroupsOptimizer:
     """Internal tools to concat a list of parameters from different optimizers.
     """
 
-    def __init__(self, param_groups):
-        self.param_groups = param_groups
+    def __init__(self, schedulers):
+        self.schedulers = schedulers
+        self.param_groups = [s.optimizer_param_groups[0] for s in schedulers]
+
+    def optimizers(self):
+        r = []
+        for s in self.schedulers:
+            if isinstance(s, ParamGroupScheduler):
+                r += s.optimizer.optimizers()
+            else:
+                r.append(s.optimizer)
+        return r
 
     def state_dict(self):
         return self.param_groups
@@ -482,8 +492,15 @@ class ConcatScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.durations = durations
 
-        param_groups = [s.optimizer_param_groups[0] for s in schedulers]
-        self.optimizer = _ParamGroupsOptimizer(param_groups)
+        self.optimizer = self.schedulers[0].optimizer
+        optimizers = []
+        for s in self.schedulers:
+            if isinstance(s, ParamGroupScheduler):
+                optimizers += s.optimizer.optimizers()
+            else:
+                optimizers.append(s.optimizer)
+        if len(set(optimizers)) > 1:
+            raise ValueError("schedulers should be related to same optimizer")
 
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
@@ -601,6 +618,7 @@ class ConcatScheduler(ParamScheduler):
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
             scheduler_objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
             optimizer_objs = {"optimizer_{}".format(i): s.optimizer.state_dict() for i, s in enumerate(schedulers)}
+
             torch.save({**scheduler_objs, **optimizer_objs}, cache_filepath.as_posix())
 
             # do not save_history
@@ -991,9 +1009,7 @@ class ParamGroupScheduler(ParamScheduler):
 
         self.schedulers = schedulers
         self.names = names
-
-        param_groups = [s.optimizer_param_groups[0] for s in schedulers]
-        self.optimizer = _ParamGroupsOptimizer(param_groups)
+        self.optimizer = _ParamGroupsOptimizer(schedulers)
 
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
