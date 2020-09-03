@@ -337,7 +337,7 @@ def test_concat_scheduler_asserts():
     scheduler_3 = CosineAnnealingScheduler(optimizer_2, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
 
     with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
-        ConcatScheduler([scheduler_1, scheduler_3], durations=[30, ])
+        ConcatScheduler([scheduler_1, scheduler_3], durations=[30,])
 
 
 def test_concat_scheduler_state_dict():
