@@ -410,20 +410,21 @@ class _ParamGroupsOptimizer:
         self.schedulers = schedulers
         self.param_groups = [s.optimizer_param_groups[0] for s in schedulers]
 
-    def optimizers(self):
-        r = []
-        for s in self.schedulers:
-            if isinstance(s, ParamGroupScheduler):
-                r += s.optimizer.optimizers()
-            else:
-                r.append(s.optimizer)
-        return r
-
     def state_dict(self):
         return self.param_groups
 
     def load_state_dict(self, state):
         self.param_groups = state
+
+
+def _create_optimizer_list(schedulers):
+    r = []
+    for s in schedulers:
+        if isinstance(s, ParamGroupScheduler):
+            r += _create_optimizer_list(s.optimizer.schedulers)
+        else:
+            r.append(s.optimizer)
+    return r
 
 
 class ConcatScheduler(ParamScheduler):
@@ -491,14 +492,9 @@ class ConcatScheduler(ParamScheduler):
 
         self.schedulers = schedulers
         self.durations = durations
-
         self.optimizer = self.schedulers[0].optimizer
-        optimizers = []
-        for s in self.schedulers:
-            if isinstance(s, ParamGroupScheduler):
-                optimizers += s.optimizer.optimizers()
-            else:
-                optimizers.append(s.optimizer)
+
+        optimizers = _create_optimizer_list(self.schedulers)
         if len(set(optimizers)) > 1:
             raise ValueError("schedulers should be related to same optimizer")
 
