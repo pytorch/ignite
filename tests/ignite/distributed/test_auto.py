@@ -51,14 +51,14 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
         assert dataloader.pin_memory == ("cuda" in idist.device().type)
 
 
-def _test_auto_model_optimizer(ws, device):
-    # Test auto_model
-    model = nn.Linear(10, 10)
-    model = auto_model(model)
+def _test_auto_model(model, ws, device, sync_bn=False):
+    model = auto_model(model, sync_bn=sync_bn)
     bnd = idist.backend()
     if ws > 1 and device in ("cuda", "cpu"):
         if idist.has_native_dist_support and bnd in ("nccl" or "gloo"):
             assert isinstance(model, nn.parallel.DistributedDataParallel)
+            if sync_bn:
+                assert any([isinstance(m, nn.SyncBatchNorm) for m in model.modules()])
         elif idist.has_hvd_support and bnd in ("horovod",):
             assert isinstance(model, nn.Module)
     elif device != "cpu" and torch.cuda.is_available() and torch.cuda.device_count() > 1:
@@ -70,7 +70,17 @@ def _test_auto_model_optimizer(ws, device):
         [p.device.type for p in model.parameters()], device
     )
 
+
+def _test_auto_model_optimizer(ws, device):
+    # Test auto_model
+    model = nn.Linear(10, 10)
+    _test_auto_model(model, ws, device)
+
+    model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
+    _test_auto_model(model, ws, device, sync_bn="cuda" in device)
+
     # Test auto_optim
+    bnd = idist.backend()
     optimizer = optim.SGD(model.parameters(), lr=0.01)
     optimizer = auto_optim(optimizer)
     if idist.has_xla_support and "xla" in device:
