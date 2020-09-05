@@ -24,7 +24,7 @@ def auto_dataloader(dataset, **kwargs):
 
     - batch size is scaled by world size: ``batch_size / world_size`` if larger or equal world size.
     - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
-    - if no sampler provided by user, `torch DistributedSampler` is setup.
+    - if no sampler provided by user, `torch DistributedSampler`_ is setup.
     - if a sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
     - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
 
@@ -122,7 +122,7 @@ def auto_dataloader(dataset, **kwargs):
     return dataloader
 
 
-def auto_model(model: nn.Module) -> nn.Module:
+def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
     """Helper method to adapt provided model for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -152,12 +152,19 @@ def auto_model(model: nn.Module) -> nn.Module:
 
     Args:
         model (torch.nn.Module): model to adapt.
+        sync_bn (bool): if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
+            distributed only. Default, False. Note, if using Nvidia/Apex, batchnorm conversion should be
+            applied before calling ``amp.initialize``.
 
     Returns:
         torch.nn.Module
 
-    .. _torch DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
-    .. _torch DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+    .. _torch DistributedDataParallel: https://pytorch.org/docs/stable/generated/torch.nn.parallel.
+        DistributedDataParallel.html
+    .. _torch DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
+    .. _torch convert_sync_batchnorm: https://pytorch.org/docs/stable/generated/torch.nn.SyncBatchNorm.html#
+        torch.nn.SyncBatchNorm.convert_sync_batchnorm
+
     """
     logger = setup_logger(__name__ + ".auto_model")
 
@@ -170,10 +177,18 @@ def auto_model(model: nn.Module) -> nn.Module:
     if idist.get_world_size() > 1:
         bnd = idist.backend()
         if idist.has_native_dist_support and bnd == idist_native.NCCL:
+            if sync_bn:
+                logger.info("Convert batch norm to sync batch norm")
+                model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+
             lrank = idist.get_local_rank()
             logger.info("Apply torch DistributedDataParallel on model, device id: {}".format(lrank))
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,])
         elif idist.has_native_dist_support and bnd == idist_native.GLOO:
+            if sync_bn:
+                logger.info("Convert batch norm to sync batch norm")
+                model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+
             logger.info("Apply torch DistributedDataParallel on model")
             model = torch.nn.parallel.DistributedDataParallel(model)
         elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
