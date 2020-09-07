@@ -231,7 +231,8 @@ def _test_distrib_variable_accumulation(device):
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(3):
         _test("cpu")
-        _test(idist.device())
+        if device.type != "xla":
+            _test(device)
 
 
 def _test_distrib_average(device):
@@ -269,7 +270,8 @@ def _test_distrib_average(device):
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(3):
         _test("cpu")
-        _test(idist.device())
+        if device.type != "xla":
+            _test(device)
 
 
 def _test_distrib_geom_average(device):
@@ -307,7 +309,8 @@ def _test_distrib_geom_average(device):
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(3):
         _test("cpu")
-        _test(idist.device())
+        if device.type != "xla":
+            _test(device)
 
 
 def _test_distrib_integration(device):
@@ -357,7 +360,10 @@ def _test_distrib_integration(device):
         np_t = log_y_true.cpu().numpy()
         return np.exp(np.mean(np_t, axis=0) / idist.get_world_size())
 
-    for metric_device in ["cpu", idist.device()]:
+    metric_devices = ["cpu"]
+    if device.type != "xla":
+        metric_devices.append(device)
+    for metric_device in metric_devices:
         _test(Average, _mean, metric_device)
         _test(GeometricAverage, _geom_mean, metric_device, tol=1e-4)
 
@@ -378,12 +384,17 @@ def _test_distrib_accumulator_device(device):
         )
 
 
+def _test_creating_on_xla_fails(device):
+    with pytest.raises(ValueError, match=r"Cannot create metric on an XLA device. Use device='cpu' instead."):
+        VariableAccumulation(lambda a, x: x, device=device)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
 
-    device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
+    device = torch.device("cuda:{}".format(distributed_context_single_node_nccl["local_rank"]))
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
@@ -395,7 +406,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
@@ -407,7 +418,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
@@ -420,7 +431,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
 
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_variable_accumulation, (device,), np=nproc, do_init=True)
@@ -434,7 +445,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
@@ -451,7 +462,7 @@ def test_distrib_single_device_xla():
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
+    _test_creating_on_xla_fails(device)
 
 
 def _test_distrib_xla_nprocs(index):
@@ -460,7 +471,7 @@ def _test_distrib_xla_nprocs(index):
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
+    _test_creating_on_xla_fails(device)
 
 
 @pytest.mark.tpu

@@ -145,6 +145,7 @@ class Metric(metaclass=ABCMeta):
                     "across all computing devices".format(self.__class__.__name__),
                     RuntimeWarning,
                 )
+
         self._device = torch.device(device)
         self._is_reduced = False
         self.reset()

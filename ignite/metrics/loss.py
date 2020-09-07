@@ -41,6 +41,8 @@ class Loss(Metric):
         batch_size: Callable = lambda x: len(x),
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
+        if torch.device(device).type == "xla":
+            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
         super(Loss, self).__init__(output_transform, device=device)
         self._loss_fn = loss_fn
         self._batch_size = batch_size
