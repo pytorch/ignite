@@ -51,7 +51,7 @@ jobs:
     - stage: Lint check
       python: "3.7"
       before_install: # Nothing to do
-      install: pip install flake8 black "isort==4.3.21"
+      install: pip install flake8 "black==19.10b0" "isort==4.3.21"
       script:
         - flake8 .
         - black --check .
