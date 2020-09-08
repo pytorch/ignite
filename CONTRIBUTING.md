@@ -115,3 +115,32 @@ If you are not familiar with creating a Pull Request, here are some guides:
 
 Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
 for formatting docstrings. Length of line inside docstrings block must be limited to 120 characters.
+
+### Local documentation building and deploying
+
+Please, follow the instructions to build and deploy the documentation locally.
+
+#### Install requirements
+
+```bash
+cd docs
+pip install -r requirements.txt
+```
+
+#### Build
+
+```bash
+cd docs
+make html
+```
+
+#### Deploy
+
+Please, use python 3.X for the command below:
+```bash
+cd docs/build
+python -m http.server <port>
+# python -m http.server 1234
+```
+Then open the browser at `0.0.0.0:<port>` (e.g. `0.0.0.0:1234`) and click to `html` folder.
+
