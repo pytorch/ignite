@@ -33,5 +33,14 @@ We provide Dockerfiles in order to build containerized execution environment tha
 ## How to use
 
 ```bash
-docker run --rm -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
+docker run -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
+```
+
+## Building the image yourself
+
+Dockerfiles are supplied to build images with dependencies that ease the use of Ignite for computer vision / NLP tasks:
+
+```bash
+cd main
+docker build -t pytorchignite/base:latest -f Dockerfile.base . 
 ```

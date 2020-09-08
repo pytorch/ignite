@@ -63,6 +63,32 @@ of stable version as dependency):
     conda install ignite -c pytorch-nightly
 
 
+Docker Images
+-------------
+
+Using pre-built images
+^^^^^^^^^^^^^^^^^^^^^^
+
+Pull a pre-built docker image from `our Docker Hub <https://hub.docker.com/u/pytorchignite>`_ and run it with docker v19.03+.
+
+.. code:: bash
+
+   docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest
+
+
+Available pre-built images are :
+
+- ``pytorchignite/base:latest``
+- ``pytorchignite/apex:latest``
+- ``pytorchignite/vision:latest``
+- ``pytorchignite/apex-vision:latest``
+- ``pytorchignite/nlp:latest``
+- ``pytorchignite/apex-nlp:latest``
+
+For more details, see `here <https://github.com/pytorch/ignite/tree/master/docker>`_.
+
+
+
 Documentation
 =============
 
