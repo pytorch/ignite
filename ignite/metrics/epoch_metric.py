@@ -87,17 +87,17 @@ class EpochMetric(Metric):
         y_pred, y = output
         if len(self._predictions) < 1:
             return
-        dtype_preds = self._predictions[-1].type()
-        if dtype_preds != y_pred.type():
+        dtype_preds = self._predictions[-1].dtype
+        if dtype_preds != y_pred.dtype:
             raise ValueError(
                 "Incoherent types between input y_pred and stored predictions: "
-                "{} vs {}".format(dtype_preds, y_pred.type())
+                "{} vs {}".format(dtype_preds, y_pred.dtype)
             )
 
-        dtype_targets = self._targets[-1].type()
-        if dtype_targets != y.type():
+        dtype_targets = self._targets[-1].dtype
+        if dtype_targets != y.dtype:
             raise ValueError(
-                "Incoherent types between input y and stored targets: " "{} vs {}".format(dtype_targets, y.type())
+                "Incoherent types between input y and stored targets: " "{} vs {}".format(dtype_targets, y.dtype)
             )
 
     @reinit__is_reduced
