@@ -103,15 +103,16 @@ class EpochMetric(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
+
         if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
             y_pred = y_pred.squeeze(dim=-1)
 
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        y_pred = y_pred.detach().clone().to(self._device)
-        y = y.detach().clone().to(self._device)
+        y_pred = y_pred.clone().to(self._device)
+        y = y.clone().to(self._device)
 
         self._check_type((y_pred, y))
         self._predictions.append(y_pred)
