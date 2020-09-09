@@ -1158,7 +1158,7 @@ def test_param_group_scheduler_asserts():
 
 
 def test_param_group_scheduler():
-    def _test(lr_schedulers, optimizer):
+    def _test(lr_schedulers, save_lr):
         num_iterations = 10
         max_epochs = 20
 
@@ -1167,17 +1167,15 @@ def test_param_group_scheduler():
 
         trainer = Engine(lambda engine, batch: None)
 
-        @trainer.on(Events.ITERATION_COMPLETED)
-        def save_lr(engine):
-            lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
-
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
         data = [0] * num_iterations
 
         for _ in range(2):
             lrs = []
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr, lrs)
             trainer.run(data, max_epochs=max_epochs)
+            trainer.remove_event_handler(save_lr, Events.ITERATION_COMPLETED)
             assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
             scheduler.load_state_dict(state_dict)
 
@@ -1195,7 +1193,28 @@ def test_param_group_scheduler():
     lr_scheduler2 = LinearCyclicalScheduler(
         optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
     )
-    _test([lr_scheduler1, lr_scheduler2], optimizer)
+
+    def save_lr_one_optimizer(engine, lrs):
+        lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
+
+    _test([lr_scheduler1, lr_scheduler2], save_lr_one_optimizer)
+
+    t1 = torch.zeros([1], requires_grad=True)
+    optimizer_1 = torch.optim.SGD(params=[t1], lr=0.1)
+    t2 = torch.zeros([1], requires_grad=True)
+    optimizer_2 = torch.optim.SGD(params=[t2], lr=0.1)
+
+    lr_scheduler1 = LinearCyclicalScheduler(
+        optimizer_1, "lr", start_value=1.0, end_value=0.0, cycle_size=10
+    )
+    lr_scheduler2 = LinearCyclicalScheduler(
+        optimizer_2, "lr", start_value=1.0, end_value=0.0, cycle_size=10
+    )
+
+    def save_lr_mutliple_optimizers(engine, lrs):
+        lrs.append((optimizer_1.param_groups[0]["lr"], optimizer_2.param_groups[0]["lr"]))
+
+    _test([lr_scheduler1, lr_scheduler2], save_lr_mutliple_optimizers)
 
 
 def test_scheduler_with_param_groups():
