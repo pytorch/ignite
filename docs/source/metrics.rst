@@ -134,7 +134,7 @@ specific condition (e.g. ignore user-defined classes):
 
         @reinit__is_reduced
         def update(self, output):
-            y_pred, y = output
+            y_pred, y = output[0].detach(), output[1].detach()
 
             indices = torch.argmax(y_pred, dim=1)
 
@@ -144,8 +144,6 @@ specific condition (e.g. ignore user-defined classes):
             indices = indices[mask]
             correct = torch.eq(indices, y).view(-1)
 
-            # We must detach tensors before adding them to the internal variables. In this case, torch.eq is not
-            # differentiable, so the computation graph is detached implicitly
             self._num_correct += torch.sum(correct).to(self._device)
             self._num_examples += correct.shape[0]
 
