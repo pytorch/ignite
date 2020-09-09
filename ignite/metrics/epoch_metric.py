@@ -43,6 +43,10 @@ class EpochMetric(Metric):
     """
 
     def __init__(self, compute_fn: Callable, output_transform: Callable = lambda x: x, check_compute_fn: bool = True):
+
+        if not callable(compute_fn):
+            raise TypeError("Argument compute_fn should be callable.")
+
         self._predictions = None
         self._targets = None
         self.compute_fn = compute_fn
