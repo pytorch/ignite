@@ -34,9 +34,9 @@ class MeanPairwiseDistance(Metric):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
         distances = pairwise_distance(y_pred, y, p=self._p, eps=self._eps)
-        self._sum_of_distances += torch.sum(distances).detach().to(self._device)
+        self._sum_of_distances += torch.sum(distances).to(self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_distances", "_num_examples")

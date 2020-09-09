@@ -22,9 +22,9 @@ class MeanAbsoluteError(Metric):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
         absolute_errors = torch.abs(y_pred - y.view_as(y_pred))
-        self._sum_of_absolute_errors += torch.sum(absolute_errors).detach().to(self._device)
+        self._sum_of_absolute_errors += torch.sum(absolute_errors).to(self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_absolute_errors", "_num_examples")

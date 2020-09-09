@@ -568,11 +568,17 @@ def _test_distrib_sync_all_reduce_decorator(device):
             self.a += 10.0
             self.b -= 5.0
 
-    m = DummyMetric(device=device)
+    metric_device = device if torch.device(device).type != "xla" else "cpu"
+    m = DummyMetric(device=metric_device)
     m.update(None)
     m.compute()
     # check if can call compute multiple times without all reduce invocation
     m.compute()
+
+
+def _test_creating_on_xla_fails(device):
+    with pytest.raises(ValueError, match=r"Cannot create metric on an XLA device. Use device='cpu' instead."):
+        DummyMetric2(device=device)
 
 
 @pytest.mark.distributed
@@ -625,11 +631,13 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_creating_on_xla_fails(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_creating_on_xla_fails(device)
 
 
 @pytest.mark.tpu
