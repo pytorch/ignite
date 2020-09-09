@@ -72,7 +72,10 @@ def _test_distrib_integration(device, tol=1e-6):
 
 def _test_distrib_accumulator_device(device):
 
-    for metric_device in [torch.device("cpu"), idist.device()]:
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(device)
+    for metric_device in metric_devices:
 
         device = torch.device(device)
         mse = MeanSquaredError(device=metric_device)
@@ -103,11 +106,6 @@ def test_accumulator_detached():
     mse.update((y_pred, y))
 
     assert not mse._sum_of_squared_errors.requires_grad
-
-
-def _test_creating_on_xla_fails(device):
-    with pytest.raises(ValueError, match=r"Cannot create metric on an XLA device. Use device='cpu' instead."):
-        MeanSquaredError(device=device)
 
 
 @pytest.mark.distributed
@@ -164,13 +162,13 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_integration(device, tol=1e-4)
-    _test_creating_on_xla_fails(device)
+    _test_distrib_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_integration(device, tol=1e-4)
-    _test_creating_on_xla_fails(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu

@@ -370,7 +370,10 @@ def _test_distrib_integration(device):
 
 def _test_distrib_accumulator_device(device):
 
-    for metric_device in [torch.device("cpu"), idist.device()]:
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(device)
+    for metric_device in metric_devices:
 
         m = VariableAccumulation(lambda a, x: x, device=metric_device)
         assert m._device == metric_device
@@ -382,11 +385,6 @@ def _test_distrib_accumulator_device(device):
         assert m.accumulator.device == metric_device, "{}:{} vs {}:{}".format(
             type(m.accumulator.device), m.accumulator.device, type(metric_device), metric_device
         )
-
-
-def _test_creating_on_xla_fails(device):
-    with pytest.raises(ValueError, match=r"Cannot create metric on an XLA device. Use device='cpu' instead."):
-        VariableAccumulation(lambda a, x: x, device=device)
 
 
 @pytest.mark.distributed
@@ -462,7 +460,7 @@ def test_distrib_single_device_xla():
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
     _test_distrib_integration(device)
-    _test_creating_on_xla_fails(device)
+    _test_distrib_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
@@ -471,7 +469,7 @@ def _test_distrib_xla_nprocs(index):
     _test_distrib_average(device)
     _test_distrib_geom_average(device)
     _test_distrib_integration(device)
-    _test_creating_on_xla_fails(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
