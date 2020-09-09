@@ -45,11 +45,11 @@ pip install flake8 "black==19.10b0" "isort==4.3.21"
 #### Codebase structure
 
 - [ignite](ignite) - Core library files
- - [engine](ignite/engine) - Module containing core classes like Engine, Events, State.
- - [handlers](ignite/handlers) - Module containing out-of-the-box handlers
- - [metrics](ignite/metrics) - Module containing out-of-the-box metrics
- - [contrib](ignite/contrib) - Contrib module with other metrics, handlers classes that may require additional dependencies
- - [distributed](ignite/distributed) - Module with helpers for distributed computations
+    - [engine](ignite/engine) - Module containing core classes like Engine, Events, State.
+    - [handlers](ignite/handlers) - Module containing out-of-the-box handlers
+    - [metrics](ignite/metrics) - Module containing out-of-the-box metrics
+    - [contrib](ignite/contrib) - Contrib module with other metrics, handlers classes that may require additional dependencies
+    - [distributed](ignite/distributed) - Module with helpers for distributed computations
 - [tests](tests) - Python unit tests
 - [examples](examples) - Examples and notebook tutorials
 - [docs](docs) - Documentation files
