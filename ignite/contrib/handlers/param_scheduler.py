@@ -927,7 +927,7 @@ class PiecewiseLinear(ParamScheduler):
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
 
-class ParamGroupScheduler(ParamScheduler):
+class ParamGroupScheduler:
     """
     Scheduler helper to group multiple schedulers into one.
 
@@ -981,31 +981,9 @@ class ParamGroupScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.names = names
 
-        self.optimizer = self.schedulers[0].optimizer
-        if not (all(id(s.optimizer) == id(self.optimizer) for s in schedulers)):
-            raise ValueError("schedulers should be related to same optimizer")
-
-        # schedulers should have save_history sync with ParamGroupScheduler
-        for s in schedulers:
-            s.save_history = save_history
-
-        super(ParamGroupScheduler, self).__init__(optimizer=self.optimizer, param_name="lr", save_history=save_history)
-
     def __call__(self, engine, name=None):
         for scheduler, name in zip(self.schedulers, self.names):
             scheduler(engine, name)
-
-    @property
-    def save_history(self):
-        return self.schedulers[0].save_history
-
-    @save_history.setter
-    def save_history(self, value):
-        for s in self.schedulers:
-            s.save_history = value
-
-    def get_param(self) -> Union[List[float], float]:
-        return [scheduler.get_param() for scheduler in self.schedulers]
 
     def state_dict(self):
         """Returns a dictionary containing a whole state of ParamGroupScheduler.
@@ -1077,7 +1055,7 @@ class ParamGroupScheduler(ParamScheduler):
             values = []
             scheduler = cls(schedulers=schedulers, **kwargs)
             for i in range(num_events):
-                params = scheduler.get_param()
+                params = [scheduler.get_param() for scheduler in schedulers]
                 values.append([i] + params)
                 scheduler(engine=None)
 

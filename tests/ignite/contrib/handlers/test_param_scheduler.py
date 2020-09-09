@@ -1156,13 +1156,6 @@ def test_param_group_scheduler_asserts():
     ):
         scheduler.load_state_dict({"schedulers": [("a", lr_scheduler1.state_dict()), ("bad_name", {})]})
 
-    optimizer2 = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
-    lr_scheduler3 = LinearCyclicalScheduler(
-        optimizer2, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
-    )
-    with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
-        ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler3])
-
 
 def test_param_group_scheduler():
     def _test(lr_schedulers, optimizer):
