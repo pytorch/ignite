@@ -26,6 +26,34 @@ If you find a typo in the documentation, do not hesitate to submit a GitHub pull
     - Pick an issue and comment on the task that you want to work on this feature.
     - If you need more context on a particular issue, please ask and we shall provide.
 
+
+## Developing Ignite
+
+### Installation
+
+To get the development installation with the necessary dependencies, run the following:
+```bash
+git clone https://github.com/pytorch/ignite.git
+cd ignite
+python setup.py develop
+pip install -r requirements-dev.txt
+pip install flake8 "black==19.10b0" "isort==4.3.21"
+```
+
+### Code development
+
+#### Codebase structure
+
+- [ignite](ignite) - Core library files
+    - [engine](ignite/engine) - Module containing core classes like Engine, Events, State.
+    - [handlers](ignite/handlers) - Module containing out-of-the-box handlers
+    - [metrics](ignite/metrics) - Module containing out-of-the-box metrics
+    - [contrib](ignite/contrib) - Contrib module with other metrics, handlers classes that may require additional dependencies
+    - [distributed](ignite/distributed) - Module with helpers for distributed computations
+- [tests](tests) - Python unit tests
+- [examples](examples) - Examples and notebook tutorials
+- [docs](docs) - Documentation files
+
 If you modify the code, you will most probably also need to code some tests to ensure the correct behaviour. We are using 
 `pytest` to write our tests:
   - naming convention for files `test_*.py`, e.g. `test_precision.py`
@@ -38,11 +66,7 @@ please run lint checking and tests:
 
 To ensure the codebase complies with a style guide, we use [flake8](https://flake8.pycqa.org/en/latest/),
 [black](https://black.readthedocs.io/en/stable/) and [isort](https://pycqa.github.io/isort/) tools to
-format and check codebase for compliance with PEP8. To install those tools with pip, please run
-
-```bash
-pip install flake8 "black==19.10b0" "isort==4.3.21"
-```
+format and check codebase for compliance with PEP8.
   
 ##### Formatting without pre-commit
 
@@ -111,30 +135,30 @@ If you are not familiar with creating a Pull Request, here are some guides:
 - https://help.github.com/articles/creating-a-pull-request/
 
 
-## Writing documentation
+### Writing documentation
 
 Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
 for formatting docstrings. Length of line inside docstrings block must be limited to 120 characters.
 
-### Local documentation building and deploying
+#### Local documentation building and deploying
 
 Please, follow the instructions to build and deploy the documentation locally.
 
-#### Install requirements
+##### Install requirements
 
 ```bash
 cd docs
 pip install -r requirements.txt
 ```
 
-#### Build
+##### Build
 
 ```bash
 cd docs
 make html
 ```
 
-#### Deploy
+##### Local deployment
 
 Please, use python 3.X for the command below:
 ```bash
