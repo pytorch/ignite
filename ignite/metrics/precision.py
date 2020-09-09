@@ -127,18 +127,6 @@ class Precision(_BasePrecisionRecall):
             default, CPU.
 
     """
-
-    def __init__(
-        self,
-        output_transform: Callable = lambda x: x,
-        average: bool = False,
-        is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-        super(Precision, self).__init__(
-            output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
-        )
-
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
