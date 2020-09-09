@@ -1204,12 +1204,8 @@ def test_param_group_scheduler():
     t2 = torch.zeros([1], requires_grad=True)
     optimizer_2 = torch.optim.SGD(params=[t2], lr=0.1)
 
-    lr_scheduler1 = LinearCyclicalScheduler(
-        optimizer_1, "lr", start_value=1.0, end_value=0.0, cycle_size=10
-    )
-    lr_scheduler2 = LinearCyclicalScheduler(
-        optimizer_2, "lr", start_value=1.0, end_value=0.0, cycle_size=10
-    )
+    lr_scheduler1 = LinearCyclicalScheduler(optimizer_1, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
+    lr_scheduler2 = LinearCyclicalScheduler(optimizer_2, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
 
     def save_lr_mutliple_optimizers(engine, lrs):
         lrs.append((optimizer_1.param_groups[0]["lr"], optimizer_2.param_groups[0]["lr"]))

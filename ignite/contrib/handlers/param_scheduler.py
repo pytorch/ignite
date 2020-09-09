@@ -491,7 +491,9 @@ class ConcatScheduler(ParamScheduler):
         for s in schedulers:
             s.save_history = save_history
 
-        super(ConcatScheduler, self).__init__(optimizer=self.optimizer, param_name=self.param_name, save_history=save_history)
+        super(ConcatScheduler, self).__init__(
+            optimizer=self.optimizer, param_name=self.param_name, save_history=save_history
+        )
 
         self._scheduler_index = 0
         self._current_scheduler = None
