@@ -18,8 +18,6 @@ class TopKCategoricalAccuracy(Metric):
     def __init__(
         self, k=5, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        if torch.device(device).type == "xla":
-            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
         super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device)
         self._k = k
 

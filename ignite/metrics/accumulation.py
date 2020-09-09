@@ -51,8 +51,6 @@ class VariableAccumulation(Metric):
         self.num_examples = None
         self._op = op
 
-        if torch.device(device).type == "xla":
-            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
         super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced

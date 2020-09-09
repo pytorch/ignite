@@ -136,8 +136,6 @@ class Accuracy(_BaseClassification):
     ):
         self._num_correct = None
         self._num_examples = None
-        if torch.device(device).type == "xla":
-            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
         super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced

@@ -146,6 +146,10 @@ class Metric(metaclass=ABCMeta):
                     RuntimeWarning,
                 )
 
+        # Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.
+        if torch.device(device).type == "xla":
+            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
+
         self._device = torch.device(device)
         self._is_reduced = False
         self.reset()

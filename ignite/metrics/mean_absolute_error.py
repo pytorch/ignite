@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Sequence, Union
 
 import torch
 
@@ -14,13 +14,6 @@ class MeanAbsoluteError(Metric):
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     """
-
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-        if torch.device(device).type == "xla":
-            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
-        super(MeanAbsoluteError, self).__init__(output_transform, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:

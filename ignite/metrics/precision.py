@@ -28,8 +28,6 @@ class _BasePrecisionRecall(_BaseClassification):
                     "corresponds to the local rank's (single process) result.",
                     RuntimeWarning,
                 )
-        if torch.device(device).type == "xla":
-            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
 
         self._average = average
         self._true_positives = None
