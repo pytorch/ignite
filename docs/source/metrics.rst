@@ -161,8 +161,7 @@ the internal variables. And finally in ``compute`` method, we compute metric val
 
 Notice that ``_num_correct`` is a tensor, since in ``update`` we accumulate tensor values. ``_num_examples`` is a python
 scalar since we accumulate normal integers. For differentiable metrics, you must detach the accumulated values before
-adding them to the internal variables. Accuracy is not differentiable (specifically the ``torch.eq`` call), so it
-is implicitly detached from the computation graph.
+adding them to the internal variables.
 
 We can check this implementation in a simple case:
 
