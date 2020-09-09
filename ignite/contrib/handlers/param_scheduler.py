@@ -640,7 +640,7 @@ class LRScheduler(ParamScheduler):
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
 
-    def __init__(self, lr_scheduler, save_history=False, **kwargs):
+    def __init__(self, lr_scheduler, save_history=False):
 
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(

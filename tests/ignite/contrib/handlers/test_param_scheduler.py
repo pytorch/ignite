@@ -814,8 +814,7 @@ def test_simulate_and_plot_values():
         optimizer = None
         event = Events.ITERATION_STARTED
         if scheduler_cls == LRScheduler:
-            scheduler_kwargs["optimizer"] = scheduler_kwargs["lr_scheduler"].optimizer
-            optimizer = scheduler_kwargs["optimizer"]
+            optimizer = scheduler_kwargs["lr_scheduler"].optimizer
             event = Events.ITERATION_COMPLETED
         elif scheduler_cls == ConcatScheduler:
             optimizer = scheduler_kwargs["optimizer"]
