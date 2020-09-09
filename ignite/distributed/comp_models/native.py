@@ -279,7 +279,7 @@ if has_native_dist_support:
             if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
                 spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
 
-            mp.spawn(
+            mp.start_processes(
                 _NativeDistModel._dist_worker_task_fn,
                 nprocs=nproc_per_node,
                 args=(

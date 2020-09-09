@@ -125,7 +125,6 @@ class Metric(metaclass=ABCMeta):
         device (str or torch.device): specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
-
     """
 
     _required_output_keys = ("y_pred", "y")
@@ -465,14 +464,17 @@ def sync_all_reduce(*attrs) -> Callable:
                 raise RuntimeError(
                     "Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only"
                 )
-
+            ws = idist.get_world_size()
             if len(attrs) > 0 and not self._is_reduced:
-                for attr in attrs:
-                    t = getattr(self, attr, None)
-                    if t is not None and idist.get_world_size() > 1:
-                        t = idist.all_reduce(t)
-                        self._is_reduced = True
-                        setattr(self, attr, t)
+                if ws > 1:
+                    for attr in attrs:
+                        t = getattr(self, attr, None)
+                        if t is not None:
+                            t = idist.all_reduce(t)
+                            self._is_reduced = True
+                            setattr(self, attr, t)
+                else:
+                    self._is_reduced = True
 
             return func(self, *args, **kwargs)
 
