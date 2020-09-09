@@ -380,8 +380,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
         optimizer = SGD(
             [
-                {"params": model.base.parameters(), 'lr': 0.001),
-                {"params": model.fc.parameters(), 'lr': 0.01),
+                {"params": model.base.parameters(), 'lr': 0.001},
+                {"params": model.fc.parameters(), 'lr': 0.01},
             ]
         )
 
