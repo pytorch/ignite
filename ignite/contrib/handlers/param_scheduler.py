@@ -477,22 +477,18 @@ class ConcatScheduler(ParamScheduler):
         if len(optimizer) != 1:
             raise ValueError("schedulers should be related to same optimizer")
 
-        self.optimizer = optimizer[0]
-
         param_names = [s.param_name for s in param_schedulers]
-        param_group_names = [n for sc in param_group_schedulers for n in sc.names]
+        param_group_names = [s.param_name for sc in param_group_schedulers for s in sc.schedulers]
         param_name = list(set(param_names + param_group_names))
         if len(param_name) != 1:
             raise ValueError("schedulers should be related to same param_name")
-
-        self.param_name = param_name[0]
 
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
             s.save_history = save_history
 
         super(ConcatScheduler, self).__init__(
-            optimizer=self.optimizer, param_name=self.param_name, save_history=save_history
+            optimizer=optimizer[0], param_name=param_name[0], save_history=save_history
         )
 
         self._scheduler_index = 0
