@@ -349,6 +349,24 @@ def test_pbar_on_epochs(capsys):
     assert actual == expected
 
 
+def test_pbar_with_max_epochs_set_to_one(capsys):
+    n_epochs = 1
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine, ["a"])
+
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split("\r")
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = "Iterations [1/1]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    assert err[-1] == expected
+
+
 def test_pbar_wrong_events_order():
 
     engine = Engine(update_fn)
