@@ -141,7 +141,7 @@ def test_pbar_with_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
+    expected = "Iterations: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
     assert actual == expected
 
 
@@ -172,7 +172,7 @@ def test_pbar_with_all_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
+    expected = "Iterations: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
     assert actual == expected
 
 
@@ -434,7 +434,7 @@ def test_pbar_on_callable_events(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [90/100]  90%|█████████  [00:00<00:00]"
+    expected = "Iterations: [90/100]  90%|█████████  [00:00<00:00]"
     assert actual == expected
 
 
