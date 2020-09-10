@@ -20,17 +20,16 @@ RUN echo "Setup NVIDIA Apex" && \
 RUN apt-get update && apt-get install -y git && \
         git clone --recursive https://github.com/horovod/horovod.git /horovod && \
         conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
-        cd /horovod && python setup.py sdist && \
-        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig && \
-        rm -rf /var/lib/apt/lists/* && rm -rf /horovod
+        cd /horovod && \
+        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
+        rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/pytorch/ignite.git /ignite
 
 # 2/ Build the runtime image
 FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
 
-COPY --from=apex-hvd-builder /opt/conda /opt/conda
-
+# Apex
 COPY --from=apex-hvd-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
 RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
     rm apex-0.1-cp37-cp37m-linux_x86_64.whl
@@ -48,6 +47,15 @@ RUN pip install tensorboardX tensorboard trains tqdm && \
     # Horovod support is available in >0.4.1 and in nightly releases:
     pip install --pre pytorch-ignite
 
+# Ignite examples
 COPY --from=apex-hvd-builder /ignite/examples /workspace/pytorch-ignite-examples
+
+# Horovod
+RUN conda install -y nccl=2.7 -c conda-forge
+ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+COPY --from=apex-hvd-builder /horovod/horovod-*.whl /horovod/
+RUN cd /horovod && \
+    pip install --no-cache-dir horovod-*.whl && \
+    rm -fr /horovod
 
 ENTRYPOINT ["/bin/bash"]

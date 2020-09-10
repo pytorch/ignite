@@ -8,9 +8,9 @@ LABEL description="Latest PyTorch, Ignite and Horovod"
 RUN apt-get update && apt-get install -y git && \
         git clone --recursive https://github.com/horovod/horovod.git /horovod && \
         conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
-        cd /horovod && python setup.py sdist && \
-        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig && \
-        rm -rf /var/lib/apt/lists/* && rm -rf /horovod
+        cd /horovod && \
+        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
+        rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/pytorch/ignite.git /ignite
 
@@ -25,13 +25,22 @@ RUN apt-get update && \
     apt-get -y install --no-install-recommends git && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /opt/conda /opt/conda
-
 # Ignite main dependencies
 RUN pip install tensorboardX tensorboard trains tqdm && \
     # Horovod support is available in >0.4.1 and in nightly releases:
     pip install --pre pytorch-ignite
 
+# Ignite examples
 COPY --from=builder /ignite/examples /workspace/pytorch-ignite-examples
+
+# Horovod
+RUN conda install -y nccl=2.7 -c conda-forge
+ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+COPY --from=builder /horovod/horovod-*.whl /horovod/
+RUN cd /horovod && \
+    pip install --no-cache-dir horovod-*.whl && \
+    rm -fr /horovod
+
+WORKDIR /workspace
 
 ENTRYPOINT ["/bin/bash"]
