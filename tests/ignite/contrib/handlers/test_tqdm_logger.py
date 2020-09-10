@@ -363,7 +363,7 @@ def test_pbar_with_max_epochs_set_to_one(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "Iterations [1/1]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    expected = "Iterations: [1/2]  50%|█████     , a=1 [00:00<00:00]"
     assert err[-1] == expected
 
 
