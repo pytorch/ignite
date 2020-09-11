@@ -94,7 +94,7 @@ class ConfusionMatrix(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
 
         self._num_examples += y_pred.shape[0]
 
