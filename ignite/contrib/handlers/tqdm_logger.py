@@ -50,7 +50,7 @@ class _OutputHandler(BaseOutputHandler):
             logger._reset(pbar_total=pbar_total)
 
         max_epochs = engine.state.max_epochs
-        default_desc = "Iterations" if max_epochs == 1 else "Epoch"
+        default_desc = "Iteration" if max_epochs == 1 else "Epoch"
 
         desc = self.tag or default_desc
         max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
