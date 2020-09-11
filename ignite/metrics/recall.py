@@ -79,9 +79,9 @@ class Recall(_BasePrecisionRecall):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output
         self._check_shape(output)
-        self._check_type((y_pred, y))
+        self._check_type(output)
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if self._type == "binary":
             y_pred = y_pred.view(-1)

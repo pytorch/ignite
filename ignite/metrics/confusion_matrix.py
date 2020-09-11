@@ -63,7 +63,7 @@ class ConfusionMatrix(Metric):
         self._num_examples = 0
 
     def _check_shape(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() < 2:
             raise ValueError(
