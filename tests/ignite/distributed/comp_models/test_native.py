@@ -276,13 +276,14 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
         assert _model.device() == torch.device(device)
 
 
-def _test__native_dist_model_spawn(backend, num_workers_per_machine, device):
+def _test__native_dist_model_spawn(backend, num_workers_per_machine, device, **spawn_kwargs):
     _NativeDistModel.spawn(
         _test_dist_spawn_fn,
         args=(backend, num_workers_per_machine, device),
         kwargs_dict={},
         backend=backend,
         nproc_per_node=num_workers_per_machine,
+        **spawn_kwargs,
     )
 
 
@@ -290,6 +291,7 @@ def _test__native_dist_model_spawn(backend, num_workers_per_machine, device):
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__native_dist_model_spawn_gloo():
     _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu")
+    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu", start_method="fork")
 
 
 @pytest.mark.distributed
