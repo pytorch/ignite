@@ -49,7 +49,10 @@ class _OutputHandler(BaseOutputHandler):
         if logger.pbar is None:
             logger._reset(pbar_total=pbar_total)
 
-        desc = self.tag
+        max_epochs = engine.state.max_epochs
+        default_desc = "Iteration" if max_epochs == 1 else "Epoch"
+
+        desc = self.tag or default_desc
         max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
         if max_num_of_closing_events > 1:
             global_step = engine.state.get_event_attrib_value(self.closing_event_name)
@@ -95,7 +98,8 @@ class ProgressBar(BaseLogger):
             formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
         **tqdm_kwargs: kwargs passed to tqdm progress bar.
             By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
-            number of epochs. If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
+            number of epochs; however, if ``max_epochs`` are set to 1, the progress bar instead displays
+            "Iteration: [5/10]". If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
             "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
 
     Examples:
@@ -250,7 +254,7 @@ class ProgressBar(BaseLogger):
         Note: accepted output value types are numbers, 0d and 1d torch tensors and strings
 
         """
-        desc = self.tqdm_kwargs.get("desc", "Epoch")
+        desc = self.tqdm_kwargs.get("desc", None)
 
         if event_name not in engine._allowed_events:
             raise ValueError("Logging event {} is not in allowed events for this engine".format(event_name.name))
