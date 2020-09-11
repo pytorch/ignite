@@ -619,7 +619,7 @@ def _test_distrib_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
 
         cm = ConfusionMatrix(num_classes=3, device=metric_device)

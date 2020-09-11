@@ -702,7 +702,7 @@ def _test_distrib_multilabel_input_NHW(device):
     for _ in range(3):
         _test("cpu")
         if device.type != "xla":
-            _test(device)
+            _test(idist.device())
 
 
 def _test_distrib_integration_multiclass(device):
@@ -751,7 +751,7 @@ def _test_distrib_integration_multiclass(device):
 
     metric_devices = ["cpu"]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
         for _ in range(2):
             _test(n_epochs=1, metric_device=metric_device)
@@ -804,7 +804,7 @@ def _test_distrib_integration_multilabel(device):
 
     metric_devices = ["cpu"]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
         for _ in range(2):
             _test(n_epochs=1, metric_device=metric_device)
@@ -815,7 +815,7 @@ def _test_distrib_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
 
         acc = Accuracy(device=metric_device)

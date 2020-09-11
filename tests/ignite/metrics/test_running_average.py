@@ -269,7 +269,7 @@ def _test_distrib_on_output(device):
     trainer = Engine(update_fn)
     alpha = 0.98
 
-    metric_device = device if torch.device(device).type != "xla" else "cpu"
+    metric_device = idist.device() if torch.device(device).type != "xla" else "cpu"
     avg_output = RunningAverage(output_transform=lambda x: x, alpha=alpha, epoch_bound=False, device=metric_device)
     avg_output.attach(trainer, "running_avg_output")
 
@@ -365,14 +365,14 @@ def _test_distrib_on_metric(device):
 
     _test("cpu")
     if device.type != "xla":
-        _test(device)
+        _test(idist.device())
 
 
 def _test_distrib_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
 
         # Don't test the src=Metric case because compute() returns a scalar,

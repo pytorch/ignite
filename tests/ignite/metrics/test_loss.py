@@ -108,14 +108,14 @@ def _test_distrib_compute_on_criterion(device):
 
     _test("cpu")
     if device.type != "xla":
-        _test(device)
+        _test(idist.device())
 
 
 def _test_distrib_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
         loss = Loss(nll_loss, device=metric_device)
         assert loss._device == metric_device

@@ -759,7 +759,7 @@ def _test_distrib_integration_multiclass(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for _ in range(2):
         for metric_device in metric_devices:
             _test(average=True, n_epochs=1, metric_device=metric_device)
@@ -818,7 +818,7 @@ def _test_distrib_integration_multilabel(device):
 
     metric_devices = ["cpu"]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for _ in range(2):
         for metric_device in metric_devices:
             _test(average=True, n_epochs=1, metric_device=metric_device)
@@ -863,7 +863,7 @@ def _test_distrib_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(True, metric_device=metric_device)
         _test(False, metric_device=metric_device)
@@ -896,7 +896,7 @@ def _test_distrib_multilabel_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(True, metric_device=metric_device)
         _test(False, metric_device=metric_device)
