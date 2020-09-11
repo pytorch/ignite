@@ -280,6 +280,8 @@ def _test_distrib_geom_average(device):
             v = GeometricAverage(device=metric_device)
             v.compute()
 
+        decimal = 5 if device.type != "xla" else 4
+
         mean_var = GeometricAverage(device=metric_device)
         y_true = torch.rand(100, dtype=torch.float64) + torch.randint(0, 10, size=(100,)).double()
         y_true = y_true.to(device)
@@ -290,7 +292,9 @@ def _test_distrib_geom_average(device):
         m = mean_var.compute()
         log_y_true = torch.log(y_true)
         log_y_true = idist.all_reduce(log_y_true)
-        assert m.item() == pytest.approx(torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).item())
+        np.testing.assert_almost_equal(
+            m.item(), torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).item(), decimal=decimal
+        )
 
         mean_var = GeometricAverage(device=metric_device)
         y_true = torch.rand(100, 10, dtype=torch.float64) + torch.randint(0, 10, size=(100, 10)).double()
@@ -303,7 +307,7 @@ def _test_distrib_geom_average(device):
         log_y_true = torch.log(y_true)
         log_y_true = idist.all_reduce(log_y_true)
         np.testing.assert_almost_equal(
-            m.cpu().numpy(), torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).cpu().numpy(), decimal=5
+            m.cpu().numpy(), torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).cpu().numpy(), decimal=decimal
         )
 
     # check multiple random inputs as random exact occurencies are rare
