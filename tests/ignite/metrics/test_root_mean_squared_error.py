@@ -69,7 +69,7 @@ def _test_distrib_integration(device, tol=1e-6):
 
     _test("cpu")
     if device.type != "xla":
-        _test(device)
+        _test(idist.device())
 
 
 @pytest.mark.distributed

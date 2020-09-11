@@ -146,9 +146,9 @@ class Accuracy(_BaseClassification):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output
-        self._check_shape((y_pred, y))
-        self._check_type((y_pred, y))
+        self._check_shape(output)
+        self._check_type(output)
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
@@ -163,7 +163,6 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
-        # Don't need to detach here because torch.eq is not differentiable, so the computation graph is detached anyway.
         self._num_correct += torch.sum(correct).to(self._device)
         self._num_examples += correct.shape[0]
 

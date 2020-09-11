@@ -96,7 +96,7 @@ def _test_distrib_integration(device):
 
     metric_devices = ["cpu"]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for _ in range(3):
         for metric_device in metric_devices:
             _test(n_epochs=1, metric_device=metric_device)
@@ -107,7 +107,7 @@ def _test_distrib_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
 
         acc = TopKCategoricalAccuracy(2, device=metric_device)

@@ -133,7 +133,7 @@ def _test_distrib_integration(device):
 
     metric_devices = ["cpu"]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(None, None, average=True, n_epochs=1, metric_device=metric_device)
         _test(None, None, average=True, n_epochs=2, metric_device=metric_device)

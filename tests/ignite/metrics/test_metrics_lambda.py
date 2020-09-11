@@ -369,7 +369,7 @@ def _test_distrib_integration(device):
     for _ in range(3):
         _test("cpu")
         if device.type != "xla":
-            _test(device)
+            _test(idist.device())
 
 
 def _test_distrib_metrics_on_diff_devices(device):

@@ -232,7 +232,7 @@ def _test_distrib_variable_accumulation(device):
     for _ in range(3):
         _test("cpu")
         if device.type != "xla":
-            _test(device)
+            _test(idist.device())
 
 
 def _test_distrib_average(device):
@@ -271,7 +271,7 @@ def _test_distrib_average(device):
     for _ in range(3):
         _test("cpu")
         if device.type != "xla":
-            _test(device)
+            _test(idist.device())
 
 
 def _test_distrib_geom_average(device):
@@ -310,7 +310,7 @@ def _test_distrib_geom_average(device):
     for _ in range(3):
         _test("cpu")
         if device.type != "xla":
-            _test(device)
+            _test(idist.device())
 
 
 def _test_distrib_integration(device):
@@ -362,7 +362,7 @@ def _test_distrib_integration(device):
 
     metric_devices = ["cpu"]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(Average, _mean, metric_device)
         _test(GeometricAverage, _geom_mean, metric_device, tol=1e-4)
@@ -372,7 +372,7 @@ def _test_distrib_accumulator_device(device):
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        metric_devices.append(device)
+        metric_devices.append(idist.device())
     for metric_device in metric_devices:
 
         m = VariableAccumulation(lambda a, x: x, device=metric_device)

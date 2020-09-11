@@ -66,9 +66,9 @@ class VariableAccumulation(Metric):
     def update(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
         self._check_output_type(output)
 
-        if self._device is not None:
-            # Put output to the metric's device
-            if isinstance(output, torch.Tensor) and (output.device != self._device):
+        if isinstance(output, torch.Tensor):
+            output = output.detach()
+            if output.device != self._device:
                 output = output.to(self._device)
 
         self.accumulator = self._op(self.accumulator, output)
