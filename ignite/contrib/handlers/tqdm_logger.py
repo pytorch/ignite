@@ -98,8 +98,8 @@ class ProgressBar(BaseLogger):
             formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
         **tqdm_kwargs: kwargs passed to tqdm progress bar.
             By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
-            number of epochs; however, if max_epochs are set to 1, the progress bar instead displays
-            "Iteration [5/10]". If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
+            number of epochs; however, if ``max_epochs`` are set to 1, the progress bar instead displays
+            "Iteration: [5/10]". If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
             "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
 
     Examples:
