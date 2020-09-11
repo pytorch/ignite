@@ -141,7 +141,7 @@ def test_pbar_with_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
+    expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
     assert actual == expected
 
 
@@ -172,7 +172,7 @@ def test_pbar_with_all_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
+    expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
     assert actual == expected
 
 
@@ -349,6 +349,24 @@ def test_pbar_on_epochs(capsys):
     assert actual == expected
 
 
+def test_pbar_with_max_epochs_set_to_one(capsys):
+    n_epochs = 1
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar()
+    pbar.attach(engine, ["a"])
+
+    engine.run(loader, max_epochs=n_epochs)
+
+    captured = capsys.readouterr()
+    err = captured.err.split("\r")
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    expected = "Iteration: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    assert err[-1] == expected
+
+
 def test_pbar_wrong_events_order():
 
     engine = Engine(update_fn)
@@ -416,7 +434,7 @@ def test_pbar_on_callable_events(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [90/100]  90%|█████████  [00:00<00:00]"
+    expected = "Iteration: [90/100]  90%|█████████  [00:00<00:00]"
     assert actual == expected
 
 
@@ -432,7 +450,7 @@ def test_tqdm_logger_epoch_length(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [50/50] 100%|██████████ [00:00<00:00]"
+    expected = "Iteration: [50/50] 100%|██████████ [00:00<00:00]"
     assert actual == expected
 
 
