@@ -49,35 +49,78 @@ def _test_distrib_integration(device):
             y_true[i * s + offset * rank : (i + 1) * s + offset * rank],
         )
 
-    engine = Engine(update)
+    def _test(metric_device):
+        engine = Engine(update)
 
-    m = MeanAbsoluteError()
-    m.attach(engine, "mae")
+        m = MeanAbsoluteError(device=metric_device)
+        m.attach(engine, "mae")
 
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
 
-    assert "mae" in engine.state.metrics
-    res = engine.state.metrics["mae"]
+        assert "mae" in engine.state.metrics
+        res = engine.state.metrics["mae"]
 
-    true_res = np.mean(np.abs((y_true - y_preds).cpu().numpy()))
+        true_res = np.mean(np.abs((y_true - y_preds).cpu().numpy()))
 
-    assert pytest.approx(res) == true_res
+        assert pytest.approx(res) == true_res
+
+    _test("cpu")
+    if device.type != "xla":
+        _test(idist.device())
+
+
+def _test_distrib_accumulator_device(device):
+
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        mae = MeanAbsoluteError(device=metric_device)
+        assert mae._device == metric_device
+        assert mae._sum_of_absolute_errors.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mae._sum_of_absolute_errors.device),
+            mae._sum_of_absolute_errors.device,
+            type(metric_device),
+            metric_device,
+        )
+
+        y_pred = torch.tensor([[2.0], [-2.0]])
+        y = torch.zeros(2)
+        mae.update((y_pred, y))
+        assert mae._sum_of_absolute_errors.device == metric_device, "{}:{} vs {}:{}".format(
+            type(mae._sum_of_absolute_errors.device),
+            mae._sum_of_absolute_errors.device,
+            type(metric_device),
+            metric_device,
+        )
+
+
+def test_accumulator_detached():
+    mae = MeanAbsoluteError()
+
+    y_pred = torch.tensor([[2.0], [-2.0]], requires_grad=True)
+    y = torch.zeros(2)
+    mae.update((y_pred, y))
+
+    assert not mae._sum_of_absolute_errors.requires_grad
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = "cuda:{}".format(local_rank)
+    device = torch.device("cuda:{}".format(local_rank))
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -85,26 +128,29 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
 
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -113,11 +159,13 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu

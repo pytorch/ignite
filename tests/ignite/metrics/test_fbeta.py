@@ -94,7 +94,7 @@ def _test_distrib_integration(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(p, r, average, n_epochs):
+    def _test(p, r, average, n_epochs, metric_device):
         n_iters = 60
         s = 16
         n_classes = 7
@@ -111,7 +111,7 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        fbeta = Fbeta(beta=2.5, average=average, device=device)
+        fbeta = Fbeta(beta=2.5, average=average, device=metric_device)
         fbeta.attach(engine, "f2.5")
 
         data = list(range(n_iters))
@@ -131,26 +131,30 @@ def _test_distrib_integration(device):
 
         assert pytest.approx(res) == true_res
 
-    _test(None, None, average=True, n_epochs=1)
-    _test(None, None, average=True, n_epochs=2)
-    precision = Precision(average=False)
-    recall = Recall(average=False)
-    _test(precision, recall, average=False, n_epochs=1)
-    _test(precision, recall, average=False, n_epochs=2)
+    metric_devices = ["cpu"]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        _test(None, None, average=True, n_epochs=1, metric_device=metric_device)
+        _test(None, None, average=True, n_epochs=2, metric_device=metric_device)
+        precision = Precision(average=False, device=metric_device)
+        recall = Recall(average=False, device=metric_device)
+        _test(precision, recall, average=False, n_epochs=1, metric_device=metric_device)
+        _test(precision, recall, average=False, n_epochs=2, metric_device=metric_device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = "cuda:{}".format(local_rank)
+    device = torch.device("cuda:{}".format(local_rank))
     _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_integration(device)
 
 
@@ -159,7 +163,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
 
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
@@ -169,7 +173,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_integration(device)
 
 
@@ -177,7 +181,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
     _test_distrib_integration(device)
 
 
