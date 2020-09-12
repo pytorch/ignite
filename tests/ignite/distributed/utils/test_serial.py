@@ -9,7 +9,6 @@ def test_no_distrib(capsys):
 
     from ignite.distributed.utils import _model
 
-    print("test_no_distrib : dist: ", dist.is_available())
     print("test_no_distrib : _model", type(_model))
 
     assert idist.backend() is None
