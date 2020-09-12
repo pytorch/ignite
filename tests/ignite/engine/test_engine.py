@@ -617,7 +617,6 @@ def test_engine_with_dataloader_no_auto_batching():
     counter = [0]
 
     def foo(e, b):
-        print("{}-{}: {}".format(e.state.epoch, e.state.iteration, b))
         counter[0] += 1
 
     engine = Engine(foo)

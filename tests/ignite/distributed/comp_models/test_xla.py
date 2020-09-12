@@ -186,10 +186,6 @@ def main_fold(fold):
 
     time.sleep(0.01 * fold)
 
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def log_progress():
-        print(".", end=" ")
-
     trainer.run([0] * 100, max_epochs=2)
 
 
