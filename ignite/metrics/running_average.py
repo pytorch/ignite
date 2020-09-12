@@ -20,7 +20,11 @@ class RunningAverage(Metric):
             corresponds the output of process function. Otherwise it should be None.
         epoch_bound (boolean, optional): whether the running average should be reset after each epoch (defaults
             to True).
-        device (str of torch.device, optional): unused argument.
+        device (str or torch.device, optional): specifies which device updates are accumulated on. Should be
+            None when ``src`` is an instance of :class:`~ignite.metrics.Metric`, as the running average will
+            use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
+            from the metric is a tensor.
+
 
     Examples:
 
@@ -63,6 +67,7 @@ class RunningAverage(Metric):
             self.src = src
             self._get_src_value = self._get_metric_value
             self.iteration_completed = self._metric_iteration_completed
+            device = src._device
         else:
             if output_transform is None:
                 raise ValueError(
@@ -71,6 +76,8 @@ class RunningAverage(Metric):
                 )
             self._get_src_value = self._get_output_value
             self.update = self._output_update
+            if device is None:
+                device = torch.device("cpu")
 
         self.alpha = alpha
         self.epoch_bound = epoch_bound
@@ -118,5 +125,5 @@ class RunningAverage(Metric):
     @reinit__is_reduced
     def _output_update(self, output: Union[torch.Tensor, float]) -> None:
         if isinstance(output, torch.Tensor):
-            output = output.detach().clone()
+            output = output.detach().to(self._device, copy=True)
         self.src = output

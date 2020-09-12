@@ -120,21 +120,21 @@ specific condition (e.g. ignore user-defined classes):
 
     class CustomAccuracy(Metric):
 
-        def __init__(self, ignored_class, output_transform=lambda x: x):
+        def __init__(self, ignored_class, output_transform=lambda x: x, device="cpu"):
             self.ignored_class = ignored_class
             self._num_correct = None
             self._num_examples = None
-            super(CustomAccuracy, self).__init__(output_transform=output_transform)
+            super(CustomAccuracy, self).__init__(output_transform=output_transform, device=device)
 
         @reinit__is_reduced
         def reset(self):
-            self._num_correct = 0
+            self._num_correct = torch.tensor(0, device=self._device)
             self._num_examples = 0
             super(CustomAccuracy, self).reset()
 
         @reinit__is_reduced
         def update(self, output):
-            y_pred, y = output
+            y_pred, y = output[0].detach(), output[1].detach()
 
             indices = torch.argmax(y_pred, dim=1)
 
@@ -144,20 +144,24 @@ specific condition (e.g. ignore user-defined classes):
             indices = indices[mask]
             correct = torch.eq(indices, y).view(-1)
 
-            self._num_correct += torch.sum(correct).item()
+            self._num_correct += torch.sum(correct).to(self._device)
             self._num_examples += correct.shape[0]
 
         @sync_all_reduce("_num_examples", "_num_correct")
         def compute(self):
             if self._num_examples == 0:
                 raise NotComputableError('CustomAccuracy must have at least one example before it can be computed.')
-            return self._num_correct / self._num_examples
+            return self._num_correct.item() / self._num_examples
 
 
 We imported necessary classes as :class:`~ignite.metrics.Metric`, :class:`~ignite.exceptions.NotComputableError` and
 decorators to adapt the metric for distributed setting. In ``reset`` method, we reset internal variables ``_num_correct``
 and ``_num_examples`` which are used to compute the custom metric. In ``updated`` method we define how to update
 the internal variables. And finally in ``compute`` method, we compute metric value.
+
+Notice that ``_num_correct`` is a tensor, since in ``update`` we accumulate tensor values. ``_num_examples`` is a python
+scalar since we accumulate normal integers. For differentiable metrics, you must detach the accumulated values before
+adding them to the internal variables.
 
 We can check this implementation in a simple case:
 

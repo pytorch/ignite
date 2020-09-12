@@ -2,7 +2,7 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union
 
 import torch
 
@@ -122,14 +122,15 @@ class Metric(metaclass=ABCMeta):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-        device (str or torch.device, optional): optional device specification for internal storage.
-
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the
+            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
+            non-blocking. By default, CPU.
     """
 
     _required_output_keys = ("y_pred", "y")
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None,
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._output_transform = output_transform
 
@@ -143,7 +144,12 @@ class Metric(metaclass=ABCMeta):
                     "across all computing devices".format(self.__class__.__name__),
                     RuntimeWarning,
                 )
-        self._device = device
+
+        # Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.
+        if torch.device(device).type == "xla":
+            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
+
+        self._device = torch.device(device)
         self._is_reduced = False
         self.reset()
 
