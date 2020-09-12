@@ -1,5 +1,3 @@
-from typing import Callable, Optional, Union
-
 import torch
 
 import ignite.distributed as idist
@@ -37,9 +35,7 @@ class Frequency(Metric):
             # Epoch [2/10]: [50/100]  50%|█████      , wps=400 [00:17<00:35]
     """
 
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
-    ):
+    def __init__(self, output_transform=lambda x: x, device=None):
         self._timer = None
         self._acc = None
         self._n = None

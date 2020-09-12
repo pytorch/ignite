@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 from torch.nn.functional import pairwise_distance
@@ -21,7 +21,7 @@ class MeanPairwiseDistance(Metric):
         p: int = 2,
         eps: float = 1e-6,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: Optional[Union[str, torch.device]] = None,
     ):
         super(MeanPairwiseDistance, self).__init__(output_transform, device=device)
         self._p = p
@@ -29,18 +29,18 @@ class MeanPairwiseDistance(Metric):
 
     @reinit__is_reduced
     def reset(self):
-        self._sum_of_distances = torch.tensor(0.0, device=self._device)
+        self._sum_of_distances = 0.0
         self._num_examples = 0
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
+        y_pred, y = output
         distances = pairwise_distance(y_pred, y, p=self._p, eps=self._eps)
-        self._sum_of_distances += torch.sum(distances).to(self._device)
+        self._sum_of_distances += torch.sum(distances).item()
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_distances", "_num_examples")
     def compute(self) -> Union[float, torch.Tensor]:
         if self._num_examples == 0:
             raise NotComputableError("MeanAbsoluteError must have at least one example before it can be computed.")
-        return self._sum_of_distances.item() / self._num_examples
+        return self._sum_of_distances / self._num_examples

@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 
@@ -31,19 +31,14 @@ class VariableAccumulation(Metric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
-            default, CPU.
+        device (str of torch.device, optional): optional device specification for internal storage.
 
     """
 
     _required_output_keys = None
 
     def __init__(
-        self,
-        op: Callable,
-        output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        self, op: Callable, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None
     ):
         if not callable(op):
             raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
@@ -66,13 +61,12 @@ class VariableAccumulation(Metric):
     def update(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
         self._check_output_type(output)
 
-        if isinstance(output, torch.Tensor):
-            output = output.detach()
-            if output.device != self._device:
+        if self._device is not None:
+            # Put output to the metric's device
+            if isinstance(output, torch.Tensor) and (output.device != self._device):
                 output = output.to(self._device)
 
         self.accumulator = self._op(self.accumulator, output)
-
         if hasattr(output, "shape"):
             self.num_examples += output.shape[0] if len(output.shape) > 1 else 1
         else:
@@ -117,14 +111,11 @@ class Average(VariableAccumulation):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
-            default, CPU.
+        device (str of torch.device, optional): optional device specification for internal storage.
+
     """
 
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
-    ):
+    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None):
         def _mean_op(a, x):
             if isinstance(x, torch.Tensor) and x.ndim > 1:
                 x = x.sum(dim=0)
@@ -164,15 +155,11 @@ class GeometricAverage(VariableAccumulation):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
-            default, CPU.
+        device (str of torch.device, optional): optional device specification for internal storage.
 
     """
 
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
-    ):
+    def __init__(self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None):
         def _geom_op(a: torch.Tensor, x: Union[Any, numbers.Number, torch.Tensor]) -> torch.Tensor:
             if not isinstance(x, torch.Tensor):
                 x = torch.tensor(x)

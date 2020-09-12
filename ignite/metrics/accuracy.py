@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
@@ -13,7 +13,7 @@ class _BaseClassification(Metric):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: Optional[Union[str, torch.device]] = None,
     ):
         self._is_multilabel = is_multilabel
         self._type = None
@@ -122,9 +122,7 @@ class Accuracy(_BaseClassification):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
-            default, CPU.
+        device (str of torch.device, optional): unused argument.
 
     """
 
@@ -132,7 +130,7 @@ class Accuracy(_BaseClassification):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: Optional[Union[str, torch.device]] = None,
     ):
         self._num_correct = None
         self._num_examples = None
@@ -140,15 +138,15 @@ class Accuracy(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct = torch.tensor(0, device=self._device)
+        self._num_correct = 0
         self._num_examples = 0
         super(Accuracy, self).reset()
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        self._check_shape(output)
-        self._check_type(output)
-        y_pred, y = output[0].detach(), output[1].detach()
+        y_pred, y = output
+        self._check_shape((y_pred, y))
+        self._check_type((y_pred, y))
 
         if self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
@@ -163,11 +161,11 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
-        self._num_correct += torch.sum(correct).to(self._device)
+        self._num_correct += torch.sum(correct).item()
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        return self._num_correct.item() / self._num_examples
+        return self._num_correct / self._num_examples

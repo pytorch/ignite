@@ -116,8 +116,7 @@ class SSIM(Metric):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
-
+        y_pred, y = output
         if y_pred.dtype != y.dtype:
             raise TypeError(
                 "Expected y_pred and y to have the same data type. Got y_pred: {} and y: {}.".format(

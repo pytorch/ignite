@@ -15,7 +15,7 @@ def Fbeta(
     precision: Optional[Precision] = None,
     recall: Optional[Recall] = None,
     output_transform: Optional[Callable] = None,
-    device: Union[str, torch.device] = torch.device("cpu"),
+    device: Optional[Union[str, torch.device]] = None,
 ) -> MetricsLambda:
     """Calculates F-beta score
 
@@ -28,9 +28,7 @@ def Fbeta(
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. It is used only if precision or recall are not provided.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
-            default, CPU.
+        device (str of torch.device, optional): optional device specification for internal storage.
 
     Returns:
         MetricsLambda, F-beta metric

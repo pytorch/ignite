@@ -1,8 +1,6 @@
 import itertools
 from typing import Any, Callable, Union
 
-import torch
-
 from ignite.engine import Engine, Events
 from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced
 
@@ -85,8 +83,8 @@ class MetricsLambda(Metric):
         pass
 
     def compute(self) -> Any:
-        materialized = [_get_value_on_cpu(i) for i in self.args]
-        materialized_kwargs = {k: _get_value_on_cpu(v) for k, v in self.kwargs.items()}
+        materialized = [i.compute() if isinstance(i, Metric) else i for i in self.args]
+        materialized_kwargs = {k: (v.compute() if isinstance(v, Metric) else v) for k, v in self.kwargs.items()}
         return self.function(*materialized, **materialized_kwargs)
 
     def _internal_attach(self, engine: Engine, usage: MetricUsage) -> None:
@@ -136,11 +134,3 @@ class MetricsLambda(Metric):
                 if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
                     is_detached = True
         return not is_detached
-
-
-def _get_value_on_cpu(v: Any):
-    if isinstance(v, Metric):
-        v = v.compute()
-    if isinstance(v, torch.Tensor):
-        v = v.cpu()
-    return v

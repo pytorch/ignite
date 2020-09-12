@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
@@ -26,9 +26,7 @@ class Loss(Metric):
             keywords arguments. If extra keywords arguments are provided they are passed to `loss_fn`.
         batch_size (callable): a callable taking a target tensor that returns the
             first dimension size (usually the batch size).
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the
-            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
-            non-blocking. By default, CPU.
+        device (str of torch.device, optional): unused argument.
 
     """
 
@@ -39,7 +37,7 @@ class Loss(Metric):
         loss_fn: Callable,
         output_transform: Callable = lambda x: x,
         batch_size: Callable = lambda x: len(x),
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: Optional[Union[str, torch.device]] = None,
     ):
         super(Loss, self).__init__(output_transform, device=device)
         self._loss_fn = loss_fn
@@ -47,7 +45,7 @@ class Loss(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum = torch.tensor(0.0, device=self._device)
+        self._sum = 0
         self._num_examples = 0
 
     @reinit__is_reduced
@@ -57,17 +55,17 @@ class Loss(Metric):
             kwargs = {}
         else:
             y_pred, y, kwargs = output
-        average_loss = self._loss_fn(y_pred.detach(), y.detach(), **kwargs)
+        average_loss = self._loss_fn(y_pred, y, **kwargs)
 
         if len(average_loss.shape) != 0:
             raise ValueError("loss_fn did not return the average loss.")
 
         n = self._batch_size(y)
-        self._sum += average_loss.to(self._device) * n
+        self._sum += average_loss.item() * n
         self._num_examples += n
 
     @sync_all_reduce("_sum", "_num_examples")
     def compute(self) -> None:
         if self._num_examples == 0:
             raise NotComputableError("Loss must have at least one example before it can be computed.")
-        return self._sum.item() / self._num_examples
+        return self._sum / self._num_examples
