@@ -1,7 +1,7 @@
+import itertools
 import math
 import numbers
 import tempfile
-import itertools
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
