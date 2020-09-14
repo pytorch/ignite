@@ -30,7 +30,9 @@ class ConfusionMatrix(Metric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): optional device specification for internal storage.
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
     Note:
         In case of the targets `y` in `(batch_size, ...)` format, target indices between 0 and `num_classes` only
@@ -44,7 +46,7 @@ class ConfusionMatrix(Metric):
         num_classes: int,
         average: Optional[str] = None,
         output_transform: Callable = lambda x: x,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")
@@ -61,7 +63,7 @@ class ConfusionMatrix(Metric):
         self._num_examples = 0
 
     def _check_shape(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() < 2:
             raise ValueError(
@@ -92,7 +94,7 @@ class ConfusionMatrix(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
 
         self._num_examples += y_pred.shape[0]
 

@@ -722,7 +722,7 @@ def _test_distrib_integration_multiclass(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(average, n_epochs):
+    def _test(average, n_epochs, metric_device):
         n_iters = 60
         s = 16
         n_classes = 7
@@ -739,7 +739,7 @@ def _test_distrib_integration_multiclass(device):
 
         engine = Engine(update)
 
-        re = Recall(average=average)
+        re = Recall(average=average, device=metric_device)
         re.attach(engine, "re")
 
         data = list(range(n_iters))
@@ -748,7 +748,7 @@ def _test_distrib_integration_multiclass(device):
         assert "re" in engine.state.metrics
         res = engine.state.metrics["re"]
         if isinstance(res, torch.Tensor):
-            assert res.device.type == "cpu"
+            assert res.device == metric_device
             res = res.cpu().numpy()
 
         true_res = recall_score(
@@ -757,11 +757,15 @@ def _test_distrib_integration_multiclass(device):
 
         assert pytest.approx(res) == true_res
 
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
     for _ in range(2):
-        _test(average=True, n_epochs=1)
-        _test(average=True, n_epochs=2)
-        _test(average=False, n_epochs=1)
-        _test(average=False, n_epochs=2)
+        for metric_device in metric_devices:
+            _test(average=True, n_epochs=1, metric_device=metric_device)
+            _test(average=True, n_epochs=2, metric_device=metric_device)
+            _test(average=False, n_epochs=1, metric_device=metric_device)
+            _test(average=False, n_epochs=2, metric_device=metric_device)
 
 
 def _test_distrib_integration_multilabel(device):
@@ -771,7 +775,7 @@ def _test_distrib_integration_multilabel(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(average, n_epochs):
+    def _test(average, n_epochs, metric_device):
         n_iters = 60
         s = 16
         n_classes = 7
@@ -788,7 +792,7 @@ def _test_distrib_integration_multilabel(device):
 
         engine = Engine(update)
 
-        re = Recall(average=average, is_multilabel=True)
+        re = Recall(average=average, is_multilabel=True, device=metric_device)
         re.attach(engine, "re")
 
         data = list(range(n_iters))
@@ -812,9 +816,13 @@ def _test_distrib_integration_multilabel(device):
 
         assert pytest.approx(res) == true_res
 
+    metric_devices = ["cpu"]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
     for _ in range(2):
-        _test(average=True, n_epochs=1)
-        _test(average=True, n_epochs=2)
+        for metric_device in metric_devices:
+            _test(average=True, n_epochs=1, metric_device=metric_device)
+            _test(average=True, n_epochs=2, metric_device=metric_device)
 
     if idist.get_world_size() > 1:
         with pytest.warns(
@@ -833,21 +841,86 @@ def _test_distrib_integration_multilabel(device):
         assert (re_compute1 == re_compute2).all()
 
 
+def _test_distrib_accumulator_device(device):
+    # Binary accuracy on input of shape (N, 1) or (N, )
+
+    def _test(average, metric_device):
+        re = Recall(average=average, device=metric_device)
+        assert re._device == metric_device
+        # Since the shape of the accumulated amount isn't known before the first update
+        # call, the internal variables aren't tensors on the right device yet.
+
+        y_reed = torch.randint(0, 2, size=(10,))
+        y = torch.randint(0, 2, size=(10,)).long()
+        re.update((y_reed, y))
+
+        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
+        )
+        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._positives.device), re._positives.device, type(metric_device), metric_device
+        )
+
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        _test(True, metric_device=metric_device)
+        _test(False, metric_device=metric_device)
+
+
+def _test_distrib_multilabel_accumulator_device(device):
+    # Multiclass input data of shape (N, ) and (N, C)
+
+    def _test(average, metric_device):
+        re = Recall(is_multilabel=True, average=average, device=metric_device)
+
+        assert re._device == metric_device
+        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
+        )
+        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._positives.device), re._positives.device, type(metric_device), metric_device
+        )
+
+        y_reed = torch.randint(0, 2, size=(10, 4, 20, 23))
+        y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
+        re.update((y_reed, y))
+
+        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
+        )
+        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
+            type(re._positives.device), re._positives.device, type(metric_device), metric_device
+        )
+
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        _test(True, metric_device=metric_device)
+        _test(False, metric_device=metric_device)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = "cuda:{}".format(local_rank)
+    device = torch.device("cuda:{}".format(local_rank))
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -855,29 +928,35 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
 
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_integration_multiclass, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_distrib_integration_multilabel, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_multilabel_accumulator_device, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
+    device = torch.device("cpu")
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -887,12 +966,16 @@ def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
+    _test_distrib_accumulator_device(device)
+    _test_distrib_multilabel_accumulator_device(device)
 
 
 @pytest.mark.tpu
