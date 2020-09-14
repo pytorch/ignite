@@ -1,6 +1,7 @@
 import math
 import numbers
 import tempfile
+import itertools
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
@@ -468,18 +469,19 @@ class ConcatScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.durations = durations
 
-        param_schedulers = [s for s in self.schedulers if isinstance(s, ParamScheduler)]
-        param_group_schedulers = [s for s in self.schedulers if isinstance(s, ParamGroupScheduler)]
+        param_optimizers = [s.optimizer for s in self.schedulers]
+        param_optimizers = [s if isinstance(s, list) else [s] for s in param_optimizers]
+        param_optimizers = list(itertools.chain(*param_optimizers))
 
-        param_optimizers = [s.optimizer for s in param_schedulers]
-        param_group_optimizers = [s.optimizer for sc in param_group_schedulers for s in sc.schedulers]
-        optimizer = list(set(param_optimizers + param_group_optimizers))
+        optimizer = list(set(param_optimizers))
         if len(optimizer) != 1:
             raise ValueError("schedulers should be related to same optimizer")
 
-        param_names = [s.param_name for s in param_schedulers]
-        param_group_names = [s.param_name for sc in param_group_schedulers for s in sc.schedulers]
-        param_name = list(set(param_names + param_group_names))
+        param_names = [s.param_name for s in self.schedulers]
+        param_names = [s if isinstance(s, list) else [s] for s in param_names]
+        param_names = list(itertools.chain(*param_names))
+
+        param_name = list(set(param_names))
         if len(param_name) != 1:
             raise ValueError("schedulers should be related to same param_name")
 
@@ -592,12 +594,11 @@ class ConcatScheduler(ParamScheduler):
                     "Argument param_names should be list or tuple of strings, but given {}".format(param_names)
                 )
 
-        param_schedulers = [s for s in schedulers if isinstance(s, ParamScheduler)]
-        param_group_schedulers = [s for s in schedulers if isinstance(s, ParamGroupScheduler)]
+        param_optimizers = [s.optimizer for s in schedulers]
+        param_optimizers = [s if isinstance(s, list) else [s] for s in param_optimizers]
+        param_optimizers = list(itertools.chain(*param_optimizers))
 
-        param_optimizers = [s.optimizer for s in param_schedulers]
-        param_group_optimizers = [s.optimizer for sc in param_group_schedulers for s in sc.schedulers]
-        optimizer = list(set(param_optimizers + param_group_optimizers))
+        optimizer = list(set(param_optimizers))
         if len(optimizer) != 1:
             raise ValueError("schedulers should be related to same optimizer")
 
@@ -1006,6 +1007,9 @@ class ParamGroupScheduler:
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
             s.save_history = save_history
+
+        self.optimizer = [s.optimizer for s in self.schedulers]
+        self.param_name = [s.param_name for s in self.schedulers]
 
     def __call__(self, engine, name=None):
         for scheduler, name in zip(self.schedulers, self.names):
