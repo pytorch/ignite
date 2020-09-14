@@ -67,7 +67,7 @@ def test_output_as_mapping_wrong_keys():
 
 def test_output_as_mapping_keys_is_none():
     class DummyMetric(Metric):
-        _required_output_keys = None
+        required_output_keys = None
 
         def reset(self):
             pass
@@ -79,7 +79,7 @@ def test_output_as_mapping_keys_is_none():
             pass
 
     metric = DummyMetric()
-    assert metric._required_output_keys is None
+    assert metric.required_output_keys is None
     state = State(output=({"y1": 0, "y2": 1}))
     engine = MagicMock(state=state)
 
@@ -318,7 +318,7 @@ def test_attach():
 
 def test_detach():
     class DummyMetric(Metric):
-        _required_output_keys = None
+        required_output_keys = None
 
         def reset(self):
             pass
@@ -794,3 +794,48 @@ def test_batchfiltered_usage():
         assert bfm[0] == 1
 
     engine.run([0, 1, 2, 3], max_epochs=10)
+
+
+def test_override_required_output_keys():
+    # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5
+    import torch.nn as nn
+
+    from ignite.engine import create_supervised_evaluator
+
+    counter = [0]
+
+    class CustomMetric(Metric):
+        required_output_keys = ("y_pred", "y", "x")
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def update(self, output):
+            y_pred, y, x = output
+            assert y_pred.shape == (4, 3)
+            assert y.shape == (4,)
+            assert x.shape == (4, 10)
+            assert x.equal(data[counter[0]][0])
+            assert y.equal(data[counter[0]][1])
+            counter[0] += 1
+
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+    model = nn.Linear(10, 3)
+
+    metrics = {"Precision": Precision(), "CustomMetric": CustomMetric()}
+
+    evaluator = create_supervised_evaluator(
+        model, metrics=metrics, output_transform=lambda x, y, y_pred: {"x": x, "y": y, "y_pred": y_pred}
+    )
+
+    data = [
+        (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
+        (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
+        (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
+    ]
+    evaluator.run(data)

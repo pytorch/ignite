@@ -125,9 +125,65 @@ class Metric(metaclass=ABCMeta):
         device (str or torch.device): specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
+    Class Attributes:
+        required_output_keys (dict): dictionary defines required keys to be found in ``engine.state.output`` if the
+            latter is a dictionary. This is useful with custom metrics that can require other arguments than
+            predictions ``y_pred`` and targets ``y``. See notes below for an example.
+
+    Note:
+
+    .. code-block:: python
+
+        # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5
+        # Let's implement a custom metric that requires ``y_pred``, ``y`` and ``x``
+
+        import torch
+        import torch.nn as nn
+
+        from ignite.metrics import Metric, Accuracy
+        from ignite.engine import create_supervised_evaluator
+
+        class CustomMetric(Metric):
+
+            required_output_keys = ("y_pred", "y", "x")
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+            def update(self, output):
+                y_pred, y, x = output
+                # ...
+
+            def reset(self):
+                # ...
+                pass
+
+            def compute(self):
+                # ...
+                pass
+
+        model = ...
+
+        metrics = {
+            "Accuracy": Accuracy(),
+            "CustomMetric": CustomMetric()
+        }
+
+        evaluator = create_supervised_evaluator(
+            model,
+            metrics=metrics,
+            output_transform=lambda x, y, y_pred: {"x": x, "y": y, "y_pred": y_pred}
+        )
+
+        res = evaluator.run(data)
+
     """
 
-    _required_output_keys = ("y_pred", "y")
+    # public class attribute
+    required_output_keys = ("y_pred", "y")
+    # for backward compatibility
+    _required_output_keys = required_output_keys
 
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
@@ -211,18 +267,18 @@ class Metric(metaclass=ABCMeta):
 
         output = self._output_transform(engine.state.output)
         if isinstance(output, Mapping):
-            if self._required_output_keys is None:
+            if self.required_output_keys is None:
                 raise TypeError(
                     "Transformed engine output for {} metric should be a tuple/list, but given {}".format(
                         self.__class__.__name__, type(output)
                     )
                 )
-            if not all([k in output for k in self._required_output_keys]):
+            if not all([k in output for k in self.required_output_keys]):
                 raise ValueError(
                     "When transformed engine's output is a mapping, "
-                    "it should contain {} keys, but given {}".format(self._required_output_keys, list(output.keys()))
+                    "it should contain {} keys, but given {}".format(self.required_output_keys, list(output.keys()))
                 )
-            output = tuple(output[k] for k in self._required_output_keys)
+            output = tuple(output[k] for k in self.required_output_keys)
         self.update(output)
 
     def completed(self, engine: Engine, name: str) -> None:
