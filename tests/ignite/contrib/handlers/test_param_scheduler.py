@@ -339,6 +339,14 @@ def test_concat_scheduler_asserts():
     with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
         ConcatScheduler([scheduler_1, scheduler_3], durations=[30,])
 
+    scheduler_4 = CosineAnnealingScheduler(optimizer, "lr2", start_value=0.0, end_value=1.0, cycle_size=10)
+
+    with pytest.raises(ValueError, match=r"schedulers should be related to same param_name"):
+        ConcatScheduler([scheduler_1, scheduler_4], durations=[30,])
+
+    with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
+        ConcatScheduler.simulate_values(3, [scheduler_1, scheduler_3], durations=[30,])
+
 
 def test_concat_scheduler_state_dict():
     tensor = torch.zeros([1], requires_grad=True)
