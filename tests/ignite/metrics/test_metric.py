@@ -789,7 +789,6 @@ def test_batchfiltered_usage():
     @engine.on(Events.EPOCH_COMPLETED)
     def _():
         bfm = engine.state.metrics["bfm"]
-        print(len(bfm), bfm[0])
         assert len(bfm) == 2
         assert bfm[0] == 1
 
