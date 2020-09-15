@@ -648,7 +648,6 @@ def test_lr_scheduler():
         torch_lr_scheduler1 = torch_lr_scheduler_cls(optimizer=optimizer1, **kwargs)
         scheduler = LRScheduler(torch_lr_scheduler1)
         state_dict1 = scheduler.state_dict()
-        print(state_dict1)
 
         torch_lr_scheduler2 = torch_lr_scheduler_cls(optimizer=optimizer2, **kwargs)
         state_dict2 = torch_lr_scheduler2.state_dict()
