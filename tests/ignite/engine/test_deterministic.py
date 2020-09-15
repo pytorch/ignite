@@ -179,7 +179,6 @@ def test_strict_resume_from_iter():
             epoch_length = num_iters
 
         for resume_iteration in range(2, min(num_iters * max_epochs, epoch_length * max_epochs), 4):
-            print("\n----", resume_iteration, epoch_length)
             batch_checker = BatchChecker(data, init_counter=resume_iteration)
 
             def update_fn(_, batch):
