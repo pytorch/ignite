@@ -55,6 +55,9 @@ class EpochWise(MetricUsage):
     - :meth:`~ignite.metrics.Metric.started` on every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
     - :meth:`~ignite.metrics.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
     - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
+
+    Attributes:
+        usage_name (str): usage name string
     """
 
     usage_name = "epoch_wise"
@@ -76,6 +79,9 @@ class BatchWise(MetricUsage):
     - :meth:`~ignite.metrics.Metric.started` on every ``ITERATION_STARTED`` (See :class:`~ignite.engine.events.Events`).
     - :meth:`~ignite.metrics.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
     - :meth:`~ignite.metrics.Metric.completed` on every ``ITERATION_COMPLETED``.
+
+    Attributes:
+        usage_name (str): usage name string
     """
 
     usage_name = "batch_wise"
@@ -125,9 +131,68 @@ class Metric(metaclass=ABCMeta):
         device (str or torch.device): specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
+    Attributes:
+        required_output_keys (tuple): dictionary defines required keys to be found in ``engine.state.output`` if the
+            latter is a dictionary. Default, ``("y_pred", "y")``. This is useful with custom metrics that can require
+            other arguments than predictions ``y_pred`` and targets ``y``. See notes below for an example.
+
+    Note:
+
+        Let's implement a custom metric that requires ``y_pred``, ``y`` and ``x`` as input for ``update`` function.
+        In the example below we show how to setup standard metric like Accuracy and the custom metric using by an
+        ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.
+
+        .. code-block:: python
+
+            # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5
+
+            import torch
+            import torch.nn as nn
+
+            from ignite.metrics import Metric, Accuracy
+            from ignite.engine import create_supervised_evaluator
+
+            class CustomMetric(Metric):
+
+                required_output_keys = ("y_pred", "y", "x")
+
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+
+                def update(self, output):
+                    y_pred, y, x = output
+                    # ...
+
+                def reset(self):
+                    # ...
+                    pass
+
+                def compute(self):
+                    # ...
+                    pass
+
+            model = ...
+
+            metrics = {
+                "Accuracy": Accuracy(),
+                "CustomMetric": CustomMetric()
+            }
+
+            evaluator = create_supervised_evaluator(
+                model,
+                metrics=metrics,
+                output_transform=lambda x, y, y_pred: {"x": x, "y": y, "y_pred": y_pred}
+            )
+
+            res = evaluator.run(data)
+
     """
 
-    _required_output_keys = ("y_pred", "y")
+    # public class attribute
+    required_output_keys = ("y_pred", "y")
+    # for backward compatibility
+    _required_output_keys = required_output_keys
 
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
@@ -211,18 +276,18 @@ class Metric(metaclass=ABCMeta):
 
         output = self._output_transform(engine.state.output)
         if isinstance(output, Mapping):
-            if self._required_output_keys is None:
+            if self.required_output_keys is None:
                 raise TypeError(
                     "Transformed engine output for {} metric should be a tuple/list, but given {}".format(
                         self.__class__.__name__, type(output)
                     )
                 )
-            if not all([k in output for k in self._required_output_keys]):
+            if not all([k in output for k in self.required_output_keys]):
                 raise ValueError(
                     "When transformed engine's output is a mapping, "
-                    "it should contain {} keys, but given {}".format(self._required_output_keys, list(output.keys()))
+                    "it should contain {} keys, but given {}".format(self.required_output_keys, list(output.keys()))
                 )
-            output = tuple(output[k] for k in self._required_output_keys)
+            output = tuple(output[k] for k in self.required_output_keys)
         self.update(output)
 
     def completed(self, engine: Engine, name: str) -> None:
@@ -265,7 +330,8 @@ class Metric(metaclass=ABCMeta):
             engine (Engine): the engine to which the metric must be attached
             name (str): the name of the metric to attach
             usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
-                'EpochWise.usage_name' (default) or 'BatchWise.usage_name'.
+                :attr:`ignite.metrics.EpochWise.usage_name` (default) or
+                :attr:`ignite.metrics.BatchWise.usage_name`.
 
         Example:
 

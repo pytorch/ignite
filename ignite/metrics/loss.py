@@ -32,7 +32,7 @@ class Loss(Metric):
 
     """
 
-    _required_output_keys = None
+    required_output_keys = None
 
     def __init__(
         self,
