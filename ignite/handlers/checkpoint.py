@@ -99,8 +99,8 @@ class Checkpoint(Serializable):
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
 
-    .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
-    .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+    .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+    .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
 
     Note:
         This class stores a single file as a dictionary of provided objects to save.
@@ -475,8 +475,8 @@ class Checkpoint(Serializable):
             **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
 
-        .. _DistributedDataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.parallel.DistributedDataParallel
-        .. _DataParallel: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
+        .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+        .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
 
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
