@@ -18,13 +18,11 @@ RUN echo "Setup NVIDIA Apex" && \
 
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \
-        git clone --recursive https://github.com/horovod/horovod.git /horovod && \
+        git clone --recursive --depth 1 --branch v0.20.0 https://github.com/horovod/horovod.git /horovod && \
         conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
         cd /horovod && \
         HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
         rm -rf /var/lib/apt/lists/*
-
-RUN git clone https://github.com/pytorch/ignite.git /ignite
 
 # 2/ Build the runtime image
 FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
@@ -47,8 +45,14 @@ RUN pip install tensorboardX tensorboard trains tqdm && \
     # Horovod support is available in >0.4.1 and in nightly releases:
     pip install --pre pytorch-ignite
 
-# Ignite examples
-COPY --from=apex-hvd-builder /ignite/examples /workspace/pytorch-ignite-examples
+# Checkout Ignite examples only
+RUN mkdir -p pytorch-ignite-examples && \
+    cd pytorch-ignite-examples && \
+    git init && \
+    git config core.sparsecheckout true && \
+    echo examples >> .git/info/sparse-checkout && \
+    git remote add -f origin https://github.com/pytorch/ignite.git && \
+    git pull origin master
 
 # Horovod
 RUN conda install -y nccl=2.7 -c conda-forge
