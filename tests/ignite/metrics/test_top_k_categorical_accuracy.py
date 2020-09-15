@@ -68,8 +68,6 @@ def _test_distrib_integration(device):
         y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
         y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
 
-        print("{}: y_true={} | y_preds={}".format(rank, y_true[:5], y_preds[:5, :2]))
-
         def update(engine, i):
             return (
                 y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
