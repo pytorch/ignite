@@ -275,11 +275,14 @@ if has_native_dist_support:
                 "join": kwargs.get("join", True),
                 "daemon": kwargs.get("daemon", False),
             }
-            # start_method in pytorch >= 1.5
+
+            start_processes = mp.spawn
+            # start_method and start_processes in pytorch >= 1.5
             if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
                 spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
+                start_processes = mp.start_processes
 
-            mp.start_processes(
+            start_processes(
                 _NativeDistModel._dist_worker_task_fn,
                 nprocs=nproc_per_node,
                 args=(
