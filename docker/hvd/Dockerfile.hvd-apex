@@ -1,0 +1,65 @@
+# Multi-stage build
+# 1/Building apex and hvd with pytorch:1.6.0-cuda10.1-cudnn7-devel
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS apex-hvd-builder
+
+ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
+ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
+
+# Install git
+RUN apt-get update && apt-get install -y --no-install-recommends git
+
+# Build apex
+RUN echo "Setup NVIDIA Apex" && \
+    tmp_apex_path="/tmp/apex" && \
+    rm -rf $tmp_apex_path && \
+    git clone https://github.com/NVIDIA/apex $tmp_apex_path && \
+    cd $tmp_apex_path && \
+    pip wheel --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
+
+# Build Horovod
+RUN apt-get update && apt-get install -y git && \
+        git clone --recursive --depth 1 --branch v0.20.0 https://github.com/horovod/horovod.git /horovod && \
+        conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
+        cd /horovod && \
+        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
+        rm -rf /var/lib/apt/lists/*
+
+# 2/ Build the runtime image
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+
+# Apex
+COPY --from=apex-hvd-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
+RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
+    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+
+# Install tzdata / git
+RUN apt-get update && \
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    apt-get install -y tzdata && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    apt-get -y install --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ignite main dependencies
+RUN pip install tensorboardX tensorboard trains tqdm && \
+    # Horovod support is available in >0.4.1 and in nightly releases:
+    pip install --pre pytorch-ignite
+
+# Checkout Ignite examples only
+RUN mkdir -p pytorch-ignite-examples && \
+    cd pytorch-ignite-examples && \
+    git init && \
+    git config core.sparsecheckout true && \
+    echo examples >> .git/info/sparse-checkout && \
+    git remote add -f origin https://github.com/pytorch/ignite.git && \
+    git pull origin master
+
+# Horovod
+RUN conda install -y nccl=2.7 -c conda-forge
+ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+COPY --from=apex-hvd-builder /horovod/horovod-*.whl /horovod/
+RUN cd /horovod && \
+    pip install --no-cache-dir horovod-*.whl && \
+    rm -fr /horovod
+
+ENTRYPOINT ["/bin/bash"]

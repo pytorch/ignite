@@ -1,0 +1,50 @@
+# Multi-stage build
+# Dockerfile.hvd-base
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel as builder
+
+LABEL description="Latest PyTorch, Ignite and Horovod"
+
+# Build Horovod
+RUN apt-get update && apt-get install -y git && \
+        git clone --recursive --depth 1 --branch v0.20.0 https://github.com/horovod/horovod.git /horovod && \
+        conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
+        cd /horovod && \
+        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
+        rm -rf /var/lib/apt/lists/*
+
+# Build runtime image
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+
+# Install tzdata / git
+RUN apt-get update && \
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    apt-get install -y tzdata && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    apt-get -y install --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ignite main dependencies
+RUN pip install tensorboardX tensorboard trains tqdm && \
+    # Horovod support is available in >0.4.1 and in nightly releases:
+    pip install --pre pytorch-ignite
+
+# Checkout Ignite examples only
+RUN mkdir -p pytorch-ignite-examples && \
+    cd pytorch-ignite-examples && \
+    git init && \
+    git config core.sparsecheckout true && \
+    echo examples >> .git/info/sparse-checkout && \
+    git remote add -f origin https://github.com/pytorch/ignite.git && \
+    git pull origin master
+
+# Horovod
+RUN conda install -y nccl=2.7 -c conda-forge
+ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+COPY --from=builder /horovod/horovod-*.whl /horovod/
+RUN cd /horovod && \
+    pip install --no-cache-dir horovod-*.whl && \
+    rm -fr /horovod
+
+WORKDIR /workspace
+
+ENTRYPOINT ["/bin/bash"]
