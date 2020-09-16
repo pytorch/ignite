@@ -37,7 +37,7 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==4.3.21"
+pip install flake8 "black==19.10b0" "isort==4.3.21" "mypy==0.782"
 ```
 
 ### Code development
@@ -125,6 +125,14 @@ CI_PYTHON_VERSION=<your python version, e.g 3.7> sh tests/run_cpu_tests.sh
 # for example
 # CI_PYTHON_VERSION=3.7 sh tests/run_cpu_tests.sh
 ```
+
+#### Run Mypy checks:
+To run mypy to check the optional static type:
+```bash
+mypy --config-file mypy.ini
+```
+
+To change any config for specif folder, please see the file mypy.ini
 
 #### Send a PR
 
