@@ -384,16 +384,16 @@ class TensorboardLogger(BaseLogger):
 
     otherwise, it falls back to using
     `PyTorch's SummaryWriter
-    <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter>`_
+    <https://pytorch.org/docs/stable/tensorboard.html>`_
     (>=v1.2.0).
 
     Args:
         *args: Positional arguments accepted from
             `SummaryWriter
-            <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter>`_.
+            <https://pytorch.org/docs/stable/tensorboard.html>`_.
         **kwargs: Keyword arguments accepted from
             `SummaryWriter
-            <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter>`_.
+            <https://pytorch.org/docs/stable/tensorboard.html>`_.
             For example, `log_dir` to setup path to the directory where to log.
 
     Examples:

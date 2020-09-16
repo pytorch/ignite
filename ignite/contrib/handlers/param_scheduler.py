@@ -1,3 +1,4 @@
+import itertools
 import math
 import numbers
 import tempfile
@@ -380,8 +381,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
         optimizer = SGD(
             [
-                {"params": model.base.parameters(), 'lr': 0.001),
-                {"params": model.fc.parameters(), 'lr': 0.01),
+                {"params": model.base.parameters(), 'lr': 0.001},
+                {"params": model.fc.parameters(), 'lr': 0.01},
             ]
         )
 
@@ -459,7 +460,7 @@ class ConcatScheduler(ParamScheduler):
             )
 
         for i, scheduler in enumerate(schedulers):
-            if not isinstance(scheduler, ParamScheduler):
+            if not isinstance(scheduler, ParamScheduler) and not isinstance(scheduler, ParamGroupScheduler):
                 raise TypeError(
                     "Value at index {} of schedulers should be a parameter scheduler, "
                     "but given {}".format(i, type(scheduler))
@@ -468,15 +469,29 @@ class ConcatScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.durations = durations
 
-        self.optimizer = self.schedulers[0].optimizer
-        if not (all(id(s.optimizer) == id(self.optimizer) for s in self.schedulers)):
+        param_optimizers = [s.optimizer for s in self.schedulers]
+        param_optimizers = [s if isinstance(s, list) else [s] for s in param_optimizers]
+        param_optimizers = list(itertools.chain(*param_optimizers))
+
+        optimizer = list(set(param_optimizers))
+        if len(optimizer) != 1:
             raise ValueError("schedulers should be related to same optimizer")
+
+        param_names = [s.param_name for s in self.schedulers]
+        param_names = [s if isinstance(s, list) else [s] for s in param_names]
+        param_names = list(itertools.chain(*param_names))
+
+        param_name = list(set(param_names))
+        if len(param_name) != 1:
+            raise ValueError("schedulers should be related to same param_name")
 
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
             s.save_history = save_history
 
-        super(ConcatScheduler, self).__init__(optimizer=self.optimizer, param_name="", save_history=save_history)
+        super(ConcatScheduler, self).__init__(
+            optimizer=optimizer[0], param_name=param_name[0], save_history=save_history
+        )
 
         self._scheduler_index = 0
         self._current_scheduler = None
@@ -530,8 +545,6 @@ class ConcatScheduler(ParamScheduler):
         self._current_duration = (
             self.durations[self._scheduler_index] if self._scheduler_index < len(self.durations) else -1
         )
-        self.param_name = self._current_scheduler.param_name
-        self.optimizer = self._current_scheduler.optimizer
 
     def __call__(self, engine, name=None):
         if self._current_duration == 0:
@@ -581,6 +594,16 @@ class ConcatScheduler(ParamScheduler):
                     "Argument param_names should be list or tuple of strings, but given {}".format(param_names)
                 )
 
+        param_optimizers = [s.optimizer for s in schedulers]
+        param_optimizers = [s if isinstance(s, list) else [s] for s in param_optimizers]
+        param_optimizers = list(itertools.chain(*param_optimizers))
+
+        optimizer = list(set(param_optimizers))
+        if len(optimizer) != 1:
+            raise ValueError("schedulers should be related to same optimizer")
+
+        optimizer = optimizer[0]
+
         # This scheduler uses `ParamScheduler` which
         # should be replicated in order to simulate LR values and
         # not perturb original scheduler.
@@ -588,7 +611,7 @@ class ConcatScheduler(ParamScheduler):
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
             objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
             # all schedulers should be related to the same optimizer
-            objs["optimizer"] = schedulers[0].optimizer.state_dict()
+            objs["optimizer"] = optimizer.state_dict()
 
             torch.save(objs, cache_filepath.as_posix())
 
@@ -611,7 +634,7 @@ class ConcatScheduler(ParamScheduler):
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs["lr_scheduler_{}".format(i)])
-                s.optimizer.load_state_dict(objs["optimizer"])
+            optimizer.load_state_dict(objs["optimizer"])
 
             return output
 
@@ -640,7 +663,7 @@ class LRScheduler(ParamScheduler):
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
 
-    def __init__(self, lr_scheduler, save_history=False, **kwargs):
+    def __init__(self, lr_scheduler, save_history=False):
 
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
@@ -927,7 +950,7 @@ class PiecewiseLinear(ParamScheduler):
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
 
-class ParamGroupScheduler(ParamScheduler):
+class ParamGroupScheduler:
     """
     Scheduler helper to group multiple schedulers into one.
 
@@ -981,19 +1004,20 @@ class ParamGroupScheduler(ParamScheduler):
         self.schedulers = schedulers
         self.names = names
 
-        self.optimizer = self.schedulers[0].optimizer
-        if not (all(id(s.optimizer) == id(self.optimizer) for s in schedulers)):
-            raise ValueError("schedulers should be related to same optimizer")
-
         # schedulers should have save_history sync with ParamGroupScheduler
         for s in schedulers:
             s.save_history = save_history
 
-        super(ParamGroupScheduler, self).__init__(optimizer=self.optimizer, param_name="lr", save_history=save_history)
+        self.optimizer = [s.optimizer for s in self.schedulers]
+        self.param_name = [s.param_name for s in self.schedulers]
 
     def __call__(self, engine, name=None):
         for scheduler, name in zip(self.schedulers, self.names):
             scheduler(engine, name)
+
+    @property
+    def optimizer_param_groups(self):
+        return [pg for scheduler in self.schedulers for pg in scheduler.optimizer_param_groups]
 
     @property
     def save_history(self):
@@ -1003,9 +1027,6 @@ class ParamGroupScheduler(ParamScheduler):
     def save_history(self, value):
         for s in self.schedulers:
             s.save_history = value
-
-    def get_param(self) -> Union[List[float], float]:
-        return [scheduler.get_param() for scheduler in self.schedulers]
 
     def state_dict(self):
         """Returns a dictionary containing a whole state of ParamGroupScheduler.
@@ -1077,7 +1098,7 @@ class ParamGroupScheduler(ParamScheduler):
             values = []
             scheduler = cls(schedulers=schedulers, **kwargs)
             for i in range(num_events):
-                params = scheduler.get_param()
+                params = [scheduler.get_param() for scheduler in schedulers]
                 values.append([i] + params)
                 scheduler(engine=None)
 

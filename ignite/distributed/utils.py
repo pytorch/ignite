@@ -293,7 +293,7 @@ def spawn(
               | and `node_rank=0` are tolerated and ignored, otherwise an exception is raised.
 
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
-    .. _mp.start_processes: https://pytorch.org/docs/stable/_modules/torch/multiprocessing/spawn.html#spawn
+    .. _mp.start_processes: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
     .. _xmp.spawn: http://pytorch.org/xla/release/1.6/index.html#torch_xla.distributed.xla_multiprocessing.spawn
     .. _hvd_run: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
