@@ -161,7 +161,7 @@ def test_check_compute_fn():
 def _test_distrib_integration(device=None):
 
     if device is None:
-        device = idist.device() if idist.device().type != "xla" else "cpu"
+        device = idist.device()
 
     rank = idist.get_rank()
     torch.manual_seed(12)

@@ -76,70 +76,35 @@ def test_reset():
 
 
 def _test_distrib_compute_on_criterion(device):
-    def _test(metric_device):
-        criterion = nn.NLLLoss().to(device)
-        loss = Loss(criterion, device=metric_device)
 
-        y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
-        y = torch.tensor([2, 2], device=device).long()
-        loss.update((y_pred, y))
-        n = loss._num_examples
-        assert n == len(y)
-        res = loss.compute()
-        assert n * idist.get_world_size() == loss._num_examples
+    criterion = nn.NLLLoss().to(device)
+    loss = Loss(criterion, device=device)
 
-        y_pred = idist.all_gather(y_pred)
-        y = idist.all_gather(y)
-        true_loss_value = criterion(y_pred, y)
-        assert_almost_equal(res, true_loss_value.item())
-
-        loss.reset()
-        y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
-        y = torch.tensor([2, 0, 2], device=device).long()
-        loss.update((y_pred, y))
-        n = loss._num_examples
-        res = loss.compute()
-        assert n * idist.get_world_size() == loss._num_examples
-
-        y_pred = idist.all_gather(y_pred)
-        y = idist.all_gather(y)
-        true_loss_value = criterion(y_pred, y)
-        assert_almost_equal(res, true_loss_value.item())
-
-    _test("cpu")
-    if device.type != "xla":
-        _test(idist.device())
-
-
-def _test_distrib_accumulator_device(device):
-
-    metric_devices = [torch.device("cpu")]
-    if device.type != "xla":
-        metric_devices.append(idist.device())
-    for metric_device in metric_devices:
-        loss = Loss(nll_loss, device=metric_device)
-        assert loss._device == metric_device
-        assert loss._sum.device == metric_device, "{}:{} vs {}:{}".format(
-            type(loss._sum.device), loss._sum.device, type(metric_device), metric_device
-        )
-
-        y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
-        y = torch.tensor([2, 2]).long()
-        loss.update((y_pred, y))
-
-        assert loss._sum.device == metric_device, "{}:{} vs {}:{}".format(
-            type(loss._sum.device), loss._sum.device, type(metric_device), metric_device
-        )
-
-
-def test_sum_detached():
-    loss = Loss(nll_loss)
-
-    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], requires_grad=True).log()
-    y = torch.tensor([2, 2]).long()
+    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device).log()
+    y = torch.tensor([2, 2], device=device).long()
     loss.update((y_pred, y))
+    n = loss._num_examples
+    assert n == len(y)
+    res = loss.compute()
+    assert n * idist.get_world_size() == loss._num_examples
 
-    assert not loss._sum.requires_grad
+    y_pred = idist.all_gather(y_pred)
+    y = idist.all_gather(y)
+    true_loss_value = criterion(y_pred, y)
+    assert_almost_equal(res, true_loss_value.item())
+
+    loss.reset()
+    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]], device=device).log()
+    y = torch.tensor([2, 0, 2], device=device).long()
+    loss.update((y_pred, y))
+    n = loss._num_examples
+    res = loss.compute()
+    assert n * idist.get_world_size() == loss._num_examples
+
+    y_pred = idist.all_gather(y_pred)
+    y = idist.all_gather(y)
+    true_loss_value = criterion(y_pred, y)
+    assert_almost_equal(res, true_loss_value.item())
 
 
 @pytest.mark.distributed
@@ -147,18 +112,16 @@ def test_sum_detached():
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    device = torch.device("cuda:{}".format(local_rank))
+    device = "cuda:{}".format(local_rank)
     _test_distrib_compute_on_criterion(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
-    device = torch.device("cpu")
+    device = "cpu"
     _test_distrib_compute_on_criterion(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -166,29 +129,26 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
 
-    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_compute_on_criterion, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
+    device = "cpu"
     _test_distrib_compute_on_criterion(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
     _test_distrib_compute_on_criterion(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -197,13 +157,11 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_compute_on_criterion(device)
-    _test_distrib_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_compute_on_criterion(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu

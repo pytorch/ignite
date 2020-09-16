@@ -2,7 +2,7 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 
@@ -128,9 +128,7 @@ class Metric(metaclass=ABCMeta):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the
-            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
-            non-blocking. By default, CPU.
+        device (str or torch.device, optional): optional device specification for internal storage.
 
     Attributes:
         required_output_keys (tuple): dictionary defines required keys to be found in ``engine.state.output`` if the
@@ -186,7 +184,6 @@ class Metric(metaclass=ABCMeta):
             )
 
             res = evaluator.run(data)
-
     """
 
     # public class attribute
@@ -195,7 +192,7 @@ class Metric(metaclass=ABCMeta):
     _required_output_keys = required_output_keys
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
+        self, output_transform: Callable = lambda x: x, device: Optional[Union[str, torch.device]] = None,
     ):
         self._output_transform = output_transform
 
@@ -209,12 +206,7 @@ class Metric(metaclass=ABCMeta):
                     "across all computing devices".format(self.__class__.__name__),
                     RuntimeWarning,
                 )
-
-        # Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.
-        if torch.device(device).type == "xla":
-            raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
-
-        self._device = torch.device(device)
+        self._device = device
         self._is_reduced = False
         self.reset()
 
