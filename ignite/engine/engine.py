@@ -646,6 +646,9 @@ class Engine(Serializable):
                 "Please, use torch.manual_seed or ignite.utils.manual_seed"
             )
 
+        if not isinstance(data, Iterable):
+            raise TypeError("Argument data should be iterable")
+
         if self.state.max_epochs is not None:
             # Check and apply overridden parameters
             if max_epochs is not None:
