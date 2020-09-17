@@ -78,11 +78,11 @@ Pull a pre-built docker image from `our Docker Hub <https://hub.docker.com/u/pyt
 
 Available pre-built images are :
 
-- ``pytorchignite/base:latest | pytorchignite/hvd-base:latest``
+- ``pytorchignite/base:latest | pytorchignite/hvd-base:latest | pytorchignite/msdp-base:latest``
 - ``pytorchignite/apex:latest | pytorchignite/hvd-apex:latest``
-- ``pytorchignite/vision:latest | pytorchignite/hvd-vision:latest``
+- ``pytorchignite/vision:latest | pytorchignite/hvd-vision:latest | pytorchignite/msdp-vision:latest``
 - ``pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest``
-- ``pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest``
+- ``pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest | pytorchignite/msdp-nlp:latest``
 - ``pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest``
 
 For more details, see `here <https://github.com/pytorch/ignite/tree/master/docker>`_.
