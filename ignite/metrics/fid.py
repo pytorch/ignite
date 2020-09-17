@@ -8,11 +8,6 @@ from torchvision import transforms
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
-try:
-    from tqdm import tqdm
-except ImportError:
-    def tqdm(x): return x
-
 
 __all__ = ["FID"]
 
@@ -113,7 +108,7 @@ class FID(Metric):
         mu, cov = [], []
         for loader in loaders:
             actvs = []
-            for x in tqdm(loader, total = len(loader)):
+            for x in range(len(loader)):
                 actv = inception(x.to(device))
                 actvs.append(actv)
             actvs = torch.cat(actvs, dim = 0).cpu().detach().numpy()
