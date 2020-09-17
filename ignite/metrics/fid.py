@@ -44,11 +44,19 @@ class FID(Metric):
         output_transform: Callable = lambda x: x, 
         input_path: os.path, 
         output_path: os.path,
-        module: torch.nn.Module,
+        test_model = None,
     ):
         self._input_path = input_path
         self._output_path = output_path
-        self._module = module
+
+        if test_model is None:
+            try:
+                from torchvision import models
+                test_model = models.inception_v3()
+            except ImportError:
+                raise ValueError("Argument test_model should be set")
+        
+        self._test_model = test_model
     
 
     def _frechet_distance(mu, cov, mu2, cov2):
@@ -86,7 +94,7 @@ class FID(Metric):
     def _calculate_fid_given_paths(paths, img_size = 256, batch_size = 50):
         # calculating FID given two paths
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        inception = self._module().eval().to(device)
+        inception = self._test_model().eval().to(device)
         loaders = [self._get_eval_loader(path, img_size, batch_size) for path in paths]
 
         mu, cov = [], []
