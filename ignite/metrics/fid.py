@@ -1,7 +1,6 @@
 import os
 from typing import Callable, Sequence, Union
 
-import numpy as np
 import torch
 from scipy import linalg
 from torchvision import transforms
@@ -60,9 +59,9 @@ class FID(Metric):
     
 
     def _frechet_distance(mu, cov, mu2, cov2):
-        cc, _ = linalg.sqrtm(np.dot(cov, cov2), disp = False)
-        dist = np.sum((mu -mu2) ** 2) + np.trace(cov + cov2 - 2 * cc)
-        return np.real(dist)
+        cc, _ = linalg.sqrtm(torch.dot(cov, cov2), disp = False)
+        dist = torch.sum((mu -mu2) ** 2) + torch.trace(cov + cov2 - 2 * cc)
+        return torch.real(dist)
     
     def _get_eval_loader(root, img_size=256, batch_size=32,
                         imagenet_normalize=True, shuffle=True,
@@ -91,6 +90,20 @@ class FID(Metric):
                             pin_memory = True,
                             drop_last = drop_last)
     
+    def _cov(x, rowvar=False):
+        # PyTorch implementation of numpy.cov from https://github.com/pytorch/pytorch/issues/19037
+        if x.dim() == 1:
+            x = x.view(-1, 1)
+
+        avg = torch.mean(x, 0)
+        fact = x.shape[0] - 1
+        xm = x.sub(avg.expand_as(x))
+        X_T = xm.t()
+        c = torch.mm(X_T, xm)
+        c = c / fact
+
+        return c.squeeze()
+    
     def _calculate_fid_given_paths(paths, img_size = 256, batch_size = 50):
         # calculating FID given two paths
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -104,8 +117,8 @@ class FID(Metric):
                 actv = inception(x.to(device))
                 actvs.append(actv)
             actvs = torch.cat(actvs, dim = 0).cpu().detach().numpy()
-            mu.append(np.mean(actvs, axis = 0))
-            cov.append(np.cov(actvs, rowvar = False))
+            mu.append(torch.mean(actvs, axis = 0))
+            cov.append(_cov(actvs, rowvar = False))
         fid_value = self._frechet_distance(mu[0], cov[0], mu[1], cov[1])
         return fid_value
 
