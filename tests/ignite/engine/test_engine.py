@@ -21,17 +21,27 @@ def test_terminate():
 
 
 def test_invalid_process_raises_with_invalid_signature():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):
         Engine(None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Error adding .+ takes parameters .+ but will be called with"):
         Engine(lambda: None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Error adding .+ takes parameters .+ but will be called with"):
         Engine(lambda batch: None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Error adding .+ takes parameters .+ but will be called with"):
         Engine(lambda engine, batch, extra_arg: None)
+
+
+def test_invalid_input_data():
+    engine = Engine(lambda e, b: None)
+
+    def data():
+        pass
+
+    with pytest.raises(TypeError, match=r"Argument data should be iterable"):
+        engine.run(data)
 
 
 def test_current_epoch_counter_increases_every_epoch():
