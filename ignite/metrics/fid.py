@@ -1,18 +1,19 @@
-from typing import Callable, Sequence, Union
 import os
+from typing import Callable, Sequence, Union
 
-import torch
-from torchvision import transforms
 import numpy as np
+import torch
 from scipy import linalg
+from torchvision import transforms
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 try:
     from tqdm import tqdm
 except ImportError:
     def tqdm(x): return x
 
-from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["FID"]
 
