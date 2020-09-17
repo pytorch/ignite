@@ -225,6 +225,7 @@ Complete list of metrics
     - :meth:`~ignite.metrics.DiceCoefficient`
     - :class:`~ignite.metrics.EpochMetric`
     - :meth:`~ignite.metrics.Fbeta`
+    - :class:`~ignite.metrics.FID`
     - :class:`~ignite.metrics.GeometricAverage`
     - :meth:`~ignite.metrics.IoU`
     - :meth:`~ignite.metrics.mIoU`
@@ -255,6 +256,8 @@ Complete list of metrics
 .. autoclass:: EpochMetric
 
 .. autofunction:: Fbeta
+
+.. autoclass:: FID
 
 .. autoclass:: GeometricAverage
 
