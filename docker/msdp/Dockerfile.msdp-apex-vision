@@ -1,5 +1,5 @@
-# Dockerfile.msdp-vision
-FROM pytorchignite/msdp-base:latest
+# Dockerfile.msdp-apex-vision
+FROM pytorchignite/msdp-apex-base:latest
 
 # Install opencv dependencies
 RUN apt-get update && \

@@ -50,11 +50,11 @@ Available Tensor Operations:
     * `docker pull pytorchignite/hvd-apex-vision:latest`
 - [hvd/Dockerfile.hvd-apex-nlp](hvd/Dockerfile.hvd-apex-nlp): base Horovod apex with useful NLP libraries
     * `docker pull pytorchignite/hvd-apex-nlp:latest`
-- [msdp/Dockerfile.msdp-base](msdp/Dockerfile.msdp-base): multi-stage MSDeepSpeed build with latest Pytorch, Ignite image with minimal dependencies
+- [msdp/Dockerfile.msdp-apex-base](msdp/Dockerfile.msdp-apex-base): multi-stage MSDeepSpeed build with latest Pytorch, Ignite image with minimal dependencies
     * `docker pull pytorchignite/msdp-base:latest`
-- [msdp/Dockerfile.msdp-vision](msdp/Dockerfile.msdp-vision): base MSDeepSpeed build with useful computer vision libraries
+- [msdp/Dockerfile.msdp-apex-vision](msdp/Dockerfile.msdp-apex-vision): base MSDeepSpeed build with useful computer vision libraries
     * `docker pull pytorchignite/msdp-vision:latest`
-- [msdp/Dockerfile.msdp-nlp](msdp/Dockerfile.msdp-nlp): base MSDeepSpeed build with useful NLP libraries
+- [msdp/Dockerfile.msdp-apex-nlp](msdp/Dockerfile.msdp-apex-nlp): base MSDeepSpeed build with useful NLP libraries
     * `docker pull pytorchignite/msdp-nlp:latest`
     
 ## How to use

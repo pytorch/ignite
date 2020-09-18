@@ -308,11 +308,11 @@ docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 1
 
 Available pre-built images are :
 
-- `pytorchignite/base:latest | pytorchignite/hvd-base:latest | pytorchignite/msdp-base:latest`
+- `pytorchignite/base:latest | pytorchignite/hvd-base:latest | pytorchignite/msdp-apex-base:latest`
 - `pytorchignite/apex:latest | pytorchignite/hvd-apex:latest`
-- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest | pytorchignite/msdp-vision:latest`
+- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest | pytorchignite/msdp-apex-vision:latest`
 - `pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest`
-- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest | pytorchignite/msdp-nlp:latest`
+- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest | pytorchignite/msdp-apex-nlp:latest`
 - `pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest`
 
 For more details, see [here](docker).
