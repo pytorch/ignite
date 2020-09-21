@@ -27,6 +27,7 @@ metrics useful for regression tasks. Definitions of metrics are based on `Botchk
 Complete list of metrics:
 
     - :class:`~ignite.contrib.metrics.regression.CanberraMetric`
+    - :class:`~ignite.contrib.metrics.FID`
     - :class:`~ignite.contrib.metrics.regression.FractionalAbsoluteError`
     - :class:`~ignite.contrib.metrics.regression.FractionalBias`
     - :class:`~ignite.contrib.metrics.regression.GeometricMeanAbsoluteError`
@@ -44,6 +45,8 @@ Complete list of metrics:
 
 
 .. autoclass:: CanberraMetric
+
+.. autoclass:: FID
 
 .. autoclass:: FractionalAbsoluteError
 

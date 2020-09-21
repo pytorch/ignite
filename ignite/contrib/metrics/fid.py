@@ -2,11 +2,16 @@ import os
 from typing import Callable, Sequence, Union
 
 import torch
-from scipy import linalg
 from torchvision import transforms
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+
+try:
+    from scipy import linalg
+except ImportError:
+    raise RuntimeError("This contrib module requires scipy to be installed.")
+
 
 __all__ = ["FID"]
 
