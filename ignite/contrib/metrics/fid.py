@@ -38,16 +38,42 @@ class FID(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._value = None
+        self._mu_real, self._sigma_real = None, None
+        self._mu_fake, self._sigma_fake = None, None
+
+        self._features_real = []
+        self._features_fake = []
 
     @reinit__is_reduced
     def update(self, output) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
 
-        self._mu_real, self._sigma_real = self._get_features(y)
-        self._mu_fake, self._sigma_fake = self._get_features(y_pred)
+        data_real, data_fake = y, y_pred
+        if isinstance(y_pred, (tuple, list)):
+            data_real = y[0]
+            data_fake = y_pred[0]
+        data_real = self._scale_for_fid(data_real).to(self._device)
+        data_fake = self._scale_for_fid(data_fake).to(self._device)
+        with torch.no_grad():
+            batch_features_real = self._fid_model(data_real)
+            batch_features_fake = self._fid_model(data_fake)
+        batch_features_real = batch_features_real.view(*batch_features_real.size()[:2], -1).mean(-1)
+        batch_features_fake = batch_features_fake.view(*batch_features_fake.size()[:2], -1).mean(-1)
+
+        self._features_real.append(batch_features_real.cpu())
+        self._features_fake.append(batch_features_fake.cpu())
 
     @sync_all_reduce
     def compute(self) -> Union(torch.Tensor, float):
+        self._features_real = torch.cat(self._features_real, dim=0)
+        self._features_fake = torch.cat(self._features_fake, dim=0)
+
+        self._mu_real = torch.mean(self._features_real, axis=0)
+        self._sigma_real = self._cov(self._features_real, rowvar=False)
+
+        self._mu_fake = torch.mean(self._features_fake, axis=0)
+        self._sigma_fake = self._cov(self._features_fake, rowvar=False)
+
         self._value = self._frechet_distance([self._mu_real, self._sigma_real, self._mu_fake, self._sigma_fake])
         return self._value
 
@@ -69,23 +95,3 @@ class FID(Metric):
         c = c / fact
 
         return c.squeeze()
-
-    def _get_features(dataset):
-        features = []
-
-        for batch in dataset:
-            data = batch
-            if isinstance(batch, (tuple, list)):
-                data = batch[0]
-            data = self._scale_for_fid(data).to(self._device)
-            with torch.no_grad():
-                batch_features = self._fid_model(data)
-            batch_features = batch_features.view(*batch_features.size()[:2], -1).mean(-1)
-            features.append(batch_features.cpu())
-
-        features = torch.cat(features, dim=0)
-
-        mu = torch.mean(features, axis=0)
-        sigma = self._cov(features, rowvar=False)
-
-        return mu, sigma
