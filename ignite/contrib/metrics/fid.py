@@ -37,10 +37,7 @@ class FID(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._value = None
-        self._mu_real, self._sigma_real = None, None
-        self._mu_fake, self._sigma_fake = None, None
-
+        self._num_of_data = 0
         self._features_real = []
         self._features_fake = []
 
@@ -52,30 +49,27 @@ class FID(Metric):
         if isinstance(y_pred, (tuple, list)):
             data_real = y[0]
             data_fake = y_pred[0]
-        data_real = self._scale_for_fid(data_real).to(self._device)
-        data_fake = self._scale_for_fid(data_fake).to(self._device)
         with torch.no_grad():
             batch_features_real = self._fid_model(data_real)
             batch_features_fake = self._fid_model(data_fake)
+
         batch_features_real = batch_features_real.view(*batch_features_real.size()[:2], -1).mean(-1)
         batch_features_fake = batch_features_fake.view(*batch_features_fake.size()[:2], -1).mean(-1)
 
-        self._features_real.append(batch_features_real.cpu())
-        self._features_fake.append(batch_features_fake.cpu())
+        self._features_sum_real += torch.sum(batch_features_real)
+        self._features_sum_fake += torch.sum(batch_features_fake)
+
+        self._num_of_data += 1
 
     @sync_all_reduce
     def compute(self) -> Union(torch.Tensor, float):
-        self._features_real = torch.cat(self._features_real, dim=0)
-        self._features_fake = torch.cat(self._features_fake, dim=0)
+        mu_real = self._features_sum_real / self._num_of_data
+        sigma_real = self._cov(self._features_real, rowvar=False)
 
-        self._mu_real = torch.mean(self._features_real, axis=0)
-        self._sigma_real = self._cov(self._features_real, rowvar=False)
+        mu_fake = self._features_sum_real / self._num_of_data
+        sigma_fake = self._cov(self._features_fake, rowvar=False)
 
-        self._mu_fake = torch.mean(self._features_fake, axis=0)
-        self._sigma_fake = self._cov(self._features_fake, rowvar=False)
-
-        self._value = self._frechet_distance([self._mu_real, self._sigma_real, self._mu_fake, self._sigma_fake])
-        return self._value
+        return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
 
     def _frechet_distance(mu, cov, mu2, cov2):
         cc, _ = linalg.sqrtm(torch.dot(cov, cov2), disp=False)
@@ -88,7 +82,7 @@ class FID(Metric):
             x = x.view(-1, 1)
 
         avg = torch.mean(x, 0)
-        fact = x.shape[0] - 1
+        fact = self._num_of_data - 1
         xm = x.sub(avg.expand_as(x))
         X_T = xm.t()
         c = torch.mm(X_T, xm)
