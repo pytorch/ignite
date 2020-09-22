@@ -77,7 +77,7 @@ class FID(Metric):
             self._cov_fake = torch.eye(len(y_pred))
 
     @sync_all_reduce
-    def compute(self) -> Union(torch.Tensor, float):
+    def compute(self) -> Union[torch.Tensor, float]:
         mu_real = self._features_sum_real / self._num_of_data
         sigma_real = self._cov_real
 
