@@ -38,17 +38,18 @@ class FID(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_of_data = 0
-        self._features_real = []
-        self._features_fake = []
+
+        self._features_sum_real = None
+        self._features_sum_fake = None
+
+        self._cov_real = None
+        self._cov_fake = None
 
     @reinit__is_reduced
     def update(self, output) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
 
         data_real, data_fake = y, y_pred
-        if isinstance(y_pred, (tuple, list)):
-            data_real = y[0]
-            data_fake = y_pred[0]
         with torch.no_grad():
             batch_features_real = self._fid_model(data_real)
             batch_features_fake = self._fid_model(data_fake)
@@ -56,18 +57,35 @@ class FID(Metric):
         batch_features_real = batch_features_real.view(*batch_features_real.size()[:2], -1).mean(-1)
         batch_features_fake = batch_features_fake.view(*batch_features_fake.size()[:2], -1).mean(-1)
 
-        self._features_sum_real += torch.sum(batch_features_real)
-        self._features_sum_fake += torch.sum(batch_features_fake)
-
         self._num_of_data += 1
+
+        if self._num_of_data > 1:
+            self._features_sum_real += batch_features_real
+            self._features_sum_fake += batch_features_fake
+
+            X_real = y - (self._features_sum_real / self._num_of_data)
+            X_fake = y_pred - (self._features_sum_fake / self._num_of_data)
+
+            self._cov_real = torch.ger(X_real, X_real) * (
+                self._num_of_data / (self._num_of_data + 1) ** 2
+            ) + self._cov_real * self._num_of_data / (self._num_of_data + 1)
+            self._cov_fake = torch.ger(X_fake, X_fake) * (
+                self._num_of_data / (self._num_of_data + 1) ** 2
+            ) + self._cov_fake * self._num_of_data / (self._num_of_data + 1)
+        else:
+            self._features_sum_real = batch_features_real
+            self._features_sum_fake = batch_features_fake
+
+            self._cov_real = torch.eye(len(y))
+            self._cov_fake = torch.eye(len(y_pred))
 
     @sync_all_reduce
     def compute(self) -> Union(torch.Tensor, float):
         mu_real = self._features_sum_real / self._num_of_data
-        sigma_real = self._cov(self._features_real, rowvar=False)
+        sigma_real = self._cov_real
 
         mu_fake = self._features_sum_real / self._num_of_data
-        sigma_fake = self._cov(self._features_fake, rowvar=False)
+        sigma_fake = self._cov_fake
 
         return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
 
@@ -75,17 +93,3 @@ class FID(Metric):
         cc, _ = linalg.sqrtm(torch.dot(cov, cov2), disp=False)
         dist = torch.sum((mu - mu2) ** 2) + torch.trace(cov + cov2 - 2 * cc)
         return torch.real(dist)
-
-    def _cov(x, rowvar=False):
-        # PyTorch implementation of numpy.cov from https://github.com/pytorch/pytorch/issues/19037
-        if x.dim() == 1:
-            x = x.view(-1, 1)
-
-        avg = torch.mean(x, 0)
-        fact = self._num_of_data - 1
-        xm = x.sub(avg.expand_as(x))
-        X_T = xm.t()
-        c = torch.mm(X_T, xm)
-        c = c / fact
-
-        return c.squeeze()
