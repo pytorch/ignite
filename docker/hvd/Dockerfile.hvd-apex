@@ -42,8 +42,7 @@ RUN apt-get update && \
 
 # Ignite main dependencies
 RUN pip install tensorboardX tensorboard trains tqdm && \
-    # Horovod support is available in >0.4.1 and in nightly releases:
-    pip install --pre pytorch-ignite
+    pip install pytorch-ignite
 
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \
