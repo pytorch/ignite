@@ -53,3 +53,8 @@ do
     docker push pytorchignite/${image_name}:${image_tag}
 
 done
+
+# If use locally, mind to clean dangling images
+# docker images | grep 'pytorchignite\|<none>' | awk '{print $3}' | xargs docker rmi -f
+# or
+# docker image prune

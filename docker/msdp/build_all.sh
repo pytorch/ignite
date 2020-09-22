@@ -20,12 +20,12 @@ docker build -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} .
 image_tag=`docker run --rm -it pytorchignite/${image_name}:latest -c 'python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"'`
 docker tag pytorchignite/${image_name}:latest pytorchignite/${image_name}:${image_tag}
 
-image_name="msdp-apex-vision"
-docker build -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} .
-docker tag pytorchignite/${image_name}:latest pytorchignite/${image_name}:${image_tag}
+for image_name in "msdp-apex-vision" "msdp-apex-nlp"
+do
 
-image_name="msdp-apex-nlp"
-docker build -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} .
-docker tag pytorchignite/${image_name}:latest pytorchignite/${image_name}:${image_tag}
+    docker build -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} .
+    docker tag pytorchignite/${image_name}:latest pytorchignite/${image_name}:${image_tag}
+
+done
 
 cd $curr_dir
