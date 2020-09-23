@@ -1,3 +1,5 @@
+from typing import Callable, Union
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
@@ -23,9 +25,16 @@ class CanberraMetric(_BaseRegression):
 
     """
 
+    def __init__(self,
+                 output_transform: Callable = lambda x: x,
+                 device: Union[str, torch.device] = torch.device("cpu")
+                 ):
+        self._sum_of_errors = None
+        super(CanberraMetric, self).__init__(output_transform, device)
+
     @reinit__is_reduced
     def reset(self):
-        self._sum_of_errors = 0.0
+        self._sum_of_errors = 0
 
     def _update(self, output):
         y_pred, y = output
