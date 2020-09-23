@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 import torch
+from sklearn.neighbors import DistanceMetric
 
 from ignite.contrib.metrics.regression import CanberraMetric
-from sklearn.neighbors import DistanceMetric
 
 
 def test_wrong_input_shapes():
@@ -31,7 +31,7 @@ def test_compute():
 
     m = CanberraMetric()
 
-    canberra = DistanceMetric.get_metric('canberra')
+    canberra = DistanceMetric.get_metric("canberra")
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = (np.abs(ground_truth - a) / (np.abs(a) + np.abs(ground_truth))).sum()
