@@ -8,7 +8,15 @@ from ignite.metrics.loss import Loss
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
-from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage
+from ignite.metrics.metric import (
+    BatchFiltered,
+    BatchWise,
+    EpochWise,
+    Metric,
+    MetricUsage,
+    reinit__is_reduced,
+    sync_all_reduce,
+)
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.precision import Precision
 from ignite.metrics.recall import Recall
@@ -16,7 +24,6 @@ from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.ssim import SSIM
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
     "Metric",
@@ -43,5 +50,5 @@ __all__ = [
     "Frequency",
     "SSIM",
     "reinit__is_reduced",
-    "sync_all_reduce"
+    "sync_all_reduce",
 ]
