@@ -7,7 +7,7 @@ class CanberraMetric(_BaseRegression):
     r"""
     Calculates the Canberra Metric.
 
-    :math:`\text{CM} = \sum_{j=1}^n\frac{|A_j - P_j|}{A_j + P_j}`
+    :math:`\text{CM} = \sum_{j=1}^n\frac{|A_j - P_j|}{|A_j| + |P_j|}`
 
     where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
