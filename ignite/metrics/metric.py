@@ -105,8 +105,9 @@ class BatchFiltered(MetricUsage):
     - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Args:
-        args (sequence): arguments for the setup of :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED` handled by
-            :meth:`~ignite.metrics.Metric.iteration_completed`.
+        *args: Positional arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED(*args, **kwargs)`
+        **kwargs: Keyword arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED(*args, **kwargs)`
+            handled by :meth:`~ignite.metrics.Metric.iteration_completed`.
 
     """
 
