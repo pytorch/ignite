@@ -1,11 +1,11 @@
 import os
+
 import numpy as np
 import pytest
 import torch
 from sklearn.neighbors import DistanceMetric
 
 import ignite.distributed as idist
-
 from ignite.contrib.metrics.regression import CanberraMetric
 
 
