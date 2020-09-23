@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import torch
+from sklearn.neighbors import DistanceMetric
 
 from ignite.contrib.metrics.regression import CanberraMetric
 
@@ -30,18 +31,30 @@ def test_compute():
 
     m = CanberraMetric()
 
+    canberra = DistanceMetric.get_metric("canberra")
+
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (np.abs(ground_truth - a) / (a + ground_truth)).sum()
+    np_sum = (np.abs(ground_truth - a) / (np.abs(a) + np.abs(ground_truth))).sum()
     assert m.compute() == pytest.approx(np_sum)
+    assert canberra.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += ((np.abs(ground_truth - b)) / (b + ground_truth)).sum()
+    np_sum += ((np.abs(ground_truth - b)) / (np.abs(b) + np.abs(ground_truth))).sum()
     assert m.compute() == pytest.approx(np_sum)
+    v1 = np.hstack([a, b])
+    v2 = np.hstack([ground_truth, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += ((np.abs(ground_truth - c)) / (c + ground_truth)).sum()
+    np_sum += ((np.abs(ground_truth - c)) / (np.abs(c) + np.abs(ground_truth))).sum()
     assert m.compute() == pytest.approx(np_sum)
+    v1 = np.hstack([v1, c])
+    v2 = np.hstack([v2, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (np.abs(ground_truth - d) / (d + ground_truth)).sum()
+    np_sum += (np.abs(ground_truth - d) / (np.abs(d) + np.abs(ground_truth))).sum()
     assert m.compute() == pytest.approx(np_sum)
+    v1 = np.hstack([v1, d])
+    v2 = np.hstack([v2, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
