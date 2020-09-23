@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 import torch
 
-from ignite.metrics import EpochMetric, Metric
+from ignite.metrics import EpochMetric, Metric, reinit__is_reduced
 
 
 def _check_output_shapes(output):
@@ -33,6 +33,7 @@ class _BaseRegression(Metric):
     # `update` method check the shapes and call internal overloaded
     # method `_update`.
 
+    @reinit__is_reduced
     def update(self, output):
         _check_output_shapes(output)
         _check_output_types(output)

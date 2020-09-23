@@ -16,6 +16,7 @@ from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.ssim import SSIM
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
     "Metric",
@@ -41,4 +42,6 @@ __all__ = [
     "VariableAccumulation",
     "Frequency",
     "SSIM",
+    "reinit__is_reduced",
+    "sync_all_reduce"
 ]

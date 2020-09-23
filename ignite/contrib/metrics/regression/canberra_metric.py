@@ -1,6 +1,7 @@
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
+from ignite.metrics import reinit__is_reduced, sync_all_reduce
 
 
 class CanberraMetric(_BaseRegression):
@@ -19,6 +20,7 @@ class CanberraMetric(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
     """
 
+    @reinit__is_reduced
     def reset(self):
         self._sum_of_errors = 0.0
 
@@ -27,5 +29,6 @@ class CanberraMetric(_BaseRegression):
         errors = torch.abs(y.view_as(y_pred) - y_pred) / (y_pred + y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
 
+    @sync_all_reduce("_sum_of_errors")
     def compute(self):
         return self._sum_of_errors
