@@ -38,13 +38,13 @@ class _BaseRegression(Metric):
     def update(self, output):
         _check_output_shapes(output)
         _check_output_types(output)
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
-            y_pred = y_pred.squeeze(dim=-1)
+            y_pred = y_pred.squeeze(dim=-1).to(self._device)
 
         if y.ndimension() == 2 and y.shape[1] == 1:
-            y = y.squeeze(dim=-1)
+            y = y.squeeze(dim=-1).to(self._device)
 
         self._update((y_pred, y))
 
