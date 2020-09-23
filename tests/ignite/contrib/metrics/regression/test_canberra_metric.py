@@ -39,19 +39,22 @@ def test_compute():
     assert canberra.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    value = ((np.abs(ground_truth - b)) / (np.abs(b) + np.abs(ground_truth))).sum()
-    np_sum += value
+    np_sum += ((np.abs(ground_truth - b)) / (np.abs(b) + np.abs(ground_truth))).sum()
     assert m.compute() == pytest.approx(np_sum)
-    assert canberra.pairwise([b, ground_truth])[0][1] == pytest.approx(value)
+    v1 = np.hstack([a, b])
+    v2 = np.hstack([ground_truth, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    value = ((np.abs(ground_truth - c)) / (np.abs(c) + np.abs(ground_truth))).sum()
-    np_sum += value
+    np_sum += ((np.abs(ground_truth - c)) / (np.abs(c) + np.abs(ground_truth))).sum()
     assert m.compute() == pytest.approx(np_sum)
-    assert canberra.pairwise([c, ground_truth])[0][1] == pytest.approx(value)
+    v1 = np.hstack([v1, c])
+    v2 = np.hstack([v2, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    value = (np.abs(ground_truth - d) / (np.abs(d) + np.abs(ground_truth))).sum()
-    np_sum += value
+    np_sum += (np.abs(ground_truth - d) / (np.abs(d) + np.abs(ground_truth))).sum()
     assert m.compute() == pytest.approx(np_sum)
-    assert canberra.pairwise([d, ground_truth])[0][1] == pytest.approx(value)
+    v1 = np.hstack([v1, d])
+    v2 = np.hstack([v2, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
