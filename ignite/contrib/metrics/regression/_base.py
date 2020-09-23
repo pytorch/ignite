@@ -41,10 +41,10 @@ class _BaseRegression(Metric):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
-            y_pred = y_pred.squeeze(dim=-1).to(self._device)
+            y_pred = y_pred.squeeze(dim=-1)
 
         if y.ndimension() == 2 and y.shape[1] == 1:
-            y = y.squeeze(dim=-1).to(self._device)
+            y = y.squeeze(dim=-1)
 
         self._update((y_pred, y))
 

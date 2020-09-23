@@ -37,7 +37,7 @@ class CanberraMetric(_BaseRegression):
 
     def _update(self, output):
         y_pred, y = output
-        errors = torch.abs(y.view_as(y_pred) - y_pred) / (torch.abs(y_pred) + torch.abs(y.view_as(y_pred)))
+        errors = torch.abs(y - y_pred) / (torch.abs(y_pred) + torch.abs(y))
         self._sum_of_errors += torch.sum(errors).to(self._device)
 
     @sync_all_reduce("_sum_of_errors")
