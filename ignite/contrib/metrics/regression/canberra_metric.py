@@ -34,7 +34,7 @@ class CanberraMetric(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self):
-        self._sum_of_errors = 0
+        self._sum_of_errors = torch.tensor(0.0, device=self._device)
 
     def _update(self, output):
         y_pred, y = output
@@ -43,4 +43,4 @@ class CanberraMetric(_BaseRegression):
 
     @sync_all_reduce("_sum_of_errors")
     def compute(self):
-        return self._sum_of_errors
+        return self._sum_of_errors.item()
