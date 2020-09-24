@@ -1,7 +1,10 @@
+from typing import Callable, Union
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class R2Score(_BaseRegression):
@@ -18,21 +21,34 @@ class R2Score(_BaseRegression):
         - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
     """
 
+    def __init__(
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
+    ):
+        self._num_examples = None
+        self._sum_of_errors = None
+        self._y_sq_sum = None
+        self._y_sum = None
+        super(R2Score, self).__init__(output_transform, device)
+
+    @reinit__is_reduced
     def reset(self):
-        self._num_examples = 0
-        self._sum_of_errors = 0
-        self._y_sq_sum = 0
-        self._y_sum = 0
+        self._num_examples = torch.tensor(0, device=self._device)
+        self._sum_of_errors = torch.tensor(0.0, device=self._device)
+        self._y_sq_sum = torch.tensor(0.0, device=self._device)
+        self._y_sum = torch.tensor(0.0, device=self._device)
 
     def _update(self, output):
         y_pred, y = output
         self._num_examples += y.shape[0]
-        self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).item()
+        self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).to(self._device)
 
-        self._y_sum += torch.sum(y).item()
-        self._y_sq_sum += torch.sum(torch.pow(y, 2)).item()
+        self._y_sum += torch.sum(y).to(self._device)
+        self._y_sq_sum += torch.sum(torch.pow(y, 2)).to(self._device)
 
+    @sync_all_reduce("_num_examples", "_sum_of_errors", "_y_sq_sum", "_y_sum")
     def compute(self):
-        if self._num_examples == 0:
+        if self._num_examples.item() == 0:
             raise NotComputableError("R2Score must have at least one example before it can be computed.")
-        return 1 - self._sum_of_errors / (self._y_sq_sum - (self._y_sum ** 2) / self._num_examples)
+        return 1 - self._sum_of_errors.item() / (
+            self._y_sq_sum.item() - (self._y_sum.item() ** 2) / self._num_examples.item()
+        )
