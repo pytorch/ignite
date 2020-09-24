@@ -1,8 +1,10 @@
 from abc import abstractmethod
+from typing import Callable, Union
 
 import torch
 
 from ignite.metrics import EpochMetric, Metric
+from ignite.metrics.metric import reinit__is_reduced
 
 
 def _check_output_shapes(output):
@@ -33,10 +35,11 @@ class _BaseRegression(Metric):
     # `update` method check the shapes and call internal overloaded
     # method `_update`.
 
+    @reinit__is_reduced
     def update(self, output):
         _check_output_shapes(output)
         _check_output_types(output)
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() == 2 and y_pred.shape[1] == 1:
             y_pred = y_pred.squeeze(dim=-1)
