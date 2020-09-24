@@ -3,7 +3,7 @@ from typing import Callable, Union
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
-from ignite.metrics import reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class CanberraMetric(_BaseRegression):

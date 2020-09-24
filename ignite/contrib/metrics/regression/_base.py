@@ -3,7 +3,8 @@ from typing import Callable, Union
 
 import torch
 
-from ignite.metrics import EpochMetric, Metric, reinit__is_reduced
+from ignite.metrics import EpochMetric, Metric
+from ignite.metrics.metric import reinit__is_reduced
 
 
 def _check_output_shapes(output):

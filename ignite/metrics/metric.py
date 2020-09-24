@@ -9,7 +9,7 @@ import torch
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
 
-__all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered", "reinit__is_reduced", "sync_all_reduce"]
+__all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
 
 
 class MetricUsage:
