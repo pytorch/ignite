@@ -6,7 +6,6 @@ import torch
 from sklearn.metrics import r2_score
 
 import ignite.distributed as idist
-
 from ignite.contrib.metrics.regression import R2Score
 from ignite.engine import Engine
 
