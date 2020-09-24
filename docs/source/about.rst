@@ -56,7 +56,7 @@ If you use pytorch-ignite in a scientific publication, we would appreciate citat
 .. code-block:: text
 
     @misc{pytorch-ignite,
-      author = {V. Fomin, J. Anmol, S. Desroziers, J. Kriss and A. Tejani},
+      author = {V. Fomin and J. Anmol and S. Desroziers and J. Kriss and A. Tejani},
       title = {High-level library to help with training neural networks in PyTorch},
       year = {2020},
       publisher = {GitHub},
