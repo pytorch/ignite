@@ -1,13 +1,16 @@
+from typing import Callable, Union
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class ManhattanDistance(_BaseRegression):
     r"""
     Calculates the Manhattan Distance:
 
-    :math:`\text{MD} = \sum_{j=1}^n (A_j - P_j)`,
+    :math:`\text{MD} = \sum_{j=1}^n |A_j - P_j|`,
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
@@ -20,13 +23,21 @@ class ManhattanDistance(_BaseRegression):
 
     """
 
+    def __init__(
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
+    ):
+        self._sum_of_errors = None
+        super(ManhattanDistance, self).__init__(output_transform, device)
+
+    @reinit__is_reduced
     def reset(self):
-        self._sum_of_errors = 0.0
+        self._sum_of_errors = torch.tensor(0.0, device=self._device)
 
     def _update(self, output):
         y_pred, y = output
-        errors = y.view_as(y_pred) - y_pred
-        self._sum_of_errors += torch.sum(errors).item()
+        errors = torch.abs(y - y_pred)
+        self._sum_of_errors += torch.sum(errors).to(self._device)
 
+    @sync_all_reduce("_sum_of_errors")
     def compute(self):
-        return self._sum_of_errors
+        return self._sum_of_errors.item()
