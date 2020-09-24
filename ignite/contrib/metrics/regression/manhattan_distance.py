@@ -14,12 +14,12 @@ class ManhattanDistance(_BaseRegression):
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
-    More details can be found in `Botchkarev 2018`__.
+    More details can be found in `sklearn`__.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
-    __ https://arxiv.org/abs/1809.03006
+    __ https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
 
     """
 
