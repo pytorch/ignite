@@ -68,7 +68,7 @@ while ensuring maximum control and simplicity
 - [Communication](#communication)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
-- [About the team](#about-the-team)
+- [About the team](#about-the-team--disclaimer)
 
 
 <!-- ############################################################################################################### -->
