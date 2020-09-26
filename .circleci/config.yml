@@ -233,7 +233,7 @@ jobs:
             # and https://github.com/horovod/horovod/issues/1944#issuecomment-628192778
             docker exec -it pthd /bin/bash -c "apt-get update && apt-get install -y git"
             docker exec -it pthd /bin/bash -c "git clone --recursive https://github.com/horovod/horovod.git /horovod && cd /horovod && python setup.py sdist"
-            docker exec -it pthd /bin/bash -c "conda install -y cmake=3.16 nccl=2.5 -c conda-forge"
+            docker exec -it pthd /bin/bash -c "conda install -y cmake=3.16 nccl=2.7 -c conda-forge"
             docker exec -it pthd /bin/bash -c 'cd /horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig'
             docker exec -it pthd horovodrun --check-build
 
