@@ -1,6 +1,6 @@
 <div align="center">
 
-![Ignite Logo](assets/ignite_logo.svg)
+![Ignite Logo](assets/logo/ignite_logo_mixed.svg)
 
 
 [![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
