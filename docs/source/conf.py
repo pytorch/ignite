@@ -103,7 +103,7 @@ html_theme_options = {
     "logo_only": True,
 }
 
-html_logo = "_static/img/ignite-logo-dark.svg"
+html_logo = "_static/img/ignite_logo.svg"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
