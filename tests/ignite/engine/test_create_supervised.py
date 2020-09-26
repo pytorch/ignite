@@ -1,4 +1,5 @@
 import os
+from distutils.version import LooseVersion
 from typing import Optional
 
 import pytest
@@ -45,8 +46,10 @@ def _test_create_supervised_trainer(
         assert model.weight.data[0, 0].item() == approx(1.3)
         assert model.bias.item() == approx(0.8)
     else:
-        with pytest.raises(RuntimeError, match=r"device type"):
-            trainer.run(data)
+        if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+            # This is broken in 1.6.0 but will be probably fixed with 1.7.0
+            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+                trainer.run(data)
 
 
 def _test_create_supervised_evaluator(
@@ -84,8 +87,10 @@ def _test_create_supervised_evaluator(
         assert model.bias.item() == approx(0.0)
 
     else:
-        with pytest.raises(RuntimeError, match=r"device type"):
-            evaluator.run(data)
+        if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+            # This is broken in 1.6.0 but will be probably fixed with 1.7.0
+            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+                evaluator.run(data)
 
 
 def test_create_supervised_trainer():
