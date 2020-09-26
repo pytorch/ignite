@@ -117,7 +117,7 @@ git commit -m "Added feature"
 
 To run a specific test, for example `test_terminate` from `test_engine.py`
 ```bash
-pytest tests/ignite/engine/test_terminate -vvv -k test_terminate
+pytest tests/ignite/engine/test_engine.py -vvv -k test_terminate
 ```
 To run all tests with coverage (assuming installed `pytest-cov`):
 ```bash
