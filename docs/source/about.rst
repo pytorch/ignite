@@ -70,6 +70,10 @@ Acknowledgements
 We gratefully acknowledge the contributions of `all open-source developers <https://github.com/pytorch/ignite/graphs/contributors>`_
 who helped get this project off of the ground and supported the project.
 
+We especially appreciate amazing work of Isabela Presedo-Floyd `@isabela-pf <https://github.com/isabela-pf>`_  on project's logo,
+its `elaboration <https://github.com/pytorch/ignite/issues/1221>`_ and `guidelines <https://github.com/pytorch/ignite/blob/master/assets/logo/ignite_logo_guidelines.md>`_.
+Our new logos can be found `here <https://github.com/pytorch/ignite/tree/master/assets/logo>`_.
+
 We are also grateful to Soumith Chintala `@soumith <https://github.com/soumith>`_, Joe Spisak `@jspisak <https://github.com/jspisak>`_
 from Facebook for their help and to `PyTorch group <https://github.com/pytorch>`_ for infrastructure support
 (GPU CI and hosting of conda releases and our documentation).

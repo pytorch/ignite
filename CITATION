@@ -1,0 +1,8 @@
+@misc{pytorch-ignite,
+  author = {V. Fomin and J. Anmol and S. Desroziers and J. Kriss and A. Tejani},
+  title = {High-level library to help with training neural networks in PyTorch},
+  year = {2020},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/pytorch/ignite}},
+}

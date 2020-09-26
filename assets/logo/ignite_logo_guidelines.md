@@ -1,5 +1,5 @@
 # PyTorch Ignite Logo Guidelines
-These guidelines are meant to help keep the PyTorch Ignite logo (as developed in #1221) consistent and recognizable across all its uses. They also provide a common language for referring to the logos and their components.
+These guidelines are meant to help keep the PyTorch Ignite logo (as developed in [#1221](https://github.com/pytorch/ignite/issues/1221)) consistent and recognizable across all its uses. They also provide a common language for referring to the logos and their components.
 
 The primary logo is the combination of the logomark and wordmark next to each other. The logomark is the flame alone (no text) and the wordmark is only the text. It's preferable to use the primary logo whenever possible, and the logomark when a smaller version is needed.
 
