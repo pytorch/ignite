@@ -36,7 +36,7 @@ def _test__hvd_dist_model_create_from_backend_no_dist(backend, true_device):
     model = _HorovodDistModel.create_from_backend(backend=backend)
 
     assert hvd.rank() > -1
-
+    print("true_device", true_device)
     _assert_model(
         model,
         {
@@ -61,9 +61,6 @@ def _test__hvd_dist_model_create_from_backend_dist(backend, true_device):
 
     with pytest.raises(RuntimeError, match=r"Can not re-initialize Horovod if it is already initialized"):
         _HorovodDistModel.create_from_backend(backend=backend)
-
-    if "cuda" in true_device:
-        true_device += ":{}".format(hvd.local_rank())
 
     _assert_model(
         model,
@@ -139,8 +136,8 @@ def test__hvd_dist_model_create_no_dist(gloo_hvd_executor):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__hvd_dist_model_create_no_dist_cuda(gloo_hvd_executor):
-    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_no_dist, ("horovod", "cuda:0"), np=1)
-    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_no_dist, ("horovod", "cuda:0"), np=1)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_no_dist, ("horovod", "cuda"), np=1)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_no_dist, ("horovod", "cuda"), np=1)
 
 
 @pytest.mark.distributed
