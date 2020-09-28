@@ -121,7 +121,7 @@ class SSIM(Metric):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output[0].detach().to(self._device), output[1].detach().to(self._device)
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.dtype != y.dtype:
             raise TypeError(
@@ -166,7 +166,7 @@ class SSIM(Metric):
         b2 = sigma_pred_sq + sigma_target_sq + self.c2
 
         ssim_idx = (a1 * a2) / (b1 * b2)
-        self._sum_of_batchwise_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64)
+        self._sum_of_batchwise_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).to(self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_ssim", "_num_examples")
