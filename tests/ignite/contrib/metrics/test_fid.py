@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import numpy as np
+import PIL
 import pytest
 import torch
-import torchvision
-import torchvision.transforms as transforms
+from torchvision.transforms.functional import to_tensor
 
 from ignite.contrib.metrics import FID
 
@@ -12,17 +14,22 @@ except ImportError:
     raise RuntimeError("This contrib test requires scipy to be installed.")
 
 
+@pytest.fixture()
+def img_filepath():
+    fp = Path(__file__).parent / "assets" / "fid_sample.jpg"
+    assert fp.exists()
+    yield fp.as_posix()
+
+
 def test_fid():
 
     size = 10
 
-    y = torchvision.datasets.ImageFolder(
-        root="assets/fid_sample.jpg", transform=transforms.Compose([transforms.ToTensor()])
-    )
-    y_pred = torchvision.datasets.ImageFolder(
-        root="assets/fid_sample.jpg",
-        transform=transforms.compose([transforms.ToTensor(), Lambda(lambda x: x + torch.randn(tensor.size()))]),
-    )
+    pil_img = PIL.Image.open(img_filepath)
+    tensor_img = to_tensor(pil_img)
+
+    y = [tensor_img for _ in range(size)]
+    y_pred = [(tensor_img + torch.rand_like(tensor_img) * 0.01) for _ in range(size)]
 
     np_y_pred = y_pred.cpu().numpy()
     np_y = y.cpu().numpy()
