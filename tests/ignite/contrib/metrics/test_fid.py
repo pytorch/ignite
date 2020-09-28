@@ -1,5 +1,8 @@
 import numpy as np
 import pytest
+import torch
+import torchvision
+import torchvision.transforms as transforms
 
 from ignite.contrib.metrics import FID
 
@@ -11,10 +14,18 @@ except ImportError:
 
 def test_fid():
 
-    size = 100
-    dim = 10
-    np_y_pred = np.random.rand(size, dim)
-    np_y = np.random.rand(size, dim)
+    size = 10
+
+    y = torchvision.datasets.ImageFolder(
+        root="assets/fid_sample.jpg", transform=transforms.Compose([transforms.ToTensor()])
+    )
+    y_pred = torchvision.datasets.ImageFolder(
+        root="assets/fid_sample.jpg",
+        transform=transforms.compose([transforms.ToTensor(), Lambda(lambda x: x + torch.randn(tensor.size()))]),
+    )
+
+    np_y_pred = y_pred.cpu().numpy()
+    np_y = y.cpu().numpy()
 
     mu_fake = np.mean(np_y_pred, axis=0)
     mu_real = np.mean(np_y, axis=0)
@@ -27,8 +38,6 @@ def test_fid():
     np_fid_value = np.real(dist)
 
     fid_metric = FID()
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
 
     fid_metric.reset()
     fid_metric.update((y_pred, y))
