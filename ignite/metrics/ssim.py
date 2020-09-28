@@ -91,9 +91,8 @@ class SSIM(Metric):
 
     def _uniform(self, kernel_size):
         max, min = 2.5, -2.5
-        kernel = torch.arange(
-            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=self._device
-        )
+        ksize_half = (kernel_size - 1) * 0.5
+        kernel = torch.linspace(-ksize_half, ksize_half, steps=kernel_size, device=self._device)
         for i, j in enumerate(kernel):
             if min <= j <= max:
                 kernel[i] = 1 / (max - min)
@@ -103,10 +102,9 @@ class SSIM(Metric):
         return kernel.unsqueeze(dim=0)  # (1, kernel_size)
 
     def _gaussian(self, kernel_size, sigma):
-        kernel = torch.arange(
-            start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32, device=self._device
-        )
-        gauss = torch.exp(-kernel.pow(2) / (2 * pow(sigma, 2)))
+        ksize_half = (kernel_size - 1) * 0.5
+        kernel = torch.linspace(-ksize_half, ksize_half, steps=kernel_size, device=self._device)
+        gauss = torch.exp(-0.5 * (kernel / sigma).pow(2))
         return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
     def _gaussian_or_uniform_kernel(self, kernel_size, sigma):
