@@ -19,7 +19,6 @@ class CanberraMetric(_BaseRegression):
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
-    .. _Botchkarev 2018: https://arxiv.org/abs/1809.03006
     .. _scikit-learn distance metrics:
         https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
 
