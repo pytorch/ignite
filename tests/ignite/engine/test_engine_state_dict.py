@@ -267,3 +267,18 @@ def test_state_custom_attrs_init():
 
     _test()
     _test(with_load_state_dict=True)
+
+
+def test_restart_training():
+    data = range(10)
+    engine = Engine(lambda e, b: 1)
+    state = engine.run(data, max_epochs=5)
+    with pytest.raises(
+        ValueError,
+        match=r"Argument max_epochs should be larger than the start epoch defined in the state: 2 vs 5. "
+        r"Please, call state.restart\(\) "
+        r"before calling engine.run\(\) in order to restart the training from the beginning.",
+    ):
+        state = engine.run(data, max_epochs=2)
+    state.restart()
+    engine.run(data, max_epochs=2)
