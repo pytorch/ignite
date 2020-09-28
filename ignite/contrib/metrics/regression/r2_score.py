@@ -32,7 +32,7 @@ class R2Score(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self):
-        self._num_examples = torch.tensor(0, device=self._device)
+        self._num_examples = 0
         self._sum_of_errors = torch.tensor(0.0, device=self._device)
         self._y_sq_sum = torch.tensor(0.0, device=self._device)
         self._y_sum = torch.tensor(0.0, device=self._device)
@@ -47,8 +47,8 @@ class R2Score(_BaseRegression):
 
     @sync_all_reduce("_num_examples", "_sum_of_errors", "_y_sq_sum", "_y_sum")
     def compute(self):
-        if self._num_examples.item() == 0:
+        if self._num_examples == 0:
             raise NotComputableError("R2Score must have at least one example before it can be computed.")
         return 1 - self._sum_of_errors.item() / (
-            self._y_sq_sum.item() - (self._y_sum.item() ** 2) / self._num_examples.item()
+            self._y_sq_sum.item() - (self._y_sum.item() ** 2) / self._num_examples
         )
