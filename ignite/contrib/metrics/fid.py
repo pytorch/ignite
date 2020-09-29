@@ -34,7 +34,7 @@ class FID(Metric):
                 raise ValueError("Argument fid_model should be set")
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._fid_model = fid_model.eval().to(self._devide)
+        self._fid_model = fid_model.eval().to(self._device)
 
     @reinit__is_reduced
     def reset(self) -> None:
