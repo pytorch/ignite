@@ -19,6 +19,7 @@ tensorboard
 pynvml; python_version > '3.5'
 trains>=0.15.1
 scikit-image>=0.15.0
+torchvision
 # Examples dependencies
 pandas
 gym
