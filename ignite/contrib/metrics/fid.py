@@ -56,8 +56,8 @@ class FID(Metric):
 
         self._num_of_data += 1
 
-        self._features_sum_real += batch_features_real
-        self._features_sum_fake += batch_features_fake
+        self._features_sum_real = self._features_sum_real + batch_features_real
+        self._features_sum_fake = self._features_sum_fake + batch_features_fake
 
         if self._num_of_data > 1:
             X_real = batch_features_real - (self._features_sum_real / self._num_of_data)
