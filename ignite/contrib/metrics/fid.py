@@ -29,7 +29,7 @@ class FID(Metric):
             try:
                 from torchvision import models
 
-                fid_model = models.inception_v3(pretrained=True)
+                fid_model = models.inception_v3(pretrained=True, transform_input=True)
             except ImportError:
                 raise ValueError("Argument fid_model should be set")
 
@@ -51,11 +51,8 @@ class FID(Metric):
         y_pred, y = output[0].detach(), output[1].detach()
 
         with torch.no_grad():
-            batch_features_real = self._fid_model(y)
-            batch_features_fake = self._fid_model(y_pred)
-
-        batch_features_real = batch_features_real.view(*batch_features_real.size()[:2], -1).sum(-1)
-        batch_features_fake = batch_features_fake.view(*batch_features_fake.size()[:2], -1).sum(-1)
+            batch_features_real = self._fid_model(y).sum(axis=0)
+            batch_features_fake = self._fid_model(y_pred).sum(axis=0)
 
         self._num_of_data += 1
 
@@ -63,8 +60,8 @@ class FID(Metric):
         self._features_sum_fake += batch_features_fake
 
         if self._num_of_data > 1:
-            X_real = y - (self._features_sum_real / self._num_of_data)
-            X_fake = y_pred - (self._features_sum_fake / self._num_of_data)
+            X_real = batch_features_real - (self._features_sum_real / self._num_of_data)
+            X_fake = batch_features_fake - (self._features_sum_fake / self._num_of_data)
 
             self._cov_real = torch.ger(X_real, X_real) * (
                 self._num_of_data / (self._num_of_data + 1) ** 2

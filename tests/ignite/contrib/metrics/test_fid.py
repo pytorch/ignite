@@ -4,6 +4,7 @@ import numpy as np
 import PIL
 import pytest
 import torch
+from torchvision import models
 from torchvision.transforms.functional import to_tensor
 
 from ignite.contrib.metrics import FID
@@ -26,19 +27,22 @@ def test_fid(img_filepath):
     size = 10
 
     pil_img = PIL.Image.open(img_filepath)
-    tensor_img = to_tensor(pil_img)
+    tensor_img = to_tensor(pil_img).view(1, 3, 400, 300)
 
-    y = [tensor_img for _ in range(size)]
-    np_y = [img.cpu().numpy() for img in y]
+    y = torch.cat([tensor_img for _ in range(size)])
+    y_pred = torch.cat([(tensor_img + torch.rand_like(tensor_img) * 0.01) for _ in range(size)])
 
-    y_pred = [(tensor_img + torch.rand_like(tensor_img) * 0.01) for _ in range(size)]
-    np_y_pred = [img.cpu().numpy() for img in y_pred]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    inception_model = models.inception_v3(pretrained=True, transform_input=True).eval().to(devide)
 
-    mu_fake = np.mean(np_y_pred, axis=0)
-    mu_real = np.mean(np_y, axis=0)
+    np_batch_fake = inception_model(y_pred).detach().cpu().numpy()
+    np_batch_real = inception_model(y).detach().cpu().numpy()
 
-    cov_fake = np.cov(np_y_pred, rowvar=False)
-    cov_real = np.cov(np_y, rowvar=False)
+    mu_fake = np.mean(np_batch_fake, axis=0)
+    mu_real = np.mean(np_batch_real, axis=0)
+
+    cov_fake = np.cov(np_batch_fake, rowvar=False)
+    cov_real = np.cov(np_batch_real, rowvar=False)
 
     cc, _ = linalg.sqrtm(np.dot(cov_fake, cov_real), disp=False)
     dist = np.sum((mu_fake - mu_real) ** 2) + np.trace(cov_fake + cov_real - 2 * cc)
