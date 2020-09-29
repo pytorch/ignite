@@ -33,7 +33,7 @@ def test_fid(img_filepath):
     y_pred = torch.cat([(tensor_img + torch.rand_like(tensor_img) * 0.01) for _ in range(size)])
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    inception_model = models.inception_v3(pretrained=True, transform_input=True).eval().to(devide)
+    inception_model = models.inception_v3(pretrained=True, transform_input=True).eval().to(device)
 
     np_batch_fake = inception_model(y_pred).detach().cpu().numpy()
     np_batch_real = inception_model(y).detach().cpu().numpy()
