@@ -21,7 +21,7 @@ def img_filepath():
     yield fp.as_posix()
 
 
-def test_fid():
+def test_fid(img_filepath):
 
     size = 10
 
