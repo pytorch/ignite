@@ -29,10 +29,10 @@ def test_fid(img_filepath):
     tensor_img = to_tensor(pil_img)
 
     y = [tensor_img for _ in range(size)]
-    y_pred = [(tensor_img + torch.rand_like(tensor_img) * 0.01) for _ in range(size)]
+    np_y = [img.cpu().numpy() for img in y]
 
-    np_y_pred = y_pred.numpy()
-    np_y = y.numpy()
+    y_pred = [(tensor_img + torch.rand_like(tensor_img) * 0.01) for _ in range(size)]
+    np_y_pred = [img.cpu().numpy() for img in y_pred]
 
     mu_fake = np.mean(np_y_pred, axis=0)
     mu_real = np.mean(np_y, axis=0)
