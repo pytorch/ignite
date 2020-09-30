@@ -1,0 +1,70 @@
+# Multi-stage build
+# 1/Building apex with pytorch:1.6.0-cuda10.1-cudnn7-devel
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS msdp-builder
+
+ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
+ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
+
+# Install git
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
+     rm -rf /var/lib/apt/lists/*
+
+# For pip --use-feature option
+RUN python -m pip install --upgrade pip
+
+# From https://github.com/microsoft/DeepSpeed/blob/master/docker/Dockerfile
+##############################################################################
+# DeepSpeed
+##############################################################################
+RUN git clone https://github.com/microsoft/DeepSpeed.git /tmp/DeepSpeed
+RUN cd /tmp/DeepSpeed && \
+    git checkout . && \
+    git checkout master && \
+    ./install.sh --allow_sudo
+
+# Build runtime image
+FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+
+# For building cpufeature wheel
+RUN apt-get update && apt-get install -y --no-install-recommends g++ gcc
+
+# Apex
+COPY --from=msdp-builder /tmp/DeepSpeed/third_party/apex/dist/apex-*.whl /apex/
+RUN cd /apex && \
+    pip install --no-cache-dir apex-*.whl && \
+    rm -fr /apex
+
+# MSDeepSpeed
+COPY --from=msdp-builder /tmp/DeepSpeed/dist/deepspeed-*.whl /msdp/
+RUN cd /msdp && \
+    pip install --no-cache-dir deepspeed-*.whl && \
+    rm -fr /msdp
+
+# Install tzdata / git
+RUN apt-get update && \
+    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    apt-get install -y tzdata && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    apt-get -y install --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ignite main dependencies
+RUN pip install --upgrade --no-cache-dir pytorch-ignite \
+                                         tensorboard \
+                                         tqdm
+# Checkout Ignite examples only
+RUN mkdir -p pytorch-ignite-examples && \
+    cd pytorch-ignite-examples && \
+    git init && \
+    git config core.sparsecheckout true && \
+    echo examples >> .git/info/sparse-checkout && \
+    git remote add -f origin https://github.com/pytorch/ignite.git && \
+    git pull origin master
+
+WORKDIR /workspace
+
+ENTRYPOINT ["/bin/bash"]
+
+
+
+

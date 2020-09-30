@@ -1,6 +1,9 @@
 <div align="center">
 
-![Ignite Logo](assets/ignite_logo.svg)
+<!-- ![Ignite Logo](assets/logo/ignite_logo_mixed.svg) -->
+
+<img src="assets/logo/ignite_logo_mixed.svg" width=512>
+
 
 
 [![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
@@ -36,7 +39,7 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 <a href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
  <img alt="PyTorch-Ignite teaser" 
       src="assets/tldr/pytorch-ignite-teaser.gif" 
-      width=532">
+      width=532>
 </a> 
 
 *Click on the image to see complete code*
@@ -68,7 +71,7 @@ while ensuring maximum control and simplicity
 - [Communication](#communication)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
-- [About the team](#about-the-team)
+- [About the team](#about-the-team--disclaimer)
 
 
 <!-- ############################################################################################################### -->
@@ -308,12 +311,12 @@ docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 1
 
 Available pre-built images are :
 
-- `pytorchignite/base:latest`  
-- `pytorchignite/apex:latest`
-- `pytorchignite/vision:latest` 
-- `pytorchignite/apex-vision:latest`
-- `pytorchignite/nlp:latest`
-- `pytorchignite/apex-nlp:latest`
+- `pytorchignite/base:latest | pytorchignite/hvd-base:latest | pytorchignite/msdp-apex-base:latest`
+- `pytorchignite/apex:latest | pytorchignite/hvd-apex:latest`
+- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest | pytorchignite/msdp-apex-vision:latest`
+- `pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest`
+- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest | pytorchignite/msdp-apex-nlp:latest`
+- `pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest`
 
 For more details, see [here](docker).
 
@@ -472,6 +475,8 @@ As always, PRs are welcome :)
 -   [Unsupervised Data Augmentation experiments in PyTorch](https://github.com/vfdev-5/UDA-pytorch)
 -   [Hyperparameters tuning with Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
 -   [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
+-   [FixMatch experiments in PyTorch and Ignite (CTA dataaug policy)](https://github.com/vfdev-5/FixMatch-pytorch)
+-   [Kaggle Birdcall Identification Competition: 1st place solution](https://github.com/ryanwongsa/kaggle-birdsong-recognition)
 
 See other projects at ["Used by"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
 

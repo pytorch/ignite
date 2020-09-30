@@ -3,12 +3,12 @@ article.pytorch-article table tr th:first-of-type, article.pytorch-article table
   width: 17px;
 }
 
-div.header-container a.header-logo
+div.container a.header-logo
 {
-  height: 42px;
-  width: 135px;
-  background-image: url("../img/ignite-logo-dark.svg");
-  background-size: 135px 42px;
+  height: 80px;
+  width: 160px;
+  background-image: url("../img/ignite_logo.svg");
+  background-size: 160px;
 }
 
 /* versions block */

@@ -1,0 +1,21 @@
+# Dockerfile.hvd-apex-vision
+FROM pytorchignite/hvd-apex:latest
+
+# Install opencv dependencies
+RUN apt-get update && \
+    apt-get -y install --no-install-recommends libglib2.0 \
+                                               libsm6 \
+                                               libxext6 \
+                                               libxrender-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ignite vision dependencies
+RUN pip install --upgrade --no-cache-dir albumentations \
+                                         image-dataset-viz \
+                                         numpy \
+                                         opencv-python \
+                                         py_config_runner \
+                                         pillow \
+                                         "trains>=0.15.0"
+
+ENTRYPOINT ["/bin/bash"]

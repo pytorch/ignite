@@ -38,6 +38,26 @@ use the ``output_transform`` argument to transform it:
     metric.attach(engine, "accuracy")
 
 
+.. warning::
+
+    Please, be careful when using ``lambda`` functions to setup multiple ``output_transform`` for multiple metrics
+    
+    .. code-block:: python
+
+        # Wrong
+        # metrics_group = [Accuracy(output_transform=lambda output: output[name]) for name in names]
+        # As lambda can not store `name` and all `output_transform` will use the last `name`
+        
+        # A correct way. For example, using functools.partial
+        from functools import partial
+
+        def ot_func(output, name):
+            return output[name]
+
+        metrics_group = [Accuracy(output_transform=partial(ot_func, name=name)) for name in names]
+    
+    For more details, see `here <https://discuss.pytorch.org/t/evaluate-multiple-models-with-one-evaluator-results-weird-metrics/96695>`_
+
 .. Note ::
 
     Most of implemented metrics are adapted to distributed computations and reduce their internal states across supported
