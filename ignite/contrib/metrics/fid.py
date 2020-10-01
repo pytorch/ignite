@@ -23,7 +23,10 @@ class FID(Metric):
     """
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, fid_model: nn.Module = None,
+        self,
+        output_transform: Callable = lambda x: x,
+        fid_model: nn.Module = None,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if fid_model is None:
             try:
@@ -33,7 +36,7 @@ class FID(Metric):
             except ImportError:
                 raise ValueError("Argument fid_model should be set")
 
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        super(FID, self).__init__(output_transform=output_transform, device=device)
         self._fid_model = fid_model.eval().to(self._device)
 
     @reinit__is_reduced
@@ -43,8 +46,8 @@ class FID(Metric):
         self._features_sum_real = torch.tensor(0, device=self._device, dtype=torch.float32)
         self._features_sum_fake = torch.tensor(0, device=self._device, dtype=torch.float32)
 
-        self._cov_real = torch.tensor(0, device=self._device, dtype=torch.float32)
-        self._cov_fake = torch.tensor(0, device=self._device, dtype=torch.float32)
+        self._cov_real = None
+        self._cov_fake = None
 
     @reinit__is_reduced
     def update(self, output) -> None:
@@ -73,12 +76,12 @@ class FID(Metric):
             self._cov_real = torch.eye(len(y))
             self._cov_fake = torch.eye(len(y_pred))
 
-    @sync_all_reduce
+    @sync_all_reduce("_features_sum_real", "_features_sum_fake", "_cov_real", "_cov_fake", "_num_of_data")
     def compute(self) -> Union[torch.Tensor, float]:
         mu_real = self._features_sum_real / self._num_of_data
         sigma_real = self._cov_real
 
-        mu_fake = self._features_sum_real / self._num_of_data
+        mu_fake = self._features_sum_fake / self._num_of_data
         sigma_fake = self._cov_fake
 
         return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
