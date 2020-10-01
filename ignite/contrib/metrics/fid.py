@@ -94,4 +94,7 @@ class FID(Metric):
     def _frechet_distance(self, mu, cov, mu2, cov2):
         cc, _ = linalg.sqrtm(torch.matmul(cov, cov2), disp=False)
         dist = torch.sum((mu - mu2) ** 2) + torch.trace(cov + cov2 - 2 * cc)
-        return torch.real(dist)
+        if dist.dtype == torch.cfloat or dist.dtype == torch.cdouble:
+            return torch.real(dist)
+        else:
+            return dist
