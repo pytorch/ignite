@@ -59,22 +59,22 @@ class FID(Metric):
 
         self._num_of_data += 1
 
+        if self._cov_real is None:
+            self._cov_real = torch.eye(len(batch_features_real))
+        else:
+            self._cov_real = self._update_cov(
+                batch_features_real, self._features_sum_real, self._num_of_data, self._cov_real
+            )
+
+        if self._cov_fake is None:
+            self._cov_fake = torch.eye(len(batch_features_fake))
+        else:
+            self._cov_fake = self._update_cov(
+                batch_features_fake, self._features_sum_fake, self._num_of_data, self._cov_fake
+            )
+
         self._features_sum_real = self._features_sum_real + batch_features_real
         self._features_sum_fake = self._features_sum_fake + batch_features_fake
-
-        if self._num_of_data > 1:
-            X_real = batch_features_real - (self._features_sum_real / self._num_of_data)
-            X_fake = batch_features_fake - (self._features_sum_fake / self._num_of_data)
-
-            self._cov_real = torch.ger(X_real, X_real) * (
-                self._num_of_data / (self._num_of_data + 1) ** 2
-            ) + self._cov_real * self._num_of_data / (self._num_of_data + 1)
-            self._cov_fake = torch.ger(X_fake, X_fake) * (
-                self._num_of_data / (self._num_of_data + 1) ** 2
-            ) + self._cov_fake * self._num_of_data / (self._num_of_data + 1)
-        else:
-            self._cov_real = torch.eye(len(y))
-            self._cov_fake = torch.eye(len(y_pred))
 
     @sync_all_reduce("_features_sum_real", "_features_sum_fake", "_cov_real", "_cov_fake", "_num_of_data")
     def compute(self) -> Union[torch.Tensor, float]:
@@ -85,6 +85,11 @@ class FID(Metric):
         sigma_fake = self._cov_fake
 
         return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
+
+    def _update_cov(batch_features, features_sum, num_of_data, cov_old):
+        X = batch_features - (features_sum / num_of_data)
+
+        return torch.ger(X, X) * (num_of_data / (num_of_data + 1) ** 2) + cov_old * num_of_data / (num_of_data + 1)
 
     def _frechet_distance(mu, cov, mu2, cov2):
         cc, _ = linalg.sqrtm(torch.dot(cov, cov2), disp=False)
