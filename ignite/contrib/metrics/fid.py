@@ -86,12 +86,12 @@ class FID(Metric):
 
         return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
 
-    def _update_cov(batch_features, features_sum, num_of_data, cov_old):
+    def _update_cov(self, batch_features, features_sum, num_of_data, cov_old):
         X = batch_features - (features_sum / num_of_data)
 
         return torch.ger(X, X) * (num_of_data / (num_of_data + 1) ** 2) + cov_old * num_of_data / (num_of_data + 1)
 
-    def _frechet_distance(mu, cov, mu2, cov2):
+    def _frechet_distance(self, mu, cov, mu2, cov2):
         cc, _ = linalg.sqrtm(torch.dot(cov, cov2), disp=False)
         dist = torch.sum((mu - mu2) ** 2) + torch.trace(cov + cov2 - 2 * cc)
         return torch.real(dist)
