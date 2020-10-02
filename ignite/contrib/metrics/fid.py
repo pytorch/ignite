@@ -78,7 +78,7 @@ class FID(Metric):
 
         return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
 
-    def _cov(x, rowvar=False):
+    def _cov(self, x):
         # PyTorch implementation of numpy.cov from https://github.com/pytorch/pytorch/issues/19037
         if x.dim() == 1:
             x = x.view(-1, 1)
