@@ -46,8 +46,8 @@ class FID(Metric):
         self._features_sum_real = torch.tensor(0, device=self._device, dtype=torch.float32)
         self._features_sum_fake = torch.tensor(0, device=self._device, dtype=torch.float32)
 
-        self._cov_real = None
-        self._cov_fake = None
+        self._features_real = []
+        self._features_fake = []
 
     @reinit__is_reduced
     def update(self, output) -> None:
@@ -58,45 +58,39 @@ class FID(Metric):
                 batch_features_real = self._fid_model(img_real.unsqueeze(0))[0]
                 batch_features_fake = self._fid_model(img_fake.unsqueeze(0))[0]
 
+            self._features_sum_real.append(batch_features_real)
+            self._features_sum_fake.append(batch_features_fake)
+
             self._num_of_data += 1
-
-            if self._cov_real is None:
-                self._cov_real = torch.eye(len(batch_features_real))
-            else:
-                self._cov_real = self._update_cov(
-                    batch_features_real, self._features_sum_real, self._num_of_data, self._cov_real
-                )
-
-            if self._cov_fake is None:
-                self._cov_fake = torch.eye(len(batch_features_fake))
-            else:
-                self._cov_fake = self._update_cov(
-                    batch_features_fake, self._features_sum_fake, self._num_of_data, self._cov_fake
-                )
 
             self._features_sum_real = self._features_sum_real + batch_features_real
             self._features_sum_fake = self._features_sum_fake + batch_features_fake
 
-    @sync_all_reduce("_features_sum_real", "_features_sum_fake", "_cov_real", "_cov_fake", "_num_of_data")
+    @sync_all_reduce("_features_sum_real", "_features_sum_fake", "_features_real", "_features_fake", "_num_of_data")
     def compute(self) -> Union[torch.Tensor, float]:
+        feature_dim = len(self._features_real[0])
+
         mu_real = self._features_sum_real / self._num_of_data
-        sigma_real = self._cov_real
+        sigma_real = self._cov(torch.cat(self._features_real).view(self._num_of_data, feature_dim))
 
         mu_fake = self._features_sum_fake / self._num_of_data
-        sigma_fake = self._cov_fake
+        sigma_fake = self._cov(torch.cat(self._features_fake).view(self._num_of_data, feature_dim))
 
         return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
 
-    def _update_cov(self, batch_features, features_sum, num_of_data, cov):
-        mean = features_sum / num_of_data
+    def _cov(x, rowvar=False):
+        # PyTorch implementation of numpy.cov from https://github.com/pytorch/pytorch/issues/19037
+        if x.dim() == 1:
+            x = x.view(-1, 1)
 
-        for i in range(len(batch_features)):
-            for j in range(len(batch_features)):
-                cov[i][j] = (batch_features[i] - mean[i]) * (batch_features[j] - mean[j]) * (
-                    num_of_data / (num_of_data + 1) ** 2
-                ) + cov[i][j] * num_of_data / (num_of_data + 1)
+        avg = torch.mean(x, 0)
+        fact = self._num_of_data - 1
+        xm = x.sub(avg.expand_as(x))
+        X_T = xm.t()
+        c = torch.mm(X_T, xm)
+        c = c / fact
 
-        return cov
+        return c.squeeze()
 
     def _frechet_distance(self, mu, cov, mu2, cov2):
         cc, _ = linalg.sqrtm(torch.matmul(cov, cov2), disp=False)
