@@ -55,4 +55,4 @@ def test_fid(img_filepath):
     fid_metric.update((y_pred, y))
     fid_value = fid_metric.compute()
 
-    assert math.isclose(fid_value, np_fid_value)
+    assert math.isclose(fid_value, np_fid_value, rel_tol=0.001)

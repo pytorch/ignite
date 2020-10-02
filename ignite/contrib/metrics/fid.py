@@ -43,8 +43,8 @@ class FID(Metric):
     def reset(self) -> None:
         self._num_of_data = 0
 
-        self._features_sum_real = torch.tensor(0, device=self._device, dtype=torch.float32)
-        self._features_sum_fake = torch.tensor(0, device=self._device, dtype=torch.float32)
+        self._features_sum_real = torch.tensor(0, device=self._device, dtype=torch.float64)
+        self._features_sum_fake = torch.tensor(0, device=self._device, dtype=torch.float64)
 
         self._features_real = []
         self._features_fake = []
@@ -70,13 +70,14 @@ class FID(Metric):
     def compute(self) -> Union[torch.Tensor, float]:
         feature_dim = len(self._features_real[0])
 
-        mu_real = self._features_sum_real / self._num_of_data
-        sigma_real = self._cov(torch.cat(self._features_real).view(self._num_of_data, feature_dim))
+        mu_real = self._features_sum_real.double() / self._num_of_data
+        sigma_real = self._cov(torch.cat(self._features_real).view(self._num_of_data, feature_dim).double())
 
-        mu_fake = self._features_sum_fake / self._num_of_data
-        sigma_fake = self._cov(torch.cat(self._features_fake).view(self._num_of_data, feature_dim))
+        mu_fake = self._features_sum_fake.double() / self._num_of_data
+        sigma_fake = self._cov(torch.cat(self._features_fake).view(self._num_of_data, feature_dim).double())
 
-        return self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
+        fid_value = self._frechet_distance(mu_real, sigma_real, mu_fake, sigma_fake)
+        return fid_value
 
     def _cov(self, x):
         # PyTorch implementation of numpy.cov from https://github.com/pytorch/pytorch/issues/19037
