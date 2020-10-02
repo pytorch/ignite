@@ -639,6 +639,18 @@ class Engine(Serializable):
                 def switch_batch(engine):
                     engine.state.batch = preprocess_batch(engine.state.batch)
 
+            Restart the training from the beginning. User can reset `max_epochs = None` or either call
+            `trainer.state.restart()`:
+
+            .. code-block:: python
+
+                # ...
+                trainer.run(train_loader, max_epochs=5)
+
+                # Reset model weights etc. and restart the training
+                trainer.state.restart() # equivalent to trainer.state.max_epochs = None
+                trainer.run(train_loader, max_epochs=2)
+
         """
         if seed is not None:
             warnings.warn(
@@ -655,7 +667,10 @@ class Engine(Serializable):
                 if max_epochs < self.state.epoch:
                     raise ValueError(
                         "Argument max_epochs should be larger than the start epoch "
-                        "defined in the state: {} vs {}".format(max_epochs, self.state.epoch)
+                        "defined in the state: {} vs {}. Please, call state.restart() "
+                        "before calling engine.run() in order to restart the training from the beginning.".format(
+                            max_epochs, self.state.epoch
+                        )
                     )
                 self.state.max_epochs = max_epochs
             if epoch_length is not None:
