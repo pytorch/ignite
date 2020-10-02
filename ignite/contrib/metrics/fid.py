@@ -15,10 +15,20 @@ except ImportError:
 
 
 __all__ = ["FID"]
+# https://arxiv.org/abs/1706.08500
 
 
 class FID(Metric):
-    """Calculates FID metric
+    """Calculates Fréchet Inception Distance for two sets of images.
+
+    Args:
+        output_transform (callable, optional): a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+        fid_model (nn.Module, optional): a model used for extracting feature vectors from images. If not specified,
+            :class:`~torchvision.models.inception_v3` will be used.
+        device (str or torch.device, optional): optional device specification for internal storage.
 
     """
 
