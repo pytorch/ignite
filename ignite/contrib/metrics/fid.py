@@ -58,8 +58,8 @@ class FID(Metric):
                 batch_features_real = self._fid_model(img_real.unsqueeze(0))[0]
                 batch_features_fake = self._fid_model(img_fake.unsqueeze(0))[0]
 
-            self._features_sum_real.append(batch_features_real)
-            self._features_sum_fake.append(batch_features_fake)
+            self._features_real.append(batch_features_real)
+            self._features_fake.append(batch_features_fake)
 
             self._num_of_data += 1
 
