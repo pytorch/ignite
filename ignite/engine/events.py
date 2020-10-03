@@ -159,13 +159,38 @@ class Events(EventEnum):
 
     - EXCEPTION_RAISED : triggered when an exception is encountered
     - TERMINATE_SINGLE_EPOCH : triggered when the run is about to end the current epoch,
-      after receiving :meth:`~ignite.engine.engine.Engine.terminate_epoch()` call.
+      after receiving a :meth:`~ignite.engine.engine.Engine.terminate_epoch()` or
+      :meth:`~ignite.engine.engine.Engine.terminate()` call.
 
     - TERMINATE : triggered when the run is about to end completely,
       after receiving :meth:`~ignite.engine.engine.Engine.terminate()` call.
 
-    - EPOCH_COMPLETED : triggered when the epoch is ended
+    - EPOCH_COMPLETED : triggered when the epoch is ended. Note that this is triggered even
+      when :meth:`~ignite.engine.engine.Engine.terminate_epoch()` is called.
     - COMPLETED : triggered when engine's run is completed
+
+    The table below illustrates which events are triggered when various termination methods are called.
+
+    .. list-table::
+       :widths: 24 25 33 18
+       :header-rows: 1
+
+       * - Method
+         - EVENT_COMPLETED
+         - TERMINATE_SINGLE_EPOCH
+         - TERMINATE
+       * - no termination
+         - ✔
+         - ✗
+         - ✗
+       * - :meth:`~ignite.engine.engine.Engine.terminate_epoch()`
+         - ✔
+         - ✔
+         - ✗
+       * - :meth:`~ignite.engine.engine.Engine.terminate()`
+         - ✗
+         - ✔
+         - ✔
 
     Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:
 
