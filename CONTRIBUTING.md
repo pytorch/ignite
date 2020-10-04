@@ -176,3 +176,6 @@ python -m http.server <port>
 ```
 Then open the browser at `0.0.0.0:<port>` (e.g. `0.0.0.0:1234`) and click to `html` folder.
 
+##### Deploy Preview
+After creating your PR you can check your docs changes deployed by going to 
+`netlify/pytorch-ignite-preview/deploy-preview` check
