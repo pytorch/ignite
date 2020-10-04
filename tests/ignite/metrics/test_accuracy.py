@@ -91,6 +91,43 @@ def test_binary_input_N():
         _test()
 
 
+def test_binary_input_N_probabilities():
+    # Binary accuracy on probabilities input of shape (N, 1) or (N, )
+    def _test():
+        acc = Accuracy(mode=Accuracy.Mode.PROBABILITIES)
+
+        y_pred = torch.rand(size=(10,))
+        y = torch.randint(0, 2, size=(10,)).long()
+        acc.update((y_pred, y))
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().round().ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        # Batched Updates
+        acc.reset()
+        y_pred = torch.rand(size=(100,))
+        y = torch.randint(0, 2, size=(100,)).long()
+
+        n_iters = 16
+        batch_size = y.shape[0] // n_iters + 1
+
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().round().ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+
 def test_binary_input_NL():
     # Binary accuracy on input of shape (N, L)
     def _test():
@@ -129,6 +166,53 @@ def test_binary_input_NL():
 
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+
+def test_binary_input_NL_probabilities():
+    # Binary accuracy on probabilities input of shape (N, L)
+    def _test():
+        acc = Accuracy(mode=Accuracy.Mode.PROBABILITIES)
+
+        y_pred = torch.rand(size=(10, 5))
+        y = torch.randint(0, 2, size=(10, 5)).long()
+        acc.update((y_pred, y))
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().round().ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        acc.reset()
+        y_pred = torch.rand(size=(10, 1, 5))
+        y = torch.randint(0, 2, size=(10, 1, 5)).long()
+        acc.update((y_pred, y))
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().round().ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        # Batched Updates
+        acc.reset()
+        y_pred = torch.rand(size=(100, 8))
+        y = torch.randint(0, 2, size=(100, 8)).long()
+
+        n_iters = 16
+        batch_size = y.shape[0] // n_iters + 1
+
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().round().ravel()
         assert acc._type == "binary"
         assert isinstance(acc.compute(), float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())

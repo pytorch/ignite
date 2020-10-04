@@ -1,4 +1,5 @@
 from typing import Callable, Sequence, Union
+import enum
 
 import torch
 
@@ -125,17 +126,24 @@ class Accuracy(_BaseClassification):
         device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        mode (Mode): specifies in which form input will be passed. This can be useful to directly compute
+            accuracy on the output of a neural networki, which ofter return probabilities. By default, LABELS.
 
     """
+    class Mode(enum.Enum):
+        LABELS = enum.auto()
+        PROBABILITIES = enum.auto()
 
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        mode: Mode = Mode.LABELS,
     ):
         self._num_correct = None
         self._num_examples = None
+        self._mode = mode
         super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
@@ -147,8 +155,12 @@ class Accuracy(_BaseClassification):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
-        self._check_type(output)
         y_pred, y = output[0].detach(), output[1].detach()
+
+        if self._mode == self.Mode.PROBABILITIES:
+            y_pred = torch.round(y_pred)
+
+        self._check_type([y_pred, y])
 
         if self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
