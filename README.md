@@ -210,6 +210,9 @@ Examples
 
 Custom events related to backward and optimizer step calls:
 ```python
+from ignite.engine import EventEnum
+
+
 class BackpropEvents(EventEnum):
     BACKWARD_STARTED = 'backward_started'
     BACKWARD_COMPLETED = 'backward_completed'
