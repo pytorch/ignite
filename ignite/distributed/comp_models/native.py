@@ -57,7 +57,7 @@ if has_native_dist_support:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_NativeDistModel, self).__init__()
-            self._env_backup: Optional[Dict[str, str]] = None
+            self._env_backup = None  # type: Optional[Dict[str, str]]
             if backend is not None:
                 self._create_from_backend(backend, timeout=timeout, **kwargs)
             else:
@@ -71,8 +71,8 @@ if has_native_dist_support:
 
             self._local_rank = int(os.environ["LOCAL_RANK"])
             # for debug purposes
-            self._master_port: Optional[int] = int(os.environ["MASTER_PORT"])
-            self._master_addr: Optional[str] = os.environ["MASTER_ADDR"]
+            self._master_port = int(os.environ["MASTER_PORT"])  # type: Optional[int]
+            self._master_addr = os.environ["MASTER_ADDR"]  # type: Optional[str]
 
             init_pg_kwargs = {}
             if timeout is not None:
@@ -120,7 +120,7 @@ if has_native_dist_support:
         def _compute_node_and_local_ranks(rank: int, hostnames: List[Tuple[str, ...]]) -> Tuple[int, int]:
             from collections import Counter
 
-            c: Counter = Counter(hostnames)
+            c = Counter(hostnames)  # type: Counter
             sizes = torch.tensor([0,] + list(c.values()))
             cumsum_sizes = torch.cumsum(sizes, dim=0)
             node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()

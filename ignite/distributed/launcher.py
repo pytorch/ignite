@@ -180,7 +180,7 @@ class Parallel:
         nnodes: Optional[int] = None,
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
-        master_port: Optional[str] = None,
+        master_port: Optional[int] = None,
         **spawn_kwargs: Any
     ) -> None:
         if backend is not None:
@@ -219,7 +219,7 @@ class Parallel:
         nnodes: Optional[int],
         node_rank: Optional[int],
         master_addr: Optional[str],
-        master_port: Optional[str],
+        master_port: Optional[int],
         **spawn_kwargs: Any
     ) -> Dict:
         if nproc_per_node < 1:
