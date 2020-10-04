@@ -2,7 +2,7 @@ import os
 import subprocess
 import warnings
 from distutils.version import LooseVersion
-from typing import Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, overload
 
 import torch
 import torch.distributed as dist
@@ -48,22 +48,22 @@ if has_native_dist_support:
             return _NativeDistModel()
 
         @staticmethod
-        def create_from_backend(backend: str, **kwargs) -> "_NativeDistModel":
+        def create_from_backend(backend: str, **kwargs: Any) -> "_NativeDistModel":
             if dist.is_available() and dist.is_initialized():
                 raise RuntimeError("Can not create new distributed process group if default one is already initialized")
             return _NativeDistModel(backend=backend, **kwargs)
 
-        def __init__(self, backend=None, timeout=None, **kwargs):
+        def __init__(self, backend: Optional[str] = None, timeout: Optional[int] = None, **kwargs: Any) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_NativeDistModel, self).__init__()
-            self._env_backup = None
+            self._env_backup: Optional[Dict[str, str]] = None
             if backend is not None:
                 self._create_from_backend(backend, timeout=timeout, **kwargs)
             else:
                 self._init_from_context()
 
-        def _create_from_backend(self, backend, timeout=None, **kwargs):
+        def _create_from_backend(self, backend: str, timeout: Optional[int] = None, **_kwargs: Any) -> None:
             if backend == dist.Backend.NCCL and not torch.cuda.is_available():
                 raise RuntimeError("Nccl backend is required but no cuda capable devices")
 
@@ -71,8 +71,8 @@ if has_native_dist_support:
 
             self._local_rank = int(os.environ["LOCAL_RANK"])
             # for debug purposes
-            self._master_port = int(os.environ["MASTER_PORT"])
-            self._master_addr = os.environ["MASTER_ADDR"]
+            self._master_port: Optional[int] = int(os.environ["MASTER_PORT"])
+            self._master_addr: Optional[str] = os.environ["MASTER_ADDR"]
 
             init_pg_kwargs = {}
             if timeout is not None:
@@ -87,7 +87,7 @@ if has_native_dist_support:
 
             self._setup_attrs()
 
-        def _init_from_context(self):
+        def _init_from_context(self) -> None:
 
             self._identify_local_rank()
 
@@ -96,39 +96,38 @@ if has_native_dist_support:
             self._master_addr = None
             self._setup_attrs()
 
-        def _compute_nproc_per_node(self):
+        def _compute_nproc_per_node(self) -> int:
             tensor = torch.tensor([self.get_local_rank() + 1]).to(self.device())
             dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
-            return tensor.item()
+            return int(tensor.item())
 
-        def _get_all_hostnames(self):
+        def _get_all_hostnames(self) -> List[Tuple[str, ...]]:
             import socket
 
             device = "cpu"
             if self.backend() == dist.Backend.NCCL:
                 index = torch.cuda.current_device()
                 device = "cuda:{}".format(index)
-            name = socket.gethostname()
-            name = torch.tensor(bytearray(name, "utf-8")).to(device)
+            hostname = socket.gethostname()
+            name = torch.tensor(bytearray(hostname, "utf-8")).to(device)
             padded_t_name = torch.zeros(256, device=device, dtype=torch.long)
             padded_t_name[: len(name)] = name
             out_t_names = [torch.zeros_like(padded_t_name) for _ in range(self.get_world_size())]
             dist.all_gather(out_t_names, padded_t_name)
-            out_t_names = [tuple(t.cpu().tolist()) for t in out_t_names]
-            return out_t_names
+            return [tuple(t.cpu().tolist()) for t in out_t_names]
 
         @staticmethod
-        def _compute_node_and_local_ranks(rank, hostnames):
+        def _compute_node_and_local_ranks(rank: int, hostnames: List[Tuple[str, ...]]) -> Tuple[int, int]:
             from collections import Counter
 
-            c = Counter(hostnames)
+            c: Counter = Counter(hostnames)
             sizes = torch.tensor([0,] + list(c.values()))
             cumsum_sizes = torch.cumsum(sizes, dim=0)
             node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()
             local_rank = rank - cumsum_sizes[node_rank].item()
-            return local_rank, node_rank
+            return int(local_rank), node_rank
 
-        def _compute_local_rank_via_hostname(self):
+        def _compute_local_rank_via_hostname(self) -> int:
             # get all hostnames
             hostnames = self._get_all_hostnames()
             local_rank, self._node = self._compute_node_and_local_ranks(self.get_rank(), hostnames)
@@ -142,7 +141,7 @@ if has_native_dist_support:
                 )
             return local_rank
 
-        def _identify_local_rank(self):
+        def _identify_local_rank(self) -> None:
 
             if "SLURM_JOBID" in os.environ:
                 os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
@@ -161,7 +160,7 @@ if has_native_dist_support:
                 # use socket gethostname heuristic to determine number of nodes => local rank
                 self._local_rank = self._compute_local_rank_via_hostname()
 
-        def setup_env_vars(self):
+        def setup_env_vars(self) -> None:
 
             self._env_backup = os.environ.copy()
 
@@ -184,7 +183,7 @@ if has_native_dist_support:
             os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
             os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
 
-        def _setup_env_in_slurm(self):
+        def _setup_env_in_slurm(self) -> None:
             for k in ["SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
                 if k not in os.environ:
                     raise RuntimeError("SLURM distributed configuration is missing '{}' in env variables".format(k))
@@ -227,7 +226,7 @@ if has_native_dist_support:
         def backend(self) -> str:
             return dist.get_backend()
 
-        def finalize(self):
+        def finalize(self) -> None:
             dist.destroy_process_group()
             # restore backed-up env
             if self._env_backup is not None:
@@ -236,8 +235,18 @@ if has_native_dist_support:
 
         @staticmethod
         def _dist_worker_task_fn(
-            local_rank, backend, fn, args, kw_dict, world_size, nprocs_per_node, node_rank, master_addr, master_port, kw
-        ):
+            local_rank: int,
+            backend: str,
+            fn: Callable,
+            args: Tuple,
+            kw_dict: Mapping,
+            world_size: int,
+            nprocs_per_node: int,
+            node_rank: int,
+            master_addr: str,
+            master_port: str,
+            **kw: Any,
+        ) -> None:
             from ignite.distributed.utils import _set_model, finalize
 
             copy_env_vars = os.environ.copy()
@@ -257,7 +266,7 @@ if has_native_dist_support:
             os.environ.update(copy_env_vars)
 
         @staticmethod
-        def spawn(
+        def spawn(  # type: ignore[override]
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
@@ -267,8 +276,8 @@ if has_native_dist_support:
             master_addr: str = "127.0.0.1",
             master_port: int = 2222,
             backend: str = "nccl",
-            **kwargs
-        ):
+            **kwargs: Any
+        ) -> None:
             world_size = nnodes * nproc_per_node
 
             spawn_kwargs = {
@@ -327,5 +336,5 @@ if has_native_dist_support:
             dist.broadcast(tensor, src=src)
             return tensor
 
-        def barrier(self):
+        def barrier(self) -> None:
             dist.barrier()

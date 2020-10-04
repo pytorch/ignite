@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
 from ignite.distributed import utils as idist
 from ignite.utils import setup_logger
@@ -181,8 +181,8 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[str] = None,
-        **spawn_kwargs
-    ):
+        **spawn_kwargs: Any
+    ) -> None:
         if backend is not None:
             if backend not in idist.available_backends():
                 raise ValueError(
@@ -214,7 +214,14 @@ class Parallel:
             self.logger.info("- Parameters to spawn processes: \n\t{}".format(msg))
 
     @staticmethod
-    def _setup_spawn_params(nproc_per_node, nnodes, node_rank, master_addr, master_port, **spawn_kwargs):
+    def _setup_spawn_params(
+        nproc_per_node: int,
+        nnodes: Optional[int],
+        node_rank: Optional[int],
+        master_addr: Optional[str],
+        master_port: Optional[str],
+        **spawn_kwargs: Any
+    ) -> Dict:
         if nproc_per_node < 1:
             raise ValueError("Argument nproc_per_node should positive, but given {}".format(nproc_per_node))
         if nnodes is None:
@@ -244,7 +251,7 @@ class Parallel:
         params.update(spawn_kwargs)
         return {k: v for k, v in params.items() if v is not None}
 
-    def run(self, func: Callable, *args, **kwargs):
+    def run(self, func: Callable, *args: Any, **kwargs: Any) -> None:
         """Execute ``func`` with provided arguments in distributed context.
 
         Example
@@ -276,7 +283,7 @@ class Parallel:
 
         self.logger.info("End of run")
 
-    def __enter__(self):
+    def __enter__(self) -> "Parallel":
         if (self.backend is not None) and self._spawn_params is None:
             idist.initialize(self.backend)
             self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
@@ -284,7 +291,7 @@ class Parallel:
 
         return self
 
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, *args: Any, **kwargs: Any) -> None:
         if (self.backend is not None) and self._spawn_params is None:
             self.logger.info("Finalized processing group with backend: '{}'".format(self.backend))
             idist.finalize()

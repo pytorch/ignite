@@ -1,7 +1,7 @@
 import warnings
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union, cast, overload
 
 import torch
 
@@ -13,7 +13,7 @@ class ComputationModel(metaclass=ABCMeta):
     """
 
     # this is an additional local rank storage used when idist is setup from existing native torch dist context
-    _ext_local_rank = None
+    _ext_local_rank: Optional[int] = None
 
     def __init__(self):
         self._backend = None
@@ -21,7 +21,7 @@ class ComputationModel(metaclass=ABCMeta):
         self._nnodes = None
         self._node = None
 
-    def _setup_attrs(self):
+    def _setup_attrs(self) -> None:
         if self._nproc_per_node is None:
             self._nproc_per_node = self._compute_nproc_per_node() if self.get_world_size() > 1 else 1
         if self._nnodes is None:
@@ -66,7 +66,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def finalize(self):
+    def finalize(self) -> None:
         pass
 
     @staticmethod
@@ -76,15 +76,15 @@ class ComputationModel(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def create_from_backend(backend: str, **kwargs) -> "ComputationModel":
+    def create_from_backend(backend: str, **kwargs: Any) -> "ComputationModel":
         pass
 
     @staticmethod
     @abstractmethod
-    def spawn(*args, **kwargs):
+    def spawn(*args: Any, **kwargs: Any) -> None:
         pass
 
-    _collective_op_dtype = None
+    _collective_op_dtype: Any = None
 
     @staticmethod
     def _encode_str(x: str, device: torch.device) -> torch.Tensor:
@@ -107,7 +107,9 @@ class ComputationModel(metaclass=ABCMeta):
         out = [bytearray(x[: x[-1]].tolist()).decode("utf-8") for x in xs]
         return out
 
-    def _apply_op(self, tensor: torch.Tensor, device: torch.device, fn: Callable, *args, **kwargs) -> torch.Tensor:
+    def _apply_op(
+        self, tensor: torch.Tensor, device: torch.device, fn: Callable, *args: Any, **kwargs: Any
+    ) -> torch.Tensor:
         out_dtype = None
         tensor_device = None
 
@@ -132,9 +134,20 @@ class ComputationModel(metaclass=ABCMeta):
             return tensor.to(device=tensor_device)
         return tensor
 
+    @overload
     def _collective_op(
-        self, tensor: Union[torch.Tensor, Number, str], fn: Callable, *args, **kwargs
+        self, tensor: Union[torch.Tensor, Number], fn: Callable, *args: Any, **kwargs: Any
+    ) -> Union[torch.Tensor, Number]:
+        ...
+
+    @overload
+    def _collective_op(
+        self, tensor: Union[torch.Tensor, Number, str], fn: Callable, *args: Any, **kwargs: Any
     ) -> Union[torch.Tensor, Number, List[str]]:
+        ...
+
+    # mypy doesn't support overload for no-untyped-def check
+    def _collective_op(self, tensor, fn, *args, **kwargs):  # type: ignore
         tensor_to_number = tensor_to_str = False
         device = self.device()
         if isinstance(tensor, Number):
@@ -164,7 +177,15 @@ class ComputationModel(metaclass=ABCMeta):
 
         return self._collective_op(tensor, self._do_all_gather)
 
+    @overload
+    def broadcast(self, tensor: Union[torch.Tensor, Number], src: int = 0) -> Union[torch.Tensor, Number]:
+        ...
+
+    @overload
     def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
+        ...
+
+    def broadcast(self, tensor, src=0):  # type: ignore # mypy doesn't support overload for no-untyped-def check
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
@@ -208,7 +229,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def barrier(self):
+    def barrier(self) -> None:
         pass
 
 
@@ -218,6 +239,9 @@ class _SerialModel(ComputationModel):
 
     name = "serial"
     available_backends = ()
+
+    def __init__(self, _backend: Optional[str] = None, **_kwargs: Any) -> None:
+        super(_SerialModel, self).__init__()
 
     def get_local_rank(self) -> int:
         return 0
@@ -242,10 +266,10 @@ class _SerialModel(ComputationModel):
             return torch.device("cuda")
         return torch.device("cpu")
 
-    def backend(self) -> None:
+    def backend(self) -> Optional[str]:
         return None
 
-    def finalize(self):
+    def finalize(self) -> None:
         pass
 
     def _compute_nproc_per_node(self) -> int:
@@ -256,20 +280,28 @@ class _SerialModel(ComputationModel):
         return _SerialModel()
 
     @staticmethod
-    def create_from_backend(backend: Optional[str] = None, **kwargs) -> "_SerialModel":
+    def create_from_backend(backend: Optional[str] = None, **kwargs: Any) -> "_SerialModel":
         return _SerialModel()
 
     @staticmethod
-    def spawn(*args, **kwargs):
+    def spawn(*args: Any, **kwargs: Any) -> None:
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
     def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
         return tensor
 
-    def all_gather(self, tensor: Union[torch.Tensor, Number]) -> Union[torch.Tensor, Number]:
-        return tensor
+    def all_gather(self, tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
+        return cast(Union[torch.Tensor, Number], tensor)
 
+    @overload
+    def broadcast(self, tensor: Union[torch.Tensor, Number], src: int = 0) -> Union[torch.Tensor, Number]:
+        ...
+
+    @overload
     def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
+        ...
+
+    def broadcast(self, tensor, src=0):  # type: ignore # mypy doesn't support overload for no-untyped-def check
         return tensor
 
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
@@ -281,5 +313,5 @@ class _SerialModel(ComputationModel):
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         pass
 
-    def barrier(self):
+    def barrier(self) -> None:
         pass

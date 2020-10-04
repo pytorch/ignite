@@ -1,4 +1,5 @@
 import warnings
+from typing import Any, Callable, Iterator, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -16,7 +17,42 @@ from ignite.utils import setup_logger
 __all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
 
 
-def auto_dataloader(dataset, **kwargs):
+if idist.has_xla_support:
+
+    import torch_xla.core.xla_model as xm
+    from torch_xla.distributed.parallel_loader import ParallelLoader
+
+    class _MpDeviceLoader:
+        # https://github.com/pytorch/xla/pull/2117
+        # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
+        def __init__(self, loader: Any, device: torch.device, **kwargs: Any) -> None:
+            self._loader = loader
+            self._device = device
+            self._parallel_loader_kwargs = kwargs
+
+        def __setattr__(self, name: str, value: Any) -> None:
+            super().__setattr__(name, value)
+
+        def __getattr__(self, name: str) -> Any:
+            super().__getattribute__(name)
+
+        def __iter__(self) -> Iterator:
+            parallel_loader = ParallelLoader(self._loader, [self._device], **self._parallel_loader_kwargs)
+            return parallel_loader.per_device_loader(self._device)
+
+        def __len__(self) -> int:
+            return len(self._loader)
+
+    class _XLADistributedOptimizer(Optimizer):
+        def __init__(self, optimizer: Optimizer) -> None:
+            super(self.__class__, self).__init__(optimizer.param_groups, {})
+            self.wrapped_optimizer = optimizer
+
+        def step(self, closure: Optional[Callable] = None) -> None:
+            xm.optimizer_step(self.wrapped_optimizer, barrier=True)
+
+
+def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, _MpDeviceLoader]:
     """Helper method to create a dataloader adapted for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -73,6 +109,8 @@ def auto_dataloader(dataset, **kwargs):
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
 
         if "batch_sampler" not in kwargs:
+            sampler: Union[DistributedProxySampler, DistributedSampler]
+
             if kwargs.get("sampler", None) is not None:
                 sampler = DistributedProxySampler(kwargs["sampler"], num_replicas=world_size, rank=rank)
             else:
@@ -101,7 +139,7 @@ def auto_dataloader(dataset, **kwargs):
         kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
 
     logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
-    dataloader = DataLoader(dataset, **kwargs)
+    dataloader: Union[DataLoader, _MpDeviceLoader] = DataLoader(dataset, **kwargs)
 
     if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and world_size > 1:
 
@@ -115,7 +153,7 @@ def auto_dataloader(dataset, **kwargs):
         except ImportError:
             pass
 
-        sampler = dataloader.sampler
+        sampler = dataloader.sampler  # type: ignore[union-attr]
         dataloader = mp_device_loader_cls(dataloader, idist.device())
         dataloader.sampler = sampler
 
@@ -266,7 +304,7 @@ class DistributedProxySampler(DistributedSampler):
 
     """
 
-    def __init__(self, sampler: Sampler, num_replicas=None, rank=None):
+    def __init__(self, sampler: Sampler, num_replicas: Optional[int] = None, rank: Optional[int] = None) -> None:
 
         if not isinstance(sampler, Sampler):
             raise TypeError("Argument sampler should be instance of torch Sampler, but given: {}".format(type(sampler)))
@@ -274,14 +312,22 @@ class DistributedProxySampler(DistributedSampler):
         if not hasattr(sampler, "__len__"):
             raise TypeError("Argument sampler should have length")
 
-        super(DistributedProxySampler, self).__init__(sampler, num_replicas=num_replicas, rank=rank, shuffle=False)
+        super(DistributedProxySampler, self).__init__(
+            sampler, num_replicas=num_replicas, rank=rank, shuffle=False  # type: ignore[arg-type]
+        )
         self.sampler = sampler
 
-    def __iter__(self):
+    def __setattr__(self, name: str, value: Any) -> None:
+        super().__setattr__(name, value)
+
+    def __getattr__(self, name: str) -> Any:
+        super().__getattribute__(name)
+
+    def __iter__(self) -> Iterator:
         # deterministically shuffle based on epoch
         torch.manual_seed(self.epoch)
 
-        indices = []
+        indices: List = []
         while len(indices) < self.total_size:
             indices += list(self.sampler)
 
@@ -294,32 +340,3 @@ class DistributedProxySampler(DistributedSampler):
             raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))
 
         return iter(indices)
-
-
-if idist.has_xla_support:
-
-    import torch_xla.core.xla_model as xm
-    from torch_xla.distributed.parallel_loader import ParallelLoader
-
-    class _MpDeviceLoader:
-        # https://github.com/pytorch/xla/pull/2117
-        # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
-        def __init__(self, loader, device, **kwargs):
-            self._loader = loader
-            self._device = device
-            self._parallel_loader_kwargs = kwargs
-
-        def __iter__(self):
-            parallel_loader = ParallelLoader(self._loader, [self._device], **self._parallel_loader_kwargs)
-            return parallel_loader.per_device_loader(self._device)
-
-        def __len__(self):
-            return len(self._loader)
-
-    class _XLADistributedOptimizer(Optimizer):
-        def __init__(self, optimizer):
-            super(self.__class__, self).__init__(optimizer.param_groups)
-            self.wrapped_optimizer = optimizer
-
-        def step(self, closure=None):
-            xm.optimizer_step(self.wrapped_optimizer, barrier=True)
