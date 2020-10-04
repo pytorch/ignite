@@ -38,9 +38,11 @@ before_install: &before_install
   - pip install -r requirements-dev.txt
 
 install:
+  - pip install "mypy==0.782"
   - python setup.py install
 
 script:
+  - mypy --config-file mypy.ini
   - CI_PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" sh tests/run_cpu_tests.sh
 
 after_success:
@@ -51,14 +53,11 @@ jobs:
     - stage: Lint check
       python: "3.7"
       before_install: # Nothing to do
-      install:
-        - python setup.py install
-        - pip install flake8 "black==19.10b0" "isort==4.3.21" "mypy==0.782"
+      install: pip install flake8 "black==19.10b0" "isort==4.3.21"
       script:
         - flake8 .
         - black --check .
         - isort -rc -c .
-        - mypy --config-file mypy.ini
       after_success: # Nothing to do
 
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
