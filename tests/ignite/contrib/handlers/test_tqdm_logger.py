@@ -146,10 +146,7 @@ def test_pbar_with_metric(capsys):
 
     pbar = ProgressBar()
     pbar.attach(
-        trainer,
-        metric_names=[
-            "batchloss",
-        ],
+        trainer, metric_names=["batchloss",],
     )
 
     trainer.run(data=data, max_epochs=1)
