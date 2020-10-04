@@ -1,7 +1,7 @@
 import collections.abc as collections
 import logging
 import random
-from typing import Any, Callable, Optional, Tuple, Type, Union
+from typing import Any, Callable, Optional, Tuple, Type, Union, cast
 
 import torch
 
@@ -41,11 +41,13 @@ def apply_to_type(
     if isinstance(input_, (str, bytes)):
         return input_
     if isinstance(input_, collections.Mapping):
-        return type(input_)({k: apply_to_type(sample, input_type, func) for k, sample in input_.items()})
+        return cast(Callable, type(input_))(
+            {k: apply_to_type(sample, input_type, func) for k, sample in input_.items()}
+        )
     if isinstance(input_, tuple) and hasattr(input_, "_fields"):  # namedtuple
-        return type(input_)(*(apply_to_type(sample, input_type, func) for sample in input_))
+        return cast(Callable, type(input_))(*(apply_to_type(sample, input_type, func) for sample in input_))
     if isinstance(input_, collections.Sequence):
-        return type(input_)([apply_to_type(sample, input_type, func) for sample in input_])
+        return cast(Callable, type(input_))([apply_to_type(sample, input_type, func) for sample in input_])
     raise TypeError(("input must contain {}, dicts or lists; found {}".format(input_type, type(input_))))
 
 
