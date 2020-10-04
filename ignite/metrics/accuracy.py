@@ -104,18 +104,9 @@ class Accuracy(_BaseClassification):
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and
       num_categories must be greater than 1 for multilabel cases.
 
-    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
+    In binary and multilabel cases, the elements of `y` should have 0 or 1 values, while `y_pred` can be
+    thresholded using PROBABILITIES Mode.
     predictions can be done as below:
-
-    .. code-block:: python
-
-        def thresholded_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.round(y_pred)
-            return y_pred, y
-
-        binary_accuracy = Accuracy(thresholded_output_transform)
-
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
@@ -127,7 +118,9 @@ class Accuracy(_BaseClassification):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
         mode (Mode): specifies in which form input will be passed. This can be useful to directly compute
-            accuracy on the output of a neural networki, which ofter return probabilities. By default, LABELS.
+            accuracy on the output of a neural network, which ofter return probabilities. By default, LABELS.
+        binarization_threshold (float): threshold for binarization of the input, in case a Mode that uses
+            binarization is used.
 
     """
     class Mode(enum.Enum):
@@ -140,10 +133,12 @@ class Accuracy(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
         mode: Mode = Mode.LABELS,
+        threshold: float = 0.5,
     ):
         self._num_correct = None
         self._num_examples = None
         self._mode = mode
+        self._threshold = threshold
         super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
@@ -158,7 +153,7 @@ class Accuracy(_BaseClassification):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if self._mode == self.Mode.PROBABILITIES:
-            y_pred = torch.round(y_pred)
+            y_pred = (y_pred >= self._threshold).int()
 
         self._check_type([y_pred, y])
 
