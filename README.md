@@ -64,7 +64,6 @@ while ensuring maximum control and simplicity
 - [Installation](#installation)
 - [Getting Started](#getting-started)
 - [Documentation](#documentation)
-- [Structure](#structure)
 - [Examples](#examples)
   * [Tutorials](#tutorials)
   * [Reproducible Training Examples](#reproducible-training-examples)
