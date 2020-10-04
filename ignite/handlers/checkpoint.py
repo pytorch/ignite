@@ -288,7 +288,7 @@ class Checkpoint(Serializable):
         self.ext = "pt"
         self.global_step_transform = global_step_transform
         self.filename_pattern = filename_pattern
-        self._saved: list = []
+        self._saved = []  # type: list
         self.include_self = include_self
 
     @property
@@ -585,7 +585,7 @@ class DiskSaver(BaseSaveHandler):
         else:
             tmp_file = None
             tmp_name = ""
-            tmp: _TemporaryFileWrapper = None
+            tmp = None  # type: _TemporaryFileWrapper
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
                 tmp_file = tmp.file
