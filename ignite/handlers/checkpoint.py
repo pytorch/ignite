@@ -2,10 +2,10 @@ import collections.abc as collections
 import numbers
 import os
 import tempfile
-from tempfile import _TemporaryFileWrapper  # type: ignore
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, namedtuple
+from tempfile import _TemporaryFileWrapper  # type: ignore
 from typing import Callable, Mapping, Optional, Union
 
 import torch
@@ -584,7 +584,7 @@ class DiskSaver(BaseSaveHandler):
             func(checkpoint, path, **self.kwargs)
         else:
             tmp_file = None
-            tmp_name = ''
+            tmp_name = ""
             tmp: _TemporaryFileWrapper = None
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
