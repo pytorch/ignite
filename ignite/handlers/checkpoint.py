@@ -730,10 +730,13 @@ class ModelCheckpoint(Checkpoint):
     def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
             return None
-        if isinstance(self.save_handler, DiskSaver):
-            return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
-        else:
-            return None
+
+        if not isinstance(self.save_handler, DiskSaver):
+            raise RuntimeError(
+                "Unable to save checkpoint, save_handler should be DiskSaver, got {}.".format(type(self.save_handler))
+            )
+
+        return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
 
     def __call__(self, engine: Engine, to_save: Mapping) -> None:  # type: ignore
 
