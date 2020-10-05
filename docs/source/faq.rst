@@ -47,6 +47,8 @@ flexibility to the user to allow for this:
 
 .. code-block:: python
 
+    from ignite.engine import EventEnum
+    
     class BackpropEvents(EventEnum):
         """
         Events based on back propagation
