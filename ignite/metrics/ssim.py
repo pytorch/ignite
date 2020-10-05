@@ -53,6 +53,7 @@ class SSIM(Metric):
         k2: float = 0.03,
         gaussian: bool = True,
         output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if isinstance(kernel_size, int):
             self.kernel_size = [kernel_size, kernel_size]
@@ -74,23 +75,24 @@ class SSIM(Metric):
         if any(y <= 0 for y in self.sigma):
             raise ValueError("Expected sigma to have positive number. Got {}.".format(sigma))
 
+        super(SSIM, self).__init__(output_transform=output_transform, device=device)
         self.gaussian = gaussian
         self.c1 = (k1 * data_range) ** 2
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
         self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
-        super(SSIM, self).__init__(output_transform=output_transform)
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_batchwise_ssim = 0.0
+        self._sum_of_batchwise_ssim = 0.0  # Not a tensor because batch size is not known in advance.
         self._num_examples = 0
         self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
     def _uniform(self, kernel_size):
         max, min = 2.5, -2.5
-        kernel = torch.arange(start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32)
+        ksize_half = (kernel_size - 1) * 0.5
+        kernel = torch.linspace(-ksize_half, ksize_half, steps=kernel_size, device=self._device)
         for i, j in enumerate(kernel):
             if min <= j <= max:
                 kernel[i] = 1 / (max - min)
@@ -100,8 +102,9 @@ class SSIM(Metric):
         return kernel.unsqueeze(dim=0)  # (1, kernel_size)
 
     def _gaussian(self, kernel_size, sigma):
-        kernel = torch.arange(start=(1 - kernel_size) / 2, end=(1 + kernel_size) / 2, step=1, dtype=torch.float32)
-        gauss = torch.exp(-kernel.pow(2) / (2 * pow(sigma, 2)))
+        ksize_half = (kernel_size - 1) * 0.5
+        kernel = torch.linspace(-ksize_half, ksize_half, steps=kernel_size, device=self._device)
+        gauss = torch.exp(-0.5 * (kernel / sigma).pow(2))
         return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
 
     def _gaussian_or_uniform_kernel(self, kernel_size, sigma):
@@ -161,7 +164,7 @@ class SSIM(Metric):
         b2 = sigma_pred_sq + sigma_target_sq + self.c2
 
         ssim_idx = (a1 * a2) / (b1 * b2)
-        self._sum_of_batchwise_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64)
+        self._sum_of_batchwise_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).to(self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_ssim", "_num_examples")

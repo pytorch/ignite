@@ -142,6 +142,36 @@ class CallableEvents(CallableEventWithFilter):
 
 
 class EventEnum(CallableEventWithFilter, Enum):
+    """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should also inherit
+    this class. For example, Custom events based on the loss calculation and backward pass can be created as follows:
+
+        .. code-block:: python
+
+            from ignite.engine import EventEnum
+
+            class BackpropEvents(EventEnum):
+                BACKWARD_STARTED = 'backward_started'
+                BACKWARD_COMPLETED = 'backward_completed'
+                OPTIM_STEP_COMPLETED = 'optim_step_completed'
+
+            def update(engine, batch):
+                # ...
+                loss = criterion(y_pred, y)
+                engine.fire_event(BackpropEvents.BACKWARD_STARTED)
+                loss.backward()
+                engine.fire_event(BackpropEvents.BACKWARD_COMPLETED)
+                optimizer.step()
+                engine.fire_event(BackpropEvents.OPTIM_STEP_COMPLETED)
+                # ...
+
+            trainer = Engine(update)
+            trainer.register_events(*BackpropEvents)
+
+            @trainer.on(BackpropEvents.BACKWARD_STARTED)
+            def function_before_backprop(engine):
+                # ...
+    """
+
     pass
 
 
@@ -159,13 +189,38 @@ class Events(EventEnum):
 
     - EXCEPTION_RAISED : triggered when an exception is encountered
     - TERMINATE_SINGLE_EPOCH : triggered when the run is about to end the current epoch,
-      after receiving :meth:`~ignite.engine.engine.Engine.terminate_epoch()` call.
+      after receiving a :meth:`~ignite.engine.engine.Engine.terminate_epoch()` or
+      :meth:`~ignite.engine.engine.Engine.terminate()` call.
 
     - TERMINATE : triggered when the run is about to end completely,
       after receiving :meth:`~ignite.engine.engine.Engine.terminate()` call.
 
-    - EPOCH_COMPLETED : triggered when the epoch is ended
+    - EPOCH_COMPLETED : triggered when the epoch is ended. Note that this is triggered even
+      when :meth:`~ignite.engine.engine.Engine.terminate_epoch()` is called.
     - COMPLETED : triggered when engine's run is completed
+
+    The table below illustrates which events are triggered when various termination methods are called.
+
+    .. list-table::
+       :widths: 24 25 33 18
+       :header-rows: 1
+
+       * - Method
+         - EVENT_COMPLETED
+         - TERMINATE_SINGLE_EPOCH
+         - TERMINATE
+       * - no termination
+         - ✔
+         - ✗
+         - ✗
+       * - :meth:`~ignite.engine.engine.Engine.terminate_epoch()`
+         - ✔
+         - ✔
+         - ✗
+       * - :meth:`~ignite.engine.engine.Engine.terminate()`
+         - ✗
+         - ✔
+         - ✔
 
     Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:
 
@@ -340,6 +395,9 @@ class State:
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
+
+    def restart(self) -> None:
+        self.max_epochs = None
 
     def __repr__(self) -> str:
         s = "State:\n"
