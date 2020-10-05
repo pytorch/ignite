@@ -124,8 +124,8 @@ class Accuracy(_BaseClassification):
 
     """
     class Mode(enum.Enum):
-        LABELS = enum.auto()
-        PROBABILITIES = enum.auto()
+        LABELS = 0
+        PROBABILITIES = 1
 
     def __init__(
         self,
