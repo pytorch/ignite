@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
@@ -25,7 +27,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
         self._sum_of_absolute_relative_errors = 0.0
         self._num_samples = 0
 
-    def _update(self, output):
+    def _update(self, output: Any):
         y_pred, y = output
         if (y == 0).any():
             raise NotComputableError("The ground truth has 0.")

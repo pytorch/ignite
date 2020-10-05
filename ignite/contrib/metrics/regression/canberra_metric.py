@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Any, Callable, Union
 
 import torch
 
@@ -34,7 +34,7 @@ class CanberraMetric(_BaseRegression):
     def reset(self):
         self._sum_of_errors = torch.tensor(0.0, device=self._device)
 
-    def _update(self, output):
+    def _update(self, output: Any):
         y_pred, y = output
         errors = torch.abs(y - y_pred) / (torch.abs(y_pred) + torch.abs(y))
         self._sum_of_errors += torch.sum(errors).to(self._device)

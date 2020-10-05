@@ -1,7 +1,9 @@
+from typing import Any, Callable
+
 from ignite.metrics import EpochMetric
 
 
-def average_precision_compute_fn(y_preds, y_targets):
+def average_precision_compute_fn(y_preds: Any, y_targets: Any):
     try:
         from sklearn.metrics import average_precision_score
     except ImportError:
@@ -22,7 +24,7 @@ class AveragePrecision(EpochMetric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Optional default False. If True, `average_precision_score
+        check_compute_fn (bool): Default False. If True, `average_precision_score
             <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
             #sklearn.metrics.average_precision_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
@@ -41,7 +43,7 @@ class AveragePrecision(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
         super(AveragePrecision, self).__init__(
             average_precision_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )

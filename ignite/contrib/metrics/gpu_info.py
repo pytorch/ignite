@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import warnings
+from typing import Any
 
 import torch
 
-from ignite.engine import Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.metrics import Metric
 
 
@@ -54,7 +55,7 @@ class GpuInfo(Metric):
     def reset(self):
         pass
 
-    def update(self, output):
+    def update(self, output: Any):
         pass
 
     def compute(self):
@@ -64,7 +65,7 @@ class GpuInfo(Metric):
             return []
         return data["gpu"]
 
-    def completed(self, engine, name):
+    def completed(self, engine: Engine, name: str):
         data = self.compute()
         if len(data) < 1:
             warnings.warn("No GPU information available")
@@ -103,5 +104,5 @@ class GpuInfo(Metric):
                 # Do not set GPU utilization information
                 pass
 
-    def attach(self, engine, name="gpu", event_name=Events.ITERATION_COMPLETED):
+    def attach(self, engine: Engine, name: str = "gpu", event_name: EventEnum = Events.ITERATION_COMPLETED):
         engine.add_event_handler(event_name, self.completed, name)

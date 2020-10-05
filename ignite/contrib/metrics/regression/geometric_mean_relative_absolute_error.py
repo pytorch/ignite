@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
@@ -26,7 +28,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
         self._num_examples = 0
         self._sum_of_errors = 0.0
 
-    def _update(self, output):
+    def _update(self, output: Any):
         y_pred, y = output
         self._sum_y += y.sum()
         self._num_examples += y.shape[0]

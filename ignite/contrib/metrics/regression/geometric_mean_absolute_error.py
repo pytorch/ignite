@@ -1,3 +1,5 @@
+from typing import Any
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
@@ -24,7 +26,7 @@ class GeometricMeanAbsoluteError(_BaseRegression):
         self._sum_of_errors = 0.0
         self._num_examples = 0
 
-    def _update(self, output):
+    def _update(self, output: Any):
         y_pred, y = output
         errors = torch.log(torch.abs(y.view_as(y_pred) - y_pred))
         self._sum_of_errors += torch.sum(errors)

@@ -1,9 +1,11 @@
+from typing import Any, Callable
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
 
 
-def median_absolute_percentage_error_compute_fn(y_pred, y):
+def median_absolute_percentage_error_compute_fn(y_pred: Any, y: Any):
     e = torch.abs(y.view_as(y_pred) - y_pred) / torch.abs(y.view_as(y_pred))
     return 100.0 * torch.median(e).item()
 
@@ -31,7 +33,7 @@ class MedianAbsolutePercentageError(_BaseRegressionEpoch):
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform: Callable = lambda x: x):
         super(MedianAbsolutePercentageError, self).__init__(
             median_absolute_percentage_error_compute_fn, output_transform
         )
