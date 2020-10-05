@@ -14,10 +14,10 @@ jobs:
         autopep8 --recursive --in-place --aggressive --aggressive .
         black .
     - name: Commit and push changes
-      uses: stefanzweifel/git-auto-commit-action@v2.0.0
+      uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_author_email: ''
         commit_author_name: AutoPEP8
-        commit_message: autopep8 fix
+        commit_message: "autopep8 fix"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
