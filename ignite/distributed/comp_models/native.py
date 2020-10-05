@@ -2,7 +2,7 @@ import os
 import subprocess
 import warnings
 from distutils.version import LooseVersion
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, overload
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -245,7 +245,7 @@ if has_native_dist_support:
             node_rank: int,
             master_addr: str,
             master_port: str,
-            **kw: Any,
+            kw: Any,
         ) -> None:
             from ignite.distributed.utils import _set_model, finalize
 

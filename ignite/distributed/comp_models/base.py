@@ -1,7 +1,7 @@
 import warnings
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Any, Callable, List, Optional, Union, cast, overload
+from typing import Any, Callable, List, Optional, Union, cast
 
 import torch
 
@@ -134,20 +134,9 @@ class ComputationModel(metaclass=ABCMeta):
             return tensor.to(device=tensor_device)
         return tensor
 
-    @overload
-    def _collective_op(
-        self, tensor: Union[torch.Tensor, Number], fn: Callable, *args: Any, **kwargs: Any
-    ) -> Union[torch.Tensor, Number]:
-        ...
-
-    @overload
     def _collective_op(
         self, tensor: Union[torch.Tensor, Number, str], fn: Callable, *args: Any, **kwargs: Any
     ) -> Union[torch.Tensor, Number, List[str]]:
-        ...
-
-    # mypy doesn't support overload for no-untyped-def check
-    def _collective_op(self, tensor, fn, *args, **kwargs):  # type: ignore
         tensor_to_number = tensor_to_str = False
         device = self.device()
         if isinstance(tensor, Number):
@@ -160,7 +149,7 @@ class ComputationModel(metaclass=ABCMeta):
         tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
 
         if tensor_to_number and tensor.numel() == 1:
-            return tensor.item()
+            return cast(Number, tensor.item())
         elif tensor_to_str:
             return self._decode_str(tensor)
         return tensor
@@ -169,7 +158,7 @@ class ComputationModel(metaclass=ABCMeta):
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
-        return self._collective_op(tensor, self._do_all_reduce, op)
+        return cast(Union[torch.Tensor, Number], self._collective_op(tensor, self._do_all_reduce, op))
 
     def all_gather(self, tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
@@ -177,15 +166,7 @@ class ComputationModel(metaclass=ABCMeta):
 
         return self._collective_op(tensor, self._do_all_gather)
 
-    @overload
-    def broadcast(self, tensor: Union[torch.Tensor, Number], src: int = 0) -> Union[torch.Tensor, Number]:
-        ...
-
-    @overload
     def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
-        ...
-
-    def broadcast(self, tensor, src=0):  # type: ignore # mypy doesn't support overload for no-untyped-def check
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
@@ -210,7 +191,7 @@ class ComputationModel(metaclass=ABCMeta):
         tensor = self._apply_op(tensor, device, self._do_broadcast, src)
 
         if tensor_to_number:
-            return tensor.item()
+            return cast(Number, tensor.item())
         if tensor_to_str:
             list_str = self._decode_str(tensor)
             return list_str[0]
@@ -293,15 +274,7 @@ class _SerialModel(ComputationModel):
     def all_gather(self, tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
         return cast(Union[torch.Tensor, Number], tensor)
 
-    @overload
-    def broadcast(self, tensor: Union[torch.Tensor, Number], src: int = 0) -> Union[torch.Tensor, Number]:
-        ...
-
-    @overload
     def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
-        ...
-
-    def broadcast(self, tensor, src=0):  # type: ignore # mypy doesn't support overload for no-untyped-def check
         return tensor
 
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
