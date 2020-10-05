@@ -195,3 +195,12 @@ def test__hvd_dist_model_spawn_cuda():
         nproc_per_node=num_workers_per_machine,
         use_gloo=True,
     )
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
+def test__warning_if_deviceindex_less_than_localrank(local_rank, world_size):
+    with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
+        _test__hvd_dist_model_create_from_context_dist(
+            local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
+        )

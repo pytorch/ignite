@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Callable, Mapping, Optional, Tuple
 
 import torch
@@ -97,6 +98,8 @@ if has_hvd_support:
         def device(self) -> torch.device:
             if torch.cuda.is_available():
                 index = torch.cuda.current_device()
+                if index < self.get_local_rank():
+                    warnings.warn("Current device index is less than current local rank.")
                 return torch.device("cuda:{}".format(index))
             return torch.device("cpu")
 

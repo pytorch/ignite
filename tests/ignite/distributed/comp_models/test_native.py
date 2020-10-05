@@ -299,3 +299,12 @@ def test__native_dist_model_spawn_gloo():
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_spawn_nccl():
     _test__native_dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
+def test__warning_if_deviceindex_less_than_localrank(local_rank, world_size):
+    with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
+        _test__native_dist_model_create_from_context_dist(
+            local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
+        )
