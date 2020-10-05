@@ -190,7 +190,7 @@ def hostname() -> str:
 
 
 def spawn(
-    backend: Optional[str],
+    backend: str,
     fn: Callable,
     args: Tuple,
     kwargs_dict: Optional[Mapping] = None,
@@ -349,7 +349,7 @@ def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, 
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_gather(tensor)
+    return _model.all_gather(tensor)  # type: ignore[arg-type]
 
 
 def broadcast(tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
@@ -440,7 +440,7 @@ def _set_model(model: Any, temporary: bool = False) -> None:
         _need_to_sync = False
 
 
-def _assert_backend(backend: Optional[str]) -> None:
+def _assert_backend(backend: str) -> None:
     backends = available_backends()
     if backend not in backends:
         raise ValueError("Backend should be one of '{}'".format(backends))
@@ -527,7 +527,7 @@ def show_config() -> None:
     logger.info("node rank: {}".format(get_node_rank()))
 
 
-def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Optional[Callable]:
+def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
     """Decorator to filter handlers wrt a rank number
 
     Args:
@@ -549,9 +549,9 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Optional[Callabl
             ...
     """
 
-    def _one_rank_only(func: Callable) -> Optional[Callable]:
+    def _one_rank_only(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Optional[Callable]:
+        def wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
             ret = None
             if get_rank() == rank:
                 ret = func(*args, **kwargs)

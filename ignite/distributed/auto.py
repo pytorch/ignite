@@ -120,7 +120,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
 
         sampler = dataloader.sampler  # type: ignore[union-attr]
         dataloader = mp_device_loader_cls(dataloader, idist.device())
-        dataloader.sampler = sampler
+        dataloader.sampler = sampler  # type: ignore[attr-defined]
 
     return dataloader
 
@@ -319,12 +319,6 @@ if idist.has_xla_support:
             self._loader = loader
             self._device = device
             self._parallel_loader_kwargs = kwargs
-
-        def __setattr__(self, name: str, value: Any) -> None:
-            super().__setattr__(name, value)
-
-        def __getattr__(self, name: str) -> Any:
-            super().__getattribute__(name)
 
         def __iter__(self) -> Iterator:
             parallel_loader = ParallelLoader(self._loader, [self._device], **self._parallel_loader_kwargs)

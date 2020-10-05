@@ -63,7 +63,7 @@ if has_native_dist_support:
             else:
                 self._init_from_context()
 
-        def _create_from_backend(self, backend: str, timeout: Optional[int] = None, **_kwargs: Any) -> None:
+        def _create_from_backend(self, backend: str, timeout: Optional[int] = None, **kwargs: Any) -> None:
             if backend == dist.Backend.NCCL and not torch.cuda.is_available():
                 raise RuntimeError("Nccl backend is required but no cuda capable devices")
 

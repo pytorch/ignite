@@ -216,10 +216,10 @@ class Parallel:
     @staticmethod
     def _setup_spawn_params(
         nproc_per_node: int,
-        nnodes: Optional[int],
-        node_rank: Optional[int],
-        master_addr: Optional[str],
-        master_port: Optional[int],
+        nnodes: Optional[int] = None,
+        node_rank: Optional[int] = None,
+        master_addr: Optional[str] = None,
+        master_port: Optional[int] = None,
         **spawn_kwargs: Any
     ) -> Dict:
         if nproc_per_node < 1:
@@ -273,7 +273,7 @@ class Parallel:
             **kwargs: keyword arguments of ``func``.
 
         """
-        if self._spawn_params is not None:
+        if self._spawn_params is not None and self.backend is not None:
             self.logger.info("Spawn function '{}' in {} processes".format(func, self._spawn_params["nproc_per_node"]))
             idist.spawn(self.backend, func, args=args, kwargs_dict=kwargs, **self._spawn_params)
         else:

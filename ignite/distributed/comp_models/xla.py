@@ -50,7 +50,7 @@ if has_xla_support:
             else:
                 self._init_from_context()
 
-        def _create_from_backend(self, backend: str, **_kwargs: Any) -> None:
+        def _create_from_backend(self, backend: str, **kwargs: Any) -> None:
             xm.rendezvous("init")
 
             self._backend = backend

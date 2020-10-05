@@ -221,7 +221,7 @@ class _SerialModel(ComputationModel):
     name = "serial"
     available_backends = ()
 
-    def __init__(self, _backend: Optional[str] = None, **_kwargs: Any) -> None:
+    def __init__(self, _backend: Optional[str] = None, **kwargs: Any) -> None:
         super(_SerialModel, self).__init__()
 
     def get_local_rank(self) -> int:
@@ -271,8 +271,8 @@ class _SerialModel(ComputationModel):
     def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
         return tensor
 
-    def all_gather(self, tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
-        return cast(Union[torch.Tensor, Number], tensor)
+    def all_gather(self, tensor: Union[torch.Tensor, Number]) -> Union[torch.Tensor, Number]:  # type: ignore
+        return tensor
 
     def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
         return tensor
