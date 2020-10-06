@@ -563,6 +563,20 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
     _test(".pt", require_empty=False)
 
 
+def test_model_checkpoint_invalid_save_handler(dirname):
+    h = ModelCheckpoint(dirname, _PREFIX)
+    to_save = {"model": DummyModel()}
+    # Redefine save_handler
+    h.save_handler = lambda x, y: None
+    h(Engine(lambda x, y: None), to_save)
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"Unable to save checkpoint, save_handler should be DiskSaver, got {}.".format(type(h.save_handler)),
+    ):
+        h.last_checkpoint
+
+
 def test_disk_saver_atomic(dirname):
 
     model = DummyModel()
