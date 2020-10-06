@@ -323,7 +323,7 @@ if idist.has_xla_support:
 
     class _XLADistributedOptimizer(Optimizer):
         def __init__(self, optimizer: Optimizer) -> None:
-            super(self.__class__, self).__init__(optimizer.param_groups, {})
+            super(self.__class__, self).__init__(optimizer.param_groups)  # type: ignore[call-arg]
             self.wrapped_optimizer = optimizer
 
         def step(self, closure: Optional[Callable] = None) -> None:
