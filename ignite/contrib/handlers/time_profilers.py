@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import Dict, Iterable, Mapping, Sequence, Union
 
 import torch
 
@@ -77,7 +78,7 @@ class BasicTimeProfiler:
             self._as_last_completed,
         ]
 
-    def _reset(self, num_epochs, total_num_iters):
+    def _reset(self, num_epochs: int, total_num_iters: int):
         self.dataflow_times = torch.zeros(total_num_iters)
         self.processing_times = torch.zeros(total_num_iters)
         self.event_handlers_times = {
@@ -91,7 +92,7 @@ class BasicTimeProfiler:
             Events.GET_BATCH_STARTED: torch.zeros(total_num_iters),
         }
 
-    def _as_first_started(self, engine):
+    def _as_first_started(self, engine: Engine):
         if hasattr(engine.state.dataloader, "__len__"):
             num_iters_per_epoch = len(engine.state.dataloader)
         else:
@@ -123,30 +124,30 @@ class BasicTimeProfiler:
         # Let's go
         self._event_handlers_timer.reset()
 
-    def _as_last_started(self, engine):
+    def _as_last_started(self, engine: Engine):
         self.event_handlers_times[Events.STARTED][0] = self._event_handlers_timer.value()
 
-    def _as_first_epoch_started(self, engine):
+    def _as_first_epoch_started(self, engine: Engine):
         self._event_handlers_timer.reset()
 
-    def _as_last_epoch_started(self, engine):
+    def _as_last_epoch_started(self, engine: Engine):
         t = self._event_handlers_timer.value()
         e = engine.state.epoch - 1
         self.event_handlers_times[Events.EPOCH_STARTED][e] = t
 
-    def _as_first_get_batch_started(self, engine):
+    def _as_first_get_batch_started(self, engine: Engine):
         self._event_handlers_timer.reset()
         self._dataflow_timer.reset()
 
-    def _as_last_get_batch_started(self, engine):
+    def _as_last_get_batch_started(self, engine: Engine):
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.GET_BATCH_STARTED][i] = t
 
-    def _as_first_get_batch_completed(self, engine):
+    def _as_first_get_batch_completed(self, engine: Engine):
         self._event_handlers_timer.reset()
 
-    def _as_last_get_batch_completed(self, engine):
+    def _as_last_get_batch_completed(self, engine: Engine):
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.GET_BATCH_COMPLETED][i] = t
@@ -156,40 +157,40 @@ class BasicTimeProfiler:
 
         self._dataflow_timer.reset()
 
-    def _as_first_iter_started(self, engine):
+    def _as_first_iter_started(self, engine: Engine):
         self._event_handlers_timer.reset()
 
-    def _as_last_iter_started(self, engine):
+    def _as_last_iter_started(self, engine: Engine):
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.ITERATION_STARTED][i] = t
 
         self._processing_timer.reset()
 
-    def _as_first_iter_completed(self, engine):
+    def _as_first_iter_completed(self, engine: Engine):
         t = self._processing_timer.value()
         i = engine.state.iteration - 1
         self.processing_times[i] = t
 
         self._event_handlers_timer.reset()
 
-    def _as_last_iter_completed(self, engine):
+    def _as_last_iter_completed(self, engine: Engine):
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.ITERATION_COMPLETED][i] = t
 
-    def _as_first_epoch_completed(self, engine):
+    def _as_first_epoch_completed(self, engine: Engine):
         self._event_handlers_timer.reset()
 
-    def _as_last_epoch_completed(self, engine):
+    def _as_last_epoch_completed(self, engine: Engine):
         t = self._event_handlers_timer.value()
         e = engine.state.epoch - 1
         self.event_handlers_times[Events.EPOCH_COMPLETED][e] = t
 
-    def _as_first_completed(self, engine):
+    def _as_first_completed(self, engine: Engine):
         self._event_handlers_timer.reset()
 
-    def _as_last_completed(self, engine):
+    def _as_last_completed(self, engine: Engine):
         self.event_handlers_times[Events.COMPLETED][0] = self._event_handlers_timer.value()
 
         # Remove added handlers:
@@ -201,7 +202,7 @@ class BasicTimeProfiler:
         for e, m in zip(self._events, self._lmethods):
             engine.remove_event_handler(m, e)
 
-    def attach(self, engine):
+    def attach(self, engine: Engine):
         if not isinstance(engine, Engine):
             raise TypeError("Argument engine should be ignite.engine.Engine, " "but given {}".format(type(engine)))
 
@@ -209,7 +210,7 @@ class BasicTimeProfiler:
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
     @staticmethod
-    def _compute_basic_stats(data):
+    def _compute_basic_stats(data: Sequence):
         # compute on non-zero data:
         data = data[data > 0]
         out = [("total", torch.sum(data).item() if len(data) > 0 else "not yet triggered")]
@@ -255,7 +256,7 @@ class BasicTimeProfiler:
             ]
         )
 
-    def write_results(self, output_path):
+    def write_results(self, output_path: str):
         """
         Method to store the unaggregated profiling results to a csv file
 
@@ -334,7 +335,7 @@ class BasicTimeProfiler:
         results_df.to_csv(output_path, index=False)
 
     @staticmethod
-    def print_results(results):
+    def print_results(results: Union[Dict, Iterable]):
         """
         Method to print the aggregated results from the profiler
 
@@ -380,14 +381,14 @@ class BasicTimeProfiler:
 
         """
 
-        def to_str(v):
+        def to_str(v: Union[str, tuple]):
             if isinstance(v, str):
                 return v
             elif isinstance(v, tuple):
                 return "{:.5f}/{}".format(v[0], v[1])
             return "{:.5f}".format(v)
 
-        def odict_to_str(d):
+        def odict_to_str(d: Mapping):
             out = " | ".join([to_str(v) for v in d.values()])
             return out
 
