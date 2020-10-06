@@ -142,6 +142,36 @@ class CallableEvents(CallableEventWithFilter):
 
 
 class EventEnum(CallableEventWithFilter, Enum):
+    """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should also inherit
+    this class. For example, Custom events based on the loss calculation and backward pass can be created as follows:
+
+        .. code-block:: python
+
+            from ignite.engine import EventEnum
+
+            class BackpropEvents(EventEnum):
+                BACKWARD_STARTED = 'backward_started'
+                BACKWARD_COMPLETED = 'backward_completed'
+                OPTIM_STEP_COMPLETED = 'optim_step_completed'
+
+            def update(engine, batch):
+                # ...
+                loss = criterion(y_pred, y)
+                engine.fire_event(BackpropEvents.BACKWARD_STARTED)
+                loss.backward()
+                engine.fire_event(BackpropEvents.BACKWARD_COMPLETED)
+                optimizer.step()
+                engine.fire_event(BackpropEvents.OPTIM_STEP_COMPLETED)
+                # ...
+
+            trainer = Engine(update)
+            trainer.register_events(*BackpropEvents)
+
+            @trainer.on(BackpropEvents.BACKWARD_STARTED)
+            def function_before_backprop(engine):
+                # ...
+    """
+
     pass
 
 
