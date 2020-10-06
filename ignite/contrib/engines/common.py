@@ -332,7 +332,7 @@ def setup_tb_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        TensorboardLogger
+        :class:`~ignite.contrib.handlers.tensorboard_logger.TensorboardLogger`
     """
     logger = TensorboardLogger(log_dir=output_path, **kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -362,7 +362,7 @@ def setup_visdom_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        VisdomLogger
+         :class:`~ignite.contrib.handlers.visdom_logger.VisdomLogger`
     """
     logger = VisdomLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -392,7 +392,7 @@ def setup_mlflow_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        MLflowLogger
+        :class:`~ignite.contrib.handlers.mlflow_logger.MLflowLogger`
     """
     logger = MLflowLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -422,7 +422,7 @@ def setup_neptune_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        NeptuneLogger
+        :class:`~ignite.contrib.handlers.neptune_logger.NeptuneLogger`
     """
     logger = NeptuneLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -452,7 +452,7 @@ def setup_wandb_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        WandBLogger
+        :class:`~ignite.contrib.handlers.wandb_logger.WandBLogger`
     """
     logger = WandBLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -482,7 +482,7 @@ def setup_plx_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        PolyaxonLogger
+        :class:`~ignite.contrib.handlers.polyaxon_logger.PolyaxonLogger`
     """
     logger = PolyaxonLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -512,7 +512,7 @@ def setup_trains_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        TrainsLogger
+        :class:`~ignite.contrib.handlers.trains_logger.TrainsLogger`
     """
     logger = TrainsLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -560,7 +560,7 @@ def gen_save_best_models_by_val_score(
         **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
-        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
+        A :class:`~ignite.handlers.Checkpoint` handler.
     """
     global_step_transform = None
     if trainer is not None:
@@ -611,7 +611,7 @@ def save_best_model_by_val_score(
         **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
-        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
+        A :class:`~ignite.handlers.Checkpoint` handler.
     """
     return gen_save_best_models_by_val_score(
         save_handler=DiskSaver(dirname=output_path, require_empty=False),
@@ -637,7 +637,7 @@ def add_early_stopping_by_val_score(patience: int, evaluator: Engine, trainer: E
             `evaluator.state.metrics`.
 
     Returns:
-        A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
+        A :class:`~ignite.handlers.EarlyStopping` handler.
     """
     es_handler = EarlyStopping(patience=patience, score_function=get_default_score_fn(metric_name), trainer=trainer)
     evaluator.add_event_handler(Events.COMPLETED, es_handler)
