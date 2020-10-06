@@ -1,7 +1,7 @@
 import numbers
 import warnings
 from modulefinder import Module
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -13,7 +13,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine
+from ignite.engine import Engine, EventEnum
 from ignite.handlers import global_step_from_engine
 
 __all__ = [
@@ -269,7 +269,7 @@ class OutputHandler(BaseOutputHandler):
     ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
 
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
@@ -328,7 +328,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with TensorboardLogger")
 
@@ -374,7 +374,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
 
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with TensorboardLogger")
@@ -419,7 +419,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
     def __init__(self, model: Module, tag: Optional[str] = None):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
 
@@ -468,7 +468,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
     def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with TensorboardLogger")
 
@@ -512,7 +512,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
     def __init__(self, model: Module, tag: Optional[str] = None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsHistHandler' works only with TensorboardLogger")
 

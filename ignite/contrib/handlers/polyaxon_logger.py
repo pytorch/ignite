@@ -1,13 +1,12 @@
 import numbers
 import warnings
-from enum import Enum
 from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import CallableEventWithFilter, Engine
+from ignite.engine import Engine, EventEnum
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -208,7 +207,7 @@ class OutputHandler(BaseOutputHandler):
     ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, EventEnum]):
 
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
@@ -273,7 +272,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[CallableEventWithFilter, Enum]):
+    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, EventEnum]):
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with PolyaxonLogger")
 

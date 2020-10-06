@@ -159,8 +159,8 @@ class ProgressBar(BaseLogger):
         engine: Engine,
         metric_names: Optional[str] = None,
         output_transform: Optional[Callable] = None,
-        event_name: EventEnum = Events.ITERATION_COMPLETED,
-        closing_event_name: EventEnum = Events.EPOCH_COMPLETED,
+        event_name: Events = Events.ITERATION_COMPLETED,
+        closing_event_name: Events = Events.EPOCH_COMPLETED,
     ):
         """
         Attaches the progress bar to an engine object.
@@ -199,9 +199,7 @@ class ProgressBar(BaseLogger):
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 
-    def attach_opt_params_handler(
-        self, engine: Engine, event_name: Union[CallableEventWithFilter, Enum], *args: Any, **kwargs: Any
-    ):
+    def attach_opt_params_handler(self, engine: Engine, event_name: Union[str, EventEnum], *args: Any, **kwargs: Any):
         """Intentionally empty"""
         pass
 
