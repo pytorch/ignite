@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Tuple
 
 import torch
 
@@ -27,7 +27,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
         self._sum_of_absolute_relative_errors = 0.0
         self._num_samples = 0
 
-    def _update(self, output: Any):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         y_pred, y = output
         if (y == 0).any():
             raise NotComputableError("The ground truth has 0.")

@@ -1,9 +1,11 @@
-from typing import Any, Callable
+from typing import Callable
+
+import torch
 
 from ignite.metrics import EpochMetric
 
 
-def average_precision_compute_fn(y_preds: Any, y_targets: Any):
+def average_precision_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
     try:
         from sklearn.metrics import average_precision_score
     except ImportError:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Any
+from typing import Tuple
 
 import torch
 
@@ -55,7 +55,7 @@ class GpuInfo(Metric):
     def reset(self):
         pass
 
-    def update(self, output: Any):
+    def update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         pass
 
     def compute(self):

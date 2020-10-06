@@ -1,4 +1,4 @@
-from typing import Any, Callable, Union
+from typing import Callable, Tuple, Union
 
 import torch
 
@@ -33,7 +33,7 @@ class ManhattanDistance(_BaseRegression):
     def reset(self):
         self._sum_of_errors = torch.tensor(0.0, device=self._device)
 
-    def _update(self, output: Any):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         y_pred, y = output
         errors = torch.abs(y - y_pred)
         self._sum_of_errors += torch.sum(errors).to(self._device)

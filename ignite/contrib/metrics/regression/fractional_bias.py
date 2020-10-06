@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Tuple
 
 import torch
 
@@ -27,7 +27,7 @@ class FractionalBias(_BaseRegression):
         self._sum_of_errors = 0.0
         self._num_examples = 0
 
-    def _update(self, output: Any):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         y_pred, y = output
         errors = 2 * (y.view_as(y_pred) - y_pred) / (y_pred + y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()

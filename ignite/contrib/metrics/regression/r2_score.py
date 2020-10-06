@@ -1,4 +1,4 @@
-from typing import Any, Callable, Union
+from typing import Callable, Tuple, Union
 
 import torch
 
@@ -37,7 +37,7 @@ class R2Score(_BaseRegression):
         self._y_sq_sum = torch.tensor(0.0, device=self._device)
         self._y_sum = torch.tensor(0.0, device=self._device)
 
-    def _update(self, output: Any):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         y_pred, y = output
         self._num_examples += y.shape[0]
         self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).to(self._device)

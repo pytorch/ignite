@@ -1,9 +1,11 @@
-from typing import Any, Callable
+from typing import Callable
+
+import torch
 
 from ignite.metrics import EpochMetric
 
 
-def roc_auc_compute_fn(y_preds: Any, y_targets: Any):
+def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
     try:
         from sklearn.metrics import roc_auc_score
     except ImportError:
@@ -14,7 +16,7 @@ def roc_auc_compute_fn(y_preds: Any, y_targets: Any):
     return roc_auc_score(y_true, y_pred)
 
 
-def roc_auc_curve_compute_fn(y_preds: Any, y_targets: Any):
+def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
     try:
         from sklearn.metrics import roc_curve
     except ImportError:
