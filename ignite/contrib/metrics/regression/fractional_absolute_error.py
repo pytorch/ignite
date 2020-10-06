@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
@@ -24,7 +26,7 @@ class FractionalAbsoluteError(_BaseRegression):
         self._sum_of_errors = 0.0
         self._num_examples = 0
 
-    def _update(self, output):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         y_pred, y = output
         errors = 2 * torch.abs(y.view_as(y_pred) - y_pred) / (torch.abs(y_pred) + torch.abs(y.view_as(y_pred)))
         self._sum_of_errors += torch.sum(errors).item()

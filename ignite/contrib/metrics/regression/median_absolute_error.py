@@ -1,9 +1,11 @@
+from typing import Callable
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
 
 
-def median_absolute_error_compute_fn(y_pred, y):
+def median_absolute_error_compute_fn(y_pred: torch.Tensor, y: torch.Tensor):
     e = torch.abs(y.view_as(y_pred) - y_pred)
     return torch.median(e).item()
 
@@ -31,5 +33,5 @@ class MedianAbsoluteError(_BaseRegressionEpoch):
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform: Callable = lambda x: x):
         super(MedianAbsoluteError, self).__init__(median_absolute_error_compute_fn, output_transform)
