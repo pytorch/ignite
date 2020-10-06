@@ -2,6 +2,8 @@ name: Format python code
 on:
   push:
     paths-ignore: ['*.md']
+  pull_request:
+    paths-ignore: ['*.md']
 jobs:
   code-style:
     runs-on: ubuntu-latest
