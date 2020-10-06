@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Tuple
+from typing import Tuple, Union
 
 import torch
 
@@ -104,5 +104,5 @@ class GpuInfo(Metric):
                 # Do not set GPU utilization information
                 pass
 
-    def attach(self, engine: Engine, name: str = "gpu", event_name: EventEnum = Events.ITERATION_COMPLETED):
+    def attach(self, engine: Engine, name: str = "gpu", event_name: Union[str, EventEnum] = Events.ITERATION_COMPLETED):
         engine.add_event_handler(event_name, self.completed, name)
