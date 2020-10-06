@@ -215,7 +215,7 @@ class OutputHandler(BaseOutputHandler):
     ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, EventEnum]):
 
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler 'OutputHandler' works only with MLflowLogger")
