@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Any, Callable, Mapping, Optional
+from enum import Enum
+from typing import Any, Callable, Optional, Union
 
 import torch
 
@@ -104,7 +105,7 @@ class ProgressBar(BaseLogger):
         self,
         persist: bool = False,
         bar_format: str = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
-        **tqdm_kwargs: Mapping
+        **tqdm_kwargs: Any
     ):
 
         try:
@@ -198,7 +199,9 @@ class ProgressBar(BaseLogger):
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 
-    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any):
+    def attach_opt_params_handler(
+        self, engine: Engine, event_name: Union[CallableEventWithFilter, Enum], *args: Any, **kwargs: Any
+    ):
         """Intentionally empty"""
         pass
 
@@ -241,14 +244,14 @@ class _OutputHandler(BaseOutputHandler):
         self.closing_event_name = closing_event_name
 
     @staticmethod
-    def get_max_number_events(event_name: Any, engine: Engine):
+    def get_max_number_events(event_name: Union[CallableEventWithFilter, Enum], engine: Engine):
         if event_name in (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED):
             return engine.state.epoch_length
         if event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED):
             return engine.state.max_epochs
         return 1
 
-    def __call__(self, engine: Engine, logger: ProgressBar, event_name: Any):
+    def __call__(self, engine: Engine, logger: ProgressBar, event_name: Union[CallableEventWithFilter, Enum]):
 
         pbar_total = self.get_max_number_events(event_name, engine)
         if logger.pbar is None:

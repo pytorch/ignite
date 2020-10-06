@@ -1,9 +1,10 @@
-from typing import Any, Callable, List, Optional
+from enum import Enum
+from typing import Any, Callable, List, Optional, Union
 
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine
+from ignite.engine import CallableEventWithFilter, Engine
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["WandBLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -255,7 +256,7 @@ class OutputHandler(BaseOutputHandler):
         super().__init__(tag, metric_names, output_transform, global_step_transform)
         self.sync = sync
 
-    def __call__(self, engine: Engine, logger: WandBLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[CallableEventWithFilter, Enum]):
 
         if not isinstance(logger, WandBLogger):
             raise RuntimeError("Handler '{}' works only with WandBLogger.".format(self.__class__.__name__))
@@ -322,7 +323,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         self.sync = sync
 
-    def __call__(self, engine: Engine, logger: WandBLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[CallableEventWithFilter, Enum]):
         if not isinstance(logger, WandBLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with WandBLogger")
 

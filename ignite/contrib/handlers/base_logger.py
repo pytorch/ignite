@@ -42,7 +42,7 @@ class BaseOutputHandler(BaseHandler):
 
     def __init__(
         self,
-        tag,
+        tag: str,
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
@@ -199,7 +199,7 @@ class BaseLogger(metaclass=ABCMeta):
         self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
 
     @abstractmethod
-    def _create_output_handler(self, engine, *args: Any, **kwargs: Any):
+    def _create_output_handler(self, engine: Engine, *args: Any, **kwargs: Any):
         pass
 
     @abstractmethod

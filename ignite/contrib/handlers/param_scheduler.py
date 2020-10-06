@@ -582,7 +582,7 @@ class ConcatScheduler(ParamScheduler):
         num_events: int,
         schedulers: List[ParamScheduler],
         durations: List[int],
-        param_names: Union[List[str], Tuple[str]] = None,
+        param_names: Optional[Union[List[str], Tuple[str]]] = None,
         **kwargs: Any
     ):
         """Method to simulate scheduled values during num_events events.

@@ -1,12 +1,13 @@
 import numbers
 import warnings
-from typing import Any, Callable, List, Optional
+from enum import Enum
+from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine
+from ignite.engine import CallableEventWithFilter, Engine
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -269,10 +270,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[CallableEventWithFilter, Enum]):
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with PolyaxonLogger")
 

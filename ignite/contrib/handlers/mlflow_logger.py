@@ -6,7 +6,7 @@ import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine
+from ignite.engine import Engine, EventEnum
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -293,7 +293,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: MLflowLogger, event_name):
+    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, EventEnum]):
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler OptimizerParamsHandler works only with MLflowLogger")
 
