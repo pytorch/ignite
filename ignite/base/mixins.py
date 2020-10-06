@@ -4,8 +4,8 @@ from collections.abc import Mapping
 
 class Serializable:
 
-    _state_dict_all_req_keys = ()
-    _state_dict_one_of_opt_keys = ()
+    _state_dict_all_req_keys = ()  # type: tuple
+    _state_dict_one_of_opt_keys = ()  # type: tuple
 
     def state_dict(self) -> OrderedDict:
         pass
