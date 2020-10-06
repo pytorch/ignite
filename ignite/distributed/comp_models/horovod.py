@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, Mapping, Optional, Tuple
 
 import torch
 
@@ -33,7 +33,7 @@ if has_hvd_support:
         available_backends = (HOROVOD,)
 
         @staticmethod
-        def _get_hvd_rank():
+        def _get_hvd_rank() -> int:
             try:
                 rank = hvd.rank()
             except ValueError as e:
@@ -48,7 +48,7 @@ if has_hvd_support:
             return _HorovodDistModel()
 
         @staticmethod
-        def create_from_backend(backend: str, **kwargs) -> "_HorovodDistModel":
+        def create_from_backend(backend: str, **kwargs: Any) -> "_HorovodDistModel":
             if backend not in _HorovodDistModel.available_backends:
                 raise ValueError("Backend should be one of '{}'".format(_HorovodDistModel.available_backends))
 
@@ -57,7 +57,7 @@ if has_hvd_support:
                 raise RuntimeError("Can not re-initialize Horovod if it is already initialized")
             return _HorovodDistModel(do_init=True, **kwargs)
 
-        def __init__(self, do_init=False, **kwargs):
+        def __init__(self, do_init: bool = False, **kwargs: Any) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_HorovodDistModel, self).__init__()
@@ -73,7 +73,7 @@ if has_hvd_support:
 
             self._setup_attrs()
 
-        def _compute_nproc_per_node(self):
+        def _compute_nproc_per_node(self) -> int:
             return hvd.local_size()
 
         def get_local_rank(self) -> int:
@@ -103,11 +103,11 @@ if has_hvd_support:
         def backend(self) -> str:
             return self._backend
 
-        def finalize(self):
+        def finalize(self) -> None:
             hvd.shutdown()
 
         @staticmethod
-        def _dist_worker_task_fn(backend, fn, args, kwargs_dict):
+        def _dist_worker_task_fn(backend: str, fn: Callable, args: Tuple, kwargs_dict: Mapping) -> None:
             from ignite.distributed.utils import _set_model, finalize
 
             model = _HorovodDistModel.create_from_backend(backend)
@@ -116,15 +116,15 @@ if has_hvd_support:
             finalize()
 
         @staticmethod
-        def spawn(
+        def spawn(  # type: ignore[override]
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
             nproc_per_node: int = 1,
-            hosts=None,
+            hosts: Optional[str] = None,
             backend: str = HOROVOD,
-            **kwargs
-        ):
+            **kwargs: Any
+        ) -> None:
             c1 = "nnodes" in kwargs and kwargs["nnodes"] > 1
             c2 = "node_rank" in kwargs and kwargs["node_rank"] > 0
             if c1 or c2:
@@ -166,7 +166,7 @@ if has_hvd_support:
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
 
-        def barrier(self):
+        def barrier(self) -> None:
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")

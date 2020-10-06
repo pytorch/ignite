@@ -1,7 +1,7 @@
 import socket
 from functools import wraps
 from numbers import Number
-from typing import Callable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
 
@@ -48,7 +48,7 @@ _model = _SerialModel()
 _need_to_sync = True
 
 
-def sync(temporary=False):
+def sync(temporary: bool = False) -> None:
     """Helper method to force this module to synchronize with current distributed context.
     This method should be used when distributed context is manually created or destroyed.
 
@@ -102,10 +102,10 @@ def backend() -> Optional[str]:
     return _model.backend()
 
 
-def available_backends() -> Tuple[str]:
+def available_backends() -> Tuple[str, ...]:
     """Returns available backends.
     """
-    out = ()
+    out = ()  # type: Tuple[str, ...]
     for m in registered_computation_models:
         out += m.available_backends
     return out
@@ -190,8 +190,13 @@ def hostname() -> str:
 
 
 def spawn(
-    backend: str, fn: Callable, args: Tuple, kwargs_dict: Optional[Mapping] = None, nproc_per_node: int = 1, **kwargs
-):
+    backend: str,
+    fn: Callable,
+    args: Tuple,
+    kwargs_dict: Optional[Mapping] = None,
+    nproc_per_node: int = 1,
+    **kwargs: Any
+) -> None:
     """Spawns ``nproc_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
     distributed configuration defined by ``backend``.
 
@@ -344,7 +349,7 @@ def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, 
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_gather(tensor)
+    return _model.all_gather(tensor)  # type: ignore[arg-type]
 
 
 def broadcast(tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
@@ -390,7 +395,7 @@ def broadcast(tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[t
     return _model.broadcast(tensor, src=src)
 
 
-def barrier():
+def barrier() -> None:
     """Helper method to synchronize all processes.
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
@@ -399,7 +404,7 @@ def barrier():
     _model.barrier()
 
 
-def set_local_rank(index: int):
+def set_local_rank(index: int) -> None:
     """Method to hint the local rank in case if torch native distributed context is created by user
     without using :meth:`~ignite.distributed.initialize` or :meth:`~ignite.distributed.spawn`.
 
@@ -427,7 +432,7 @@ def set_local_rank(index: int):
     ComputationModel._ext_local_rank = index
 
 
-def _set_model(model, temporary=False):
+def _set_model(model: Any, temporary: bool = False) -> None:
     global _model, _need_to_sync
     _model = model
     _need_to_sync = True
@@ -435,13 +440,13 @@ def _set_model(model, temporary=False):
         _need_to_sync = False
 
 
-def _assert_backend(backend):
+def _assert_backend(backend: str) -> None:
     backends = available_backends()
     if backend not in backends:
         raise ValueError("Backend should be one of '{}'".format(backends))
 
 
-def initialize(backend: str, **kwargs):
+def initialize(backend: str, **kwargs: Any) -> None:
     """Initializes distributed configuration according to provided ``backend``
 
     Examples:
@@ -495,7 +500,7 @@ def initialize(backend: str, **kwargs):
         _set_model(comp_model_cls(backend, **kwargs))
 
 
-def finalize():
+def finalize() -> None:
     """Finalizes distributed configuration. For example, in case of native pytorch distributed configuration,
     it calls ``dist.destroy_process_group()``.
     """
@@ -503,7 +508,7 @@ def finalize():
     _set_model(_SerialModel())
 
 
-def show_config():
+def show_config() -> None:
     """Helper method to display distributed configuration via ``logging``.
     """
 
@@ -522,7 +527,7 @@ def show_config():
     logger.info("node rank: {}".format(get_node_rank()))
 
 
-def one_rank_only(rank: int = 0, with_barrier: bool = False):
+def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
     """Decorator to filter handlers wrt a rank number
 
     Args:
@@ -544,9 +549,9 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False):
             ...
     """
 
-    def _one_rank_only(func):
+    def _one_rank_only(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
             ret = None
             if get_rank() == rank:
                 ret = func(*args, **kwargs)
