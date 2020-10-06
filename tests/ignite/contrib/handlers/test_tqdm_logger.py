@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import time
+from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
@@ -13,6 +14,12 @@ from ignite.metrics import RunningAverage
 
 if sys.platform.startswith("win"):
     pytest.skip("Skip if on Windows", allow_module_level=True)
+
+
+def get_tqdm_version():
+    import tqdm
+
+    return LooseVersion(tqdm.__version__)
 
 
 def update_fn(engine, batch):
@@ -36,7 +43,10 @@ def test_pbar(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    else:
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<?]"
     assert err[-1] == expected
 
 
@@ -57,7 +67,10 @@ def test_pbar_file(tmp_path):
     file = open(str(file_path), "r")
     lines = file.readlines()
 
-    expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
+    else:
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<?]\n"
     assert lines[-2] == expected
 
 
@@ -132,7 +145,9 @@ def test_pbar_with_metric(capsys):
     RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
     pbar = ProgressBar()
-    pbar.attach(trainer, metric_names=["batchloss",])
+    pbar.attach(
+        trainer, metric_names=["batchloss",],
+    )
 
     trainer.run(data=data, max_epochs=1)
 
@@ -141,7 +156,10 @@ def test_pbar_with_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
+    else:
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5 [00:00<?]"
     assert actual == expected
 
 
@@ -172,7 +190,10 @@ def test_pbar_with_all_metric(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
+    else:
+        expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<?]"
     assert actual == expected
 
 
@@ -192,7 +213,10 @@ def test_pbar_no_metric_names(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch [2/2]: [1/2]  50%|█████      [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Epoch [2/2]: [1/2]  50%|█████      [00:00<00:00]"
+    else:
+        expected = "Epoch [2/2]: [1/2]  50%|█████      [00:00<?]"
     assert actual == expected
 
 
@@ -210,7 +234,10 @@ def test_pbar_with_output(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    else:
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<?]"
     assert err[-1] == expected
 
 
@@ -236,7 +263,10 @@ def test_pbar_with_scalar_output(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<00:00]"
+    else:
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<?]"
     assert err[-1] == expected
 
 
@@ -254,7 +284,10 @@ def test_pbar_with_str_output(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<00:00]"
+    else:
+        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<?]"
     assert err[-1] == expected
 
 
@@ -363,7 +396,10 @@ def test_pbar_with_max_epochs_set_to_one(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "Iteration: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Iteration: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+    else:
+        expected = "Iteration: [1/2]  50%|█████     , a=1 [00:00<?]"
     assert err[-1] == expected
 
 

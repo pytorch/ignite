@@ -92,6 +92,8 @@ ignite.engine.events
 .. autoclass:: Events
    :members:
 
+.. autoclass:: EventEnum
+
 .. autoclass:: State
 
 .. autoclass:: RemovableEventHandle

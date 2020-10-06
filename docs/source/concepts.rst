@@ -234,6 +234,8 @@ and be registered with :meth:`~ignite.engine.engine.Engine.register_events` in a
 
 .. code-block:: python
 
+    from ignite.engine import EventEnum
+
     class CustomEvents(EventEnum):
         """
         Custom events defined by user

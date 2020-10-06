@@ -6,7 +6,7 @@ pytest-cov
 pytest-xdist
 dill
 # Test contrib dependencies
-tqdm<=4.48.0
+tqdm
 scikit-learn
 matplotlib
 tensorboardX
