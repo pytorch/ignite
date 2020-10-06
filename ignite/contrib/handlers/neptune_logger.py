@@ -15,7 +15,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine
+from ignite.engine import Engine, EventEnum
 from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import BaseSaveHandler
 
@@ -326,7 +326,7 @@ class OutputHandler(BaseOutputHandler):
     ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, EventEnum]):
 
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OutputHandler works only with NeptuneLogger")
@@ -394,7 +394,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, EventEnum]):
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OptimizerParamsHandler works only with NeptuneLogger")
 
@@ -448,7 +448,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, EventEnum]):
 
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler WeightsScalarHandler works only with NeptuneLogger")
