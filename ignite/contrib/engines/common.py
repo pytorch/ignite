@@ -362,7 +362,7 @@ def setup_visdom_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-         :class:`~ignite.contrib.handlers.visdom_logger.VisdomLogger`
+        :class:`~ignite.contrib.handlers.visdom_logger.VisdomLogger`
     """
     logger = VisdomLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
