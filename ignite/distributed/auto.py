@@ -77,7 +77,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
             if kwargs.get("sampler", None) is not None:
                 sampler = DistributedProxySampler(
                     kwargs["sampler"], num_replicas=world_size, rank=rank
-                )  # type: Union[DistributedProxySampler, DistributedSampler]
+                )  # type: Union[DistributedProxySampler, DistributedSampler, Sampler]
             else:
                 sampler = DistributedSampler(
                     dataset, num_replicas=world_size, rank=rank, shuffle=kwargs.get("shuffle", True)
@@ -104,7 +104,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
 
     logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
-    dataloader = DataLoader(dataset, **kwargs)  # type: Union[DataLoader, "_MpDeviceLoader"]
+    dataloader = DataLoader(dataset, **kwargs)
 
     if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and world_size > 1:
 
@@ -118,9 +118,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         except ImportError:
             pass
 
-        sampler = dataloader.sampler  # type: ignore[union-attr]
-        dataloader = mp_device_loader_cls(dataloader, idist.device())
-        dataloader.sampler = sampler  # type: ignore[attr-defined]
+        mp_dataloader = mp_device_loader_cls(dataloader, idist.device())
+        mp_dataloader.sampler = dataloader.sampler  # type: ignore[attr-defined]
+        return mp_dataloader
 
     return dataloader
 
@@ -282,27 +282,21 @@ class DistributedProxySampler(DistributedSampler):
         )
         self.sampler = sampler
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        super().__setattr__(name, value)
-
-    def __getattr__(self, name: str) -> Any:
-        super().__getattribute__(name)
-
     def __iter__(self) -> Iterator:
         # deterministically shuffle based on epoch
-        torch.manual_seed(self.epoch)
+        torch.manual_seed(self.epoch)  # type: ignore[attr-defined]
 
         indices = []  # type: List
-        while len(indices) < self.total_size:
+        while len(indices) < self.total_size:  # type: ignore[attr-defined]
             indices += list(self.sampler)
 
-        if len(indices) > self.total_size:
-            indices = indices[: self.total_size]
+        if len(indices) > self.total_size:  # type: ignore[attr-defined]
+            indices = indices[: self.total_size]  # type: ignore[attr-defined]
 
         # subsample
-        indices = indices[self.rank : self.total_size : self.num_replicas]
-        if len(indices) != self.num_samples:
-            raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))
+        indices = indices[self.rank : self.total_size : self.num_replicas]  # type: ignore[attr-defined]
+        if len(indices) != self.num_samples:  # type: ignore[attr-defined]
+            raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))  # type: ignore[attr-defined]
 
         return iter(indices)
 
