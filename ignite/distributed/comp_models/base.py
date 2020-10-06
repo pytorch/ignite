@@ -136,7 +136,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     def _collective_op(
         self, tensor: Union[torch.Tensor, Number, str], fn: Callable, *args: Any, **kwargs: Any
-    ) -> Union[torch.Tensor, Number, List[str]]:
+    ) -> Union[torch.Tensor, Number, List[Number], List[str]]:
         tensor_to_number = tensor_to_str = False
         device = self.device()
         if isinstance(tensor, Number):
@@ -148,8 +148,11 @@ class ComputationModel(metaclass=ABCMeta):
 
         tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
 
-        if tensor_to_number and tensor.numel() == 1:
-            return cast(Number, tensor.item())
+        if tensor_to_number:
+            if tensor.numel() == 1:
+                return cast(Number, tensor.item())
+            else:
+                return tensor.tolist()
         elif tensor_to_str:
             return self._decode_str(tensor)
         return tensor
@@ -160,7 +163,9 @@ class ComputationModel(metaclass=ABCMeta):
 
         return cast(Union[torch.Tensor, Number], self._collective_op(tensor, self._do_all_reduce, op))
 
-    def all_gather(self, tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[str]]:
+    def all_gather(
+        self, tensor: Union[torch.Tensor, Number, str]
+    ) -> Union[torch.Tensor, Number, List[Number], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             raise TypeError("Unhandled input type {}".format(type(tensor)))
 
@@ -271,8 +276,10 @@ class _SerialModel(ComputationModel):
     def all_reduce(self, tensor: Union[torch.Tensor, Number], op: str = "sum") -> Union[torch.Tensor, Number]:
         return tensor
 
-    def all_gather(self, tensor: Union[torch.Tensor, Number]) -> Union[torch.Tensor, Number]:  # type: ignore
-        return tensor
+    def all_gather(
+        self, tensor: Union[torch.Tensor, Number, str]
+    ) -> Union[torch.Tensor, Number, List[Number], List[str]]:
+        return cast(Union[torch.Tensor, Number, List[Number], List[str]], tensor)
 
     def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
         return tensor
