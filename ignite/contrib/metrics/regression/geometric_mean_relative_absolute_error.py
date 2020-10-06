@@ -1,6 +1,9 @@
+from typing import Tuple
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
+from ignite.exceptions import NotComputableError
 
 
 class GeometricMeanRelativeAbsoluteError(_BaseRegression):
@@ -26,7 +29,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
         self._num_examples = 0
         self._sum_of_errors = 0.0
 
-    def _update(self, output):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         y_pred, y = output
         self._sum_y += y.sum()
         self._num_examples += y.shape[0]

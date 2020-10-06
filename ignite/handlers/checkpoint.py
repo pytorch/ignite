@@ -5,6 +5,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, namedtuple
+from tempfile import _TemporaryFileWrapper  # type: ignore
 from typing import Callable, Mapping, Optional, Union
 
 import torch
@@ -235,7 +236,7 @@ class Checkpoint(Serializable):
 
     def __init__(
         self,
-        to_save: Mapping,
+        to_save: Optional[Mapping],
         save_handler: Union[Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
@@ -287,7 +288,7 @@ class Checkpoint(Serializable):
         self.ext = "pt"
         self.global_step_transform = global_step_transform
         self.filename_pattern = filename_pattern
-        self._saved = []
+        self._saved = []  # type: list
         self.include_self = include_self
 
     @property
@@ -378,10 +379,11 @@ class Checkpoint(Serializable):
 
     def _setup_checkpoint(self) -> dict:
         checkpoint = {}
-        for k, obj in self.to_save.items():
-            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
-                obj = obj.module
-            checkpoint[k] = obj.state_dict()
+        if self.to_save is not None:
+            for k, obj in self.to_save.items():
+                if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                    obj = obj.module
+                checkpoint[k] = obj.state_dict()
         return checkpoint
 
     @staticmethod
@@ -572,7 +574,7 @@ class DiskSaver(BaseSaveHandler):
         self._save_func(checkpoint, path, torch.save)
 
     def _save_xla(self, checkpoint: Mapping, path: str):
-        import torch_xla.core.xla_model as xm
+        import torch_xla.core.xla_model as xm  # type: ignore
 
         # all tpu procs should enter here as internally performs sync across device
         self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
@@ -582,8 +584,8 @@ class DiskSaver(BaseSaveHandler):
             func(checkpoint, path, **self.kwargs)
         else:
             tmp_file = None
-            tmp_name = None
-            tmp = None
+            tmp_name = ""
+            tmp = None  # type: _TemporaryFileWrapper
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
                 tmp_file = tmp.file
@@ -728,9 +730,15 @@ class ModelCheckpoint(Checkpoint):
     def last_checkpoint(self) -> Union[str, None]:
         if len(self._saved) < 1:
             return None
+
+        if not isinstance(self.save_handler, DiskSaver):
+            raise RuntimeError(
+                "Unable to save checkpoint, save_handler should be DiskSaver, got {}.".format(type(self.save_handler))
+            )
+
         return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
 
-    def __call__(self, engine: Engine, to_save: Mapping) -> None:
+    def __call__(self, engine: Engine, to_save: Mapping) -> None:  # type: ignore
 
         if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")

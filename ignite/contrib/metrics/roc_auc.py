@@ -1,7 +1,11 @@
+from typing import Callable
+
+import torch
+
 from ignite.metrics import EpochMetric
 
 
-def roc_auc_compute_fn(y_preds, y_targets):
+def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
     try:
         from sklearn.metrics import roc_auc_score
     except ImportError:
@@ -12,7 +16,7 @@ def roc_auc_compute_fn(y_preds, y_targets):
     return roc_auc_score(y_true, y_pred)
 
 
-def roc_auc_curve_compute_fn(y_preds, y_targets):
+def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
     try:
         from sklearn.metrics import roc_curve
     except ImportError:
@@ -34,7 +38,7 @@ class ROC_AUC(EpochMetric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Optional default False. If True, `roc_curve
+        check_compute_fn (bool): Default False. If True, `roc_curve
             <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#
             sklearn.metrics.roc_auc_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
@@ -53,7 +57,7 @@ class ROC_AUC(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
         super(ROC_AUC, self).__init__(
             roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
@@ -70,7 +74,7 @@ class RocCurve(EpochMetric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Optional default False. If True, `sklearn.metrics.roc_curve
+        check_compute_fn (bool): Default False. If True, `sklearn.metrics.roc_curve
             <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#
             sklearn.metrics.roc_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
@@ -89,7 +93,7 @@ class RocCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
         super(RocCurve, self).__init__(
             roc_auc_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )

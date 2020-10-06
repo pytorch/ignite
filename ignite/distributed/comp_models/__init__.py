@@ -4,7 +4,7 @@ from ignite.distributed.comp_models.native import has_native_dist_support
 from ignite.distributed.comp_models.xla import has_xla_support
 
 
-def setup_available_computation_models():
+def setup_available_computation_models():  # type: ignore # inhomogeneous Tuple types are not supported
     models = [
         _SerialModel,
     ]

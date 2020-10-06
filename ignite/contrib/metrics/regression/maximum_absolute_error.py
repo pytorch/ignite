@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
@@ -24,7 +26,7 @@ class MaximumAbsoluteError(_BaseRegression):
     def reset(self):
         self._max_of_absolute_errors = -1
 
-    def _update(self, output):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         y_pred, y = output
         mae = torch.abs(y_pred - y.view_as(y_pred)).max().item()
         if self._max_of_absolute_errors < mae:

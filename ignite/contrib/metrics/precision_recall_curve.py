@@ -1,7 +1,11 @@
+from typing import Callable
+
+import torch
+
 from ignite.metrics import EpochMetric
 
 
-def precision_recall_curve_compute_fn(y_preds, y_targets):
+def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
     try:
         from sklearn.metrics import precision_recall_curve
     except ImportError:
@@ -23,7 +27,7 @@ class PrecisionRecallCurve(EpochMetric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Optional default False. If True, `precision_recall_curve
+        check_compute_fn (bool): Default False. If True, `precision_recall_curve
             <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
             #sklearn.metrics.precision_recall_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
@@ -42,7 +46,7 @@ class PrecisionRecallCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform=lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
         super(PrecisionRecallCurve, self).__init__(
             precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
