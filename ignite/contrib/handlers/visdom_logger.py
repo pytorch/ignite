@@ -1,10 +1,10 @@
 import numbers
 import os
 import warnings
-from modulefinder import Module
 from typing import Any, Callable, Optional, Union
 
 import torch
+import torch.nn as nn
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import (
@@ -33,6 +33,7 @@ class VisdomLogger(BaseLogger):
     This class requires `visdom <https://github.com/facebookresearch/visdom/>`_ package to be installed:
 
     .. code-block:: bash
+
 
         pip install git+https://github.com/facebookresearch/visdom.git
 
@@ -138,7 +139,14 @@ class VisdomLogger(BaseLogger):
 
     """
 
-    def __init__(self, server=None, port=None, num_workers=1, raise_exceptions=True, **kwargs: Any):
+    def __init__(
+        self,
+        server: Optional[str] = None,
+        port: Optional[int] = None,
+        num_workers: int = 1,
+        raise_exceptions: bool = True,
+        **kwargs: Any
+    ):
         try:
             import visdom
         except ImportError:
@@ -462,7 +470,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     """
 
     def __init__(
-        self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
+        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
     ):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
@@ -513,7 +521,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     """
 
     def __init__(
-        self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
+        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
     ):
         super(GradsScalarHandler, self).__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)

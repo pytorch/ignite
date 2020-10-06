@@ -4,7 +4,7 @@ import warnings
 from typing import Any, Callable, List, Mapping, Optional, Union
 
 import torch
-from torch.nn import Module
+import torch.nn as nn
 from torch.optim import Optimizer
 
 import ignite
@@ -445,7 +445,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, EventEnum]):
@@ -503,7 +503,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Any):

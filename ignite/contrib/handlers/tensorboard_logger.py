@@ -1,9 +1,9 @@
 import numbers
 import warnings
-from modulefinder import Module
 from typing import Any, Callable, List, Optional, Union
 
 import torch
+import torch.nn as nn
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import (
@@ -371,7 +371,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
@@ -416,7 +416,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, tag: Optional[str] = None):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
@@ -460,12 +460,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     Args:
         model (torch.nn.Module): model to log weights
-        reduction (callable. optional): function to reduce parameters into scalar
+        reduction (callable): function to reduce parameters into scalar
         tag (str, optional): common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
@@ -509,7 +509,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, tag: Optional[str] = None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):

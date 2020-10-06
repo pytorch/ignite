@@ -4,6 +4,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, List, Optional, Sequence, Union
 
 import torch
+import torch.nn as nn
 from torch.optim import Optimizer
 
 from ignite.engine import Engine, State
@@ -107,7 +108,7 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model: torch.nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
@@ -132,7 +133,7 @@ class BaseWeightsHistHandler(BaseHandler):
     Helper handler to log model's weights as histograms.
     """
 
-    def __init__(self, model: torch.nn.Module, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
