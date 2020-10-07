@@ -1,4 +1,4 @@
-Fixes # 
+Fixes #{issue number} 
 
 Description:
 
