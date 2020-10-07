@@ -261,6 +261,7 @@ def test__native_dist_model_create_dist_nccl_1(local_rank, world_size):
         local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
     )
 
+
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_create_dist_nccl_2(local_rank, world_size):
