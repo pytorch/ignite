@@ -261,8 +261,6 @@ Complete list of metrics
     - :class:`~ignite.metrics.SSIM`
     - :class:`~ignite.metrics.TopKCategoricalAccuracy`
     - :class:`~ignite.metrics.VariableAccumulation`
-    - :meth:`~ignite.metrics.metric.reinit__is_reduced`
-    - :meth:`~ignite.metrics.metric.sync_all_reduce`
 
 
 .. currentmodule:: ignite.metrics
