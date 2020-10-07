@@ -230,7 +230,7 @@ Metrics and distributed computations
 ------------------------------------
 
 In the above example, ``CustomAccuracy`` has ``reset``, ``update``, ``compute`` methods decorated
-with :meth:`~ignite.metrics.metric.reinit__is_reduced`, :meth:`ignite.metrics.metric.sync_all_reduce`. The purpose of these features is to adapt metrics in distributed
+with :meth:`~ignite.metrics.metric.reinit__is_reduced`, :meth:`~ignite.metrics.metric.sync_all_reduce`. The purpose of these features is to adapt metrics in distributed
 computations on supported backend and devices (see :doc:`distributed` for more details). More precisely, in the above
 example we added ``@sync_all_reduce("_num_examples", "_num_correct")`` over ``compute`` method. This means that when ``compute``
 method is called, metric's interal variables ``self._num_examples`` and ``self._num_correct`` are summed up over all participating
