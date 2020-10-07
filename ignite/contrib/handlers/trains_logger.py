@@ -5,9 +5,11 @@ import warnings
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Mapping, Optional, Type
+from typing import Any, Callable, List, Mapping, Optional, Type
 
 import torch
+from torch.nn import Module
+from torch.optim import Optimizer
 
 import ignite.distributed as idist
 from ignite.contrib.handlers.base_logger import (
@@ -17,6 +19,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
 )
+from ignite.engine import Engine, EventEnum
 from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import DiskSaver
 
@@ -31,6 +34,161 @@ __all__ = [
     "GradsHistHandler",
     "global_step_from_engine",
 ]
+
+
+class TrainsLogger(BaseLogger):
+    """
+    `Trains <https://github.com/allegroai/trains>`_ handler to log metrics, text, model/optimizer parameters,
+    plots during training and validation.
+    Also supports model checkpoints logging and upload to the storage solution of your choice (i.e. Trains File server,
+    S3 bucket etc.)
+
+    .. code-block:: bash
+
+        pip install trains
+        trains-init
+
+    Args:
+        project_name (str): The name of the project in which the experiment will be created. If the project
+            does not exist, it is created. If ``project_name`` is ``None``, the repository name is used. (Optional)
+        task_name (str): The name of Task (experiment). If ``task_name`` is ``None``, the Python experiment
+            script's file name is used. (Optional)
+        task_type (str): Optional. The task type. Valid values are:
+            - ``TaskTypes.training`` (Default)
+            - ``TaskTypes.train``
+            - ``TaskTypes.testing``
+            - ``TaskTypes.inference``
+
+    Examples:
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.trains_logger import *
+
+            # Create a logger
+
+            trains_logger = TrainsLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Attach the logger to the trainer to log training loss at each iteration
+            trains_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                output_transform=lambda loss: {"loss": loss}
+            )
+
+            # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
+            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # of the `trainer` instead of `train_evaluator`.
+            trains_logger.attach_output_handler(
+                train_evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="training",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer),
+            )
+
+            # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
+            # `trainer` instead of `evaluator`.
+            trains_logger.attach_output_handler(
+                evaluator,
+                event_name=Events.EPOCH_COMPLETED,
+                tag="validation",
+                metric_names=["nll", "accuracy"],
+                global_step_transform=global_step_from_engine(trainer)),
+            )
+
+            # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
+            trains_logger.attach_opt_params_handler(
+                trainer,
+                event_name=Events.ITERATION_STARTED,
+                optimizer=optimizer,
+                param_name='lr'  # optional
+            )
+
+            # Attach the logger to the trainer to log model's weights norm after each iteration
+            trains_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model)
+            )
+
+    """
+
+    def __init__(self, *_, **kwargs: Any):
+        try:
+            from trains import Task
+            from trains.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
+        except ImportError:
+            raise RuntimeError(
+                "This contrib module requires trains to be installed. "
+                "You may install trains using: \n pip install trains \n"
+            )
+
+        experiment_kwargs = {k: v for k, v in kwargs.items() if k not in ("project_name", "task_name", "task_type")}
+
+        if self.bypass_mode():
+            warnings.warn("TrainsSaver: running in bypass mode")
+
+            class _Stub(object):
+                def __call__(self, *_, **__):
+                    return self
+
+                def __getattr__(self, attr):
+                    if attr in ("name", "id"):
+                        return ""
+                    return self
+
+                def __setattr__(self, attr, val):
+                    pass
+
+            self._task = _Stub()
+        else:
+            self._task = Task.init(
+                project_name=kwargs.get("project_name"),
+                task_name=kwargs.get("task_name"),
+                task_type=kwargs.get("task_type", Task.TaskTypes.training),
+                **experiment_kwargs,
+            )
+
+        self.trains_logger = self._task.get_logger()
+
+        self.grad_helper = WeightsGradientHistHelper(logger=self.trains_logger)
+
+    @classmethod
+    def set_bypass_mode(cls, bypass: bool) -> None:
+        """
+        Will bypass all outside communication, and will drop all logs.
+        Should only be used in "standalone mode", when there is no access to the *trains-server*.
+        Args:
+            bypass: If ``True``, all outside communication is skipped.
+        """
+        setattr(cls, "_bypass", bypass)
+
+    @classmethod
+    def bypass_mode(cls) -> bool:
+        """
+        Returns the bypass mode state.
+        Note:
+            `GITHUB_ACTIONS` env will automatically set bypass_mode to ``True``
+            unless overridden specifically with ``TrainsLogger.set_bypass_mode(False)``.
+        Return:
+            If True, all outside communication is skipped.
+        """
+        return getattr(cls, "_bypass", bool(os.environ.get("CI")))
+
+    def close(self):
+        self.trains_logger.flush()
+
+    def _create_output_handler(self, *args: Any, **kwargs: Any):
+        return OutputHandler(*args, **kwargs)
+
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
+        return OptimizerParamsHandler(*args, **kwargs)
 
 
 class OutputHandler(BaseOutputHandler):
@@ -128,10 +286,16 @@ class OutputHandler(BaseOutputHandler):
 
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None):
+    def __init__(
+        self,
+        tag: str,
+        metric_names: Optional[List[str]] = None,
+        output_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable] = None,
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine: Engine, logger: TrainsLogger, event_name: EventEnum):
 
         if not isinstance(logger, TrainsLogger):
             raise RuntimeError("Handler OutputHandler works only with TrainsLogger")
@@ -194,10 +358,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer, param_name="lr", tag=None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine: Engine, logger: TrainsLogger, event_name: EventEnum):
         if not isinstance(logger, TrainsLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with TrainsLogger")
 
@@ -245,10 +409,10 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model, reduction=torch.norm, tag=None):
+    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine: Engine, logger: TrainsLogger, event_name: EventEnum):
 
         if not isinstance(logger, TrainsLogger):
             raise RuntimeError("Handler WeightsScalarHandler works only with TrainsLogger")
@@ -297,10 +461,10 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model, tag=None):
+    def __init__(self, model: Module, tag: Optional[str] = None):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine: Engine, logger: TrainsLogger, event_name: EventEnum):
         if not isinstance(logger, TrainsLogger):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with TrainsLogger")
 
@@ -352,10 +516,10 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model, reduction=torch.norm, tag=None):
+    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine: Engine, logger: TrainsLogger, event_name: EventEnum):
         if not isinstance(logger, TrainsLogger):
             raise RuntimeError("Handler GradsScalarHandler works only with TrainsLogger")
 
@@ -403,10 +567,10 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model, tag=None):
+    def __init__(self, model: Module, tag: Optional[str] = None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine: Engine, logger: TrainsLogger, event_name: EventEnum):
         if not isinstance(logger, TrainsLogger):
             raise RuntimeError("Handler 'GradsHistHandler' works only with TrainsLogger")
 
@@ -424,161 +588,6 @@ class GradsHistHandler(BaseWeightsHistHandler):
                 step=global_step,
                 hist_data=p.grad.detach().cpu().numpy(),
             )
-
-
-class TrainsLogger(BaseLogger):
-    """
-    `Trains <https://github.com/allegroai/trains>`_ handler to log metrics, text, model/optimizer parameters,
-    plots during training and validation.
-    Also supports model checkpoints logging and upload to the storage solution of your choice (i.e. Trains File server,
-    S3 bucket etc.)
-
-    .. code-block:: bash
-
-        pip install trains
-        trains-init
-
-    Args:
-        project_name (str): The name of the project in which the experiment will be created. If the project
-            does not exist, it is created. If ``project_name`` is ``None``, the repository name is used. (Optional)
-        task_name (str): The name of Task (experiment). If ``task_name`` is ``None``, the Python experiment
-            script's file name is used. (Optional)
-        task_type (str): Optional. The task type. Valid values are:
-            - ``TaskTypes.training`` (Default)
-            - ``TaskTypes.train``
-            - ``TaskTypes.testing``
-            - ``TaskTypes.inference``
-
-    Examples:
-
-        .. code-block:: python
-
-            from ignite.contrib.handlers.trains_logger import *
-
-            # Create a logger
-
-            trains_logger = TrainsLogger(
-                project_name="pytorch-ignite-integration",
-                task_name="cnn-mnist"
-            )
-
-            # Attach the logger to the trainer to log training loss at each iteration
-            trains_logger.attach_output_handler(
-                trainer,
-                event_name=Events.ITERATION_COMPLETED,
-                tag="training",
-                output_transform=lambda loss: {"loss": loss}
-            )
-
-            # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
-            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
-            # of the `trainer` instead of `train_evaluator`.
-            trains_logger.attach_output_handler(
-                train_evaluator,
-                event_name=Events.EPOCH_COMPLETED,
-                tag="training",
-                metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer),
-            )
-
-            # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
-            # `trainer` instead of `evaluator`.
-            trains_logger.attach_output_handler(
-                evaluator,
-                event_name=Events.EPOCH_COMPLETED,
-                tag="validation",
-                metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer)),
-            )
-
-            # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
-            trains_logger.attach_opt_params_handler(
-                trainer,
-                event_name=Events.ITERATION_STARTED,
-                optimizer=optimizer,
-                param_name='lr'  # optional
-            )
-
-            # Attach the logger to the trainer to log model's weights norm after each iteration
-            trains_logger.attach(
-                trainer,
-                event_name=Events.ITERATION_COMPLETED,
-                log_handler=WeightsScalarHandler(model)
-            )
-
-    """
-
-    def __init__(self, *_, **kwargs):
-        try:
-            from trains import Task
-            from trains.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
-        except ImportError:
-            raise RuntimeError(
-                "This contrib module requires trains to be installed. "
-                "You may install trains using: \n pip install trains \n"
-            )
-
-        experiment_kwargs = {k: v for k, v in kwargs.items() if k not in ("project_name", "task_name", "task_type",)}
-
-        if self.bypass_mode():
-            warnings.warn("TrainsSaver: running in bypass mode")
-
-            class _Stub(object):
-                def __call__(self, *_, **__):
-                    return self
-
-                def __getattr__(self, attr):
-                    if attr in ("name", "id"):
-                        return ""
-                    return self
-
-                def __setattr__(self, attr, val):
-                    pass
-
-            self._task = _Stub()
-        else:
-            self._task = Task.init(
-                project_name=kwargs.get("project_name"),
-                task_name=kwargs.get("task_name"),
-                task_type=kwargs.get("task_type", Task.TaskTypes.training),
-                **experiment_kwargs,
-            )
-
-        self.trains_logger = self._task.get_logger()
-
-        self.grad_helper = WeightsGradientHistHelper(logger=self.trains_logger,)
-
-    @classmethod
-    def set_bypass_mode(cls, bypass: bool) -> None:
-        """
-        Will bypass all outside communication, and will drop all logs.
-        Should only be used in "standalone mode", when there is no access to the *trains-server*.
-        Args:
-            bypass: If ``True``, all outside communication is skipped.
-        """
-        setattr(cls, "_bypass", bypass)
-
-    @classmethod
-    def bypass_mode(cls) -> bool:
-        """
-        Returns the bypass mode state.
-        Note:
-            `GITHUB_ACTIONS` env will automatically set bypass_mode to ``True``
-            unless overridden specifically with ``TrainsLogger.set_bypass_mode(False)``.
-        Return:
-            If True, all outside communication is skipped.
-        """
-        return getattr(cls, "_bypass", bool(os.environ.get("CI")))
-
-    def close(self):
-        self.trains_logger.flush()
-
-    def _create_output_handler(self, *args, **kwargs):
-        return OutputHandler(*args, **kwargs)
-
-    def _create_opt_params_handler(self, *args, **kwargs):
-        return OptimizerParamsHandler(*args, **kwargs)
 
 
 class TrainsSaver(DiskSaver):
@@ -622,7 +631,9 @@ class TrainsSaver(DiskSaver):
 
     """
 
-    def __init__(self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args, **kwargs):
+    def __init__(
+        self, logger: TrainsLogger = None, output_uri: str = None, dirname: str = None, *args: Any, **kwargs: Any
+    ):
 
         self._setup_check_trains(logger, output_uri)
 
@@ -647,7 +658,7 @@ class TrainsSaver(DiskSaver):
         super(TrainsSaver, self).__init__(dirname=dirname, *args, **kwargs)
 
     @idist.one_rank_only()
-    def _setup_check_trains(self, logger, output_uri):
+    def _setup_check_trains(self, logger: TrainsLogger, output_uri: str):
         try:
             from trains import Task
         except ImportError:
@@ -708,8 +719,7 @@ class TrainsSaver(DiskSaver):
             model_info.model.name = "{}: {}".format(model_info.task.name, self._filename)
             prefix = "Checkpoint Metadata: "
             metadata = "{}{}".format(
-                prefix,
-                ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none",
+                prefix, ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none"
             )
             comment = "\n".join(
                 metadata if line.startswith(prefix) else line for line in (model_info.model.comment or "").split("\n")

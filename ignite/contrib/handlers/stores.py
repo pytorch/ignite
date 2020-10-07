@@ -1,4 +1,6 @@
-from ignite.engine import Events
+from typing import Callable, Optional
+
+from ignite.engine import Engine, Events
 
 
 class EpochOutputStore:
@@ -31,17 +33,17 @@ class EpochOutputStore:
 
     """
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform: Callable = lambda x: x):
         self.data = None
         self.output_transform = output_transform
 
     def reset(self):
         self.data = []
 
-    def update(self, engine):
+    def update(self, engine: Engine):
         output = self.output_transform(engine.state.output)
         self.data.append(output)
 
-    def attach(self, engine):
+    def attach(self, engine: Engine):
         engine.add_event_handler(Events.EPOCH_STARTED, self.reset)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.update)

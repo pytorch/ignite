@@ -1,10 +1,10 @@
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections.abc import Sequence
-from typing import Any, Mapping
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import torch
+import torch.nn as nn
 from torch.optim import Optimizer
 
 from ignite.engine import Engine, State
@@ -21,7 +21,7 @@ class BaseOptimizerParamsHandler(BaseHandler):
     Base handler for logging optimizer parameters
     """
 
-    def __init__(self, optimizer, param_name="lr", tag=None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         if not (
             isinstance(optimizer, Optimizer)
             or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
@@ -41,7 +41,13 @@ class BaseOutputHandler(BaseHandler):
     Helper handler to log engine's output and/or metrics
     """
 
-    def __init__(self, tag, metric_names=None, output_transform=None, global_step_transform=None):
+    def __init__(
+        self,
+        tag: str,
+        metric_names: Optional[Union[str, List[str]]] = None,
+        output_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable] = None,
+    ):
 
         if metric_names is not None:
             if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
@@ -70,7 +76,7 @@ class BaseOutputHandler(BaseHandler):
         self.output_transform = output_transform
         self.global_step_transform = global_step_transform
 
-    def _setup_output_metrics(self, engine):
+    def _setup_output_metrics(self, engine: Engine):
         """Helper method to setup metrics to log
         """
         metrics = {}
@@ -102,14 +108,14 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model, reduction=torch.norm, tag=None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
         if not callable(reduction):
             raise TypeError("Argument reduction should be callable, " "but given {}".format(type(reduction)))
 
-        def _is_0D_tensor(t):
+        def _is_0D_tensor(t: torch.Tensor):
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
         # Test reduction function on a tensor
@@ -127,7 +133,7 @@ class BaseWeightsHistHandler(BaseHandler):
     Helper handler to log model's weights as histograms.
     """
 
-    def __init__(self, model, tag=None):
+    def __init__(self, model: nn.Module, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
@@ -141,7 +147,7 @@ class BaseLogger(metaclass=ABCMeta):
 
     """
 
-    def attach(self, engine, log_handler, event_name):
+    def attach(self, engine: Engine, log_handler: Callable, event_name: Any):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
         Args:
@@ -161,7 +167,7 @@ class BaseLogger(metaclass=ABCMeta):
 
         return engine.add_event_handler(event_name, log_handler, self, name)
 
-    def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Mapping):
+    def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any):
         """Shortcut method to attach `OutputHandler` to the logger.
 
         Args:
@@ -177,7 +183,7 @@ class BaseLogger(metaclass=ABCMeta):
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
-    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Mapping):
+    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any):
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
         Args:
@@ -194,11 +200,11 @@ class BaseLogger(metaclass=ABCMeta):
         self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
 
     @abstractmethod
-    def _create_output_handler(self, engine, *args, **kwargs):
+    def _create_output_handler(self, engine: Engine, *args: Any, **kwargs: Any):
         pass
 
     @abstractmethod
-    def _create_opt_params_handler(self, *args, **kwargs):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
         pass
 
     def __enter__(self):
