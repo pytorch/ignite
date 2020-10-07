@@ -211,7 +211,8 @@ def _test__native_dist_model_create_from_context_dist(local_rank, rank, world_si
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=world_size, rank=rank)
     dist.barrier()
-    torch.cuda.set_device(local_rank)
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
 
     true_conf = {
         "device": true_device,

@@ -227,7 +227,10 @@ if has_native_dist_support:
             if self.backend() == dist.Backend.NCCL:
                 index = torch.cuda.current_device()
                 if index < self.get_local_rank():
-                    warnings.warn("Current device index is less than current local rank.")
+                    warnings.warn(
+                        "Current device index is less than current local rank. "
+                        "Please, make sure to call torch.cuda.set_device(local_rank)."
+                    )
                 return torch.device("cuda:{}".format(index))
             return torch.device("cpu")
 
