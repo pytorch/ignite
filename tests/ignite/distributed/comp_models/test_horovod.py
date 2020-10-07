@@ -109,10 +109,13 @@ def _test__hvd_dist_model_create_from_context_dist(true_backend, true_device):
     assert _HorovodDistModel.create_from_context() is None
 
     hvd.init()
+    lrank = hvd.local_rank()
+    if torch.cuda.is_available():
+        torch.cuda.set_device(lrank)
 
     true_conf = {
         "device": true_device,
-        "local_rank": hvd.local_rank(),
+        "local_rank": lrank,
         "rank": hvd.rank(),
         "world_size": hvd.size(),
         "node_index": 0,
@@ -121,6 +124,7 @@ def _test__hvd_dist_model_create_from_context_dist(true_backend, true_device):
     }
 
     model = _HorovodDistModel.create_from_context()
+    assert model.backend() == true_backend
     _assert_model(model, true_conf)
 
     hvd.shutdown()
@@ -142,16 +146,50 @@ def test__hvd_dist_model_create_no_dist_cuda(gloo_hvd_executor):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
-def test__hvd_dist_model_create_dist(gloo_hvd_executor):
+def test__hvd_dist_model_create_dist_1(gloo_hvd_executor):
     gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cpu"), np=4)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
+def test__hvd_dist_model_create_dist_2(gloo_hvd_executor):
     gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cpu"), np=4)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__hvd_dist_model_create_dist_cuda(gloo_hvd_executor):
+def test__hvd_dist_model_create_dist_cuda_1(gloo_hvd_executor):
     gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cuda"), np=torch.cuda.device_count())
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test__hvd_dist_model_create_dist_cuda_2(gloo_hvd_executor):
     gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cuda"), np=torch.cuda.device_count())
+
+
+def _test__hvd_dist_model_warning_index_less_localrank():
+
+    assert _HorovodDistModel.create_from_context() is None
+
+    hvd.init()
+    # We deliberately incorrectly set cuda device to 0
+    torch.cuda.set_device(0)
+
+    model = _HorovodDistModel.create_from_context()
+    assert isinstance(model, _HorovodDistModel), "{} vs _HorovodDistModel".format(type(model))
+
+    if hvd.local_rank() == 1:
+        with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
+            model.device()
+
+    hvd.shutdown()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
+def test__hvd_dist_model_warning_index_less_localrank(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_warning_index_less_localrank, (), np=torch.cuda.device_count())
 
 
 def _test_dist_spawn_fn(local_rank, backend, world_size, device):
