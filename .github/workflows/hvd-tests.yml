@@ -1,0 +1,48 @@
+name: Run Horovod tests
+on: [push, pull_request]
+
+jobs:
+  horovod-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+      
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+      
+        ## Install Horovod
+        sudo apt-get update
+        python -m pip install --upgrade pip
+        pip install horovod
+      
+        ## Install gsutil
+        echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+        sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
+        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+        sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+        
+        ## Install openblas and mkl
+        sudo apt-get install -y libopenblas-dev libomp5
+        pip install mkl
+        
+        ## Download torch & xla
+        gsutil cp gs://tpu-pytorch/wheels/torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
+        gsutil cp gs://tpu-pytorch/wheels/torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
+        
+        ## Install torch & xla
+        pip install torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
+        pip install torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
+        
+        ## Install test deps and Ignite
+        pip install -r requirements-dev.txt
+        python setup.py install
+        
+        
