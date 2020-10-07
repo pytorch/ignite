@@ -211,6 +211,7 @@ def _test__native_dist_model_create_from_context_dist(local_rank, rank, world_si
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=world_size, rank=rank)
     dist.barrier()
+    torch.cuda.set_device(local_rank)
 
     true_conf = {
         "device": true_device,
@@ -244,20 +245,49 @@ def test__native_dist_model_create_no_dist_nccl(clean_env):
 
 
 @pytest.mark.distributed
-def test__native_dist_model_create_dist_gloo(local_rank, world_size):
+def test__native_dist_model_create_dist_gloo_1(local_rank, world_size):
     _test__native_dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "gloo", "cpu")
+
+
+@pytest.mark.distributed
+def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
     _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", "cpu")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__native_dist_model_create_dist_nccl(local_rank, world_size):
+def test__native_dist_model_create_dist_nccl_1(local_rank, world_size):
     _test__native_dist_model_create_from_backend_dist(
         local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
     )
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test__native_dist_model_create_dist_nccl_2(local_rank, world_size):
     _test__native_dist_model_create_from_context_dist(
         local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
     )
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
+def test__native_dist_model_warning_index_less_localrank(local_rank, world_size):
+
+    assert _NativeDistModel.create_from_context() is None
+
+    dist.init_process_group("nccl", "tcp://0.0.0.0:2222", world_size=world_size, rank=local_rank)
+    dist.barrier()
+    # We deliberately incorrectly set cuda device to 0
+    torch.cuda.set_device(0)
+
+    model = _NativeDistModel.create_from_context()
+    assert isinstance(model, _NativeDistModel), "{} vs _NativeDistModel".format(type(model))
+
+    if local_rank == 1:
+        with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
+            model.device()
+
+    dist.destroy_process_group()
 
 
 def _test_dist_spawn_fn(local_rank, backend, world_size, device):
@@ -299,20 +329,3 @@ def test__native_dist_model_spawn_gloo():
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_spawn_nccl():
     _test__native_dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
-def test__warning_if_deviceindex_less_than_localrank(local_rank, world_size):
-
-    assert _NativeDistModel.create_from_context() is None
-
-    dist.init_process_group("nccl", "tcp://0.0.0.0:2222", world_size=world_size, rank=local_rank)
-    dist.barrier()
-
-    with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
-        model = _NativeDistModel.create_from_context()
-
-        _test__native_dist_model_create_from_context_dist(
-            local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
-        )
