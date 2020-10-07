@@ -256,13 +256,13 @@ Complete list of metrics
     - :class:`~ignite.metrics.MetricsLambda`
     - :class:`~ignite.metrics.Precision`
     - :class:`~ignite.metrics.Recall`
-    - :meth:`~ignite.metrics.metric.reinit__is_reduced`
     - :class:`~ignite.metrics.RootMeanSquaredError`
     - :class:`~ignite.metrics.RunningAverage`
     - :class:`~ignite.metrics.SSIM`
-    - :meth:`~ignite.metrics.metric.sync_all_reduce`
     - :class:`~ignite.metrics.TopKCategoricalAccuracy`
     - :class:`~ignite.metrics.VariableAccumulation`
+    - :meth:`~ignite.metrics.metric.reinit__is_reduced`
+    - :meth:`~ignite.metrics.metric.sync_all_reduce`
 
 
 .. currentmodule:: ignite.metrics
@@ -323,6 +323,7 @@ Complete list of metrics
 
 .. currentmodule:: ignite.metrics.metric
 
+.. autofunction:: reinit__is_reduced
+
 .. autofunction:: sync_all_reduce
 
-.. autofunction:: reinit__is_reduced
