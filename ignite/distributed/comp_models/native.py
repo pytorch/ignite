@@ -97,7 +97,6 @@ if has_native_dist_support:
             self._setup_attrs()
 
         def _compute_nproc_per_node(self) -> int:
-            print("_compute_nproc_per_node")
             local_rank = self.get_local_rank()
             device = torch.device("cpu")
             if self.backend() == dist.Backend.NCCL:

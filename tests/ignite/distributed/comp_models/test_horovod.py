@@ -36,7 +36,6 @@ def _test__hvd_dist_model_create_from_backend_no_dist(backend, true_device):
     model = _HorovodDistModel.create_from_backend(backend=backend)
 
     assert hvd.rank() > -1
-    print("true_device", true_device)
     _assert_model(
         model,
         {
