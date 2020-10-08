@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7]
-        pytorch-channel: [pytorch, pytorch-nightly]
+        pytorch-channel: [pytorch]
       
 
     steps:
@@ -21,28 +21,26 @@ jobs:
     - name: Install dependencies
       shell: bash -l {0}
       run: |      
-        ## Install Horovod
-        sudo apt-get update
-        python -m pip install --upgrade pip
-        pip install horovod
-
         #install other dependencies
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
         pip install -r requirements-dev.txt
         # Fixes #1153
         pip install --upgrade scipy==1.4.1
+        pip install horovod
         python setup.py install
       
     - name: Run Tests
       shell: bash -l {0}
       run: |
         SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
+
     - name: Run MNIST Examples
       shell: bash -l {0}
       run: |
         # MNIST
         # 1) mnist.py
         python examples/mnist/mnist.py --epochs=1
+
     - name: Run MNIST with loggers Examples
       shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -58,6 +56,7 @@ jobs:
         # 3.2) mnist_with_tensorboard.py with native torch tb
         pip uninstall -y tensorboardX
         python examples/mnist/mnist_with_tensorboard.py --epochs=1
+
     - name: Run MNIST Example With Crash
       shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -71,6 +70,7 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
+
     - name: Run GAN example
       shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -87,6 +87,7 @@ jobs:
         python examples/reinforcement_learning/actor_critic.py --max-episodes=2
         # 2) Reinforce
         python examples/reinforcement_learning/reinforce.py --max-episodes=2
+
     - name: Run Neural Style Example
       shell: bash -l {0}
       if: ${{ matrix.os == 'ubuntu-latest' }}
