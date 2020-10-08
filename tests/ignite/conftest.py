@@ -231,6 +231,10 @@ def _hvd_task_with_init(func, args):
     import horovod.torch as hvd
 
     hvd.init()
+    lrank = hvd.local_rank()
+    if torch.cuda.is_available():
+        torch.cuda.set_device(lrank)
+
     func(*args)
     hvd.shutdown()
 
