@@ -63,7 +63,10 @@ jobs:
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
     - stage: Docs
       python: "3.7"
-      if: type != cron AND branch = master
+      branches:
+        only:
+          - master
+      if: type != cron
       # Use previously defined before_install
       before_install: *before_install
 
