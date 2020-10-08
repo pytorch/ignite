@@ -169,6 +169,7 @@ def test__hvd_dist_model_create_dist_cuda_2(gloo_hvd_executor):
 
 def _test__hvd_dist_model_warning_index_less_localrank():
 
+    assert torch.cuda.is_available()
     assert _HorovodDistModel.create_from_context() is None
 
     hvd.init()
