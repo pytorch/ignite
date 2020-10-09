@@ -1,5 +1,5 @@
-from typing import Callable, Sequence, Union
 import enum
+from typing import Callable, Sequence, Union
 
 import torch
 
@@ -123,6 +123,7 @@ class Accuracy(_BaseClassification):
             binarization is used.
 
     """
+
     class Mode(enum.Enum):
         LABELS = 0
         PROBABILITIES = 1
