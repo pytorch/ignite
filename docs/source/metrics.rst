@@ -17,6 +17,34 @@ value is then computed using the output of the engine's ``process_function``:
     metric = Accuracy()
     metric.attach(engine, "accuracy")
 
+If the engine's prediction output ``y_pred`` represents probability estimates, it can be binarized using the
+``Mode.PROBABILITIES``:
+.. code-block:: python
+
+    def process_function(engine, batch):
+        # ...
+        y = torch.from_numpy(np.array([0, 0, 1]))
+        y_pred = torch.from_numpy(np.array([0.1, 0.2, 0.7]))
+        return y_pred, y
+
+    engine = Engine(process_function)
+    metric = Accuracy(mode=Accuracy.Mode.PROBABILITIES)
+    metric.attach(engine, "accuracy")
+
+If the engine's prediction output ``y_pred`` represents logits, it can be binarized using the
+``Mode.LOGITS``:
+.. code-block:: python
+
+    def process_function(engine, batch):
+        # ...
+        y = torch.from_numpy(np.array([0, 0, 1]))
+        y_pred = torch.from_numpy(np.array([-2.1, 0.6, 1.7]))
+        return y_pred, y
+
+    engine = Engine(process_function)
+    metric = Accuracy(mode=Accuracy.Mode.LOGITS)
+    metric.attach(engine, "accuracy")
+
 If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``, the user can
 use the ``output_transform`` argument to transform it:
 
@@ -41,13 +69,13 @@ use the ``output_transform`` argument to transform it:
 .. warning::
 
     Please, be careful when using ``lambda`` functions to setup multiple ``output_transform`` for multiple metrics
-    
+
     .. code-block:: python
 
         # Wrong
         # metrics_group = [Accuracy(output_transform=lambda output: output[name]) for name in names]
         # As lambda can not store `name` and all `output_transform` will use the last `name`
-        
+
         # A correct way. For example, using functools.partial
         from functools import partial
 
@@ -55,7 +83,7 @@ use the ``output_transform`` argument to transform it:
             return output[name]
 
         metrics_group = [Accuracy(output_transform=partial(ot_func, name=name)) for name in names]
-    
+
     For more details, see `here <https://discuss.pytorch.org/t/evaluate-multiple-models-with-one-evaluator-results-weird-metrics/96695>`_
 
 .. Note ::
