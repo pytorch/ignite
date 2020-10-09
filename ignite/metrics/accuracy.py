@@ -104,8 +104,8 @@ class Accuracy(_BaseClassification):
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and
       num_categories must be greater than 1 for multilabel cases.
 
-    In binary and multilabel cases, the elements of `y` should have 0 or 1 values, while `y_pred` can be
-    thresholded using PROBABILITIES Mode.
+    In binary and multilabel cases, the elements of `y` should have 0 or 1 values, while `y_pred` can represent
+    probabilities using PROBABILITIES Mode or logits using LOGITS Mode.
     predictions can be done as below:
 
     Args:
@@ -126,6 +126,7 @@ class Accuracy(_BaseClassification):
     class Mode(enum.Enum):
         LABELS = 0
         PROBABILITIES = 1
+        LOGITS = 2
 
     def __init__(
         self,
@@ -154,6 +155,8 @@ class Accuracy(_BaseClassification):
 
         if self._mode == self.Mode.PROBABILITIES:
             y_pred = (y_pred >= self._threshold).int()
+        if self._mode == self.Mode.LOGITS:
+            y_pred = (torch.sigmoid(y_pred) >= self._threshold).int()
 
         self._check_type([y_pred, y])
 

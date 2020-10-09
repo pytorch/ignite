@@ -166,6 +166,81 @@ def test_binary_input_N_probabilities_threshold():
         _test()
 
 
+def test_binary_input_N_logits():
+    # Binary accuracy on logits input of shape (N, 1) or (N, )
+    def _test():
+        acc = Accuracy(mode=Accuracy.Mode.LOGITS)
+
+        y_pred = torch.randn(size=(10,))
+        y = torch.randint(0, 2, size=(10,)).long()
+        acc.update((y_pred, y))
+        np_y = y.numpy().ravel()
+        np_y_pred = torch.sigmoid(y_pred).numpy().round().ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        # Batched Updates
+        acc.reset()
+        y_pred = torch.randn(size=(100,))
+        y = torch.randint(0, 2, size=(100,)).long()
+
+        n_iters = 16
+        batch_size = y.shape[0] // n_iters + 1
+
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = torch.sigmoid(y_pred).numpy().round().ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+
+def test_binary_input_N_logits_threshold():
+    # Binary accuracy on logits input of shape (N, 1) or (N, ),
+    # with custom binarization threshold.
+    def _test():
+        acc = Accuracy(mode=Accuracy.Mode.LOGITS, threshold=0.75)
+
+        y_pred = torch.randn(size=(10,))
+        y = torch.randint(0, 2, size=(10,)).long()
+        acc.update((y_pred, y))
+        np_y = y.numpy().ravel()
+        np_y_pred = (torch.sigmoid(y_pred).numpy() >= 0.75).astype(int).ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+        # Batched Updates
+        acc.reset()
+        y_pred = torch.randn(size=(100,))
+        y = torch.randint(0, 2, size=(100,)).long()
+
+        n_iters = 16
+        batch_size = y.shape[0] // n_iters + 1
+
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = (torch.sigmoid(y_pred).numpy() >= 0.75).astype(int).ravel()
+        assert acc._type == "binary"
+        assert isinstance(acc.compute(), float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(10):
+        _test()
+
+
 def test_binary_input_NL():
     # Binary accuracy on input of shape (N, L)
     def _test():
