@@ -83,7 +83,7 @@ def _test_distrib_all_reduce(device):
 
 def _test_distrib_all_gather(device):
 
-    res = idist.all_gather(10)
+    res = torch.tensor(idist.all_gather(10))
     true_res = torch.tensor([10,] * idist.get_world_size(), device=device)
     assert (res == true_res).all()
 

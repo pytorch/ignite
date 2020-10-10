@@ -279,7 +279,9 @@ class _SerialModel(ComputationModel):
     def all_gather(
         self, tensor: Union[torch.Tensor, Number, str]
     ) -> Union[torch.Tensor, Number, List[Number], List[str]]:
-        return cast(Union[torch.Tensor, Number, List[Number], List[str]], tensor)
+        if isinstance(tensor, torch.Tensor):
+            return tensor
+        return cast(Union[List[Number], List[str]], [tensor])
 
     def broadcast(self, tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
         return tensor
