@@ -11,6 +11,8 @@ from ignite.engine.utils import _check_signature
 
 if TYPE_CHECKING:
     from ignite.engine.engine import Engine
+else:
+    Engine = object
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State"]
 
