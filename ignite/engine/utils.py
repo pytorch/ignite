@@ -1,11 +1,11 @@
 import inspect
-from typing import Callable
+from typing import Any, Callable
 
 
-def _check_signature(fn: Callable, fn_description: str, *args, **kwargs) -> None:
+def _check_signature(fn: Callable, fn_description: str, *args: Any, **kwargs: Any) -> None:
     # if handler with filter, check the handler rather than the decorator
     if hasattr(fn, "_parent"):
-        signature = inspect.signature(fn._parent())
+        signature = inspect.signature(fn._parent())  # type: ignore[attr-defined]
     else:
         signature = inspect.signature(fn)
     try:  # try without engine

@@ -5,7 +5,9 @@ import warnings
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+
+from torch.utils.data import DataLoader
 
 from ignite._utils import _to_hours_mins_secs
 from ignite.base import Serializable
@@ -120,18 +122,18 @@ class Engine(Serializable):
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
     def __init__(self, process_function: Callable):
-        self._event_handlers = defaultdict(list)
+        self._event_handlers = defaultdict(list)  # type: Dict[Any, List]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
-        self.last_event_name = None
+        self.last_event_name = None  # type: Optional[Events]
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = State()
-        self._state_dict_user_keys = []
-        self._allowed_events = []
+        self._state_dict_user_keys = []  # type: List[str]
+        self._allowed_events = []  # type: List[EventEnum]
 
-        self._dataloader_iter = None
-        self._init_iter = []
+        self._dataloader_iter = None  # type: Optional[Iterator[Any]]
+        self._init_iter = []  # type: List[int]
 
         self.register_events(*Events)
 
@@ -232,16 +234,16 @@ class Engine(Serializable):
         # signature of the following wrapper will be inspected during registering to check if engine is necessary
         # we have to build a wrapper with relevant signature : solution is functools.wraps
         @functools.wraps(handler)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             event = self.state.get_event_attrib_value(event_name)
             if event_filter(self, event):
                 return handler(*args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
-        wrapper._parent = weakref.ref(handler)
+        wrapper._parent = weakref.ref(handler)  # type: ignore[attr-defined]
         return wrapper
 
-    def add_event_handler(self, event_name: Any, handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
@@ -312,7 +314,7 @@ class Engine(Serializable):
         return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
-    def _assert_non_filtered_event(event_name: Any):
+    def _assert_non_filtered_event(event_name: Any) -> None:
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -321,7 +323,7 @@ class Engine(Serializable):
                 "Argument event_name should not be a filtered event, " "please use event without any event filtering"
             )
 
-    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None):
+    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None) -> bool:
         """Check if the specified event has the specified handler.
 
         Args:
@@ -332,7 +334,7 @@ class Engine(Serializable):
         if event_name is not None:
             if event_name not in self._event_handlers:
                 return False
-            events = [event_name]
+            events = [event_name]  # type: Union[List[Any], Dict[Any, List]]
         else:
             events = self._event_handlers
         for e in events:
@@ -344,10 +346,10 @@ class Engine(Serializable):
     @staticmethod
     def _compare_handlers(user_handler: Callable, registered_handler: Callable) -> bool:
         if hasattr(registered_handler, "_parent"):
-            registered_handler = registered_handler._parent()
+            registered_handler = registered_handler._parent()  # type: ignore[attr-defined]
         return registered_handler == user_handler
 
-    def remove_event_handler(self, handler: Callable, event_name: Any):
+    def remove_event_handler(self, handler: Callable, event_name: Any) -> None:
         """Remove event handler `handler` from registered handlers of the engine
 
         Args:
@@ -367,7 +369,7 @@ class Engine(Serializable):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
 
-    def on(self, event_name, *args, **kwargs):
+    def on(self, event_name: Any, *args: Any, **kwargs: Any) -> Callable:
         """Decorator shortcut for add_event_handler.
 
         Args:
@@ -398,7 +400,7 @@ class Engine(Serializable):
 
         return decorator
 
-    def _fire_event(self, event_name: Any, *event_args, **event_kwargs) -> None:
+    def _fire_event(self, event_name: Any, *event_args: Any, **event_kwargs: Any) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -460,7 +462,7 @@ class Engine(Serializable):
         )
         self.should_terminate_single_epoch = True
 
-    def _handle_exception(self, e: Exception) -> None:
+    def _handle_exception(self, e: BaseException) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
             self._fire_event(Events.EXCEPTION_RAISED, e)
         else:
@@ -497,7 +499,7 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
+        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)  # type: Tuple[str, ...]
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
@@ -555,9 +557,9 @@ class Engine(Serializable):
 
     @staticmethod
     def _is_done(state: State) -> bool:
-        return state.iteration == state.epoch_length * state.max_epochs
+        return state.iteration == state.epoch_length * state.max_epochs  # type: ignore[operator]
 
-    def set_data(self, data):
+    def set_data(self, data: Union[Iterable, DataLoader]) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
         from newly provided data. Please, note that epoch length is not modified.
 
@@ -706,23 +708,23 @@ class Engine(Serializable):
         return self._internal_run()
 
     @staticmethod
-    def _init_timers(state: State):
+    def _init_timers(state: State) -> None:
         state.times[Events.EPOCH_COMPLETED.name] = 0.0
         state.times[Events.COMPLETED.name] = 0.0
 
-    def _get_data_length(self, data):
-        data_length = None
+    def _get_data_length(self, data: Optional[Iterable] = None) -> Optional[int]:
         try:
             if hasattr(data, "__len__"):
-                data_length = len(data)
+                return len(data)  # type: ignore[arg-type]
         except TypeError:
             # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
             pass
-        return data_length
+        return None
 
     def _setup_engine(self) -> None:
         iteration = self.state.iteration
-        self._dataloader_iter = iter(self.state.dataloader)
+        if self.state.dataloader is not None:
+            self._dataloader_iter = iter(self.state.dataloader)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
@@ -735,7 +737,7 @@ class Engine(Serializable):
         try:
             start_time = time.time()
             self._fire_event(Events.STARTED)
-            while self.state.epoch < self.state.max_epochs and not self.should_terminate:
+            while self.state.epoch < self.state.max_epochs and not self.should_terminate:  # type: ignore[operator]
                 self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
 
@@ -791,7 +793,8 @@ class Engine(Serializable):
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
                         self._fire_event(Events.GET_BATCH_STARTED)
-                    self.state.batch = next(self._dataloader_iter)
+                    if self._dataloader_iter is not None:
+                        self.state.batch = next(self._dataloader_iter)
                     self._fire_event(Events.GET_BATCH_COMPLETED)
                     iter_counter += 1
                     should_exit = False
@@ -809,12 +812,15 @@ class Engine(Serializable):
                                 "Data iterator can not provide data anymore but required total number of "
                                 "iterations to run is not reached. "
                                 "Current iteration: {} vs Total iterations to run : {}".format(
-                                    self.state.iteration, self.state.epoch_length * self.state.max_epochs
+                                    self.state.iteration,
+                                    self.state.epoch_length * self.state.max_epochs,  # type: ignore[operator]
                                 )
                             )
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
+                    if self.state.dataloader is None:
+                        raise TypeError("dataloader can not be None")
                     self.set_data(self.state.dataloader)
 
                     should_exit = True
@@ -832,6 +838,8 @@ class Engine(Serializable):
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
                     self.should_terminate_single_epoch = False
+                    if self.state.dataloader is None:
+                        raise TypeError("dataloader can not be None")
                     self.set_data(self.state.dataloader)
                     break
 
