@@ -556,7 +556,7 @@ class Engine(Serializable):
 
     @staticmethod
     def _is_done(state: State) -> bool:
-        return state.iteration == state.epoch_length * state.max_epochs or state.iteration == state.max_iters
+        return state.iteration == state.epoch_length * state.max_epochs
 
     def set_data(self, data):
         """Method to set data. After calling the method the next batch passed to `processing_function` is
@@ -675,6 +675,7 @@ class Engine(Serializable):
                         )
                     )
                 self.state.max_epochs = max_epochs
+                self.state.max_iters = max_epochs * self.state.epoch_length
             if epoch_length is not None:
                 if epoch_length != self.state.epoch_length:
                     raise ValueError(
@@ -690,13 +691,18 @@ class Engine(Serializable):
                 if epoch_length is not None and epoch_length < 1:
                     raise ValueError("Input data has zero size. Please provide non-empty data")
 
-            if max_iters is None:
-                if max_epochs is None:
-                    max_epochs = 1
-                max_iters = max_epochs * epoch_length
+            if epoch_length is not None:
+                if max_iters is None:
+                    if max_epochs is None:
+                        max_epochs = 1
+                    max_iters = max_epochs * epoch_length
+                else:
+                    if max_epochs is None:
+                        max_epochs = math.ceil(max_iters / epoch_length)
+
             else:
                 if max_epochs is None:
-                    max_epochs = math.ceil(max_iters / epoch_length)
+                    max_epochs = 1
 
             self.state.iteration = 0
             self.state.epoch = 0
@@ -754,10 +760,13 @@ class Engine(Serializable):
                 # time is available for handlers but must be update after fire
                 self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
                 handlers_start_time = time.time()
-                if self.should_terminate or self.state.iteration == self.state.max_iters:
+                if self.should_terminate:
                     self._fire_event(Events.TERMINATE)
-                else:
+                elif self.state.iteration % self.state.epoch_length == 0:
                     self._fire_event(Events.EPOCH_COMPLETED)
+                elif self.state.max_iters == self.state.iteration:
+                    self.state.iteration == self.state.max_iters
+                    self._fire_event(Events.TERMINATE)
 
                 time_taken += time.time() - handlers_start_time
                 # update time wrt handlers
@@ -809,6 +818,8 @@ class Engine(Serializable):
                     if self.state.epoch_length is None:
                         # Define epoch length and stop the epoch
                         self.state.epoch_length = iter_counter
+                        if self.state.max_iters is None:
+                            self.state.max_iters = self.state.epoch_length * self.state.max_epochs
                         break
 
                     # Should exit while loop if we can not iterate
@@ -843,10 +854,10 @@ class Engine(Serializable):
                     self.set_data(self.state.dataloader)
                     break
 
-                if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
+                if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
                     break
 
-                if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
+                if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
                     break
 
         except Exception as e:
