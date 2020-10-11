@@ -508,7 +508,7 @@ class Engine(Serializable):
         `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
         Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
-        This method does not remove any custom attributs added by user.
+        This method does not remove any custom attributes added by user.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -555,7 +555,7 @@ class Engine(Serializable):
 
     @staticmethod
     def _is_done(state: State) -> bool:
-        return state.iteration == state.epoch_length * state.max_epochs
+        return state.iteration == state.epoch_length * state.max_epochs or state.iteration == state.max_iters
 
     def set_data(self, data):
         """Method to set data. After calling the method the next batch passed to `processing_function` is
@@ -597,6 +597,7 @@ class Engine(Serializable):
         self,
         data: Iterable,
         max_epochs: Optional[int] = None,
+        max_iters: Options[int] = None,
         epoch_length: Optional[int] = None,
         seed: Optional[int] = None,
     ) -> State:
@@ -683,16 +684,23 @@ class Engine(Serializable):
 
         if self.state.max_epochs is None or self._is_done(self.state):
             # Create new state
-            if max_epochs is None:
-                max_epochs = 1
             if epoch_length is None:
                 epoch_length = self._get_data_length(data)
                 if epoch_length is not None and epoch_length < 1:
                     raise ValueError("Input data has zero size. Please provide non-empty data")
 
+            if max_iters is None:
+                if max_epochs is None:
+                    max_epochs = 1
+                max_iters = max_epochs * epoch_length
+            else:
+                if max_epochs is None:
+                    max_epochs = ceil(max_iters / epoch_length)
+
             self.state.iteration = 0
             self.state.epoch = 0
             self.state.max_epochs = max_epochs
+            self.state.max_iters = max_iters
             self.state.epoch_length = epoch_length
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
@@ -836,6 +844,10 @@ class Engine(Serializable):
                     break
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
+                    break
+
+                if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
+                    self.state.should_terminate = True
                     break
 
         except Exception as e:
