@@ -369,7 +369,7 @@ class State:
         self.epoch = 0
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
-        self.max_iter = None  # type: Optional[int]
+        self.max_iters = None  # type: Optional[int]
         self.output = None  # type: Optional[int]
         self.batch = None  # type: Optional[int]
         self.metrics = {}  # type: Dict[str, Any]
