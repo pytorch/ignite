@@ -375,7 +375,7 @@ class State:
         self.epoch = 0
         self.epoch_length = None
         self.max_epochs = None
-        self.max_iter = None
+        self.max_iters = None
         self.output = None
         self.batch = None
         self.metrics = {}
