@@ -510,7 +510,7 @@ class Engine(Serializable):
         If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
         Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
-        This method does not remove any custom attributs added by user.
+        This method does not remove any custom attributes added by user.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -595,7 +595,13 @@ class Engine(Serializable):
         self.state.dataloader = data
         self._dataloader_iter = iter(self.state.dataloader)
 
-    def run(self, data: Iterable, max_epochs: Optional[int] = None, epoch_length: Optional[int] = None,) -> State:
+    def run(
+        self,
+        data: Iterable,
+        max_epochs: Optional[int] = None,
+        max_iters: Options[int] = None,
+        epoch_length: Optional[int] = None,
+    ) -> State:
         """Runs the `process_function` over the passed data.
 
         Engine has a state and the following logic is applied in this function:
@@ -617,6 +623,8 @@ class Engine(Serializable):
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
                 determined as the iteration on which data iterator raises `StopIteration`.
                 This argument should not change if run is resuming from a state.
+            max_iters (int, optional): Number of iterations to run for.
+                `max_iters` and `max_epochs` are mutually exclusive; only one of the two arguments should be provided.
 
         Returns:
             State: output state.
@@ -670,16 +678,23 @@ class Engine(Serializable):
 
         if self.state.max_epochs is None or self._is_done(self.state):
             # Create new state
-            if max_epochs is None:
-                max_epochs = 1
             if epoch_length is None:
                 epoch_length = self._get_data_length(data)
                 if epoch_length is not None and epoch_length < 1:
                     raise ValueError("Input data has zero size. Please provide non-empty data")
 
+            if max_iters is None:
+                if max_epochs is None:
+                    max_epochs = 1
+                max_iters = max_epochs * epoch_length
+            else:
+                if max_epochs is None:
+                    max_epochs = ceil(max_iters / epoch_length)
+
             self.state.iteration = 0
             self.state.epoch = 0
             self.state.max_epochs = max_epochs
+            self.state.max_iters = max_iters
             self.state.epoch_length = epoch_length
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
@@ -837,6 +852,10 @@ class Engine(Serializable):
                     break
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
+                    break
+
+                if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
+                    self.state.should_terminate = True
                     break
 
         except Exception as e:
