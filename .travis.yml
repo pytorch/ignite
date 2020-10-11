@@ -63,10 +63,8 @@ jobs:
     # GitHub Pages Deployment: https://docs.travis-ci.com/user/deployment/pages/
     - stage: Docs
       python: "3.7"
-      branches:
-        only:
-          - master
-      if: type != cron
+
+      if: type != cron and $TRAVIS_PULL_REQUEST = True
       # Use previously defined before_install
       before_install: *before_install
 
