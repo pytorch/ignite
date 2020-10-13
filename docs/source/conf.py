@@ -192,3 +192,16 @@ intersphinx_mapping = {"https://docs.python.org/": None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+# -- Type hints configs ------------------------------------------------------
+
+autodoc_typehints = "signature"
+
+# -- A patch that turns-off cross refs for type annotations ------------------
+
+import sphinx.domains.python
+from docutils import nodes
+from sphinx import addnodes
+
+# replaces pending_xref node with desc_type for type annotations
+sphinx.domains.python.type_to_xref = lambda t, e=None: addnodes.desc_type("", nodes.Text(t))

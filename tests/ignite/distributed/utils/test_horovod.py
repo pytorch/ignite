@@ -75,6 +75,9 @@ def _test_sync_as_hvd():
     from ignite.distributed.comp_models.horovod import _HorovodDistModel
 
     hvd.init()
+    lrank = hvd.local_rank()
+    if torch.cuda.is_available():
+        torch.cuda.set_device(lrank)
 
     _test_sync(_HorovodDistModel)
 
@@ -111,6 +114,10 @@ def _test_idist_methods_in_hvd_context(backend, device):
     ws = hvd.size()
     rank = hvd.rank()
     local_rank = hvd.local_rank()
+
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+
     _test_distrib_config(local_rank, backend=backend, ws=ws, true_device=device, rank=rank)
 
     hvd.shutdown()

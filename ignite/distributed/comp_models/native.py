@@ -97,7 +97,12 @@ if has_native_dist_support:
             self._setup_attrs()
 
         def _compute_nproc_per_node(self) -> int:
-            tensor = torch.tensor([self.get_local_rank() + 1]).to(self.device())
+            local_rank = self.get_local_rank()
+            device = torch.device("cpu")
+            if self.backend() == dist.Backend.NCCL:
+                # we manually set cuda device to local rank in order to avoid a hang on all_reduce
+                device = torch.device("cuda:{}".format(local_rank))
+            tensor = torch.tensor([self.get_local_rank() + 1]).to(device)
             dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
             return int(tensor.item())
 
@@ -220,6 +225,11 @@ if has_native_dist_support:
         def device(self) -> torch.device:
             if self.backend() == dist.Backend.NCCL:
                 index = torch.cuda.current_device()
+                if index < self.get_local_rank():
+                    warnings.warn(
+                        "Current device index is less than current local rank. "
+                        "Please, make sure to call torch.cuda.set_device(local_rank)."
+                    )
                 return torch.device("cuda:{}".format(index))
             return torch.device("cpu")
 
