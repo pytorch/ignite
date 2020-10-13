@@ -763,7 +763,6 @@ class Engine(Serializable):
                 elif self.state.iteration % self.state.epoch_length == 0:
                     self._fire_event(Events.EPOCH_COMPLETED)
                 elif self.state.max_iters == self.state.iteration:
-                    self.state.iteration == self.state.max_iters
                     self._fire_event(Events.TERMINATE)
 
                 time_taken += time.time() - handlers_start_time
@@ -853,6 +852,7 @@ class Engine(Serializable):
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
+
                 # TODO: remove refs on batch to avoid high mem consumption ? -> need verification
                 # self.state.batch = None
 
