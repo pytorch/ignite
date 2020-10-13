@@ -751,6 +751,7 @@ class Engine(Serializable):
             while self.state.epoch < self.state.max_epochs and not self.should_terminate:  # type: ignore[operator]
                 self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
+
                 if self._dataloader_iter is None:
                     self._setup_engine()
 
