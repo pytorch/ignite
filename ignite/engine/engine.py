@@ -712,7 +712,7 @@ class Engine(Serializable):
         state.times[Events.EPOCH_COMPLETED.name] = 0.0
         state.times[Events.COMPLETED.name] = 0.0
 
-    def _get_data_length(self, data: Optional[Iterable] = None) -> Optional[int]:
+    def _get_data_length(self, data: Iterable) -> Optional[int]:
         try:
             if hasattr(data, "__len__"):
                 return len(data)  # type: ignore[arg-type]
@@ -722,9 +722,13 @@ class Engine(Serializable):
         return None
 
     def _setup_engine(self) -> None:
+        if self.state.dataloader is None:
+            raise RuntimeError(
+                "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+            )
+
         iteration = self.state.iteration
-        if self.state.dataloader is not None:
-            self._dataloader_iter = iter(self.state.dataloader)
+        self._dataloader_iter = iter(self.state.dataloader)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
@@ -788,13 +792,21 @@ class Engine(Serializable):
         iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
         should_exit = False
         try:
+            if self._dataloader_iter is None:
+                raise RuntimeError(
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
+                )
+            if self.state.dataloader is None:
+                raise RuntimeError(
+                    "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+                )
+
             while True:
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
                         self._fire_event(Events.GET_BATCH_STARTED)
-                    if self._dataloader_iter is not None:
-                        self.state.batch = next(self._dataloader_iter)
+                    self.state.batch = next(self._dataloader_iter)
                     self._fire_event(Events.GET_BATCH_COMPLETED)
                     iter_counter += 1
                     should_exit = False
@@ -819,8 +831,6 @@ class Engine(Serializable):
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    if self.state.dataloader is None:
-                        raise TypeError("dataloader can not be None")
                     self.set_data(self.state.dataloader)
 
                     should_exit = True
@@ -838,8 +848,6 @@ class Engine(Serializable):
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
                     self.should_terminate_single_epoch = False
-                    if self.state.dataloader is None:
-                        raise TypeError("dataloader can not be None")
                     self.set_data(self.state.dataloader)
                     break
 

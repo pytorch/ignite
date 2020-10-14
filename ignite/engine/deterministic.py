@@ -61,7 +61,7 @@ class ReproducibleBatchSampler(BatchSampler):
         if not isinstance(batch_sampler, BatchSampler):
             raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
 
-        self.batch_indices = None  # type: Optional[List]
+        self.batch_indices = []  # type: List
         self.batch_sampler = batch_sampler
         self.start_iteration = start_iteration
         self.sampler = self.batch_sampler.sampler
@@ -77,7 +77,7 @@ class ReproducibleBatchSampler(BatchSampler):
 
     def __iter__(self) -> Generator:
         self.setup_batch_indices()
-        for batch in cast(List, self.batch_indices):
+        for batch in self.batch_indices:
             yield batch
 
     def __len__(self) -> int:
@@ -181,8 +181,7 @@ class DeterministicEngine(Engine):
         return state_dict
 
     def _init_run(self) -> None:
-        seed = torch.randint(0, int(1e9), (1,)).item()
-        self.state.seed = cast(int, seed)
+        self.state.seed = int(torch.randint(0, int(1e9), (1,)).item())
         if not hasattr(self.state, "rng_states"):
             self.state.rng_states = None  # type: ignore[attr-defined]
 
@@ -191,6 +190,11 @@ class DeterministicEngine(Engine):
             torch.backends.cudnn.benchmark = False
 
     def _setup_engine(self) -> None:
+        if self.state.dataloader is None:
+            raise RuntimeError(
+                "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+            )
+
         self._dataloader_len = self._get_data_length(self.state.dataloader)
 
         # if input data is torch dataloader we replace batch sampler by a batch sampler
@@ -235,7 +239,9 @@ class DeterministicEngine(Engine):
 
     def _from_iteration(self, iteration: int) -> Iterator:
         if self.state.dataloader is None:
-            raise TypeError("dataloader can not be None")
+            raise RuntimeError(
+                "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+            )
         data = self.state.dataloader
         if isinstance(data, DataLoader):
             try:
