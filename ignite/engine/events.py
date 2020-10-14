@@ -396,9 +396,6 @@ class State:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
 
-    def restart(self) -> None:
-        self.max_epochs = None
-
     def __repr__(self) -> str:
         s = "State:\n"
         for attr, value in self.__dict__.items():
