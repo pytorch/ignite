@@ -276,9 +276,9 @@ def test_restart_training():
     with pytest.raises(
         ValueError,
         match=r"Argument max_epochs should be larger than the start epoch defined in the state: 2 vs 5. "
-        r"Please, call state.restart\(\) "
+        r"Please, .+ "
         r"before calling engine.run\(\) in order to restart the training from the beginning.",
     ):
         state = engine.run(data, max_epochs=2)
-    state.restart()
+    state.max_epochs = None
     engine.run(data, max_epochs=2)
