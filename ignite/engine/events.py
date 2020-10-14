@@ -3,9 +3,14 @@ import warnings
 import weakref
 from enum import Enum
 from types import DynamicClassAttribute
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List, Optional, Union
+
+from torch.utils.data import DataLoader
 
 from ignite.engine.utils import _check_signature
+
+if TYPE_CHECKING:
+    from ignite.engine.engine import Engine
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State"]
 
@@ -23,7 +28,7 @@ class CallableEventWithFilter:
 
     """
 
-    def __init__(self, value: str, event_filter: Optional[Callable] = None, name=None):
+    def __init__(self, value: str, event_filter: Optional[Callable] = None, name: Optional[str] = None) -> None:
         if event_filter is None:
             event_filter = CallableEventWithFilter.default_event_filter
         self.filter = event_filter
@@ -36,12 +41,12 @@ class CallableEventWithFilter:
 
     # copied to be compatible to enum
     @DynamicClassAttribute
-    def name(self):
+    def name(self) -> str:
         """The name of the Enum member."""
         return self._name_
 
     @DynamicClassAttribute
-    def value(self):
+    def value(self) -> str:
         """The value of the Enum member."""
         return self._value_
 
@@ -92,7 +97,7 @@ class CallableEventWithFilter:
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
-        def wrapper(engine, event: int) -> bool:
+        def wrapper(engine: "Engine", event: int) -> bool:
             if event % every == 0:
                 return True
             return False
@@ -101,7 +106,7 @@ class CallableEventWithFilter:
 
     @staticmethod
     def once_event_filter(once: int) -> Callable:
-        def wrapper(engine, event: int) -> bool:
+        def wrapper(engine: "Engine", event: int) -> bool:
             if event == once:
                 return True
             return False
@@ -109,13 +114,13 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def default_event_filter(engine, event: int) -> bool:
+    def default_event_filter(engine: "Engine", event: int) -> bool:
         return True
 
     def __str__(self) -> str:
         return "<event=%s, filter=%r>" % (self.name, self.filter)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, CallableEventWithFilter):
             return self.name == other.name
         elif isinstance(other, str):
@@ -123,16 +128,16 @@ class CallableEventWithFilter:
         else:
             return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._name_)
 
-    def __or__(self, other):
+    def __or__(self, other: Any) -> "EventsList":
         return EventsList() | self | other
 
 
 class CallableEvents(CallableEventWithFilter):
     # For backward compatibility
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(CallableEvents, self).__init__(*args, **kwargs)
         warnings.warn(
             "Class ignite.engine.events.CallableEvents is deprecated. It will be removed in 0.5.0. "
@@ -141,7 +146,7 @@ class CallableEvents(CallableEventWithFilter):
         )
 
 
-class EventEnum(CallableEventWithFilter, Enum):
+class EventEnum(CallableEventWithFilter, Enum):  # type: ignore[misc]
     """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should also inherit
     this class. For example, Custom events based on the loss calculation and backward pass can be created as follows:
 
@@ -288,7 +293,7 @@ class Events(EventEnum):
     TERMINATE = "terminate"
     TERMINATE_SINGLE_EPOCH = "terminate_single_epoch"
 
-    def __or__(self, other):
+    def __or__(self, other: Any) -> "EventsList":
         return EventsList() | self | other
 
 
@@ -316,24 +321,24 @@ class EventsList:
 
     """
 
-    def __init__(self):
-        self._events = []
+    def __init__(self) -> None:
+        self._events = []  # type: List[Union[Events, CallableEventWithFilter]]
 
-    def _append(self, event: Union[Events, CallableEventWithFilter]):
+    def _append(self, event: Union[Events, CallableEventWithFilter]) -> None:
         if not isinstance(event, (Events, CallableEventWithFilter)):
             raise TypeError("Argument event should be Events or CallableEventWithFilter, got: {}".format(type(event)))
         self._events.append(event)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> Union[Events, CallableEventWithFilter]:
         return self._events[item]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Union[Events, CallableEventWithFilter]]:
         return iter(self._events)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._events)
 
-    def __or__(self, other: Union[Events, CallableEventWithFilter]):
+    def __or__(self, other: Union[Events, CallableEventWithFilter]) -> "EventsList":
         self._append(event=other)
         return self
 
@@ -369,29 +374,32 @@ class State:
         Events.COMPLETED: "epoch",
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.iteration = 0
         self.epoch = 0
-        self.epoch_length = None
-        self.max_epochs = None
-        self.output = None
-        self.batch = None
-        self.metrics = {}
-        self.dataloader = None
-        self.seed = None
-        self.times = {Events.EPOCH_COMPLETED.name: None, Events.COMPLETED.name: None}
+        self.epoch_length = None  # type: Optional[int]
+        self.max_epochs = None  # type: Optional[int]
+        self.output = None  # type: Optional[int]
+        self.batch = None  # type: Optional[int]
+        self.metrics = {}  # type: Dict[str, Any]
+        self.dataloader = None  # type: Optional[Union[DataLoader, Iterable[Any]]]
+        self.seed = None  # type: Optional[int]
+        self.times = {
+            Events.EPOCH_COMPLETED.name: None,
+            Events.COMPLETED.name: None,
+        }  # type: Dict[str, Optional[float]]
 
         for k, v in kwargs.items():
             setattr(self, k, v)
 
         self._update_attrs()
 
-    def _update_attrs(self):
+    def _update_attrs(self) -> None:
         for value in self.event_to_attr.values():
             if not hasattr(self, value):
                 setattr(self, value, 0)
 
-    def get_event_attrib_value(self, event_name: Union[CallableEventWithFilter, Enum]) -> int:
+    def get_event_attrib_value(self, event_name: Events) -> int:
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])
@@ -434,7 +442,9 @@ class RemovableEventHandle:
         # print_epoch handler is now unregistered
     """
 
-    def __init__(self, event_name: Union[CallableEventWithFilter, Enum, EventsList], handler: Callable, engine):
+    def __init__(
+        self, event_name: Union[CallableEventWithFilter, Enum, EventsList, Events], handler: Callable, engine: "Engine"
+    ) -> None:
         self.event_name = event_name
         self.handler = weakref.ref(handler)
         self.engine = weakref.ref(engine)
@@ -455,8 +465,8 @@ class RemovableEventHandle:
             if engine.has_event_handler(handler, self.event_name):
                 engine.remove_event_handler(handler, self.event_name)
 
-    def __enter__(self):
+    def __enter__(self) -> "RemovableEventHandle":
         return self
 
-    def __exit__(self, *args, **kwargs) -> None:
+    def __exit__(self, *args: Any, **kwargs: Any) -> None:
         self.remove()
