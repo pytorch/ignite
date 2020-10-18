@@ -1,0 +1,29 @@
+name: Build And Publish Docker Images
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - docker/**
+  release:
+    types: [published]
+
+jobs:
+  build-publish:
+    name: Build and push Docker images to Docker Hub
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - run: cd docker
+      - name: Build all Horovod flavoured PyTorch-Ignite images
+        run: ./hvd/build_all.sh
+      - name: Build all PyTorch-Ignite images
+        run: ./main/build_all.sh
+      - name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+        run: ./msdp/build_all.sh
+
+      - name: Push all PyTorch-Ignite Docker images
+        run: ./push_all.sh
