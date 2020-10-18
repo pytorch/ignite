@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 
@@ -47,8 +47,8 @@ class VariableAccumulation(Metric):
     ):
         if not callable(op):
             raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
-        self.accumulator = None
-        self.num_examples = None
+        self.accumulator = None  # type: Optional[torch.Tensor]
+        self.num_examples = None  # type: Optional[torch.Tensor]
         self._op = op
 
         super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
@@ -66,6 +66,11 @@ class VariableAccumulation(Metric):
     def update(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
         self._check_output_type(output)
 
+        if self.num_examples is None:
+            raise RuntimeError(
+                "Internal error, self.num_examples is None. Please, file an issue if you encounter this error."
+            )
+
         if isinstance(output, torch.Tensor):
             output = output.detach()
             if output.device != self._device:
@@ -73,7 +78,7 @@ class VariableAccumulation(Metric):
 
         self.accumulator = self._op(self.accumulator, output)
 
-        if hasattr(output, "shape"):
+        if isinstance(output, torch.Tensor):
             self.num_examples += output.shape[0] if len(output.shape) > 1 else 1
         else:
             self.num_examples += 1
@@ -125,8 +130,8 @@ class Average(VariableAccumulation):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
-        def _mean_op(a, x):
-            if isinstance(x, torch.Tensor) and x.ndim > 1:
+        def _mean_op(a: Union[float, torch.Tensor], x: Union[float, torch.Tensor]) -> Union[float, torch.Tensor]:
+            if isinstance(x, torch.Tensor) and x.ndim > 1:  # type: ignore[attr-defined]
                 x = x.sum(dim=0)
             return a + x
 
@@ -134,6 +139,11 @@ class Average(VariableAccumulation):
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> Union[Any, torch.Tensor, numbers.Number]:
+        if self.num_examples is None:
+            raise RuntimeError(
+                "Internal error, self.num_examples is None. Please, file an issue if you encounter this error."
+            )
+
         if self.num_examples < 1:
             raise NotComputableError(
                 "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
@@ -177,7 +187,7 @@ class GeometricAverage(VariableAccumulation):
             if not isinstance(x, torch.Tensor):
                 x = torch.tensor(x)
             x = torch.log(x)
-            if x.ndim > 1:
+            if x.ndim > 1:  # type: ignore[attr-defined]
                 x = x.sum(dim=0)
             return a + x
 
@@ -185,6 +195,11 @@ class GeometricAverage(VariableAccumulation):
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> torch.Tensor:
+        if self.num_examples is None:
+            raise RuntimeError(
+                "Internal error, self.num_examples is None. Please, file an issue if you encounter this error."
+            )
+
         if self.num_examples < 1:
             raise NotComputableError(
                 "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)

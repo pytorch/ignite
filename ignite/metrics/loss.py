@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Dict, Sequence, Tuple, Union, cast
 
 import torch
 
@@ -51,12 +51,12 @@ class Loss(Metric):
         self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output: Sequence[Union[torch.Tensor, dict]]) -> None:
+    def update(self, output: Sequence[Union[torch.Tensor, Dict]]) -> None:
         if len(output) == 2:
-            y_pred, y = output
-            kwargs = {}
+            y_pred, y = cast(Tuple[torch.Tensor, torch.Tensor], output)
+            kwargs = {}  # type: Dict
         else:
-            y_pred, y, kwargs = output
+            y_pred, y, kwargs = cast(Tuple[torch.Tensor, torch.Tensor, Dict], output)
         average_loss = self._loss_fn(y_pred.detach(), y.detach(), **kwargs)
 
         if len(average_loss.shape) != 0:
@@ -67,7 +67,7 @@ class Loss(Metric):
         self._num_examples += n
 
     @sync_all_reduce("_sum", "_num_examples")
-    def compute(self) -> None:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("Loss must have at least one example before it can be computed.")
         return self._sum.item() / self._num_examples

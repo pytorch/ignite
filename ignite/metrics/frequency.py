@@ -1,9 +1,9 @@
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Union
 
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import Events
+from ignite.engine import Engine, Events
 from ignite.handlers.timing import Timer
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
@@ -39,15 +39,15 @@ class Frequency(Metric):
 
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
-    ):
-        self._timer = None
-        self._acc = None
-        self._n = None
-        self._elapsed = None
+    ) -> None:
+        self._timer = Timer()
+        self._acc = 0
+        self._n = 0
+        self._elapsed = 0.0
         super(Frequency, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._timer = Timer()
         self._acc = 0
         self._n = 0
@@ -55,13 +55,13 @@ class Frequency(Metric):
         super(Frequency, self).reset()
 
     @reinit__is_reduced
-    def update(self, output):
+    def update(self, output: int) -> None:
         self._acc += output
         self._n = self._acc
         self._elapsed = self._timer.value()
 
     @sync_all_reduce("_n", "_elapsed")
-    def compute(self):
+    def compute(self) -> float:
         time_divisor = 1.0
 
         if idist.get_world_size() > 1:
@@ -70,10 +70,10 @@ class Frequency(Metric):
         # Returns the average processed objects per second across all workers
         return self._n / self._elapsed * time_divisor
 
-    def completed(self, engine, name):
+    def completed(self, engine: Engine, name: str) -> None:
         engine.state.metrics[name] = int(self.compute())
 
-    def attach(self, engine, name, event_name=Events.ITERATION_COMPLETED):
+    def attach(self, engine: Engine, name: str, event_name: Any = Events.ITERATION_COMPLETED) -> None:
         engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
         engine.add_event_handler(event_name, self.completed, name)
