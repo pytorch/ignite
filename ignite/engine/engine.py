@@ -862,6 +862,7 @@ class Engine(Serializable):
                     break
 
                 if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
+                    self.should_terminate = True
                     break
 
         except Exception as e:

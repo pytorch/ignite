@@ -894,3 +894,31 @@ def test_set_data():
         trainer.set_data(data2)
 
     trainer.run(data1, max_epochs=10)
+
+
+def test_run_with_max_iters():
+    max_iters = 8
+    engine = Engine(lambda e, b: 1)
+    engine.run([0] * 20, max_iters=max_iters)
+    assert engine.state.iteration == max_iters
+    assert engine.state.max_iters == max_iters
+
+
+def test_run_with_max_iters_and_max_epoch():
+    max_iters = 12
+    max_epochs = 2
+    engine = Engine(lambda e, b: 1)
+    engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
+    assert engine.state.iteration == max_iters
+    assert engine.state.max_epochs == max_epochs
+
+
+def test_epoch_events_fired():
+    max_iters = 32
+    engine = Engine(lambda e, b: 1)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def fired_event(engine):
+        assert engine.state.iteration % engine.state.epoch_length == 0
+
+    engine.run([0] * 10, max_iters=max_iters)
