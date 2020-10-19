@@ -20,25 +20,12 @@ stages:
   - Nightly
 
 before_install: &before_install
-  - sudo apt-get update
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
-  - conda create -q -n test-environment pytorch cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
-  - source activate test-environment
-  # Keep fix in case of problem with torchvision nightly releases
-  # - if [[ "$PYTORCH_CHANNEL" == "pytorch-nightly" ]]; then pip install --upgrade git+https://github.com/pytorch/vision.git; else conda install torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL; fi
-  - conda install torchvision cpuonly python=$TRAVIS_PYTHON_VERSION -c $PYTORCH_CHANNEL
-  # Install all test/examples dependencies
-  - pip install -r requirements-dev.txt
+  - chmod +x .travis/install_deps.sh
+  - ./.travis/install_deps.sh
 
 install:
   - pip install "mypy==0.782"
+  - pip install pytest-cov
   - python setup.py install
 
 script:
@@ -64,18 +51,16 @@ jobs:
     - stage: Docs
       python: "3.7"
 
-      if: type != cron and $TRAVIS_PULL_REQUEST = True
+#      if: type != cron and $TRAVIS_PULL_REQUEST = True
       # Use previously defined before_install
       before_install: *before_install
 
-      install:
-        - pip install -r docs/requirements.txt
-        - pip install git+https://github.com/vfdev-5/sphinxcontrib-versioning.git
-
       script:
-        - sphinx-versioning --use-master-conf --use-master-templates build --greatest-tag --whitelist-branches master docs/source docs/build/html
-        # Create .nojekyll file to serve correctly _static and friends
-        - touch docs/build/html/.nojekyll
+        - chmod +x .travis/install_docs.sh
+        - chmod +x .travis/install_docs_deps.sh
+        - ./.travis/install_docs_deps.sh
+        - ./.travis/build_docs.sh
+
       after_success: # Nothing to do
 
       # Deploy built docs : a) when PR is merged to master, b) when a tag is built
