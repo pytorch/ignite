@@ -21,7 +21,7 @@ echo $DOCKER_TOKEN | docker login --username=$DOCKER_USER --password-stdin
 set -xeu
 
 image_name="base"
-image_tag=`docker run --rm -it pytorchignite/${image_name}:latest -c 'python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"'`
+image_tag=`docker run --rm -i pytorchignite/${image_name}:latest -c 'python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"'`
 
 for image_name in "base" "vision" "nlp" "apex" "apex-vision" "apex-nlp"
 do
