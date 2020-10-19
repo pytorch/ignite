@@ -24,16 +24,17 @@ jobs:
 #         run: |
 #           chmod +x ./hvd/build_all.sh
 #           ./hvd/build_all.sh
+
       - name: Build all PyTorch-Ignite images
         working-directory: ./docker
         run: |
           chmod +x ./main/build_all.sh
           ./main/build_all.sh
-       - name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
-         working-directory: ./docker
-         run: |
-           chmod +x ./msdp/build_all.sh
-           ./msdp/build_all.sh
+      - name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+        working-directory: ./docker
+        run: |
+          chmod +x ./msdp/build_all.sh
+          ./msdp/build_all.sh
 
       - name: List built images
         working-directory: ./docker
