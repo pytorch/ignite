@@ -41,6 +41,9 @@ jobs:
         run: docker images | grep pytorchignite
 
       - name: Push all PyTorch-Ignite Docker images
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
         working-directory: ./docker
         run: |
           chmod +x ./push_all.sh
