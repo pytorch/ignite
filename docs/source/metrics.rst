@@ -239,31 +239,12 @@ devices. Therefore, once collected, these internal variables can be used to comp
 Complete list of metrics
 ------------------------
 
-    - :class:`~ignite.metrics.Accuracy`
-    - :class:`~ignite.metrics.Average`
-    - :class:`~ignite.metrics.ConfusionMatrix`
-    - :meth:`~ignite.metrics.DiceCoefficient`
-    - :class:`~ignite.metrics.EpochMetric`
-    - :meth:`~ignite.metrics.Fbeta`
-    - :class:`~ignite.metrics.GeometricAverage`
-    - :meth:`~ignite.metrics.IoU`
-    - :meth:`~ignite.metrics.mIoU`
-    - :class:`~ignite.metrics.Loss`
-    - :class:`~ignite.metrics.MeanAbsoluteError`
-    - :class:`~ignite.metrics.MeanPairwiseDistance`
-    - :class:`~ignite.metrics.MeanSquaredError`
-    - :class:`~ignite.metrics.Metric`
-    - :class:`~ignite.metrics.MetricsLambda`
-    - :class:`~ignite.metrics.Precision`
-    - :class:`~ignite.metrics.Recall`
-    - :class:`~ignite.metrics.RootMeanSquaredError`
-    - :class:`~ignite.metrics.RunningAverage`
-    - :class:`~ignite.metrics.SSIM`
-    - :class:`~ignite.metrics.TopKCategoricalAccuracy`
-    - :class:`~ignite.metrics.VariableAccumulation`
-
-
 .. currentmodule:: ignite.metrics
+
+.. autosummary::
+    :toctree:
+    :nosignatures:
+    :autolist:
 
 .. autoclass:: Accuracy
 
