@@ -205,3 +205,50 @@ from sphinx import addnodes
 
 # replaces pending_xref node with desc_type for type annotations
 sphinx.domains.python.type_to_xref = lambda t, e=None: addnodes.desc_type("", nodes.Text(t))
+
+# -- Autosummary patch to get list of a classes, funcs automatically ----------
+
+from importlib import import_module
+from inspect import getmembers, isclass, isfunction
+import sphinx.ext.autosummary
+from sphinx.ext.autosummary import Autosummary
+from docutils.parsers.rst import directives
+from docutils.statemachine import StringList
+
+
+class BetterAutosummary(Autosummary):
+    """Autosummary with autolisting for modules.
+
+    Use :autolist: option to get list of classes an functions for currentmodule.
+
+    Example Usage:
+
+    .. currentmodule:: ignite.metrics
+
+    .. autosummary::
+        :toctree:
+        :nosignatures:
+        :autolist:
+    """
+    # Add new option
+    _option_spec = Autosummary.option_spec.copy()
+    _option_spec.update({'autolist': directives.unchanged})
+    option_spec = _option_spec
+
+    def run(self):
+        if 'autolist' in self.options:
+            # Get current module name
+            module_name = (self.env.ref_context.get("py:module"))
+            # Import module
+            module = import_module(module_name)
+            # Get public names
+            names = getattr(module, "__all__")
+            # Get list of all classes and functions inside module
+            names = [name for name in names if (isclass(getattr(module, name)) or isfunction(getattr(module, name)))]
+            # Update content
+            self.content = StringList(names)
+        return super().run()
+
+
+# Patch original Autosummary
+sphinx.ext.autosummary.Autosummary = BetterAutosummary
