@@ -5,6 +5,11 @@ Contribution module of metrics
 
 .. currentmodule:: ignite.contrib.metrics
 
+.. autosummary::
+    :toctree:
+    :nosignatures:
+    :autolist:
+
 .. automodule:: ignite.contrib.metrics
    :members:
    :imported-members:
@@ -26,21 +31,12 @@ metrics useful for regression tasks. Definitions of metrics are based on `Botchk
 
 Complete list of metrics:
 
-    - :class:`~ignite.contrib.metrics.regression.CanberraMetric`
-    - :class:`~ignite.contrib.metrics.regression.FractionalAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.FractionalBias`
-    - :class:`~ignite.contrib.metrics.regression.GeometricMeanAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.GeometricMeanRelativeAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.ManhattanDistance`
-    - :class:`~ignite.contrib.metrics.regression.MaximumAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.MeanAbsoluteRelativeError`
-    - :class:`~ignite.contrib.metrics.regression.MeanError`
-    - :class:`~ignite.contrib.metrics.regression.MeanNormalizedBias`
-    - :class:`~ignite.contrib.metrics.regression.MedianAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.MedianAbsolutePercentageError`
-    - :class:`~ignite.contrib.metrics.regression.MedianRelativeAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.R2Score`
-    - :class:`~ignite.contrib.metrics.regression.WaveHedgesDistance`
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autosummary::
+    :toctree:
+    :nosignatures:
+    :autolist:
 
 
 .. autoclass:: CanberraMetric
