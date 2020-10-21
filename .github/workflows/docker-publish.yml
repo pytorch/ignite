@@ -19,11 +19,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-#       - name: Build all Horovod flavoured PyTorch-Ignite images
-#         working-directory: ./docker
-#         run: |
-#           chmod +x ./hvd/build_all.sh
-#           ./hvd/build_all.sh
+      - name: Build all Horovod flavoured PyTorch-Ignite images
+        working-directory: ./docker
+        run: |
+          chmod +x ./hvd/build_all.sh
+          ./hvd/build_all.sh
 
       - name: Build all PyTorch-Ignite images
         working-directory: ./docker
