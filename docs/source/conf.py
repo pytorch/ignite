@@ -232,21 +232,41 @@ class BetterAutosummary(Autosummary):
     """
     # Add new option
     _option_spec = Autosummary.option_spec.copy()
-    _option_spec.update({'autolist': directives.unchanged})
+    _option_spec.update({
+        "autolist": directives.unchanged,
+        "autolist-classes": directives.unchanged,
+        "autolist-functions": directives.unchanged,
+    })
     option_spec = _option_spec
 
     def run(self):
-        if 'autolist' in self.options:
-            # Get current module name
-            module_name = (self.env.ref_context.get("py:module"))
-            # Import module
-            module = import_module(module_name)
-            # Get public names
-            names = getattr(module, "__all__")
-            # Get list of all classes and functions inside module
-            names = [name for name in names if (isclass(getattr(module, name)) or isfunction(getattr(module, name)))]
-            # Update content
-            self.content = StringList(names)
+        for auto in ("autolist", "autolist-classes", "autolist-functions"):
+            if auto in self.options:
+                # Get current module name
+                module_name = (self.env.ref_context.get("py:module"))
+                # Import module
+                module = import_module(module_name)
+                # Get public names
+                names = getattr(module, "__all__")
+
+                if auto == "autolist":
+                    # Get list of all classes and functions inside module
+                    names = [name for name in names if (isclass(getattr(module, name)) or
+                                                        isfunction(getattr(module, name)))]
+                else:
+                    if auto == "autolist-classes":
+                        # Get only classes
+                        check = isclass
+                    elif auto == "autolist-functions":
+                        # Get only functions
+                        check = isfunction
+                    else:
+                        raise NotImplementedError
+
+                    names = [name for name in names if check(getattr(module, name))]
+
+                # Update content
+                self.content = StringList(names)
         return super().run()
 
 
