@@ -220,9 +220,12 @@ class Checkpoint(Serializable):
                 return engine.state.metrics['accuracy']
 
             to_save = {'model': model}
-            handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2,
-                                 filename_prefix='best', score_function=score_function, score_name="val_acc",
-                                 global_step_transform=global_step_from_engine(trainer))
+            handler = Checkpoint(
+                to_save, DiskSaver('/tmp/models', create_dir=True),
+                n_saved=2, filename_prefix='best',
+                score_function=score_function, score_name="val_acc",
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
             evaluator.add_event_handler(Events.COMPLETED, handler)
 

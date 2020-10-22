@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import torch
@@ -27,7 +28,7 @@ __all__ = [
 
 def _prepare_batch(
     batch: Sequence[torch.Tensor], device: Optional[Union[str, torch.device]] = None, non_blocking: bool = False
-):
+) -> Tuple[Union[torch.Tensor, Sequence, Mapping, str, bytes], ...]:
     """Prepare batch for training: pass to a device with options.
 
     """

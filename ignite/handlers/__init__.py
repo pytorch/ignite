@@ -1,7 +1,7 @@
 from typing import Any, Callable, Union
 
 from ignite.engine import Engine
-from ignite.engine.events import CallableEventWithFilter, EventEnum
+from ignite.engine.events import Events
 from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.terminate_on_nan import TerminateOnNan
@@ -30,7 +30,7 @@ def global_step_from_engine(engine: Engine, custom_event_name=None) -> Callable:
         global step
     """
 
-    def wrapper(_: Any, event_name: Union[EventEnum, CallableEventWithFilter]):
+    def wrapper(_: Any, event_name: Events):
         if custom_event_name is not None:
             event_name = custom_event_name
         return engine.state.get_event_attrib_value(event_name)
