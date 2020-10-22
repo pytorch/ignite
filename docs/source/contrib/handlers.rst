@@ -10,7 +10,6 @@ param_scheduler
 .. currentmodule:: ignite.contrib.handlers.param_scheduler
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -24,7 +23,6 @@ lr_finder
 .. currentmodule:: ignite.contrib.handlers.lr_finder
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -38,7 +36,6 @@ time_profilers
 .. currentmodule:: ignite.contrib.handlers.time_profilers
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -56,7 +53,6 @@ and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree
 .. currentmodule:: ignite.contrib.handlers.tensorboard_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -74,7 +70,6 @@ for detailed usage.
 .. currentmodule:: ignite.contrib.handlers.visdom_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -92,7 +87,6 @@ for detailed usage.
 .. currentmodule:: ignite.contrib.handlers.neptune_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -107,7 +101,6 @@ mlflow_logger
 .. currentmodule:: ignite.contrib.handlers.mlflow_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -125,7 +118,6 @@ for detailed usage.
 .. currentmodule:: ignite.contrib.handlers.tqdm_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -138,7 +130,6 @@ polyaxon_logger
 .. currentmodule:: ignite.contrib.handlers.polyaxon_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -155,7 +146,6 @@ for detailed usage.
 .. currentmodule:: ignite.contrib.handlers.wandb_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -172,7 +162,6 @@ for detailed usage.
 .. currentmodule:: ignite.contrib.handlers.trains_logger
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 

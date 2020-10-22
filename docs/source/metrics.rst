@@ -242,7 +242,6 @@ Complete list of metrics
 .. currentmodule:: ignite.metrics
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 

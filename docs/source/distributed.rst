@@ -62,7 +62,6 @@ ignite.distributed.auto
 .. currentmodule:: ignite.distributed.auto
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -76,7 +75,6 @@ ignite.distributed.launcher
 .. currentmodule:: ignite.distributed.launcher
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -93,7 +91,6 @@ group or spawn multiple processes.
 .. currentmodule:: ignite.distributed.utils
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 

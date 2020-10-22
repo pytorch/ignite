@@ -6,7 +6,6 @@ Contribution module of metrics
 .. currentmodule:: ignite.contrib.metrics
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -34,7 +33,6 @@ Complete list of metrics:
 .. currentmodule:: ignite.contrib.metrics.regression
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 

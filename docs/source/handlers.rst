@@ -7,7 +7,6 @@ Complete list of handlers
 .. currentmodule:: ignite.handlers
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 

@@ -6,14 +6,12 @@ Main module of the library containing:
 .. currentmodule:: ignite.engine.engine
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
 .. currentmodule:: ignite.engine.events
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist:
 
@@ -22,7 +20,6 @@ and helper methods:
 .. currentmodule:: ignite.engine
 
 .. autosummary::
-    :toctree:
     :nosignatures:
     :autolist-functions:
 

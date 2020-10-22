@@ -232,7 +232,6 @@ class BetterAutosummary(Autosummary):
     .. currentmodule:: ignite.metrics
 
     .. autosummary::
-        :toctree:
         :nosignatures:
         :autolist:
     """
