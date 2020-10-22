@@ -134,3 +134,12 @@ article.pytorch-article table.longtable.docutils.align-default colgroup {
 article.pytorch-article table.longtable.docutils.align-default tbody td:first-child {
   width: 30%;
 }
+
+article.pytorch-article table.longtable.docutils.align-default tbody td {
+  padding: 0.25rem;
+}
+
+article.pytorch-article table.longtable.docutils.align-default tbody td p {
+  margin-block-start: 0.1em;
+  margin-block-end: 0.1em;
+}
