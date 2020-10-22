@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, cast
 
 import torch
 
@@ -47,8 +47,8 @@ class VariableAccumulation(Metric):
     ):
         if not callable(op):
             raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
-        self.accumulator = None  # type: Optional[torch.Tensor]
-        self.num_examples = None  # type: Optional[torch.Tensor]
+        self.accumulator = 0.0  # type: Union[float, torch.Tensor]
+        self.num_examples = 0
         self._op = op
 
         super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
@@ -56,7 +56,7 @@ class VariableAccumulation(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.num_examples = torch.tensor(0, dtype=torch.long, device=self._device)
+        self.num_examples = 0
 
     def _check_output_type(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
         if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
@@ -65,11 +65,6 @@ class VariableAccumulation(Metric):
     @reinit__is_reduced
     def update(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
         self._check_output_type(output)
-
-        if self.num_examples is None:
-            raise RuntimeError(
-                "Internal error, self.num_examples is None. Please, file an issue if you encounter this error."
-            )
 
         if isinstance(output, torch.Tensor):
             output = output.detach()
@@ -139,11 +134,6 @@ class Average(VariableAccumulation):
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> Union[Any, torch.Tensor, numbers.Number]:
-        if self.num_examples is None:
-            raise RuntimeError(
-                "Internal error, self.num_examples is None. Please, file an issue if you encounter this error."
-            )
-
         if self.num_examples < 1:
             raise NotComputableError(
                 "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
@@ -195,14 +185,9 @@ class GeometricAverage(VariableAccumulation):
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> torch.Tensor:
-        if self.num_examples is None:
-            raise RuntimeError(
-                "Internal error, self.num_examples is None. Please, file an issue if you encounter this error."
-            )
-
         if self.num_examples < 1:
             raise NotComputableError(
                 "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
             )
 
-        return torch.exp(self.accumulator / self.num_examples)
+        return torch.exp(cast(torch.Tensor, self.accumulator) / self.num_examples)

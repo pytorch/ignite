@@ -133,7 +133,7 @@ class ConfusionMatrix(Metric):
         elif average == "precision":
             return matrix / (matrix.sum(dim=0) + 1e-15)
         else:
-            raise ValueError("Argument average one of 'samples', 'recall', 'precision'")
+            raise ValueError("Argument average should be one of 'samples', 'recall', 'precision'")
 
 
 def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
