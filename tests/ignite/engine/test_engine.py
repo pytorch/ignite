@@ -904,13 +904,16 @@ def test_run_with_max_iters():
     assert engine.state.max_iters == max_iters
 
 
-def test_run_with_max_iters_and_max_epoch():
+def test_run_with_invalid_max_iters_and_max_epoch():
     max_iters = 12
     max_epochs = 2
     engine = Engine(lambda e, b: 1)
-    engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
-    assert engine.state.iteration == max_iters
-    assert engine.state.max_epochs == max_epochs
+    with pytest.raises(
+        ValueError,
+        match=r"Arguments max_iters and max_epochs are mutually exclusive."
+        "Please provide only max_epochs or max_iters.",
+    ):
+        engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
 
 
 def test_epoch_events_fired():

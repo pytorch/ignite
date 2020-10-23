@@ -625,9 +625,8 @@ class Engine(Serializable):
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
                 determined as the iteration on which data iterator raises `StopIteration`.
                 This argument should not change if run is resuming from a state.
-            max_iters (int, optional): Max Number of iterations to run for. By default, it will be calculated as
-                max_epochs * epoch_length. If `data` is an iterator and `max_iters` is not set, then it will be
-                automatically determined along with `epoch_length` on which data iterator raises `StopIteration`.
+            max_iters (int, optional): Max Number of iterations to run for.
+                `max_iters` and `max_epochs` are mutually exclusive; only one of the two arguments should be provided.
             seed (int, optional): Deprecated argument. Please, use `torch.manual_seed` or
                 :meth:`~ignite.utils.manual_seed`.
 
@@ -700,7 +699,8 @@ class Engine(Serializable):
             else:
                 if max_epochs is not None:
                     raise ValueError(
-                        "max_iters and max_epochs are mutually exclusive." "Please provide only max_epochs or max_iters"
+                        "Arguments max_iters and max_epochs are mutually exclusive."
+                        "Please provide only max_epochs or max_iters."
                     )
                 else:
                     if epoch_length is not None:
