@@ -140,9 +140,6 @@ def test_asserts_setup_common_training_handlers():
         train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
-    with pytest.warns(UserWarning, match=r"Argument device is unused and deprecated"):
-        setup_common_training_handlers(trainer, device="cpu")
-
 
 def test_no_warning_with_train_sampler(recwarn):
     from torch.utils.data import RandomSampler
