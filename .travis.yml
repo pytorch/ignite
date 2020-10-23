@@ -25,7 +25,6 @@ before_install: &before_install
 
 install:
   - pip install "mypy==0.782"
-  - pip install pytest-cov
   - python setup.py install
 
 script:
@@ -55,10 +54,12 @@ jobs:
       # Use previously defined before_install
       before_install: *before_install
 
-      script:
-        - chmod +x .travis/install_docs.sh
+      install:
         - chmod +x .travis/install_docs_deps.sh
         - ./.travis/install_docs_deps.sh
+
+      script:
+        - chmod +x .travis/build_docs.sh
         - ./.travis/build_docs.sh
 
       after_success: # Nothing to do
