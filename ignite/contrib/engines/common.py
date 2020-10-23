@@ -253,8 +253,8 @@ def empty_cuda_cache(_):
 
 def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters):
     raise DeprecationWarning(
-        "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. "
-        "Please use ignite.contrib.engines.common._setup_logging instead."
+        "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. and will be remove in 0.6.0. "
+        "Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc."
     )
 
 
