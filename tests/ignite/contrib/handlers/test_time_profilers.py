@@ -5,7 +5,7 @@ import time
 import pytest
 from pytest import approx
 
-from ignite.contrib.handlers.time_profilers import BasicTimeProfiler
+from ignite.contrib.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
 from ignite.engine import Engine, Events
 
 if sys.platform.startswith("darwin"):
@@ -54,7 +54,7 @@ def get_prepared_engine(true_event_handler_time):
     return dummy_trainer
 
 
-def test_dataflow_timer():
+def test_dataflow_timer_basic_profiler():
     true_dataflow_time_per_ele = 0.1
     true_max_epochs = 1
     true_num_iters = 2
@@ -81,7 +81,42 @@ def test_dataflow_timer():
     assert dataflow_results["total"] == approx(true_num_iters * true_dataflow_time_per_ele, abs=1e-1)
 
 
-def test_processing_timer():
+def test_dataflow_timer_handlers_profiler():
+    true_dataflow_time_per_ele = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    def dummy_data_loader(data):
+        while True:
+            for d in data:
+                time.sleep(true_dataflow_time_per_ele)
+                yield d
+
+    dummy_data = range(true_num_iters)
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+    dummy_trainer.run(dummy_data_loader(dummy_data), max_epochs=true_max_epochs, epoch_length=true_num_iters)
+    results = profiler.get_results()
+    dataflow_results = results[-1]
+
+    assert dataflow_results[0] == "Dataflow"
+    # event name
+    assert dataflow_results[1] == "None"
+    # total
+    assert dataflow_results[2] == approx(true_num_iters * true_dataflow_time_per_ele, abs=1e-1)
+    # min
+    assert dataflow_results[3][0] == approx(true_dataflow_time_per_ele, abs=1e-1)
+    # max
+    assert dataflow_results[4][0] == approx(true_dataflow_time_per_ele, abs=1e-1)
+    # mean
+    assert dataflow_results[5] == approx(true_dataflow_time_per_ele, abs=1e-1)
+    # stddev
+    assert dataflow_results[6] == approx(0.0, abs=1e-1)
+
+
+def test_processing_timer_basic_profiler():
     true_processing_time = 0.1
     true_max_epochs = 2
     true_num_iters = 2
@@ -103,7 +138,37 @@ def test_processing_timer():
     assert processing_results["total"] == approx(true_max_epochs * true_num_iters * true_processing_time, abs=1e-1)
 
 
-def test_event_handler_started():
+def test_processing_timer_handlers_profiler():
+    true_processing_time = 0.1
+    true_max_epochs = 2
+    true_num_iters = 2
+
+    def train_updater(engine, batch):
+        time.sleep(true_processing_time)
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(train_updater)
+    profiler.attach(dummy_trainer)
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    processing_results = results[-2]
+
+    assert processing_results[0] == "Processing"
+    # event name
+    assert processing_results[1] == "None"
+    # total
+    assert processing_results[2] == approx(true_max_epochs * true_num_iters * true_processing_time, abs=1e-1)
+    # min
+    assert processing_results[3][0] == approx(true_processing_time, abs=1e-1)
+    # max
+    assert processing_results[4][0] == approx(true_processing_time, abs=1e-1)
+    # mean
+    assert processing_results[5] == approx(true_processing_time, abs=1e-1)
+    # stddev
+    assert processing_results[6] == approx(0.0, abs=1e-1)
+
+
+def test_event_handler_started_basic_profiler():
     true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 2
@@ -123,7 +188,30 @@ def test_event_handler_started():
     assert event_results["total"] == approx(true_event_handler_time, abs=1e-1)
 
 
-def test_event_handler_completed():
+def test_event_handler_started_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 2
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.STARTED)
+    def delay_start(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+
+    assert "delay_start" in event_results[0]
+    assert event_results[1] == "STARTED"
+
+    assert event_results[2] == approx(true_event_handler_time, abs=1e-1)  # total
+
+
+def test_event_handler_completed_basic_profiler():
     true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 2
@@ -143,7 +231,29 @@ def test_event_handler_completed():
     assert event_results["total"] == approx(true_event_handler_time, abs=1e-1)
 
 
-def test_event_handler_epoch_started():
+def test_event_handler_completed_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 2
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.COMPLETED)
+    def delay_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "delay_complete" in event_results[0]
+    assert event_results[1] == "COMPLETED"
+
+    assert event_results[2] == approx(true_event_handler_time, abs=1e-1)  # total
+
+
+def test_event_handler_epoch_started_basic_profiler():
     true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 1
@@ -167,7 +277,33 @@ def test_event_handler_epoch_started():
     assert event_results["total"] == approx(true_max_epochs * true_event_handler_time, abs=1e-1)
 
 
-def test_event_handler_epoch_completed():
+def test_event_handler_epoch_started_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 2
+    true_num_iters = 1
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.EPOCH_STARTED)
+    def delay_epoch_start(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "delay_epoch_start" in event_results[0]
+    assert event_results[1] == "EPOCH_STARTED"
+
+    assert event_results[2] == approx(true_max_epochs * true_event_handler_time, abs=1e-1)  # total
+    assert event_results[3][0] == approx(true_event_handler_time, abs=1e-1)  # min
+    assert event_results[4][0] == approx(true_event_handler_time, abs=1e-1)  # max
+    assert event_results[5] == approx(true_event_handler_time, abs=1e-1)  # mean
+    assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
+
+
+def test_event_handler_epoch_completed_basic_profiler():
     true_event_handler_time = 0.1
     true_max_epochs = 2
     true_num_iters = 1
@@ -191,7 +327,33 @@ def test_event_handler_epoch_completed():
     assert event_results["total"] == approx(true_max_epochs * true_event_handler_time, abs=1e-1)
 
 
-def test_event_handler_iteration_started():
+def test_event_handler_epoch_completed_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 2
+    true_num_iters = 1
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.EPOCH_COMPLETED)
+    def delay_epoch_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "delay_epoch_complete" in event_results[0]
+    assert event_results[1] == "EPOCH_COMPLETED"
+
+    assert event_results[2] == approx(true_max_epochs * true_event_handler_time, abs=1e-1)  # total
+    assert event_results[3][0] == approx(true_event_handler_time, abs=1e-1)  # min
+    assert event_results[4][0] == approx(true_event_handler_time, abs=1e-1)  # max
+    assert event_results[5] == approx(true_event_handler_time, abs=1e-1)  # mean
+    assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
+
+
+def test_event_handler_iteration_started_basic_profiler():
     true_event_handler_time = 0.1
     true_max_epochs = 1
     true_num_iters = 2
@@ -215,7 +377,33 @@ def test_event_handler_iteration_started():
     assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
-def test_event_handler_iteration_completed():
+def test_event_handler_iteration_started_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.ITERATION_STARTED)
+    def delay_iter_start(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "delay_iter_start" in event_results[0]
+    assert event_results[1] == "ITERATION_STARTED"
+
+    assert event_results[2] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)  # total
+    assert event_results[3][0] == approx(true_event_handler_time, abs=1e-1)  # min
+    assert event_results[4][0] == approx(true_event_handler_time, abs=1e-1)  # max
+    assert event_results[5] == approx(true_event_handler_time, abs=1e-1)  # mean
+    assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
+
+
+def test_event_handler_iteration_completed_basic_profiler():
     true_event_handler_time = 0.1
     true_max_epochs = 1
     true_num_iters = 2
@@ -239,7 +427,33 @@ def test_event_handler_iteration_completed():
     assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
-def test_event_handler_get_batch_started():
+def test_event_handler_iteration_completed_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.ITERATION_COMPLETED)
+    def delay_iter_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "delay_iter_complete" in event_results[0]
+    assert event_results[1] == "ITERATION_COMPLETED"
+
+    assert event_results[2] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)  # total
+    assert event_results[3][0] == approx(true_event_handler_time, abs=1e-1)  # min
+    assert event_results[4][0] == approx(true_event_handler_time, abs=1e-1)  # max
+    assert event_results[5] == approx(true_event_handler_time, abs=1e-1)  # mean
+    assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
+
+
+def test_event_handler_get_batch_started_basic_profiler():
     true_event_handler_time = 0.1
     true_max_epochs = 1
     true_num_iters = 2
@@ -261,6 +475,32 @@ def test_event_handler_get_batch_started():
     assert event_results["mean"] == approx(true_event_handler_time, abs=1e-1)
     assert event_results["std"] == approx(0.0, abs=1e-1)
     assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
+
+
+def test_event_handler_get_batch_started_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.GET_BATCH_STARTED)
+    def delay_get_batch_started(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "delay_get_batch_started" in event_results[0]
+    assert event_results[1] == "GET_BATCH_STARTED"
+
+    assert event_results[2] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)  # total
+    assert event_results[3][0] == approx(true_event_handler_time, abs=1e-1)  # min
+    assert event_results[4][0] == approx(true_event_handler_time, abs=1e-1)  # max
+    assert event_results[5] == approx(true_event_handler_time, abs=1e-1)  # mean
+    assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
 
 
 def test_event_handler_get_batch_completed():
@@ -287,7 +527,33 @@ def test_event_handler_get_batch_completed():
     assert event_results["total"] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)
 
 
-def test_event_handler_total_time():
+def test_event_handler_get_batch_completed_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
+    def delay_get_batch_completed(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "delay_get_batch_completed" in event_results[0]
+    assert event_results[1] == "GET_BATCH_COMPLETED"
+
+    assert event_results[2] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)  # total
+    assert event_results[3][0] == approx(true_event_handler_time, abs=1e-1)  # min
+    assert event_results[4][0] == approx(true_event_handler_time, abs=1e-1)  # max
+    assert event_results[5] == approx(true_event_handler_time, abs=1e-1)  # mean
+    assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
+
+
+def test_event_handler_total_time_basic_profiler():
     true_event_handler_time = 0.125
     true_max_epochs = 1
     true_num_iters = 1
@@ -335,7 +601,55 @@ def test_event_handler_total_time():
     assert event_results["total_time"].item() == approx(true_event_handler_time * 8, abs=1e-1)
 
 
-def test_write_results(dirname):
+def test_event_handler_total_time_handlers_profiler():
+    true_event_handler_time = 0.125
+    true_max_epochs = 1
+    true_num_iters = 1
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.STARTED)
+    def delay_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.COMPLETED)
+    def delay_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.EPOCH_STARTED)
+    def delay_epoch_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.EPOCH_COMPLETED)
+    def delay_epoch_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.ITERATION_STARTED)
+    def delay_iter_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.ITERATION_COMPLETED)
+    def delay_iter_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.GET_BATCH_STARTED)
+    def delay_get_batch_started(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
+    def delay_get_batch_completed(engine):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[-3]  # total result row
+
+    assert event_results[2] == approx(true_event_handler_time * 8, abs=1e-1)  # total time
+
+
+def test_write_results_basic_profiler(dirname):
     true_event_handler_time = 0.125
     true_max_epochs = 3
     true_num_iters = 2
@@ -358,7 +672,30 @@ def test_write_results(dirname):
     assert file_length == (true_max_epochs * true_num_iters) + 1
 
 
-def test_print_results(capsys):
+def test_write_results_handlers_profiler(dirname):
+    true_event_handler_time = 0.125
+    true_max_epochs = 3
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = get_prepared_engine(true_event_handler_time)
+    profiler.attach(dummy_trainer)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    fp = os.path.join(dirname, "test_log.csv")
+    profiler.write_results(fp)
+
+    assert os.path.isfile(fp)
+
+    file_length = 0
+    with open(fp) as f:
+        for l in f:
+            file_length += 1
+
+    assert file_length == (true_max_epochs * true_num_iters) + 1
+
+
+def test_print_results_basic_profiler(capsys):
 
     true_max_epochs = 1
     true_num_iters = 5
@@ -376,7 +713,25 @@ def test_print_results(capsys):
     assert "nan" not in out
 
 
-def test_get_intermediate_results_during_run(capsys):
+def test_print_results_handlers_profiler_handlers_profiler(capsys):
+
+    true_max_epochs = 1
+    true_num_iters = 5
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = get_prepared_engine(true_event_handler_time=0.0125)
+    profiler.attach(dummy_trainer)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    HandlersTimeProfiler.print_results(profiler.get_results())
+
+    captured = capsys.readouterr()
+    out = captured.out
+    assert "HandlersTimeProfiler._" not in out
+    assert "nan" not in out
+
+
+def test_get_intermediate_results_during_run_basic_profiler(capsys):
     true_event_handler_time = 0.0645
     true_max_epochs = 2
     true_num_iters = 5
