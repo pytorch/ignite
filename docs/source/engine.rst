@@ -3,15 +3,25 @@ ignite.engine
 
 Main module of the library containing:
 
-- :class:`~ignite.engine.engine.Engine` - abstraction that loops provided data, executes a processing function and returns a result
-- :class:`~ignite.engine.events.Events` - events triggered by the :class:`~ignite.engine.engine.Engine` during execution
-- :class:`~ignite.engine.events.State` - object to pass internal and user-defined data between event handlers
+.. currentmodule:: ignite.engine.engine
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
+.. currentmodule:: ignite.engine.events
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 and helper methods:
 
-- :meth:`~ignite.engine.create_supervised_trainer` - creates single model/optimizer/criterion supervised trainer
-- :meth:`~ignite.engine.create_supervised_evaluator` - creates single model supervised evaluation engine
+.. currentmodule:: ignite.engine
 
+.. autosummary::
+    :nosignatures:
+    :autolist-functions:
 
 More details about those structures can be found in :doc:`concepts`.
 

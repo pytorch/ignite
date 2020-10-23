@@ -5,6 +5,17 @@ Contribution module of engines and helper tools
 
 .. currentmodule:: ignite.contrib.engines
 
+.. currentmodule:: ignite.contrib.engines.tbptt
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
+.. currentmodule:: ignite.contrib.engines.common
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 Truncated Backpropagation Throught Time
 ---------------------------------------

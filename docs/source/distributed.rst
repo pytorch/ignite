@@ -61,6 +61,10 @@ ignite.distributed.auto
 
 .. currentmodule:: ignite.distributed.auto
 
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
 .. automodule:: ignite.distributed.auto
     :members:
 
@@ -69,6 +73,10 @@ ignite.distributed.launcher
 ---------------------------
 
 .. currentmodule:: ignite.distributed.launcher
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.distributed.launcher
     :members:
@@ -81,6 +89,10 @@ This module wraps common methods to fetch information about distributed configur
 group or spawn multiple processes.
 
 .. currentmodule:: ignite.distributed.utils
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.distributed.utils
     :members:
