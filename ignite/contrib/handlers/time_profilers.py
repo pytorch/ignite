@@ -736,6 +736,35 @@ class HandlersTimeProfiler:
 
     @staticmethod
     def print_results(results: List[List[Union[str, float]]]):
+        """
+        Method to print the aggregated results from the profiler
+
+        .. code-block:: python
+
+            profiler.print_results(results)
+
+        Example output:
+
+        .. code-block:: text
+
+            -----------------------------------------  -----------------------  -------------- ...
+            Handler                                    Event Name                     Total(s)
+            -----------------------------------------  -----------------------  --------------
+            run.<locals>.log_training_results          EPOCH_COMPLETED                19.43245
+            run.<locals>.log_validation_results        EPOCH_COMPLETED                 2.55271
+            run.<locals>.log_time                      EPOCH_COMPLETED                 0.00049
+            run.<locals>.log_intermediate_results      EPOCH_COMPLETED                 0.00106
+            run.<locals>.log_training_loss             ITERATION_COMPLETED               0.059
+            run.<locals>.log_time                      COMPLETED                 not triggered
+            -----------------------------------------  -----------------------  --------------
+            Total                                                                     22.04571
+            -----------------------------------------  -----------------------  --------------
+            Processing took total 11.29543s [min/index: 0.00393s/1875, max/index: 0.00784s/0,
+             mean: 0.00602s, std: 0.00034s]
+            Dataflow took total 16.24365s [min/index: 0.00533s/1874, max/index: 0.01129s/937,
+             mean: 0.00866s, std: 0.00113s]
+
+        """
         # adopted implementation of torch.autograd.profiler.build_table
         handler_column_width = max([len(item[0]) for item in results]) + 4
         event_column_width = max([len(item[1]) for item in results]) + 4
