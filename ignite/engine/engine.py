@@ -626,6 +626,7 @@ class Engine(Serializable):
                 This argument should not change if run is resuming from a state.
             max_iters (int, optional): Number of iterations to run for.
                 `max_iters` and `max_epochs` are mutually exclusive; only one of the two arguments should be provided.
+
         Returns:
             State: output state.
 
@@ -689,7 +690,8 @@ class Engine(Serializable):
             else:
                 if max_epochs is not None:
                     raise ValueError(
-                        "max_iters and max_epochs are mutually exclusive." "Please provide only max_epochs or max_iters"
+                        "Arguments max_iters and max_epochs are mutually exclusive."
+                        "Please provide only max_epochs or max_iters."
                     )
                 else:
                     if epoch_length is not None:
