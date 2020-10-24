@@ -276,6 +276,9 @@ class BetterAutosummary(Autosummary):
                     if not names:
                         names = [name[0] for name in getmembers(module)]
 
+                # Filter out members w/o doc strings
+                names = [name for name in names if getattr(module, name).__doc__ is not None]
+
                 if auto == "autolist":
                     # Get list of all classes and functions inside module
                     names = [
