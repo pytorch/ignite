@@ -1,5 +1,10 @@
 version: 2.1
 
+# Orb to trigger build if files are modified
+# https://circleci.com/developer/orbs/orb/roopakv/swissknife
+orbs:
+  swissknife: roopakv/swissknife@x.y
+
 parameters:
   pytorch_stable_image:
     type: string
@@ -92,6 +97,10 @@ jobs:
 
     steps:
       - checkout
+      - swissknife/trigger_pipeline_if_modified:
+          base-branch: master
+          pattern: ^(ignite|tests|examples|\.circleci).*
+          use-divergence-point: true
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -149,6 +158,10 @@ jobs:
 
     steps:
       - checkout
+      - swissknife/trigger_pipeline_if_modified:
+          base-branch: master
+          pattern: ^(ignite|tests|examples|\.circleci).*
+          use-divergence-point: true
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -171,6 +184,10 @@ jobs:
 
     steps:
       - checkout
+      - swissknife/trigger_pipeline_if_modified:
+          base-branch: master
+          pattern: ^(ignite|tests|examples|\.circleci).*
+          use-divergence-point: true
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -222,6 +239,10 @@ jobs:
 
     steps:
       - checkout
+      - swissknife/trigger_pipeline_if_modified:
+          base-branch: master
+          pattern: ^(ignite|tests|examples|\.circleci).*
+          use-divergence-point: true
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
@@ -283,6 +304,7 @@ jobs:
 workflows:
   version: 2
   gpu_tests:
+
     jobs:
       - one_gpu_tests
       - two_gpus_tests

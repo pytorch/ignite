@@ -1,4 +1,18 @@
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+    - 'assets/**'
+    - '.circleci/**'
+    - 'docker/**'
+    - 'conda.recipe'
+    - '**.md'
+  pull_request:
+    paths-ignore:
+    - 'assets/**'
+    - '.circleci/**'
+    - 'docker/**'
+    - 'conda.recipe'
+    - '**.md'
 
 jobs:
   build:
