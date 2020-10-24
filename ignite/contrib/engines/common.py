@@ -49,6 +49,7 @@ def setup_common_training_handlers(
     **kwargs: Any
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
+
         - :class:`~ignite.handlers.TerminateOnNan`
         - handler to setup learning rate scheduling
         - :class:`~ignite.handlers.ModelCheckpoint`
@@ -312,6 +313,7 @@ def setup_tb_logging(
     **kwargs: Any
 ):
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -343,6 +345,7 @@ def setup_visdom_logging(
     **kwargs: Any
 ):
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -373,6 +376,7 @@ def setup_mlflow_logging(
     **kwargs: Any
 ):
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -403,6 +407,7 @@ def setup_neptune_logging(
     **kwargs: Any
 ):
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -433,6 +438,7 @@ def setup_wandb_logging(
     **kwargs: Any
 ):
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -463,6 +469,7 @@ def setup_plx_logging(
     **kwargs: Any
 ):
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -493,6 +500,7 @@ def setup_trains_logging(
     **kwargs: Any
 ):
     """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
