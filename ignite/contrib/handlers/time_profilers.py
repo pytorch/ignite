@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from functools import partial
-from typing import Callable, Dict, Iterable, List, Mapping, Sequence, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Tuple, Union
 
 import torch
 
@@ -476,92 +476,54 @@ class HandlersTimeProfiler:
         self.processing_times = None
         self.event_handlers_times = None
 
-        # Events to profile
-        self._events = [
-            Events.STARTED,
-            Events.EPOCH_STARTED,
-            Events.EPOCH_COMPLETED,
-            Events.ITERATION_STARTED,
-            Events.ITERATION_COMPLETED,
-            Events.GET_BATCH_STARTED,
-            Events.GET_BATCH_COMPLETED,
-            Events.COMPLETED,
-        ]
-
-        # Events which are triggered only once
-        self._global_events = [Events.STARTED, Events.COMPLETED]
-        # Events which are triggered on each EPOCH
-        self._epoch_events = [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED]
-        # Events which are triggered on each ITERATION
-        self._iteration_events = [
-            Events.ITERATION_STARTED,
-            Events.ITERATION_COMPLETED,
-            Events.GET_BATCH_STARTED,
-            Events.GET_BATCH_COMPLETED,
-        ]
-
     @staticmethod
     def _get_callable_name(handler: Callable):
         # get name of the callable handler
         return handler.__qualname__ if hasattr(handler, "__qualname__") else handler.__class__.__name__
 
-    def _timeit_global_events(self, handler: Callable, event: Events):
-        # wrapper for profiling handlers attached to global events
-        self._event_handlers_timer.reset()
-        func, args, kwargs = handler
-        func(*args, **kwargs)
-        t = self._event_handlers_timer.value()
-        hname = self._get_callable_name(func)
-        self.event_handlers_times[event][hname][0] = t
+    def _timeit_handler_wrapper(self, handler: Tuple[Callable, List[Any], Mapping[str, Any]]):
+        def _timeit_handler(event: Events, *args: Any, **kwargs: Any):
+            # TODO: add threshold filtering for handlers with event filter
+            # if (
+            #     isinstance(event_name, CallableEventWithFilter)
+            #     and event_name.filter != CallableEventWithFilter.default_event_filter
+            # ):
+            self._event_handlers_timer.reset()
+            func, args, kwargs = handler
+            func(*args, **kwargs)
+            t = self._event_handlers_timer.value()
+            hname = self._get_callable_name(func)
+            self.event_handlers_times[event][hname].append(t)
 
-    def _timeit_epoch_events(self, handler: Callable, engine: Engine, event: Events, *args, **kwargs):
-        # wrapper for profiling handlers attached to epoch events
-        self._event_handlers_timer.reset()
-        func, args, kwargs = handler
-        func(*args, **kwargs)
-        e = engine.state.epoch - 1
-        t = self._event_handlers_timer.value()
-        hname = hname = self._get_callable_name(func)
-        self.event_handlers_times[event][hname][e] = t
+        # required to revert back to original handler after profiling
+        _timeit_handler._profiler_original = handler
+        return _timeit_handler
 
-    def _timeit_iteration_events(self, handler: Callable, engine: Engine, event: Events, *args, **kwargs):
-        # wrapper for profiling handlers attached to iteration events
-        self._event_handlers_timer.reset()
-        func, args, kwargs = handler
-        func(*args, **kwargs)
-        i = engine.state.iteration - 1
-        t = self._event_handlers_timer.value()
-        hname = self._get_callable_name(func)
-        self.event_handlers_times[event][hname][i] = t
+    # def _timeit_handler(self, handler: Callable, event: Events, *args, **kwargs):
+    #     # wrapper for profiling handlers attached to iteration events
+    #     self._event_handlers_timer.reset()
+    #     func, args, kwargs = handler
+    #     func(*args, **kwargs)
+    #     t = self._event_handlers_timer.value()
+    #     hname = self._get_callable_name(func)
+    #     self.event_handlers_times[event][hname].append(t)
 
-    def _timeit_processing(self, engine: Engine):
+    def _timeit_processing(self):
         # handler used for profiling processing times
         t = self._processing_timer.value()
-        i = engine.state.iteration - 1
-        self.processing_times[i] = t
+        self.processing_times.append(t)
 
-    def _timeit_dataflow(self, engine: Engine):
+    def _timeit_dataflow(self):
         # handler used for profiling dataflow times
         t = self._dataflow_timer.value()
-        i = engine.state.iteration - 1
-        self.dataflow_times[i] = t
+        self.dataflow_times.append(t)
 
-    def _reset(self, num_epochs: int, total_num_iters: int):
-        # reset the variable used for profiling
-        self.dataflow_times = torch.zeros(total_num_iters)
-        self.processing_times = torch.zeros(total_num_iters)
+    def _reset(self, event_handlers_names):
+        # reset the variables used for profiling
+        self.dataflow_times = []
+        self.processing_times = []
 
-        self.event_handlers_times = {
-            e: {h: torch.zeros(1) for h in self.event_handlers_names[e]} for e in self._global_events
-        }
-
-        self.event_handlers_times.update(
-            {e: {h: torch.zeros(num_epochs) for h in self.event_handlers_names[e]} for e in self._epoch_events}
-        )
-
-        self.event_handlers_times.update(
-            {e: {h: torch.zeros(total_num_iters) for h in self.event_handlers_names[e]} for e in self._iteration_events}
-        )
+        self.event_handlers_times = {e: {h: [] for h in event_handlers_names[e]} for e in event_handlers_names}
 
     @staticmethod
     def _is_internal_handler(handler: Callable):
@@ -570,16 +532,12 @@ class HandlersTimeProfiler:
 
     def _detach_profiler_handlers(self, engine):
         # reverts handlers to original handlers
-        engine._event_handlers = self._orig_event_handlers
+        for e in engine._event_handlers:
+            for i, h in enumerate(engine._event_handlers[e]):
+                if hasattr(h[0], "_profiler_original"):
+                    engine._event_handlers[e][i] = h[0]._profiler_original
 
     def _as_first_started(self, engine):
-        if hasattr(engine.state.dataloader, "__len__"):
-            num_iters_per_epoch = len(engine.state.dataloader)
-        else:
-            num_iters_per_epoch = engine.state.epoch_length
-
-        self.max_epochs = engine.state.max_epochs
-        self.total_num_iters = self.max_epochs * num_iters_per_epoch
 
         self.event_handlers_names = {
             e: [
@@ -587,45 +545,30 @@ class HandlersTimeProfiler:
                 for (h, _, _) in engine._event_handlers[e]
                 if not self._is_internal_handler(h)
             ]
-            for e in self._events
+            for e in engine._allowed_events
         }
 
-        self._reset(self.max_epochs, self.total_num_iters)
+        self._reset(self.event_handlers_names)
 
-        self._orig_event_handlers = engine._event_handlers.copy()
-
-        for e in self._global_events:
-            for i, h in enumerate(self._orig_event_handlers[e]):
-                if self._is_internal_handler(h):
-                    pass
-                engine._event_handlers[e][i] = (partial(self._timeit_global_events, h), (e,), {})
-
-        for e in self._epoch_events:
-            for i, h in enumerate(self._orig_event_handlers[e]):
-                if self._is_internal_handler(h):
-                    pass
-                engine._event_handlers[e][i] = (partial(self._timeit_epoch_events, h), (engine, e,), {})
-
-        for e in self._iteration_events:
-            for i, h in enumerate(self._orig_event_handlers[e]):
-                if self._is_internal_handler(h):
-                    pass
-                engine._event_handlers[e][i] = (partial(self._timeit_iteration_events, h), (engine, e,), {})
+        for e in engine._allowed_events:
+            for i, h in enumerate(engine._event_handlers[e]):
+                if not self._is_internal_handler(h):
+                    engine._event_handlers[e][i] = (self._timeit_handler_wrapper(h), (e,), {})
 
         # processing timer
         engine._event_handlers[Events.ITERATION_STARTED].append((self._processing_timer.reset, (), {}))
-        engine._event_handlers[Events.ITERATION_COMPLETED].insert(0, (self._timeit_processing, (engine,), {}))
+        engine._event_handlers[Events.ITERATION_COMPLETED].insert(0, (self._timeit_processing, (), {}))
 
         # dataflow timer
         engine._event_handlers[Events.GET_BATCH_STARTED].append((self._dataflow_timer.reset, (), {}))
-        engine._event_handlers[Events.GET_BATCH_COMPLETED].insert(0, (self._timeit_dataflow, (engine,), {}))
+        engine._event_handlers[Events.GET_BATCH_COMPLETED].insert(0, (self._timeit_dataflow, (), {}))
 
         # revert back the wrapped handlers with original handlers at the end
         engine._event_handlers[Events.COMPLETED].append((self._detach_profiler_handlers, (engine,), {}))
 
     def attach(self, engine: Engine):
         if not isinstance(engine, Engine):
-            raise TypeError("Argument engine should be ignite.engine.Engine, " "but given {}".format(type(engine)))
+            raise TypeError("Argument engine should be ignite.engine.Engine, but given {}".format(type(engine)))
 
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
@@ -639,17 +582,14 @@ class HandlersTimeProfiler:
             results = profiler.get_results()
 
         """
-        total_eh_time = round(
-            float(
-                sum(
-                    [
-                        sum([(self.event_handlers_times[e][h]).sum() for h in self.event_handlers_times[e]])
-                        for e in self._events
-                    ]
-                )
-            ),
-            5,
+        total_eh_time = sum(
+            [
+                sum(self.event_handlers_times[e][h])
+                for e in self.event_handlers_times
+                for h in self.event_handlers_times[e]
+            ]
         )
+        total_eh_time = round(float(total_eh_time), 5,)
 
         def compute_basic_stats(data: Sequence):
             # compute on non-zero data:
@@ -667,13 +607,13 @@ class HandlersTimeProfiler:
             return [total, min_index, max_index, mean, std]
 
         event_handler_stats = [
-            [h, e.name, *compute_basic_stats(self.event_handlers_times[e][h])]
-            for e in self._events
+            [h, e.name, *compute_basic_stats(torch.tensor(self.event_handlers_times[e][h]))]
+            for e in self.event_handlers_times
             for h in self.event_handlers_times[e]
         ]
         event_handler_stats.append(["Total", "", total_eh_time, "", "", "", ""])
-        event_handler_stats.append(["Processing", "None", *compute_basic_stats(self.processing_times)])
-        event_handler_stats.append(["Dataflow", "None", *compute_basic_stats(self.dataflow_times)])
+        event_handler_stats.append(["Processing", "None", *compute_basic_stats(torch.tensor(self.processing_times))])
+        event_handler_stats.append(["Dataflow", "None", *compute_basic_stats(torch.tensor(self.dataflow_times))])
 
         return event_handler_stats
 
@@ -695,44 +635,8 @@ class HandlersTimeProfiler:
             1.0     2.0        0.00029         0.252342                          0.125123
 
         """
-        try:
-            import pandas as pd
-        except ImportError:
-            print("Need pandas to write results as files")
-            return
-
-        iters_per_epoch = self.total_num_iters // self.max_epochs
-
-        epochs = torch.arange(self.max_epochs, dtype=torch.float32).repeat_interleave(iters_per_epoch) + 1
-        iterations = torch.arange(self.total_num_iters, dtype=torch.float32) + 1
-        processing_stats = self.processing_times
-        dataflow_stats = self.dataflow_times
-
-        cols = [epochs, iterations, processing_stats, dataflow_stats]
-        headers = ["epoch", "iteration", "processing_stats", "dataflow_stats"]
-
-        # global event cols
-        for e in self._global_events:
-            for h in self.event_handlers_names[e]:
-                headers.append("{} ({})".format(h, e.name))
-                cols.append(self.event_handlers_times[e][h].repeat_interleave(self.total_num_iters))
-
-        # epoch event cols
-        for e in self._epoch_events:
-            for h in self.event_handlers_names[e]:
-                headers.append("{} ({})".format(h, e.name))
-                cols.append(self.event_handlers_times[e][h].repeat_interleave(iters_per_epoch))
-
-        # iteration event cols
-        for e in self._iteration_events:
-            for h in self.event_handlers_names[e]:
-                headers.append("{} ({})".format(h, e.name))
-                cols.append(self.event_handlers_times[e][h])
-
-        results_dump = torch.stack(cols, dim=1,).numpy()
-
-        results_df = pd.DataFrame(data=results_dump, columns=headers,)
-        results_df.to_csv(output_path, index=False)
+        # TODO: need to update as per new results
+        raise NotImplementedError
 
     @staticmethod
     def print_results(results: List[List[Union[str, float]]]):
@@ -810,7 +714,7 @@ class HandlersTimeProfiler:
         append(header_sep)
         append(row_format.format(*headers))
         append(header_sep)
-        # TODO: add proper printing for total, processing and dataflow stats
+
         for row in results[:-3]:
             # format min/idx and max/idx
             row[3] = "{}/{}".format(*row[3])

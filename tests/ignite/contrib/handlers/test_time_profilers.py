@@ -672,29 +672,6 @@ def test_write_results_basic_profiler(dirname):
     assert file_length == (true_max_epochs * true_num_iters) + 1
 
 
-def test_write_results_handlers_profiler(dirname):
-    true_event_handler_time = 0.125
-    true_max_epochs = 3
-    true_num_iters = 2
-
-    profiler = HandlersTimeProfiler()
-    dummy_trainer = get_prepared_engine(true_event_handler_time)
-    profiler.attach(dummy_trainer)
-
-    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
-    fp = os.path.join(dirname, "test_log.csv")
-    profiler.write_results(fp)
-
-    assert os.path.isfile(fp)
-
-    file_length = 0
-    with open(fp) as f:
-        for l in f:
-            file_length += 1
-
-    assert file_length == (true_max_epochs * true_num_iters) + 1
-
-
 def test_print_results_basic_profiler(capsys):
 
     true_max_epochs = 1
