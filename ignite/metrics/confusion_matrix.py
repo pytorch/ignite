@@ -54,7 +54,6 @@ class ConfusionMatrix(Metric):
         self.num_classes = num_classes
         self._num_examples = 0
         self.average = average
-        self.confusion_matrix = None  # type: Optional[torch.Tensor]
         super(ConfusionMatrix, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
@@ -114,10 +113,6 @@ class ConfusionMatrix(Metric):
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Confusion matrix must have at least one example before it can be computed.")
-        if self.confusion_matrix is None:
-            raise RuntimeError(
-                "Internal error, self.confusion_matrix is None. Please, file an issue if you encounter this error."
-            )
         if self.average:
             self.confusion_matrix = self.confusion_matrix.float()
             if self.average == "samples":

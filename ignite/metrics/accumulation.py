@@ -47,8 +47,7 @@ class VariableAccumulation(Metric):
     ):
         if not callable(op):
             raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
-        self.accumulator = 0.0  # type: Union[float, torch.Tensor]
-        self.num_examples = 0
+
         self._op = op
 
         super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
@@ -56,7 +55,7 @@ class VariableAccumulation(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.num_examples = 0
+        self.num_examples = torch.tensor(0, dtype=torch.long, device=self._device)
 
     def _check_output_type(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
         if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
@@ -190,4 +189,4 @@ class GeometricAverage(VariableAccumulation):
                 "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
             )
 
-        return torch.exp(cast(torch.Tensor, self.accumulator) / self.num_examples)
+        return torch.exp(self.accumulator / self.num_examples)
