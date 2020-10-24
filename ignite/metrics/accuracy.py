@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Tuple, Union, cast
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -134,8 +134,6 @@ class Accuracy(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        self._num_correct = None  # type: Optional[torch.Tensor]
-        self._num_examples = 0
         super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
@@ -170,4 +168,4 @@ class Accuracy(_BaseClassification):
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        return cast(torch.Tensor, self._num_correct).item() / self._num_examples
+        return self._num_correct.item() / self._num_examples
