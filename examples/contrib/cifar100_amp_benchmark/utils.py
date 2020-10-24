@@ -9,7 +9,6 @@ from torch.utils.data import Subset, DataLoader
 
 def get_train_eval_loaders(path, batch_size=256):
     """Setup the dataflow:
-
         - load CIFAR100 train and test datasets
         - setup train/test image transforms
             - horizontally flipped randomly and augmented using cutout.

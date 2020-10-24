@@ -1,7 +1,6 @@
 """
  MNIST example with training and validation monitoring using Tensorboard on TPU
  Requirements:
-
     - PyTorch >= 1.5
     - PyTorch XLA >= 1.5
     - Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
