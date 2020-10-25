@@ -18,7 +18,7 @@ value is then computed using the output of the engine's ``process_function``:
     metric.attach(engine, "accuracy")
 
 If the engine's prediction output ``y_pred`` represents probability estimates, it can be binarized using the
-``Mode.PROBABILITIES``:
+``Mode.PROBABILITIES``, with default threshold of 0.5:
 .. code-block:: python
 
     def process_function(engine, batch):
@@ -32,7 +32,7 @@ If the engine's prediction output ``y_pred`` represents probability estimates, i
     metric.attach(engine, "accuracy")
 
 If the engine's prediction output ``y_pred`` represents logits, it can be binarized using the
-``Mode.LOGITS``:
+``Mode.LOGITS``, with default threshold of 0.5:
 .. code-block:: python
 
     def process_function(engine, batch):

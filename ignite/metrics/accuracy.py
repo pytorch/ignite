@@ -118,14 +118,14 @@ class Accuracy(_BaseClassification):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
         mode (Mode): specifies in which form input will be passed. This can be useful to directly compute
-            accuracy on the output of a neural network, which ofter return probabilities. By default, LABELS.
-        binarization_threshold (float): threshold for binarization of the input, in case a Mode that uses
+            accuracy on the output of a neural network, which ofter return probabilities. By default, UNCHANGED.
+        threshold (float): threshold for binarization of the input, in case a Mode that uses
             binarization is used.
 
     """
 
     class Mode(enum.Enum):
-        LABELS = 0
+        UNCHANGED = 0
         PROBABILITIES = 1
         LOGITS = 2
 
@@ -134,7 +134,7 @@ class Accuracy(_BaseClassification):
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
-        mode: Mode = Mode.LABELS,
+        mode: Mode = Mode.UNCHANGED,
         threshold: float = 0.5,
     ):
         self._num_correct = None
