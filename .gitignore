@@ -38,3 +38,6 @@ coverage.xml
 # Documentation
 /docs/src/
 /docs/build/
+
+# Jetbrains tools (e.g. PyCharm)
+.idea/*
