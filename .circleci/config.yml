@@ -3,7 +3,7 @@ version: 2.1
 # Orb to trigger build if files are modified
 # https://circleci.com/developer/orbs/orb/roopakv/swissknife
 orbs:
-  swissknife: roopakv/swissknife@x.y
+  swissknife: roopakv/swissknife@0.53.0
 
 parameters:
   pytorch_stable_image:
