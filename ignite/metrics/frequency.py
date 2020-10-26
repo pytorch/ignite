@@ -5,7 +5,7 @@ import torch
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.handlers.timing import Timer
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
 
 
 class Frequency(Metric):
@@ -40,10 +40,6 @@ class Frequency(Metric):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ) -> None:
-        self._timer = Timer()
-        self._acc = 0
-        self._n = 0
-        self._elapsed = 0.0
         super(Frequency, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
@@ -73,7 +69,8 @@ class Frequency(Metric):
     def completed(self, engine: Engine, name: str) -> None:
         engine.state.metrics[name] = int(self.compute())
 
-    def attach(self, engine: Engine, name: str, event_name: Any = Events.ITERATION_COMPLETED) -> None:
+    # TODO: see issue https://github.com/pytorch/ignite/issues/1405
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
         engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(event_name, self.completed, name)
+        engine.add_event_handler(usage, self.completed, name)

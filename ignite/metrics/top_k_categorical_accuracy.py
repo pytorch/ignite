@@ -43,6 +43,6 @@ class TopKCategoricalAccuracy(Metric):
     def compute(self) -> Union[float, torch.Tensor]:
         if self._num_examples == 0:
             raise NotComputableError(
-                "TopKCategoricalAccuracy must have at" "least one example before it can be computed."
+                "TopKCategoricalAccuracy must have at least one example before it can be computed."
             )
         return self._num_correct.item() / self._num_examples

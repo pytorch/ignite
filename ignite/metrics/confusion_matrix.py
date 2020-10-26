@@ -1,5 +1,5 @@
 import numbers
-from typing import Callable, Optional, Sequence, Tuple, Union, cast
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -66,7 +66,7 @@ class ConfusionMatrix(Metric):
 
         if y_pred.ndimension() < 2:
             raise ValueError(
-                "y_pred must have shape (batch_size, num_categories, ...), " "but given {}".format(y_pred.shape)
+                "y_pred must have shape (batch_size, num_categories, ...), but given {}".format(y_pred.shape)
             )
 
         if y_pred.shape[1] != self.num_classes:
@@ -168,14 +168,15 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
     cm = cm.type(torch.DoubleTensor)
     iou = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)
     if ignore_index is not None:
+        ignore_idx = ignore_index  # type: int
 
         def ignore_index_fn(iou_vector: torch.Tensor) -> torch.Tensor:
-            if cast(int, ignore_index) >= len(iou_vector):
+            if ignore_idx >= len(iou_vector):
                 raise ValueError(
-                    "ignore_index {} is larger than the length of IoU vector {}".format(ignore_index, len(iou_vector))
+                    "ignore_index {} is larger than the length of IoU vector {}".format(ignore_idx, len(iou_vector))
                 )
             indices = list(range(len(iou_vector)))
-            indices.remove(cast(int, ignore_index))
+            indices.remove(ignore_idx)
             return iou_vector[indices]
 
         return MetricsLambda(ignore_index_fn, iou)
@@ -280,14 +281,15 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
     dice = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)
 
     if ignore_index is not None:
+        ignore_idx = ignore_index  # type: int
 
         def ignore_index_fn(dice_vector: torch.Tensor) -> torch.Tensor:
-            if cast(int, ignore_index) >= len(dice_vector):
+            if ignore_idx >= len(dice_vector):
                 raise ValueError(
-                    "ignore_index {} is larger than the length of Dice vector {}".format(ignore_index, len(dice_vector))
+                    "ignore_index {} is larger than the length of Dice vector {}".format(ignore_idx, len(dice_vector))
                 )
             indices = list(range(len(dice_vector)))
-            indices.remove(cast(int, ignore_index))
+            indices.remove(ignore_idx)
             return dice_vector[indices]
 
         return MetricsLambda(ignore_index_fn, dice)

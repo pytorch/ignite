@@ -30,22 +30,21 @@ class _BasePrecisionRecall(_BaseClassification):
                 )
 
         self._average = average
-        self._true_positives = 0  # type: Union[int, torch.Tensor]
-        self._positives = 0  # type: Union[int, torch.Tensor]
         self.eps = 1e-20
+        self._is_reduced = False
         super(_BasePrecisionRecall, self).__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device
         )
 
     @reinit__is_reduced
     def reset(self) -> None:
+        self._true_positives = 0  # type: Union[int, torch.Tensor]
+        self._positives = 0  # type: Union[int, torch.Tensor]
+
         if self._is_multilabel:
             init_value = 0.0 if self._average else []
             self._true_positives = torch.tensor(init_value, dtype=torch.float64, device=self._device)
             self._positives = torch.tensor(init_value, dtype=torch.float64, device=self._device)
-        else:
-            self._true_positives = 0
-            self._positives = 0
 
         super(_BasePrecisionRecall, self).reset()
 
@@ -59,7 +58,7 @@ class _BasePrecisionRecall(_BaseClassification):
             )
 
         if not (self._type == "multilabel" and not self._average):
-            if not self._is_reduced:  # type: ignore[has-type] # mypy cann't determine type
+            if not self._is_reduced:
                 self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[arg-type, assignment]
                 self._positives = idist.all_reduce(self._positives)  # type: ignore[arg-type, assignment]
                 self._is_reduced = True

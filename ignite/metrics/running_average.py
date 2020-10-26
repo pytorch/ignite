@@ -81,7 +81,7 @@ class RunningAverage(Metric):
 
         self.alpha = alpha
         self.epoch_bound = epoch_bound
-        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
+        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)  # type: ignore[arg-type]
 
     @reinit__is_reduced
     def reset(self) -> None:

@@ -199,9 +199,7 @@ class Metric(metaclass=ABCMeta):
     _required_output_keys = required_output_keys
 
     def __init__(
-        self,
-        output_transform: Optional[Callable] = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._output_transform = output_transform
 
@@ -279,11 +277,6 @@ class Metric(metaclass=ABCMeta):
         Args:
             engine (Engine): the engine to which the metric must be attached
         """
-
-        if self._output_transform is None:
-            raise RuntimeError(
-                "Internal error, self._output_transform is None. Please, file an issue if you encounter this error."
-            )
 
         output = self._output_transform(engine.state.output)
         if isinstance(output, Mapping):

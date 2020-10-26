@@ -59,8 +59,6 @@ class EpochMetric(Metric):
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
-        self._predictions = []  # type: List[torch.Tensor]
-        self._targets = []  # type: List[torch.Tensor]
         self.compute_fn = compute_fn
         self._check_compute_fn = check_compute_fn
 
@@ -68,8 +66,8 @@ class EpochMetric(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._predictions = []
-        self._targets = []
+        self._predictions = []  # type: List[torch.Tensor]
+        self._targets = []  # type: List[torch.Tensor]
 
     def _check_shape(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -97,7 +95,7 @@ class EpochMetric(Metric):
         dtype_targets = self._targets[-1].dtype
         if dtype_targets != y.dtype:
             raise ValueError(
-                "Incoherent types between input y and stored targets: " "{} vs {}".format(dtype_targets, y.dtype)
+                "Incoherent types between input y and stored targets: {} vs {}".format(dtype_targets, y.dtype)
             )
 
     @reinit__is_reduced
