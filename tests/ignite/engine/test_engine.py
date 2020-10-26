@@ -922,3 +922,10 @@ def test_epoch_events_fired():
         assert engine.state.iteration % engine.state.epoch_length == 0
 
     engine.run([0] * 10, max_iters=max_iters)
+
+def test_is_done_with_max_iters():
+    state = State(iteration=100, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
+    assert not Engine._is_done(state)
+
+    state = State(iteration=250, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
+    assert Engine._is_done(state)
