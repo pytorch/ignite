@@ -1,3 +1,4 @@
+import functools
 from collections import OrderedDict
 from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Tuple, Union
@@ -479,9 +480,10 @@ class HandlersTimeProfiler:
     @staticmethod
     def _get_callable_name(handler: Callable):
         # get name of the callable handler
-        return handler.__qualname__ if hasattr(handler, "__qualname__") else handler.__class__.__name__
+        return getattr(handler, "__qualname__", handler.__class__.__name__)
 
     def _timeit_handler_wrapper(self, handler: Tuple[Callable, List[Any], Mapping[str, Any]]):
+        @functools.wraps(handler[0])
         def _timeit_handler(event: Events, *args: Any, **kwargs: Any):
             # TODO: add threshold filtering for handlers with event filter
             # if (
@@ -496,17 +498,8 @@ class HandlersTimeProfiler:
             self.event_handlers_times[event][hname].append(t)
 
         # required to revert back to original handler after profiling
-        _timeit_handler._profiler_original = handler
+        setattr(_timeit_handler, "_profiler_original", handler)
         return _timeit_handler
-
-    # def _timeit_handler(self, handler: Callable, event: Events, *args, **kwargs):
-    #     # wrapper for profiling handlers attached to iteration events
-    #     self._event_handlers_timer.reset()
-    #     func, args, kwargs = handler
-    #     func(*args, **kwargs)
-    #     t = self._event_handlers_timer.value()
-    #     hname = self._get_callable_name(func)
-    #     self.event_handlers_times[event][hname].append(t)
 
     def _timeit_processing(self):
         # handler used for profiling processing times
@@ -541,7 +534,7 @@ class HandlersTimeProfiler:
 
         self.event_handlers_names = {
             e: [
-                h.__qualname__ if hasattr(h, "__qualname__") else h.__class__.__name__
+                self._get_callable_name(h)
                 for (h, _, _) in engine._event_handlers[e]
                 if not self._is_internal_handler(h)
             ]
@@ -556,15 +549,15 @@ class HandlersTimeProfiler:
                     engine._event_handlers[e][i] = (self._timeit_handler_wrapper(h), (e,), {})
 
         # processing timer
-        engine._event_handlers[Events.ITERATION_STARTED].append((self._processing_timer.reset, (), {}))
+        engine.add_event_handler(Events.ITERATION_STARTED, self._processing_timer.reset)
         engine._event_handlers[Events.ITERATION_COMPLETED].insert(0, (self._timeit_processing, (), {}))
 
         # dataflow timer
-        engine._event_handlers[Events.GET_BATCH_STARTED].append((self._dataflow_timer.reset, (), {}))
+        engine.add_event_handler(Events.GET_BATCH_STARTED, self._dataflow_timer.reset)
         engine._event_handlers[Events.GET_BATCH_COMPLETED].insert(0, (self._timeit_dataflow, (), {}))
 
         # revert back the wrapped handlers with original handlers at the end
-        engine._event_handlers[Events.COMPLETED].append((self._detach_profiler_handlers, (engine,), {}))
+        engine.add_event_handler(Events.COMPLETED, self._detach_profiler_handlers)
 
     def attach(self, engine: Engine):
         if not isinstance(engine, Engine):
@@ -599,15 +592,16 @@ class HandlersTimeProfiler:
             max_index = ("None", "None")
             mean = "None"
             std = "None"
-            if len(data) > 1:
+            if len(data) > 0:
                 min_index = (round(torch.min(data).item(), 5), torch.argmin(data).item())
                 max_index = (round(torch.max(data).item(), 5), torch.argmax(data).item())
                 mean = round(torch.mean(data).item(), 5)
-                std = round(torch.std(data).item(), 5)
+                if len(data) > 1:
+                    std = round(torch.std(data).item(), 5)
             return [total, min_index, max_index, mean, std]
 
         event_handler_stats = [
-            [h, e.name, *compute_basic_stats(torch.tensor(self.event_handlers_times[e][h]))]
+            [h, getattr(e, "name", str(e)), *compute_basic_stats(torch.tensor(self.event_handlers_times[e][h]))]
             for e in self.event_handlers_times
             for h in self.event_handlers_times[e]
         ]
@@ -630,13 +624,40 @@ class HandlersTimeProfiler:
         .. code-block:: text
 
             -----------------------------------------------------------------
-            epoch iteration processing_stats dataflow_stats training.<locals>.log_elapsed_time (EPOCH_COMPLETED) ...
-            1.0     1.0        0.00003         0.252387                          0.125676
-            1.0     2.0        0.00029         0.252342                          0.125123
+            # processing_stats dataflow_stats training.<locals>.log_elapsed_time (EPOCH_COMPLETED) ...
+            1     0.00003         0.252387                          0.125676
+            2     0.00029         0.252342                          0.125123
 
         """
-        # TODO: need to update as per new results
-        raise NotImplementedError
+        try:
+            import pandas as pd
+        except ImportError:
+            print("Need pandas to write results as files")
+            return
+
+        processing_stats = torch.tensor(self.processing_times)
+        dataflow_stats = torch.tensor(self.dataflow_times)
+
+        cols = [processing_stats, dataflow_stats]
+        headers = ["processing_stats", "dataflow_stats"]
+        for e in self.event_handlers_times:
+            for h in self.event_handlers_times[e]:
+                headers.append("{} ({})".format(h, getattr(e, "name", str(e))))
+                cols.append(torch.tensor(self.event_handlers_times[e][h]))
+        # Determine maximum length
+        max_len = max([x.numel() for x in cols])
+
+        count_col = torch.arange(max_len, dtype=torch.int32) + 1
+        cols.insert(0, count_col)
+        headers.insert(0, "#")
+
+        # pad all tensors to have same length
+        cols = [torch.nn.functional.pad(x, pad=(0, max_len - x.numel()), mode="constant", value=0) for x in cols]
+
+        results_dump = torch.stack(cols, dim=1,).numpy()
+
+        results_df = pd.DataFrame(data=results_dump, columns=headers,)
+        results_df.to_csv(output_path, index=False)
 
     @staticmethod
     def print_results(results: List[List[Union[str, float]]]):
