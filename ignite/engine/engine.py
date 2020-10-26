@@ -558,7 +558,10 @@ class Engine(Serializable):
 
     @staticmethod
     def _is_done(state: State) -> bool:
-        return state.iteration == state.epoch_length * state.max_epochs  # type: ignore[operator]
+        is_done_iters = state.max_iters and state.iteration == state.max_iters
+        is_done_epochs = state.max_epochs and state.epoch == state.max_epochs
+        is_done_count = state.epoch_length and state.iteration == state.epoch_length * state.max_epochs
+        return is_done_iters or is_done_epochs or is_done_count  # type: ignore[operator]
 
     def set_data(self, data: Union[Iterable, DataLoader]) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
@@ -747,7 +750,7 @@ class Engine(Serializable):
         try:
             start_time = time.time()
             self._fire_event(Events.STARTED)
-            while self.state.epoch < self.state.max_epochs and not self.should_terminate:  # type: ignore[operator]
+            while not self._is_done(self.state) and not self.should_terminate:  # type: ignore[operator]
                 self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
 
