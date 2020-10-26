@@ -557,7 +557,7 @@ class Engine(Serializable):
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
     @staticmethod
-        def _is_done(state: State) -> bool:
+    def _is_done(state: State) -> bool:
         is_done_iters = state.max_iters and state.iteration == state.max_iters
         is_done_epochs = state.max_epochs and state.epoch == state.max_epochs
         is_done_count = state.epoch_length and state.iteration == state.epoch_length * state.max_epochs
