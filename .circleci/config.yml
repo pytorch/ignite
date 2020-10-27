@@ -92,6 +92,10 @@ jobs:
 
     steps:
       - checkout
+      - run:
+          name: Trigger job if modified
+          command: |
+            bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -149,6 +153,10 @@ jobs:
 
     steps:
       - checkout
+      - run:
+          name: Trigger job if modified
+          command: |
+            bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -171,6 +179,10 @@ jobs:
 
     steps:
       - checkout
+      - run:
+          name: Trigger job if modified
+          command: |
+            bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -222,6 +234,10 @@ jobs:
 
     steps:
       - checkout
+      - run:
+          name: Trigger job if modified
+          command: |
+            bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
@@ -283,6 +299,7 @@ jobs:
 workflows:
   version: 2
   gpu_tests:
+
     jobs:
       - one_gpu_tests
       - two_gpus_tests
