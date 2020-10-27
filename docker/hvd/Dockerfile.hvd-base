@@ -1,6 +1,6 @@
 # Multi-stage build
 # Dockerfile.hvd-base
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel as builder
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel as builder
 
 LABEL description="Latest PyTorch, Ignite and Horovod"
 
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y git && \
         rm -rf /var/lib/apt/lists/*
 
 # Build runtime image
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 
 # Install tzdata / git
 RUN apt-get update && \

@@ -1,6 +1,6 @@
 # Multi-stage build
-# 1/Building apex with pytorch:1.6.0-cuda10.1-cudnn7-devel
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS msdp-builder
+# 1/Building apex with pytorch
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel AS msdp-builder
 
 ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
@@ -23,7 +23,7 @@ RUN cd /tmp/DeepSpeed && \
     ./install.sh --allow_sudo
 
 # Build runtime image
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 
 # For building cpufeature wheel
 RUN apt-get update && apt-get install -y --no-install-recommends g++ gcc
@@ -52,6 +52,7 @@ RUN apt-get update && \
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
                                          tqdm
+
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \
     cd pytorch-ignite-examples && \
@@ -64,7 +65,3 @@ RUN mkdir -p pytorch-ignite-examples && \
 WORKDIR /workspace
 
 ENTRYPOINT ["/bin/bash"]
-
-
-
-

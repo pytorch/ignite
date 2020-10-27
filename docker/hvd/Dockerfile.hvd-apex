@@ -1,6 +1,6 @@
 # Multi-stage build
-# 1/Building apex and hvd with pytorch:1.6.0-cuda10.1-cudnn7-devel
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS apex-hvd-builder
+# 1/Building apex and hvd with pytorch
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel AS apex-hvd-builder
 
 ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y git && \
         rm -rf /var/lib/apt/lists/*
 
 # 2/ Build the runtime image
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 
 # Apex
 COPY --from=apex-hvd-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
@@ -60,5 +60,7 @@ COPY --from=apex-hvd-builder /horovod/horovod-*.whl /horovod/
 RUN cd /horovod && \
     pip install --no-cache-dir horovod-*.whl && \
     rm -fr /horovod
+
+WORKDIR /workspace
 
 ENTRYPOINT ["/bin/bash"]
