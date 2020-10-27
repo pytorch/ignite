@@ -26,7 +26,6 @@ class ManhattanDistance(_BaseRegression):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
-        self._sum_of_errors = None
         super(ManhattanDistance, self).__init__(output_transform, device)
 
     @reinit__is_reduced

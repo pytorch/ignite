@@ -24,10 +24,6 @@ class R2Score(_BaseRegression):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        self._num_examples = None
-        self._sum_of_errors = None
-        self._y_sq_sum = None
-        self._y_sum = None
         super(R2Score, self).__init__(output_transform, device)
 
     @reinit__is_reduced
