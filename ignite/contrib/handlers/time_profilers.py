@@ -482,19 +482,18 @@ class HandlersTimeProfiler:
         # get name of the callable handler
         return getattr(handler, "__qualname__", handler.__class__.__name__)
 
-    def _timeit_handler_wrapper(self, handler: Tuple[Callable, List[Any], Mapping[str, Any]]):
-        @functools.wraps(handler[0])
-        def _timeit_handler(event: Events, *args: Any, **kwargs: Any):
+    def _create_wrapped_handler(self, handler: Callable, event: Events):
+        @functools.wraps(handler)
+        def _timeit_handler(*args: Any, **kwargs: Any):
             # TODO: add threshold filtering for handlers with event filter
             # if (
             #     isinstance(event_name, CallableEventWithFilter)
             #     and event_name.filter != CallableEventWithFilter.default_event_filter
             # ):
             self._event_handlers_timer.reset()
-            func, args, kwargs = handler
-            func(*args, **kwargs)
+            handler(*args, **kwargs)
             t = self._event_handlers_timer.value()
-            hname = self._get_callable_name(func)
+            hname = self._get_callable_name(handler)
             self.event_handlers_times[event][hname].append(t)
 
         # required to revert back to original handler after profiling
@@ -527,8 +526,9 @@ class HandlersTimeProfiler:
         # reverts handlers to original handlers
         for e in engine._event_handlers:
             for i, h in enumerate(engine._event_handlers[e]):
-                if hasattr(h[0], "_profiler_original"):
-                    engine._event_handlers[e][i] = h[0]._profiler_original
+                func, args, kwargs = h
+                if hasattr(func, "_profiler_original"):
+                    engine._event_handlers[e][i] = (func._profiler_original, args, kwargs)
 
     def _as_first_started(self, engine):
 
@@ -546,7 +546,8 @@ class HandlersTimeProfiler:
         for e in engine._allowed_events:
             for i, h in enumerate(engine._event_handlers[e]):
                 if not self._is_internal_handler(h):
-                    engine._event_handlers[e][i] = (self._timeit_handler_wrapper(h), (e,), {})
+                    func, args, kwargs = h
+                    engine._event_handlers[e][i] = (self._create_wrapped_handler(func, e), args, kwargs)
 
         # processing timer
         engine.add_event_handler(Events.ITERATION_STARTED, self._processing_timer.reset)
