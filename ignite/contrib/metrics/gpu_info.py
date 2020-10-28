@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Tuple, Union, List
+from typing import List, Tuple, Union
 
 import torch
 
@@ -105,5 +105,7 @@ class GpuInfo(Metric):
                 pass
 
     # TODO: see issue https://github.com/pytorch/ignite/issues/1405
-    def attach(self, engine: Engine, name: str = "gpu", event_name: Union[str, EventEnum] = Events.ITERATION_COMPLETED) -> None:  # type: ignore
+    def attach(  # type: ignore
+        self, engine: Engine, name: str = "gpu", event_name: Union[str, EventEnum] = Events.ITERATION_COMPLETED
+    ) -> None:
         engine.add_event_handler(event_name, self.completed, name)

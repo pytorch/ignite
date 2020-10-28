@@ -29,14 +29,14 @@ class ManhattanDistance(_BaseRegression):
         super(ManhattanDistance, self).__init__(output_transform, device)
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._sum_of_errors = torch.tensor(0.0, device=self._device)
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         errors = torch.abs(y - y_pred)
         self._sum_of_errors += torch.sum(errors).to(self._device)
 
     @sync_all_reduce("_sum_of_errors")
-    def compute(self):
+    def compute(self) -> float:
         return self._sum_of_errors.item()
