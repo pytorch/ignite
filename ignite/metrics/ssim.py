@@ -85,9 +85,8 @@ class SSIM(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_batchwise_ssim = (
-            0.0
-        )  # type: Union[float, torch.Tensor] # Not a tensor because batch size is not known in advance.
+        # Not a tensor because batch size is not known in advance.
+        self._sum_of_batchwise_ssim = 0.0  # type: Union[float, torch.Tensor]
         self._num_examples = 0
         self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 

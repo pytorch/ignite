@@ -45,7 +45,7 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, every=1):
     engine = Engine(update_fn)
     wps_metric = Frequency(output_transform=lambda x: x["ntokens"])
     event = Events.ITERATION_COMPLETED(every=every)
-    wps_metric.attach(engine, "wps", usage=event)  # TODO: see issue https://github.com/pytorch/ignite/issues/1405
+    wps_metric.attach(engine, "wps", event_name=event)
 
     @engine.on(event)
     def assert_wps(e):

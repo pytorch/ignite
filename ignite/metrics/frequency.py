@@ -70,7 +70,9 @@ class Frequency(Metric):
         engine.state.metrics[name] = int(self.compute())
 
     # TODO: see issue https://github.com/pytorch/ignite/issues/1405
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def attach(  # type: ignore
+        self, engine: Engine, name: str, event_name: Events = Events.ITERATION_COMPLETED
+    ) -> None:
         engine.add_event_handler(Events.EPOCH_STARTED, self.started)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(usage, self.completed, name)
+        engine.add_event_handler(event_name, self.completed, name)

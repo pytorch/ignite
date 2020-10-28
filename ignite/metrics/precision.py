@@ -31,7 +31,6 @@ class _BasePrecisionRecall(_BaseClassification):
 
         self._average = average
         self.eps = 1e-20
-        self._is_reduced = False
         super(_BasePrecisionRecall, self).__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device
         )
@@ -61,7 +60,7 @@ class _BasePrecisionRecall(_BaseClassification):
             if not self._is_reduced:
                 self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[arg-type, assignment]
                 self._positives = idist.all_reduce(self._positives)  # type: ignore[arg-type, assignment]
-                self._is_reduced = True
+                self._is_reduced = True  # type: bool
 
         result = self._true_positives / (self._positives + self.eps)
 
@@ -177,8 +176,8 @@ class Precision(_BasePrecisionRecall):
 
         if self._type == "multilabel":
             if not self._average:
-                self._true_positives = torch.cat([cast(torch.Tensor, self._true_positives), true_positives], dim=0)
-                self._positives = torch.cat([cast(torch.Tensor, self._positives), all_positives], dim=0)
+                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)  # type: torch.Tensor
+                self._positives = torch.cat([self._positives, all_positives], dim=0)  # type: torch.Tensor
             else:
                 self._true_positives += torch.sum(true_positives / (all_positives + self.eps))
                 self._positives += len(all_positives)

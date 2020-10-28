@@ -168,7 +168,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
     cm = cm.type(torch.DoubleTensor)
     iou = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)
     if ignore_index is not None:
-        ignore_idx = ignore_index  # type: int
+        ignore_idx = ignore_index  # type: int  # used due to typing issues with mympy
 
         def ignore_index_fn(iou_vector: torch.Tensor) -> torch.Tensor:
             if ignore_idx >= len(iou_vector):
@@ -281,7 +281,7 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
     dice = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)
 
     if ignore_index is not None:
-        ignore_idx = ignore_index  # type: int
+        ignore_idx = ignore_index  # type: int  # used due to typing issues with mympy
 
         def ignore_index_fn(dice_vector: torch.Tensor) -> torch.Tensor:
             if ignore_idx >= len(dice_vector):
