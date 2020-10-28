@@ -1,7 +1,7 @@
 import numbers
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
 
 import torch
 import torch.nn as nn
@@ -88,24 +88,24 @@ def setup_common_training_handlers(
         **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
     """
 
-    _kwargs = dict(
-        to_save=to_save,
-        save_every_iters=save_every_iters,
-        output_path=output_path,
-        lr_scheduler=lr_scheduler,
-        with_gpu_stats=with_gpu_stats,
-        output_names=output_names,
-        with_pbars=with_pbars,
-        with_pbar_on_iters=with_pbar_on_iters,
-        log_every_iters=log_every_iters,
-        stop_on_nan=stop_on_nan,
-        clear_cuda_cache=clear_cuda_cache,
-        save_handler=save_handler,
-    )
-    _kwargs.update(kwargs)
-
     if idist.get_world_size() > 1:
-        _setup_common_distrib_training_handlers(trainer, train_sampler=train_sampler, **_kwargs)
+        _setup_common_distrib_training_handlers(
+            trainer,
+            train_sampler=train_sampler,
+            to_save=to_save,
+            save_every_iters=save_every_iters,
+            output_path=output_path,
+            lr_scheduler=lr_scheduler,
+            with_gpu_stats=with_gpu_stats,
+            output_names=output_names,
+            with_pbars=with_pbars,
+            with_pbar_on_iters=with_pbar_on_iters,
+            log_every_iters=log_every_iters,
+            stop_on_nan=stop_on_nan,
+            clear_cuda_cache=clear_cuda_cache,
+            save_handler=save_handler,
+            **kwargs,
+        )
     else:
         if train_sampler is not None and isinstance(train_sampler, DistributedSampler):
             warnings.warn(
@@ -114,7 +114,22 @@ def setup_common_training_handlers(
                 "Train sampler argument will be ignored",
                 UserWarning,
             )
-        _setup_common_training_handlers(trainer, **_kwargs)
+        _setup_common_training_handlers(
+            trainer,
+            to_save=to_save,
+            save_every_iters=save_every_iters,
+            output_path=output_path,
+            lr_scheduler=lr_scheduler,
+            with_gpu_stats=with_gpu_stats,
+            output_names=output_names,
+            with_pbars=with_pbars,
+            with_pbar_on_iters=with_pbar_on_iters,
+            log_every_iters=log_every_iters,
+            stop_on_nan=stop_on_nan,
+            clear_cuda_cache=clear_cuda_cache,
+            save_handler=save_handler,
+            **kwargs,
+        )
 
 
 setup_common_distrib_training_handlers = setup_common_training_handlers
@@ -146,7 +161,10 @@ def _setup_common_training_handlers(
 
     if lr_scheduler is not None:
         if isinstance(lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
-            trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: lr_scheduler.step())
+            trainer.add_event_handler(
+                Events.ITERATION_COMPLETED,
+                lambda engine: cast(torch.optim.lr_scheduler._LRScheduler, lr_scheduler).step(),
+            )
         elif isinstance(lr_scheduler, LRScheduler):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, lr_scheduler)
         else:
@@ -164,11 +182,15 @@ def _setup_common_training_handlers(
         if output_path is not None:
             save_handler = DiskSaver(dirname=output_path, require_empty=False)
 
-        checkpoint_handler = Checkpoint(to_save, save_handler, filename_prefix="training", **kwargs)
-        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler)
+        checkpoint_handler = Checkpoint(
+            to_save, cast(Union[Callable, BaseSaveHandler], save_handler), filename_prefix="training", **kwargs
+        )
+        trainer.add_event_handler(cast(Events, Events.ITERATION_COMPLETED(every=save_every_iters)), checkpoint_handler)
 
     if with_gpu_stats:
-        GpuInfo().attach(trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters))
+        GpuInfo().attach(
+            trainer, name="gpu", event_name=cast(Events, Events.ITERATION_COMPLETED(every=log_every_iters))
+        )
 
     if output_names is not None:
 
@@ -193,7 +215,7 @@ def _setup_common_training_handlers(
     if with_pbars:
         if with_pbar_on_iters:
             ProgressBar(persist=False).attach(
-                trainer, metric_names="all", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)
+                trainer, metric_names="all", event_name=cast(Events, Events.ITERATION_COMPLETED(every=log_every_iters))
             )
 
         ProgressBar(persist=True, bar_format="").attach(
@@ -262,8 +284,8 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
 def _setup_logging(
     logger: BaseLogger,
     trainer: Engine,
-    optimizers: Union[Optimizer, Dict[str, Optimizer]],
-    evaluators: Union[Engine, Dict[str, Engine]],
+    optimizers: Union[Optimizer, Dict[str, Optimizer], None],
+    evaluators: Union[Engine, Dict[str, Engine], None],
     log_every_iters: int,
 ):
     if optimizers is not None:
@@ -284,11 +306,12 @@ def _setup_logging(
     if optimizers is not None:
         # Log optimizer parameters
         if isinstance(optimizers, Optimizer):
-            optimizers = {None: optimizers}
+            optimizers = {"": optimizers}
 
         for k, optimizer in optimizers.items():
+            tag = None if k == "" else k
             logger.attach_opt_params_handler(
-                trainer, Events.ITERATION_STARTED(every=log_every_iters), optimizer, param_name="lr", tag=k
+                trainer, Events.ITERATION_STARTED(every=log_every_iters), optimizer, param_name="lr", tag=tag
             )
 
     if evaluators is not None:
@@ -575,7 +598,7 @@ def gen_save_best_models_by_val_score(
         to_save = {"model": models}
 
     best_model_handler = Checkpoint(
-        to_save,
+        cast(Dict[str, torch.nn.Module], to_save),
         save_handler,
         filename_prefix="best",
         n_saved=n_saved,
