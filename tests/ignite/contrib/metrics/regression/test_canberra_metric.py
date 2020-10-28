@@ -63,7 +63,7 @@ def test_compute():
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
-def _test_distrib_compute(device):
+def _test_distrib_compute(device, tol=1e-4):
     rank = idist.get_rank()
 
     canberra = DistanceMetric.get_metric("canberra")
@@ -85,7 +85,7 @@ def _test_distrib_compute(device):
         np_y_pred = y_pred.cpu().numpy()
         np_y = y.cpu().numpy()
         res = m.compute()
-        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(res)
+        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(res, abs=tol)
 
     for _ in range(3):
         _test("cpu")
@@ -141,12 +141,12 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_compute(device)
+    _test_distrib_compute(device, tol=1.e-3)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_compute(device)
+    _test_distrib_compute(device, tol=1.e-3)
 
 
 @pytest.mark.tpu
