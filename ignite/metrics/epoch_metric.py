@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Sequence, Union
+from typing import Callable, List, Sequence, Union, cast
 
 import torch
 
@@ -54,13 +54,11 @@ class EpochMetric(Metric):
         output_transform: Callable = lambda x: x,
         check_compute_fn: bool = True,
         device: Union[str, torch.device] = torch.device("cpu"),
-    ):
+    ) -> None:
 
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 
-        self._predictions = None
-        self._targets = None
         self.compute_fn = compute_fn
         self._check_compute_fn = check_compute_fn
 
@@ -68,10 +66,10 @@ class EpochMetric(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._predictions = []
-        self._targets = []
+        self._predictions = []  # type: List[torch.Tensor]
+        self._targets = []  # type: List[torch.Tensor]
 
-    def _check_shape(self, output):
+    def _check_shape(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
         if y_pred.ndimension() not in (1, 2):
             raise ValueError("Predictions should be of shape (batch_size, n_classes) or (batch_size, ).")
@@ -83,7 +81,7 @@ class EpochMetric(Metric):
             if not torch.equal(y ** 2, y):
                 raise ValueError("Targets should be binary (0 or 1).")
 
-    def _check_type(self, output):
+    def _check_type(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
         if len(self._predictions) < 1:
             return
@@ -97,7 +95,7 @@ class EpochMetric(Metric):
         dtype_targets = self._targets[-1].dtype
         if dtype_targets != y.dtype:
             raise ValueError(
-                "Incoherent types between input y and stored targets: " "{} vs {}".format(dtype_targets, y.dtype)
+                "Incoherent types between input y and stored targets: {} vs {}".format(dtype_targets, y.dtype)
             )
 
     @reinit__is_reduced
@@ -125,7 +123,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
 
-    def compute(self) -> None:
+    def compute(self) -> float:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
@@ -136,8 +134,8 @@ class EpochMetric(Metric):
 
         if ws > 1 and not self._is_reduced:
             # All gather across all processes
-            _prediction_tensor = idist.all_gather(_prediction_tensor)
-            _target_tensor = idist.all_gather(_target_tensor)
+            _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+            _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
         self._is_reduced = True
 
         result = 0.0
@@ -147,7 +145,7 @@ class EpochMetric(Metric):
 
         if ws > 1:
             # broadcast result to all processes
-            result = idist.broadcast(result, src=0)
+            result = cast(float, idist.broadcast(result, src=0))  # type: ignore[arg-type]
 
         return result
 

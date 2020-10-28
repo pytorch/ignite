@@ -1,5 +1,5 @@
 import numbers
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -54,7 +54,6 @@ class ConfusionMatrix(Metric):
         self.num_classes = num_classes
         self._num_examples = 0
         self.average = average
-        self.confusion_matrix = None
         super(ConfusionMatrix, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
@@ -67,7 +66,7 @@ class ConfusionMatrix(Metric):
 
         if y_pred.ndimension() < 2:
             raise ValueError(
-                "y_pred must have shape (batch_size, num_categories, ...), " "but given {}".format(y_pred.shape)
+                "y_pred must have shape (batch_size, num_categories, ...), but given {}".format(y_pred.shape)
             )
 
         if y_pred.shape[1] != self.num_classes:
@@ -83,7 +82,7 @@ class ConfusionMatrix(Metric):
             )
 
         y_shape = y.shape
-        y_pred_shape = y_pred.shape
+        y_pred_shape = y_pred.shape  # type: Tuple[int, ...]
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -124,13 +123,12 @@ class ConfusionMatrix(Metric):
 
     @staticmethod
     def normalize(matrix: torch.Tensor, average: str) -> torch.Tensor:
-        if average not in ("recall", "precision"):
-            raise ValueError("Argument average one of 'samples', 'recall', 'precision'")
-
         if average == "recall":
             return matrix / (matrix.sum(dim=1).unsqueeze(1) + 1e-15)
         elif average == "precision":
             return matrix / (matrix.sum(dim=0) + 1e-15)
+        else:
+            raise ValueError("Argument average should be one of 'samples', 'recall', 'precision'")
 
 
 def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
@@ -170,14 +168,15 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
     cm = cm.type(torch.DoubleTensor)
     iou = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)
     if ignore_index is not None:
+        ignore_idx = ignore_index  # type: int  # used due to typing issues with mympy
 
-        def ignore_index_fn(iou_vector):
-            if ignore_index >= len(iou_vector):
+        def ignore_index_fn(iou_vector: torch.Tensor) -> torch.Tensor:
+            if ignore_idx >= len(iou_vector):
                 raise ValueError(
-                    "ignore_index {} is larger than the length of IoU vector {}".format(ignore_index, len(iou_vector))
+                    "ignore_index {} is larger than the length of IoU vector {}".format(ignore_idx, len(iou_vector))
                 )
             indices = list(range(len(iou_vector)))
-            indices.remove(ignore_index)
+            indices.remove(ignore_idx)
             return iou_vector[indices]
 
         return MetricsLambda(ignore_index_fn, iou)
@@ -282,14 +281,15 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
     dice = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)
 
     if ignore_index is not None:
+        ignore_idx = ignore_index  # type: int  # used due to typing issues with mympy
 
         def ignore_index_fn(dice_vector: torch.Tensor) -> torch.Tensor:
-            if ignore_index >= len(dice_vector):
+            if ignore_idx >= len(dice_vector):
                 raise ValueError(
-                    "ignore_index {} is larger than the length of Dice vector {}".format(ignore_index, len(dice_vector))
+                    "ignore_index {} is larger than the length of Dice vector {}".format(ignore_idx, len(dice_vector))
                 )
             indices = list(range(len(dice_vector)))
-            indices.remove(ignore_index)
+            indices.remove(ignore_idx)
             return dice_vector[indices]
 
         return MetricsLambda(ignore_index_fn, dice)
