@@ -62,7 +62,7 @@ while ensuring maximum control and simplicity
 
 # Table of Contents
 - [Why Ignite?](#why-ignite)
-- [Quickstart guide for first-time contributors](#quickstart)
+- [Quickstart guide for first-time contributors](#quickstart-guide-for-first-time-contributors)
 - [Installation](#installation)
 - [Getting Started](#getting-started)
 - [Documentation](#documentation)
