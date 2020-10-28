@@ -43,13 +43,13 @@ def setup_common_training_handlers(
     with_pbars: bool = True,
     with_pbar_on_iters: bool = True,
     log_every_iters: int = 100,
-    device: Optional[Union[str, torch.device]] = None,
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
     **kwargs: Any
 ):
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
+
         - :class:`~ignite.handlers.TerminateOnNan`
         - handler to setup learning rate scheduling
         - :class:`~ignite.handlers.ModelCheckpoint`
@@ -86,10 +86,7 @@ def setup_common_training_handlers(
             class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
             Argument is mutually exclusive with ``output_path``.
         **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
-        device (str of torch.device, optional): deprecated argument, it will be removed in v0.5.0.
     """
-    if device is not None:
-        warnings.warn("Argument device is unused and deprecated. It will be removed in v0.5.0")
 
     _kwargs = dict(
         to_save=to_save,
@@ -257,8 +254,8 @@ def empty_cuda_cache(_):
 
 def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters):
     raise DeprecationWarning(
-        "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. "
-        "Please use ignite.contrib.engines.common._setup_logging instead."
+        "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. and will be remove in 0.6.0. "
+        "Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc."
     )
 
 
@@ -316,6 +313,7 @@ def setup_tb_logging(
     **kwargs: Any
 ):
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -347,6 +345,7 @@ def setup_visdom_logging(
     **kwargs: Any
 ):
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -377,6 +376,7 @@ def setup_mlflow_logging(
     **kwargs: Any
 ):
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -407,6 +407,7 @@ def setup_neptune_logging(
     **kwargs: Any
 ):
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -437,6 +438,7 @@ def setup_wandb_logging(
     **kwargs: Any
 ):
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -467,6 +469,7 @@ def setup_plx_logging(
     **kwargs: Any
 ):
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
@@ -497,6 +500,7 @@ def setup_trains_logging(
     **kwargs: Any
 ):
     """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
+
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
         - Evaluation metrics
