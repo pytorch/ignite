@@ -216,7 +216,9 @@ def _setup_common_training_handlers(
     if with_pbars:
         if with_pbar_on_iters:
             ProgressBar(persist=False).attach(
-                trainer, metric_names="all", event_name=cast(Events, Events.ITERATION_COMPLETED(every=log_every_iters))
+                trainer,
+                metric_names="all",
+                event_name=Events.ITERATION_COMPLETED(every=log_every_iters),  # type: ignore[arg-type]
             )
 
         ProgressBar(persist=True, bar_format="").attach(
