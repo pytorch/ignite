@@ -47,7 +47,7 @@ def setup_common_training_handlers(
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
     **kwargs: Any
-):
+) -> None:
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
 
         - :class:`~ignite.handlers.TerminateOnNan`
@@ -150,7 +150,7 @@ def _setup_common_training_handlers(
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
     **kwargs: Any
-):
+) -> None:
     if output_path is not None and save_handler is not None:
         raise ValueError(
             "Arguments output_path and save_handler are mutually exclusive. Please, define only one of them"
@@ -162,8 +162,7 @@ def _setup_common_training_handlers(
     if lr_scheduler is not None:
         if isinstance(lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
             trainer.add_event_handler(
-                Events.ITERATION_COMPLETED,
-                lambda engine: cast(torch.optim.lr_scheduler._LRScheduler, lr_scheduler).step(),
+                Events.ITERATION_COMPLETED, lambda engine: cast(_LRScheduler, lr_scheduler).step()
             )
         elif isinstance(lr_scheduler, LRScheduler):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, lr_scheduler)
@@ -185,11 +184,13 @@ def _setup_common_training_handlers(
         checkpoint_handler = Checkpoint(
             to_save, cast(Union[Callable, BaseSaveHandler], save_handler), filename_prefix="training", **kwargs
         )
-        trainer.add_event_handler(cast(Events, Events.ITERATION_COMPLETED(every=save_every_iters)), checkpoint_handler)
+        trainer.add_event_handler(
+            Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler
+        )  # type: ignore[arg-type]
 
     if with_gpu_stats:
         GpuInfo().attach(
-            trainer, name="gpu", event_name=cast(Events, Events.ITERATION_COMPLETED(every=log_every_iters))
+            trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)  # type: ignore[arg-type]
         )
 
     if output_names is not None:
@@ -239,7 +240,7 @@ def _setup_common_distrib_training_handlers(
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
     **kwargs: Any
-):
+) -> None:
 
     _setup_common_training_handlers(
         trainer,
@@ -267,14 +268,14 @@ def _setup_common_distrib_training_handlers(
             train_sampler.set_epoch(engine.state.epoch - 1)
 
 
-def empty_cuda_cache(_):
+def empty_cuda_cache(_) -> None:
     torch.cuda.empty_cache()
     import gc
 
     gc.collect()
 
 
-def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters):
+def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:
     raise DeprecationWarning(
         "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. and will be remove in 0.6.0. "
         "Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc."
@@ -284,10 +285,10 @@ def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, lo
 def _setup_logging(
     logger: BaseLogger,
     trainer: Engine,
-    optimizers: Union[Optimizer, Dict[str, Optimizer], None],
-    evaluators: Union[Engine, Dict[str, Engine], None],
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer], Dict[None, Optimizer]]],
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]],
     log_every_iters: int,
-):
+) -> None:
     if optimizers is not None:
         if not isinstance(optimizers, (Optimizer, Mapping)):
             raise TypeError("Argument optimizers should be either a single optimizer or a dictionary or optimizers")
@@ -306,12 +307,11 @@ def _setup_logging(
     if optimizers is not None:
         # Log optimizer parameters
         if isinstance(optimizers, Optimizer):
-            optimizers = {"": optimizers}
+            optimizers = {None: optimizers}
 
         for k, optimizer in optimizers.items():
-            tag = None if k == "" else k
             logger.attach_opt_params_handler(
-                trainer, Events.ITERATION_STARTED(every=log_every_iters), optimizer, param_name="lr", tag=tag
+                trainer, Events.ITERATION_STARTED(every=log_every_iters), optimizer, param_name="lr", tag=k
             )
 
     if evaluators is not None:
@@ -334,7 +334,7 @@ def setup_tb_logging(
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any
-):
+) -> TensorboardLogger:
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
@@ -366,7 +366,7 @@ def setup_visdom_logging(
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any
-):
+) -> VisdomLogger:
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
@@ -397,7 +397,7 @@ def setup_mlflow_logging(
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any
-):
+) -> MLflowLogger:
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
@@ -428,7 +428,7 @@ def setup_neptune_logging(
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any
-):
+) -> NeptuneLogger:
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
@@ -459,7 +459,7 @@ def setup_wandb_logging(
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any
-):
+) -> WandBLogger:
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
@@ -490,7 +490,7 @@ def setup_plx_logging(
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any
-):
+) -> PolyaxonLogger:
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
@@ -521,7 +521,7 @@ def setup_trains_logging(
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any
-):
+) -> TrainsLogger:
     """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
@@ -546,7 +546,7 @@ def setup_trains_logging(
     return logger
 
 
-def get_default_score_fn(metric_name: str):
+def get_default_score_fn(metric_name: str) -> Any:
     def wrapper(engine: Engine):
         score = engine.state.metrics[metric_name]
         return score
@@ -563,7 +563,7 @@ def gen_save_best_models_by_val_score(
     trainer: Optional[Engine] = None,
     tag: str = "val",
     **kwargs: Any
-):
+) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
     Models with highest metric value will be retained. The logic of how to store objects is delegated to
@@ -593,12 +593,13 @@ def gen_save_best_models_by_val_score(
     if trainer is not None:
         global_step_transform = global_step_from_engine(trainer)
 
-    to_save = models
     if isinstance(models, nn.Module):
-        to_save = {"model": models}
+        to_save = {"model": models}  # type: Dict[str, nn.Module]
+    else:
+        to_save = models
 
     best_model_handler = Checkpoint(
-        cast(Dict[str, torch.nn.Module], to_save),
+        to_save,
         save_handler,
         filename_prefix="best",
         n_saved=n_saved,
@@ -621,7 +622,7 @@ def save_best_model_by_val_score(
     trainer: Optional[Engine] = None,
     tag: str = "val",
     **kwargs: Any
-):
+) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
     Models with highest metric value will be retained.
@@ -652,7 +653,9 @@ def save_best_model_by_val_score(
     )
 
 
-def add_early_stopping_by_val_score(patience: int, evaluator: Engine, trainer: Engine, metric_name: str):
+def add_early_stopping_by_val_score(
+    patience: int, evaluator: Engine, trainer: Engine, metric_name: str
+) -> EarlyStopping:
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
     Metric value should increase in order to keep training and not early stop.
 
