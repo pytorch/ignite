@@ -1,5 +1,6 @@
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 from ignite.metrics.accuracy import Accuracy
+from ignite.metrics.balanced_accuracy import BalancedAccuracy
 from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, mIoU
 from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.fbeta import Fbeta
@@ -41,4 +42,5 @@ __all__ = [
     "VariableAccumulation",
     "Frequency",
     "SSIM",
+    "BalancedAccuracy",
 ]
