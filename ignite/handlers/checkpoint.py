@@ -356,13 +356,12 @@ class Checkpoint(Serializable):
                 "priority": priority,
             }
 
-            filename_already_exists = any(item.filename == filename for item in self._saved)
+            saved = [item for item in self._saved if item.filename != filename]
 
-            if filename_already_exists:
+            if self._saved != saved:
                 if isinstance(self.save_handler, BaseSaveHandler):
                     self.save_handler.remove(filename)
-                # list is purged
-                self._saved = [item for item in self._saved if item.filename != filename]
+                self._saved = saved
             elif not self._check_lt_n_saved():
                 item = self._saved.pop(0)
                 if isinstance(self.save_handler, BaseSaveHandler):
