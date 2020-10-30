@@ -2,12 +2,15 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
-from typing import Any, Callable, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import Engine, Events
+from ignite.engine import CallableEventWithFilter, Engine, Events
+
+if TYPE_CHECKING:
+    from ignite.metrics.metrics_lambda import MetricsLambda
 
 __all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
 
@@ -28,21 +31,21 @@ class MetricUsage:
             :meth:`~ignite.metrics.Metric.iteration_completed`.
     """
 
-    def __init__(self, started, completed, iteration_completed):
+    def __init__(self, started: Events, completed: Events, iteration_completed: CallableEventWithFilter) -> None:
         self.__started = started
         self.__completed = completed
         self.__iteration_completed = iteration_completed
 
     @property
-    def STARTED(self):
+    def STARTED(self) -> Events:
         return self.__started
 
     @property
-    def COMPLETED(self):
+    def COMPLETED(self) -> Events:
         return self.__completed
 
     @property
-    def ITERATION_COMPLETED(self):
+    def ITERATION_COMPLETED(self) -> CallableEventWithFilter:
         return self.__iteration_completed
 
 
@@ -62,7 +65,7 @@ class EpochWise(MetricUsage):
 
     usage_name = "epoch_wise"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
@@ -86,7 +89,7 @@ class BatchWise(MetricUsage):
 
     usage_name = "batch_wise"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
             completed=Events.ITERATION_COMPLETED,
@@ -111,7 +114,7 @@ class BatchFiltered(MetricUsage):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
@@ -191,7 +194,7 @@ class Metric(metaclass=ABCMeta):
     """
 
     # public class attribute
-    required_output_keys = ("y_pred", "y")
+    required_output_keys = ("y_pred", "y")  # type: Optional[Tuple]
     # for backward compatibility
     _required_output_keys = required_output_keys
 
@@ -212,10 +215,10 @@ class Metric(metaclass=ABCMeta):
                 )
 
         # Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.
-        if torch.device(device).type == "xla":
+        if torch.device(device).type == "xla":  # type: ignore[arg-type]
             raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
 
-        self._device = torch.device(device)
+        self._device = torch.device(device)  # type: ignore[arg-type]
         self._is_reduced = False
         self.reset()
 
@@ -229,7 +232,7 @@ class Metric(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def update(self, output) -> None:
+    def update(self, output: Any) -> None:
         """
         Updates the metric's state using the passed batch output.
 
@@ -420,72 +423,72 @@ class Metric(metaclass=ABCMeta):
         usage = self._check_usage(usage)
         return engine.has_event_handler(self.completed, usage.COMPLETED)
 
-    def __add__(self, other):
+    def __add__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x + y, self, other)
 
-    def __radd__(self, other):
+    def __radd__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x + y, other, self)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x - y, self, other)
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x - y, other, self)
 
-    def __mul__(self, other):
+    def __mul__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x * y, self, other)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x * y, other, self)
 
-    def __pow__(self, other):
+    def __pow__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x ** y, self, other)
 
-    def __rpow__(self, other):
+    def __rpow__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x ** y, other, self)
 
-    def __mod__(self, other):
+    def __mod__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x % y, self, other)
 
-    def __div__(self, other):
+    def __div__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x.__div__(y), self, other)
 
-    def __rdiv__(self, other):
+    def __rdiv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x.__div__(y), other, self)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x.__truediv__(y), self, other)
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x.__truediv__(y), other, self)
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x, y: x // y, self, other)
@@ -493,27 +496,27 @@ class Metric(metaclass=ABCMeta):
     def __getattr__(self, attr: str) -> Callable:
         from ignite.metrics.metrics_lambda import MetricsLambda
 
-        def fn(x, *args, **kwargs):
+        def fn(x: Metric, *args: Any, **kwargs: Any) -> Any:
             return getattr(x, attr)(*args, **kwargs)
 
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> "MetricsLambda":
             return MetricsLambda(fn, self, *args, **kwargs)
 
         return wrapper
 
-    def __getitem__(self, index: Any):
+    def __getitem__(self, index: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         return MetricsLambda(lambda x: x[index], self)
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict:
         return self.__dict__
 
-    def __setstate__(self, d):
+    def __setstate__(self, d: Dict) -> None:
         self.__dict__.update(d)
 
 
-def sync_all_reduce(*attrs) -> Callable:
+def sync_all_reduce(*attrs: Any) -> Callable:
     """Helper decorator for distributed configuration to collect instance attribute value
     across all participating processes.
 
@@ -526,7 +529,7 @@ def sync_all_reduce(*attrs) -> Callable:
 
     def wrapper(func: Callable) -> Callable:
         @wraps(func)
-        def another_wrapper(self: Metric, *args, **kwargs) -> Callable:
+        def another_wrapper(self: Metric, *args: Any, **kwargs: Any) -> Callable:
             if not isinstance(self, Metric):
                 raise RuntimeError(
                     "Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only"
@@ -547,7 +550,7 @@ def sync_all_reduce(*attrs) -> Callable:
 
         return another_wrapper
 
-    wrapper._decorated = True
+    setattr(wrapper, "_decorated", True)
     return wrapper
 
 
@@ -559,9 +562,9 @@ def reinit__is_reduced(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Metric, *args: Any, **kwargs: Any) -> None:
         func(self, *args, **kwargs)
         self._is_reduced = False
 
-    wrapper._decorated = True
+    setattr(wrapper, "_decorated", True)
     return wrapper

@@ -6,7 +6,7 @@
 
 
 
-[![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
+[![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
 [![image](https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master)](https://github.com/pytorch/ignite/actions)
 [![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://circleci.com/gh/pytorch/ignite)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://circleci.com/gh/pytorch/ignite)
 [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite)
