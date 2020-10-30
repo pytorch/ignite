@@ -147,8 +147,8 @@ class Checkpoint(Serializable):
         ``30000-checkpoint-94.pt``
 
         **Warning:** Please, keep in mind that if filename collide with already used one to saved a checkpoint,
-        new checkpoint will not be stored. This means that filename like ``checkpoint.pt`` will be saved only once
-        and will not be overwritten by newer checkpoints.
+        new checkpoint will replace the older one. This means that filename like ``checkpoint.pt`` will be saved
+        every call and will always be overwrittDiskSaveren by newer checkpoints.
 
     Note:
         To get the last stored filename, handler exposes attribute ``last_checkpoint``:
@@ -350,22 +350,27 @@ class Checkpoint(Serializable):
             }
             filename = filename_pattern.format(**filename_dict)
 
-            if any(item.filename == filename for item in self._saved):
-                return
+            filename_already_exists = any(item.filename == filename for item in self._saved)
+
+            if filename_already_exists:
+                if isinstance(self.save_handler, BaseSaveHandler):
+                    self.save_handler.remove(filename)
+                # list is purged
+                self._saved = [item for item in self._saved if item.filename != filename]
+            else:
+                if not self._check_lt_n_saved():
+                    item = self._saved.pop(0)
+                    if isinstance(self.save_handler, BaseSaveHandler):
+                        self.save_handler.remove(item.filename)
+
+            self._saved.append(Checkpoint.Item(priority, filename))
+            self._saved.sort(key=lambda item: item[0])
 
             metadata = {
                 "basename": "{}{}{}".format(self.filename_prefix, "_" * int(len(self.filename_prefix) > 0), name),
                 "score_name": self.score_name,
                 "priority": priority,
             }
-
-            if not self._check_lt_n_saved():
-                item = self._saved.pop(0)
-                if isinstance(self.save_handler, BaseSaveHandler):
-                    self.save_handler.remove(item.filename)
-
-            self._saved.append(Checkpoint.Item(priority, filename))
-            self._saved.sort(key=lambda item: item[0])
 
             if self.include_self:
                 # Now that we've updated _saved, we can add our own state_dict.

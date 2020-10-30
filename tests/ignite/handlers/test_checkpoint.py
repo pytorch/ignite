@@ -1309,6 +1309,9 @@ def test_checkpoint_filename_pattern():
     )
     assert res == "best_model_12_acc=0.9999.pt"
 
+    pattern = "{name}.{ext}"
+    assert _test(to_save, filename_pattern=pattern) == "model.pt"
+
     pattern = "chk-{name}--{global_step}.{ext}"
     assert _test(to_save, to_save, filename_pattern=pattern) == "chk-model--203.pt"
     pattern = "chk-{filename_prefix}--{name}--{global_step}.{ext}"
@@ -1446,3 +1449,23 @@ def test_checkpoint_load_state_dict():
     sd = {"saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
     checkpointer.load_state_dict(sd)
     assert checkpointer._saved == true_checkpointer._saved
+
+
+def test_checkpoint_fixed_filename():
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    model = DummyModel()
+    to_save = {"model": model}
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None, filename_pattern="{name}.{ext}")
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
+    metadata = {"basename": "model", "score_name": None, "priority": 0}
+    save_handler.assert_called_with(model.state_dict(), "model.pt", metadata)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 2
+    metadata = {"basename": "model", "score_name": None, "priority": 0}
+    save_handler.assert_called_with(model.state_dict(), "model.pt", metadata)
