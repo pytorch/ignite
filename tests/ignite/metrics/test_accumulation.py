@@ -108,7 +108,7 @@ def test_geom_average():
         mean_var.update(y.item())
 
     m = mean_var.compute()
-    assert m.item() == pytest.approx(_geom_mean(y_true))
+    assert m == pytest.approx(_geom_mean(y_true))
 
     mean_var = GeometricAverage()
     y_true = torch.rand(100, 10) + torch.randint(0, 10, size=(100, 10)).float()
@@ -293,7 +293,7 @@ def _test_distrib_geom_average(device):
         log_y_true = torch.log(y_true)
         log_y_true = idist.all_reduce(log_y_true)
         np.testing.assert_almost_equal(
-            m.item(), torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).item(), decimal=decimal
+            m, torch.exp(log_y_true.mean(dim=0) / idist.get_world_size()).item(), decimal=decimal
         )
 
         mean_var = GeometricAverage(device=metric_device)

@@ -60,6 +60,13 @@ jobs:
         pip install --upgrade scipy==1.4.1
         python setup.py install
 
+    - name: Run Mypy
+      shell: bash -l {0}
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version != '3.5' }}
+      run: |
+        pip install mypy
+        mypy --config-file mypy.ini
+
     - name: Run Tests
       shell: bash -l {0}
       run: |
