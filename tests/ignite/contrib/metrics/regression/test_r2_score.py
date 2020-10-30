@@ -91,7 +91,7 @@ def test_integration_r2_score_with_output_transform():
     assert r2_score(np_y, np_y_pred) == pytest.approx(r_squared)
 
 
-def _test_distrib_compute(device, tol=1e-8):
+def _test_distrib_compute(device, tol=1e-6):
     rank = idist.get_rank()
 
     def _test(metric_device):
