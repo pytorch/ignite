@@ -91,7 +91,7 @@ def test_integration_r2_score_with_output_transform():
     assert r2_score(np_y, np_y_pred) == pytest.approx(r_squared)
 
 
-def _test_distrib_compute(device, tol=1e-4):
+def _test_distrib_compute(device, tol=1e-8):
     rank = idist.get_rank()
 
     def _test(metric_device):
@@ -167,12 +167,12 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_compute(device, tol=1.0e-3)
+    _test_distrib_compute(device, tol=1e-3)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_compute(device, tol=1.0e-3)
+    _test_distrib_compute(device, tol=1e-3)
 
 
 @pytest.mark.tpu
