@@ -363,11 +363,10 @@ class Checkpoint(Serializable):
                     self.save_handler.remove(filename)
                 # list is purged
                 self._saved = [item for item in self._saved if item.filename != filename]
-            else:
-                if not self._check_lt_n_saved():
-                    item = self._saved.pop(0)
-                    if isinstance(self.save_handler, BaseSaveHandler):
-                        self.save_handler.remove(item.filename)
+            elif not self._check_lt_n_saved():
+                item = self._saved.pop(0)
+                if isinstance(self.save_handler, BaseSaveHandler):
+                    self.save_handler.remove(item.filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
