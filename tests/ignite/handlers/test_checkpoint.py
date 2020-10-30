@@ -805,7 +805,11 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_
         x = torch.rand((4, 1)).to(device)
         optim.zero_grad()
         y = model(x)
-        loss = y.pow(2.0).sum()
+        # Below code raises: RuntimeError: torch_xla/csrc/tensor_impl.cpp:144 : XLA tensors do not have storage
+        # Probably related to https://github.com/pytorch/xla/issues/2576
+        # loss = y.pow(2.0).sum()
+        loss = y.sum()
+        print(loss.device, y.device, x.device)
         loss.backward()
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
