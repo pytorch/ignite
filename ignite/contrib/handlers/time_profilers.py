@@ -1,11 +1,10 @@
 import functools
 from collections import OrderedDict
-from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Tuple, Union
 
 import torch
 
-from ignite.engine import Engine, Events
+from ignite.engine import CallableEventWithFilter, Engine, Events
 from ignite.handlers import Timer
 
 
@@ -468,6 +467,8 @@ class HandlersTimeProfiler:
 
     """
 
+    EVENT_FILTER_THESHOLD_TIME = 0.0001
+
     def __init__(self):
         self._dataflow_timer = Timer()
         self._processing_timer = Timer()
@@ -485,16 +486,13 @@ class HandlersTimeProfiler:
     def _create_wrapped_handler(self, handler: Callable, event: Events):
         @functools.wraps(handler)
         def _timeit_handler(*args: Any, **kwargs: Any):
-            # TODO: add threshold filtering for handlers with event filter
-            # if (
-            #     isinstance(event_name, CallableEventWithFilter)
-            #     and event_name.filter != CallableEventWithFilter.default_event_filter
-            # ):
             self._event_handlers_timer.reset()
             handler(*args, **kwargs)
             t = self._event_handlers_timer.value()
             hname = self._get_callable_name(handler)
-            self.event_handlers_times[event][hname].append(t)
+            # filter profiled time if the handler was attached to event with event filter
+            if not hasattr(handler, "_parent") or t > self.EVENT_FILTER_THESHOLD_TIME:
+                self.event_handlers_times[event][hname].append(t)
 
         # required to revert back to original handler after profiling
         setattr(_timeit_handler, "_profiler_original", handler)
@@ -525,8 +523,7 @@ class HandlersTimeProfiler:
     def _detach_profiler_handlers(self, engine):
         # reverts handlers to original handlers
         for e in engine._event_handlers:
-            for i, h in enumerate(engine._event_handlers[e]):
-                func, args, kwargs = h
+            for i, (func, args, kwargs) in enumerate(engine._event_handlers[e]):
                 if hasattr(func, "_profiler_original"):
                     engine._event_handlers[e][i] = (func._profiler_original, args, kwargs)
 
@@ -544,9 +541,8 @@ class HandlersTimeProfiler:
         self._reset(self.event_handlers_names)
 
         for e in engine._allowed_events:
-            for i, h in enumerate(engine._event_handlers[e]):
-                if not self._is_internal_handler(h):
-                    func, args, kwargs = h
+            for i, (func, args, kwargs) in enumerate(engine._event_handlers[e]):
+                if not self._is_internal_handler(func):
                     engine._event_handlers[e][i] = (self._create_wrapped_handler(func, e), args, kwargs)
 
         # processing timer
