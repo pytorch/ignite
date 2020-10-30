@@ -148,7 +148,7 @@ class Checkpoint(Serializable):
 
         **Warning:** Please, keep in mind that if filename collide with already used one to saved a checkpoint,
         new checkpoint will replace the older one. This means that filename like ``checkpoint.pt`` will be saved
-        every call and will always be overwrittDiskSaveren by newer checkpoints.
+        every call and will always be overwritten by newer checkpoints.
 
     Note:
         To get the last stored filename, handler exposes attribute ``last_checkpoint``:
@@ -350,6 +350,12 @@ class Checkpoint(Serializable):
             }
             filename = filename_pattern.format(**filename_dict)
 
+            metadata = {
+                "basename": "{}{}{}".format(self.filename_prefix, "_" * int(len(self.filename_prefix) > 0), name),
+                "score_name": self.score_name,
+                "priority": priority,
+            }
+
             filename_already_exists = any(item.filename == filename for item in self._saved)
 
             if filename_already_exists:
@@ -365,12 +371,6 @@ class Checkpoint(Serializable):
 
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda item: item[0])
-
-            metadata = {
-                "basename": "{}{}{}".format(self.filename_prefix, "_" * int(len(self.filename_prefix) > 0), name),
-                "score_name": self.score_name,
-                "priority": priority,
-            }
 
             if self.include_self:
                 # Now that we've updated _saved, we can add our own state_dict.
