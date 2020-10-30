@@ -38,6 +38,6 @@ class MeanAbsoluteRelativeError(_BaseRegression):
     def compute(self) -> float:
         if self._num_samples == 0:
             raise NotComputableError(
-                "MeanAbsoluteRelativeError must have at least" "one sample before it can be computed."
+                "MeanAbsoluteRelativeError must have at least one sample before it can be computed."
             )
         return self._sum_of_absolute_relative_errors / self._num_samples

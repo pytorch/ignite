@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 
@@ -58,7 +58,7 @@ class GpuInfo(Metric):
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         pass
 
-    def compute(self) -> List:
+    def compute(self) -> List[Dict[str, Any]]:
         data = self.nvsmi.DeviceQuery("memory.used, memory.total, utilization.gpu")
         if len(data) == 0 or ("gpu" not in data):
             warnings.warn("No GPU information available")
