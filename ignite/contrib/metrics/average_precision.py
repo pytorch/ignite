@@ -5,7 +5,7 @@ import torch
 from ignite.metrics import EpochMetric
 
 
-def average_precision_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
+def average_precision_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
     try:
         from sklearn.metrics import average_precision_score
     except ImportError:
@@ -45,7 +45,7 @@ class AveragePrecision(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         super(AveragePrecision, self).__init__(
             average_precision_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
