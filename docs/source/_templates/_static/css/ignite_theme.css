@@ -143,3 +143,7 @@ article.pytorch-article table.longtable.docutils.align-default tbody td p {
   margin-block-start: 0.1em;
   margin-block-end: 0.1em;
 }
+
+article.pytorch-article div#ignite-contrib-handlers.section div#time-profilers.section dl.py.class dd dl.py.method dd div.highlight-text.notranslate div.highlight pre {
+  font-size: 62%;
+}
