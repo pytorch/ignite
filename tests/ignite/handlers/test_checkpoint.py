@@ -1452,20 +1452,22 @@ def test_checkpoint_load_state_dict():
 
 
 def test_checkpoint_fixed_filename():
-    save_handler = MagicMock(spec=BaseSaveHandler)
     model = DummyModel()
     to_save = {"model": model}
-    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None, filename_pattern="{name}.{ext}")
 
-    trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    def _test(n_saved):
+        save_handler = MagicMock(spec=BaseSaveHandler)
+        checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=n_saved, filename_pattern="{name}.{ext}")
 
-    checkpointer(trainer)
-    assert save_handler.call_count == 1
-    metadata = {"basename": "model", "score_name": None, "priority": 0}
-    save_handler.assert_called_with(model.state_dict(), "model.pt", metadata)
+        trainer = Engine(lambda e, b: None)
 
-    checkpointer(trainer)
-    assert save_handler.call_count == 2
-    metadata = {"basename": "model", "score_name": None, "priority": 0}
-    save_handler.assert_called_with(model.state_dict(), "model.pt", metadata)
+        for i in range(10):
+            trainer.state = State(epoch=i, iteration=i)
+            checkpointer(trainer)
+            assert save_handler.call_count == i+1
+            metadata = {"basename": "model", "score_name": None, "priority": i}
+            save_handler.assert_called_with(model.state_dict(), "model.pt", metadata)
+
+    _test(None)
+    _test(1)
+    _test(3)
