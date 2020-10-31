@@ -145,5 +145,5 @@ article.pytorch-article table.longtable.docutils.align-default tbody td p {
 }
 
 article.pytorch-article div#ignite-contrib-handlers.section div#time-profilers.section dl.py.class dd dl.py.method dd div.highlight-text.notranslate div.highlight pre {
-  font-size: 62%;
+  white-space: pre;
 }
