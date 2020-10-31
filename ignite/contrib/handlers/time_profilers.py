@@ -3,6 +3,7 @@ from collections import OrderedDict
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Union
 
 import torch
+from torch._C import dtype
 
 from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import Timer
@@ -600,15 +601,21 @@ class HandlersTimeProfiler:
             return [total, min_index, max_index, mean, std]
 
         event_handler_stats = [
-            [h, getattr(e, "name", str(e)), *compute_basic_stats(torch.FloatTensor(self.event_handlers_times[e][h]))]
+            [
+                h,
+                getattr(e, "name", str(e)),
+                *compute_basic_stats(torch.tensor(self.event_handlers_times[e][h], dtype=torch.float32)),
+            ]
             for e in self.event_handlers_times
             for h in self.event_handlers_times[e]
         ]
         event_handler_stats.append(["Total", "", total_eh_time, "", "", "", ""])
         event_handler_stats.append(
-            ["Processing", "None", *compute_basic_stats(torch.FloatTensor(self.processing_times))]
+            ["Processing", "None", *compute_basic_stats(torch.tensor(self.processing_times, dtype=torch.float32))]
         )
-        event_handler_stats.append(["Dataflow", "None", *compute_basic_stats(torch.FloatTensor(self.dataflow_times))])
+        event_handler_stats.append(
+            ["Dataflow", "None", *compute_basic_stats(torch.tensor(self.dataflow_times, dtype=torch.float32))]
+        )
 
         return event_handler_stats
 
@@ -636,15 +643,15 @@ class HandlersTimeProfiler:
             print("Need pandas to write results as files")
             return
 
-        processing_stats = torch.FloatTensor(self.processing_times)
-        dataflow_stats = torch.FloatTensor(self.dataflow_times)
+        processing_stats = torch.tensor(self.processing_times, dtype=torch.float32)
+        dataflow_stats = torch.tensor(self.dataflow_times, dtype=torch.float32)
 
         cols = [processing_stats, dataflow_stats]
         headers = ["processing_stats", "dataflow_stats"]
         for e in self.event_handlers_times:
             for h in self.event_handlers_times[e]:
                 headers.append("{} ({})".format(h, getattr(e, "name", str(e))))
-                cols.append(torch.FloatTensor(self.event_handlers_times[e][h]))
+                cols.append(torch.tensor(self.event_handlers_times[e][h], dtype=torch.float32))
         # Determine maximum length
         max_len = max([x.numel() for x in cols])
 
