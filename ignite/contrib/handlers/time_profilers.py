@@ -3,7 +3,6 @@ from collections import OrderedDict
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Union
 
 import torch
-from torch._C import dtype
 
 from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import Timer
