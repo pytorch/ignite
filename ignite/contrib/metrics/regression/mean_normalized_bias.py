@@ -23,11 +23,11 @@ class MeanNormalizedBias(_BaseRegression):
 
     """
 
-    def reset(self):
+    def reset(self) -> None:
         self._sum_of_errors = 0.0
         self._num_examples = 0
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
 
         if (y == 0).any():
@@ -37,7 +37,7 @@ class MeanNormalizedBias(_BaseRegression):
         self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 
-    def compute(self):
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("MeanNormalizedBias must have at least one example before it can be computed.")
         return self._sum_of_errors / self._num_examples

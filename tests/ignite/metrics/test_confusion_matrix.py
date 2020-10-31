@@ -39,7 +39,7 @@ def test_multiclass_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument average can None or one of"):
         ConfusionMatrix(num_classes=10, average="abc")
 
-    with pytest.raises(ValueError, match=r"Argument average one of 'samples', 'recall', 'precision'"):
+    with pytest.raises(ValueError, match=r"Argument average should be one of 'samples', 'recall', 'precision'"):
         ConfusionMatrix.normalize(None, None)
 
 
