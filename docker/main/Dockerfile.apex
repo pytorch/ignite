@@ -20,9 +20,8 @@ RUN echo "Setup NVIDIA Apex" && \
 # 2/ Build the runtime image
 FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 
-COPY --from=apex-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
-RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
-    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+COPY --from=apex-builder /tmp/apex/apex*.whl /tmp/apex/
+RUN pip install --no-cache-dir /tmp/apex/apex*.whl && rm -fr /tmp/apex
 
 # Install tzdata / git
 RUN apt-get update && \
