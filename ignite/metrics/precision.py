@@ -48,9 +48,7 @@ class _BasePrecisionRecall(_BaseClassification):
         super(_BasePrecisionRecall, self).reset()
 
     def compute(self) -> Union[torch.Tensor, float]:
-        is_scalar = (
-            not isinstance(self._positives, torch.Tensor) or self._positives.ndim == 0  # type: ignore[attr-defined]
-        )
+        is_scalar = not isinstance(self._positives, torch.Tensor) or self._positives.ndim == 0
         if is_scalar and self._positives == 0:
             raise NotComputableError(
                 "{} must have at least one example before it can be computed.".format(self.__class__.__name__)
@@ -58,8 +56,8 @@ class _BasePrecisionRecall(_BaseClassification):
 
         if not (self._type == "multilabel" and not self._average):
             if not self._is_reduced:
-                self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[arg-type, assignment]
-                self._positives = idist.all_reduce(self._positives)  # type: ignore[arg-type, assignment]
+                self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[assignment]
+                self._positives = idist.all_reduce(self._positives)  # type: ignore[assignment]
                 self._is_reduced = True  # type: bool
 
         result = self._true_positives / (self._positives + self.eps)
