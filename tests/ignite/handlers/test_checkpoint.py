@@ -1464,7 +1464,7 @@ def test_checkpoint_fixed_filename():
         for i in range(10):
             trainer.state = State(epoch=i, iteration=i)
             checkpointer(trainer)
-            assert save_handler.call_count == i+1
+            assert save_handler.call_count == i + 1
             metadata = {"basename": "model", "score_name": None, "priority": i}
             save_handler.assert_called_with(model.state_dict(), "model.pt", metadata)
 
