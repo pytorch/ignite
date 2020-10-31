@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Callable, Union
+from typing import Any, Callable, Tuple, Union
 
 import torch
 
@@ -47,8 +47,7 @@ class VariableAccumulation(Metric):
     ):
         if not callable(op):
             raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
-        self.accumulator = None
-        self.num_examples = None
+
         self._op = op
 
         super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
@@ -56,14 +55,14 @@ class VariableAccumulation(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.num_examples = torch.tensor(0, dtype=torch.long, device=self._device)
+        self.num_examples = 0
 
-    def _check_output_type(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
+    def _check_output_type(self, output: Union[float, torch.Tensor]) -> None:
         if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
             raise TypeError("Output should be a number or torch.Tensor, but given {}".format(type(output)))
 
     @reinit__is_reduced
-    def update(self, output: Union[Any, torch.Tensor, numbers.Number]) -> None:
+    def update(self, output: Union[float, torch.Tensor]) -> None:
         self._check_output_type(output)
 
         if isinstance(output, torch.Tensor):
@@ -73,14 +72,14 @@ class VariableAccumulation(Metric):
 
         self.accumulator = self._op(self.accumulator, output)
 
-        if hasattr(output, "shape"):
+        if isinstance(output, torch.Tensor):
             self.num_examples += output.shape[0] if len(output.shape) > 1 else 1
         else:
             self.num_examples += 1
 
     @sync_all_reduce("accumulator", "num_examples")
-    def compute(self) -> list:
-        return [self.accumulator, self.num_examples]
+    def compute(self) -> Tuple[torch.Tensor, int]:
+        return self.accumulator, self.num_examples
 
 
 class Average(VariableAccumulation):
@@ -125,7 +124,7 @@ class Average(VariableAccumulation):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
-        def _mean_op(a, x):
+        def _mean_op(a: Union[float, torch.Tensor], x: Union[float, torch.Tensor]) -> Union[float, torch.Tensor]:
             if isinstance(x, torch.Tensor) and x.ndim > 1:
                 x = x.sum(dim=0)
             return a + x
@@ -133,10 +132,10 @@ class Average(VariableAccumulation):
         super(Average, self).__init__(op=_mean_op, output_transform=output_transform, device=device)
 
     @sync_all_reduce("accumulator", "num_examples")
-    def compute(self) -> Union[Any, torch.Tensor, numbers.Number]:
+    def compute(self) -> Union[float, torch.Tensor]:
         if self.num_examples < 1:
             raise NotComputableError(
-                "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
+                "{} must have at least one example before it can be computed.".format(self.__class__.__name__)
             )
 
         return self.accumulator / self.num_examples
@@ -173,7 +172,7 @@ class GeometricAverage(VariableAccumulation):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
-        def _geom_op(a: torch.Tensor, x: Union[Any, numbers.Number, torch.Tensor]) -> torch.Tensor:
+        def _geom_op(a: torch.Tensor, x: Union[float, torch.Tensor]) -> torch.Tensor:
             if not isinstance(x, torch.Tensor):
                 x = torch.tensor(x)
             x = torch.log(x)
@@ -184,10 +183,15 @@ class GeometricAverage(VariableAccumulation):
         super(GeometricAverage, self).__init__(op=_geom_op, output_transform=output_transform, device=device)
 
     @sync_all_reduce("accumulator", "num_examples")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> Union[float, torch.Tensor]:
         if self.num_examples < 1:
             raise NotComputableError(
-                "{} must have at least one example before" " it can be computed.".format(self.__class__.__name__)
+                "{} must have at least one example before it can be computed.".format(self.__class__.__name__)
             )
 
-        return torch.exp(self.accumulator / self.num_examples)
+        tensor = torch.exp(self.accumulator / self.num_examples)
+
+        if tensor.numel() == 1:
+            return tensor.item()
+
+        return tensor

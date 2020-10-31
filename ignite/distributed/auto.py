@@ -284,19 +284,19 @@ class DistributedProxySampler(DistributedSampler):
 
     def __iter__(self) -> Iterator:
         # deterministically shuffle based on epoch
-        torch.manual_seed(self.epoch)  # type: ignore[attr-defined]
+        torch.manual_seed(self.epoch)
 
         indices = []  # type: List
-        while len(indices) < self.total_size:  # type: ignore[attr-defined]
+        while len(indices) < self.total_size:
             indices += list(self.sampler)
 
-        if len(indices) > self.total_size:  # type: ignore[attr-defined]
-            indices = indices[: self.total_size]  # type: ignore[attr-defined]
+        if len(indices) > self.total_size:
+            indices = indices[: self.total_size]
 
         # subsample
-        indices = indices[self.rank : self.total_size : self.num_replicas]  # type: ignore[attr-defined]
-        if len(indices) != self.num_samples:  # type: ignore[attr-defined]
-            raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))  # type: ignore[attr-defined]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
+        if len(indices) != self.num_samples:
+            raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))
 
         return iter(indices)
 
