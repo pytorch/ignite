@@ -31,6 +31,10 @@ If you find a typo in the documentation, do not hesitate to submit a GitHub pull
 
 ### Quickstart guide for first-time contributors
  
+<summary>
+
+<details>
+
 - Install [miniconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/index.html) for your system.
 - Create an isolated conda environment for pytorch-ignite:
  ```bash
@@ -42,10 +46,13 @@ conda create -n pytorch-ignite-dev python=3
 conda activate pytorch-ignite-dev
 ```
 
-- [Install](#installation) pytorch-ignite dependencies for development in this environment.
 - When developing please take care of preserving `.gitignore` file and make use of `.git/info/exclude` to exclude custom files like: `.idea`, `.vscode` etc.
 - Please refer to [github first contributions guidelines](https://github.com/firstcontributions/first-contributions) and don't hesitate to ask the pytorch-ignite community in case of any doubt.
 - A good way to start is to tackle one of the [good first issues](https://github.com/pytorch/ignite/labels/good%20first%20issue).
+
+</details>
+
+</summary>
 
 ### Installation
 
