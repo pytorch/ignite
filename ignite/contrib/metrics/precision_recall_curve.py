@@ -1,11 +1,11 @@
-from typing import Callable
+from typing import Any, Callable, Tuple
 
 import torch
 
 from ignite.metrics import EpochMetric
 
 
-def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
+def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
     try:
         from sklearn.metrics import precision_recall_curve
     except ImportError:
@@ -46,7 +46,7 @@ class PrecisionRecallCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         super(PrecisionRecallCurve, self).__init__(
             precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )

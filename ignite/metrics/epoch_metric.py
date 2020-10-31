@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, List, Sequence, Union, cast
+from typing import Callable, List, Sequence, Tuple, Union, cast
 
 import torch
 
@@ -69,7 +69,7 @@ class EpochMetric(Metric):
         self._predictions = []  # type: List[torch.Tensor]
         self._targets = []  # type: List[torch.Tensor]
 
-    def _check_shape(self, output: Sequence[torch.Tensor]) -> None:
+    def _check_shape(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         if y_pred.ndimension() not in (1, 2):
             raise ValueError("Predictions should be of shape (batch_size, n_classes) or (batch_size, ).")
@@ -81,7 +81,7 @@ class EpochMetric(Metric):
             if not torch.equal(y ** 2, y):
                 raise ValueError("Targets should be binary (0 or 1).")
 
-    def _check_type(self, output: Sequence[torch.Tensor]) -> None:
+    def _check_type(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         if len(self._predictions) < 1:
             return
@@ -99,7 +99,7 @@ class EpochMetric(Metric):
             )
 
     @reinit__is_reduced
-    def update(self, output: Sequence[torch.Tensor]) -> None:
+    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         self._check_shape(output)
         y_pred, y = output[0].detach(), output[1].detach()
 
