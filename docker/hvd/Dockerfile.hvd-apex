@@ -29,10 +29,8 @@ FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 
 # Apex
 COPY --from=apex-hvd-builder /tmp/apex/apex*.whl /tmp/apex/
-RUN pip install --no-cache-dir /tmp/apex/apex*.whl && \
-    rm -fr /tmp/apex
-RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
-    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+RUN pip install --no-cache-dir /tmp/apex/apex*.whl && rm -fr /tmp/apex
+
 
 # Install tzdata / git
 RUN apt-get update && \
