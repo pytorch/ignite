@@ -356,19 +356,20 @@ class Checkpoint(Serializable):
                 "priority": priority,
             }
 
-            saved = [item for item in self._saved if item.filename != filename]
+            try:
+                index = list(map(lambda it: it.filename == filename, self._saved)).index(True)
+                to_remove = True
+            except ValueError:
+                index = 0
+                to_remove = not self._check_lt_n_saved()
 
-            if self._saved != saved:
-                if isinstance(self.save_handler, BaseSaveHandler):
-                    self.save_handler.remove(filename)
-                self._saved = saved
-            elif not self._check_lt_n_saved():
-                item = self._saved.pop(0)
+            if to_remove:
+                item = self._saved.pop(index)
                 if isinstance(self.save_handler, BaseSaveHandler):
                     self.save_handler.remove(item.filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))
-            self._saved.sort(key=lambda item: item[0])
+            self._saved.sort(key=lambda it: it[0])
 
             if self.include_self:
                 # Now that we've updated _saved, we can add our own state_dict.
