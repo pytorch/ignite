@@ -386,7 +386,7 @@ For details, see :class:`~ignite.engine.events.State`.
 
 
 Basic time profiling
-``````````````````
+````````````````````
 
 User can setup :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfiler` to fetch times spent in data
 processing, training step, event handlers:
@@ -447,7 +447,7 @@ For details, see :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfil
 
 
 Event handlers time profiling
-``````````````````
+`````````````````````````````
 
 If you want to get time breakdown per handler basis then you can setup
 :class:`~ignite.contrib.handlers.time_profilers.HandlersTimeProfiler`:
