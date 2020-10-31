@@ -62,7 +62,6 @@ while ensuring maximum control and simplicity
 
 # Table of Contents
 - [Why Ignite?](#why-ignite)
-- [Quickstart guide for first-time contributors](#quickstart-guide-for-first-time-contributors)
 - [Installation](#installation)
 - [Getting Started](#getting-started)
 - [Documentation](#documentation)
@@ -267,42 +266,6 @@ F1_mean.attach(engine, "F1")
 
 
 <!-- ############################################################################################################### -->
-
-
-# Quickstart guide for first-time contributors
- 
-- Install [miniconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/index.html) for your system.
-- Create an isolated conda environment for pytorch-ignite:
- ```bash
-conda create -n pytorch-ignite-dev python=3
-```
-
-- Activate the newly created environment:
- ```bash
-conda activate pytorch-ignite-dev
-```
-
-- Install the pytorch-ignite dependencies for development in this environment: 
-```bash
-git clone https://github.com/pytorch/ignite.git
-cd ignite
-python setup.py develop
-pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==4.3.21" "mypy==0.782"
-```
-
-- Import pytorch-ignite source project in your [IDE](https://www.jetbrains.com/help/pycharm/importing-project-from-existing-source-code.html).
-
-- Configure the conda environment in your IDE by adding an `Existing Environment`, here is the [documentation](https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html) for PyCharm.
-
-- Once the project is fully configured, try to Run/Debug pytorch-ignite tests following [Pycharm pytest guide](https://www.jetbrains.com/help/pycharm/pytest.html)
-
-- When developing please take care of preserving `.gitignore` file and make use of `.git/info/exclude` to exclude custom files like: `.idea`, `.vscode` etc.
-
-- Please refer to [github first contributions guidelines](https://github.com/firstcontributions/first-contributions) and don't hesitate to ask the pytorch-ignite community in case of any doubt.
-
-- A good way to start is to tackle one of the [good first issues](https://github.com/pytorch/ignite/labels/good%20first%20issue).
-
 
 
 # Installation
