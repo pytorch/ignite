@@ -1,10 +1,10 @@
 import functools
 from collections import OrderedDict
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Union
 
 import torch
 
-from ignite.engine import CallableEventWithFilter, Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import Timer
 
 
@@ -443,7 +443,8 @@ Event handlers:
 class HandlersTimeProfiler:
     """
     HandlersTimeProfiler can be used to profile the handlers,
-    data loading and data processing times.
+    data loading and data processing times. Custom events are also
+    profiled by this profiler
 
     Examples:
 
@@ -479,36 +480,36 @@ class HandlersTimeProfiler:
         self.event_handlers_times = None
 
     @staticmethod
-    def _get_callable_name(handler: Callable):
+    def _get_callable_name(handler: Callable) -> str:
         # get name of the callable handler
         return getattr(handler, "__qualname__", handler.__class__.__name__)
 
-    def _create_wrapped_handler(self, handler: Callable, event: Events):
+    def _create_wrapped_handler(self, handler: Callable, event: Events) -> Callable:
         @functools.wraps(handler)
-        def _timeit_handler(*args: Any, **kwargs: Any):
+        def _timeit_handler(*args: Any, **kwargs: Any) -> None:
             self._event_handlers_timer.reset()
             handler(*args, **kwargs)
             t = self._event_handlers_timer.value()
             hname = self._get_callable_name(handler)
             # filter profiled time if the handler was attached to event with event filter
-            if not hasattr(handler, "_parent") or t > self.EVENT_FILTER_THESHOLD_TIME:
+            if not hasattr(handler, "_parent") or t >= self.EVENT_FILTER_THESHOLD_TIME:
                 self.event_handlers_times[event][hname].append(t)
 
         # required to revert back to original handler after profiling
         setattr(_timeit_handler, "_profiler_original", handler)
         return _timeit_handler
 
-    def _timeit_processing(self):
+    def _timeit_processing(self) -> None:
         # handler used for profiling processing times
         t = self._processing_timer.value()
         self.processing_times.append(t)
 
-    def _timeit_dataflow(self):
+    def _timeit_dataflow(self) -> None:
         # handler used for profiling dataflow times
         t = self._dataflow_timer.value()
         self.dataflow_times.append(t)
 
-    def _reset(self, event_handlers_names):
+    def _reset(self, event_handlers_names: Mapping[EventEnum, List[str]]) -> None:
         # reset the variables used for profiling
         self.dataflow_times = []
         self.processing_times = []
@@ -516,18 +517,19 @@ class HandlersTimeProfiler:
         self.event_handlers_times = {e: {h: [] for h in event_handlers_names[e]} for e in event_handlers_names}
 
     @staticmethod
-    def _is_internal_handler(handler: Callable):
+    def _is_internal_handler(handler: Callable) -> bool:
         # checks whether the handler is internal
-        return "HandlersTimeProfiler." in repr(handler)
+        return any(n in repr(handler) for n in ["HandlersTimeProfiler.", "Timer."])
 
-    def _detach_profiler_handlers(self, engine):
+    def _detach_profiler_handlers(self, engine: Engine) -> None:
         # reverts handlers to original handlers
         for e in engine._event_handlers:
             for i, (func, args, kwargs) in enumerate(engine._event_handlers[e]):
                 if hasattr(func, "_profiler_original"):
                     engine._event_handlers[e][i] = (func._profiler_original, args, kwargs)
 
-    def _as_first_started(self, engine):
+    def _as_first_started(self, engine: Engine) -> None:
+        # wraps original handlers for profiling
 
         self.event_handlers_names = {
             e: [
@@ -556,14 +558,14 @@ class HandlersTimeProfiler:
         # revert back the wrapped handlers with original handlers at the end
         engine.add_event_handler(Events.COMPLETED, self._detach_profiler_handlers)
 
-    def attach(self, engine: Engine):
+    def attach(self, engine: Engine) -> None:
         if not isinstance(engine, Engine):
             raise TypeError("Argument engine should be ignite.engine.Engine, but given {}".format(type(engine)))
 
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
-    def get_results(self):
+    def get_results(self) -> List[List[Union[str, float]]]:
         """
         Method to fetch the aggregated profiler results after the engine is run
 
@@ -581,7 +583,7 @@ class HandlersTimeProfiler:
         )
         total_eh_time = round(float(total_eh_time), 5,)
 
-        def compute_basic_stats(data: Sequence):
+        def compute_basic_stats(data: Sequence) -> List[Union[str, float]]:
             # compute on non-zero data:
             data = data[data > 0]
             total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"
@@ -608,7 +610,7 @@ class HandlersTimeProfiler:
 
         return event_handler_stats
 
-    def write_results(self, output_path: str):
+    def write_results(self, output_path: str) -> None:
         """
         Method to store the unaggregated profiling results to a csv file
 
@@ -657,7 +659,7 @@ class HandlersTimeProfiler:
         results_df.to_csv(output_path, index=False)
 
     @staticmethod
-    def print_results(results: List[List[Union[str, float]]]):
+    def print_results(results: List[List[Union[str, float]]]) -> None:
         """
         Method to print the aggregated results from the profiler
 
@@ -709,7 +711,7 @@ class HandlersTimeProfiler:
         header_sep_lst = [""]
         line_length_lst = [-SPACING_SIZE]
 
-        def add_column(padding: int, text_dir: str = ">"):
+        def add_column(padding: int, text_dir: str = ">") -> None:
             row_format_lst[0] += "{: " + text_dir + str(padding) + "}" + (" " * SPACING_SIZE)
             header_sep_lst[0] += "-" * padding + (" " * SPACING_SIZE)
             line_length_lst[0] += padding + SPACING_SIZE
@@ -724,7 +726,7 @@ class HandlersTimeProfiler:
 
         result = []
 
-        def append(s: str):
+        def append(s: str) -> None:
             result.append(s)
             result.append("\n")
 

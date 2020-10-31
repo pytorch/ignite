@@ -6,7 +6,7 @@ import pytest
 from pytest import approx
 
 from ignite.contrib.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 
 if sys.platform.startswith("darwin"):
     pytest.skip("Skip if on MacOS", allow_module_level=True)
@@ -16,7 +16,7 @@ def _do_nothing_update_fn(engine, batch):
     pass
 
 
-def get_prepared_engine(true_event_handler_time):
+def get_prepared_engine_for_basic_profiler(true_event_handler_time):
     dummy_trainer = Engine(_do_nothing_update_fn)
 
     @dummy_trainer.on(Events.STARTED)
@@ -52,6 +52,69 @@ def get_prepared_engine(true_event_handler_time):
         time.sleep(true_event_handler_time)
 
     return dummy_trainer
+
+
+def get_prepared_engine_for_handlers_profiler(true_event_handler_time):
+    HANDLERS_SLEEP_COUNT = 11
+    PROCESSING_SLEEP_COUNT = 3
+
+    class CustomEvents(EventEnum):
+        CUSTOM_STARTED = "custom_started"
+        CUSTOM_COMPLETED = "custom_completed"
+
+    def dummy_train_step(engine, batch):
+        engine.fire_event(CustomEvents.CUSTOM_STARTED)
+        time.sleep(true_event_handler_time)
+        engine.fire_event(CustomEvents.CUSTOM_COMPLETED)
+
+    dummy_trainer = Engine(dummy_train_step)
+    dummy_trainer.register_events(*CustomEvents)
+
+    @dummy_trainer.on(Events.STARTED)
+    def delay_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.COMPLETED)
+    def delay_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.EPOCH_STARTED)
+    def delay_epoch_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.EPOCH_COMPLETED)
+    def delay_epoch_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.ITERATION_STARTED)
+    def delay_iter_start(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.ITERATION_COMPLETED)
+    def delay_iter_complete(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.GET_BATCH_STARTED)
+    def delay_get_batch_started(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
+    def delay_get_batch_completed(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(CustomEvents.CUSTOM_STARTED)
+    def delay_custom_started(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(CustomEvents.CUSTOM_COMPLETED)
+    def delay_custom_completed(engine):
+        time.sleep(true_event_handler_time)
+
+    @dummy_trainer.on(Events.EPOCH_STARTED(once=1))
+    def do_something_once_on_1_epoch():
+        time.sleep(true_event_handler_time)
+
+    return dummy_trainer, HANDLERS_SLEEP_COUNT, PROCESSING_SLEEP_COUNT
 
 
 def test_dataflow_timer_basic_profiler():
@@ -553,6 +616,87 @@ def test_event_handler_get_batch_completed_handlers_profiler():
     assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
 
 
+def test_neg_event_filter_threshold_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 1
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.EPOCH_STARTED(once=2))
+    def do_something_once_on_2_epoch():
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "do_something_once_on_2_epoch" in event_results[0]
+    assert event_results[1] == "EPOCH_STARTED"
+    assert event_results[2] == "not triggered"
+
+
+def test_pos_event_filter_threshold_handlers_profiler():
+    true_event_handler_time = HandlersTimeProfiler.EVENT_FILTER_THESHOLD_TIME
+    true_max_epochs = 2
+    true_num_iters = 1
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.EPOCH_STARTED(once=2))
+    def do_something_once_on_2_epoch():
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = results[0]
+    assert "do_something_once_on_2_epoch" in event_results[0]
+    assert event_results[1] == "EPOCH_STARTED"
+    assert event_results[2] == approx(
+        (true_max_epochs * true_num_iters * true_event_handler_time) / 2, abs=1e-1
+    )  # total
+
+
+def test_custom_event_with_arg_handlers_profiler():
+    true_event_handler_time = 0.1
+    true_max_epochs = 1
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer = Engine(_do_nothing_update_fn)
+    dummy_trainer.register_events("custom_event")
+    profiler.attach(dummy_trainer)
+
+    @dummy_trainer.on(Events.ITERATION_COMPLETED(every=1))
+    def trigger_custom_event():
+        dummy_trainer.fire_event("custom_event")
+
+    args = [122, 324]
+
+    @dummy_trainer.on("custom_event", args)
+    def on_custom_event(args):
+        time.sleep(true_event_handler_time)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    results = profiler.get_results()
+    event_results = None
+    for row in results:
+        if row[1] == "custom_event":
+            event_results = row
+            break
+    assert event_results is not None
+    assert "on_custom_event" in event_results[0]
+
+    assert event_results[2] == approx(true_max_epochs * true_num_iters * true_event_handler_time, abs=1e-1)  # total
+    assert event_results[3][0] == approx(true_event_handler_time, abs=1e-1)  # min
+    assert event_results[4][0] == approx(true_event_handler_time, abs=1e-1)  # max
+    assert event_results[5] == approx(true_event_handler_time, abs=1e-1)  # mean
+    assert event_results[6] == approx(0.0, abs=1e-1)  # stddev
+
+
 def test_event_handler_total_time_basic_profiler():
     true_event_handler_time = 0.125
     true_max_epochs = 1
@@ -607,46 +751,18 @@ def test_event_handler_total_time_handlers_profiler():
     true_num_iters = 1
 
     profiler = HandlersTimeProfiler()
-    dummy_trainer = Engine(_do_nothing_update_fn)
+    dummy_trainer, handlers_sleep_count, processing_sleep_count = get_prepared_engine_for_handlers_profiler(
+        true_event_handler_time
+    )
     profiler.attach(dummy_trainer)
-
-    @dummy_trainer.on(Events.STARTED)
-    def delay_start(engine):
-        time.sleep(true_event_handler_time)
-
-    @dummy_trainer.on(Events.COMPLETED)
-    def delay_complete(engine):
-        time.sleep(true_event_handler_time)
-
-    @dummy_trainer.on(Events.EPOCH_STARTED)
-    def delay_epoch_start(engine):
-        time.sleep(true_event_handler_time)
-
-    @dummy_trainer.on(Events.EPOCH_COMPLETED)
-    def delay_epoch_complete(engine):
-        time.sleep(true_event_handler_time)
-
-    @dummy_trainer.on(Events.ITERATION_STARTED)
-    def delay_iter_start(engine):
-        time.sleep(true_event_handler_time)
-
-    @dummy_trainer.on(Events.ITERATION_COMPLETED)
-    def delay_iter_complete(engine):
-        time.sleep(true_event_handler_time)
-
-    @dummy_trainer.on(Events.GET_BATCH_STARTED)
-    def delay_get_batch_started(engine):
-        time.sleep(true_event_handler_time)
-
-    @dummy_trainer.on(Events.GET_BATCH_COMPLETED)
-    def delay_get_batch_completed(engine):
-        time.sleep(true_event_handler_time)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
     results = profiler.get_results()
-    event_results = results[-3]  # total result row
+    total_handler_stats = results[-3]  # total result row
+    total_processing_stats = results[-2]  # processing result row
 
-    assert event_results[2] == approx(true_event_handler_time * 8, abs=1e-1)  # total time
+    assert total_handler_stats[2] == approx(true_event_handler_time * handlers_sleep_count, abs=1e-1)  # total time
+    assert total_processing_stats[2] == approx(true_event_handler_time * processing_sleep_count, abs=1e-1)  # total time
 
 
 def test_write_results_basic_profiler(dirname):
@@ -655,7 +771,30 @@ def test_write_results_basic_profiler(dirname):
     true_num_iters = 2
 
     profiler = BasicTimeProfiler()
-    dummy_trainer = get_prepared_engine(true_event_handler_time)
+    dummy_trainer = get_prepared_engine_for_basic_profiler(true_event_handler_time)
+    profiler.attach(dummy_trainer)
+
+    dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
+    fp = os.path.join(dirname, "test_log.csv")
+    profiler.write_results(fp)
+
+    assert os.path.isfile(fp)
+
+    file_length = 0
+    with open(fp) as f:
+        for l in f:
+            file_length += 1
+
+    assert file_length == (true_max_epochs * true_num_iters) + 1
+
+
+def test_write_results_handlers_profiler(dirname):
+    true_event_handler_time = 0.125
+    true_max_epochs = 3
+    true_num_iters = 2
+
+    profiler = HandlersTimeProfiler()
+    dummy_trainer, _, _ = get_prepared_engine_for_handlers_profiler(true_event_handler_time)
     profiler.attach(dummy_trainer)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
@@ -678,7 +817,7 @@ def test_print_results_basic_profiler(capsys):
     true_num_iters = 5
 
     profiler = BasicTimeProfiler()
-    dummy_trainer = get_prepared_engine(true_event_handler_time=0.0125)
+    dummy_trainer = get_prepared_engine_for_basic_profiler(true_event_handler_time=0.0125)
     profiler.attach(dummy_trainer)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
@@ -696,7 +835,7 @@ def test_print_results_handlers_profiler_handlers_profiler(capsys):
     true_num_iters = 5
 
     profiler = HandlersTimeProfiler()
-    dummy_trainer = get_prepared_engine(true_event_handler_time=0.0125)
+    dummy_trainer, _, _ = get_prepared_engine_for_handlers_profiler(true_event_handler_time=0.0125)
     profiler.attach(dummy_trainer)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
@@ -704,8 +843,8 @@ def test_print_results_handlers_profiler_handlers_profiler(capsys):
 
     captured = capsys.readouterr()
     out = captured.out
-    assert "HandlersTimeProfiler._" not in out
-    assert "nan" not in out
+    assert "HandlersTimeProfiler." not in out
+    assert "Timer." not in out
 
 
 def test_get_intermediate_results_during_run_basic_profiler(capsys):
@@ -714,7 +853,7 @@ def test_get_intermediate_results_during_run_basic_profiler(capsys):
     true_num_iters = 5
 
     profiler = BasicTimeProfiler()
-    dummy_trainer = get_prepared_engine(true_event_handler_time)
+    dummy_trainer = get_prepared_engine_for_basic_profiler(true_event_handler_time)
     profiler.attach(dummy_trainer)
 
     @dummy_trainer.on(Events.ITERATION_COMPLETED(every=3))
