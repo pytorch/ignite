@@ -584,6 +584,7 @@ class HandlersTimeProfiler:
         total_eh_time = round(float(total_eh_time), 5,)
 
         def compute_basic_stats(data: Sequence) -> List[Union[str, float]]:
+            data = torch.tensor(data, dtype=torch.float32)
             # compute on non-zero data:
             data = data[data > 0]
             total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"
@@ -609,12 +610,8 @@ class HandlersTimeProfiler:
             for h in self.event_handlers_times[e]
         ]
         event_handler_stats.append(["Total", "", total_eh_time, "", "", "", ""])
-        event_handler_stats.append(
-            ["Processing", "None", *compute_basic_stats(torch.tensor(self.processing_times, dtype=torch.float32))]
-        )
-        event_handler_stats.append(
-            ["Dataflow", "None", *compute_basic_stats(torch.tensor(self.dataflow_times, dtype=torch.float32))]
-        )
+        event_handler_stats.append(["Processing", "None", *compute_basic_stats(self.processing_times)])
+        event_handler_stats.append(["Dataflow", "None", *compute_basic_stats(self.dataflow_times)])
 
         return event_handler_stats
 
