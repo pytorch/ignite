@@ -240,7 +240,7 @@ class Engine(Serializable):
                 return handler(*args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
-        wrapper._parent = weakref.ref(handler)  # type: ignore[attr-defined]
+        setattr(wrapper, "_parent", weakref.ref(handler))
         return wrapper
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
