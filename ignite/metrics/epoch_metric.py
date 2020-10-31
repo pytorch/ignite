@@ -145,7 +145,7 @@ class EpochMetric(Metric):
 
         if ws > 1:
             # broadcast result to all processes
-            result = cast(float, idist.broadcast(result, src=0))  # type: ignore[arg-type]
+            result = cast(float, idist.broadcast(result, src=0))
 
         return result
 

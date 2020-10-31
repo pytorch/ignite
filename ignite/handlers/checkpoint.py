@@ -5,7 +5,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, namedtuple
-from tempfile import _TemporaryFileWrapper  # type: ignore
+from tempfile import _TemporaryFileWrapper  # type: ignore[attr-defined]
 from typing import Callable, Mapping, Optional, Union
 
 import torch
