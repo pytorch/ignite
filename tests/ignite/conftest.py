@@ -1,4 +1,5 @@
 import shutil
+import sys
 import tempfile
 
 import pytest
@@ -107,15 +108,23 @@ def distributed_context_single_node_gloo(local_rank, world_size):
 
     from datetime import timedelta
 
+    init_method = "tcp://localhost:2223"
+    temp_file = None
+    if sys.platform.startswith("win"):
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        init_method = "file:///{}".format(temp_file.name.replace("\\", "/"))
+
     dist_info = {
         "backend": "gloo",
         "world_size": world_size,
         "rank": local_rank,
-        "init_method": "tcp://localhost:2222",
+        "init_method": init_method,
         "timeout": timedelta(seconds=60),
     }
     yield _create_dist_context(dist_info, local_rank)
     _destroy_dist_context()
+    if temp_file:
+        temp_file.close()
 
 
 @pytest.fixture()
