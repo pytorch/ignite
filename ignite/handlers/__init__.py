@@ -1,4 +1,4 @@
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from ignite.engine import Engine
 from ignite.engine.events import Events
@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-def global_step_from_engine(engine: Engine, custom_event_name=None) -> Callable:
+def global_step_from_engine(engine: Engine, custom_event_name: Optional[Events] = None) -> Callable:
     """Helper method to setup `global_step_transform` function using another engine.
     This can be helpful for logging trainer epoch/iteration while output handler is attached to an evaluator.
 
@@ -30,7 +30,7 @@ def global_step_from_engine(engine: Engine, custom_event_name=None) -> Callable:
         global step
     """
 
-    def wrapper(_: Any, event_name: Events):
+    def wrapper(_: Any, event_name: Events) -> int:
         if custom_event_name is not None:
             event_name = custom_event_name
         return engine.state.get_event_attrib_value(event_name)

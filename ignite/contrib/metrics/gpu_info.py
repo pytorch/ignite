@@ -59,7 +59,9 @@ class GpuInfo(Metric):
         pass
 
     def compute(self) -> List[Dict[str, Any]]:
-        data = self.nvsmi.DeviceQuery("memory.used, memory.total, utilization.gpu")
+        data = self.nvsmi.DeviceQuery(
+            "memory.used, memory.total, utilization.gpu"
+        )  # type: Dict[str, List[Dict[str, Any]]]
         if len(data) == 0 or ("gpu" not in data):
             warnings.warn("No GPU information available")
             return []

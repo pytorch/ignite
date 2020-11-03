@@ -1,6 +1,6 @@
 import os
 import warnings
-from typing import Any, Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, Mapping, Optional, Tuple, cast
 
 import torch
 
@@ -62,7 +62,7 @@ if has_hvd_support:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_HorovodDistModel, self).__init__()
-            self._backend = HOROVOD
+            self._backend = HOROVOD  # type: str
             if do_init:
                 comm = kwargs.get("comm", None)
                 hvd.init(comm=comm)
@@ -87,13 +87,13 @@ if has_hvd_support:
             return hvd.size()
 
         def get_nproc_per_node(self) -> int:
-            return self._nproc_per_node
+            return cast(int, self._nproc_per_node)
 
         def get_nnodes(self) -> int:
-            return self._nnodes
+            return cast(int, self._nnodes)
 
         def get_node_rank(self) -> int:
-            return self._node
+            return cast(int, self._node)
 
         def device(self) -> torch.device:
             if torch.cuda.is_available():
