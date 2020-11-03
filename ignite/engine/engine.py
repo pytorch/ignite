@@ -560,8 +560,9 @@ class Engine(Serializable):
     def _is_done(state: State) -> bool:
         is_done_iters = state.max_iters is not None and state.iteration >= state.max_iters
         is_done_count = (
-            state.epoch_length is not None and state.iteration >= state.epoch_length * state.max_epochs
-        )  # type: ignore[operator]
+            state.epoch_length is not None
+            and state.iteration >= state.epoch_length * state.max_epochs  # type: ignore[operator]
+        )
         is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
         return is_done_iters or is_done_count or is_done_epochs
 
