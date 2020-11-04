@@ -1,4 +1,4 @@
-from typing import Any, Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, Mapping, Optional, Tuple, cast
 
 import torch
 
@@ -53,7 +53,7 @@ if has_xla_support:
         def _create_from_backend(self, backend: str, **kwargs: Any) -> None:
             xm.rendezvous("init")
 
-            self._backend = backend
+            self._backend = backend  # type: str
             self._setup_attrs()
 
         def _init_from_context(self) -> None:
@@ -75,13 +75,13 @@ if has_xla_support:
             return xm.xrt_world_size()
 
         def get_nproc_per_node(self) -> int:
-            return self._nproc_per_node
+            return cast(int, self._nproc_per_node)
 
         def get_nnodes(self) -> int:
-            return self._nnodes
+            return cast(int, self._nnodes)
 
         def get_node_rank(self) -> int:
-            return self._node
+            return cast(int, self._node)
 
         def device(self) -> torch.device:
             dev = torch_xla._XLAC._xla_get_default_device()

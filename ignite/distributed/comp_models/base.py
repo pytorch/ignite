@@ -15,11 +15,11 @@ class ComputationModel(metaclass=ABCMeta):
     # this is an additional local rank storage used when idist is setup from existing native torch dist context
     _ext_local_rank = None  # type: Optional[int]
 
-    def __init__(self):
-        self._backend = None
-        self._nproc_per_node = None
-        self._nnodes = None
-        self._node = None
+    def __init__(self) -> None:
+        self._backend = None  # type: Optional[str]
+        self._nproc_per_node = None  # type: Optional[int]
+        self._nnodes = None  # type: Optional[int]
+        self._node = None  # type: Optional[int]
 
     def _setup_attrs(self) -> None:
         if self._nproc_per_node is None:
