@@ -25,6 +25,14 @@ one_gpu: &one_gpu
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.small
 
+
+one_gpu_windows: &one_gpu_windows
+  machine:
+    resource_class: windows.gpu.nvidia.medium
+    image: windows-server-2019-nvidia:stable
+    shell: bash.exe
+
+
 two_gpus: &two_gpus
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
@@ -100,7 +108,7 @@ jobs:
       - <<: *run_pytorch_container
       - <<: *install_dependencies
       - run:
-          name: Run GPU Unit Tests
+          name: Run GPU Unit Tests and Examples
           command: |
 
             # pytest on cuda
@@ -144,6 +152,43 @@ jobs:
           name: Codecov upload
           command: |
             bash <(curl -s https://codecov.io/bash) -Z -F gpu
+
+
+  one_gpu_windows_tests:
+    <<: *one_gpu_windows
+
+    working_directory: << pipeline.parameters.workingdir >>
+
+    steps:
+      - checkout
+      - run:
+          name: Trigger job if modified
+          command: |
+            bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+
+      - run:
+          name: Install Conda
+          command: |
+            curl --output miniconda.exe https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe -O
+            eval "$(miniconda.exe /S /InstallationType=JustMe /RegisterPython=0 /AddToPath=0")
+            eval "$(conda.exe '--version')"
+
+      - run:
+          name: Install dependencies
+          command: |
+            pip install -r requirements-dev.txt
+            pip install .
+
+      - run:
+          name: Run GPU Unit Tests
+          command: |
+            # pytest on cuda
+            SKIP_DISTRIB_TESTS=1 bash tests/run_gpu_tests.sh
+
+      - run:
+          name: Codecov upload
+          command: |
+            bash <(curl -s https://codecov.io/bash) -Z -F gpu-windows
 
 
   two_gpus_tests:
@@ -302,6 +347,7 @@ workflows:
 
     jobs:
       - one_gpu_tests
+      - one_gpu_windows_tests
       - two_gpus_tests
       - two_gpus_check_dist_cifar10_example
       - two_gpus_hvd_tests
