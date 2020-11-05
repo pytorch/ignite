@@ -43,7 +43,7 @@ install:
 
 script:
   - mypy --config-file mypy.ini
-  - CI_PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" sh tests/run_cpu_tests.sh
+  - CI_PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" bash tests/run_cpu_tests.sh
 
 after_success:
   - codecov -F cpu || echo 'Codecov upload failed'
