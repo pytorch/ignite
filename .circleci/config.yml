@@ -104,7 +104,7 @@ jobs:
           command: |
 
             # pytest on cuda
-            export test_cmd='sh tests/run_gpu_tests.sh'
+            export test_cmd='bash tests/run_gpu_tests.sh'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
             # MNIST tests
@@ -163,7 +163,7 @@ jobs:
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
-            export test_cmd='sh tests/run_gpu_tests.sh 2'
+            export test_cmd='bash tests/run_gpu_tests.sh 2'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
       - run:
@@ -256,7 +256,7 @@ jobs:
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
-            export test_cmd='sh tests/run_gpu_tests.sh'
+            export test_cmd='bash tests/run_gpu_tests.sh'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
             # no CUDA devices Horovod tests
             export test_cmd='CUDA_VISIBLE_DEVICES="" py.test --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed'
