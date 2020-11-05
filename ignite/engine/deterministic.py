@@ -183,7 +183,7 @@ class DeterministicEngine(Engine):
     def _init_run(self) -> None:
         self.state.seed = int(torch.randint(0, int(1e9), (1,)).item())
         if not hasattr(self.state, "rng_states"):
-            self.state.rng_states = None  # type: ignore[attr-defined]
+            setattr(self.state, "rng_states", None)
 
         if torch.cuda.is_available():
             torch.backends.cudnn.deterministic = True
@@ -203,21 +203,19 @@ class DeterministicEngine(Engine):
             # attribute _dataset_kind is introduced since 1.3.0 => before 1.3.0 all datasets are map-like
             can_patch_dataloader = True
             if hasattr(self.state.dataloader, "_dataset_kind"):
-                from torch.utils.data.dataloader import _DatasetKind  # type: ignore[attr-defined]
+                from torch.utils.data.dataloader import _DatasetKind
 
-                _dataloader_kind = self.state.dataloader._dataset_kind  # type: ignore[attr-defined]
+                _dataloader_kind = self.state.dataloader._dataset_kind
                 can_patch_dataloader = _dataloader_kind == _DatasetKind.Map
             if can_patch_dataloader:
-                if self._dataloader_len is not None and hasattr(
-                    self.state.dataloader.sampler, "epoch"  # type: ignore[attr-defined]
-                ):
+                if self._dataloader_len is not None and hasattr(self.state.dataloader.sampler, "epoch"):
                     if self._dataloader_len != self.state.epoch_length:
                         warnings.warn(
                             "When defined engine's epoch length is different of input dataloader length, "
                             "distributed sampler indices can not be setup in a reproducible manner"
                         )
 
-                batch_sampler = self.state.dataloader.batch_sampler  # type: ignore[attr-defined]
+                batch_sampler = self.state.dataloader.batch_sampler
                 if not (batch_sampler is None or isinstance(batch_sampler, ReproducibleBatchSampler)):
                     self.state.dataloader = update_dataloader(
                         self.state.dataloader, ReproducibleBatchSampler(batch_sampler)  # type: ignore[arg-type]
@@ -233,9 +231,10 @@ class DeterministicEngine(Engine):
 
         # restore rng state if in the middle
         in_the_middle = self.state.iteration % self._dataloader_len > 0 if self._dataloader_len is not None else False
-        if (getattr(self.state, "rng_states", None) is not None) and in_the_middle:
-            _set_rng_states(self.state.rng_states)  # type: ignore[attr-defined]
-            self.state.rng_states = None  # type: ignore[attr-defined]
+        rng_states = getattr(self.state, "rng_states", None)
+        if rng_states is not None and in_the_middle:
+            _set_rng_states(rng_states)
+            setattr(self.state, "rng_states", None)
 
     def _from_iteration(self, iteration: int) -> Iterator:
         if self.state.dataloader is None:

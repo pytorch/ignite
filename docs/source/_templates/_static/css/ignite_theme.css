@@ -143,3 +143,7 @@ article.pytorch-article table.longtable.docutils.align-default tbody td p {
   margin-block-start: 0.1em;
   margin-block-end: 0.1em;
 }
+
+article.pytorch-article div.highlight pre {
+  white-space: pre;
+}

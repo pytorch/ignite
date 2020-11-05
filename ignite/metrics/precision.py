@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Sequence, Union
+from typing import Callable, Sequence, Union, cast
 
 import torch
 
@@ -30,8 +30,6 @@ class _BasePrecisionRecall(_BaseClassification):
                 )
 
         self._average = average
-        self._true_positives = None
-        self._positives = None
         self.eps = 1e-20
         super(_BasePrecisionRecall, self).__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device
@@ -39,14 +37,13 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
+        self._true_positives = 0  # type: Union[int, torch.Tensor]
+        self._positives = 0  # type: Union[int, torch.Tensor]
+
         if self._is_multilabel:
             init_value = 0.0 if self._average else []
-            kws = {"dtype": torch.float64, "device": self._device}
-            self._true_positives = torch.tensor(init_value, **kws)
-            self._positives = torch.tensor(init_value, **kws)
-        else:
-            self._true_positives = 0
-            self._positives = 0
+            self._true_positives = torch.tensor(init_value, dtype=torch.float64, device=self._device)
+            self._positives = torch.tensor(init_value, dtype=torch.float64, device=self._device)
 
         super(_BasePrecisionRecall, self).reset()
 
@@ -59,14 +56,14 @@ class _BasePrecisionRecall(_BaseClassification):
 
         if not (self._type == "multilabel" and not self._average):
             if not self._is_reduced:
-                self._true_positives = idist.all_reduce(self._true_positives)
-                self._positives = idist.all_reduce(self._positives)
-                self._is_reduced = True
+                self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[assignment]
+                self._positives = idist.all_reduce(self._positives)  # type: ignore[assignment]
+                self._is_reduced = True  # type: bool
 
         result = self._true_positives / (self._positives + self.eps)
 
         if self._average:
-            return result.mean().item()
+            return cast(torch.Tensor, result).mean().item()
         else:
             return result
 
@@ -177,8 +174,8 @@ class Precision(_BasePrecisionRecall):
 
         if self._type == "multilabel":
             if not self._average:
-                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)
-                self._positives = torch.cat([self._positives, all_positives], dim=0)
+                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)  # type: torch.Tensor
+                self._positives = torch.cat([self._positives, all_positives], dim=0)  # type: torch.Tensor
             else:
                 self._true_positives += torch.sum(true_positives / (all_positives + self.eps))
                 self._positives += len(all_positives)

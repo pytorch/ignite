@@ -1,6 +1,5 @@
 import socket
 from functools import wraps
-from numbers import Number
 from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
@@ -316,7 +315,7 @@ def spawn(
         )
 
 
-def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[torch.Tensor, Number]:
+def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
     Args:
@@ -334,7 +333,7 @@ def all_reduce(tensor: Union[torch.Tensor, Number], op: str = "SUM") -> Union[to
     return _model.all_reduce(tensor, op)
 
 
-def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, Number, List[Number], List[str]]:
+def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
     """Helper method to perform all gather operation.
 
     Args:
@@ -352,7 +351,7 @@ def all_gather(tensor: Union[torch.Tensor, Number, str]) -> Union[torch.Tensor, 
     return _model.all_gather(tensor)
 
 
-def broadcast(tensor: Union[torch.Tensor, Number, str], src: int = 0) -> Union[torch.Tensor, Number, str]:
+def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
     """Helper method to perform broadcast operation.
 
     Args:
@@ -497,7 +496,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
     for comp_model_cls in registered_computation_models:
         if backend not in comp_model_cls.available_backends:
             continue
-        _set_model(comp_model_cls(backend, **kwargs))
+        _set_model(comp_model_cls(backend, **kwargs))  # type: ignore[arg-type]
 
 
 def finalize() -> None:
