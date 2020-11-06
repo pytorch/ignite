@@ -15,7 +15,6 @@ jobs:
         exclude:
           - pytorch-version: 1.3.1
             python-version: 3.8
-        exclude:
           - pytorch-version: 1.6.0
             python-version: 3.5
 
