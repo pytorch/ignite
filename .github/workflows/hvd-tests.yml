@@ -1,21 +1,17 @@
 name: Run Horovod tests
 on:
   push:
-    paths-ignore:
-    - 'assets/**'
-    - '.circleci/**'
-    - 'docker/**'
-    - 'docs/**'
-    - 'conda.recipe'
-    - '**.md'
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_cpu_tests.sh'
+      - '.github/workflows/hvd-tests.yml'
   pull_request:
-    paths-ignore:
-    - 'assets/**'
-    - '.circleci/**'
-    - 'docker/**'
-    - 'docs/**'
-    - 'conda.recipe'
-    - '**.md'
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_cpu_tests.sh'
+      - '.github/workflows/hvd-tests.yml'
 
 jobs:
   horovod-tests:
