@@ -167,13 +167,9 @@ jobs:
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
 
       - run:
-          name: Check Conda
-          command: |
-            conda --version
-
-      - run:
           name: Install dependencies
           command: |
+            conda --version
             conda install -y pytorch torchvision cudatoolkit=10.1 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
