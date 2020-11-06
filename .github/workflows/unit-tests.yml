@@ -1,21 +1,19 @@
 name: Run unit tests
 on:
   push:
-    paths-ignore:
-    - 'assets/**'
-    - '.circleci/**'
-    - 'docker/**'
-    - 'docs/**'
-    - 'conda.recipe'
-    - '**.md'
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_cpu_tests.sh'
+      - 'examples/**.py'
+      - '.github/workflows/unit-tests.yml'
   pull_request:
-    paths-ignore:
-    - 'assets/**'
-    - '.circleci/**'
-    - 'docker/**'
-    - 'docs/**'
-    - 'conda.recipe'
-    - '**.md'
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_cpu_tests.sh'
+      - 'examples/**.py'
+      - '.github/workflows/unit-tests.yml'
 
 jobs:
   build:
