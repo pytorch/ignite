@@ -170,7 +170,7 @@ jobs:
           name: Install Conda
           command: |
             curl --output miniconda.exe https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe -O
-            ./miniconda.exe /S /InstallationType=JustMe /RegisterPython=0
+            eval "$(miniconda.exe /S /InstallationType=JustMe /RegisterPython=0 /AddToPath=0")
             conda --version
 
       - run:
