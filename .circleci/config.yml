@@ -167,10 +167,8 @@ jobs:
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
 
       - run:
-          name: Install Conda
+          name: Check Conda
           command: |
-            curl --output miniconda.exe https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe -O
-            ./miniconda.exe /InstallationType=JustMe /RegisterPython=0 /AddToPath=0
             conda --version
 
       - run:
@@ -185,12 +183,6 @@ jobs:
           command: |
             # pytest on cuda
             SKIP_DISTRIB_TESTS=1 bash tests/run_gpu_tests.sh
-
-      - run:
-          name: Codecov upload
-          command: |
-            bash <(curl -s https://codecov.io/bash) -Z -F gpu-windows
-
 
   two_gpus_tests:
     <<: *two_gpus
