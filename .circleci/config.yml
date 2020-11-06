@@ -170,12 +170,13 @@ jobs:
           name: Install Conda
           command: |
             curl --output miniconda.exe https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe -O
-            eval "$(miniconda.exe /S /InstallationType=JustMe /RegisterPython=0 /AddToPath=0")
-            eval "$(conda.exe '--version')"
+            ./miniconda.exe /S /InstallationType=JustMe /RegisterPython=0
+            conda --version
 
       - run:
           name: Install dependencies
           command: |
+            conda install -y pytorch torchvision cudatoolkit=10.1 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
 
