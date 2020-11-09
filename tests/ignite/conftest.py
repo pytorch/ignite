@@ -93,6 +93,7 @@ def _destroy_dist_context():
 def _find_free_port():
     # Taken from https://github.com/facebookresearch/detectron2/blob/master/detectron2/engine/launch.py
     import socket
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("", 0))
     port = sock.getsockname()[1]
