@@ -175,7 +175,7 @@ class Parallel:
 
     def __init__(
         self,
-        backend: str = None,
+        backend: Optional[str] = None,
         nproc_per_node: Optional[int] = None,
         nnodes: Optional[int] = None,
         node_rank: Optional[int] = None,

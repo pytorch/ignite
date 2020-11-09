@@ -496,7 +496,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
     for comp_model_cls in registered_computation_models:
         if backend not in comp_model_cls.available_backends:
             continue
-        _set_model(comp_model_cls(backend, **kwargs))
+        _set_model(comp_model_cls(backend, **kwargs))  # type: ignore[arg-type]
 
 
 def finalize() -> None:

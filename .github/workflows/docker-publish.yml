@@ -6,11 +6,13 @@ on:
       - master
     paths:
       - docker/**
+      - '.github/workflows/docker-publish.yml'
   release:
     types: [published]
   pull_request:
     paths:
       - docker/**
+      - '.github/workflows/docker-publish.yml'
 
 jobs:
   build-publish:

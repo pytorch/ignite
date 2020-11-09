@@ -10,6 +10,11 @@ set -xeu
 
 py.test --cov ignite --cov-report term-missing --cov-report xml -vvv tests/ -k 'on_cuda'
 
+# https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
+if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
+    exit 0
+fi
+
 py.test --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed
 
 

@@ -166,7 +166,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
     # Increase floating point precision and pass to CPU
     cm = cm.type(torch.DoubleTensor)
-    iou = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)
+    iou = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)  # type: MetricsLambda
     if ignore_index is not None:
         ignore_idx = ignore_index  # type: int  # used due to typing issues with mympy
 
@@ -208,7 +208,8 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
 
 
     """
-    return IoU(cm=cm, ignore_index=ignore_index).mean()
+    iou = IoU(cm=cm, ignore_index=ignore_index).mean()  # type: MetricsLambda
+    return iou
 
 
 def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
@@ -222,7 +223,8 @@ def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
     """
     # Increase floating point precision and pass to CPU
     cm = cm.type(torch.DoubleTensor)
-    return cm.diag().sum() / (cm.sum() + 1e-15)
+    accuracy = cm.diag().sum() / (cm.sum() + 1e-15)  # type: MetricsLambda
+    return accuracy
 
 
 def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
@@ -237,9 +239,10 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
 
     # Increase floating point precision and pass to CPU
     cm = cm.type(torch.DoubleTensor)
-    precision = cm.diag() / (cm.sum(dim=0) + 1e-15)
+    precision = cm.diag() / (cm.sum(dim=0) + 1e-15)  # type: MetricsLambda
     if average:
-        return precision.mean()
+        mean = precision.mean()  # type: MetricsLambda
+        return mean
     return precision
 
 
@@ -255,9 +258,10 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
 
     # Increase floating point precision and pass to CPU
     cm = cm.type(torch.DoubleTensor)
-    recall = cm.diag() / (cm.sum(dim=1) + 1e-15)
+    recall = cm.diag() / (cm.sum(dim=1) + 1e-15)  # type: MetricsLambda
     if average:
-        return recall.mean()
+        mean = recall.mean()  # type: MetricsLambda
+        return mean
     return recall
 
 
@@ -278,7 +282,7 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
 
     # Increase floating point precision and pass to CPU
     cm = cm.type(torch.DoubleTensor)
-    dice = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)
+    dice = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)  # type: MetricsLambda
 
     if ignore_index is not None:
         ignore_idx = ignore_index  # type: int  # used due to typing issues with mympy

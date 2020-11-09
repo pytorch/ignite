@@ -25,6 +25,14 @@ one_gpu: &one_gpu
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.small
 
+
+one_gpu_windows: &one_gpu_windows
+  machine:
+    resource_class: windows.gpu.nvidia.medium
+    image: windows-server-2019-nvidia:stable
+    shell: bash.exe
+
+
 two_gpus: &two_gpus
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
@@ -100,11 +108,11 @@ jobs:
       - <<: *run_pytorch_container
       - <<: *install_dependencies
       - run:
-          name: Run GPU Unit Tests
+          name: Run GPU Unit Tests and Examples
           command: |
 
             # pytest on cuda
-            export test_cmd='sh tests/run_gpu_tests.sh'
+            export test_cmd='bash tests/run_gpu_tests.sh'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
             # MNIST tests
@@ -146,6 +154,32 @@ jobs:
             bash <(curl -s https://codecov.io/bash) -Z -F gpu
 
 
+  one_gpu_windows_tests:
+    <<: *one_gpu_windows
+
+    working_directory: << pipeline.parameters.workingdir >>
+
+    steps:
+      - checkout
+      - run:
+          name: Trigger job if modified
+          command: |
+            bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+
+      - run:
+          name: Install dependencies
+          command: |
+            conda --version
+            conda install -y pytorch torchvision cudatoolkit=10.1 -c pytorch
+            pip install -r requirements-dev.txt
+            pip install .
+
+      - run:
+          name: Run GPU Unit Tests
+          command: |
+            # pytest on cuda
+            SKIP_DISTRIB_TESTS=1 bash tests/run_gpu_tests.sh
+
   two_gpus_tests:
     <<: *two_gpus
 
@@ -163,7 +197,7 @@ jobs:
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
-            export test_cmd='sh tests/run_gpu_tests.sh 2'
+            export test_cmd='bash tests/run_gpu_tests.sh 2'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
       - run:
@@ -256,7 +290,7 @@ jobs:
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
-            export test_cmd='sh tests/run_gpu_tests.sh'
+            export test_cmd='bash tests/run_gpu_tests.sh'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
             # no CUDA devices Horovod tests
             export test_cmd='CUDA_VISIBLE_DEVICES="" py.test --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed'
@@ -302,6 +336,7 @@ workflows:
 
     jobs:
       - one_gpu_tests
+      - one_gpu_windows_tests
       - two_gpus_tests
       - two_gpus_check_dist_cifar10_example
       - two_gpus_hvd_tests

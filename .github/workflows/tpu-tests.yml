@@ -1,22 +1,17 @@
 name: Run TPU tests
 on:
   push:
-    paths-ignore:
-    - 'assets/**'
-    - '.circleci/**'
-    - 'docker/**'
-    - 'docs/**'
-    - 'conda.recipe'
-    - '**.md'
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_tpu_tests.sh'
+      - '.github/workflows/tpu-tests.yml'
   pull_request:
-    paths-ignore:
-    - 'assets/**'
-    - '.circleci/**'
-    - 'docker/**'
-    - 'docs/**'
-    - 'conda.recipe'
-    - '**.md'
-
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_tpu_tests.sh'
+      - '.github/workflows/tpu-tests.yml'
 
 jobs:
   tpu-tests:
@@ -66,7 +61,7 @@ jobs:
         export XRT_WORKERS="localservice:0;grpc://localhost:40934"
 
         python -c "import torch_xla; print('torch xla version:', torch_xla.__version__)"
-        sh tests/run_tpu_tests.sh
+        bash tests/run_tpu_tests.sh
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
