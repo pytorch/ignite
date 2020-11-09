@@ -29,6 +29,12 @@ git status >/dev/null 2>&1 || { echo >&2 "Not in a git directory or no git"; exi
 
 circleci-agent >/dev/null 2>&1 || { echo >&2 "No Circle CI agent. These are in all Circle CI containers"; exit 1; }
 
+
+if [ "$CIRCLE_BRANCH" == "master" ]; then
+  echo "Skip checking modified files if on master"
+  exit 0
+fi
+
 FILES_MODIFIED=""
 
 setcommit () {
