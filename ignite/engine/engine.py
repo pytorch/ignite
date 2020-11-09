@@ -752,7 +752,7 @@ class Engine(Serializable):
         try:
             start_time = time.time()
             self._fire_event(Events.STARTED)
-            while not self._is_done(self.state) and not self.should_terminate:  # type: ignore[operator]
+            while not self._is_done(self.state) and not self.should_terminate:
                 self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
 
