@@ -901,6 +901,13 @@ def test_run_with_max_iters():
     assert engine.state.max_iters == max_iters
 
 
+def test_run_with_max_iters_greater_than_epoch_length():
+    max_iters = 73
+    engine = Engine(lambda e, b: 1)
+    engine.run([0] * 20, max_iters=max_iters)
+    assert engine.state.iteration == max_iters
+
+
 def test_run_with_invalid_max_iters_and_max_epoch():
     max_iters = 12
     max_epochs = 2

@@ -613,7 +613,7 @@ class Engine(Serializable):
 
         Engine has a state and the following logic is applied in this function:
 
-        - At the first call, new state is defined by `max_epochs`, `max_iters`, `epoch_length`, `seed` if provided.
+        - At the first call, new state is defined by `max_epochs`, `max_iters`, `epoch_length`, if provided.
             A timer for total and per-epoch time is initialized when Events.STARTED is handled.
         - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
             provided, state is kept and used in the function.
@@ -699,9 +699,8 @@ class Engine(Serializable):
                         "Arguments max_iters and max_epochs are mutually exclusive."
                         "Please provide only max_epochs or max_iters."
                     )
-                else:
-                    if epoch_length is not None:
-                        max_epochs = math.ceil(max_iters / epoch_length)
+                if epoch_length is not None:
+                    max_epochs = math.ceil(max_iters / epoch_length)
 
             self.state.iteration = 0
             self.state.epoch = 0
