@@ -4,7 +4,7 @@ import os
 import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from tempfile import _TemporaryFileWrapper  # type: ignore[attr-defined]
 from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
 
