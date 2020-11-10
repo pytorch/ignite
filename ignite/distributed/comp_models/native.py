@@ -331,8 +331,8 @@ if has_native_dist_support:
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError("Unsupported reduction operation: '{}'".format(op))
-            op = self._reduce_op_map[op]
-            dist.all_reduce(tensor, op)
+            reduce_op = self._reduce_op_map[op]
+            dist.all_reduce(tensor, reduce_op)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
