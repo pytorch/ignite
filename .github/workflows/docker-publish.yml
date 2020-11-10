@@ -43,7 +43,7 @@ jobs:
         run: docker images | grep pytorchignite
 
       - name: Push all PyTorch-Ignite Docker images
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

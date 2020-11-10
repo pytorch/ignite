@@ -54,8 +54,6 @@ jobs:
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
         pip install -r requirements-dev.txt
-        # Fixes #1153
-        pip install --upgrade scipy==1.4.1
         python setup.py install
 
     - name: Run Mypy

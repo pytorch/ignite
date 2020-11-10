@@ -1,0 +1,52 @@
+name: Nightly Releases
+
+on: pull_request
+#on:
+#  # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
+#  schedule:
+#    # Run at 00:00 UTC Every Day
+#    - cron:  '0 0 * * *'
+
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Miniconda
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          miniconda-version: "latest"
+          python-version: "3.7"
+
+      - name: Setup nightly version
+        run: |
+          sed -i "s/__version__ = \"\(.*\)\"/__version__ = \"\1.dev$(date -u +%Y%m%d)\"/g" ignite/__init__.py
+
+      - name: Install dependencies
+        run: |
+          conda install pytorch torchvision cpuonly -c pytorch-nightly
+          pip install -r requirements-dev.txt
+          pip install --upgrade --no-cache-dir twine
+          python setup.py install
+
+      - name: Build and Publish Conda binaries
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+          #UPLOAD_USER: "pytorch-nightly"
+          UPLOAD_USER: "vfdev-5"
+        run: |
+          chmod +x ./conda.recipe/build_and_upload.sh
+          ./conda.recipe/build_and_upload.sh
+
+      - name: Build and Publish PyPi binaries
+        env:
+          PYPI_USER: ${{ secrets.PYPI_USER }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python setup.py sdist bdist_wheel
+          twine check dist/*
+          TWINE_USERNAME="$PYPI_USER" TWINE_PASSWORD="$PYPI_TOKEN" twine upload --repository-url https://test.pypi.org/legacy/ --verbose dist/*
+
+          #TWINE_USERNAME="$PYPI_USER" TWINE_PASSWORD="$PYPI_TOKEN" twine upload --verbose dist/*
