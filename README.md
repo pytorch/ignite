@@ -494,4 +494,8 @@ description of the project.
 
 # About the team & Disclaimer
 
-This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals (and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors. For usage questions and issues, please see the various channels [here](https://github.com/pytorch/ignite#communication). For all other questions and inquiries, please send an email to contact@pytorch-ignite.ai.
+This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals 
+(and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) 
+page for a list of core contributors. For usage questions and issues, please see the various channels 
+[here](#communication). For all other questions and inquiries, please send an email 
+to contact@pytorch-ignite.ai.
