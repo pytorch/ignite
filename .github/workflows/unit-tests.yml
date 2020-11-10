@@ -44,7 +44,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v2
+      uses: goanpeca/setup-miniconda@v1
       with:
         miniconda-version: "latest"
         python-version: ${{ matrix.python-version }}
@@ -54,6 +54,8 @@ jobs:
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
         pip install -r requirements-dev.txt
+        # Fixes #1153
+        pip install --upgrade scipy==1.4.1
         python setup.py install
 
     - name: Run Mypy
