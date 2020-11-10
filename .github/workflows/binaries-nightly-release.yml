@@ -1,11 +1,10 @@
 name: Nightly Releases
 
-on: pull_request
-#on:
-#  # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
-#  schedule:
-#    # Run at 00:00 UTC Every Day
-#    - cron:  '0 0 * * *'
+on:
+  # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
+  schedule:
+    # Run at 00:00 UTC Every Day
+    - cron:  '0 0 * * *'
 
 
 jobs:
@@ -37,17 +36,14 @@ jobs:
         shell: bash -l {0}
         env:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-          #UPLOAD_USER: "pytorch-nightly"
-          UPLOAD_USER: "vfdev-5"
+          UPLOAD_USER: "pytorch-nightly"
         run: |
           chmod +x ./conda.recipe/build_and_upload.sh
-#           ./conda.recipe/build_and_upload.sh
+          ./conda.recipe/build_and_upload.sh
 
       - name: Build and Publish PyPi binaries
         shell: bash -l {0}
         run: |
           python setup.py sdist bdist_wheel
           twine check dist/*
-          TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --repository-url https://test.pypi.org/legacy/ --verbose dist/*
-
-          #TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
+          TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
