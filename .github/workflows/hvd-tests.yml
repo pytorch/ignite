@@ -36,8 +36,6 @@ jobs:
         #install other dependencies
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
         pip install -r requirements-dev.txt
-        # Fixes #1153
-        pip install --upgrade scipy==1.4.1
         pip install horovod
         python setup.py install
       
@@ -46,3 +44,9 @@ jobs:
       run: |
         SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} CI_PYTHON_VERSION="${{ matrix.python-version }}" bash tests/run_cpu_tests.sh
               
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
+        flags: hvd-cpu
+        fail_ci_if_error: true
