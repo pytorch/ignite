@@ -41,16 +41,13 @@ jobs:
           UPLOAD_USER: "vfdev-5"
         run: |
           chmod +x ./conda.recipe/build_and_upload.sh
-          ./conda.recipe/build_and_upload.sh
+#           ./conda.recipe/build_and_upload.sh
 
       - name: Build and Publish PyPi binaries
         shell: bash -l {0}
-        env:
-          PYPI_USER: ${{ secrets.PYPI_USER }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           python setup.py sdist bdist_wheel
           twine check dist/*
-          TWINE_USERNAME="$PYPI_USER" TWINE_PASSWORD="$PYPI_TOKEN" twine upload --repository-url https://test.pypi.org/legacy/ --verbose dist/*
+          TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --repository-url https://test.pypi.org/legacy/ --verbose dist/*
 
-          #TWINE_USERNAME="$PYPI_USER" TWINE_PASSWORD="$PYPI_TOKEN" twine upload --verbose dist/*
+          #TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
