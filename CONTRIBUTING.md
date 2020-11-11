@@ -142,6 +142,40 @@ If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
+#### Sync up with the upstream
+
+First, make sure you have set [upstream](https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
+
+```bash
+git remote add upstream https://github.com/pytorch/ignite
+```
+
+Then you can see if you have set up multiple remote correctly by running `git remote -v`:
+
+```bash
+origin  https://github.com/{YOUR_USERNAME}/ignite.git (fetch)
+origin  https://github.com/{YOUR_USERNAME}/ignite.git (push)
+upstream        https://github.com/pytorch/ignite (fetch)
+upstream        https://github.com/pytorch/ignite (push)
+```
+
+Now you can get the latest development into your forked repository with this:
+
+```bash
+git fetch upstream
+git checkout master
+git merge upstream/master
+```
+
+Rebasing for a PR
+
+```bash
+git checkout my-PR-branch
+git fetch upstream
+git rebase upstream/master
+# follow git instructions to resolve conflicts
+git push -f
+```
 
 ### Writing documentation
 
