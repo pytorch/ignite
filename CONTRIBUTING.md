@@ -192,16 +192,6 @@ git checkout master
 git merge upstream/master
 ```
 
-Rebasing for a PR
-
-```bash
-git checkout my-PR-branch
-git fetch upstream
-git rebase upstream/master
-# follow git instructions to resolve conflicts
-git push -f
-```
-
 ### Writing documentation
 
 Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
