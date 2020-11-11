@@ -1,7 +1,7 @@
 import numbers
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import torch
 import torch.nn as nn
@@ -184,9 +184,7 @@ def _setup_common_training_handlers(
         checkpoint_handler = Checkpoint(
             to_save, cast(Union[Callable, BaseSaveHandler], save_handler), filename_prefix="training", **kwargs
         )
-        trainer.add_event_handler(
-            Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler
-        )  # type: ignore[arg-type]
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler)
 
     if with_gpu_stats:
         GpuInfo().attach(
@@ -195,7 +193,7 @@ def _setup_common_training_handlers(
 
     if output_names is not None:
 
-        def output_transform(x, index, name):
+        def output_transform(x: Any, index: int, name: str) -> Any:
             if isinstance(x, Mapping):
                 return x[name]
             elif isinstance(x, Sequence):
@@ -216,9 +214,7 @@ def _setup_common_training_handlers(
     if with_pbars:
         if with_pbar_on_iters:
             ProgressBar(persist=False).attach(
-                trainer,
-                metric_names="all",
-                event_name=Events.ITERATION_COMPLETED(every=log_every_iters),  # type: ignore[arg-type]
+                trainer, metric_names="all", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)
             )
 
         ProgressBar(persist=True, bar_format="").attach(
@@ -266,18 +262,18 @@ def _setup_common_distrib_training_handlers(
             raise TypeError("Train sampler should be torch DistributedSampler and have `set_epoch` method")
 
         @trainer.on(Events.EPOCH_STARTED)
-        def distrib_set_epoch(engine):
-            train_sampler.set_epoch(engine.state.epoch - 1)
+        def distrib_set_epoch(engine: Engine) -> None:
+            cast(DistributedSampler, train_sampler).set_epoch(engine.state.epoch - 1)
 
 
-def empty_cuda_cache(_) -> None:
+def empty_cuda_cache(_: Engine) -> None:
     torch.cuda.empty_cache()
     import gc
 
     gc.collect()
 
 
-def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:
+def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:  # type: ignore
     raise DeprecationWarning(
         "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. and will be remove in 0.6.0. "
         "Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc."
@@ -549,7 +545,7 @@ def setup_trains_logging(
 
 
 def get_default_score_fn(metric_name: str) -> Any:
-    def wrapper(engine: Engine):
+    def wrapper(engine: Engine) -> Any:
         score = engine.state.metrics[metric_name]
         return score
 

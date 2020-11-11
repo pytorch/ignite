@@ -86,7 +86,7 @@ def create_supervised_tbptt_trainer(
 
     """
 
-    def _update(engine: Engine, batch: Sequence[torch.Tensor]):
+    def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> float:
         loss_list = []
         hidden = None
 
