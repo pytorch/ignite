@@ -2,7 +2,7 @@ import os
 import subprocess
 import warnings
 from distutils.version import LooseVersion
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, cast
 
 import torch
 import torch.distributed as dist
@@ -214,13 +214,13 @@ if has_native_dist_support:
             return dist.get_world_size()
 
         def get_nproc_per_node(self) -> int:
-            return self._nproc_per_node
+            return cast(int, self._nproc_per_node)
 
         def get_nnodes(self) -> int:
-            return self._nnodes
+            return cast(int, self._nnodes)
 
         def get_node_rank(self) -> int:
-            return self._node
+            return cast(int, self._node)
 
         def device(self) -> torch.device:
             if self.backend() == dist.Backend.NCCL:
@@ -331,8 +331,8 @@ if has_native_dist_support:
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError("Unsupported reduction operation: '{}'".format(op))
-            op = self._reduce_op_map[op]
-            dist.all_reduce(tensor, op)
+            reduce_op = self._reduce_op_map[op]
+            dist.all_reduce(tensor, reduce_op)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
