@@ -1,4 +1,19 @@
-on: [push, pull_request]
+name: Run unit tests
+on:
+  push:
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_cpu_tests.sh'
+      - 'examples/**.py'
+      - '.github/workflows/unit-tests.yml'
+  pull_request:
+    paths:
+      - 'ignite/**'
+      - 'tests/ignite/**'
+      - 'tests/run_cpu_tests.sh'
+      - 'examples/**.py'
+      - '.github/workflows/unit-tests.yml'
 
 jobs:
   build:
@@ -29,7 +44,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Miniconda
-      uses: goanpeca/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         miniconda-version: "latest"
         python-version: ${{ matrix.python-version }}
@@ -39,14 +54,26 @@ jobs:
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
         pip install -r requirements-dev.txt
-        # Fixes #1153
-        pip install --upgrade scipy==1.4.1
         python setup.py install
+
+    - name: Run Mypy
+      shell: bash -l {0}
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version != '3.5' }}
+      run: |
+        pip install mypy
+        mypy --config-file mypy.ini
 
     - name: Run Tests
       shell: bash -l {0}
       run: |
-        SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} CI_PYTHON_VERSION="${{ matrix.python-version }}" sh tests/run_cpu_tests.sh
+        SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} CI_PYTHON_VERSION="${{ matrix.python-version }}" bash tests/run_cpu_tests.sh
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
+        flags: cpu
+        fail_ci_if_error: true
 
     - name: Run MNIST Examples
       shell: bash -l {0}

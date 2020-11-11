@@ -6,9 +6,9 @@
 
 
 
-[![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
-[![image](https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master)](https://github.com/pytorch/ignite/actions)
-[![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://circleci.com/gh/pytorch/ignite)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://circleci.com/gh/pytorch/ignite)
+[![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite)
+[![image](https://github.com/pytorch/ignite/workflows/Run%20unit%20tests/badge.svg)](https://github.com/pytorch/ignite/actions)
+[![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)
 [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite)
 [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html)
 
@@ -494,4 +494,8 @@ description of the project.
 
 # About the team & Disclaimer
 
-This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals (and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors. For usage questions and issues, please see the various channels [here](https://github.com/pytorch/ignite#communication). For all other questions and inquiries, please send an email to contact@pytorch-ignite.ai.
+This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals 
+(and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) 
+page for a list of core contributors. For usage questions and issues, please see the various channels 
+[here](#communication). For all other questions and inquiries, please send an email 
+to contact@pytorch-ignite.ai.

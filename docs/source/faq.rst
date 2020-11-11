@@ -385,8 +385,8 @@ Simpliest way to fetch time of single epoch and complete training is to use
 For details, see :class:`~ignite.engine.events.State`.
 
 
-Detailed profiling
-``````````````````
+Basic time profiling
+````````````````````
 
 User can setup :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfiler` to fetch times spent in data
 processing, training step, event handlers:
@@ -444,6 +444,52 @@ Typical output:
     not yet triggered
 
 For details, see :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfiler`.
+
+
+Event handlers time profiling
+`````````````````````````````
+
+If you want to get time breakdown per handler basis then you can setup
+:class:`~ignite.contrib.handlers.time_profilers.HandlersTimeProfiler`:
+
+.. code-block:: python
+
+    from ignite.contrib.handlers import HandlersTimeProfiler
+
+    trainer = ...
+
+    # Create an object of the profiler and attach an engine to it
+    profiler = HandlersTimeProfiler()
+    profiler.attach(trainer)
+
+    @trainer.on(Events.EPOCH_COMPLETED(every=10))
+    def log_intermediate_results():
+        profiler.print_results(profiler.get_results())
+
+    trainer.run(dataloader, max_epochs=3)
+
+Typical output:
+
+.. code-block:: text
+
+    -----------------------------------------  -----------------------  -------------- ...
+    Handler                                    Event Name                     Total(s)
+    -----------------------------------------  -----------------------  --------------
+    run.<locals>.log_training_results          EPOCH_COMPLETED                19.43245
+    run.<locals>.log_validation_results        EPOCH_COMPLETED                 2.55271
+    run.<locals>.log_time                      EPOCH_COMPLETED                 0.00049
+    run.<locals>.log_intermediate_results      EPOCH_COMPLETED                 0.00106
+    run.<locals>.log_training_loss             ITERATION_COMPLETED               0.059
+    run.<locals>.log_time                      COMPLETED                 not triggered
+    -----------------------------------------  -----------------------  --------------
+    Total                                                                     22.04571
+    -----------------------------------------  -----------------------  --------------
+    Processing took total 11.29543s [min/index: 0.00393s/1875, max/index: 0.00784s/0,
+     mean: 0.00602s, std: 0.00034s]
+    Dataflow took total 16.24365s [min/index: 0.00533s/1874, max/index: 0.01129s/937,
+     mean: 0.00866s, std: 0.00113s]
+
+For details, see :class:`~ignite.contrib.handlers.time_profilers.HandlersTimeProfiler`.
 
 
 Custom time measures

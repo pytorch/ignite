@@ -22,13 +22,13 @@ class MeanPairwiseDistance(Metric):
         eps: float = 1e-6,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
-    ):
+    ) -> None:
         super(MeanPairwiseDistance, self).__init__(output_transform, device=device)
         self._p = p
         self._eps = eps
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._sum_of_distances = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
 

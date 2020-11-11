@@ -805,7 +805,11 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_
         x = torch.rand((4, 1)).to(device)
         optim.zero_grad()
         y = model(x)
-        loss = y.pow(2.0).sum()
+        # Below code raises: RuntimeError: torch_xla/csrc/tensor_impl.cpp:144 : XLA tensors do not have storage
+        # Probably related to https://github.com/pytorch/xla/issues/2576
+        # loss = y.pow(2.0).sum()
+        loss = y.sum()
+        print(loss.device, y.device, x.device)
         loss.backward()
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
@@ -1305,6 +1309,9 @@ def test_checkpoint_filename_pattern():
     )
     assert res == "best_model_12_acc=0.9999.pt"
 
+    pattern = "{name}.{ext}"
+    assert _test(to_save, filename_pattern=pattern) == "model.pt"
+
     pattern = "chk-{name}--{global_step}.{ext}"
     assert _test(to_save, to_save, filename_pattern=pattern) == "chk-model--203.pt"
     pattern = "chk-{filename_prefix}--{name}--{global_step}.{ext}"
@@ -1442,3 +1449,25 @@ def test_checkpoint_load_state_dict():
     sd = {"saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
     checkpointer.load_state_dict(sd)
     assert checkpointer._saved == true_checkpointer._saved
+
+
+def test_checkpoint_fixed_filename():
+    model = DummyModel()
+    to_save = {"model": model}
+
+    def _test(n_saved):
+        save_handler = MagicMock(spec=BaseSaveHandler)
+        checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=n_saved, filename_pattern="{name}.{ext}")
+
+        trainer = Engine(lambda e, b: None)
+
+        for i in range(10):
+            trainer.state = State(epoch=i, iteration=i)
+            checkpointer(trainer)
+            assert save_handler.call_count == i + 1
+            metadata = {"basename": "model", "score_name": None, "priority": i}
+            save_handler.assert_called_with(model.state_dict(), "model.pt", metadata)
+
+    _test(None)
+    _test(1)
+    _test(3)
