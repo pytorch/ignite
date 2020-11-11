@@ -29,6 +29,26 @@ jobs:
         python-version: '3.6.10'
         architecture: 'x64'
 
+    - name: Get year & week number
+      id: get-date
+      run: |
+        echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+      shell: bash
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/conda_pkgs_dir
+          ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}
+        restore-keys: |
+          ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}
+
     - name: Install Torch XLA and others
       run: |
 

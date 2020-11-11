@@ -49,6 +49,26 @@ jobs:
         miniconda-version: "latest"
         python-version: ${{ matrix.python-version }}
 
+    - name: Get year & week number
+      id: get-date
+      run: |
+        echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+      shell: bash
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/conda_pkgs_dir
+          ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}
+        restore-keys: |
+          ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}
+
     - name: Install dependencies
       shell: bash -l {0}
       run: |
