@@ -2,7 +2,7 @@ on:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
   schedule:
     # Run at 00:00 UTC Every Day
-    - cron:  '0 0 * * *'
+    - cron: "0 0 * * *"
 
 jobs:
   build:
@@ -20,22 +20,37 @@ jobs:
             python-version: 3.5
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        miniconda-version: "latest"
-        python-version: ${{ matrix.python-version }}
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
+          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
-    - name: Install dependencies
-      shell: bash -l {0}
-      run: |
-        conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
-        pip install -r requirements-dev.txt
-        python setup.py install
+      - uses: actions/cache@v2
+        with:
+          path: ~/conda_pkgs_dir
+          key: py${{ matrix.python-version }}-conda-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            py${{ matrix.python-version }}-conda-
 
-    - name: Run Tests
-      shell: bash -l {0}
-      run: |
-        py.test tests -vvv
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: py${{ matrix.python-version }}-pip-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            py${{ matrix.python-version }}-pip-
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
+          pip install -r requirements-dev.txt
+          python setup.py install
+
+      - name: Run Tests
+        shell: bash -l {0}
+        run: |
+          pytest tests -vvv
