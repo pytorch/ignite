@@ -27,6 +27,7 @@ jobs:
       with:
         miniconda-version: "latest"
         python-version: ${{ matrix.python-version }}
+        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Get year & week number
       id: get-date
@@ -37,6 +38,7 @@ jobs:
     - name: Get pip cache dir
       id: pip-cache
       run: |
+        conda install pip
         echo "::set-output name=dir::$(pip cache dir)"
 
     - uses: actions/cache@v2
