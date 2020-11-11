@@ -3,7 +3,7 @@ name: Build docs
 on:
   push:
     branches: [master]
-    tags: ['v*']
+    tags: ["v*"]
   release:
     types: [created]
   pull_request:
@@ -18,12 +18,16 @@ jobs:
         with:
           python-version: "3.7"
       - name: install docs reqs
+        shell: bash -l {0}
         run: |
           pip install -U pip wheel
+          pip install torch torchvision -f https://download.pytorch.org/whl/cpu/torch_stable.html -U
+          pip install -r requirements-dev.txt
           pip install -r docs/requirements.txt
           pip install git+https://github.com/vfdev-5/sphinxcontrib-versioning.git
 
       - name: build docs
+        shell: bash -l {0}
         run: sphinx-versioning --use-master-conf --use-master-templates build --greatest-tag --whitelist-branches master docs/source docs/build/html
 
       # - name: deploy docs
