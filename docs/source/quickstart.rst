@@ -1,9 +1,9 @@
 Quick start
 ===========
 
-Welcome to Ignite quick start guide that just gives essentials of getting a project up and running.
+Welcome to <b>PyTorch Ignite</b> a quick start guide that just not only gives you the essentials of getting a project up but also running through the code.
 
-In several lines you can get your model training and validating:
+In several lines you can get your model trained and validated as shown below through the code:
 
 Code
 ----
