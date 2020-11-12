@@ -46,14 +46,14 @@ jobs:
       id: cache
       with:
         path: |
-          ~/conda_pkgs_dir
+          ${{ env.CONDA_PKGS_DIR }}
           $CONDA/envs/test/lib/python${{ matrix.python-version }}/site-packages/*
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('requirements-dev.txt') }}
 
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
+      # if: steps.cache.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |
         conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch

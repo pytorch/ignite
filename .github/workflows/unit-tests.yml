@@ -66,7 +66,7 @@ jobs:
       id: cache
       with:
         path: |
-          ~/conda_pkgs_dir
+          ${{ env.CONDA_PKGS_DIR }}
           ${{ env.CONDA }}/envs/test/lib/python${{ matrix.python-version }}/site-packages/*
           ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
@@ -79,7 +79,7 @@ jobs:
       id: cache-windows
       with:
         path: |
-          ~/conda_pkgs_dir
+          ${{ env.CONDA_PKGS_DIR }}
           ${{ env.CONDA }}\envs\test\lib\site-packages\*
           ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
@@ -87,7 +87,7 @@ jobs:
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
 
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit != 'true' || steps.cache-windows.outputs.cache-hit != 'true'
+      # if: steps.cache.outputs.cache-hit != 'true' || steps.cache-windows.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}

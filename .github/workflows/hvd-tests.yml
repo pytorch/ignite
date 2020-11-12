@@ -45,7 +45,7 @@ jobs:
       id: cache
       with:
         path: |
-          ~/conda_pkgs_dir
+          ${{ env.CONDA_PKGS_DIR }}
           ${{ env.CONDA }}/envs/test/lib/python${{ matrix.python-version }}/site-packages/*
           ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
@@ -53,7 +53,7 @@ jobs:
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('**/requirements.txt') }}
 
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
+      # if: steps.cache.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |
 
