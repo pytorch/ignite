@@ -56,32 +56,31 @@ jobs:
         echo "::set-output name=date::$(/bin/date "+%Y-%U")"
       shell: bash -l {0}
 
-    - name: Get pip cache dir
-      if: matrix.os != 'windows-latest'
-      shell: bash -l {0}
-      id: pip-cache-${{ runner.os }}
-      run: |
-        echo "::set-output name=dir::$CONDA/envs/test/lib/python${{ matrix.python-version }}/site-packages/*"
-
-    - name: Get pip cache dir (windows)
-      if: matrix.os == 'windows-latest'
-      shell: bash -l {0}
-      id: pip-cache-${{ runner.os }}
-      run: |
-        echo "::set-output name=dir::$CONDA\envs\test\lib\site-packages\*"
-
     - uses: actions/cache@v2
+      if: matrix.os != 'windows-latest'
       id: cache
       with:
         path: |
           ~/conda_pkgs_dir
-          ${{ steps.pip-cache-${{ runner.os }}.outputs.dir }}
+          $CONDA/envs/test/lib/python${{ matrix.python-version }}/site-packages/*
+        key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
+        restore-keys: |
+          ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
+
+    - name: windows cache
+      uses: actions/cache@v2
+      if: matrix.os == 'windows-latest'
+      id: cache-windows
+      with:
+        path: |
+          ~/conda_pkgs_dir
+          $CONDA\envs\test\lib\site-packages\*
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
 
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: steps.cache.outputs.cache-hit != 'true' || steps.cache-windows.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
