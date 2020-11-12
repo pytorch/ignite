@@ -1,7 +1,7 @@
 Quick start
 ===========
 
-Welcome to <b>PyTorch-Ignite</b> a quick start guide that just not only gives you the essentials of getting a project up but also running through the code.
+Welcome to **PyTorch-Ignite**, a quick start guide that just not only gives you the essentials of getting a project up but also running through the code.
 
 In several lines you can get your model trained and validated as shown below through the code:
 
@@ -139,7 +139,7 @@ or equivalently without the decorator
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss)
 
-When an epoch ends we want compute training and validation metrics [#f1]_. For that purpose we can run previously defined
+When an epoch ends, we want to compute training and validation metrics [#f1]_. For that purpose, we can run previously defined
 ``evaluator`` on ``train_loader`` and ``val_loader``. Therefore we attach two additional handlers to the trainer on epoch
 complete event:
 
@@ -184,10 +184,10 @@ Finally, we start the engine on the training dataset and run it during 100 epoch
 
 .. [#f1]
 
-   In this example we follow a pattern that requires a second pass through the training set. This
+   In this example, we follow a pattern that requires a second pass through the training set. This
    could be expensive on large datasets (even taking a subset). Another more common pattern is to accumulate
    measures online over an epoch in the training loop. In this case metrics are aggregated on a moving model,
-   and thus, we do not want to encourage this pattern. However, if user still would like to implement the
+   and thus, we do not want to encourage this pattern. However, if a user still likes to implement the
    last pattern, it can be easily done by attaching metrics to the trainer as following:
 
    .. code-block:: python
