@@ -1,7 +1,7 @@
 Quick start
 ===========
 
-Welcome to <b>PyTorch Ignite</b> a quick start guide that just not only gives you the essentials of getting a project up but also running through the code.
+Welcome to <b>PyTorch-Ignite</b> a quick start guide that just not only gives you the essentials of getting a project up but also running through the code.
 
 In several lines you can get your model trained and validated as shown below through the code:
 
@@ -210,4 +210,3 @@ Finally, we start the engine on the training dataset and run it during 100 epoch
         }
         for name, metric in val_metrics.items():
             metric.attach(trainer, name)
-
