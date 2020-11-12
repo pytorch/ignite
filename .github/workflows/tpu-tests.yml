@@ -31,14 +31,20 @@ jobs:
 
     - name: Get year & week number
       id: get-date
-      run: |
-        echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+      run: echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+      shell: bash -l {0}
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
       shell: bash -l {0}
 
     - uses: actions/cache@v2
       id: cache
       with:
-        path: ${{ env.pythonLocation }}/lib/python3.6/site-packages/*
+        path: |
+          ${{ env.pythonLocation }}/lib/python3.6/site-packages/*
+          ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}

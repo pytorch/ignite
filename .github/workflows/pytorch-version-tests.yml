@@ -33,11 +33,16 @@ jobs:
 
     - name: Get year & week number
       id: get-date
-      run: |
-        echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+      run: echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+      shell: bash -l {0}
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
       shell: bash -l {0}
 
     - uses: actions/cache@v2
+      shell: bash -l {0}
       id: cache
       with:
         path: |
