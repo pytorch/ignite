@@ -75,13 +75,12 @@ jobs:
 
     - name: windows cache
       uses: actions/cache@v2
-      shell: bash -l {0}
       if: matrix.os == 'windows-latest'
       id: cache-windows
       with:
         path: |
           ~/conda_pkgs_dir
-          $CONDA\envs\test\lib\site-packages\*
+          ${{ env.CONDA }}\envs\test\lib\site-packages\*
           ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
