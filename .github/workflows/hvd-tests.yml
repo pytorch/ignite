@@ -55,7 +55,8 @@ jobs:
     - name: Install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash -l {0}
-      run: |      
+      run: |
+
         #install other dependencies
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
         pip install -r requirements-dev.txt
