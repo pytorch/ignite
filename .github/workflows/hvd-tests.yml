@@ -48,9 +48,9 @@ jobs:
           ${{ env.CONDA_PKGS_DIR }}
           ${{ env.CONDA }}/envs/test/lib/python${{ matrix.python-version }}/site-packages/*
           ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
+        key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
-          ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('**/requirements.txt') }}
+          ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('**/requirements.txt') }}
 
     - name: Install dependencies
       # if: steps.cache.outputs.cache-hit != 'true'
