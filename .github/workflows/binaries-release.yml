@@ -1,0 +1,50 @@
+name: Stable Releases
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          python-version: 3.7
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
+          pip install -r requirements-dev.txt
+          python setup.py install
+
+      - name: Before deploy
+        shell: bash -l {0}
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+          PYTORCH_CHANNEL: pytorch
+          UPLOAD_USER: pytorch
+        run: |
+          # ANACONDA_TOKEN should be provided by GitHub
+          # How to generate ANACONDA_TOKEN: https://docs.anaconda.com/anaconda-cloud/user-guide/tasks/work-with-accounts#creating-access-tokens
+          # https://conda.io/docs/user-guide/tasks/build-packages/install-conda-build.html
+          conda install -y conda-build conda-verify anaconda-client
+          conda config --set anaconda_upload no
+          conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
+          # Convert to other platforms: OSX, WIN
+          conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+          conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+          # Upload to Anaconda
+          # We could use --all but too much platforms to uploaded
+          - ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u $UPLOAD_USER {}
+
+      # https://github.com/pypa/gh-action-pypi-publish
+      - name: PyPI deploy
+        shell: bash -l {0}
+        uses: pypa/gh-action-pypi-publish@v1.4.1
+        with:
+          user: ${{ secrets.PYPI_USER }}
+          password: ${{ secrets.PYPI_TOKEN }}
