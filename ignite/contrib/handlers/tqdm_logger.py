@@ -159,7 +159,7 @@ class ProgressBar(BaseLogger):
         engine: Engine,
         metric_names: Optional[str] = None,
         output_transform: Optional[Callable] = None,
-        event_name: Events = Events.ITERATION_COMPLETED,
+        event_name: Union[CallableEventWithFilter, Events] = Events.ITERATION_COMPLETED,
         closing_event_name: Events = Events.EPOCH_COMPLETED,
     ):
         """
