@@ -41,8 +41,7 @@ jobs:
       shell: bash -l {0}
       id: pip-cache
       run: |
-        pip3 install -U pip
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "::set-output name=dir::$CONDA/envs/test/lib/python${{ matrix.python-version }}/site-packages/*"
 
     - uses: actions/cache@v2
       id: cache
