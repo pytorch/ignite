@@ -74,7 +74,7 @@ jobs:
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
 
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit == 'false'
+      if: steps.cache.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}

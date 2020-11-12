@@ -55,7 +55,7 @@ jobs:
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('**/requirements.txt') }}
 
     - name: Install dependencies
-      if: steps.cache.outputs.cache-hit == 'false'
+      if: steps.cache.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |      
         #install other dependencies
