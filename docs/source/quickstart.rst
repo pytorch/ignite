@@ -3,7 +3,7 @@ Quick start
 
 Welcome to **PyTorch-Ignite** short tutorial, a quick start guide that just not only gives you the essentials of getting a project up but also importance of running through the code.
 
-In several lines you can get your model trained and validated as shown below through the code:
+In several lines you can get your model trained and validated as shown below:
 
 Code
 ----
