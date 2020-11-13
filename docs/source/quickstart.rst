@@ -1,7 +1,7 @@
 Quick start
 ===========
 
-Welcome to **PyTorch-Ignite**, a quick start guide that just not only gives you the essentials of getting a project up but also running through the code.
+Welcome to **PyTorch-Ignite** short tutorial, a quick start guide that just not only gives you the essentials of getting a project up but also importance of running through the code.
 
 In several lines you can get your model trained and validated as shown below through the code:
 
@@ -47,12 +47,12 @@ Code
     trainer.run(train_loader, max_epochs=100)
 
 
-Complete code can be found in the file `examples/mnist/mnist.py <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py>`_.
+**Note**: Complete code can be found in the file `examples/mnist/mnist.py <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist.py>`_.
 
 Explanation
 -----------
 
-Now let's break up the code and review it in details. In the first 4 lines we define our model, training and validation
+Now let's break up the code and review it in details. In the first 4 lines, we define our model, training and validation
 datasets (as `torch.utils.data.DataLoader <https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_), optimizer and loss function:
 
 .. code-block:: python
@@ -62,7 +62,7 @@ datasets (as `torch.utils.data.DataLoader <https://pytorch.org/docs/stable/data.
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
     criterion = nn.NLLLoss()
 
-Next we define trainer and evaluator engines. In the above example we are using helper methods
+Next we define trainer and evaluator engines. In this example, we are using helper methods as
 :meth:`~ignite.engine.create_supervised_trainer` and :meth:`~ignite.engine.create_supervised_evaluator`:
 
 .. code-block:: python
@@ -106,7 +106,7 @@ custom training/validation step logic:
     evaluator = Engine(validation_step)
 
 
-Note that the helper function :meth:`~ignite.engine.create_supervised_evaluator` to create an evaluator accepts an
+Note that the helper function :meth:`~ignite.engine.create_supervised_evaluator` is to create an evaluator which accepts an
 argument ``metrics``:
 
 .. code-block:: python
@@ -116,13 +116,13 @@ argument ``metrics``:
         'nll': Loss(loss)
     }
 
-where we define two metrics: *accuracy* and *loss* to compute on validation dataset. More information on
+Here we define two metrics: *accuracy* and *loss* to compute on validation dataset. More information on
 metrics can be found at :doc:`metrics`.
 
 
 The most interesting part of the code snippet is adding event handlers. :class:`~ignite.engine.engine.Engine` allows to add handlers on
-various events that triggered during the run. When an event is triggered, attached handlers (functions) are executed. Thus, for
-logging purposes we added a function to be executed at the end of every ``log_interval``-th iteration:
+various events that triggers during the run. When an event is triggered, attached handlers (functions) are executed. Thus, for
+logging purposes we add a function to be executed at the end of every ``log_interval``-th iteration:
 
 .. code-block:: python
 
@@ -170,7 +170,7 @@ complete event:
       trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss, train_loader)
 
 
-Finally, we start the engine on the training dataset and run it during 100 epochs:
+Finally, we start the engine on the training dataset and run it upto 100 epochs:
 
 .. code-block:: python
 
@@ -180,13 +180,13 @@ Finally, we start the engine on the training dataset and run it during 100 epoch
 **Where to go next?** To understand better the concepts of the library, please read :doc:`concepts`.
 
 
-.. rubric:: Footnotes
+.. Footnotes ::
 
 .. [#f1]
 
    In this example, we follow a pattern that requires a second pass through the training set. This
    could be expensive on large datasets (even taking a subset). Another more common pattern is to accumulate
-   measures online over an epoch in the training loop. In this case metrics are aggregated on a moving model,
+   measures online over an epoch in the training loop. In this case, metrics are aggregated on a moving model,
    and thus, we do not want to encourage this pattern. However, if a user still likes to implement the
    last pattern, it can be easily done by attaching metrics to the trainer as following:
 
