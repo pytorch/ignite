@@ -1,9 +1,9 @@
 Quick start
 ===========
 
-Welcome to **PyTorch-Ignite** short tutorial, a quick start guide that just not only gives you the essentials of getting a project up but also importance of running through the code.
+Welcome to **PyTorch-Ignite** quick start guide that just covers the essentials of getting a project up and walking through the code.
 
-In several lines you can get your model trained and validated as shown below:
+In several lines of this given code, you can get your model trained and validated as shown below:
 
 Code
 ----
@@ -170,7 +170,7 @@ complete event:
       trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss, train_loader)
 
 
-Finally, we start the engine on the training dataset and run it upto 100 epochs:
+Finally, we start the engine on the training dataset and run it during 100 epochs:
 
 .. code-block:: python
 
@@ -180,11 +180,9 @@ Finally, we start the engine on the training dataset and run it upto 100 epochs:
 **Where to go next?** To understand better the concepts of the library, please read :doc:`concepts`.
 
 
-.. Footnotes ::
+.. rubric:: Footnotes
 
-.. [#f1]
-
-   In this example, we follow a pattern that requires a second pass through the training set. This
+.. [#f1] In this example, we follow a pattern that requires a second pass through the training set. This
    could be expensive on large datasets (even taking a subset). Another more common pattern is to accumulate
    measures online over an epoch in the training loop. In this case, metrics are aggregated on a moving model,
    and thus, we do not want to encourage this pattern. However, if a user still likes to implement the
