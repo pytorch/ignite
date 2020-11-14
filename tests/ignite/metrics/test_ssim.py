@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pytest
 import torch
 
@@ -50,21 +51,35 @@ def test_invalid_ssim():
 
 def test_ssim():
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    atol = 7e-5
     ssim = SSIM(data_range=1.0, device=device)
-    y_pred = torch.rand(16, 3, 64, 64, device=device)
+    y_pred = torch.rand(12, 3, 64, 64, device=device)
     y = y_pred * 0.65
     ssim.update((y_pred, y))
+    ignite_ssim = ssim.compute()
 
     np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
     np_y = np_pred * 0.65
-    np_ssim = ski_ssim(np_pred, np_y, win_size=11, multichannel=True, gaussian_weights=True, data_range=1.0)
+    np_ssim = ski_ssim(
+        np_pred,
+        np_y,
+        win_size=11,
+        sigma=1.5,
+        multichannel=True,
+        gaussian_weights=True,
+        data_range=1.0,
+        use_sample_covariance=False,
+    )
 
-    assert isinstance(ssim.compute(), torch.Tensor)
-    assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float64, device=device), atol=1e-4)
+    assert isinstance(ignite_ssim, torch.Tensor)
+    assert ignite_ssim.dtype == torch.float64
+    assert ignite_ssim.device == torch.device(device)
+    assert np.allclose(ignite_ssim.numpy(), np_ssim, atol=atol)
+    # assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float64, device=device), atol=atol)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ssim = SSIM(data_range=1.0, gaussian=False, kernel_size=7, device=device)
-    y_pred = torch.rand(16, 3, 227, 227, device=device)
+    y_pred = torch.rand(8, 3, 227, 227, device=device)
     y = y_pred * 0.65
     ssim.update((y_pred, y))
 
@@ -73,7 +88,7 @@ def test_ssim():
     np_ssim = ski_ssim(np_pred, np_y, win_size=7, multichannel=True, gaussian_weights=False, data_range=1.0)
 
     assert isinstance(ssim.compute(), torch.Tensor)
-    assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float64, device=device), atol=1e-4)
+    assert torch.allclose(ssim.compute(), torch.tensor(np_ssim, dtype=torch.float64, device=device), atol=atol)
 
 
 def _test_distrib_integration(device, tol=1e-4):
