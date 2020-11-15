@@ -1,23 +1,36 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/prettier/pre-commit
+    rev: main
+    hooks:
+      - id: prettier
+
   - repo: https://github.com/asottile/seed-isort-config
     rev: v1.9.4
     hooks:
-        - id: seed-isort-config
-          args: [--exclude=^((examples|docs)/.*)$]
+      - id: seed-isort-config
+        args: [--exclude=^((examples|docs)/.*)$]
 
   - repo: https://github.com/timothycrosley/isort
     rev: 4.3.21-2
     hooks:
-        - id: isort
+      - id: isort
 
   - repo: https://github.com/python/black
     rev: 19.10b0
     hooks:
-        - id: black
-          language_version: python3.7
+      - id: black
+        language_version: python3.7
 
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.7.7
     hooks:
-        - id: flake8
-          args: [--append-config=tox.ini]
+      - id: flake8
+        args: [--append-config=tox.ini]
