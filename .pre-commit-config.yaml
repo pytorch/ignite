@@ -7,6 +7,11 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
+  - repo: https://github.com/prettier/pre-commit
+    rev: main
+    hooks:
+      - id: prettier
+
   - repo: https://github.com/asottile/seed-isort-config
     rev: v1.9.4
     hooks:
