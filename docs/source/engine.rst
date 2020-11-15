@@ -3,17 +3,23 @@ ignite.engine
 
 Main module of the library containing:
 
+ignite.engine.engine
+
 .. currentmodule:: ignite.engine.engine
 
 .. autosummary::
     :nosignatures:
     :autolist:
 
+ignite.engine.events
+
 .. currentmodule:: ignite.engine.events
 
 .. autosummary::
     :nosignatures:
     :autolist:
+
+ignite.engine.deterministic
 
 .. currentmodule:: ignite.engine.deterministic
 
