@@ -26,3 +26,5 @@ Complete list of handlers
     :members:
 
 .. autoclass:: TerminateOnNan
+
+.. autofunction:: global_step_from_engine
