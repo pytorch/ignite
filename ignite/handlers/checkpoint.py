@@ -66,7 +66,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
 class Checkpoint(Serializable):
     """Checkpoint handler can be used to periodically save and load objects which have attribute
-    ``state_dict`/`load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
+    ``state_dict/load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
     storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
     moving data on TPU to CPU before writing the checkpoint.
 
