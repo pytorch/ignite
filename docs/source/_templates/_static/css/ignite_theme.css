@@ -139,7 +139,7 @@ article.pytorch-article
   table.longtable.docutils.align-default
   tbody
   td:first-child {
-  width: 45%;
+  width: 40%;
 }
 
 article.pytorch-article table.longtable.docutils.align-default tbody td {
