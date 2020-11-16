@@ -4,7 +4,7 @@ Ignite Your Networks!
 :mod:`ignite` is a high-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.
 
 .. image:: https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/pytorch-ignite-teaser.gif
-   :width: 460
+   :width: 60%
    :target: https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/teaser.py
 
 *Click on the image to see complete code*
@@ -137,7 +137,7 @@ Library structure
 .. toctree::
    :maxdepth: 2
    :caption: Contrib Package Reference
-    
+
    contrib/engines
    contrib/metrics
    contrib/handlers
