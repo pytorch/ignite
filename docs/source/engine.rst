@@ -19,7 +19,7 @@ ignite.engine.events
     :nosignatures:
     :autolist:
 
-ignite.engine.deterministic
+ignite.engine.deterministic (helper methods for deterministic training)
 
 .. currentmodule:: ignite.engine.deterministic
 
@@ -27,7 +27,7 @@ ignite.engine.deterministic
     :nosignatures:
     :autolist:
 
-and helper methods:
+and helper methods to define supervised trainer and evaluator:
 
 .. currentmodule:: ignite.engine
 
@@ -302,4 +302,3 @@ here:
             # handler synchronizes the random state
             torch.manual_seed(12)
             a = torch.rand(1)
-
