@@ -5,10 +5,10 @@ Ignite Your Networks!
 
 .. raw:: html
 
-    <a href="https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/teaser.py">
+    <a href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
         <img
             src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/pytorch-ignite-teaser.gif"
-            style="width: auto; max-width: 100%;"
+            style="width: auto; max-width: 80%;"
         >
     </a>
 
