@@ -100,7 +100,7 @@ def test_ssim():
     assert np.allclose(ignite_ssim.numpy(), skimg_ssim, atol=atol)
 
     ssim = SSIM(data_range=1.0, gaussian=False, kernel_size=7, device=device)
-    y_pred = torch.rand(8, 3, 8, 8, device=device)
+    y_pred = torch.rand(8, 3, 28, 28, device=device)
     y = y_pred * 0.8
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
@@ -124,7 +124,7 @@ def _test_distrib_integration(device, tol=1e-4):
     offset = n_iters * s
 
     def _test(metric_device):
-        y_pred = torch.rand(offset * idist.get_world_size(), 3, 12, 12, dtype=torch.float, device=device)
+        y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
 
         def update(engine, i):
@@ -190,7 +190,7 @@ def _test_distrib_accumulator_device(device):
             type(ssim._kernel.device), ssim._kernel.device, type(metric_device), metric_device
         )
 
-        y_pred = torch.rand(1, 3, 12, 12, dtype=torch.float, device=device)
+        y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
         ssim.update((y_pred, y))
 
