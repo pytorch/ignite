@@ -454,6 +454,8 @@ As always, PRs are welcome :)
 -   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
 -   [Uncertainty Estimation Using a Single Deep Deterministic Neural Network](https://github.com/y0ast/deterministic-uncertainty-quantification)
 -   [DeepSphere: a graph-based spherical CNN](https://github.com/deepsphere/deepsphere-pytorch)
+-   [Norm-in-Norm Loss with Faster Convergence and Better Performance for Image Quality Assessment](https://github.com/lidq92/LinearityIQA)
+-   [Unified Quality Assessment of In-the-Wild Videos with Mixed Datasets Training](https://github.com/lidq92/MDTVSFA)
 
 ## Blog articles, tutorials, books
 
