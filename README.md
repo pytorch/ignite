@@ -458,6 +458,7 @@ As always, PRs are welcome :)
 -   [Unified Quality Assessment of In-the-Wild Videos with Mixed Datasets Training](https://github.com/lidq92/MDTVSFA)
 -   [Deep Signature Transforms](https://github.com/patrick-kidger/Deep-Signature-Transforms)
 -   [Neural CDEs for Long Time-Series via the Log-ODE Method](https://github.com/jambo6/neuralCDEs-via-logODEs)
+-   [Volumetric Grasping Network](https://github.com/ethz-asl/vgn)
 
 
 ## Blog articles, tutorials, books
