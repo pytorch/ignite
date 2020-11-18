@@ -456,6 +456,9 @@ As always, PRs are welcome :)
 -   [DeepSphere: a graph-based spherical CNN](https://github.com/deepsphere/deepsphere-pytorch)
 -   [Norm-in-Norm Loss with Faster Convergence and Better Performance for Image Quality Assessment](https://github.com/lidq92/LinearityIQA)
 -   [Unified Quality Assessment of In-the-Wild Videos with Mixed Datasets Training](https://github.com/lidq92/MDTVSFA)
+-   [Deep Signature Transforms](https://github.com/patrick-kidger/Deep-Signature-Transforms)
+-   [Neural CDEs for Long Time-Series via the Log-ODE Method](https://github.com/jambo6/neuralCDEs-via-logODEs)
+
 
 ## Blog articles, tutorials, books
 
