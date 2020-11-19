@@ -1,10 +1,9 @@
-article.pytorch-article table tr th:first-of-type, article.pytorch-article table tr td:first-of-type
-{
+article.pytorch-article table tr th:first-of-type,
+article.pytorch-article table tr td:first-of-type {
   width: 17px;
 }
 
-div.container a.header-logo
-{
+div.container a.header-logo {
   height: 80px;
   width: 160px;
   background-image: url("../img/ignite_logo.svg");
@@ -68,7 +67,8 @@ div.container a.header-logo
   text-decoration: none;
 }
 
-.rst-versions .rst-current-version:after, .rst-versions .rst-current-version:before {
+.rst-versions .rst-current-version:after,
+.rst-versions .rst-current-version:before {
   display: table;
   content: "";
 }
@@ -79,7 +79,8 @@ div.container a.header-logo
   display: block;
 }
 
-.rst-versions .rst-current-version .fa-book, .rst-versions .rst-current-version .icon-book {
+.rst-versions .rst-current-version .fa-book,
+.rst-versions .rst-current-version .icon-book {
   float: left;
 }
 
@@ -87,7 +88,8 @@ div.container a.header-logo
   color: #454545;
 }
 
-.rst-versions .rst-current-version .fa-book, .rst-versions .rst-current-version .icon-book {
+.rst-versions .rst-current-version .fa-book,
+.rst-versions .rst-current-version .icon-book {
   float: left;
 }
 
@@ -114,7 +116,9 @@ div.container a.header-logo
   color: #ee4c2c;
 }
 
-.fa:before, a .fa, li .fa {
+.fa:before,
+a .fa,
+li .fa {
   text-decoration: inherit;
 }
 
@@ -131,8 +135,11 @@ article.pytorch-article table.longtable.docutils.align-default colgroup {
   display: none;
 }
 
-article.pytorch-article table.longtable.docutils.align-default tbody td:first-child {
-  width: 30%;
+article.pytorch-article
+  table.longtable.docutils.align-default
+  tbody
+  td:first-child {
+  width: 40%;
 }
 
 article.pytorch-article table.longtable.docutils.align-default tbody td {
