@@ -1,15 +1,17 @@
 ignite.contrib.engines
 ======================
 
-Contribution module of engines and helper tools
+Contribution module of engines and helper tools:
 
-.. currentmodule:: ignite.contrib.engines
+ignite.contrib.engines.tbptt
 
 .. currentmodule:: ignite.contrib.engines.tbptt
 
 .. autosummary::
     :nosignatures:
     :autolist:
+
+ignite.contrib.engines.common
 
 .. currentmodule:: ignite.contrib.engines.common
 
