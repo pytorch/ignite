@@ -72,12 +72,9 @@ def test_invalid_ssim():
         ssim.compute()
 
 
-def test_ssim():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+def _test_ssim(y_pred, y, data_range, kernel_size, sigma, gaussian, use_sample_covariance, device):
     atol = 7e-5
-    ssim = SSIM(data_range=1.0, device=device, sigma=1.5)
-    y_pred = torch.rand(12, 3, 12, 12, device=device)
-    y = y_pred * 0.8
+    ssim = SSIM(data_range=data_range, sigma=sigma, device=device)
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
 
@@ -86,12 +83,12 @@ def test_ssim():
     skimg_ssim = ski_ssim(
         skimg_pred,
         skimg_y,
-        win_size=11,
-        sigma=1.5,
+        win_size=kernel_size,
+        sigma=sigma,
         multichannel=True,
-        gaussian_weights=True,
-        data_range=1.0,
-        use_sample_covariance=False,
+        gaussian_weights=gaussian,
+        data_range=data_range,
+        use_sample_covariance=use_sample_covariance,
     )
 
     assert isinstance(ignite_ssim, torch.Tensor)
@@ -99,20 +96,20 @@ def test_ssim():
     assert ignite_ssim.device == torch.device(device)
     assert np.allclose(ignite_ssim.numpy(), skimg_ssim, atol=atol)
 
-    ssim = SSIM(data_range=1.0, gaussian=False, kernel_size=7, device=device)
-    y_pred = torch.rand(8, 3, 28, 28, device=device)
+
+def test_ssim():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    y_pred = torch.rand(8, 3, 224, 224, device=device)
     y = y_pred * 0.8
-    ssim.update((y_pred, y))
-    ignite_ssim = ssim.compute()
+    _test_ssim(
+        y_pred, y, data_range=1.0, kernel_size=7, sigma=1.5, gaussian=False, use_sample_covariance=True, device=device
+    )
 
-    skimg_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
-    skimg_y = skimg_pred * 0.8
-    skimg_ssim = ski_ssim(skimg_pred, skimg_y, win_size=7, multichannel=True, gaussian_weights=False, data_range=1.0)
-
-    assert isinstance(ignite_ssim, torch.Tensor)
-    assert ignite_ssim.dtype == torch.float64
-    assert ignite_ssim.device == torch.device(device)
-    assert np.allclose(ignite_ssim.numpy(), skimg_ssim, atol=atol)
+    y_pred = torch.rand(12, 3, 28, 28, device=device)
+    y = y_pred * 0.8
+    _test_ssim(
+        y_pred, y, data_range=1.0, kernel_size=11, sigma=1.5, gaussian=True, use_sample_covariance=False, device=device
+    )
 
 
 def _test_distrib_integration(device, tol=1e-4):
