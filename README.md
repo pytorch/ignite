@@ -454,6 +454,13 @@ As always, PRs are welcome :)
 -   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
 -   [Uncertainty Estimation Using a Single Deep Deterministic Neural Network](https://github.com/y0ast/deterministic-uncertainty-quantification)
 -   [DeepSphere: a graph-based spherical CNN](https://github.com/deepsphere/deepsphere-pytorch)
+-   [Norm-in-Norm Loss with Faster Convergence and Better Performance for Image Quality Assessment](https://github.com/lidq92/LinearityIQA)
+-   [Unified Quality Assessment of In-the-Wild Videos with Mixed Datasets Training](https://github.com/lidq92/MDTVSFA)
+-   [Deep Signature Transforms](https://github.com/patrick-kidger/Deep-Signature-Transforms)
+-   [Neural CDEs for Long Time-Series via the Log-ODE Method](https://github.com/jambo6/neuralCDEs-via-logODEs)
+-   [Volumetric Grasping Network](https://github.com/ethz-asl/vgn)
+-   [Mood Classification using Listening Data](https://github.com/fdlm/listening-moods)
+
 
 ## Blog articles, tutorials, books
 
