@@ -459,6 +459,7 @@ As always, PRs are welcome :)
 -   [Deep Signature Transforms](https://github.com/patrick-kidger/Deep-Signature-Transforms)
 -   [Neural CDEs for Long Time-Series via the Log-ODE Method](https://github.com/jambo6/neuralCDEs-via-logODEs)
 -   [Volumetric Grasping Network](https://github.com/ethz-asl/vgn)
+-   [Mood Classification using Listening Data](https://github.com/fdlm/listening-moods)
 
 
 ## Blog articles, tutorials, books
