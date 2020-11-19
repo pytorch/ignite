@@ -62,7 +62,7 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==4.3.21" "mypy==0.782"
+pip install flake8 "black==19.10b0" "isort==4.3.21" mypy
 ```
 
 ### Code development

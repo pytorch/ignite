@@ -105,6 +105,8 @@ html_theme_options = {
 
 html_logo = "_templates/_static/img/ignite_logo.svg"
 
+html_favicon = "_templates/_static/img/ignite_logomark.svg"
+
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.

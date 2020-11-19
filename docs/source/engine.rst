@@ -15,6 +15,12 @@ Main module of the library containing:
     :nosignatures:
     :autolist:
 
+.. currentmodule:: ignite.engine.deterministic
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
 and helper methods:
 
 .. currentmodule:: ignite.engine
@@ -98,6 +104,9 @@ ignite.engine.events
 --------------------
 
 .. currentmodule:: ignite.engine.events
+
+.. autoclass:: CallableEventWithFilter
+   :members:
 
 .. autoclass:: Events
    :members:
