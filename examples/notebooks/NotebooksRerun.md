@@ -5,7 +5,7 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
 
 - TextCNN.ipynb
 
-Runs smoothly, nothing to highlight.
+  Runs smoothly, nothing to highlight.
 
 - VAE.ipynb
 
