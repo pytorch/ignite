@@ -1,4 +1,5 @@
 # Objective
+
 To rerun the notebooks and ensure they're compatible with the latest releases of dependant libraries.
 
 # Notebooks
@@ -56,4 +57,19 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
 - FastaiLRFinder_MNIST.ipynb
 
   Added a couple of lines to the notebook to install ignite.
+
+
+- EfficientNet_Cifar100_finetuning.ipynb
+
+  Deprecation warnings after running ```!sh setup.sh``` , ```d = torch.linspace(-10.0, 10.0)```, ```graph_def = graph(model, x, operator_export_type='RAW')```
+
+- Cifar10_Ax_hyperparam_tuning.ipynb
+
+  ```ModuleNotFoundError: No module named 'ax'```  when running init_notebook_plotting() at the hyperparam tuning setup section of the notebook
+
+  ```NameError: name 'optimize' is not defined``` when running the cell that starts after (start tuning section)
+
+- Cifar100_bench_amp.ipynb
+
+  ```ERROR: torchvision 0.9.0.dev20201120+cu101 has requirement torch==1.8.0.dev20201120+cu101, but you'll have torch 1.6.0.dev20200411+cu101 which is incompatible.``` when running the installation cells
 
