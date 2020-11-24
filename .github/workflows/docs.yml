@@ -8,7 +8,7 @@ on:
     types: [published]
 
 jobs:
-  build_n_deploy:
+  build-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -16,18 +16,17 @@ jobs:
         with:
           python-version: 3.7
       - name: Install docs deps
-        shell: bash -l {0}
         run: bash .github/workflows/install_docs_deps.sh
 
       - name: Build docs
-        shell: bash -l {0}
         run: bash .github/workflows/build_docs.sh
 
       - name: deploy docs
         uses: peaceiris/actions-gh-pages@v3
+        with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/build/html
           publish_branch: gh-pages
           enable_jekyll: true
           keep_files: false
-          commit_message: Deploy pytorch/ignite to github.com/pytorch/ignite.git:gh-pages
+          commit_message: Deploy pytorch/ignite docs
