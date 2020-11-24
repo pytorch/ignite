@@ -16,19 +16,14 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: 3.7
       - name: install docs reqs
         shell: bash -l {0}
-        run: |
-          pip install -U pip wheel
-          pip install torch torchvision -f https://download.pytorch.org/whl/cpu/torch_stable.html -U
-          pip install -r requirements-dev.txt
-          pip install -r docs/requirements.txt
-          pip install git+https://github.com/vfdev-5/sphinxcontrib-versioning.git
+        run: bash .github/workflows/install_docs_deps.sh
 
       - name: build docs
         shell: bash -l {0}
-        run: sphinx-versioning --use-master-conf --use-master-templates build --greatest-tag --whitelist-branches master docs/source docs/build/html
+        run: bash .github/workflows/build_docs.sh
 
       # - name: deploy docs
       #   uses: peaceiris/actions-gh-pages@v3
