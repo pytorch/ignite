@@ -5,7 +5,7 @@ on:
     branches: [master]
     tags: ["v*"]
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   build_n_deploy:
