@@ -1,8 +1,10 @@
 name: Stable Releases
 
 on:
+  push:
+    tags: ["v*"]  
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   build-publish:
