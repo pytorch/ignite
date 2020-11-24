@@ -36,20 +36,20 @@ jobs:
 
     - name: Get pip cache dir
       id: pip-cache
-      run: echo "::set-output name=dir::$(pip cache dir)"
+      run: |
+        pip3 install -U pip
+        echo "::set-output name=dir::$(pip cache dir)"
       shell: bash -l {0}
 
     - uses: actions/cache@v2
-      id: cache
       with:
         path: |
-          ${{ env.pythonLocation }}/lib/python3.6/site-packages/*
           ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
 
-    - name: Install others deps
+    - name: Install Torch XLA and others
       run: |
 
         ## Install gsutil
@@ -58,14 +58,8 @@ jobs:
         curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
         sudo apt-get update && sudo apt-get install -y google-cloud-sdk
 
-        ## Install openblas
+        ## Install openblas and mkl 
         sudo apt-get install -y libopenblas-dev libomp5
-
-    - name: Install Torch XLA
-      # if: steps.cache.outputs.cache-hit != 'true'
-      run: |
-
-        # install mkl
         pip install mkl
 
         ## Download torch & xla

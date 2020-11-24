@@ -43,12 +43,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        miniconda-version: "latest"
-        python-version: ${{ matrix.python-version }}
-        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Get year & week number
       id: get-date
@@ -58,36 +52,28 @@ jobs:
 
     - name: Get pip cache dir
       id: pip-cache
-      run: echo "::set-output name=dir::$(pip cache dir)"
+      run: |
+        pip3 install -U pip
+        echo "::set-output name=dir::$(python3 -m pip cache dir)"
       shell: bash -l {0}
 
     - uses: actions/cache@v2
-      if: matrix.os != 'windows-latest'
-      id: cache
       with:
         path: |
-          ${{ env.CONDA_PKGS_DIR }}
-          ${{ env.CONDA }}/envs/test/lib/python${{ matrix.python-version }}/site-packages/*
+          ~/conda_pkgs_dir
           ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: |
           ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
 
-    - name: windows cache
-      uses: actions/cache@v2
-      if: matrix.os == 'windows-latest'
-      id: cache-windows
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v2
       with:
-        path: |
-          ${{ env.CONDA_PKGS_DIR }}
-          ${{ env.CONDA }}\envs\test\lib\site-packages\*
-          ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
-        restore-keys: |
-          ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
+        miniconda-version: "latest"
+        python-version: ${{ matrix.python-version }}
+        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Install dependencies
-      # if: steps.cache.outputs.cache-hit != 'true' || steps.cache-windows.outputs.cache-hit != 'true'
       shell: bash -l {0}
       run: |
         conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
