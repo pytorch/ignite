@@ -23,11 +23,7 @@ set -xeu
 conda install -y conda-build conda-verify anaconda-client
 conda config --set anaconda_upload no
 
-conda build --quiet --no-test --output-folder conda_build conda.recipe -c pytorch
-
-# Convert to other platforms: OSX, WIN
-conda convert --platform win-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
-conda convert --platform osx-64 conda_build/linux-64/*.tar.bz2 -o conda_build/
+conda build --no-test --output-folder conda_build conda.recipe -c pytorch
 
 # Upload to Anaconda
 # We could use --all but too much platforms to uploaded
