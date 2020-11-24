@@ -60,5 +60,3 @@ COPY --from=apex-hvd-builder /horovod/horovod-*.whl /horovod/
 RUN cd /horovod && \
     pip install --no-cache-dir horovod-*.whl && \
     rm -fr /horovod
-
-ENTRYPOINT ["/bin/bash"]

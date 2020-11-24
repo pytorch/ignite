@@ -17,5 +17,3 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          py_config_runner \
                                          pillow \
                                          "trains>=0.15.0"
-
-ENTRYPOINT ["/bin/bash"]

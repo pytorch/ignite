@@ -45,5 +45,3 @@ RUN cd /horovod && \
     rm -fr /horovod
 
 WORKDIR /workspace
-
-ENTRYPOINT ["/bin/bash"]
