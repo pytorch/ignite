@@ -17,11 +17,11 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - name: install docs reqs
+      - name: Install docs deps
         shell: bash -l {0}
         run: bash .github/workflows/install_docs_deps.sh
 
-      - name: build docs
+      - name: Build docs
         shell: bash -l {0}
         run: bash .github/workflows/build_docs.sh
 
