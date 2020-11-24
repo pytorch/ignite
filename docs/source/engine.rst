@@ -3,11 +3,15 @@ ignite.engine
 
 Main module of the library containing:
 
+ignite.engine.engine
+
 .. currentmodule:: ignite.engine.engine
 
 .. autosummary::
     :nosignatures:
     :autolist:
+
+ignite.engine.events
 
 .. currentmodule:: ignite.engine.events
 
@@ -15,7 +19,15 @@ Main module of the library containing:
     :nosignatures:
     :autolist:
 
-and helper methods:
+ignite.engine.deterministic (helper methods for deterministic training)
+
+.. currentmodule:: ignite.engine.deterministic
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
+and helper methods to define supervised trainer and evaluator:
 
 .. currentmodule:: ignite.engine
 
@@ -98,6 +110,9 @@ ignite.engine.events
 --------------------
 
 .. currentmodule:: ignite.engine.events
+
+.. autoclass:: CallableEventWithFilter
+   :members:
 
 .. autoclass:: Events
    :members:
@@ -287,4 +302,3 @@ here:
             # handler synchronizes the random state
             torch.manual_seed(12)
             a = torch.rand(1)
-
