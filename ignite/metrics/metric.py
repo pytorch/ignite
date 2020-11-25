@@ -300,11 +300,16 @@ class Metric(metaclass=ABCMeta):
 
         Args:
             engine (Engine): the engine to which the metric must be attached
+            name (str): the name of the metric used as key in dict `engine.state.metrics`
         """
         result = self.compute()
         if isinstance(result, Mapping):
+            if name in result.keys():
+                raise ValueError("name of metric is conflicting with mapping keys")
+
             for key, value in result.items():
                 engine.state.metrics[key] = value
+            engine.state.metrics[name] = result
         else:
             if isinstance(result, torch.Tensor) and len(result.size()) == 0:
                 result = result.item()
