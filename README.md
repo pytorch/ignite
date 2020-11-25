@@ -5,9 +5,11 @@
 <img src="assets/logo/ignite_logo_mixed.svg" width=512>
 
 
+<div align="left">
 
-[![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite)
-[![image](https://github.com/pytorch/ignite/workflows/Run%20unit%20tests/badge.svg)](https://github.com/pytorch/ignite/actions)
+<!-- [![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite) -->
+
+![image](https://img.shields.io/badge/-Tests:-black?style=flat-square) [![image](https://github.com/pytorch/ignite/workflows/Run%20unit%20tests/badge.svg)](https://github.com/pytorch/ignite/actions)
 [![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)
 [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite)
 [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html)
@@ -28,6 +30,7 @@
 
 ![image](https://img.shields.io/badge/-Supported_PyTorch/Python_versions:-black?style=flat-square) [![link](https://img.shields.io/badge/-check_here-blue)](https://github.com/pytorch/ignite/actions?query=workflow%3A.github%2Fworkflows%2Fpytorch-version-tests.yml)
 
+</div>
 
 </div>
 
