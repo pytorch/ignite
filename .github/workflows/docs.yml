@@ -1,0 +1,36 @@
+name: Build docs
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  release:
+    types: [published]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+      
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: Build docs
+        run: bash .github/workflows/build_docs.sh
+
+      - name: deploy docs
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+          publish_branch: gh-pages
+          commit_message: Deploy pytorch/ignite docs
