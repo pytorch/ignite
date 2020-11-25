@@ -27,7 +27,7 @@ jobs:
       - name: Build docs
         run: bash .github/workflows/build_docs.sh
 
-      - name: deploy docs
+      - name: Deploy docs
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
