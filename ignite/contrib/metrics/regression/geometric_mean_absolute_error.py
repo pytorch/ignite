@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union, cast
 
 import torch
 
@@ -22,19 +22,19 @@ class GeometricMeanAbsoluteError(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
     """
 
-    def reset(self):
-        self._sum_of_errors = 0.0
+    def reset(self) -> None:
+        self._sum_of_errors = 0.0  # type: Union[float, torch.Tensor]
         self._num_examples = 0
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         errors = torch.log(torch.abs(y.view_as(y_pred) - y_pred))
         self._sum_of_errors += torch.sum(errors)
         self._num_examples += y.shape[0]
 
-    def compute(self):
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError(
-                "GeometricMeanAbsoluteError must have at " "least one example before it can be computed."
+                "GeometricMeanAbsoluteError must have at least one example before it can be computed."
             )
-        return torch.exp(self._sum_of_errors / self._num_examples).item()
+        return torch.exp(cast(torch.Tensor, self._sum_of_errors) / self._num_examples).item()

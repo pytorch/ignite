@@ -159,7 +159,7 @@ class ProgressBar(BaseLogger):
         engine: Engine,
         metric_names: Optional[str] = None,
         output_transform: Optional[Callable] = None,
-        event_name: Events = Events.ITERATION_COMPLETED,
+        event_name: Union[CallableEventWithFilter, Events] = Events.ITERATION_COMPLETED,
         closing_event_name: Events = Events.EPOCH_COMPLETED,
     ):
         """
@@ -177,7 +177,8 @@ class ProgressBar(BaseLogger):
             closing_event_name: event's name on which the progress bar is closed. Valid events are from
                 :class:`~ignite.engine.events.Events`.
 
-        Note: accepted output value types are numbers, 0d and 1d torch tensors and strings
+        Note:
+            Accepted output value types are numbers, 0d and 1d torch tensors and strings.
 
         """
         desc = self.tqdm_kwargs.get("desc", None)

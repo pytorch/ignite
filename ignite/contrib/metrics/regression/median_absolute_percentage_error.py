@@ -5,7 +5,7 @@ import torch
 from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
 
 
-def median_absolute_percentage_error_compute_fn(y_pred: torch.Tensor, y: torch.Tensor):
+def median_absolute_percentage_error_compute_fn(y_pred: torch.Tensor, y: torch.Tensor) -> float:
     e = torch.abs(y.view_as(y_pred) - y_pred) / torch.abs(y.view_as(y_pred))
     return 100.0 * torch.median(e).item()
 

@@ -1,4 +1,5 @@
-on: 
+on:
+  # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
   schedule:
     # Run at 00:00 UTC Every Day
     - cron:  '0 0 * * *'
@@ -11,35 +12,30 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8]
-        pytorch-version: [1.5.1, 1.4.0, 1.3.1]
+        pytorch-version: [1.6.0, 1.5.1, 1.4.0, 1.3.1]
         exclude:
           - pytorch-version: 1.3.1
             python-version: 3.8
+          - pytorch-version: 1.6.0
+            python-version: 3.5
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Conda
-      run: |
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-        bash miniconda.sh -b -p $HOME/miniconda
-        export PATH="$HOME/miniconda/bin:$PATH"
-        conda config --set always_yes yes --set changeps1 no
-        conda update -q conda
-        # Useful for debugging any issues with conda
-        conda info -a
-        conda create -q -n test-environment pytorch=${{ matrix.pytorch-version }} cpuonly python=${{ matrix.python-version }} -c pytorch
-        
+
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: "latest"
+        python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
+      shell: bash -l {0}
       run: |
-        export PATH="$HOME/miniconda/bin:$PATH"
-        source activate test-environment
-        # Keep fix in case of problem with torchvision nightly releases
-        conda install torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
+        conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
         pip install -r requirements-dev.txt
         python setup.py install
 
     - name: Run Tests
+      shell: bash -l {0}
       run: |
-        export PATH="$HOME/miniconda/bin:$PATH"
-        source activate test-environment
         py.test tests -vvv

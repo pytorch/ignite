@@ -23,11 +23,11 @@ class MeanAbsoluteRelativeError(_BaseRegression):
 
     """
 
-    def reset(self):
+    def reset(self) -> None:
         self._sum_of_absolute_relative_errors = 0.0
         self._num_samples = 0
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         if (y == 0).any():
             raise NotComputableError("The ground truth has 0.")
@@ -35,9 +35,9 @@ class MeanAbsoluteRelativeError(_BaseRegression):
         self._sum_of_absolute_relative_errors += torch.sum(absolute_error).item()
         self._num_samples += y.size()[0]
 
-    def compute(self):
+    def compute(self) -> float:
         if self._num_samples == 0:
             raise NotComputableError(
-                "MeanAbsoluteRelativeError must have at least" "one sample before it can be computed."
+                "MeanAbsoluteRelativeError must have at least one sample before it can be computed."
             )
         return self._sum_of_absolute_relative_errors / self._num_samples

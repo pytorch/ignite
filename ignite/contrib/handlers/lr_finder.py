@@ -289,8 +289,8 @@ class FastaiLRFinder:
             diverge_th (float, optional): Used for stopping the search when `current loss > diverge_th * best_loss`.
                 Default, 5.0.
 
-        Notes:
-            lr_finder cannot be attached to more than one trainer at a time
+        Note:
+            lr_finder cannot be attached to more than one trainer at a time.
 
         Returns:
             trainer_with_lr_finder: trainer used for finding the lr

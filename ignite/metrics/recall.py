@@ -115,8 +115,8 @@ class Recall(_BasePrecisionRecall):
 
         if self._type == "multilabel":
             if not self._average:
-                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)
-                self._positives = torch.cat([self._positives, actual_positives], dim=0)
+                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)  # type: torch.Tensor
+                self._positives = torch.cat([self._positives, actual_positives], dim=0)  # type: torch.Tensor
             else:
                 self._true_positives += torch.sum(true_positives / (actual_positives + self.eps))
                 self._positives += len(actual_positives)

@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 
@@ -64,11 +64,11 @@ class MetricsLambda(Metric):
 
     """
 
-    def __init__(self, f: Callable, *args, **kwargs):
+    def __init__(self, f: Callable, *args: Any, **kwargs: Any) -> None:
         self.function = f
         self.args = args
         self.kwargs = kwargs
-        self.engine = None
+        self.engine = None  # type: Optional[Engine]
         super(MetricsLambda, self).__init__(device="cpu")
 
     @reinit__is_reduced
@@ -78,7 +78,7 @@ class MetricsLambda(Metric):
                 i.reset()
 
     @reinit__is_reduced
-    def update(self, output) -> None:
+    def update(self, output: Any) -> None:
         # NB: this method does not recursively update dependency metrics,
         # which might cause duplicate update issue. To update this metric,
         # users should manually update its dependencies.
@@ -138,7 +138,7 @@ class MetricsLambda(Metric):
         return not is_detached
 
 
-def _get_value_on_cpu(v: Any):
+def _get_value_on_cpu(v: Any) -> Any:
     if isinstance(v, Metric):
         v = v.compute()
     if isinstance(v, torch.Tensor):

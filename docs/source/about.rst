@@ -79,7 +79,8 @@ from Facebook for their help and to `PyTorch group <https://github.com/pytorch>`
 (GPU CI and hosting of conda releases and our documentation).
 
 In particular, Victor Fomin `@vfdev-5 <https://github.com/vfdev-5>`_ acknowledges `Magellium <https://www.magellium.com/>`_
-and `Quansight <https://www.quansight.com/>`_ for supporting project's development.
+and `Quansight <https://www.quansight.com/>`_ for supporting project's development. Sylvain Desroziers `@sdesrozis <https://github.com/sdesrozis>`_
+also gratefully acknowledges the support of `IFPEN <https://www.ifpenergiesnouvelles.fr/>`_.
 
 We also acknowledge `scikit-learn project <https://scikit-learn.org>`_'s documentation on governance, author's presentation etc
 from which this project is highly inspired.

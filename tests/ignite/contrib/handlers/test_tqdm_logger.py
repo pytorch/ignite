@@ -13,7 +13,7 @@ from ignite.handlers import TerminateOnNan
 from ignite.metrics import RunningAverage
 
 if sys.platform.startswith("win"):
-    pytest.skip("Skip if on Windows", allow_module_level=True)
+    pytest.skip("Skip on Windows", allow_module_level=True)
 
 
 def get_tqdm_version():

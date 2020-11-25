@@ -1,11 +1,11 @@
-from typing import Callable
+from typing import Any, Callable, Tuple
 
 import torch
 
 from ignite.metrics import EpochMetric
 
 
-def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
+def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
     try:
         from sklearn.metrics import roc_auc_score
     except ImportError:
@@ -16,7 +16,7 @@ def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
     return roc_auc_score(y_true, y_pred)
 
 
-def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor):
+def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
     try:
         from sklearn.metrics import roc_curve
     except ImportError:
@@ -57,7 +57,7 @@ class ROC_AUC(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         super(ROC_AUC, self).__init__(
             roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
@@ -93,7 +93,7 @@ class RocCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         super(RocCurve, self).__init__(
             roc_auc_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )

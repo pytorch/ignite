@@ -20,13 +20,13 @@ class WaveHedgesDistance(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
     """
 
-    def reset(self):
+    def reset(self) -> None:
         self._sum_of_errors = 0.0
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         errors = torch.abs(y.view_as(y_pred) - y_pred) / torch.max(y_pred, y.view_as(y_pred))
         self._sum_of_errors += torch.sum(errors).item()
 
-    def compute(self):
+    def compute(self) -> float:
         return self._sum_of_errors

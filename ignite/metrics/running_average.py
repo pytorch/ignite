@@ -1,10 +1,10 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence, Union, cast
 
 import torch
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["RunningAverage"]
 
@@ -66,7 +66,7 @@ class RunningAverage(Metric):
                 raise ValueError("Argument device should be None if src is a Metric.")
             self.src = src
             self._get_src_value = self._get_metric_value
-            self.iteration_completed = self._metric_iteration_completed
+            setattr(self, "iteration_completed", self._metric_iteration_completed)
             device = src._device
         else:
             if output_transform is None:
@@ -75,17 +75,17 @@ class RunningAverage(Metric):
                     "to the output of process function."
                 )
             self._get_src_value = self._get_output_value
-            self.update = self._output_update
+            setattr(self, "update", self._output_update)
             if device is None:
                 device = torch.device("cpu")
 
         self.alpha = alpha
         self.epoch_bound = epoch_bound
-        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
+        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)  # type: ignore[arg-type]
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._value = None
+        self._value = None  # type: Optional[Union[float, torch.Tensor]]
 
     @reinit__is_reduced
     def update(self, output: Sequence) -> None:
@@ -100,7 +100,7 @@ class RunningAverage(Metric):
 
         return self._value
 
-    def attach(self, engine: Engine, name: str):
+    def attach(self, engine: Engine, name: str, _usage: Union[str, MetricUsage] = EpochWise()) -> None:
         if self.epoch_bound:
             # restart average every epoch
             engine.add_event_handler(Events.EPOCH_STARTED, self.started)
@@ -115,7 +115,7 @@ class RunningAverage(Metric):
     @sync_all_reduce("src")
     def _get_output_value(self) -> Union[torch.Tensor, float]:
         # we need to compute average instead of sum produced by @sync_all_reduce("src")
-        output = self.src / idist.get_world_size()
+        output = cast(Union[torch.Tensor, float], self.src) / idist.get_world_size()
         return output
 
     def _metric_iteration_completed(self, engine: Engine) -> None:
@@ -126,4 +126,4 @@ class RunningAverage(Metric):
     def _output_update(self, output: Union[torch.Tensor, float]) -> None:
         if isinstance(output, torch.Tensor):
             output = output.detach().to(self._device, copy=True)
-        self.src = output
+        self.src = output  # type: ignore[assignment]

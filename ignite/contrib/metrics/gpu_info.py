@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 
@@ -34,7 +34,7 @@ class GpuInfo(Metric):
                              event_name=Events.ITERATION_COMPLETED)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         try:
             import pynvml
         except ImportError:
@@ -52,20 +52,22 @@ class GpuInfo(Metric):
         self.nvsmi = nvidia_smi.getInstance()
         super(GpuInfo, self).__init__()
 
-    def reset(self):
+    def reset(self) -> None:
         pass
 
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         pass
 
-    def compute(self):
-        data = self.nvsmi.DeviceQuery("memory.used, memory.total, utilization.gpu")
+    def compute(self) -> List[Dict[str, Any]]:
+        data = self.nvsmi.DeviceQuery(
+            "memory.used, memory.total, utilization.gpu"
+        )  # type: Dict[str, List[Dict[str, Any]]]
         if len(data) == 0 or ("gpu" not in data):
             warnings.warn("No GPU information available")
             return []
         return data["gpu"]
 
-    def completed(self, engine: Engine, name: str):
+    def completed(self, engine: Engine, name: str) -> None:
         data = self.compute()
         if len(data) < 1:
             warnings.warn("No GPU information available")
@@ -104,5 +106,8 @@ class GpuInfo(Metric):
                 # Do not set GPU utilization information
                 pass
 
-    def attach(self, engine: Engine, name: str = "gpu", event_name: Union[str, EventEnum] = Events.ITERATION_COMPLETED):
+    # TODO: see issue https://github.com/pytorch/ignite/issues/1405
+    def attach(  # type: ignore
+        self, engine: Engine, name: str = "gpu", event_name: Union[str, EventEnum] = Events.ITERATION_COMPLETED
+    ) -> None:
         engine.add_event_handler(event_name, self.completed, name)

@@ -7,11 +7,24 @@ Contribution module of handlers
 param_scheduler
 ---------------
 
+.. currentmodule:: ignite.contrib.handlers.param_scheduler
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
 .. automodule:: ignite.contrib.handlers.param_scheduler
    :members:
 
+
 lr_finder
 ---------
+
+.. currentmodule:: ignite.contrib.handlers.lr_finder
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.contrib.handlers.lr_finder
    :members:
@@ -20,8 +33,16 @@ lr_finder
 time_profilers
 ---------------
 
+.. currentmodule:: ignite.contrib.handlers.time_profilers
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
+
 .. automodule:: ignite.contrib.handlers.time_profilers
    :members:
+
 
 tensorboard_logger
 ------------------
@@ -29,6 +50,11 @@ tensorboard_logger
 See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
 and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
 
+.. currentmodule:: ignite.contrib.handlers.tensorboard_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.contrib.handlers.tensorboard_logger
    :members:
@@ -41,6 +67,12 @@ visdom_logger
 See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_
 for detailed usage.
 
+.. currentmodule:: ignite.contrib.handlers.visdom_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
 .. automodule:: ignite.contrib.handlers.visdom_logger
    :members:
    :inherited-members:
@@ -52,6 +84,11 @@ neptune_logger
 See `neptune mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_neptune_logger.py>`_
 for detailed usage.
 
+.. currentmodule:: ignite.contrib.handlers.neptune_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.contrib.handlers.neptune_logger
    :members:
@@ -60,6 +97,12 @@ for detailed usage.
 
 mlflow_logger
 -------------
+
+.. currentmodule:: ignite.contrib.handlers.mlflow_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.contrib.handlers.mlflow_logger
    :members:
@@ -72,12 +115,23 @@ tqdm_logger
 See `tqdm mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tqdm_logger.py>`_
 for detailed usage.
 
+.. currentmodule:: ignite.contrib.handlers.tqdm_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.contrib.handlers.tqdm_logger
    :members:
 
 polyaxon_logger
 ---------------
+
+.. currentmodule:: ignite.contrib.handlers.polyaxon_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.contrib.handlers.polyaxon_logger
    :members:
@@ -89,6 +143,12 @@ wandb_logger
 See `wandb mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_wandb_logger.py>`_
 for detailed usage.
 
+.. currentmodule:: ignite.contrib.handlers.wandb_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
 .. automodule:: ignite.contrib.handlers.wandb_logger
    :members:
    :inherited-members:
@@ -98,6 +158,12 @@ trains_logger
 
 See `trains mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_trains_logger.py>`_
 for detailed usage.
+
+.. currentmodule:: ignite.contrib.handlers.trains_logger
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.contrib.handlers.trains_logger
    :members:

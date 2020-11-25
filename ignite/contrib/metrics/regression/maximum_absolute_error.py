@@ -23,16 +23,16 @@ class MaximumAbsoluteError(_BaseRegression):
 
     """
 
-    def reset(self):
-        self._max_of_absolute_errors = -1
+    def reset(self) -> None:
+        self._max_of_absolute_errors = -1  # type: float
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         mae = torch.abs(y_pred - y.view_as(y_pred)).max().item()
         if self._max_of_absolute_errors < mae:
             self._max_of_absolute_errors = mae
 
-    def compute(self):
+    def compute(self) -> float:
         if self._max_of_absolute_errors < 0:
             raise NotComputableError("MaximumAbsoluteError must have at least one example before it can be computed.")
         return self._max_of_absolute_errors

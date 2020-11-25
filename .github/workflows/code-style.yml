@@ -1,5 +1,23 @@
 name: Format python code
-on: push
+
+on:
+  push:
+    paths-ignore:
+    - 'assets/**'
+    - '.circleci/**'
+    - 'docker/**'
+    - 'docs/**'
+    - 'conda.recipe'
+    - '**.md'
+  pull_request:
+    paths-ignore:
+    - 'assets/**'
+    - '.circleci/**'
+    - 'docker/**'
+    - 'docs/**'
+    - 'conda.recipe'
+    - '**.md'
+
 jobs:
   code-style:
     runs-on: ubuntu-latest

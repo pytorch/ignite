@@ -24,20 +24,16 @@ class R2Score(_BaseRegression):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        self._num_examples = None
-        self._sum_of_errors = None
-        self._y_sq_sum = None
-        self._y_sum = None
         super(R2Score, self).__init__(output_transform, device)
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._num_examples = 0
         self._sum_of_errors = torch.tensor(0.0, device=self._device)
         self._y_sq_sum = torch.tensor(0.0, device=self._device)
         self._y_sum = torch.tensor(0.0, device=self._device)
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         self._num_examples += y.shape[0]
         self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).to(self._device)
@@ -46,7 +42,7 @@ class R2Score(_BaseRegression):
         self._y_sq_sum += torch.sum(torch.pow(y, 2)).to(self._device)
 
     @sync_all_reduce("_num_examples", "_sum_of_errors", "_y_sq_sum", "_y_sum")
-    def compute(self):
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("R2Score must have at least one example before it can be computed.")
         return 1 - self._sum_of_errors.item() / (self._y_sq_sum.item() - (self._y_sum.item() ** 2) / self._num_examples)

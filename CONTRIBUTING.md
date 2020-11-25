@@ -29,6 +29,31 @@ If you find a typo in the documentation, do not hesitate to submit a GitHub pull
 
 ## Developing Ignite
 
+### Quickstart guide for first-time contributors
+ 
+<summary>
+
+<details>
+
+- Install [miniconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/index.html) for your system.
+- Create an isolated conda environment for pytorch-ignite:
+ ```bash
+conda create -n pytorch-ignite-dev python=3
+```
+
+- Activate the newly created environment:
+ ```bash
+conda activate pytorch-ignite-dev
+```
+
+- When developing please take care of preserving `.gitignore` file and make use of `.git/info/exclude` to exclude custom files like: `.idea`, `.vscode` etc.
+- Please refer to [github first contributions guidelines](https://github.com/firstcontributions/first-contributions) and don't hesitate to ask the pytorch-ignite community in case of any doubt.
+- A good way to start is to tackle one of the [good first issues](https://github.com/pytorch/ignite/labels/good%20first%20issue).
+
+</details>
+
+</summary>
+
 ### Installation
 
 To get the development installation with the necessary dependencies, run the following:
@@ -37,7 +62,7 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==4.3.21" "mypy==0.782"
+pip install flake8 "black==19.10b0" "isort==4.3.21" mypy
 ```
 
 ### Code development
@@ -121,9 +146,9 @@ pytest tests/ignite/engine/test_engine.py -vvv -k test_terminate
 ```
 To run all tests with coverage (assuming installed `pytest-cov`):
 ```bash
-CI_PYTHON_VERSION=<your python version, e.g 3.7> sh tests/run_cpu_tests.sh
+CI_PYTHON_VERSION=<your python version, e.g 3.7> bash tests/run_cpu_tests.sh
 # for example
-# CI_PYTHON_VERSION=3.7 sh tests/run_cpu_tests.sh
+# CI_PYTHON_VERSION=3.7 bash tests/run_cpu_tests.sh
 ```
 
 #### Run Mypy checks:
@@ -142,6 +167,30 @@ If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
+##### Sync up with the upstream
+
+First, make sure you have set [upstream](https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
+
+```bash
+git remote add upstream https://github.com/pytorch/ignite
+```
+
+Then you can see if you have set up multiple remote correctly by running `git remote -v`:
+
+```bash
+origin  https://github.com/{YOUR_USERNAME}/ignite.git (fetch)
+origin  https://github.com/{YOUR_USERNAME}/ignite.git (push)
+upstream        https://github.com/pytorch/ignite (fetch)
+upstream        https://github.com/pytorch/ignite (push)
+```
+
+Now you can get the latest development into your forked repository with this:
+
+```bash
+git fetch upstream
+git checkout master
+git merge upstream/master
+```
 
 ### Writing documentation
 
@@ -175,4 +224,3 @@ python -m http.server <port>
 # python -m http.server 1234
 ```
 Then open the browser at `0.0.0.0:<port>` (e.g. `0.0.0.0:1234`) and click to `html` folder.
-

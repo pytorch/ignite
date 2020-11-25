@@ -1,11 +1,14 @@
 import functools
 import logging
+import math
 import time
 import warnings
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+
+from torch.utils.data import DataLoader
 
 from ignite._utils import _to_hours_mins_secs
 from ignite.base import Serializable
@@ -120,18 +123,18 @@ class Engine(Serializable):
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
     def __init__(self, process_function: Callable):
-        self._event_handlers = defaultdict(list)
+        self._event_handlers = defaultdict(list)  # type: Dict[Any, List]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
-        self.last_event_name = None
+        self.last_event_name = None  # type: Optional[Events]
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = State()
-        self._state_dict_user_keys = []
-        self._allowed_events = []
+        self._state_dict_user_keys = []  # type: List[str]
+        self._allowed_events = []  # type: List[EventEnum]
 
-        self._dataloader_iter = None
-        self._init_iter = []
+        self._dataloader_iter = None  # type: Optional[Iterator[Any]]
+        self._init_iter = []  # type: List[int]
 
         self.register_events(*Events)
 
@@ -232,16 +235,16 @@ class Engine(Serializable):
         # signature of the following wrapper will be inspected during registering to check if engine is necessary
         # we have to build a wrapper with relevant signature : solution is functools.wraps
         @functools.wraps(handler)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             event = self.state.get_event_attrib_value(event_name)
             if event_filter(self, event):
                 return handler(*args, **kwargs)
 
         # setup input handler as parent to make has_event_handler work
-        wrapper._parent = weakref.ref(handler)
+        setattr(wrapper, "_parent", weakref.ref(handler))
         return wrapper
 
-    def add_event_handler(self, event_name: Any, handler: Callable, *args, **kwargs):
+    def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
@@ -312,7 +315,7 @@ class Engine(Serializable):
         return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
-    def _assert_non_filtered_event(event_name: Any):
+    def _assert_non_filtered_event(event_name: Any) -> None:
         if (
             isinstance(event_name, CallableEventWithFilter)
             and event_name.filter != CallableEventWithFilter.default_event_filter
@@ -321,7 +324,7 @@ class Engine(Serializable):
                 "Argument event_name should not be a filtered event, " "please use event without any event filtering"
             )
 
-    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None):
+    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None) -> bool:
         """Check if the specified event has the specified handler.
 
         Args:
@@ -332,7 +335,7 @@ class Engine(Serializable):
         if event_name is not None:
             if event_name not in self._event_handlers:
                 return False
-            events = [event_name]
+            events = [event_name]  # type: Union[List[Any], Dict[Any, List]]
         else:
             events = self._event_handlers
         for e in events:
@@ -344,10 +347,10 @@ class Engine(Serializable):
     @staticmethod
     def _compare_handlers(user_handler: Callable, registered_handler: Callable) -> bool:
         if hasattr(registered_handler, "_parent"):
-            registered_handler = registered_handler._parent()
+            registered_handler = registered_handler._parent()  # type: ignore[attr-defined]
         return registered_handler == user_handler
 
-    def remove_event_handler(self, handler: Callable, event_name: Any):
+    def remove_event_handler(self, handler: Callable, event_name: Any) -> None:
         """Remove event handler `handler` from registered handlers of the engine
 
         Args:
@@ -367,7 +370,7 @@ class Engine(Serializable):
             raise ValueError("Input handler '{}' is not found among registered event handlers".format(handler))
         self._event_handlers[event_name] = new_event_handlers
 
-    def on(self, event_name, *args, **kwargs):
+    def on(self, event_name: Any, *args: Any, **kwargs: Any) -> Callable:
         """Decorator shortcut for add_event_handler.
 
         Args:
@@ -398,7 +401,7 @@ class Engine(Serializable):
 
         return decorator
 
-    def _fire_event(self, event_name: Any, *event_args, **event_kwargs) -> None:
+    def _fire_event(self, event_name: Any, *event_args: Any, **event_kwargs: Any) -> None:
         """Execute all the handlers associated with given event.
 
         This method executes all handlers associated with the event
@@ -460,7 +463,7 @@ class Engine(Serializable):
         )
         self.should_terminate_single_epoch = True
 
-    def _handle_exception(self, e: Exception) -> None:
+    def _handle_exception(self, e: BaseException) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
             self._fire_event(Events.EXCEPTION_RAISED, e)
         else:
@@ -471,7 +474,7 @@ class Engine(Serializable):
         return self._state_dict_user_keys
 
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration" and
+        """Returns a dictionary containing engine's state: "epoch_length", "max_epochs" and "iteration" and
         other state values defined by `engine.state_dict_user_keys`
 
         .. code-block:: python
@@ -497,18 +500,18 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
+        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)  # type: Tuple[str, ...]
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
-        State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
-        `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
+        State dictionary should contain keys: `iteration` or `epoch`, `max_epochs` and `epoch_length`.
+        If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
         Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
-        This method does not remove any custom attributs added by user.
+        This method does not remove any custom attributes added by user.
 
         Args:
             state_dict (Mapping): a dict with parameters
@@ -555,9 +558,15 @@ class Engine(Serializable):
 
     @staticmethod
     def _is_done(state: State) -> bool:
-        return state.iteration == state.epoch_length * state.max_epochs
+        is_done_iters = state.max_iters is not None and state.iteration >= state.max_iters
+        is_done_count = (
+            state.epoch_length is not None
+            and state.iteration >= state.epoch_length * state.max_epochs  # type: ignore[operator]
+        )
+        is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
+        return is_done_iters or is_done_count or is_done_epochs
 
-    def set_data(self, data):
+    def set_data(self, data: Union[Iterable, DataLoader]) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
         from newly provided data. Please, note that epoch length is not modified.
 
@@ -597,15 +606,15 @@ class Engine(Serializable):
         self,
         data: Iterable,
         max_epochs: Optional[int] = None,
+        max_iters: Optional[int] = None,
         epoch_length: Optional[int] = None,
-        seed: Optional[int] = None,
     ) -> State:
         """Runs the `process_function` over the passed data.
 
         Engine has a state and the following logic is applied in this function:
 
-        - At the first call, new state is defined by `max_epochs`, `epoch_length`, `seed` if provided. A timer for
-            total and per-epoch time is initialized when Events.STARTED is handled.
+        - At the first call, new state is defined by `max_epochs`, `max_iters`, `epoch_length`, if provided.
+            A timer for total and per-epoch time is initialized when Events.STARTED is handled.
         - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
             provided, state is kept and used in the function.
         - If state is defined and engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
@@ -621,8 +630,8 @@ class Engine(Serializable):
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
                 determined as the iteration on which data iterator raises `StopIteration`.
                 This argument should not change if run is resuming from a state.
-            seed (int, optional): Deprecated argument. Please, use `torch.manual_seed` or
-                :meth:`~ignite.utils.manual_seed`.
+            max_iters (int, optional): Number of iterations to run for.
+                `max_iters` and `max_epochs` are mutually exclusive; only one of the two arguments should be provided.
 
         Returns:
             State: output state.
@@ -639,8 +648,7 @@ class Engine(Serializable):
                 def switch_batch(engine):
                     engine.state.batch = preprocess_batch(engine.state.batch)
 
-            Restart the training from the beginning. User can reset `max_epochs = None` or either call
-            `trainer.state.restart()`:
+            Restart the training from the beginning. User can reset `max_epochs = None`:
 
             .. code-block:: python
 
@@ -648,16 +656,10 @@ class Engine(Serializable):
                 trainer.run(train_loader, max_epochs=5)
 
                 # Reset model weights etc. and restart the training
-                trainer.state.restart() # equivalent to trainer.state.max_epochs = None
+                trainer.state.max_epochs = None
                 trainer.run(train_loader, max_epochs=2)
 
         """
-        if seed is not None:
-            warnings.warn(
-                "Argument seed is deprecated. It will be removed in 0.5.0. "
-                "Please, use torch.manual_seed or ignite.utils.manual_seed"
-            )
-
         if not isinstance(data, Iterable):
             raise TypeError("Argument data should be iterable")
 
@@ -667,7 +669,7 @@ class Engine(Serializable):
                 if max_epochs < self.state.epoch:
                     raise ValueError(
                         "Argument max_epochs should be larger than the start epoch "
-                        "defined in the state: {} vs {}. Please, call state.restart() "
+                        "defined in the state: {} vs {}. Please, set engine.state.max_epochs = None "
                         "before calling engine.run() in order to restart the training from the beginning.".format(
                             max_epochs, self.state.epoch
                         )
@@ -683,16 +685,27 @@ class Engine(Serializable):
 
         if self.state.max_epochs is None or self._is_done(self.state):
             # Create new state
-            if max_epochs is None:
-                max_epochs = 1
             if epoch_length is None:
                 epoch_length = self._get_data_length(data)
                 if epoch_length is not None and epoch_length < 1:
                     raise ValueError("Input data has zero size. Please provide non-empty data")
 
+            if max_iters is None:
+                if max_epochs is None:
+                    max_epochs = 1
+            else:
+                if max_epochs is not None:
+                    raise ValueError(
+                        "Arguments max_iters and max_epochs are mutually exclusive."
+                        "Please provide only max_epochs or max_iters."
+                    )
+                if epoch_length is not None:
+                    max_epochs = math.ceil(max_iters / epoch_length)
+
             self.state.iteration = 0
             self.state.epoch = 0
             self.state.max_epochs = max_epochs
+            self.state.max_iters = max_iters
             self.state.epoch_length = epoch_length
             self.logger.info("Engine run starting with max_epochs={}.".format(max_epochs))
         else:
@@ -706,21 +719,25 @@ class Engine(Serializable):
         return self._internal_run()
 
     @staticmethod
-    def _init_timers(state: State):
+    def _init_timers(state: State) -> None:
         state.times[Events.EPOCH_COMPLETED.name] = 0.0
         state.times[Events.COMPLETED.name] = 0.0
 
-    def _get_data_length(self, data):
-        data_length = None
+    def _get_data_length(self, data: Iterable) -> Optional[int]:
         try:
             if hasattr(data, "__len__"):
-                data_length = len(data)
+                return len(data)  # type: ignore[arg-type]
         except TypeError:
             # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
             pass
-        return data_length
+        return None
 
     def _setup_engine(self) -> None:
+        if self.state.dataloader is None:
+            raise RuntimeError(
+                "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+            )
+
         iteration = self.state.iteration
         self._dataloader_iter = iter(self.state.dataloader)
 
@@ -735,7 +752,7 @@ class Engine(Serializable):
         try:
             start_time = time.time()
             self._fire_event(Events.STARTED)
-            while self.state.epoch < self.state.max_epochs and not self.should_terminate:
+            while not self._is_done(self.state) and not self.should_terminate:
                 self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
 
@@ -786,6 +803,15 @@ class Engine(Serializable):
         iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
         should_exit = False
         try:
+            if self._dataloader_iter is None:
+                raise RuntimeError(
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
+                )
+            if self.state.dataloader is None:
+                raise RuntimeError(
+                    "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+                )
+
             while True:
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
@@ -800,6 +826,8 @@ class Engine(Serializable):
                     if self.state.epoch_length is None:
                         # Define epoch length and stop the epoch
                         self.state.epoch_length = iter_counter
+                        if self.state.max_iters is not None:
+                            self.state.max_epochs = math.ceil(self.state.max_iters / self.state.epoch_length)
                         break
 
                     # Should exit while loop if we can not iterate
@@ -809,7 +837,8 @@ class Engine(Serializable):
                                 "Data iterator can not provide data anymore but required total number of "
                                 "iterations to run is not reached. "
                                 "Current iteration: {} vs Total iterations to run : {}".format(
-                                    self.state.iteration, self.state.epoch_length * self.state.max_epochs
+                                    self.state.iteration,
+                                    self.state.epoch_length * self.state.max_epochs,  # type: ignore[operator]
                                 )
                             )
                         break
@@ -836,6 +865,10 @@ class Engine(Serializable):
                     break
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
+                    break
+
+                if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
+                    self.should_terminate = True
                     break
 
         except Exception as e:

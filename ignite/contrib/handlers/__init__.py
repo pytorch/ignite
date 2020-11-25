@@ -13,7 +13,7 @@ from ignite.contrib.handlers.param_scheduler import (
 from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger
 from ignite.contrib.handlers.stores import EpochOutputStore
 from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger
-from ignite.contrib.handlers.time_profilers import BasicTimeProfiler
+from ignite.contrib.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.trains_logger import TrainsLogger
 from ignite.contrib.handlers.visdom_logger import VisdomLogger

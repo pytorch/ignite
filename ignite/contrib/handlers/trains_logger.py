@@ -173,9 +173,11 @@ class TrainsLogger(BaseLogger):
     def bypass_mode(cls) -> bool:
         """
         Returns the bypass mode state.
+
         Note:
             `GITHUB_ACTIONS` env will automatically set bypass_mode to ``True``
             unless overridden specifically with ``TrainsLogger.set_bypass_mode(False)``.
+
         Return:
             If True, all outside communication is skipped.
         """
@@ -276,7 +278,6 @@ class OutputHandler(BaseOutputHandler):
             :meth:`~ignite.contrib.handlers.trains_logger.global_step_from_engine`.
 
     Note:
-
         Example of `global_step_transform`:
 
         .. code-block:: python

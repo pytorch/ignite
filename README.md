@@ -6,9 +6,9 @@
 
 
 
-[![image](https://travis-ci.org/pytorch/ignite.svg?branch=master)](https://travis-ci.org/pytorch/ignite)
-[![image](https://github.com/pytorch/ignite/workflows/.github/workflows/unittests.yml/badge.svg?branch=master)](https://github.com/pytorch/ignite/actions)
-[![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://circleci.com/gh/pytorch/ignite)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://circleci.com/gh/pytorch/ignite)
+[![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite)
+[![image](https://github.com/pytorch/ignite/workflows/Run%20unit%20tests/badge.svg)](https://github.com/pytorch/ignite/actions)
+[![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)
 [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite)
 [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html)
 
@@ -454,6 +454,13 @@ As always, PRs are welcome :)
 -   [Adversarial Decomposition of Text Representation](https://github.com/text-machine-lab/adversarial_decomposition)
 -   [Uncertainty Estimation Using a Single Deep Deterministic Neural Network](https://github.com/y0ast/deterministic-uncertainty-quantification)
 -   [DeepSphere: a graph-based spherical CNN](https://github.com/deepsphere/deepsphere-pytorch)
+-   [Norm-in-Norm Loss with Faster Convergence and Better Performance for Image Quality Assessment](https://github.com/lidq92/LinearityIQA)
+-   [Unified Quality Assessment of In-the-Wild Videos with Mixed Datasets Training](https://github.com/lidq92/MDTVSFA)
+-   [Deep Signature Transforms](https://github.com/patrick-kidger/Deep-Signature-Transforms)
+-   [Neural CDEs for Long Time-Series via the Log-ODE Method](https://github.com/jambo6/neuralCDEs-via-logODEs)
+-   [Volumetric Grasping Network](https://github.com/ethz-asl/vgn)
+-   [Mood Classification using Listening Data](https://github.com/fdlm/listening-moods)
+
 
 ## Blog articles, tutorials, books
 
@@ -494,4 +501,8 @@ description of the project.
 
 # About the team & Disclaimer
 
-This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals (and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) page for a list of core contributors. For usage questions and issues, please see the various channels [here](https://github.com/pytorch/ignite#communication). For all other questions and inquiries, please send an email to contact@pytorch-ignite.ai.
+This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals 
+(and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html) 
+page for a list of core contributors. For usage questions and issues, please see the various channels 
+[here](#communication). For all other questions and inquiries, please send an email 
+to contact@pytorch-ignite.ai.

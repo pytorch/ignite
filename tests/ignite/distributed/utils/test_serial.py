@@ -54,4 +54,5 @@ def test_idist_all_reduce_no_dist():
 
 
 def test_idist_all_gather_no_dist():
-    assert idist.all_gather(10) == 10
+    assert idist.all_gather(10) == [10]
+    assert (idist.all_gather(torch.tensor(10)) == torch.tensor(10)).all()

@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -16,8 +16,8 @@ class _BaseClassification(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._is_multilabel = is_multilabel
-        self._type = None
-        self._num_classes = None
+        self._type = None  # type: Optional[str]
+        self._num_classes = None  # type: Optional[int]
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
@@ -35,7 +35,7 @@ class _BaseClassification(Metric):
             )
 
         y_shape = y.shape
-        y_pred_shape = y_pred.shape
+        y_pred_shape = y_pred.shape  # type: Tuple[int, ...]
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -134,8 +134,6 @@ class Accuracy(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        self._num_correct = None
-        self._num_examples = None
         super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
@@ -167,7 +165,7 @@ class Accuracy(_BaseClassification):
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
         return self._num_correct.item() / self._num_examples

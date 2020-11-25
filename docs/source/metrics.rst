@@ -229,40 +229,21 @@ Complete list of usages
 Metrics and distributed computations
 ------------------------------------
 
-In the above example, ``CustomAccuracy`` has ``reset``, ``update``, ``compute`` methods
-decorated with ``reinit__is_reduced``, ``sync_all_reduce``. The purpose of these features is to adapt metrics in distributed
-computations on supported backend and devices (:doc:`distributed`). More precisely, in the above example we
-added ``@sync_all_reduce("_num_examples", "_num_correct")`` over ``compute`` method. This means that when ``compute`` method
-is called, metric's interal variables ``self._num_examples`` and ``self._num_correct`` are summed up over all participating
+In the above example, ``CustomAccuracy`` has ``reset``, ``update``, ``compute`` methods decorated
+with :meth:`~ignite.metrics.metric.reinit__is_reduced`, :meth:`~ignite.metrics.metric.sync_all_reduce`. The purpose of these features is to adapt metrics in distributed
+computations on supported backend and devices (see :doc:`distributed` for more details). More precisely, in the above
+example we added ``@sync_all_reduce("_num_examples", "_num_correct")`` over ``compute`` method. This means that when ``compute``
+method is called, metric's interal variables ``self._num_examples`` and ``self._num_correct`` are summed up over all participating
 devices. Therefore, once collected, these internal variables can be used to compute the final metric value.
 
 Complete list of metrics
 ------------------------
 
-    - :class:`~ignite.metrics.Accuracy`
-    - :class:`~ignite.metrics.Average`
-    - :class:`~ignite.metrics.ConfusionMatrix`
-    - :meth:`~ignite.metrics.DiceCoefficient`
-    - :class:`~ignite.metrics.EpochMetric`
-    - :meth:`~ignite.metrics.Fbeta`
-    - :class:`~ignite.metrics.GeometricAverage`
-    - :meth:`~ignite.metrics.IoU`
-    - :meth:`~ignite.metrics.mIoU`
-    - :class:`~ignite.metrics.Loss`
-    - :class:`~ignite.metrics.MeanAbsoluteError`
-    - :class:`~ignite.metrics.MeanPairwiseDistance`
-    - :class:`~ignite.metrics.MeanSquaredError`
-    - :class:`~ignite.metrics.Metric`
-    - :class:`~ignite.metrics.MetricsLambda`
-    - :class:`~ignite.metrics.Precision`
-    - :class:`~ignite.metrics.Recall`
-    - :class:`~ignite.metrics.RootMeanSquaredError`
-    - :class:`~ignite.metrics.RunningAverage`
-    - :class:`~ignite.metrics.SSIM`
-    - :class:`~ignite.metrics.TopKCategoricalAccuracy`
-    - :class:`~ignite.metrics.VariableAccumulation`
-
 .. currentmodule:: ignite.metrics
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
 .. autoclass:: Accuracy
 
@@ -320,6 +301,7 @@ Complete list of metrics
 
 .. currentmodule:: ignite.metrics.metric
 
+.. autofunction:: reinit__is_reduced
+
 .. autofunction:: sync_all_reduce
 
-.. autofunction:: reinit__is_reduced

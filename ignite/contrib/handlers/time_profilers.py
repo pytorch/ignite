@@ -1,9 +1,10 @@
+import functools
 from collections import OrderedDict
-from typing import Dict, Iterable, Mapping, Sequence, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Union
 
 import torch
 
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import Timer
 
 
@@ -437,3 +438,324 @@ Event handlers:
         )
         print(output_message)
         return output_message
+
+
+class HandlersTimeProfiler:
+    """
+    HandlersTimeProfiler can be used to profile the handlers,
+    data loading and data processing times. Custom events are also
+    profiled by this profiler
+
+    Examples:
+
+    .. code-block:: python
+
+        from ignite.contrib.handlers import HandlersTimeProfiler
+
+        trainer = Engine(train_updater)
+
+        # Create an object of the profiler and attach an engine to it
+        profiler = HandlersTimeProfiler()
+        profiler.attach(trainer)
+
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def log_intermediate_results():
+            profiler.print_results(profiler.get_results())
+
+        trainer.run(dataloader, max_epochs=3)
+
+        profiler.write_results('path_to_dir/time_profiling.csv')
+
+    """
+
+    EVENT_FILTER_THESHOLD_TIME = 0.0001
+
+    def __init__(self):
+        self._dataflow_timer = Timer()
+        self._processing_timer = Timer()
+        self._event_handlers_timer = Timer()
+
+        self.dataflow_times = None
+        self.processing_times = None
+        self.event_handlers_times = None
+
+    @staticmethod
+    def _get_callable_name(handler: Callable) -> str:
+        # get name of the callable handler
+        return getattr(handler, "__qualname__", handler.__class__.__name__)
+
+    def _create_wrapped_handler(self, handler: Callable, event: Events) -> Callable:
+        @functools.wraps(handler)
+        def _timeit_handler(*args: Any, **kwargs: Any) -> None:
+            self._event_handlers_timer.reset()
+            handler(*args, **kwargs)
+            t = self._event_handlers_timer.value()
+            hname = self._get_callable_name(handler)
+            # filter profiled time if the handler was attached to event with event filter
+            if not hasattr(handler, "_parent") or t >= self.EVENT_FILTER_THESHOLD_TIME:
+                self.event_handlers_times[event][hname].append(t)
+
+        # required to revert back to original handler after profiling
+        setattr(_timeit_handler, "_profiler_original", handler)
+        return _timeit_handler
+
+    def _timeit_processing(self) -> None:
+        # handler used for profiling processing times
+        t = self._processing_timer.value()
+        self.processing_times.append(t)
+
+    def _timeit_dataflow(self) -> None:
+        # handler used for profiling dataflow times
+        t = self._dataflow_timer.value()
+        self.dataflow_times.append(t)
+
+    def _reset(self, event_handlers_names: Mapping[EventEnum, List[str]]) -> None:
+        # reset the variables used for profiling
+        self.dataflow_times = []
+        self.processing_times = []
+
+        self.event_handlers_times = {e: {h: [] for h in event_handlers_names[e]} for e in event_handlers_names}
+
+    @staticmethod
+    def _is_internal_handler(handler: Callable) -> bool:
+        # checks whether the handler is internal
+        return any(n in repr(handler) for n in ["HandlersTimeProfiler.", "Timer."])
+
+    def _detach_profiler_handlers(self, engine: Engine) -> None:
+        # reverts handlers to original handlers
+        for e in engine._event_handlers:
+            for i, (func, args, kwargs) in enumerate(engine._event_handlers[e]):
+                if hasattr(func, "_profiler_original"):
+                    engine._event_handlers[e][i] = (func._profiler_original, args, kwargs)
+
+    def _as_first_started(self, engine: Engine) -> None:
+        # wraps original handlers for profiling
+
+        self.event_handlers_names = {
+            e: [
+                self._get_callable_name(h)
+                for (h, _, _) in engine._event_handlers[e]
+                if not self._is_internal_handler(h)
+            ]
+            for e in engine._allowed_events
+        }
+
+        self._reset(self.event_handlers_names)
+
+        for e in engine._allowed_events:
+            for i, (func, args, kwargs) in enumerate(engine._event_handlers[e]):
+                if not self._is_internal_handler(func):
+                    engine._event_handlers[e][i] = (self._create_wrapped_handler(func, e), args, kwargs)
+
+        # processing timer
+        engine.add_event_handler(Events.ITERATION_STARTED, self._processing_timer.reset)
+        engine._event_handlers[Events.ITERATION_COMPLETED].insert(0, (self._timeit_processing, (), {}))
+
+        # dataflow timer
+        engine.add_event_handler(Events.GET_BATCH_STARTED, self._dataflow_timer.reset)
+        engine._event_handlers[Events.GET_BATCH_COMPLETED].insert(0, (self._timeit_dataflow, (), {}))
+
+        # revert back the wrapped handlers with original handlers at the end
+        engine.add_event_handler(Events.COMPLETED, self._detach_profiler_handlers)
+
+    def attach(self, engine: Engine) -> None:
+        if not isinstance(engine, Engine):
+            raise TypeError("Argument engine should be ignite.engine.Engine, but given {}".format(type(engine)))
+
+        if not engine.has_event_handler(self._as_first_started):
+            engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
+
+    def get_results(self) -> List[List[Union[str, float]]]:
+        """
+        Method to fetch the aggregated profiler results after the engine is run
+
+        .. code-block:: python
+
+            results = profiler.get_results()
+
+        """
+        total_eh_time = sum(
+            [
+                sum(self.event_handlers_times[e][h])
+                for e in self.event_handlers_times
+                for h in self.event_handlers_times[e]
+            ]
+        )
+        total_eh_time = round(float(total_eh_time), 5,)
+
+        def compute_basic_stats(data: Sequence) -> List[Union[str, float]]:
+            data = torch.tensor(data, dtype=torch.float32)
+            # compute on non-zero data:
+            data = data[data > 0]
+            total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"
+            min_index = ("None", "None")
+            max_index = ("None", "None")
+            mean = "None"
+            std = "None"
+            if len(data) > 0:
+                min_index = (round(torch.min(data).item(), 5), torch.argmin(data).item())
+                max_index = (round(torch.max(data).item(), 5), torch.argmax(data).item())
+                mean = round(torch.mean(data).item(), 5)
+                if len(data) > 1:
+                    std = round(torch.std(data).item(), 5)
+            return [total, min_index, max_index, mean, std]
+
+        event_handler_stats = [
+            [
+                h,
+                getattr(e, "name", str(e)),
+                *compute_basic_stats(torch.tensor(self.event_handlers_times[e][h], dtype=torch.float32)),
+            ]
+            for e in self.event_handlers_times
+            for h in self.event_handlers_times[e]
+        ]
+        event_handler_stats.append(["Total", "", total_eh_time, "", "", "", ""])
+        event_handler_stats.append(["Processing", "None", *compute_basic_stats(self.processing_times)])
+        event_handler_stats.append(["Dataflow", "None", *compute_basic_stats(self.dataflow_times)])
+
+        return event_handler_stats
+
+    def write_results(self, output_path: str) -> None:
+        """
+        Method to store the unaggregated profiling results to a csv file
+
+        .. code-block:: python
+
+            profiler.write_results('path_to_dir/awesome_filename.csv')
+
+        Example output:
+
+        .. code-block:: text
+
+            -----------------------------------------------------------------
+            # processing_stats dataflow_stats training.<locals>.log_elapsed_time (EPOCH_COMPLETED) ...
+            1     0.00003         0.252387                          0.125676
+            2     0.00029         0.252342                          0.125123
+
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            print("Need pandas to write results as files")
+            return
+
+        processing_stats = torch.tensor(self.processing_times, dtype=torch.float32)
+        dataflow_stats = torch.tensor(self.dataflow_times, dtype=torch.float32)
+
+        cols = [processing_stats, dataflow_stats]
+        headers = ["processing_stats", "dataflow_stats"]
+        for e in self.event_handlers_times:
+            for h in self.event_handlers_times[e]:
+                headers.append("{} ({})".format(h, getattr(e, "name", str(e))))
+                cols.append(torch.tensor(self.event_handlers_times[e][h], dtype=torch.float32))
+        # Determine maximum length
+        max_len = max([x.numel() for x in cols])
+
+        count_col = torch.arange(max_len, dtype=torch.float32) + 1
+        cols.insert(0, count_col)
+        headers.insert(0, "#")
+
+        # pad all tensors to have same length
+        cols = [torch.nn.functional.pad(x, pad=(0, max_len - x.numel()), mode="constant", value=0) for x in cols]
+
+        results_dump = torch.stack(cols, dim=1,).numpy()
+
+        results_df = pd.DataFrame(data=results_dump, columns=headers,)
+        results_df.to_csv(output_path, index=False)
+
+    @staticmethod
+    def print_results(results: List[List[Union[str, float]]]) -> None:
+        """
+        Method to print the aggregated results from the profiler
+
+        .. code-block:: python
+
+            profiler.print_results(results)
+
+        Example output:
+
+        .. code-block:: text
+
+            -----------------------------------------  -----------------------  -------------- ...
+            Handler                                    Event Name                     Total(s)
+            -----------------------------------------  -----------------------  --------------
+            run.<locals>.log_training_results          EPOCH_COMPLETED                19.43245
+            run.<locals>.log_validation_results        EPOCH_COMPLETED                 2.55271
+            run.<locals>.log_time                      EPOCH_COMPLETED                 0.00049
+            run.<locals>.log_intermediate_results      EPOCH_COMPLETED                 0.00106
+            run.<locals>.log_training_loss             ITERATION_COMPLETED               0.059
+            run.<locals>.log_time                      COMPLETED                 not triggered
+            -----------------------------------------  -----------------------  --------------
+            Total                                                                     22.04571
+            -----------------------------------------  -----------------------  --------------
+            Processing took total 11.29543s [min/index: 0.00393s/1875, max/index: 0.00784s/0,
+             mean: 0.00602s, std: 0.00034s]
+            Dataflow took total 16.24365s [min/index: 0.00533s/1874, max/index: 0.01129s/937,
+             mean: 0.00866s, std: 0.00113s]
+
+        """
+        # adopted implementation of torch.autograd.profiler.build_table
+        handler_column_width = max([len(item[0]) for item in results]) + 4
+        event_column_width = max([len(item[1]) for item in results]) + 4
+
+        DEFAULT_COLUMN_WIDTH = 14
+
+        headers = [
+            "Handler",
+            "Event Name",
+            "Total(s)",
+            "Min(s)/IDX",
+            "Max(s)/IDX",
+            "Mean(s)",
+            "Std(s)",
+        ]
+
+        # Have to use a list because nonlocal is Py3 only...
+        SPACING_SIZE = 2
+        row_format_lst = [""]
+        header_sep_lst = [""]
+        line_length_lst = [-SPACING_SIZE]
+
+        def add_column(padding: int, text_dir: str = ">") -> None:
+            row_format_lst[0] += "{: " + text_dir + str(padding) + "}" + (" " * SPACING_SIZE)
+            header_sep_lst[0] += "-" * padding + (" " * SPACING_SIZE)
+            line_length_lst[0] += padding + SPACING_SIZE
+
+        add_column(handler_column_width, text_dir="<")
+        add_column(event_column_width, text_dir="<")
+        for _ in headers[2:]:
+            add_column(DEFAULT_COLUMN_WIDTH)
+
+        row_format = row_format_lst[0]
+        header_sep = header_sep_lst[0]
+
+        result = []
+
+        def append(s: str) -> None:
+            result.append(s)
+            result.append("\n")
+
+        result.append("\n")
+        append(header_sep)
+        append(row_format.format(*headers))
+        append(header_sep)
+
+        for row in results[:-3]:
+            # format min/idx and max/idx
+            row[3] = "{}/{}".format(*row[3])
+            row[4] = "{}/{}".format(*row[4])
+
+            append(row_format.format(*row))
+
+        append(header_sep)
+        # print total handlers time row
+        append(row_format.format(*results[-3]))
+        append(header_sep)
+
+        summary_format = "{} took total {}s [min/index: {}, max/index: {}, mean: {}s, std: {}s]"
+        for row in results[-2:]:
+            row[3] = "{}s/{}".format(*row[3])
+            row[4] = "{}s/{}".format(*row[4])
+            del row[1]
+            append(summary_format.format(*row))
+        print("".join(result))

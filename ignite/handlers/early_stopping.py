@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from typing import Callable, Mapping
+from typing import Callable, Mapping, Optional, cast
 
 from ignite.base import Serializable
 from ignite.engine import Engine
@@ -75,7 +75,7 @@ class EarlyStopping(Serializable):
         self.cumulative_delta = cumulative_delta
         self.trainer = trainer
         self.counter = 0
-        self.best_score = None
+        self.best_score = None  # type: Optional[float]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def __call__(self, engine: Engine) -> None:
@@ -95,8 +95,8 @@ class EarlyStopping(Serializable):
             self.best_score = score
             self.counter = 0
 
-    def state_dict(self) -> OrderedDict:
-        return OrderedDict([("counter", self.counter), ("best_score", self.best_score)])
+    def state_dict(self) -> "OrderedDict[str, float]":
+        return OrderedDict([("counter", self.counter), ("best_score", cast(float, self.best_score))])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         super().load_state_dict(state_dict)

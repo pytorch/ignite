@@ -4,9 +4,9 @@ import os
 import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict, namedtuple
-from tempfile import _TemporaryFileWrapper  # type: ignore
-from typing import Callable, Mapping, Optional, Union
+from collections import OrderedDict
+from tempfile import _TemporaryFileWrapper  # type: ignore[attr-defined]
+from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -66,7 +66,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
 class Checkpoint(Serializable):
     """Checkpoint handler can be used to periodically save and load objects which have attribute
-    ``state_dict`/`load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
+    ``state_dict/load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
     storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
     moving data on TPU to CPU before writing the checkpoint.
 
@@ -93,7 +93,6 @@ class Checkpoint(Serializable):
             Input of the function is ``(engine, event_name)``. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        archived (bool, optional): Deprecated argument as models saved by ``torch.save`` are already compressed.
         filename_pattern (str, optional): If ``filename_pattern`` is provided, this pattern will be used to render
             checkpoint filenames. If the pattern is not defined, the default pattern would be used. See Note for
             details.
@@ -148,8 +147,8 @@ class Checkpoint(Serializable):
         ``30000-checkpoint-94.pt``
 
         **Warning:** Please, keep in mind that if filename collide with already used one to saved a checkpoint,
-        new checkpoint will not be stored. This means that filename like ``checkpoint.pt`` will be saved only once
-        and will not be overwritten by newer checkpoints.
+        new checkpoint will replace the older one. This means that filename like ``checkpoint.pt`` will be saved
+        every call and will always be overwritten by newer checkpoints.
 
     Note:
         To get the last stored filename, handler exposes attribute ``last_checkpoint``:
@@ -220,9 +219,12 @@ class Checkpoint(Serializable):
                 return engine.state.metrics['accuracy']
 
             to_save = {'model': model}
-            handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2,
-                                 filename_prefix='best', score_function=score_function, score_name="val_acc",
-                                 global_step_transform=global_step_from_engine(trainer))
+            handler = Checkpoint(
+                to_save, DiskSaver('/tmp/models', create_dir=True),
+                n_saved=2, filename_prefix='best',
+                score_function=score_function, score_name="val_acc",
+                global_step_transform=global_step_from_engine(trainer)
+            )
 
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
@@ -231,7 +233,7 @@ class Checkpoint(Serializable):
 
     """
 
-    Item = namedtuple("Item", ["priority", "filename"])
+    Item = NamedTuple("Item", [("priority", int), ("filename", str)])
     _state_dict_all_req_keys = ("saved",)
 
     def __init__(
@@ -242,11 +244,10 @@ class Checkpoint(Serializable):
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Optional[int] = 1,
-        global_step_transform: Callable = None,
-        archived: bool = False,
+        global_step_transform: Optional[Callable] = None,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
-    ):
+    ) -> None:
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
             if not isinstance(to_save, collections.Mapping):
@@ -276,8 +277,6 @@ class Checkpoint(Serializable):
             raise TypeError(
                 "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
             )
-        if archived:
-            warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
@@ -288,7 +287,7 @@ class Checkpoint(Serializable):
         self.ext = "pt"
         self.global_step_transform = global_step_transform
         self.filename_pattern = filename_pattern
-        self._saved = []  # type: list
+        self._saved = []  # type: List["Checkpoint.Item"]
         self.include_self = include_self
 
     @property
@@ -297,7 +296,7 @@ class Checkpoint(Serializable):
             return None
         return self._saved[-1].filename
 
-    def _check_lt_n_saved(self, or_equal=False):
+    def _check_lt_n_saved(self, or_equal: bool = False) -> bool:
         if self.n_saved is None:
             return True
         return len(self._saved) < self.n_saved + int(or_equal)
@@ -351,22 +350,26 @@ class Checkpoint(Serializable):
             }
             filename = filename_pattern.format(**filename_dict)
 
-            if any(item.filename == filename for item in self._saved):
-                return
-
             metadata = {
                 "basename": "{}{}{}".format(self.filename_prefix, "_" * int(len(self.filename_prefix) > 0), name),
                 "score_name": self.score_name,
                 "priority": priority,
             }
 
-            if not self._check_lt_n_saved():
-                item = self._saved.pop(0)
+            try:
+                index = list(map(lambda it: it.filename == filename, self._saved)).index(True)
+                to_remove = True
+            except ValueError:
+                index = 0
+                to_remove = not self._check_lt_n_saved()
+
+            if to_remove:
+                item = self._saved.pop(index)
                 if isinstance(self.save_handler, BaseSaveHandler):
                     self.save_handler.remove(item.filename)
 
             self._saved.append(Checkpoint.Item(priority, filename))
-            self._saved.sort(key=lambda item: item[0])
+            self._saved.sort(key=lambda it: it[0])
 
             if self.include_self:
                 # Now that we've updated _saved, we can add our own state_dict.
@@ -377,7 +380,7 @@ class Checkpoint(Serializable):
             except TypeError:
                 self.save_handler(checkpoint, filename)
 
-    def _setup_checkpoint(self) -> dict:
+    def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
         checkpoint = {}
         if self.to_save is not None:
             for k, obj in self.to_save.items():
@@ -443,7 +446,7 @@ class Checkpoint(Serializable):
                 raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs) -> None:
+    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
         Exemples:
@@ -511,7 +514,7 @@ class Checkpoint(Serializable):
             else:
                 obj.load_state_dict(checkpoint[k])
 
-    def state_dict(self) -> OrderedDict:
+    def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
         return OrderedDict([("saved", [(p, f) for p, f in self._saved])])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
@@ -534,8 +537,8 @@ class DiskSaver(BaseSaveHandler):
     """
 
     def __init__(
-        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs
-    ):
+        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs: Any
+    ) -> None:
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
         self._check_and_setup(dirname, create_dir, require_empty)
@@ -543,7 +546,7 @@ class DiskSaver(BaseSaveHandler):
 
     @staticmethod
     @idist.one_rank_only()
-    def _check_and_setup(dirname, create_dir, require_empty):
+    def _check_and_setup(dirname: str, create_dir: bool, require_empty: bool) -> None:
         if create_dir:
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
@@ -570,16 +573,16 @@ class DiskSaver(BaseSaveHandler):
             self._save_native(checkpoint, path)
 
     @idist.one_rank_only()
-    def _save_native(self, checkpoint: Mapping, path: str):
+    def _save_native(self, checkpoint: Mapping, path: str) -> None:
         self._save_func(checkpoint, path, torch.save)
 
-    def _save_xla(self, checkpoint: Mapping, path: str):
-        import torch_xla.core.xla_model as xm  # type: ignore
+    def _save_xla(self, checkpoint: Mapping, path: str) -> None:
+        import torch_xla.core.xla_model as xm
 
         # all tpu procs should enter here as internally performs sync across device
         self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
 
-    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0):
+    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0) -> None:
         if not self._atomic:
             func(checkpoint, path, **self.kwargs)
         else:
@@ -623,11 +626,6 @@ class ModelCheckpoint(Checkpoint):
 
         Behaviour of this class has been changed since v0.3.0.
 
-        Argument ``save_as_state_dict`` is deprecated and should not be used. It is considered as True.
-
-        Argument ``save_interval`` is deprecated and should not be used. Please, use events filtering instead, e.g.
-        :attr:`~ignite.engine.events.Events.ITERATION_STARTED(every=1000)`
-
         There is no more internal counter that has been used to indicate the number of save actions. User could
         see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pt`. Actually,
         `step_number` is replaced by current engine's epoch if `score_function` is specified and current iteration
@@ -656,7 +654,6 @@ class ModelCheckpoint(Checkpoint):
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        archived (bool, optional): Deprecated argument as models saved by `torch.save` are already compressed.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
         **kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
@@ -681,36 +678,16 @@ class ModelCheckpoint(Checkpoint):
         self,
         dirname: str,
         filename_prefix: str,
-        save_interval: Optional[Callable] = None,
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Union[int, None] = 1,
         atomic: bool = True,
         require_empty: bool = True,
         create_dir: bool = True,
-        save_as_state_dict: bool = True,
         global_step_transform: Optional[Callable] = None,
-        archived: bool = False,
         include_self: bool = False,
-        **kwargs
-    ):
-
-        if not save_as_state_dict:
-            raise ValueError(
-                "Argument save_as_state_dict is deprecated and should be True."
-                "This argument will be removed in 0.5.0."
-            )
-        if save_interval is not None:
-            msg = (
-                "Argument save_interval is deprecated and should be None. This argument will be removed in 0.5.0."
-                "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
-            )
-            if save_interval == 1:
-                # Do not break for old version who used `save_interval=1`
-                warnings.warn(msg)
-            else:
-                # No choice
-                raise ValueError(msg)
+        **kwargs: Any
+    ) -> None:
 
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
 
@@ -722,7 +699,6 @@ class ModelCheckpoint(Checkpoint):
             score_name=score_name,
             n_saved=n_saved,
             global_step_transform=global_step_transform,
-            archived=archived,
             include_self=include_self,
         )
 

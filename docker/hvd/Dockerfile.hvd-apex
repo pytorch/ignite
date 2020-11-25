@@ -18,7 +18,7 @@ RUN echo "Setup NVIDIA Apex" && \
 
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \
-        git clone --recursive --depth 1 --branch v0.20.0 https://github.com/horovod/horovod.git /horovod && \
+        git clone --recursive --depth 1 --branch v0.20.3 https://github.com/horovod/horovod.git /horovod && \
         conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
         cd /horovod && \
         HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \

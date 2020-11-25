@@ -1,6 +1,10 @@
 # coding: utf-8
+import collections.abc as collections
+from typing import Callable, Mapping, Optional, Sequence, Union
 
 import torch
+import torch.nn as nn
+from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine, EventEnum, _prepare_batch
 from ignite.utils import apply_to_tensor
@@ -17,7 +21,9 @@ class Tbptt_Events(EventEnum):
     TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
 
-def _detach_hidden(hidden):
+def _detach_hidden(
+    hidden: Union[torch.Tensor, Sequence, Mapping, str, bytes]
+) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
     """Cut backpropagation graph.
 
     Auxillary function to cut the backpropagation graph by detaching the hidden
@@ -27,8 +33,15 @@ def _detach_hidden(hidden):
 
 
 def create_supervised_tbptt_trainer(
-    model, optimizer, loss_fn, tbtt_step, dim=0, device=None, non_blocking=False, prepare_batch=_prepare_batch
-):
+    model: nn.Module,
+    optimizer: Optimizer,
+    loss_fn: nn.Module,
+    tbtt_step: int,
+    dim: int = 0,
+    device: Optional[str] = None,
+    non_blocking: bool = False,
+    prepare_batch: Callable = _prepare_batch,
+) -> Engine:
     """Create a trainer for truncated backprop through time supervised models.
 
     Training recurrent model on long sequences is computationally intensive as
@@ -73,7 +86,7 @@ def create_supervised_tbptt_trainer(
 
     """
 
-    def _update(engine, batch):
+    def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> float:
         loss_list = []
         hidden = None
 

@@ -1,5 +1,6 @@
 import os
-from typing import Any, Callable, Mapping, Optional, Tuple
+import warnings
+from typing import Any, Callable, Mapping, Optional, Tuple, cast
 
 import torch
 
@@ -61,14 +62,14 @@ if has_hvd_support:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_HorovodDistModel, self).__init__()
-            self._backend = HOROVOD
+            self._backend = HOROVOD  # type: str
             if do_init:
                 comm = kwargs.get("comm", None)
                 hvd.init(comm=comm)
 
             self._local_rank = hvd.local_rank()
 
-            if torch.cuda.is_available():
+            if do_init and torch.cuda.is_available():
                 torch.cuda.set_device(self._local_rank)
 
             self._setup_attrs()
@@ -86,17 +87,22 @@ if has_hvd_support:
             return hvd.size()
 
         def get_nproc_per_node(self) -> int:
-            return self._nproc_per_node
+            return cast(int, self._nproc_per_node)
 
         def get_nnodes(self) -> int:
-            return self._nnodes
+            return cast(int, self._nnodes)
 
         def get_node_rank(self) -> int:
-            return self._node
+            return cast(int, self._node)
 
         def device(self) -> torch.device:
             if torch.cuda.is_available():
                 index = torch.cuda.current_device()
+                if index < self.get_local_rank():
+                    warnings.warn(
+                        "Current device index is less than current local rank. "
+                        "Please, make sure to call torch.cuda.set_device(local_rank)."
+                    )
                 return torch.device("cuda:{}".format(index))
             return torch.device("cpu")
 

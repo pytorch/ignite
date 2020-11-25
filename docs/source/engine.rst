@@ -3,15 +3,37 @@ ignite.engine
 
 Main module of the library containing:
 
-- :class:`~ignite.engine.engine.Engine` - abstraction that loops provided data, executes a processing function and returns a result
-- :class:`~ignite.engine.events.Events` - events triggered by the :class:`~ignite.engine.engine.Engine` during execution
-- :class:`~ignite.engine.events.State` - object to pass internal and user-defined data between event handlers
+ignite.engine.engine
 
-and helper methods:
+.. currentmodule:: ignite.engine.engine
 
-- :meth:`~ignite.engine.create_supervised_trainer` - creates single model/optimizer/criterion supervised trainer
-- :meth:`~ignite.engine.create_supervised_evaluator` - creates single model supervised evaluation engine
+.. autosummary::
+    :nosignatures:
+    :autolist:
 
+ignite.engine.events
+
+.. currentmodule:: ignite.engine.events
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
+ignite.engine.deterministic (helper methods for deterministic training)
+
+.. currentmodule:: ignite.engine.deterministic
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
+and helper methods to define supervised trainer and evaluator:
+
+.. currentmodule:: ignite.engine
+
+.. autosummary::
+    :nosignatures:
+    :autolist-functions:
 
 More details about those structures can be found in :doc:`concepts`.
 
@@ -88,6 +110,9 @@ ignite.engine.events
 --------------------
 
 .. currentmodule:: ignite.engine.events
+
+.. autoclass:: CallableEventWithFilter
+   :members:
 
 .. autoclass:: Events
    :members:
@@ -277,4 +302,3 @@ here:
             # handler synchronizes the random state
             torch.manual_seed(12)
             a = torch.rand(1)
-
