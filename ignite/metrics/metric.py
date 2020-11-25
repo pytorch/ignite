@@ -305,7 +305,9 @@ class Metric(metaclass=ABCMeta):
         result = self.compute()
         if isinstance(result, Mapping):
             if name in result.keys():
-                raise ValueError("name of metric is conflicting with mapping keys")
+                raise ValueError(
+                    "Argument name '{}' is conflicting with mapping keys: {}".format(name, list(result.keys()))
+                 )
 
             for key, value in result.items():
                 engine.state.metrics[key] = value
