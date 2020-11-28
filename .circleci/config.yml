@@ -293,7 +293,7 @@ jobs:
             export test_cmd='bash tests/run_gpu_tests.sh'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
             # no CUDA devices Horovod tests
-            export test_cmd='CUDA_VISIBLE_DEVICES="" py.test --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed'
+            export test_cmd='CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
       - run:
