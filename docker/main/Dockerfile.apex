@@ -1,6 +1,6 @@
 # Multi-stage build
-# 1/Building apex with pytorch:1.6.0-cuda10.1-cudnn7-devel
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS apex-builder
+# 1/Building apex with pytorch:1.7.0-cuda11.0-cudnn8-devel
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel AS apex-builder
 
 ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
@@ -20,9 +20,9 @@ RUN echo "Setup NVIDIA Apex" && \
 # 2/ Build the runtime image
 FROM pytorch/pytorch:latest
 
-COPY --from=apex-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
-RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
-    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+COPY --from=apex-builder /tmp/apex/apex-*.whl /tmp/apex/
+RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
+    rm -fr /tmp/apex
 
 # Install tzdata / git
 RUN apt-get update && \
