@@ -62,9 +62,3 @@ RUN mkdir -p pytorch-ignite-examples && \
     git pull origin master
 
 WORKDIR /workspace
-
-ENTRYPOINT ["/bin/bash"]
-
-
-
-
