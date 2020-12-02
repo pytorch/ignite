@@ -4,8 +4,7 @@ on:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
   schedule:
     # Run at 00:00 UTC Every Day
-    - cron:  '0 0 * * *'
-
+    - cron: "0 0 * * *"
 
 jobs:
   build-publish:
@@ -30,7 +29,7 @@ jobs:
           conda install -y pytorch torchvision cpuonly -c pytorch-nightly
           pip install -r requirements-dev.txt
           pip install --upgrade --no-cache-dir twine
-          python setup.py install
+          pip install .
 
       - name: Build and Publish Conda binaries
         shell: bash -l {0}
