@@ -362,7 +362,7 @@ class State:
         Events.EPOCH_COMPLETED: "epoch",
         Events.STARTED: "epoch",
         Events.COMPLETED: "epoch",
-    }
+    }  # type: Dict[Union[str, "Events"], str]
 
     def __init__(self, **kwargs: Any) -> None:
         self.iteration = 0
@@ -390,7 +390,7 @@ class State:
             if not hasattr(self, value):
                 setattr(self, value, 0)
 
-    def get_event_attrib_value(self, event_name: Events) -> int:
+    def get_event_attrib_value(self, event_name: Union[str, Events]) -> int:
         if event_name not in State.event_to_attr:
             raise RuntimeError("Unknown event name '{}'".format(event_name))
         return getattr(self, State.event_to_attr[event_name])

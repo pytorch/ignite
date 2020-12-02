@@ -1,12 +1,12 @@
 import numbers
 import warnings
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine, EventEnum
+from ignite.engine import Engine, Events
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -91,7 +91,7 @@ class PolyaxonLogger(BaseLogger):
 
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         try:
             from polyaxon_client.tracking import Experiment
         except ImportError:
@@ -102,13 +102,13 @@ class PolyaxonLogger(BaseLogger):
 
         self.experiment = Experiment(*args, **kwargs)
 
-    def __getattr__(self, attr: Any):
+    def __getattr__(self, attr: Any) -> Any:
         return getattr(self.experiment, attr)
 
-    def _create_output_handler(self, *args: Any, **kwargs: Any):
+    def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> "OptimizerParamsHandler":
         return OptimizerParamsHandler(*args, **kwargs)
 
 
@@ -204,17 +204,17 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ):
+    ) -> None:
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
 
         metrics = self._setup_output_metrics(engine)
 
-        global_step = self.global_step_transform(engine, event_name)
+        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
         if not isinstance(global_step, int):
             raise TypeError(
@@ -222,7 +222,7 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform.".format(type(global_step))
             )
 
-        rendered_metrics = {"step": global_step}
+        rendered_metrics = {"step": global_step}  # type: Dict[str, Union[float, numbers.Number]]
         for key, value in metrics.items():
             if isinstance(value, numbers.Number):
                 rendered_metrics["{}/{}".format(self.tag, key)] = value
@@ -269,10 +269,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with PolyaxonLogger")
 

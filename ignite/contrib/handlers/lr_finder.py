@@ -4,7 +4,7 @@ import logging
 import tempfile
 import warnings
 from pathlib import Path
-from typing import Callable, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -71,11 +71,11 @@ class FastaiLRFinder:
         fastai/lr_find: https://github.com/fastai/fastai
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._diverge_flag = False
-        self._history = None
+        self._history = {}  # type: Dict[str, List[Any]]
         self._best_loss = None
-        self._lr_schedule = None
+        self._lr_schedule = None  # type: Optional[Union[LRScheduler, PiecewiseLinear]]
         self.logger = logging.getLogger(__name__)
 
     def _run(
@@ -88,7 +88,7 @@ class FastaiLRFinder:
         step_mode: str,
         smooth_f: float,
         diverge_th: float,
-    ):
+    ) -> None:
 
         self._history = {"lr": [], "loss": []}
         self._best_loss = None
@@ -98,7 +98,7 @@ class FastaiLRFinder:
         if num_iter is None:
             num_iter = trainer.state.epoch_length * trainer.state.max_epochs
         else:
-            max_iter = trainer.state.epoch_length * trainer.state.max_epochs
+            max_iter = trainer.state.epoch_length * trainer.state.max_epochs  # type: ignore[operator]
             if num_iter > max_iter:
                 warnings.warn(
                     "Desired num_iter {} is unreachable with the current run setup of {} iteration "
@@ -127,16 +127,16 @@ class FastaiLRFinder:
         if not trainer.has_event_handler(self._lr_schedule):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
-    def _reset(self, trainer: Engine):
+    def _reset(self, trainer: Engine) -> None:
         self.logger.debug("Completed LR finder run")
-        trainer.remove_event_handler(self._lr_schedule, Events.ITERATION_COMPLETED)
+        trainer.remove_event_handler(self._lr_schedule, Events.ITERATION_COMPLETED)  # type: ignore[arg-type]
         trainer.remove_event_handler(self._log_lr_and_loss, Events.ITERATION_COMPLETED)
         trainer.remove_event_handler(self._reached_num_iterations, Events.ITERATION_COMPLETED)
 
-    def _log_lr_and_loss(self, trainer: Engine, output_transform: Callable, smooth_f: float, diverge_th: float):
+    def _log_lr_and_loss(self, trainer: Engine, output_transform: Callable, smooth_f: float, diverge_th: float) -> None:
         output = trainer.state.output
         loss = output_transform(output)
-        lr = self._lr_schedule.get_param()
+        lr = self._lr_schedule.get_param()  # type: ignore[union-attr]
         self._history["lr"].append(lr)
         if trainer.state.iteration == 1:
             self._best_loss = loss
@@ -148,16 +148,16 @@ class FastaiLRFinder:
         self._history["loss"].append(loss)
 
         # Check if the loss has diverged; if it has, stop the trainer
-        if self._history["loss"][-1] > diverge_th * self._best_loss:
+        if self._history["loss"][-1] > diverge_th * self._best_loss:  # type: ignore[operator]
             self._diverge_flag = True
             self.logger.info("Stopping early, the loss has diverged")
             trainer.terminate()
 
-    def _reached_num_iterations(self, trainer: Engine, num_iter: int):
+    def _reached_num_iterations(self, trainer: Engine, num_iter: int) -> None:
         if trainer.state.iteration > num_iter:
             trainer.terminate()
 
-    def _warning(self, _):
+    def _warning(self, _: Any) -> None:
         if not self._diverge_flag:
             warnings.warn(
                 "Run completed without loss diverging, increase end_lr, decrease diverge_th or look"
@@ -165,7 +165,7 @@ class FastaiLRFinder:
                 UserWarning,
             )
 
-    def _detach(self, trainer: Engine):
+    def _detach(self, trainer: Engine) -> None:
         """
         Detaches lr_finder from trainer.
 
@@ -180,13 +180,13 @@ class FastaiLRFinder:
         if trainer.has_event_handler(self._reset, Events.COMPLETED):
             trainer.remove_event_handler(self._reset, Events.COMPLETED)
 
-    def get_results(self):
+    def get_results(self) -> Dict[str, List[Any]]:
         """
         Returns: dictionary with loss and lr logs fromm the previous run
         """
         return self._history
 
-    def plot(self, skip_start: int = 10, skip_end: int = 5, log_lr: bool = True):
+    def plot(self, skip_start: int = 10, skip_end: int = 5, log_lr: bool = True) -> None:
         """Plots the learning rate range test.
 
         This method requires `matplotlib` package to be installed:
@@ -211,7 +211,7 @@ class FastaiLRFinder:
                 "Please install it with command: \n pip install matplotlib"
             )
 
-        if self._history is None:
+        if not self._history:
             raise RuntimeError("learning rate finder didn't run yet so results can't be plotted")
 
         if skip_start < 0:
@@ -239,11 +239,11 @@ class FastaiLRFinder:
         plt.ylabel("Loss")
         plt.show()
 
-    def lr_suggestion(self):
+    def lr_suggestion(self) -> Any:
         """
         Returns: learning rate at the minimum numerical gradient
         """
-        if self._history is None:
+        if not self._history:
             raise RuntimeError("learning rate finder didn't run yet so lr_suggestion can't be returned")
         loss = self._history["loss"]
         grads = torch.tensor([loss[i] - loss[i - 1] for i in range(1, len(loss))])
@@ -261,7 +261,7 @@ class FastaiLRFinder:
         step_mode: str = "exp",
         smooth_f: float = 0.05,
         diverge_th: float = 5.0,
-    ):
+    ) -> Any:
         """Attaches lr_finder to a given trainer. It also resets model and optimizer at the end of the run.
 
         Usage:
@@ -372,12 +372,12 @@ class _ExponentialLR(_LRScheduler):
 
     """
 
-    def __init__(self, optimizer: Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1) -> None:
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
-    def get_lr(self):
-        curr_iter = self.last_epoch + 1
+    def get_lr(self) -> List[float]:  # type: ignore
+        curr_iter = self.last_epoch + 1  # type: ignore[attr-defined]
         r = curr_iter / self.num_iter
-        return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
+        return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]  # type: ignore[attr-defined]

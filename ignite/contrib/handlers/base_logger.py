@@ -1,18 +1,19 @@
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from ignite.engine import Engine, State
+from ignite.engine import Engine, Events, State
+from ignite.engine.events import RemovableEventHandle
 
 
 class BaseHandler(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, engine, logger, event_name):
+    def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
         pass
 
 
@@ -68,7 +69,7 @@ class BaseOutputHandler(BaseHandler):
 
         if global_step_transform is None:
 
-            def global_step_transform(engine, event_name):
+            def global_step_transform(engine: Engine, event_name: Union[str, Events]) -> int:
                 return engine.state.get_event_attrib_value(event_name)
 
         self.tag = tag
@@ -76,7 +77,7 @@ class BaseOutputHandler(BaseHandler):
         self.output_transform = output_transform
         self.global_step_transform = global_step_transform
 
-    def _setup_output_metrics(self, engine: Engine):
+    def _setup_output_metrics(self, engine: Engine) -> Dict[str, Any]:
         """Helper method to setup metrics to log
         """
         metrics = {}
@@ -108,14 +109,14 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
         if not isinstance(model, torch.nn.Module):
             raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
 
         if not callable(reduction):
             raise TypeError("Argument reduction should be callable, " "but given {}".format(type(reduction)))
 
-        def _is_0D_tensor(t: torch.Tensor):
+        def _is_0D_tensor(t: torch.Tensor) -> bool:
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
         # Test reduction function on a tensor
@@ -147,7 +148,7 @@ class BaseLogger(metaclass=ABCMeta):
 
     """
 
-    def attach(self, engine: Engine, log_handler: Callable, event_name: Any):
+    def attach(self, engine: Engine, log_handler: Callable, event_name: Union[str, Events]) -> RemovableEventHandle:
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
         Args:
@@ -167,7 +168,7 @@ class BaseLogger(metaclass=ABCMeta):
 
         return engine.add_event_handler(event_name, log_handler, self, name)
 
-    def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any):
+    def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Shortcut method to attach `OutputHandler` to the logger.
 
         Args:
@@ -183,7 +184,7 @@ class BaseLogger(metaclass=ABCMeta):
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
-    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any):
+    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> None:
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
         Args:
@@ -200,18 +201,18 @@ class BaseLogger(metaclass=ABCMeta):
         self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
 
     @abstractmethod
-    def _create_output_handler(self, engine: Engine, *args: Any, **kwargs: Any):
+    def _create_output_handler(self, engine: Engine, *args: Any, **kwargs: Any) -> Callable:
         pass
 
     @abstractmethod
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> Callable:
         pass
 
-    def __enter__(self):
+    def __enter__(self) -> "BaseLogger":
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         pass
