@@ -35,7 +35,7 @@ jobs:
           pip install -r requirements-dev.txt
           pip install .
 
-    - name: Run Tests
-      shell: bash -l {0}
-      run: |
-        pytest tests -vvv
+      - name: Run Tests
+        shell: bash -l {0}
+        run: |
+          pytest tests -vvv
