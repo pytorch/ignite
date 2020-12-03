@@ -43,8 +43,6 @@ jobs:
           ~/conda_pkgs_dir
           ${{ steps.pip-cache.outputs.dir }}
         key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
-        restore-keys: |
-          ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
 
     - name: Setup Miniconda
       uses: conda-incubator/setup-miniconda@v2
