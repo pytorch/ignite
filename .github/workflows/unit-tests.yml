@@ -54,7 +54,7 @@ jobs:
         run: |
           conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
           pip install -r requirements-dev.txt
-          pip install .
+          python setup.py install
 
       - name: Run Mypy
         shell: bash -l {0}

@@ -36,7 +36,7 @@ jobs:
           conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
           pip install -r requirements-dev.txt
           pip install horovod
-          pip install .
+          python setup.py install
 
       - name: Run Tests
         shell: bash -l {0}

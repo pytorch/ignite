@@ -52,7 +52,7 @@ jobs:
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
-          pip install .
+          python setup.py install
 
       - name: Run Tests
         run: |
