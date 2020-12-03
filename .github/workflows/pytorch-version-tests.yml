@@ -32,8 +32,8 @@ jobs:
       - name: Get pip cache dir
         id: pip-cache
         run: |
-          pip3 install -U pip
-          echo "::set-output name=dir::$(python3 -m pip cache dir)"
+          pip3 install -U --user pip
+          echo "::set-output name=dir::$(pip3 cache dir)"
         shell: bash -l {0}
 
       - uses: actions/cache@v2
