@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.optim import Optimizer
 
 from ignite.engine import Engine, Events, State
-from ignite.engine.events import RemovableEventHandle
+from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
 class BaseHandler(metaclass=ABCMeta):
@@ -148,7 +148,9 @@ class BaseLogger(metaclass=ABCMeta):
 
     """
 
-    def attach(self, engine: Engine, log_handler: Callable, event_name: Union[str, Events]) -> RemovableEventHandle:
+    def attach(
+        self, engine: Engine, log_handler: Callable, event_name: Union[str, Events, CallableEventWithFilter]
+    ) -> RemovableEventHandle:
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
         Args:
