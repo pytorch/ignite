@@ -62,7 +62,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir
             ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
+          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
 

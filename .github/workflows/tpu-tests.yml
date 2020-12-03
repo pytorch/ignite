@@ -45,7 +45,7 @@ jobs:
         with:
           path: |
             ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
+          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
 
