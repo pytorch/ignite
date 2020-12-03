@@ -2,16 +2,16 @@ name: Run TPU tests
 on:
   push:
     paths:
-      - 'ignite/**'
-      - 'tests/ignite/**'
-      - 'tests/run_tpu_tests.sh'
-      - '.github/workflows/tpu-tests.yml'
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_tpu_tests.sh"
+      - ".github/workflows/tpu-tests.yml"
   pull_request:
     paths:
-      - 'ignite/**'
-      - 'tests/ignite/**'
-      - 'tests/run_tpu_tests.sh'
-      - '.github/workflows/tpu-tests.yml'
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_tpu_tests.sh"
+      - ".github/workflows/tpu-tests.yml"
 
 jobs:
   tpu-tests:
@@ -19,73 +19,73 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xla-version: [nightly, ]
+        xla-version: [nightly]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.6.10'
-        architecture: 'x64'
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.6.10"
+          architecture: "x64"
 
-    - name: Get year & week number
-      id: get-date
-      run: echo "::set-output name=date::$(/bin/date "+%Y-%U")"
-      shell: bash -l {0}
+      - name: Get year & week number
+        id: get-date
+        run: echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+        shell: bash -l {0}
 
-    - name: Get pip cache dir
-      id: pip-cache
-      run: |
-        pip3 install -U pip
-        echo "::set-output name=dir::$(pip cache dir)"
-      shell: bash -l {0}
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          pip3 install -U pip
+          echo "::set-output name=dir::$(pip cache dir)"
+        shell: bash -l {0}
 
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
-        restore-keys: |
-          ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ steps.get-date.outputs.date }}-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
 
-    - name: Install Torch XLA and others
-      run: |
+      - name: Install Torch XLA and others
+        run: |
 
-        ## Install gsutil
-        echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-        sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-        sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+          ## Install gsutil
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
 
-        ## Install openblas and mkl
-        sudo apt-get install -y libopenblas-dev libomp5
-        pip install mkl
+          ## Install openblas and mkl
+          sudo apt-get install -y libopenblas-dev libomp5
+          pip install mkl
 
-        ## Download torch & xla
-        gsutil cp gs://tpu-pytorch/wheels/torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
-        gsutil cp gs://tpu-pytorch/wheels/torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
+          ## Download torch & xla
+          gsutil cp gs://tpu-pytorch/wheels/torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
+          gsutil cp gs://tpu-pytorch/wheels/torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
 
-        ## Install torch & xla
-        pip install torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
-        pip install torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
-        
-        ## Install test deps and Ignite
-        pip install -r requirements-dev.txt
-        python setup.py install
+          ## Install torch & xla
+          pip install torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
+          pip install torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
 
-    - name: Run Tests
-      run: |
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/hostedtoolcache/Python/3.6.10/x64/lib
-        export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
-        export XRT_WORKERS="localservice:0;grpc://localhost:40934"
+          ## Install test deps and Ignite
+          pip install -r requirements-dev.txt
+          python setup.py install
 
-        python -c "import torch_xla; print('torch xla version:', torch_xla.__version__)"
-        bash tests/run_tpu_tests.sh
+      - name: Run Tests
+        run: |
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/hostedtoolcache/Python/3.6.10/x64/lib
+          export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
+          export XRT_WORKERS="localservice:0;grpc://localhost:40934"
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
-        flags: tpu
-        fail_ci_if_error: true
+          python -c "import torch_xla; print('torch xla version:', torch_xla.__version__)"
+          bash tests/run_tpu_tests.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          flags: tpu
+          fail_ci_if_error: true

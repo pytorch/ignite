@@ -15,12 +15,12 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      
+
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
-      
+
       - name: Install docs deps
         run: bash .github/workflows/install_docs_deps.sh
 

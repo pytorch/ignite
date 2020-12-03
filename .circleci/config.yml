@@ -20,11 +20,10 @@ parameters:
 one_gpu: &one_gpu
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-1604-cuda-10.1:201909-23  # CUDA 10.1, docker 19.03.0-ce, nvidia-docker 2.2.2
+    image: ubuntu-1604-cuda-10.1:201909-23 # CUDA 10.1, docker 19.03.0-ce, nvidia-docker 2.2.2
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.small
-
 
 one_gpu_windows: &one_gpu_windows
   machine:
@@ -32,15 +31,13 @@ one_gpu_windows: &one_gpu_windows
     image: windows-server-2019-nvidia:stable
     shell: bash.exe
 
-
 two_gpus: &two_gpus
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-1604-cuda-10.1:201909-23  # CUDA 10.1, docker 19.03.0-ce, nvidia-docker 2.2.2
+    image: ubuntu-1604-cuda-10.1:201909-23 # CUDA 10.1, docker 19.03.0-ce, nvidia-docker 2.2.2
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.medium
-
 
 # -------------------------------------------------------------------------------------
 # Re-usable commands
@@ -58,7 +55,6 @@ pull_pytorch_stable_devel_image: &pull_pytorch_stable_devel_image
       command: |
         docker pull << pipeline.parameters.pytorch_stable_image_devel >>
 
-
 run_pytorch_container: &run_pytorch_container
   - run:
       name: Start Pytorch container
@@ -68,7 +64,6 @@ run_pytorch_container: &run_pytorch_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
-
 
 run_pytorch_devel_container: &run_pytorch_devel_container
   - run:
@@ -85,14 +80,13 @@ install_dependencies: &install_dependencies
       name: Install dependencies
       command: |
         docker exec -it pthd pip install -r requirements-dev.txt
-        export install_ignite_cmd='pip install .'
+        export install_ignite_cmd='python setup.py install'
         docker exec -it pthd /bin/bash -c "$install_ignite_cmd"
 
 # -------------------------------------------------------------------------------------
 # Jobs to run
 # -------------------------------------------------------------------------------------
 jobs:
-
   one_gpu_tests:
     <<: *one_gpu
 
@@ -153,7 +147,6 @@ jobs:
           command: |
             bash <(curl -s https://codecov.io/bash) -Z -F gpu
 
-
   one_gpu_windows_tests:
     <<: *one_gpu_windows
 
@@ -204,7 +197,6 @@ jobs:
           name: Codecov upload
           command: |
             bash <(curl -s https://codecov.io/bash) -Z -F gpu-2
-
 
   two_gpus_check_dist_cifar10_example:
     <<: *two_gpus
@@ -259,7 +251,6 @@ jobs:
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
-
 
   two_gpus_hvd_tests:
     <<: *two_gpus
@@ -326,14 +317,12 @@ jobs:
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
-
 # -------------------------------------------------------------------------------------
 # Workflows
 # -------------------------------------------------------------------------------------
 workflows:
   version: 2
   gpu_tests:
-
     jobs:
       - one_gpu_tests
       - one_gpu_windows_tests
