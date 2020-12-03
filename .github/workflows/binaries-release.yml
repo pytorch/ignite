@@ -2,7 +2,7 @@ name: Stable Releases
 
 on:
   push:
-    tags: ["v*"]  
+    tags: ["v*"]
   release:
     types: [published]
 
