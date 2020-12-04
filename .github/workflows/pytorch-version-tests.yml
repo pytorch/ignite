@@ -37,7 +37,6 @@ jobs:
         shell: bash -l {0}
 
       - uses: actions/cache@v2
-        shell: bash -l {0}
         with:
           path: |
             ~/conda_pkgs_dir
