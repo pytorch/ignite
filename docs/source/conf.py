@@ -103,7 +103,7 @@ html_theme_options = {
     "logo_only": True,
 }
 
-html_logo = "_static/img/ignite_logo.svg"
+html_logo = "_templates/_static/img/ignite_logo.svg"
 
 html_favicon = "_templates/_static/img/ignite_logomark.svg"
 
@@ -188,7 +188,7 @@ texinfo_documents = [
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/": None}
+intersphinx_mapping = {"https://docs.python.org/3/": None}
 
 # -- Options for todo extension ----------------------------------------------
 
