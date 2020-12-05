@@ -588,7 +588,7 @@ class HandlersTimeProfiler:
         def compute_basic_stats(
             times: Union[Sequence, torch.Tensor]
         ) -> List[Union[str, float, Tuple[Union[str, float], Union[str, float]]]]:
-            data = torch.as_tensor(data, dtype=torch.float32)
+            data = torch.as_tensor(times, dtype=torch.float32)
             # compute on non-zero data:
             data = data[data > 0]
             total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"  # type: Union[str, float]
