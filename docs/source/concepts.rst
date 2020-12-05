@@ -48,8 +48,8 @@ function can return everything user wants. Output is set to ``trainer.state.outp
 
 .. Note ::
 
-    By default, epoch length is defined by ``len(data)``. However, user can also manually define the epoch length as a
-    number of iterations to loop. In this way the input data can be an iterator.
+    By default, epoch length is defined by ``len(data)``. However, a user can also manually define the epoch length as a
+    number of iterations to loop over. In this way, the input data can be an iterator.
 
     .. code-block:: python
 
@@ -59,7 +59,7 @@ function can return everything user wants. Output is set to ``trainer.state.outp
     will be automatically determined when data iterator is exhausted.
 
 
-**Mostly any complexity training logic** can be coded as ``train_step`` method and a trainer constructed using this method.
+**Mostly any complexity training logic** can be coded as ``train_step`` method and a trainer can be constructed using this method.
 Argument ``batch`` in ``train_step`` function is user-defined and can contain any data required for a single iteration.
 
 .. code-block:: python
@@ -111,7 +111,7 @@ For multi-models training examples like GAN's, please, see our :doc:`examples`.
 Events and Handlers
 -------------------
 
-To improve the :class:`~ignite.engine.engine.Engine`'s flexibility, an event system is introduced that facilitates interaction on each step of
+To improve the :class:`~ignite.engine.engine.Engine`'s flexibility, an event system is introduced which facilitates interaction on each step of
 the run:
 
 - *engine is started/completed*
@@ -120,8 +120,8 @@ the run:
 
 Complete list of events can be found at :class:`~ignite.engine.events.Events`.
 
-Thus, user can execute a custom code as an event handler. Handlers can be any function: e.g. lambda, simple function,
-class method etc. The first argument can be optionally `engine`, but not necessary.
+Thus, a user can execute a custom code as an event handler. Handlers can be any function: e.g. lambda, simple function,
+class method etc. The first argument can be optionally `engine`, but not necessarily.
 
 Let us consider in more detail what happens when :meth:`~ignite.engine.engine.Engine.run` is called:
 
@@ -140,9 +140,9 @@ Let us consider in more detail what happens when :meth:`~ignite.engine.engine.En
         fire_event(Events.EPOCH_COMPLETED)
     fire_event(Events.COMPLETED)
 
-At first *"engine is started"* event is fired and all its event handlers are executed (we will see in the next paragraph
+At first, *"engine is started"* event is fired and all its event handlers are executed (we will see in the next paragraph
 how to add event handlers). Next, `while` loop is started and *"epoch is started"* event occurs, etc. Every time
-an event is "fired", attached handlers are executed.
+an event is fired, attached handlers are executed.
 
 Attaching an event handler is simple using method :meth:`~ignite.engine.engine.Engine.add_event_handler` or
 :meth:`~ignite.engine.engine.Engine.on` decorator:

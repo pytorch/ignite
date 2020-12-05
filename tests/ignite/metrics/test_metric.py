@@ -672,7 +672,10 @@ def test_completed():
     engine = MagicMock(state=State(metrics={}))
     metrics = {"foo": 1, "bar": torch.tensor(2.0), "baz": {"qux": "quux"}}
     m.compute = MagicMock(return_value=metrics)
+    with pytest.raises(ValueError, match=r"Argument name 'foo' is conflicting with mapping keys"):
+        m.completed(engine, "foo")
     m.completed(engine, "metric")
+    metrics["metric"] = metrics
     assert engine.state.metrics == metrics
 
     # other
