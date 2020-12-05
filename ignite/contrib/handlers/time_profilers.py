@@ -1,6 +1,6 @@
 import functools
 from collections import OrderedDict
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Sequence, Union
+from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple, Union, cast
 
 import torch
 
@@ -42,14 +42,14 @@ class BasicTimeProfiler:
         Events.DATALOADER_STOP_ITERATION,
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._dataflow_timer = Timer()
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()
 
-        self.dataflow_times = None
-        self.processing_times = None
-        self.event_handlers_times = None
+        self.dataflow_times = torch.zeros(1)
+        self.processing_times = torch.zeros(1)
+        self.event_handlers_times = {}  # type: Dict[EventEnum, torch.Tensor]
 
         self._events = [
             Events.EPOCH_STARTED,
@@ -79,7 +79,7 @@ class BasicTimeProfiler:
             self._as_last_completed,
         ]
 
-    def _reset(self, num_epochs: int, total_num_iters: int):
+    def _reset(self, num_epochs: int, total_num_iters: int) -> None:
         self.dataflow_times = torch.zeros(total_num_iters)
         self.processing_times = torch.zeros(total_num_iters)
         self.event_handlers_times = {
@@ -93,13 +93,18 @@ class BasicTimeProfiler:
             Events.GET_BATCH_STARTED: torch.zeros(total_num_iters),
         }
 
-    def _as_first_started(self, engine: Engine):
+    def _as_first_started(self, engine: Engine) -> None:
         if hasattr(engine.state.dataloader, "__len__"):
-            num_iters_per_epoch = len(engine.state.dataloader)
+            num_iters_per_epoch = len(engine.state.dataloader)  # type: ignore[arg-type]
         else:
+            if engine.state.epoch_length is None:
+                raise ValueError(
+                    "As epoch_length is not set, we can not use BasicTimeProfiler in this case."
+                    "Please, set trainer.run(..., epoch_length=epoch_length) in order to fix this."
+                )
             num_iters_per_epoch = engine.state.epoch_length
 
-        self.max_epochs = engine.state.max_epochs
+        self.max_epochs = cast(int, engine.state.max_epochs)
         self.total_num_iters = self.max_epochs * num_iters_per_epoch
         self._reset(self.max_epochs, self.total_num_iters)
 
@@ -125,30 +130,30 @@ class BasicTimeProfiler:
         # Let's go
         self._event_handlers_timer.reset()
 
-    def _as_last_started(self, engine: Engine):
+    def _as_last_started(self, engine: Engine) -> None:
         self.event_handlers_times[Events.STARTED][0] = self._event_handlers_timer.value()
 
-    def _as_first_epoch_started(self, engine: Engine):
+    def _as_first_epoch_started(self, engine: Engine) -> None:
         self._event_handlers_timer.reset()
 
-    def _as_last_epoch_started(self, engine: Engine):
+    def _as_last_epoch_started(self, engine: Engine) -> None:
         t = self._event_handlers_timer.value()
         e = engine.state.epoch - 1
         self.event_handlers_times[Events.EPOCH_STARTED][e] = t
 
-    def _as_first_get_batch_started(self, engine: Engine):
+    def _as_first_get_batch_started(self, engine: Engine) -> None:
         self._event_handlers_timer.reset()
         self._dataflow_timer.reset()
 
-    def _as_last_get_batch_started(self, engine: Engine):
+    def _as_last_get_batch_started(self, engine: Engine) -> None:
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.GET_BATCH_STARTED][i] = t
 
-    def _as_first_get_batch_completed(self, engine: Engine):
+    def _as_first_get_batch_completed(self, engine: Engine) -> None:
         self._event_handlers_timer.reset()
 
-    def _as_last_get_batch_completed(self, engine: Engine):
+    def _as_last_get_batch_completed(self, engine: Engine) -> None:
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.GET_BATCH_COMPLETED][i] = t
@@ -158,40 +163,40 @@ class BasicTimeProfiler:
 
         self._dataflow_timer.reset()
 
-    def _as_first_iter_started(self, engine: Engine):
+    def _as_first_iter_started(self, engine: Engine) -> None:
         self._event_handlers_timer.reset()
 
-    def _as_last_iter_started(self, engine: Engine):
+    def _as_last_iter_started(self, engine: Engine) -> None:
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.ITERATION_STARTED][i] = t
 
         self._processing_timer.reset()
 
-    def _as_first_iter_completed(self, engine: Engine):
+    def _as_first_iter_completed(self, engine: Engine) -> None:
         t = self._processing_timer.value()
         i = engine.state.iteration - 1
         self.processing_times[i] = t
 
         self._event_handlers_timer.reset()
 
-    def _as_last_iter_completed(self, engine: Engine):
+    def _as_last_iter_completed(self, engine: Engine) -> None:
         t = self._event_handlers_timer.value()
         i = engine.state.iteration - 1
         self.event_handlers_times[Events.ITERATION_COMPLETED][i] = t
 
-    def _as_first_epoch_completed(self, engine: Engine):
+    def _as_first_epoch_completed(self, engine: Engine) -> None:
         self._event_handlers_timer.reset()
 
-    def _as_last_epoch_completed(self, engine: Engine):
+    def _as_last_epoch_completed(self, engine: Engine) -> None:
         t = self._event_handlers_timer.value()
         e = engine.state.epoch - 1
         self.event_handlers_times[Events.EPOCH_COMPLETED][e] = t
 
-    def _as_first_completed(self, engine: Engine):
+    def _as_first_completed(self, engine: Engine) -> None:
         self._event_handlers_timer.reset()
 
-    def _as_last_completed(self, engine: Engine):
+    def _as_last_completed(self, engine: Engine) -> None:
         self.event_handlers_times[Events.COMPLETED][0] = self._event_handlers_timer.value()
 
         # Remove added handlers:
@@ -203,7 +208,7 @@ class BasicTimeProfiler:
         for e, m in zip(self._events, self._lmethods):
             engine.remove_event_handler(m, e)
 
-    def attach(self, engine: Engine):
+    def attach(self, engine: Engine) -> None:
         if not isinstance(engine, Engine):
             raise TypeError("Argument engine should be ignite.engine.Engine, " "but given {}".format(type(engine)))
 
@@ -211,10 +216,12 @@ class BasicTimeProfiler:
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
     @staticmethod
-    def _compute_basic_stats(data: Sequence):
+    def _compute_basic_stats(data: torch.Tensor) -> Dict[str, Union[str, float, Tuple[Union[float], Union[float]]]]:
         # compute on non-zero data:
         data = data[data > 0]
-        out = [("total", torch.sum(data).item() if len(data) > 0 else "not yet triggered")]
+        out = [
+            ("total", torch.sum(data).item() if len(data) > 0 else "not yet triggered")
+        ]  # type: List[Tuple[str, Union[str, float, Tuple[Union[float], Union[float]]]]]
         if len(data) > 1:
             out += [
                 ("min/index", (torch.min(data).item(), torch.argmin(data).item())),
@@ -224,7 +231,7 @@ class BasicTimeProfiler:
             ]
         return OrderedDict(out)
 
-    def get_results(self):
+    def get_results(self) -> Dict[str, Dict[str, Any]]:
         """
         Method to fetch the aggregated profiler results after the engine is run
 
@@ -233,23 +240,23 @@ class BasicTimeProfiler:
             results = profiler.get_results()
 
         """
-        total_eh_time = sum([(self.event_handlers_times[e]).sum() for e in Events if e not in self.events_to_ignore])
+        total_eh_time = sum(
+            [(self.event_handlers_times[e]).sum() for e in Events if e not in self.events_to_ignore]
+        )  # type: Union[int, torch.Tensor]
+        event_handlers_stats = dict(
+            [
+                (str(e.name).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
+                for e in Events
+                if e not in self.events_to_ignore
+            ]
+            + [("total_time", total_eh_time)]  # type: ignore[list-item]
+        )
 
         return OrderedDict(
             [
                 ("processing_stats", self._compute_basic_stats(self.processing_times)),
                 ("dataflow_stats", self._compute_basic_stats(self.dataflow_times)),
-                (
-                    "event_handlers_stats",
-                    dict(
-                        [
-                            (str(e.name).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
-                            for e in Events
-                            if e not in self.events_to_ignore
-                        ]
-                        + [("total_time", total_eh_time)]
-                    ),
-                ),
+                ("event_handlers_stats", event_handlers_stats,),
                 (
                     "event_handlers_names",
                     {str(e.name).replace(".", "_") + "_names": v for e, v in self.event_handlers_names.items()},
@@ -257,7 +264,7 @@ class BasicTimeProfiler:
             ]
         )
 
-    def write_results(self, output_path: str):
+    def write_results(self, output_path: str) -> None:
         """
         Method to store the unaggregated profiling results to a csv file
 
@@ -336,7 +343,7 @@ class BasicTimeProfiler:
         results_df.to_csv(output_path, index=False)
 
     @staticmethod
-    def print_results(results: Union[Dict, Iterable]):
+    def print_results(results: Dict) -> str:
         """
         Method to print the aggregated results from the profiler
 
@@ -382,14 +389,14 @@ class BasicTimeProfiler:
 
         """
 
-        def to_str(v: Union[str, tuple]):
+        def to_str(v: Union[str, tuple]) -> str:
             if isinstance(v, str):
                 return v
             elif isinstance(v, tuple):
                 return "{:.5f}/{}".format(v[0], v[1])
             return "{:.5f}".format(v)
 
-        def odict_to_str(d: Mapping):
+        def odict_to_str(d: Mapping) -> str:
             out = " | ".join([to_str(v) for v in d.values()])
             return out
 
@@ -470,21 +477,21 @@ class HandlersTimeProfiler:
 
     EVENT_FILTER_THESHOLD_TIME = 0.0001
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._dataflow_timer = Timer()
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()
 
-        self.dataflow_times = None
-        self.processing_times = None
-        self.event_handlers_times = None
+        self.dataflow_times = []  # type: List[float]
+        self.processing_times = []  # type: List[float]
+        self.event_handlers_times = {}  # type: Dict[EventEnum, Dict[str, List[float]]]
 
     @staticmethod
     def _get_callable_name(handler: Callable) -> str:
         # get name of the callable handler
         return getattr(handler, "__qualname__", handler.__class__.__name__)
 
-    def _create_wrapped_handler(self, handler: Callable, event: Events) -> Callable:
+    def _create_wrapped_handler(self, handler: Callable, event: EventEnum) -> Callable:
         @functools.wraps(handler)
         def _timeit_handler(*args: Any, **kwargs: Any) -> None:
             self._event_handlers_timer.reset()
@@ -583,15 +590,17 @@ class HandlersTimeProfiler:
         )
         total_eh_time = round(float(total_eh_time), 5,)
 
-        def compute_basic_stats(data: Sequence) -> List[Union[str, float]]:
-            data = torch.as_tensor(data, dtype=torch.float32)
+        def compute_basic_stats(
+            times: Union[Sequence, torch.Tensor]
+        ) -> List[Union[str, float, Tuple[Union[str, float], Union[str, float]]]]:
+            data = torch.as_tensor(times, dtype=torch.float32)
             # compute on non-zero data:
             data = data[data > 0]
-            total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"
-            min_index = ("None", "None")
-            max_index = ("None", "None")
-            mean = "None"
-            std = "None"
+            total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"  # type: Union[str, float]
+            min_index = ("None", "None")  # type: Tuple[Union[str, float], Union[str, float]]
+            max_index = ("None", "None")  # type: Tuple[Union[str, float], Union[str, float]]
+            mean = "None"  # type: Union[str, float]
+            std = "None"  # type: Union[str, float]
             if len(data) > 0:
                 min_index = (round(torch.min(data).item(), 5), torch.argmin(data).item())
                 max_index = (round(torch.max(data).item(), 5), torch.argmax(data).item())
@@ -695,8 +704,8 @@ class HandlersTimeProfiler:
 
         """
         # adopted implementation of torch.autograd.profiler.build_table
-        handler_column_width = max([len(item[0]) for item in results]) + 4
-        event_column_width = max([len(item[1]) for item in results]) + 4
+        handler_column_width = max([len(item[0]) for item in results]) + 4  # type: ignore[arg-type]
+        event_column_width = max([len(item[1]) for item in results]) + 4  # type: ignore[arg-type]
 
         DEFAULT_COLUMN_WIDTH = 14
 
@@ -742,8 +751,8 @@ class HandlersTimeProfiler:
 
         for row in results[:-3]:
             # format min/idx and max/idx
-            row[3] = "{}/{}".format(*row[3])
-            row[4] = "{}/{}".format(*row[4])
+            row[3] = "{}/{}".format(*row[3])  # type: ignore[misc]
+            row[4] = "{}/{}".format(*row[4])  # type: ignore[misc]
 
             append(row_format.format(*row))
 
@@ -754,8 +763,8 @@ class HandlersTimeProfiler:
 
         summary_format = "{} took total {}s [min/index: {}, max/index: {}, mean: {}s, std: {}s]"
         for row in results[-2:]:
-            row[3] = "{}s/{}".format(*row[3])
-            row[4] = "{}s/{}".format(*row[4])
+            row[3] = "{}s/{}".format(*row[3])  # type: ignore[misc]
+            row[4] = "{}s/{}".format(*row[4])  # type: ignore[misc]
             del row[1]
             append(summary_format.format(*row))
         print("".join(result))

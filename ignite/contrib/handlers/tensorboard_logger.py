@@ -13,7 +13,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHistHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine, EventEnum
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import global_step_from_engine
 
 __all__ = [
@@ -149,12 +149,12 @@ class TensorboardLogger(BaseLogger):
 
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
             try:
-                from torch.utils.tensorboard import SummaryWriter
+                from torch.utils.tensorboard import SummaryWriter  # type: ignore[no-redef]
             except ImportError:
                 raise RuntimeError(
                     "This contrib module requires either tensorboardX or torch >= 1.2.0. "
@@ -164,13 +164,13 @@ class TensorboardLogger(BaseLogger):
 
         self.writer = SummaryWriter(*args, **kwargs)
 
-    def close(self):
+    def close(self) -> None:
         self.writer.close()
 
-    def _create_output_handler(self, *args: Any, **kwargs: Any):
+    def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> "OptimizerParamsHandler":
         return OptimizerParamsHandler(*args, **kwargs)
 
 
@@ -266,17 +266,17 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ):
+    ) -> None:
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]) -> None:
 
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
 
         metrics = self._setup_output_metrics(engine)
 
-        global_step = self.global_step_transform(engine, event_name)
+        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
         if not isinstance(global_step, int):
             raise TypeError(
                 "global_step must be int, got {}."
@@ -325,10 +325,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with TensorboardLogger")
 
@@ -371,10 +371,10 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with TensorboardLogger")
@@ -419,7 +419,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
     def __init__(self, model: nn.Module, tag: Optional[str] = None):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
 
@@ -465,10 +465,10 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with TensorboardLogger")
 
@@ -509,10 +509,10 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model: nn.Module, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, tag: Optional[str] = None) -> None:
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsHistHandler' works only with TensorboardLogger")
 

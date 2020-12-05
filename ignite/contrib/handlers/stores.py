@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, List, Tuple, Union
 
 from ignite.engine import Engine, Events
 
@@ -33,17 +33,17 @@ class EpochOutputStore:
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x):
-        self.data = None
+    def __init__(self, output_transform: Callable = lambda x: x) -> None:
+        self.data = []  # type: List[Union[int, Tuple[int, int]]]
         self.output_transform = output_transform
 
-    def reset(self):
+    def reset(self) -> None:
         self.data = []
 
-    def update(self, engine: Engine):
+    def update(self, engine: Engine) -> None:
         output = self.output_transform(engine.state.output)
         self.data.append(output)
 
-    def attach(self, engine: Engine):
+    def attach(self, engine: Engine) -> None:
         engine.add_event_handler(Events.EPOCH_STARTED, self.reset)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.update)

@@ -1,7 +1,7 @@
 import numbers
 import os
 import warnings
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
 import torch.nn as nn
@@ -13,7 +13,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine
+from ignite.engine import Engine, Events
 from ignite.handlers import global_step_from_engine
 
 __all__ = [
@@ -170,7 +170,7 @@ class VisdomLogger(BaseLogger):
                 )
 
         if server is None:
-            server = os.environ.get("VISDOM_SERVER_URL", "localhost")
+            server = cast(str, os.environ.get("VISDOM_SERVER_URL", "localhost"))
 
         if port is None:
             port = int(os.environ.get("VISDOM_PORT", 8097))
@@ -185,37 +185,39 @@ class VisdomLogger(BaseLogger):
 
         self.vis = visdom.Visdom(server=server, port=port, raise_exceptions=raise_exceptions, **kwargs)
 
-        if not self.vis.offline and not self.vis.check_connection():
+        if not self.vis.offline and not self.vis.check_connection():  # type: ignore[attr-defined]
             raise RuntimeError(
                 "Failed to connect to Visdom server at {}. Did you run python -m visdom.server ?".format(server)
             )
 
-        self.executor = _DummyExecutor()
+        self.executor = _DummyExecutor()  # type: Union[_DummyExecutor, "ThreadPoolExecutor"]
         if num_workers > 0:
             from concurrent.futures import ThreadPoolExecutor
 
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
-    def _save(self):
-        self.vis.save([self.vis.env])
+    def _save(self) -> None:
+        self.vis.save([self.vis.env])  # type: ignore[attr-defined]
 
-    def close(self):
+    def close(self) -> None:
         self.executor.shutdown()
-        self.vis = None
+        self.vis.close()
 
-    def _create_output_handler(self, *args: Any, **kwargs: Any):
+    def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> "OptimizerParamsHandler":
         return OptimizerParamsHandler(*args, **kwargs)
 
 
 class _BaseVisDrawer:
-    def __init__(self, show_legend: bool = False):
-        self.windows = {}
+    def __init__(self, show_legend: bool = False) -> None:
+        self.windows = {}  # type: Dict[str, Any]
         self.show_legend = show_legend
 
-    def add_scalar(self, logger: VisdomLogger, k: str, v: Union[str, float], event_name: Any, global_step: int):
+    def add_scalar(
+        self, logger: VisdomLogger, k: str, v: Union[str, float, torch.Tensor], event_name: Any, global_step: int
+    ) -> None:
         """
         Helper method to log a scalar with VisdomLogger.
 
@@ -240,7 +242,7 @@ class _BaseVisDrawer:
         kwargs = {
             "X": [global_step],
             "Y": [v],
-            "env": logger.vis.env,
+            "env": logger.vis.env,  # type: ignore[attr-defined]
             "win": self.windows[k]["win"],
             "update": update,
             "opts": self.windows[k]["opts"],
@@ -346,18 +348,18 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         show_legend: bool = False,
-    ):
+    ) -> None:
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with VisdomLogger")
 
         metrics = self._setup_output_metrics(engine)
 
-        global_step = self.global_step_transform(engine, event_name)
+        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
         if not isinstance(global_step, int):
             raise TypeError(
@@ -367,13 +369,13 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         for key, value in metrics.items():
 
-            values = []
+            values = []  # type: List[Union[float, torch.Tensor]]
             keys = []
             if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                values.append(value)
+                values.append(value)  # type: ignore[arg-type]
                 keys.append(key)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                values = value
+                values = value  # type: ignore[assignment]
                 keys = ["{}/{}".format(key, i) for i in range(len(value))]
             else:
                 warnings.warn("VisdomLogger output_handler can not log " "metrics value type {}".format(type(value)))
@@ -420,11 +422,11 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
 
     def __init__(
         self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, show_legend: bool = False,
-    ):
+    ) -> None:
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with VisdomLogger")
 
@@ -471,11 +473,11 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
 
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
-    ):
+    ) -> None:
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with VisdomLogger")
@@ -522,11 +524,11 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
 
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
-    ):
+    ) -> None:
         super(GradsScalarHandler, self).__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with VisdomLogger")
 
@@ -543,17 +545,17 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
 
 class _DummyExecutor:
     class _DummyFuture:
-        def __init__(self, result: Any):
+        def __init__(self, result: Any) -> None:
             self._output = result
 
-        def result(self):
+        def result(self) -> Any:
             return self._output
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def submit(self, fn: Callable, **kwargs: Any):
+    def submit(self, fn: Callable, **kwargs: Any) -> "_DummyFuture":
         return _DummyExecutor._DummyFuture(fn(**kwargs))
 
-    def shutdown(self, *args: Any, **kwargs: Any):
+    def shutdown(self, *args: Any, **kwargs: Any) -> None:
         pass
