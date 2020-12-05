@@ -101,7 +101,7 @@ class BasicTimeProfiler:
                 raise ValueError(
                     "As epoch_length is not set, we can not use BasicTimeProfiler in this case."
                     "Please, set trainer.run(..., epoch_length=epoch_length) in order to fix this."
-                )            
+                )
             num_iters_per_epoch = cast(int, engine.state.epoch_length)
 
         self.max_epochs = cast(int, engine.state.max_epochs)
