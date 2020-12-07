@@ -23,7 +23,7 @@ RUN cd /tmp/DeepSpeed && \
     ./install.sh --allow_sudo
 
 # Build runtime image
-FROM pytorch/pytorch:latest
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 
 # For building cpufeature wheel
 RUN apt-get update && apt-get install -y --no-install-recommends g++ gcc

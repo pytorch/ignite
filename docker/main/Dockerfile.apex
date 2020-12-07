@@ -18,7 +18,7 @@ RUN echo "Setup NVIDIA Apex" && \
     pip wheel --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
 # 2/ Build the runtime image
-FROM pytorch/pytorch:latest
+FROM pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime
 
 COPY --from=apex-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
