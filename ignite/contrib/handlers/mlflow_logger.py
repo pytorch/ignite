@@ -1,12 +1,12 @@
 import numbers
 import warnings
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine, EventEnum
+from ignite.engine import Engine, Events
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -86,7 +86,7 @@ class MLflowLogger(BaseLogger):
             )
     """
 
-    def __init__(self, tracking_uri: Optional[str] = None):
+    def __init__(self, tracking_uri: Optional[str] = None) -> None:
         try:
             import mlflow
         except ImportError:
@@ -102,21 +102,21 @@ class MLflowLogger(BaseLogger):
         if self.active_run is None:
             self.active_run = mlflow.start_run()
 
-    def __getattr__(self, attr: Any):
+    def __getattr__(self, attr: Any) -> Any:
 
         import mlflow
 
         return getattr(mlflow, attr)
 
-    def close(self):
+    def close(self) -> None:
         import mlflow
 
         mlflow.end_run()
 
-    def _create_output_handler(self, *args: Any, **kwargs: Any):
+    def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> "OptimizerParamsHandler":
         return OptimizerParamsHandler(*args, **kwargs)
 
 
@@ -212,17 +212,17 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ):
+    ) -> None:
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler 'OutputHandler' works only with MLflowLogger")
 
         metrics = self._setup_output_metrics(engine)
 
-        global_step = self.global_step_transform(engine, event_name)
+        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
         if not isinstance(global_step, int):
             raise TypeError(
@@ -230,10 +230,10 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform.".format(type(global_step))
             )
 
-        rendered_metrics = {}
+        rendered_metrics = {}  # type: Dict[str, float]
         for key, value in metrics.items():
             if isinstance(value, numbers.Number):
-                rendered_metrics["{} {}".format(self.tag, key)] = value
+                rendered_metrics["{} {}".format(self.tag, key)] = value  # type: ignore[assignment]
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 rendered_metrics["{} {}".format(self.tag, key)] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
@@ -290,10 +290,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag (str, optional): common title for all produced plots. For example, 'generator'
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler OptimizerParamsHandler works only with MLflowLogger")
 
