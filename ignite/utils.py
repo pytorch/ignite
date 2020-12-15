@@ -75,7 +75,7 @@ def setup_logger(
         format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`
         filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
         distributed_rank (int, optional): Optional, rank in distributed configuration to avoid logger setup for workers.
-        If None, distributed_rank is initialized to the rank of process.
+            If None, distributed_rank is initialized to the rank of process.
 
     Returns:
         logging.Logger
