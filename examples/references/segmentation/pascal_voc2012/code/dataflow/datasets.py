@@ -85,7 +85,7 @@ class SBDatasetOpencv(SBDataset):
 
     def __getitem__(self, index):
         img = cv2.imread(self.images[index])
-        assert img is not None, f"Image at '{self.images[index]}' has a problem")
+        assert img is not None, f"Image at '{self.images[index]}' has a problem"
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         mask = self._get_target(self.masks[index])

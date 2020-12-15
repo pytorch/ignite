@@ -127,7 +127,7 @@ def log_basic_info(logger, config):
 
     if idist.get_world_size() > 1:
         msg = "\nDistributed setting:"
-        msg += f"\tbackend: {idist.backend()}")
+        msg += f"\tbackend: {idist.backend()}"
         msg += f"\trank: {idist.get_rank()}"
         msg += f"\tworld size: {idist.get_world_size()}"
         logger.info(msg)
