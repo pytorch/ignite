@@ -102,7 +102,7 @@ class FastaiLRFinder:
             if num_iter > max_iter:
                 warnings.warn(
                     f"Desired num_iter {num_iter} is unreachable with the current run setup of {max_iter} iteration "
-                    f"({trainer.state.max_epochs} epochs)"),
+                    f"({trainer.state.max_epochs} epochs)",
                     UserWarning,
                 )
 
