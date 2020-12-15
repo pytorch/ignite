@@ -391,6 +391,8 @@ Features:
 
 - [PyTorch Slack](https://pytorch.slack.com) at #pytorch-ignite channel. [Request access](https://bit.ly/ptslack).
 
+- [GitHub Discussions](https://github.com/pytorch/ignite/discussions): general library related discussions, ideas, Q&A, etc.
+
 ## User feedback
 
 We have created a form for ["user feedback"](https://github.com/pytorch/ignite/issues/new/choose). We
