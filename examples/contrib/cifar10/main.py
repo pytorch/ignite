@@ -35,7 +35,7 @@ def training(local_rank, config):
         if config["stop_iteration"] is None:
             now = datetime.now().strftime("%Y%m%d-%H%M%S")
         else:
-            now = f"stop-on-{config["stop_iteration"]}"
+            now = f"stop-on-{config['stop_iteration']}"
 
         folder_name = f"{config["model"]}_backend-{idist.backend()}-{idist.get_world_size()}_{now}"
         output_path = Path(output_path) / folder_name
