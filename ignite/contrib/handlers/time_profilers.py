@@ -655,7 +655,7 @@ class HandlersTimeProfiler:
         headers = ["processing_stats", "dataflow_stats"]
         for e in self.event_handlers_times:
             for h in self.event_handlers_times[e]:
-                headers.append(f"{h} ({getattr(e, "name", str(e))})")
+                headers.append(f"{h} ({getattr(e, 'name', str(e))})")
                 cols.append(torch.tensor(self.event_handlers_times[e][h], dtype=torch.float32))
         # Determine maximum length
         max_len = max([x.numel() for x in cols])

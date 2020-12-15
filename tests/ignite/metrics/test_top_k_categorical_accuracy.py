@@ -161,7 +161,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl["local_rank"]}")
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
 

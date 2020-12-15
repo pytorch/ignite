@@ -84,7 +84,7 @@ def test_integration():
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_acc_values(engine):
-        assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], f"{engine.state.running_avg_acc} vs {engine.state.metrics["running_avg_accuracy"]}"
+        assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
@@ -173,7 +173,7 @@ def test_epoch_unbound():
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_acc_values(engine):
-        assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], f"{engine.state.running_avg_acc} vs {engine.state.metrics["running_avg_accuracy"]}"
+        assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
@@ -347,7 +347,7 @@ def _test_distrib_on_metric(device):
 
         @trainer.on(Events.ITERATION_COMPLETED)
         def assert_equal_running_avg_acc_values(engine):
-            assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], f"{engine.state.running_avg_acc} vs {engine.state.metrics["running_avg_accuracy"]}"
+            assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
 
         trainer.run(data, max_epochs=3)
 
@@ -424,7 +424,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl["local_rank"]}")
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_on_output(device)
     _test_distrib_on_metric(device)
     _test_distrib_accumulator_device(device)

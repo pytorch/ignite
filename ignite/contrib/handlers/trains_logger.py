@@ -647,7 +647,7 @@ class TrainsSaver(DiskSaver):
             dirname = ""
             if idist.get_rank() == 0:
                 dirname = tempfile.mkdtemp(
-                    prefix=f"ignite_checkpoints_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S_")}"
+                    prefix=f"ignite_checkpoints_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_')}"
                 )
             if idist.get_world_size() > 1:
                 dirname = idist.all_gather(dirname)[0]  # type: ignore[index, assignment]

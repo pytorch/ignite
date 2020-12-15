@@ -274,7 +274,7 @@ class Parallel:
 
         """
         if self._spawn_params is not None and self.backend is not None:
-            self.logger.info(f"Spawn function '{func}' in {self._spawn_params["nproc_per_node"]} processes")
+            self.logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")
             idist.spawn(self.backend, func, args=args, kwargs_dict=kwargs, **self._spawn_params)
         else:
             self.logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")
