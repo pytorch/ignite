@@ -251,7 +251,7 @@ class Checkpoint(Serializable):
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
             if not isinstance(to_save, collections.Mapping):
-                raise TypeError("Argument `to_save` should be a dictionary, but given {}".format(type(to_save)))
+                raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
 
             if len(to_save) < 1:
                 raise ValueError("No objects to checkpoint.")
@@ -261,11 +261,11 @@ class Checkpoint(Serializable):
             if include_self:
                 if not isinstance(to_save, collections.MutableMapping):
                     raise TypeError(
-                        "If `include_self` is True, then `to_save` must be mutable, but given {}.".format(type(to_save))
+                        f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}.")
                     )
 
                 if "checkpointer" in to_save:
-                    raise ValueError("Cannot have key 'checkpointer' if `include_self` is True: {}".format(to_save))
+                    raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
@@ -275,7 +275,7 @@ class Checkpoint(Serializable):
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(
-                "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
+                f"global_step_transform should be a function, got {type(global_step_transform)} instead."
             )
 
         self.to_save = to_save
@@ -319,7 +319,7 @@ class Checkpoint(Serializable):
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
             priority_str = (
-                "{}".format(priority) if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
+                f"{priority}" if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
             )
 
             checkpoint = self._setup_checkpoint()
@@ -351,7 +351,7 @@ class Checkpoint(Serializable):
             filename = filename_pattern.format(**filename_dict)
 
             metadata = {
-                "basename": "{}{}{}".format(self.filename_prefix, "_" * int(len(self.filename_prefix) > 0), name),
+                "basename": f"{self.filename_prefix}{"_" * int(len(self.filename_prefix) > 0)}{name}",
                 "score_name": self.score_name,
                 "priority": priority,
             }
@@ -443,7 +443,7 @@ class Checkpoint(Serializable):
     def _check_objects(objs: Mapping, attr: str) -> None:
         for k, obj in objs.items():
             if not hasattr(obj, attr):
-                raise TypeError("Object {} should have `{}` method".format(type(obj), attr))
+                raise TypeError(f"Object {type(obj)} should have `{attr}` method")
 
     @staticmethod
     def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs: Any) -> None:
@@ -488,7 +488,7 @@ class Checkpoint(Serializable):
         """
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
-            raise TypeError("Argument checkpoint should be a dictionary, but given {}".format(type(checkpoint)))
+            raise TypeError(f"Argument checkpoint should be a dictionary, but given {type(checkpoint)}")
 
         if len(kwargs) > 1 or any(k for k in kwargs.keys() if k not in ["strict"]):
             warnings.warn("kwargs contains keys other than strict and these will be ignored")
@@ -506,7 +506,7 @@ class Checkpoint(Serializable):
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint:
-                raise ValueError("Object labeled by '{}' from `to_load` is not found in the checkpoint".format(k))
+                raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
             if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                 obj = obj.module
             if isinstance(obj, torch.nn.Module):
@@ -552,16 +552,16 @@ class DiskSaver(BaseSaveHandler):
                 os.makedirs(dirname)
         # Ensure that dirname exists
         if not os.path.exists(dirname):
-            raise ValueError("Directory path '{}' is not found".format(dirname))
+            raise ValueError(f"Directory path '{dirname}' is not found")
 
         if require_empty:
             matched = [fname for fname in os.listdir(dirname) if fname.endswith(".pt")]
             if len(matched) > 0:
                 raise ValueError(
-                    "Files {} with extension '.pt' are already present "
-                    "in the directory {}. If you want to use this "
+                    f"Files {matched} with extension '.pt' are already present "
+                    f"in the directory {dirname}. If you want to use this "
                     "directory anyway, pass `require_empty=False`."
-                    "".format(matched, dirname)
+                    ""
                 )
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
@@ -709,7 +709,7 @@ class ModelCheckpoint(Checkpoint):
 
         if not isinstance(self.save_handler, DiskSaver):
             raise RuntimeError(
-                "Unable to save checkpoint, save_handler should be DiskSaver, got {}.".format(type(self.save_handler))
+                f"Unable to save checkpoint, save_handler should be DiskSaver, got {type(self.save_handler)}."
             )
 
         return os.path.join(self.save_handler.dirname, self._saved[-1].filename)

@@ -183,7 +183,7 @@ def test_output_handler_metric_names(dirname):
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert len(wrapper.windows) == 4 and all(["tag/a/{}".format(i) in wrapper.windows for i in range(4)])
+    assert len(wrapper.windows) == 4 and all([f"tag/a/{i}" in wrapper.windows for i in range(4)])
     assert wrapper.windows["tag/a/0"]["win"] is not None
     assert wrapper.windows["tag/a/1"]["win"] is not None
     assert wrapper.windows["tag/a/2"]["win"] is not None
@@ -571,7 +571,7 @@ def test_weights_scalar_handler():
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.vis.line.call_count == 4
         mock_logger.vis.line.assert_has_calls(
@@ -736,7 +736,7 @@ def test_grads_scalar_handler():
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.vis.line.call_count == 4
         mock_logger.vis.line.assert_has_calls(

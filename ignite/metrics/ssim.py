@@ -70,10 +70,10 @@ class SSIM(Metric):
             raise ValueError("Argument sigma should be either float or a sequence of float.")
 
         if any(x % 2 == 0 or x <= 0 for x in self.kernel_size):
-            raise ValueError("Expected kernel_size to have odd positive number. Got {}.".format(kernel_size))
+            raise ValueError(f"Expected kernel_size to have odd positive number. Got {kernel_size}.")
 
         if any(y <= 0 for y in self.sigma):
-            raise ValueError("Expected sigma to have positive number. Got {}.".format(sigma))
+            raise ValueError(f"Expected sigma to have positive number. Got {sigma}.")
 
         super(SSIM, self).__init__(output_transform=output_transform, device=device)
         self.gaussian = gaussian
@@ -124,19 +124,17 @@ class SSIM(Metric):
 
         if y_pred.dtype != y.dtype:
             raise TypeError(
-                "Expected y_pred and y to have the same data type. Got y_pred: {} and y: {}.".format(
-                    y_pred.dtype, y.dtype
-                )
+                f"Expected y_pred and y to have the same data type. Got y_pred: {y_pred.dtype} and y: {y.dtype}."
             )
 
         if y_pred.shape != y.shape:
             raise ValueError(
-                "Expected y_pred and y to have the same shape. Got y_pred: {} and y: {}.".format(y_pred.shape, y.shape)
+                f"Expected y_pred and y to have the same shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
 
         if len(y_pred.shape) != 4 or len(y.shape) != 4:
             raise ValueError(
-                "Expected y_pred and y to have BxCxHxW shape. Got y_pred: {} and y: {}.".format(y_pred.shape, y.shape)
+                f"Expected y_pred and y to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
 
         channel = y_pred.size(1)

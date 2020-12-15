@@ -101,8 +101,8 @@ class FastaiLRFinder:
             max_iter = trainer.state.epoch_length * trainer.state.max_epochs  # type: ignore[operator]
             if num_iter > max_iter:
                 warnings.warn(
-                    "Desired num_iter {} is unreachable with the current run setup of {} iteration "
-                    "({} epochs)".format(num_iter, max_iter, trainer.state.max_epochs),
+                    f"Desired num_iter {num_iter} is unreachable with the current run setup of {max_iter} iteration "
+                    f"({trainer.state.max_epochs} epochs)"),
                     UserWarning,
                 )
 
@@ -115,7 +115,7 @@ class FastaiLRFinder:
                 Events.ITERATION_COMPLETED, self._log_lr_and_loss, output_transform, smooth_f, diverge_th
             )
 
-        self.logger.debug("Running LR finder for {} iterations".format(num_iter))
+        self.logger.debug(f"Running LR finder for {num_iter} iterations")
         # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
             self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, end_lr, num_iter))
@@ -296,7 +296,7 @@ class FastaiLRFinder:
             trainer_with_lr_finder: trainer used for finding the lr
         """
         if not isinstance(to_save, Mapping):
-            raise TypeError("Argument to_save should be a mapping, but given {}".format(type(to_save)))
+            raise TypeError(f"Argument to_save should be a mapping, but given {type(to_save)}")
 
         Checkpoint._check_objects(to_save, "state_dict")
         Checkpoint._check_objects(to_save, "load_state_dict")
@@ -306,7 +306,7 @@ class FastaiLRFinder:
 
         if not isinstance(to_save["optimizer"], torch.optim.Optimizer):
             raise TypeError(
-                "Object to_save['optimizer'] should be torch optimizer, but given {}".format(type(to_save["optimizer"]))
+                f"Object to_save['optimizer'] should be torch optimizer, but given {type(to_save["optimizer"])}"
             )
 
         if smooth_f < 0 or smooth_f >= 1:
@@ -314,12 +314,12 @@ class FastaiLRFinder:
         if diverge_th < 1:
             raise ValueError("diverge_th should be larger than 1")
         if step_mode not in ["exp", "linear"]:
-            raise ValueError("step_mode should be 'exp' or 'linear', but given {}".format(step_mode))
+            raise ValueError(f"step_mode should be 'exp' or 'linear', but given {step_mode}")
         if num_iter is not None:
             if not isinstance(num_iter, int):
-                raise TypeError("if provided, num_iter should be an integer, but give {}".format(num_iter))
+                raise TypeError(f"if provided, num_iter should be an integer, but give {num_iter}")
             if num_iter <= 0:
-                raise ValueError("if provided, num_iter should be positive, but give {}".format(num_iter))
+                raise ValueError(f"if provided, num_iter should be positive, but give {num_iter}")
 
         # store to_save
         with tempfile.TemporaryDirectory() as tmpdirname:

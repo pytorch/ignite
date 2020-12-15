@@ -113,8 +113,8 @@ def main(env, args):
         running_reward = engine.state.running_reward
         if running_reward > env.spec.reward_threshold:
             print(
-                "Solved! Running reward is now {} and "
-                "the last episode runs to {} time steps!".format(running_reward, engine.state.timestep)
+                f"Solved! Running reward is now {running_reward} and "
+                f"the last episode runs to {engine.state.timestep} time steps!"
             )
             engine.should_terminate = True
 

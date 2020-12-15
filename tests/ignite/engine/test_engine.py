@@ -446,9 +446,7 @@ def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=
     }
 
     for n, handler in handlers.items():
-        assert handler.call_count == expected_num_calls[n], "{}: {} vs {}".format(
-            n, handler.call_count, expected_num_calls[n]
-        )
+        assert handler.call_count == expected_num_calls[n], f"{n}: {handler.call_count} vs {expected_num_calls[n]}"
 
 
 def _test_run_check_triggered_events():
@@ -880,9 +878,9 @@ def test_set_data():
 
     def train_fn(e, batch):
         if e.state.iteration <= switch_iteration:
-            assert batch.shape[1] == 11, "{}: {}".format(e.state.iteration, batch.shape)
+            assert batch.shape[1] == 11, f"{e.state.iteration}: {batch.shape}"
         else:
-            assert batch.shape[1] == 22, "{}: {}".format(e.state.iteration, batch.shape)
+            assert batch.shape[1] == 22, f"{e.state.iteration}: {batch.shape}"
 
     trainer = Engine(train_fn)
 

@@ -22,7 +22,7 @@ def execute(cmd):
     import ignite
 
     env = dict(os.environ)
-    env["PYTHONPATH"] = "{}".format(os.path.dirname(ignite.__path__[0]))
+    env["PYTHONPATH"] = f"{os.path.dirname(ignite.__path__[0])}"
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     process.wait()
     if process.returncode != 0:
@@ -47,15 +47,15 @@ def _test_check_idist_parallel_torch_launch(fp, backend, nprocs):
         sys.executable,
         "-m",
         "torch.distributed.launch",
-        "--nproc_per_node={}".format(nprocs),
+        f"--nproc_per_node={nprocs}",
         "--use_env",
         fp,
-        "--backend={}".format(backend),
+        f"--backend={backend}",
     ]
 
     out = execute(cmd)
-    assert "backend={}".format(backend) in out
-    assert "in {} processes".format(nprocs) in out
+    assert f"backend={backend}" in out
+    assert f"in {nprocs} processes" in out
     assert "End of run" in out
 
 
@@ -80,15 +80,15 @@ def _test_check_idist_parallel_hvdrun(fp, backend, nprocs):
     cmd = [
         "horovodrun",
         "-np",
-        "{}".format(nprocs),
+        f"{nprocs}",
         sys.executable,
         fp,
-        "--backend={}".format(backend),
+        f"--backend={backend}",
     ]
 
     out = execute(cmd)
-    assert "backend={}".format(backend) in out
-    assert "in {} processes".format(nprocs) in out
+    assert f"backend={backend}" in out
+    assert f"in {nprocs} processes" in out
     assert "End of run" in out
 
 
@@ -103,12 +103,12 @@ def test_check_idist_parallel_hvdrun_launch_n_procs(exec_filepath):
 def _test_check_idist_parallel_spawn(fp, backend, nprocs):
     # python tests/ignite/distributed/check_idist_parallel.py --backend=backend --nproc_per_node=nprocs
 
-    cmd = [sys.executable, fp, "--backend={}".format(backend), "--nproc_per_node={}".format(nprocs)]
+    cmd = [sys.executable, fp, f"--backend={backend}", f"--nproc_per_node={nprocs}"]
 
     out = execute(cmd)
-    assert "backend={}".format(backend) in out
+    assert f"backend={backend}" in out
     assert "Spawn function" in out
-    assert "in {} processes".format(nprocs) in out
+    assert f"in {nprocs} processes" in out
     if "xla" not in backend:
         assert "End of run" in out
 

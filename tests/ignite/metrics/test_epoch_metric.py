@@ -183,8 +183,8 @@ def _test_distrib_integration(device=None):
     engine = Engine(update)
 
     def assert_data_fn(all_preds, all_targets):
-        assert all_preds.equal(y_preds), "{} vs {}".format(all_preds.shape, y_preds.shape)
-        assert all_targets.equal(y_true), "{} vs {}".format(all_targets.shape, y_true.shape)
+        assert all_preds.equal(y_preds), f"{all_preds.shape} vs {y_preds.shape}"
+        assert all_targets.equal(y_true), f"{all_targets.shape} vs {y_true.shape}"
         return (all_preds.argmax(dim=1) == all_targets).sum().item()
 
     ep_metric = EpochMetric(assert_data_fn, check_compute_fn=False, device=device)

@@ -165,7 +165,7 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.engine.E
     mydata = [1, 2, 3, 4]
 
     def on_training_ended(data):
-        print("Training is ended. mydata={}".format(data))
+        print(f"Training is ended. mydata={data}")
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
@@ -339,7 +339,7 @@ every iteration.
         iteration = engine.state.iteration
         epoch = engine.state.epoch
         loss = engine.state.output
-        print("Epoch: {}, Iteration: {}, Loss: {}".format(epoch, iteration, loss))
+        print(f"Epoch: {epoch}, Iteration: {iteration}, Loss: {loss}")
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
 
@@ -366,7 +366,7 @@ In the code below, `engine.state.output` will be a list of loss, y_pred, y for t
     def print_loss(engine):
         epoch = engine.state.epoch
         loss = engine.state.output[0]
-        print ('Epoch {epoch}: train_loss = {loss}'.format(epoch=epoch, loss=loss))
+        print (f'Epoch {epoch}: train_loss = {loss}')
 
     accuracy = Accuracy(output_transform=lambda x: [x[1], x[2]])
     accuracy.attach(trainer, 'acc')
@@ -394,7 +394,7 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
     def print_loss(engine):
         epoch = engine.state.epoch
         loss = engine.state.output['loss']
-        print ('Epoch {epoch}: train_loss = {loss}'.format(epoch=epoch, loss=loss))
+        print (f'Epoch {epoch}: train_loss = {loss}')
 
     accuracy = Accuracy(output_transform=lambda x: [x['y_pred'], x['y']])
     accuracy.attach(trainer, 'acc')

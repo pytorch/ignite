@@ -56,7 +56,7 @@ def main(dataset_path, batch_size=256, max_epochs=10):
 
     @trainer.on(Events.COMPLETED)
     def run_validation(_):
-        print("- Mean elapsed time for 1 epoch: {}".format(timer.value()))
+        print(f"- Mean elapsed time for 1 epoch: {timer.value()}")
         print("- Metrics:")
         with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "Train"):
             evaluator.run(eval_train_loader)

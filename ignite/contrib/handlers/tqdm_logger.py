@@ -185,7 +185,7 @@ class ProgressBar(BaseLogger):
         desc = self.tqdm_kwargs.get("desc", None)
 
         if event_name not in engine._allowed_events:
-            raise ValueError("Logging event {} is not in allowed events for this engine".format(event_name.name))
+            raise ValueError(f"Logging event {event_name.name} is not in allowed events for this engine")
 
         if isinstance(closing_event_name, CallableEventWithFilter):
             if closing_event_name.filter != CallableEventWithFilter.default_event_filter:
@@ -193,7 +193,7 @@ class ProgressBar(BaseLogger):
 
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError(
-                "Logging event {} should be called before closing event {}".format(event_name, closing_event_name)
+                f"Logging event {event_name} should be called before closing event {closing_event_name}"
             )
 
         log_handler = _OutputHandler(desc, metric_names, output_transform, closing_event_name=closing_event_name)
@@ -266,7 +266,7 @@ class _OutputHandler(BaseOutputHandler):
         max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
         if max_num_of_closing_events and max_num_of_closing_events > 1:
             global_step = engine.state.get_event_attrib_value(self.closing_event_name)
-            desc += " [{}/{}]".format(global_step, max_num_of_closing_events)
+            desc += f" [{global_step}/{max_num_of_closing_events}]"
         logger.pbar.set_description(desc)  # type: ignore[attr-defined]
 
         metrics = self._setup_output_metrics(engine)
@@ -278,10 +278,10 @@ class _OutputHandler(BaseOutputHandler):
                     rendered_metrics[key] = value.item()
                 elif value.ndimension() == 1:
                     for i, v in enumerate(value):
-                        k = "{}_{}".format(key, i)
+                        k = f"{key}_{i}"
                         rendered_metrics[k] = v.item()
                 else:
-                    warnings.warn("ProgressBar can not log " "tensor with {} dimensions".format(value.ndimension()))
+                    warnings.warn("ProgressBar can not log " f"tensor with {value.ndimension()} dimensions")
             else:
                 rendered_metrics[key] = value
 

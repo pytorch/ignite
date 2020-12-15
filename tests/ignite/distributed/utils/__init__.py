@@ -17,13 +17,13 @@ def _sanity_check():
 
 
 def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
-    assert idist.backend() == backend, "{} vs {}".format(idist.backend(), backend)
+    assert idist.backend() == backend, f"{idist.backend()} vs {backend}"
 
     this_device = idist.device()
     assert isinstance(this_device, torch.device)
     if backend in ("nccl", "horovod") and "cuda" in this_device.type:
-        true_device = torch.device("{}:{}".format(true_device, local_rank))
-        assert this_device == true_device, "{} vs {}".format(this_device, true_device)
+        true_device = torch.device(f"{true_device}:{local_rank}")
+        assert this_device == true_device, f"{this_device} vs {true_device}"
     elif backend in ("gloo", "horovod"):
         assert this_device == torch.device(true_device)
     elif backend == "xla-tpu":
@@ -53,7 +53,7 @@ def _test_sync(cls):
 
     from ignite.distributed.utils import _model
 
-    assert isinstance(_model, cls), "{} vs {}".format(type(_model), cls)
+    assert isinstance(_model, cls), f"{type(_model)} vs {cls}"
 
 
 def _test_distrib_all_reduce(device):
@@ -78,7 +78,7 @@ def _test_distrib_all_reduce(device):
 
         t = torch.tensor([0, 1, 2])
         res = idist.all_reduce(t)
-        assert res.device == t.device, "{} vs {}".format(res.device, t.device)
+        assert res.device == t.device, f"{res.device} vs {t.device}"
 
 
 def _test_distrib_all_gather(device):
@@ -145,7 +145,7 @@ def _test_distrib_broadcast(device):
 
         res = idist.broadcast(t, src=src)
         true_res = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
-        assert (res == true_res).all(), "{} vs {}".format(res, true_res)
+        assert (res == true_res).all(), f"{res} vs {true_res}"
 
         if rank == src:
             t = "test-abcdefg"

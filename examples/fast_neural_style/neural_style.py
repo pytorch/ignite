@@ -54,7 +54,7 @@ def check_dataset(args):
             size=args.batch_size, image_size=(3, 32, 32), num_classes=1, transform=transform
         )
     else:
-        raise RuntimeError("Invalid dataset name: {}".format(args.dataset))
+        raise RuntimeError(f"Invalid dataset name: {args.dataset}")
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
 

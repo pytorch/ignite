@@ -74,30 +74,30 @@ class GpuInfo(Metric):
             return
 
         for i, data_by_rank in enumerate(data):
-            mem_name = "{}:{} mem(%)".format(name, i)
+            mem_name = f"{name}:{i} mem(%)"
 
             if "fb_memory_usage" not in data_by_rank:
-                warnings.warn("No GPU memory usage information available in {}".format(data_by_rank))
+                warnings.warn(f"No GPU memory usage information available in {data_by_rank}")
                 continue
             mem_report = data_by_rank["fb_memory_usage"]
             if not ("used" in mem_report and "total" in mem_report):
                 warnings.warn(
                     "GPU memory usage information does not provide used/total "
-                    "memory consumption information in {}".format(mem_report)
+                    f"memory consumption information in {mem_report}"
                 )
                 continue
 
             engine.state.metrics[mem_name] = int(mem_report["used"] * 100.0 / mem_report["total"])
 
         for i, data_by_rank in enumerate(data):
-            util_name = "{}:{} util(%)".format(name, i)
+            util_name = f"{name}:{i} util(%)"
             if "utilization" not in data_by_rank:
-                warnings.warn("No GPU utilization information available in {}".format(data_by_rank))
+                warnings.warn(f"No GPU utilization information available in {data_by_rank}")
                 continue
             util_report = data_by_rank["utilization"]
             if not ("gpu_util" in util_report):
                 warnings.warn(
-                    "GPU utilization information does not provide 'gpu_util' information in {}".format(util_report)
+                    f"GPU utilization information does not provide 'gpu_util' information in {util_report}"
                 )
                 continue
             try:

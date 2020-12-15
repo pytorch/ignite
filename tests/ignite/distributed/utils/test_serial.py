@@ -46,7 +46,7 @@ def test_sync_no_dist():
 
 def test_idist_methods_no_dist():
     assert idist.get_world_size() < 2
-    assert idist.backend() is None, "{}".format(idist.backend())
+    assert idist.backend() is None, f"{idist.backend()}"
 
 
 def test_idist_all_reduce_no_dist():

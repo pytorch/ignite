@@ -198,7 +198,7 @@ def run(
 
         @trainer.on(Events.ITERATION_COMPLETED(once=crash_iteration))
         def _(engine):
-            raise Exception("STOP at {}".format(engine.state.iteration))
+            raise Exception(f"STOP at {engine.state.iteration}")
 
     if resume_from is not None:
 
@@ -264,7 +264,7 @@ def run(
         trainer.add_event_handler(Events.ITERATION_COMPLETED(event_filter=log_event_filter), h, model=model, fp=fp)
 
     if resume_from is not None:
-        tqdm.write("Resume from the checkpoint: {}".format(resume_from))
+        tqdm.write(f"Resume from the checkpoint: {resume_from}")
         checkpoint = torch.load(resume_from)
         Checkpoint.load_objects(to_load=objects_to_checkpoint, checkpoint=checkpoint)
 

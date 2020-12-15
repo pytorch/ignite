@@ -185,7 +185,7 @@ def check_dataset(dataset, dataroot):
         nc = 3
 
     else:
-        raise RuntimeError("Invalid dataset name: {}".format(dataset))
+        raise RuntimeError(f"Invalid dataset name: {dataset}")
 
     return dataset, nc
 

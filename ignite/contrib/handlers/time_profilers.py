@@ -210,7 +210,7 @@ class BasicTimeProfiler:
 
     def attach(self, engine: Engine) -> None:
         if not isinstance(engine, Engine):
-            raise TypeError("Argument engine should be ignite.engine.Engine, " "but given {}".format(type(engine)))
+            raise TypeError("Argument engine should be ignite.engine.Engine, " f"but given {type(engine)}")
 
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
@@ -567,7 +567,7 @@ class HandlersTimeProfiler:
 
     def attach(self, engine: Engine) -> None:
         if not isinstance(engine, Engine):
-            raise TypeError("Argument engine should be ignite.engine.Engine, but given {}".format(type(engine)))
+            raise TypeError(f"Argument engine should be ignite.engine.Engine, but given {type(engine)}")
 
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
@@ -655,7 +655,7 @@ class HandlersTimeProfiler:
         headers = ["processing_stats", "dataflow_stats"]
         for e in self.event_handlers_times:
             for h in self.event_handlers_times[e]:
-                headers.append("{} ({})".format(h, getattr(e, "name", str(e))))
+                headers.append(f"{h} ({getattr(e, "name", str(e))})")
                 cols.append(torch.tensor(self.event_handlers_times[e][h], dtype=torch.float32))
         # Determine maximum length
         max_len = max([x.numel() for x in cols])

@@ -92,17 +92,13 @@ def _test_distrib_accumulator_device(device):
 
         mpd = MeanPairwiseDistance(device=metric_device)
         assert mpd._device == metric_device
-        assert mpd._sum_of_distances.device == metric_device, "{}:{} vs {}:{}".format(
-            type(mpd._sum_of_distances.device), mpd._sum_of_distances.device, type(metric_device), metric_device
-        )
+        assert mpd._sum_of_distances.device == metric_device, f"{type(mpd._sum_of_distances.device)}:{mpd._sum_of_distances.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
         y = torch.zeros(2, 2)
         mpd.update((y_pred, y))
 
-        assert mpd._sum_of_distances.device == metric_device, "{}:{} vs {}:{}".format(
-            type(mpd._sum_of_distances.device), mpd._sum_of_distances.device, type(metric_device), metric_device
-        )
+        assert mpd._sum_of_distances.device == metric_device, f"{type(mpd._sum_of_distances.device)}:{mpd._sum_of_distances.device} vs {type(metric_device)}:{metric_device}"
 
 
 def test_accumulator_detached():
@@ -119,7 +115,7 @@ def test_accumulator_detached():
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = torch.device("cuda:{}".format(local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
 
@@ -157,7 +153,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl["local_rank"]}")
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
 

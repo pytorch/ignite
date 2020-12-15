@@ -375,11 +375,11 @@ Simpliest way to fetch time of single epoch and complete training is to use
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_epoch_time():
-        print("{}: {}".format(trainer.state.epoch, trainer.state.times["EPOCH_COMPLETED"]))
+        print(f"{(trainer.state.epoch}: {trainer.state.times["EPOCH_COMPLETED"]}")
 
     @trainer.on(Events.COMPLETED)
     def log_total_time():
-        print("Total: {}".format(trainer.state.times["COMPLETED"]))
+        print(f"Total: {trainer.state.times["COMPLETED"]}")
 
 
 For details, see :class:`~ignite.engine.events.State`.

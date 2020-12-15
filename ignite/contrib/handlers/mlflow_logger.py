@@ -226,21 +226,21 @@ class OutputHandler(BaseOutputHandler):
 
         if not isinstance(global_step, int):
             raise TypeError(
-                "global_step must be int, got {}."
-                " Please check the output of global_step_transform.".format(type(global_step))
+                f"global_step must be int, got {type(global_step)}."
+                " Please check the output of global_step_transform."
             )
 
         rendered_metrics = {}  # type: Dict[str, float]
         for key, value in metrics.items():
             if isinstance(value, numbers.Number):
-                rendered_metrics["{} {}".format(self.tag, key)] = value  # type: ignore[assignment]
+                rendered_metrics[f"{self.tag} {key}"] = value  # type: ignore[assignment]
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics["{} {}".format(self.tag, key)] = value.item()
+                rendered_metrics[f"{self.tag} {key}"] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    rendered_metrics["{} {} {}".format(self.tag, key, i)] = v.item()
+                    rendered_metrics[f"{self.tag} {key} {i}"] = v.item()
             else:
-                warnings.warn("MLflowLogger output_handler can not log " "metrics value type {}".format(type(value)))
+                warnings.warn("MLflowLogger output_handler can not log " f"metrics value type {type(value)}")
 
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
         from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES
@@ -248,8 +248,8 @@ class OutputHandler(BaseOutputHandler):
         for key in list(rendered_metrics.keys()):
             if not _VALID_PARAM_AND_METRIC_NAMES.match(key):
                 warnings.warn(
-                    "MLflowLogger output_handler encountered an invalid metric name '{}' that "
-                    "will be ignored and not logged to MLflow".format(key)
+                    f"MLflowLogger output_handler encountered an invalid metric name '{key}' that "
+                    "will be ignored and not logged to MLflow"
                 )
                 del rendered_metrics[key]
 
@@ -298,9 +298,9 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             raise TypeError("Handler OptimizerParamsHandler works only with MLflowLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{} ".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag} " if self.tag else ""
         params = {
-            "{}{} group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            f"{tag_prefix}{self.param_name} group_{i}": float(param_group[self.param_name])
             for i, param_group in enumerate(self.optimizer.param_groups)
         }
 

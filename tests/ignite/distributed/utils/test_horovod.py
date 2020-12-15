@@ -205,7 +205,7 @@ def _test_idist_methods_overhead(ok_factor, sync_model):
         t1 += elapsed / n / m
 
     overhead_factor = t1 / t2
-    assert overhead_factor < ok_factor, "{} vs {} | {} vs {}".format(overhead_factor, ok_factor, t2, t1)
+    assert overhead_factor < ok_factor, f"{overhead_factor} vs {ok_factor} | {t2} vs {t1}"
 
 
 @pytest.mark.distributed
