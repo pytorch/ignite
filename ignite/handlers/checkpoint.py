@@ -261,7 +261,7 @@ class Checkpoint(Serializable):
             if include_self:
                 if not isinstance(to_save, collections.MutableMapping):
                     raise TypeError(
-                        f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}.")
+                        f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
                     )
 
                 if "checkpointer" in to_save:

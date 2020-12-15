@@ -525,7 +525,7 @@ def test_model_checkpoint_simple_recovery(dirname):
 
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
     def _test(ext, require_empty):
-        previous_fname = os.path.join(dirname, f"{_PREFIX}_{"obj"}_{1}{ext}")
+        previous_fname = os.path.join(dirname, f"{_PREFIX}_{'obj'}_{1}{ext}")
         with open(previous_fname, "w") as f:
             f.write("test")
 
@@ -1119,7 +1119,7 @@ def test_disksaver_wrong_input(dirname):
         DiskSaver("/tmp/non-existing-folder", create_dir=False)
 
     def _test(ext):
-        previous_fname = os.path.join(dirname, f"{_PREFIX}_{"obj"}_{1}{ext}")
+        previous_fname = os.path.join(dirname, f"{_PREFIX}_{'obj'}_{1}{ext}")
         with open(previous_fname, "w") as f:
             f.write("test")
 

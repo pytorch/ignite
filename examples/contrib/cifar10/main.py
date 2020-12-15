@@ -42,7 +42,7 @@ def training(local_rank, config):
         if not output_path.exists():
             output_path.mkdir(parents=True)
         config["output_path"] = output_path.as_posix()
-        logger.info(f"Output path: {config["output_path"]}")
+        logger.info(f"Output path: {config['output_path']}")
 
         if "cuda" in device.type:
             config["cuda device name"] = torch.cuda.get_device_name(local_rank)
