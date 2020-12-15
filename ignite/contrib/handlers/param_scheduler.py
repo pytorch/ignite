@@ -1053,7 +1053,7 @@ class ParamGroupScheduler:
 
         if "schedulers" not in state_dict:
             raise ValueError(
-                f"Required state attribute '{"schedulers"}' is absent in provided state_dict '{state_dict.keys()}'"
+                f"Required state attribute '{'schedulers'}' is absent in provided state_dict '{state_dict.keys()}'"
             )
         sds = state_dict["schedulers"]
         if len(sds) != len(self.schedulers):

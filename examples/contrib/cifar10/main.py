@@ -37,7 +37,7 @@ def training(local_rank, config):
         else:
             now = f"stop-on-{config['stop_iteration']}"
 
-        folder_name = f"{config["model"]}_backend-{idist.backend()}-{idist.get_world_size()}_{now}"
+        folder_name = f"{config['model']}_backend-{idist.backend()}-{idist.get_world_size()}_{now}"
         output_path = Path(output_path) / folder_name
         if not output_path.exists():
             output_path.mkdir(parents=True)

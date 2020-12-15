@@ -150,7 +150,8 @@ def distributed_context_single_node_gloo(local_rank, world_size):
 
     if sys.platform.startswith("win"):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
-        init_method = f'file:///{temp_file.name.replace("\\", "/")}'
+        backslash = "\\"
+        init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
     else:
         free_port = _setup_free_port(local_rank)
         print(local_rank, "Port:", free_port)

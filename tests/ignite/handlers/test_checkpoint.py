@@ -437,7 +437,7 @@ def test_checkpoint_last_checkpoint():
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
-    assert checkpointer.last_checkpoint == f"{"model"}_9.pt"
+    assert checkpointer.last_checkpoint == f"{'model'}_9.pt"
 
 
 def test_checkpoint_last_checkpoint_on_score():
@@ -461,7 +461,7 @@ def test_checkpoint_last_checkpoint_on_score():
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
-    assert checkpointer.last_checkpoint == f"{"model"}_val_acc=0.9000.pt"
+    assert checkpointer.last_checkpoint == f"{'model'}_val_acc=0.9000.pt"
 
 
 def test_checkpoint_save_handler_callable():

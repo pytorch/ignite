@@ -88,7 +88,7 @@ def test_integration():
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
-        assert engine.state.running_avg_output == engine.state.metrics["running_avg_output"], f"{engine.state.running_avg_output} vs {engine.state.metrics["running_avg_output"]}"
+        assert engine.state.running_avg_output == engine.state.metrics["running_avg_output"], f"{engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
     np.random.seed(10)
     running_avg_acc = [
@@ -177,7 +177,7 @@ def test_epoch_unbound():
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
-        assert engine.state.running_avg_output == engine.state.metrics["running_avg_output"], f"{engine.state.running_avg_output} vs {engine.state.metrics["running_avg_output"]}"
+        assert engine.state.running_avg_output == engine.state.metrics["running_avg_output"], f"{engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
     trainer.run(data, max_epochs=3)
 
@@ -283,7 +283,7 @@ def _test_distrib_on_output(device):
     def assert_equal_running_avg_output_values(engine):
         assert engine.state.running_avg_output == pytest.approx(
             engine.state.metrics["running_avg_output"]
-        ), f"{engine.state.iteration}: {engine.state.running_avg_output} vs {engine.state.metrics["running_avg_output"]}"
+        ), f"{engine.state.iteration}: {engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
     trainer.run(data, max_epochs=3)
 

@@ -19,7 +19,7 @@ def test__hvd_dist_model():
 def _assert_model(model, true_conf):
 
     if "cuda" in true_conf["device"]:
-        assert model.device() == torch.device(f"{true_conf["device"]}:{true_conf["local_rank"]}")
+        assert model.device() == torch.device(f"{true_conf['device']}:{true_conf['local_rank']}")
     else:
         assert model.device() == torch.device(true_conf["device"])
     assert model.get_local_rank() == true_conf["local_rank"]
