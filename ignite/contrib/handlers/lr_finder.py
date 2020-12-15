@@ -306,7 +306,7 @@ class FastaiLRFinder:
 
         if not isinstance(to_save["optimizer"], torch.optim.Optimizer):
             raise TypeError(
-                f"Object to_save['optimizer'] should be torch optimizer, but given {type(to_save["optimizer"])}"
+                f"Object to_save['optimizer'] should be torch optimizer, but given {type(to_save['optimizer'])}"
             )
 
         if smooth_f < 0 or smooth_f >= 1:

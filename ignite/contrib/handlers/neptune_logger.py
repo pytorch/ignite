@@ -511,7 +511,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             raise TypeError("Handler GradsScalarHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{self.tag}/" if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
