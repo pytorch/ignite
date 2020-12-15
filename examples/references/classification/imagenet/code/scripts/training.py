@@ -323,7 +323,7 @@ class DataflowBenchmark:
 
             if idist.get_rank() == 0:
                 print(" ")
-                print(" Total time ({} iterations) : {:.5f} seconds".format(self.num_iters, t))
+                print(f" Total time ({self.num_iters} iterations) : {t:.5f} seconds")
                 print(f" time per iteration         : {t / self.num_iters} seconds")
 
                 if isinstance(train_loader, DataLoader):

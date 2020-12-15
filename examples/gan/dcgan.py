@@ -358,7 +358,7 @@ def main(
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)
     def print_times(engine):
-        pbar.log_message("Epoch {} done. Time per batch: {:.3f}[s]".format(engine.state.epoch, timer.value()))
+        pbar.log_message(f"Epoch {engine.state.epoch} done. Time per batch: {timer.value():.3f}[s]")
         timer.reset()
 
     # adding handlers using `trainer.on` decorator API

@@ -181,8 +181,7 @@ reference returned by :meth:`~ignite.engine.engine.Engine.add_event_handler`. Th
     evaluator = create_supervised_evaluator(model, metrics={"acc": Accuracy()})
 
     def log_metrics(engine, title):
-        print("Epoch: {} - {} accuracy: {:.2f}"
-               .format(trainer.state.epoch, title, engine.state.metrics["acc"]))
+        print(f"Epoch: {trainer.state.epoch} - {title} accuracy: {engine.state.metrics["acc"]:.2f}")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluate(trainer):
@@ -210,8 +209,7 @@ event filtering function:
 
     @trainer.on(Events.ITERATION_COMPLETED(every=50))
     def log_training_loss_every_50_iterations():
-        print("{} / {} : {} - loss: {:.2f}"
-              .format(trainer.state.epoch, trainer.state.max_epochs, trainer.state.iteration, trainer.state.output))
+        print(f"{trainer.state.epoch} / {trainer.state.max_epochs} : {trainer.state.iteration} - loss: {trainer.state.output:.2f}")
 
     @trainer.on(Events.EPOCH_STARTED(once=25))
     def do_something_once_on_25_epoch():

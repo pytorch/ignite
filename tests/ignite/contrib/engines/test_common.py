@@ -239,7 +239,7 @@ def test_gen_save_best_models_by_val_score():
         [
             call(
                 obj_to_save,
-                "best_checkpoint_{}_val_acc={:.4f}.pt".format(e, p),
+                f"best_checkpoint_{e}_val_acc={p:.4f}.pt",
                 dict([("basename", "best_checkpoint"), ("score_name", "val_acc"), ("priority", p)]),
             )
             for e, p in zip([1, 2, 3, 4, 6, 7, 8, 9], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.61, 0.7])

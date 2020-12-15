@@ -393,8 +393,8 @@ class BasicTimeProfiler:
             if isinstance(v, str):
                 return v
             elif isinstance(v, tuple):
-                return "{:.5f}/{}".format(v[0], v[1])
-            return "{:.5f}".format(v)
+                return f"{v[0]:.5f}/{v[1]}"
+            return f"{v:.5f}"
 
         def odict_to_str(d: Mapping) -> str:
             out = " | ".join([to_str(v) for v in d.values()])

@@ -116,9 +116,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Training Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         writer.add_scalar("training/avg_loss", avg_nll, engine.state.epoch)
         writer.add_scalar("training/avg_accuracy", avg_accuracy, engine.state.epoch)
@@ -130,9 +128,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Validation Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         writer.add_scalar("valdation/avg_loss", avg_nll, engine.state.epoch)
         writer.add_scalar("valdation/avg_accuracy", avg_accuracy, engine.state.epoch)

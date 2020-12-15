@@ -319,7 +319,7 @@ class Checkpoint(Serializable):
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
             priority_str = (
-                f"{priority}" if isinstance(priority, numbers.Integral) else "{:.4f}".format(priority)
+                f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
             )
 
             checkpoint = self._setup_checkpoint()

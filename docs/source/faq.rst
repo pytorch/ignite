@@ -143,7 +143,7 @@ Let's use an infinite data iterator as training dataflow
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm())
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}"
         )
 
     trainer = Engine(train_step)
@@ -189,7 +189,7 @@ In this case, there will be only a single epoch defined.
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm())
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}"
         )
 
     trainer = Engine(train_step)
@@ -246,7 +246,7 @@ In the code, we do not specify `epoch_length` which will be automatically determ
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     trainer = Engine(train_step)
@@ -276,7 +276,7 @@ In case of validation, the code is simply
         # ...
         s = evaluator.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     evaluator = Engine(val_step)
@@ -310,7 +310,7 @@ but here we will do this explicitly on iteration:
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     trainer = Engine(train_step)
@@ -342,7 +342,7 @@ In case of validation, the code is simply
         # ...
         s = evaluator.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     evaluator = Engine(val_step)

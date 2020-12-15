@@ -28,21 +28,19 @@ Code
 
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(trainer):
-        print("Epoch[{}] Loss: {:.2f}".format(trainer.state.epoch, trainer.state.output))
+        print(f"Epoch[{trainer.state.epoch}] Loss: {trainer.state.output:.2f}")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(trainer):
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
-        print("Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(trainer.state.epoch, metrics["accuracy"], metrics["nll"]))
+        print(f"Training Results - Epoch: {trainer.state.epoch}  Avg accuracy: {metrics['accuracy']:.2f} Avg loss: {metrics['nll']:.2f}")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
-        print("Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(trainer.state.epoch, metrics["accuracy"], metrics["nll"]))
+        print(f"Validation Results - Epoch: {trainer.state.epoch}  Avg accuracy: {metrics['accuracy']:.2f} Avg loss: {metrics['nll']:.2f}")
 
     trainer.run(train_loader, max_epochs=100)
 
@@ -128,14 +126,14 @@ logging purposes we add a function to be executed at the end of every ``log_inte
 
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
-        print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, engine.state.output))
+        print(f"Epoch[{engine.state.epoch}] Loss: {engine.state.output:.2f}")
 
 or equivalently without the decorator
 
 .. code-block:: python
 
     def log_training_loss(engine):
-        print("Epoch[{}] Loss: {:.2f}".format(engine.state.epoch, engine.state.output))
+        print(f"Epoch[{engine.state.epoch}] Loss: {engine.state.output:.2f}")
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, log_training_loss)
 
@@ -149,15 +147,13 @@ complete event:
     def log_training_results(trainer):
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
-        print("Training Results - Epoch[{}] Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
+        print(f"Training Results - Epoch[{trainer.state.epoch}] Avg accuracy: {metrics['accuracy']:.2f} Avg loss: {metrics['nll']:.2f}")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
-        print("Validation Results - Epoch[{}] Avg accuracy: {:.2f} Avg loss: {:.2f}"
-              .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
+        print(f"Validation Results - Epoch[{trainer.state.epoch}] Avg accuracy: {metrics['accuracy']:.2f} Avg loss: {metrics['nll']:.2f}")
 
 
 .. Note ::

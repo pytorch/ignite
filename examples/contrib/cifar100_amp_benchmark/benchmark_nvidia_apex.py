@@ -58,7 +58,7 @@ def main(dataset_path, batch_size=256, max_epochs=10, opt="O1"):
 
     def log_metrics(engine, title):
         for name in metrics:
-            print("\t{} {}: {:.2f}".format(title, name, engine.state.metrics[name]))
+            print(f"\t{title} {name}: {engine.state.metrics[name]:.2f}")
 
     @trainer.on(Events.COMPLETED)
     def run_validation(_):

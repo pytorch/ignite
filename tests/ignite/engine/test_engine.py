@@ -715,7 +715,7 @@ def test_faq_inf_iterator_with_epoch_length():
     def train_step(trainer, batch):
         # ...
         s = trainer.state
-        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm()))
+        print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
 
     trainer = Engine(train_step)
     # We need to specify epoch_length to define the epoch
@@ -740,7 +740,7 @@ def test_faq_inf_iterator_no_epoch_length():
     def train_step(trainer, batch):
         # ...
         s = trainer.state
-        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm()))
+        print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
 
     trainer = Engine(train_step)
 
@@ -768,7 +768,7 @@ def test_faq_fin_iterator_unknw_size():
     def train_step(trainer, batch):
         # ...
         s = trainer.state
-        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+        print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
 
     trainer = Engine(train_step)
 
@@ -795,7 +795,7 @@ def test_faq_fin_iterator_unknw_size():
     def val_step(evaluator, batch):
         # ...
         s = evaluator.state
-        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+        print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
 
     evaluator = Engine(val_step)
 
@@ -822,7 +822,7 @@ def test_faq_fin_iterator():
     def train_step(trainer, batch):
         # ...
         s = trainer.state
-        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+        print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
 
     trainer = Engine(train_step)
 
@@ -851,7 +851,7 @@ def test_faq_fin_iterator():
     def val_step(evaluator, batch):
         # ...
         s = evaluator.state
-        print("{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch))
+        print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
 
     evaluator = Engine(val_step)
 

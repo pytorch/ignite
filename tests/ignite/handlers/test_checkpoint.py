@@ -676,7 +676,7 @@ def test_best_k(dirname):
     for _ in range(4):
         h(engine, to_save)
 
-    expected = ["{}_{}_{:.4f}.pt".format(_PREFIX, "model", i) for i in [1.2, 3.1]]
+    expected = [f"{_PREFIX}_{'model'}_{i:.4f}.pt" for i in [1.2, 3.1]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -701,7 +701,7 @@ def test_best_k_with_suffix(dirname):
         engine.state.epoch += 1
         h(engine, to_save)
 
-    expected = ["{}_{}_val_loss={:.4}.pt".format(_PREFIX, "model", scores[e - 1]) for e in [1, 3]]
+    expected = [f"{_PREFIX}_{'model'}_val_loss={scores[e - 1]:.4}.pt" for e in [1, 3]]
 
     assert sorted(os.listdir(dirname)) == expected
 
