@@ -351,7 +351,7 @@ class Checkpoint(Serializable):
             filename = filename_pattern.format(**filename_dict)
 
             metadata = {
-                "basename": f"{self.filename_prefix}{"_" * int(len(self.filename_prefix) > 0)}{name}",
+                "basename": f"{self.filename_prefix}{'_' * int(len(self.filename_prefix) > 0)}{name}",
                 "score_name": self.score_name,
                 "priority": priority,
             }
