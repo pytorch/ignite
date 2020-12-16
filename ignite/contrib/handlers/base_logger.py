@@ -186,7 +186,9 @@ class BaseLogger(metaclass=ABCMeta):
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
-    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> RemovableEventHandle:
+    def attach_opt_params_handler(
+        self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any
+    ) -> RemovableEventHandle:
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
         Args:
