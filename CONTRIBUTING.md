@@ -109,7 +109,7 @@ git add .
 git commit -m "Added awesome feature"
 ```
 
-#### Formatting with pre-commit
+##### Formatting with pre-commit
 
 To automate the process, we have configured the repo with [pre-commit hooks](https://pre-commit.com/) to use black to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
 
