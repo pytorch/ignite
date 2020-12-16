@@ -66,7 +66,7 @@ use the ``output_transform`` argument to transform it:
 
     .. code-block:: python
 
-        device = "cuda:{}".format(local_rank)
+        device = f"cuda:{local_rank}"
         model = torch.nn.parallel.DistributedDataParallel(model,
                                                           device_ids=[local_rank, ],
                                                           output_device=local_rank)
