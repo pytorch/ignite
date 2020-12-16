@@ -540,7 +540,7 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
         fname = h.last_checkpoint
         ext = ".pt"
         assert isinstance(fname, str)
-        assert os.path.join(dirname, f"{_PREFIX}_{"model"}_{1}{ext}") == fname
+        assert os.path.join(dirname, f"{_PREFIX}_{'model'}_{1}{ext}") == fname
         assert os.path.exists(fname)
         assert os.path.exists(previous_fname)
         loaded_objects = torch.load(fname)
