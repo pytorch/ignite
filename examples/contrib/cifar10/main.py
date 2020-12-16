@@ -35,14 +35,14 @@ def training(local_rank, config):
         if config["stop_iteration"] is None:
             now = datetime.now().strftime("%Y%m%d-%H%M%S")
         else:
-            now = "stop-on-{}".format(config["stop_iteration"])
+            now = f"stop-on-{config['stop_iteration']}"
 
-        folder_name = "{}_backend-{}-{}_{}".format(config["model"], idist.backend(), idist.get_world_size(), now)
+        folder_name = f"{config['model']}_backend-{idist.backend()}-{idist.get_world_size()}_{now}"
         output_path = Path(output_path) / folder_name
         if not output_path.exists():
             output_path.mkdir(parents=True)
         config["output_path"] = output_path.as_posix()
-        logger.info("Output path: {}".format(config["output_path"]))
+        logger.info(f"Output path: {config['output_path']}")
 
         if "cuda" in device.type:
             config["cuda device name"] = torch.cuda.get_device_name(local_rank)
@@ -117,7 +117,7 @@ def training(local_rank, config):
 
         @trainer.on(Events.ITERATION_STARTED(once=config["stop_iteration"]))
         def _():
-            logger.info("Stop training on {} iteration".format(trainer.state.iteration))
+            logger.info(f"Stop training on {trainer.state.iteration} iteration")
             trainer.terminate()
 
     try:
@@ -251,20 +251,20 @@ def log_metrics(logger, epoch, elapsed, tag, metrics):
 
 
 def log_basic_info(logger, config):
-    logger.info("Train {} on CIFAR10".format(config["model"]))
-    logger.info("- PyTorch version: {}".format(torch.__version__))
-    logger.info("- Ignite version: {}".format(ignite.__version__))
+    logger.info(f"Train {config['model']} on CIFAR10")
+    logger.info(f"- PyTorch version: {torch.__version__}")
+    logger.info(f"- Ignite version: {ignite.__version__}")
 
     logger.info("\n")
     logger.info("Configuration:")
     for key, value in config.items():
-        logger.info("\t{}: {}".format(key, value))
+        logger.info(f"\t{key}: {value}")
     logger.info("\n")
 
     if idist.get_world_size() > 1:
         logger.info("\nDistributed setting:")
-        logger.info("\tbackend: {}".format(idist.backend()))
-        logger.info("\tworld size: {}".format(idist.get_world_size()))
+        logger.info(f"\tbackend: {idist.backend()}")
+        logger.info(f"\tworld size: {idist.get_world_size()}")
         logger.info("\n")
 
 
@@ -334,8 +334,8 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     resume_from = config["resume_from"]
     if resume_from is not None:
         checkpoint_fp = Path(resume_from)
-        assert checkpoint_fp.exists(), "Checkpoint '{}' is not found".format(checkpoint_fp.as_posix())
-        logger.info("Resume from a checkpoint: {}".format(checkpoint_fp.as_posix()))
+        assert checkpoint_fp.exists(), f"Checkpoint '{checkpoint_fp.as_posix()}' is not found"
+        logger.info(f"Resume from a checkpoint: {checkpoint_fp.as_posix()}")
         checkpoint = torch.load(checkpoint_fp.as_posix(), map_location="cpu")
         Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 

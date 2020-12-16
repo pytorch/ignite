@@ -125,7 +125,7 @@ mydata = [1, 2, 3, 4]
 logger = ...
 
 def on_training_ended(data):
-    print("Training is ended. mydata={}".format(data))
+    print(f"Training is ended. mydata={data}")
     # User can use variables from another scope
     logger.info("Training is ended")
 
