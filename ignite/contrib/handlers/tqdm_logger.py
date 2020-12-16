@@ -6,7 +6,7 @@ import torch
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEventWithFilter
+from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
 class ProgressBar(BaseLogger):
@@ -203,7 +203,7 @@ class ProgressBar(BaseLogger):
 
     def attach_opt_params_handler(
         self, engine: Engine, event_name: Union[str, Events], *args: Any, **kwargs: Any
-    ) -> None:
+    ) -> RemovableEventHandle:
         """Intentionally empty"""
         pass
 
