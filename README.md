@@ -125,7 +125,7 @@ mydata = [1, 2, 3, 4]
 logger = ...
 
 def on_training_ended(data):
-    print("Training is ended. mydata={}".format(data))
+    print(f"Training is ended. mydata={data}")
     # User can use variables from another scope
     logger.info("Training is ended")
 
@@ -390,6 +390,8 @@ Features:
 - [Discuss.PyTorch](https://discuss.pytorch.org/c/ignite), category "Ignite".
 
 - [PyTorch Slack](https://pytorch.slack.com) at #pytorch-ignite channel. [Request access](https://bit.ly/ptslack).
+
+- [GitHub Discussions](https://github.com/pytorch/ignite/discussions): general library related discussions, ideas, Q&A, etc.
 
 ## User feedback
 

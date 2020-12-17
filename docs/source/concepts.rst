@@ -165,7 +165,7 @@ Attaching an event handler is simple using method :meth:`~ignite.engine.engine.E
     mydata = [1, 2, 3, 4]
 
     def on_training_ended(data):
-        print("Training is ended. mydata={}".format(data))
+        print(f"Training is ended. mydata={data}")
 
     trainer.add_event_handler(Events.COMPLETED, on_training_ended, mydata)
 
@@ -181,8 +181,7 @@ reference returned by :meth:`~ignite.engine.engine.Engine.add_event_handler`. Th
     evaluator = create_supervised_evaluator(model, metrics={"acc": Accuracy()})
 
     def log_metrics(engine, title):
-        print("Epoch: {} - {} accuracy: {:.2f}"
-               .format(trainer.state.epoch, title, engine.state.metrics["acc"]))
+        print(f"Epoch: {trainer.state.epoch} - {title} accuracy: {engine.state.metrics['acc']:.2f}")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluate(trainer):
@@ -210,8 +209,7 @@ event filtering function:
 
     @trainer.on(Events.ITERATION_COMPLETED(every=50))
     def log_training_loss_every_50_iterations():
-        print("{} / {} : {} - loss: {:.2f}"
-              .format(trainer.state.epoch, trainer.state.max_epochs, trainer.state.iteration, trainer.state.output))
+        print(f"{trainer.state.epoch} / {trainer.state.max_epochs} : {trainer.state.iteration} - loss: {trainer.state.output:.2f}")
 
     @trainer.on(Events.EPOCH_STARTED(once=25))
     def do_something_once_on_25_epoch():
@@ -339,7 +337,7 @@ every iteration.
         iteration = engine.state.iteration
         epoch = engine.state.epoch
         loss = engine.state.output
-        print("Epoch: {}, Iteration: {}, Loss: {}".format(epoch, iteration, loss))
+        print(f"Epoch: {epoch}, Iteration: {iteration}, Loss: {loss}")
 
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
 
@@ -366,7 +364,7 @@ In the code below, `engine.state.output` will be a list of loss, y_pred, y for t
     def print_loss(engine):
         epoch = engine.state.epoch
         loss = engine.state.output[0]
-        print ('Epoch {epoch}: train_loss = {loss}'.format(epoch=epoch, loss=loss))
+        print (f'Epoch {epoch}: train_loss = {loss}')
 
     accuracy = Accuracy(output_transform=lambda x: [x[1], x[2]])
     accuracy.attach(trainer, 'acc')
@@ -394,7 +392,7 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
     def print_loss(engine):
         epoch = engine.state.epoch
         loss = engine.state.output['loss']
-        print ('Epoch {epoch}: train_loss = {loss}'.format(epoch=epoch, loss=loss))
+        print (f'Epoch {epoch}: train_loss = {loss}')
 
     accuracy = Accuracy(output_transform=lambda x: [x['y_pred'], x['y']])
     accuracy.attach(trainer, 'acc')

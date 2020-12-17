@@ -112,24 +112,21 @@ def create_evaluators(model, metrics, config):
 
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
-    logger.info(
-        "\nEpoch {} - Evaluation time (seconds): {} - {} metrics:\n {}".format(
-            epoch, elapsed, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
-        )
-    )
+    metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
+    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {elapsed} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
 
-    msg = "\n- PyTorch version: {}".format(torch.__version__)
-    msg += "\n- Ignite version: {}".format(ignite.__version__)
+    msg = f"\n- PyTorch version: {torch.__version__}"
+    msg += f"\n- Ignite version: {ignite.__version__}"
     logger.info(msg)
 
     if idist.get_world_size() > 1:
         msg = "\nDistributed setting:"
-        msg += "\tbackend: {}".format(idist.backend())
-        msg += "\trank: {}".format(idist.get_rank())
-        msg += "\tworld size: {}".format(idist.get_world_size())
+        msg += f"\tbackend: {idist.backend()}"
+        msg += f"\trank: {idist.get_rank()}"
+        msg += f"\tworld size: {idist.get_world_size()}"
         logger.info(msg)
 
 
@@ -323,11 +320,11 @@ class DataflowBenchmark:
 
             if idist.get_rank() == 0:
                 print(" ")
-                print(" Total time ({} iterations) : {:.5f} seconds".format(self.num_iters, t))
-                print(" time per iteration         : {} seconds".format(t / self.num_iters))
+                print(f" Total time ({self.num_iters} iterations) : {t:.5f} seconds")
+                print(f" time per iteration         : {t / self.num_iters} seconds")
 
                 if isinstance(train_loader, DataLoader):
                     num_images = train_loader.batch_size * self.num_iters
-                    print(" number of images / s       : {}".format(num_images / t))
+                    print(f" number of images / s       : {num_images / t}")
 
                 print("-" * 50)

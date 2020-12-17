@@ -23,12 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
         pytorch-channel: [pytorch, pytorch-nightly]
-        exclude:
-          # excludes pytorch-nightly python 3.5 as it was dropped
-          - pytorch-channel: pytorch-nightly
-            python-version: 3.5
         include:
           # includes a single build on windows
           - os: windows-latest
@@ -82,7 +78,7 @@ jobs:
 
       - name: Run Mypy
         shell: bash -l {0}
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version != '3.5' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           pip install mypy
           mypy --config-file mypy.ini

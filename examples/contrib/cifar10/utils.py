@@ -34,6 +34,6 @@ def get_model(name):
     if name in models.__dict__:
         fn = models.__dict__[name]
     else:
-        raise RuntimeError("Unknown model name {}".format(name))
+        raise RuntimeError(f"Unknown model name {name}")
 
     return fn(num_classes=10)
