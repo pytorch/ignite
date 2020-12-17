@@ -112,11 +112,8 @@ def create_evaluators(model, metrics, config):
 
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
-    logger.info(
-        "\nEpoch {} - Evaluation time (seconds): {} - {} metrics:\n {}".format(
-            epoch, elapsed, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
-        )
-    )
+    metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
+    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {elapsed} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
