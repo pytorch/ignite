@@ -185,7 +185,7 @@ def check_dataset(dataset, dataroot):
         nc = 3
 
     else:
-        raise RuntimeError("Invalid dataset name: {}".format(dataset))
+        raise RuntimeError(f"Invalid dataset name: {dataset}")
 
     return dataset, nc
 
@@ -358,7 +358,7 @@ def main(
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)
     def print_times(engine):
-        pbar.log_message("Epoch {} done. Time per batch: {:.3f}[s]".format(engine.state.epoch, timer.value()))
+        pbar.log_message(f"Epoch {engine.state.epoch} done. Time per batch: {timer.value():.3f}[s]")
         timer.reset()
 
     # adding handlers using `trainer.on` decorator API

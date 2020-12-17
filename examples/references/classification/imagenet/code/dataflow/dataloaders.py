@@ -12,7 +12,7 @@ import ignite.distributed as idist
 
 def opencv_loader(path):
     img = cv2.imread(path)
-    assert img is not None, "Image at '{}' has a problem".format(path)
+    assert img is not None, f"Image at '{path}' has a problem"
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 

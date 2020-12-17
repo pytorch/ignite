@@ -81,9 +81,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         tqdm.write(
-            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Training Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
 
     @trainer.on(Events.EPOCH_COMPLETED)
@@ -93,18 +91,14 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         tqdm.write(
-            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Validation Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
 
         pbar.n = pbar.last_print_n = 0
 
     @trainer.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
     def log_time(engine):
-        tqdm.write(
-            "{} took {} seconds".format(trainer.last_event_name.name, trainer.state.times[trainer.last_event_name.name])
-        )
+        tqdm.write(f"{trainer.last_event_name.name} took { trainer.state.times[trainer.last_event_name.name]} seconds")
 
     trainer.run(train_loader, max_epochs=epochs)
     pbar.close()
