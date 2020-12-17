@@ -722,9 +722,8 @@ class TrainsSaver(DiskSaver):
 
             model_info.model.name = f"{model_info.task.name}: {self._filename}"
             prefix = "Checkpoint Metadata: "
-            metadata = "{}{}".format(
-                prefix, ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none"
-            )
+            metadata_items = ", ".join(f"{k}={v}" for k, v in self._metadata.items()) if self._metadata else "none"
+            metadata = f"{prefix}{metadata_items}"
             comment = "\n".join(
                 metadata if line.startswith(prefix) else line for line in (model_info.model.comment or "").split("\n")
             )
