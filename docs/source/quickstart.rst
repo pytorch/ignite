@@ -34,13 +34,13 @@ Code
     def log_training_results(trainer):
         evaluator.run(train_loader)
         metrics = evaluator.state.metrics
-        print(f"Training Results - Epoch: {trainer.state.epoch}  Avg accuracy: {metrics["accuracy"]:.2f} Avg loss: {metrics["nll"]:.2f}")
+        print(f"Training Results - Epoch: {trainer.state.epoch}  Avg accuracy: {metrics['accuracy']:.2f} Avg loss: {metrics['nll']:.2f}")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
         evaluator.run(val_loader)
         metrics = evaluator.state.metrics
-        print("Validation Results - Epoch: {trainer.state.epoch}  Avg accuracy: {metrics["accuracy"]:.2f} Avg loss: {metrics["nll"]:.2f}")
+        print(f"Validation Results - Epoch: {trainer.state.epoch}  Avg accuracy: {metrics['accuracy']:.2f} Avg loss: {metrics['nll']:.2f}")
 
     trainer.run(train_loader, max_epochs=100)
 
