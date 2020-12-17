@@ -186,7 +186,9 @@ class BaseLogger(metaclass=ABCMeta):
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
-    def attach_opt_params_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> None:
+    def attach_opt_params_handler(
+        self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any
+    ) -> RemovableEventHandle:
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
         Args:
@@ -200,7 +202,7 @@ class BaseLogger(metaclass=ABCMeta):
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
         """
-        self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
+        return self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
 
     @abstractmethod
     def _create_output_handler(self, engine: Engine, *args: Any, **kwargs: Any) -> Callable:
