@@ -20,5 +20,5 @@ if __name__ == "__main__":
     os.makedirs(sbd_path, exist_ok=True)
     SBDataset(sbd_path, image_set="train_noval", mode="segmentation", download=True)
     print("Done")
-    print("Pascal VOC 2012 is at : {}".format(os.path.join(args.output_path, "VOCdevkit")))
-    print("SBD is at : {}".format(sbd_path))
+    print(f"Pascal VOC 2012 is at : {os.path.join(args.output_path, 'VOCdevkit')}")
+    print(f"SBD is at : {sbd_path}")
