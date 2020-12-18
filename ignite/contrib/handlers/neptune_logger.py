@@ -15,7 +15,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine, EventEnum
+from ignite.engine import Engine, Events
 from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import BaseSaveHandler
 
@@ -176,13 +176,13 @@ class NeptuneLogger(BaseLogger):
 
     """
 
-    def __getattr__(self, attr: Any):
+    def __getattr__(self, attr: Any) -> Any:
 
         import neptune
 
         return getattr(neptune, attr)
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         try:
             import neptune
         except ImportError:
@@ -205,13 +205,13 @@ class NeptuneLogger(BaseLogger):
 
         self.experiment = neptune.create_experiment(**self._experiment_kwargs)
 
-    def close(self):
+    def close(self) -> None:
         self.stop()
 
-    def _create_output_handler(self, *args: Any, **kwargs: Any):
+    def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any):
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> "OptimizerParamsHandler":
         return OptimizerParamsHandler(*args, **kwargs)
 
 
@@ -323,17 +323,17 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ):
+    ) -> None:
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OutputHandler works only with NeptuneLogger")
 
         metrics = self._setup_output_metrics(engine)
 
-        global_step = self.global_step_transform(engine, event_name)
+        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
         if not isinstance(global_step, int):
             raise TypeError(
@@ -391,10 +391,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag (str, optional): common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OptimizerParamsHandler works only with NeptuneLogger")
 
@@ -445,10 +445,10 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, EventEnum]):
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler WeightsScalarHandler works only with NeptuneLogger")
@@ -503,10 +503,10 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Any):
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler GradsScalarHandler works only with NeptuneLogger")
 
@@ -590,7 +590,7 @@ class NeptuneSaver(BaseSaveHandler):
         with tempfile.NamedTemporaryFile() as tmp:
             # we can not use tmp.name to open tmp.file twice on Win32
             # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
-            torch.save(checkpoint, tmp.file)
+            torch.save(checkpoint, tmp.file)  # type: ignore[attr-defined]
             self._logger.log_artifact(tmp.name, filename)
 
     @idist.one_rank_only(with_barrier=True)

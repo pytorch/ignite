@@ -6,5 +6,3 @@ RUN pip install --upgrade --no-cache-dir torchtext \
                                          transformers \
                                          spacy \
                                          nltk
-
-ENTRYPOINT ["/bin/bash"]

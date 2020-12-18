@@ -143,7 +143,7 @@ Let's use an infinite data iterator as training dataflow
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm())
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}"
         )
 
     trainer = Engine(train_step)
@@ -189,7 +189,7 @@ In this case, there will be only a single epoch defined.
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch.norm())
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}"
         )
 
     trainer = Engine(train_step)
@@ -246,7 +246,7 @@ In the code, we do not specify `epoch_length` which will be automatically determ
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     trainer = Engine(train_step)
@@ -276,7 +276,7 @@ In case of validation, the code is simply
         # ...
         s = evaluator.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     evaluator = Engine(val_step)
@@ -310,7 +310,7 @@ but here we will do this explicitly on iteration:
         # ...
         s = trainer.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     trainer = Engine(train_step)
@@ -342,7 +342,7 @@ In case of validation, the code is simply
         # ...
         s = evaluator.state
         print(
-            "{}/{} : {} - {:.3f}".format(s.epoch, s.max_epochs, s.iteration, batch)
+            f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}"
         )
 
     evaluator = Engine(val_step)
@@ -375,11 +375,11 @@ Simpliest way to fetch time of single epoch and complete training is to use
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_epoch_time():
-        print("{}: {}".format(trainer.state.epoch, trainer.state.times["EPOCH_COMPLETED"]))
+        print(f"{trainer.state.epoch}: {trainer.state.times['EPOCH_COMPLETED']}")
 
     @trainer.on(Events.COMPLETED)
     def log_total_time():
-        print("Total: {}".format(trainer.state.times["COMPLETED"]))
+        print(f"Total: {trainer.state.times['COMPLETED']}")
 
 
 For details, see :class:`~ignite.engine.events.State`.
