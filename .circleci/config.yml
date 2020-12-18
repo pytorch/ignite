@@ -12,6 +12,12 @@ parameters:
   workingdir:
     type: string
     default: "/tmp/ignite"
+  should_build_dockers:
+    type: boolean
+    default: false
+  should_publish_dockers:
+    type: boolean
+    default: false
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
@@ -317,15 +323,60 @@ jobs:
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
+  build_publish_docker_images:
+    <<: *one_gpu
+    working_directory: << pipeline.parameters.workingdir >>
+    steps:
+      - checkout
+      - run:
+          name: Build all Horovod flavoured PyTorch-Ignite images
+          command: |
+            cd docker
+            chmod +x ./hvd/build_all.sh
+            ./hvd/build_all.sh
+
+      - run:
+          name: Build all PyTorch-Ignite images
+          command: |
+            cd docker
+            chmod +x ./main/build_all.sh
+            ./main/build_all.sh
+
+      - run:
+          name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+          command: |
+            cd docker
+            chmod +x ./msdp/build_all.sh
+            ./msdp/build_all.sh
+
+      - run:
+          name: List built images
+          command: docker images | grep pytorchignite
+
+      - when:
+          condition: << pipeline.parameters.should_publish_dockers >>
+          steps:
+            - run:
+                name: Push all PyTorch-Ignite Docker images
+                command: |
+                  cd docker
+                  chmod +x ./push_all.sh
+                  ./push_all.sh
+
 # -------------------------------------------------------------------------------------
 # Workflows
 # -------------------------------------------------------------------------------------
 workflows:
   version: 2
   gpu_tests:
+    unless: << pipeline.parameters.should_build_dockers >>
     jobs:
       - one_gpu_tests
       - one_gpu_windows_tests
       - two_gpus_tests
       - two_gpus_check_dist_cifar10_example
       - two_gpus_hvd_tests
+  docker_images:
+    when: << pipeline.parameters.should_build_dockers >>
+    jobs:
+      - build_publish_docker_images
