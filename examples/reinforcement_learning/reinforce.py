@@ -103,9 +103,7 @@ def main(env, args):
     def log_episode(engine):
         i_episode = engine.state.epoch
         print(
-            "Episode {}\tLast length: {:5d}\tAverage length: {:.2f}".format(
-                i_episode, engine.state.timestep, engine.state.running_reward
-            )
+            f"Episode {i_episode}\tLast length: {engine.state.timestep:5d}\tAverage length: {engine.state.running_reward:.2f}"
         )
 
     @trainer.on(EPISODE_COMPLETED)
@@ -113,8 +111,8 @@ def main(env, args):
         running_reward = engine.state.running_reward
         if running_reward > env.spec.reward_threshold:
             print(
-                "Solved! Running reward is now {} and "
-                "the last episode runs to {} time steps!".format(running_reward, engine.state.timestep)
+                f"Solved! Running reward is now {running_reward} and "
+                f"the last episode runs to {engine.state.timestep} time steps!"
             )
             engine.should_terminate = True
 
