@@ -12,10 +12,10 @@ parameters:
   workingdir:
     type: string
     default: "/tmp/ignite"
-  should_build_dockers:
+  should_build_docker_images:
     type: boolean
     default: false
-  should_publish_dockers:
+  should_publish_docker_images:
     type: boolean
     default: false
 
@@ -354,7 +354,7 @@ jobs:
           command: docker images | grep pytorchignite
 
       - when:
-          condition: << pipeline.parameters.should_publish_dockers >>
+          condition: << pipeline.parameters.should_publish_docker_images >>
           steps:
             - run:
                 name: Push all PyTorch-Ignite Docker images
@@ -369,7 +369,7 @@ jobs:
 workflows:
   version: 2
   gpu_tests:
-    unless: << pipeline.parameters.should_build_dockers >>
+    unless: << pipeline.parameters.should_build_docker_images >>
     jobs:
       - one_gpu_tests
       - one_gpu_windows_tests
@@ -377,6 +377,6 @@ workflows:
       - two_gpus_check_dist_cifar10_example
       - two_gpus_hvd_tests
   docker_images:
-    when: << pipeline.parameters.should_build_dockers >>
+    when: << pipeline.parameters.should_build_docker_images >>
     jobs:
       - build_publish_docker_images
