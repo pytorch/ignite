@@ -751,8 +751,8 @@ class HandlersTimeProfiler:
 
         for row in results[:-3]:
             # format min/idx and max/idx
-            row[3] = f"{row[3][0]}/{row[3][1]}"  # type: ignore[misc]
-            row[4] = f"{row[4][0]}/{row[4][1]}"  # type: ignore[misc]
+            row[3] = "{}/{}".format(*row[3])  # type: ignore[misc]
+            row[4] = "{}/{}".format(*row[4])  # type: ignore[misc]
 
             append(row_format.format(*row))
 
@@ -763,8 +763,8 @@ class HandlersTimeProfiler:
 
         summary_format = "{} took total {}s [min/index: {}, max/index: {}, mean: {}s, std: {}s]"
         for row in results[-2:]:
-            row[3] = f"{row[3][0]}s/{row[3][1]}"  # type: ignore[misc]
-            row[4] = f"{row[4][0]}s/{row[4][1]}"  # type: ignore[misc]
+            row[3] = "{}s/{}".format(*row[3])  # type: ignore[misc]
+            row[4] = "{}s/{}".format(*row[4])  # type: ignore[misc]
             del row[1]
             append(summary_format.format(*row))
         print("".join(result))
