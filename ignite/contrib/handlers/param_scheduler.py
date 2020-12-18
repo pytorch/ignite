@@ -48,7 +48,7 @@ class ParamScheduler(metaclass=ABCMeta):
         ):
             raise TypeError(
                 "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
-                "but given {}".format(type(optimizer))
+                f"but given {type(optimizer)}"
             )
 
         self.optimizer = optimizer
@@ -65,9 +65,7 @@ class ParamScheduler(metaclass=ABCMeta):
         if isinstance(value, list):
             if len(value) != len(self.optimizer_param_groups):
                 raise ValueError(
-                    "size of value is different than optimizer_param_groups {} != {}".format(
-                        len(value), len(self.optimizer_param_groups)
-                    )
+                    f"size of value is different than optimizer_param_groups {len(value)} != {len(self.optimizer_param_groups)}"
                 )
 
             for i, param_group in enumerate(self.optimizer_param_groups):
@@ -124,14 +122,12 @@ class ParamScheduler(metaclass=ABCMeta):
             state_dict (dict): a dict containing parameters.
         """
         if not isinstance(state_dict, Mapping):
-            raise TypeError("Argument state_dict should be a dictionary, but given {}".format(type(state_dict)))
+            raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
 
         for name in self._state_attrs:
             if name not in state_dict:
                 raise ValueError(
-                    "Required state attribute '{}' is absent in provided state_dict '{}'".format(
-                        name, state_dict.keys()
-                    )
+                    f"Required state attribute '{name}' is absent in provided state_dict '{state_dict.keys()}'"
                 )
             val = state_dict[name]
             obj = getattr(self, name)
@@ -279,9 +275,7 @@ class CyclicalScheduler(ParamScheduler):
         self.end_value_mult = end_value_mult
 
         if self.cycle_size < 2:
-            raise ValueError(
-                "Argument cycle_size should be positive and larger than 1, but given {}".format(cycle_size)
-            )
+            raise ValueError(f"Argument cycle_size should be positive and larger than 1, but given {cycle_size}")
 
         self._state_attrs += [
             "start_value",
@@ -452,31 +446,28 @@ class ConcatScheduler(ParamScheduler):
     def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False) -> None:
 
         if not isinstance(schedulers, Sequence):
-            raise TypeError("Argument schedulers should be a sequence, but given {}".format(schedulers))
+            raise TypeError(f"Argument schedulers should be a sequence, but given {schedulers}")
 
         if len(schedulers) < 2:
             raise ValueError(
-                "Argument schedulers should be of more than one parameter schedulers, "
-                "but given {}".format(schedulers)
+                "Argument schedulers should be of more than one parameter schedulers, " f"but given {schedulers}"
             )
 
         if not isinstance(durations, (list, tuple)):
-            raise TypeError("Argument durations should be list/tuple, but given {}".format(durations))
+            raise TypeError(f"Argument durations should be list/tuple, but given {durations}")
 
         if not all([isinstance(t, numbers.Integral) for t in durations]):
-            raise ValueError("Argument durations should be list/tuple of integers, but given {}".format(durations))
+            raise ValueError(f"Argument durations should be list/tuple of integers, but given {durations}")
 
         if len(schedulers) != len(durations) + 1:
             raise ValueError(
-                "Incorrect number schedulers or duration values, "
-                "given {} and {}".format(len(schedulers), len(durations))
+                "Incorrect number schedulers or duration values, " f"given {len(schedulers)} and {len(durations)}"
             )
 
         for i, scheduler in enumerate(schedulers):
             if not isinstance(scheduler, ParamScheduler) and not isinstance(scheduler, ParamGroupScheduler):
                 raise TypeError(
-                    "Value at index {} of schedulers should be a parameter scheduler, "
-                    "but given {}".format(i, type(scheduler))
+                    f"Value at index {i} of schedulers should be a parameter scheduler, " f"but given {type(scheduler)}"
                 )
 
         self.schedulers = schedulers
@@ -531,19 +522,17 @@ class ConcatScheduler(ParamScheduler):
             state_dict (dict): a dict containing parameters.
         """
         if not isinstance(state_dict, Mapping):
-            raise TypeError("Argument state_dict should be a dictionary, but given {}".format(type(state_dict)))
+            raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
 
         if "schedulers" not in state_dict:
             raise ValueError(
-                "Required state attribute '{}' is absent in provided state_dict '{}'".format(
-                    "schedulers", state_dict.keys()
-                )
+                f"Required state attribute '{'schedulers'}' is absent in provided state_dict '{state_dict.keys()}'"
             )
         sds = state_dict["schedulers"]
         if len(sds) != len(self.schedulers):
             raise ValueError(
-                "Input state_dict contains {} state_dicts of concatenated schedulers, "
-                "but {} needed".format(len(sds), len(self.schedulers))
+                f"Input state_dict contains {len(sds)} state_dicts of concatenated schedulers, "
+                f"but {len(self.schedulers)} needed"
             )
 
         for s, sd in zip(self.schedulers, sds):
@@ -606,11 +595,9 @@ class ConcatScheduler(ParamScheduler):
         """
         if param_names is not None:
             if not isinstance(param_names, (list, tuple)):
-                raise TypeError("Argument param_names should be list or tuple, but given {}".format(type(param_names)))
+                raise TypeError(f"Argument param_names should be list or tuple, but given {type(param_names)}")
             if not all(isinstance(item, str) for item in param_names):
-                raise ValueError(
-                    "Argument param_names should be list or tuple of strings, but given {}".format(param_names)
-                )
+                raise ValueError(f"Argument param_names should be list or tuple of strings, but given {param_names}")
 
         tmp_param_optimizers = [s.optimizer for s in schedulers]
         tmp_list_param_optimizers = [s if isinstance(s, list) else [s] for s in tmp_param_optimizers]
@@ -627,7 +614,7 @@ class ConcatScheduler(ParamScheduler):
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
-            objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
+            objs = {f"lr_scheduler_{i}": s.state_dict() for i, s in enumerate(schedulers)}
             # all schedulers should be related to the same optimizer
             objs["optimizer"] = optimizer.state_dict()
 
@@ -653,7 +640,7 @@ class ConcatScheduler(ParamScheduler):
 
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
-                s.load_state_dict(objs["lr_scheduler_{}".format(i)])
+                s.load_state_dict(objs[f"lr_scheduler_{i}"])
             optimizer.load_state_dict(objs["optimizer"])
 
             return output
@@ -688,7 +675,7 @@ class LRScheduler(ParamScheduler):
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
                 "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler, "
-                "but given {}".format(type(lr_scheduler))
+                f"but given {type(lr_scheduler)}"
             )
 
         self.lr_scheduler = lr_scheduler
@@ -733,7 +720,7 @@ class LRScheduler(ParamScheduler):
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
                 "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler, "
-                "but given {}".format(type(lr_scheduler))
+                f"but given {type(lr_scheduler)}"
             )
 
         # This scheduler uses `torch.optim.lr_scheduler._LRScheduler` which
@@ -815,14 +802,14 @@ def create_lr_scheduler_with_warmup(
     if not isinstance(lr_scheduler, (ParamScheduler, _LRScheduler)):
         raise TypeError(
             "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler or "
-            "ParamScheduler, but given {}".format(type(lr_scheduler))
+            f"ParamScheduler, but given {type(lr_scheduler)}"
         )
 
     if not isinstance(warmup_duration, numbers.Integral):
-        raise TypeError("Argument warmup_duration should be integer, but given {}".format(warmup_duration))
+        raise TypeError(f"Argument warmup_duration should be integer, but given {warmup_duration}")
 
     if not (warmup_duration > 1):
-        raise ValueError("Argument warmup_duration should be at least 2 events, but given {}".format(warmup_duration))
+        raise ValueError(f"Argument warmup_duration should be at least 2 events, but given {warmup_duration}")
 
     warmup_schedulers = []  # type: List[ParamScheduler]
 
@@ -874,7 +861,7 @@ def create_lr_scheduler_with_warmup(
         if not isinstance(output_simulated_values, list):
             raise TypeError(
                 "Argument output_simulated_values should be a list of None, e.g. `[None] * 100`, "
-                "but given {}.".format(type(output_simulated_values))
+                f"but given {type(output_simulated_values)}."
             )
         num_events = len(output_simulated_values)
         result = ConcatScheduler.simulate_values(num_events=num_events, schedulers=schedulers, durations=durations)
@@ -926,12 +913,11 @@ class PiecewiseLinear(ParamScheduler):
 
         if not isinstance(milestones_values, Sequence):
             raise TypeError(
-                "Argument milestones_values should be a list or tuple, but given {}".format(type(milestones_values))
+                f"Argument milestones_values should be a list or tuple, but given {type(milestones_values)}"
             )
         if len(milestones_values) < 1:
             raise ValueError(
-                "Argument milestones_values should be with at least one value, "
-                "but given {}".format(milestones_values)
+                "Argument milestones_values should be with at least one value, " f"but given {milestones_values}"
             )
 
         values = []  # type: List[float]
@@ -940,11 +926,11 @@ class PiecewiseLinear(ParamScheduler):
             if not isinstance(pair, tuple) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
             if not isinstance(pair[0], numbers.Integral):
-                raise TypeError("Value of a milestone should be integer, but given {}".format(type(pair[0])))
+                raise TypeError(f"Value of a milestone should be integer, but given {type(pair[0])}")
             if len(milestones) > 0 and pair[0] < milestones[-1]:
                 raise ValueError(
-                    "Milestones should be increasing integers, but given {} is smaller "
-                    "than the previous milestone {}".format(pair[0], milestones[-1])
+                    f"Milestones should be increasing integers, but given {pair[0]} is smaller "
+                    f"than the previous milestone {milestones[-1]}"
                 )
             milestones.append(pair[0])
             values.append(pair[1])
@@ -1005,26 +991,24 @@ class ParamGroupScheduler:
 
     def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None, save_history: bool = False):
         if not isinstance(schedulers, Sequence):
-            raise TypeError("Argument schedulers should be a list/tuple, but given {}".format(schedulers))
+            raise TypeError(f"Argument schedulers should be a list/tuple, but given {schedulers}")
 
         if not all(isinstance(scheduler, ParamScheduler) for scheduler in schedulers):
             raise ValueError(
-                "Argument schedulers should be a list/tuple of parameter schedulers, but given {}".format(schedulers)
+                f"Argument schedulers should be a list/tuple of parameter schedulers, but given {schedulers}"
             )
 
         if names is None:
             names = [s.param_name for s in schedulers]
 
         if not isinstance(names, (list, tuple)):
-            raise TypeError("Argument names should be a list/tuple, but given {}".format(names))
+            raise TypeError(f"Argument names should be a list/tuple, but given {names}")
 
         if not all(isinstance(n, str) for n in names):
-            raise ValueError(
-                "Argument names should be a list/tuple of parameter scheduler's names, but given {}".format(names)
-            )
+            raise ValueError(f"Argument names should be a list/tuple of parameter scheduler's names, but given {names}")
 
         if len(names) != len(schedulers):
-            raise ValueError("{} should be equal {}".format(len(schedulers), len(names)))
+            raise ValueError(f"{len(schedulers)} should be equal {len(names)}")
 
         self.schedulers = schedulers
         self.names = names
@@ -1073,26 +1057,23 @@ class ParamGroupScheduler:
             state_dict (dict): a dict containing parameters.
         """
         if not isinstance(state_dict, Mapping):
-            raise TypeError("Argument state_dict should be a dictionary, but given {}".format(type(state_dict)))
+            raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
 
         if "schedulers" not in state_dict:
             raise ValueError(
-                "Required state attribute '{}' is absent in provided state_dict '{}'".format(
-                    "schedulers", state_dict.keys()
-                )
+                f"Required state attribute '{'schedulers'}' is absent in provided state_dict '{state_dict.keys()}'"
             )
         sds = state_dict["schedulers"]
         if len(sds) != len(self.schedulers):
             raise ValueError(
-                "Input state_dict contains {} state_dicts of param group schedulers, "
-                "but {} needed".format(len(sds), len(self.schedulers))
+                f"Input state_dict contains {len(sds)} state_dicts of param group schedulers, "
+                f"but {len(self.schedulers)} needed"
             )
 
         for req_n, s, (n, sd) in zip(self.names, self.schedulers, sds):
             if req_n != n:
                 raise ValueError(
-                    "Name of scheduler from input state dict does not correspond to required one,"
-                    " {} vs {}".format(n, req_n)
+                    "Name of scheduler from input state dict does not correspond to required one," f" {n} vs {req_n}"
                 )
             s.load_state_dict(sd)
 
@@ -1114,7 +1095,7 @@ class ParamGroupScheduler:
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
-            objs = {"lr_scheduler_{}".format(i): s.state_dict() for i, s in enumerate(schedulers)}
+            objs = {f"lr_scheduler_{i}": s.state_dict() for i, s in enumerate(schedulers)}
             # all schedulers should be related to the same optimizer
             objs["optimizer"] = schedulers[0].optimizer.state_dict()  # type: ignore[attr-defined]
 
@@ -1129,7 +1110,7 @@ class ParamGroupScheduler:
 
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
-                s.load_state_dict(objs["lr_scheduler_{}".format(i)])
+                s.load_state_dict(objs[f"lr_scheduler_{i}"])
                 s.optimizer.load_state_dict(objs["optimizer"])  # type: ignore[attr-defined]
 
             return values
