@@ -57,6 +57,7 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
 - FastaiLRFinder_MNIST.ipynb
 
   Added a couple of lines to the notebook to install ignite.
+  Use PyTorch-Ignite 0.4.2
 
 - EfficientNet_Cifar100_finetuning.ipynb
 
