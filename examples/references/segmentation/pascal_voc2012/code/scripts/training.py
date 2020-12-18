@@ -137,26 +137,23 @@ def create_evaluators(model, metrics, config):
 
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
-    logger.info(
-        "\nEpoch {} - Evaluation time (seconds): {} - {} metrics:\n {}".format(
-            epoch, int(elapsed), tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
-        )
-    )
+    metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
+    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {int(elapsed)} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
 
-    msg = "\n- PyTorch version: {}".format(torch.__version__)
-    msg += "\n- Ignite version: {}".format(ignite.__version__)
-    msg += "\n- Cuda device name: {}".format(torch.cuda.get_device_name(idist.get_local_rank()))
+    msg = f"\n- PyTorch version: {torch.__version__}"
+    msg += f"\n- Ignite version: {ignite.__version__}"
+    msg += f"\n- Cuda device name: {torch.cuda.get_device_name(idist.get_local_rank())}"
 
     logger.info(msg)
 
     if idist.get_world_size() > 1:
         msg = "\nDistributed setting:"
-        msg += "\tbackend: {}".format(idist.backend())
-        msg += "\trank: {}".format(idist.get_rank())
-        msg += "\tworld size: {}".format(idist.get_world_size())
+        msg += f"\tbackend: {idist.backend()}"
+        msg += f"\trank: {idist.get_rank()}"
+        msg += f"\tworld size: {idist.get_world_size()}"
         logger.info(msg)
 
 
