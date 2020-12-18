@@ -53,7 +53,7 @@ class BaseOutputHandler(BaseHandler):
         if metric_names is not None:
             if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
                 raise TypeError(
-                    "metric_names should be either a list or equal 'all', " f"got {type(metric_names)} instead."
+                    f"metric_names should be either a list or equal 'all', got {type(metric_names)} instead."
                 )
 
         if output_transform is not None and not callable(output_transform):
@@ -109,10 +109,10 @@ class BaseWeightsScalarHandler(BaseHandler):
 
     def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
         if not isinstance(model, torch.nn.Module):
-            raise TypeError("Argument model should be of type torch.nn.Module, " f"but given {type(model)}")
+            raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
         if not callable(reduction):
-            raise TypeError("Argument reduction should be callable, " f"but given {type(reduction)}")
+            raise TypeError(f"Argument reduction should be callable, but given {type(reduction)}")
 
         def _is_0D_tensor(t: torch.Tensor) -> bool:
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
@@ -134,7 +134,7 @@ class BaseWeightsHistHandler(BaseHandler):
 
     def __init__(self, model: nn.Module, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
-            raise TypeError("Argument model should be of type torch.nn.Module, " f"but given {type(model)}")
+            raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
         self.model = model
         self.tag = tag

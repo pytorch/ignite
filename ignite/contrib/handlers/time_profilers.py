@@ -210,7 +210,7 @@ class BasicTimeProfiler:
 
     def attach(self, engine: Engine) -> None:
         if not isinstance(engine, Engine):
-            raise TypeError("Argument engine should be ignite.engine.Engine, " f"but given {type(engine)}")
+            raise TypeError(f"Argument engine should be ignite.engine.Engine, but given {type(engine)}")
 
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))

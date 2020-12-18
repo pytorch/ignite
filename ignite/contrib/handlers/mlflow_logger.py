@@ -240,7 +240,7 @@ class OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     rendered_metrics[f"{self.tag} {key} {i}"] = v.item()
             else:
-                warnings.warn("MLflowLogger output_handler can not log " f"metrics value type {type(value)}")
+                warnings.warn(f"MLflowLogger output_handler can not log metrics value type {type(value)}")
 
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
         from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES

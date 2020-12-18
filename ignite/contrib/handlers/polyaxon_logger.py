@@ -232,7 +232,7 @@ class OutputHandler(BaseOutputHandler):
                 for i, v in enumerate(value):
                     rendered_metrics[f"{self.tag}/{key}/{i}"] = v.item()
             else:
-                warnings.warn("PolyaxonLogger output_handler can not log " f"metrics value type {type(value)}")
+                warnings.warn(f"PolyaxonLogger output_handler can not log metrics value type {type(value)}")
 
         logger.log_metrics(**rendered_metrics)
 

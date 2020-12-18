@@ -279,7 +279,7 @@ class _OutputHandler(BaseOutputHandler):
                         k = f"{key}_{i}"
                         rendered_metrics[k] = v.item()
                 else:
-                    warnings.warn("ProgressBar can not log " f"tensor with {value.ndimension()} dimensions")
+                    warnings.warn(f"ProgressBar can not log tensor with {value.ndimension()} dimensions")
             else:
                 rendered_metrics[key] = value
 

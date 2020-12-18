@@ -376,7 +376,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 values = value  # type: ignore[assignment]
                 keys = [f"{key}/{i}" for i in range(len(value))]
             else:
-                warnings.warn("VisdomLogger output_handler can not log " f"metrics value type {type(value)}")
+                warnings.warn(f"VisdomLogger output_handler can not log metrics value type {type(value)}")
 
             for k, v in zip(keys, values):
                 k = f"{self.tag}/{k}"

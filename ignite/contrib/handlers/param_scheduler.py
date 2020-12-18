@@ -450,7 +450,7 @@ class ConcatScheduler(ParamScheduler):
 
         if len(schedulers) < 2:
             raise ValueError(
-                "Argument schedulers should be of more than one parameter schedulers, " f"but given {schedulers}"
+                f"Argument schedulers should be of more than one parameter schedulers, but given {schedulers}"
             )
 
         if not isinstance(durations, (list, tuple)):
@@ -467,7 +467,7 @@ class ConcatScheduler(ParamScheduler):
         for i, scheduler in enumerate(schedulers):
             if not isinstance(scheduler, ParamScheduler) and not isinstance(scheduler, ParamGroupScheduler):
                 raise TypeError(
-                    f"Value at index {i} of schedulers should be a parameter scheduler, " f"but given {type(scheduler)}"
+                    f"Value at index {i} of schedulers should be a parameter scheduler, but given {type(scheduler)}"
                 )
 
         self.schedulers = schedulers
@@ -917,7 +917,7 @@ class PiecewiseLinear(ParamScheduler):
             )
         if len(milestones_values) < 1:
             raise ValueError(
-                "Argument milestones_values should be with at least one value, " f"but given {milestones_values}"
+                f"Argument milestones_values should be with at least one value, but given {milestones_values}"
             )
 
         values = []  # type: List[float]
@@ -1073,7 +1073,7 @@ class ParamGroupScheduler:
         for req_n, s, (n, sd) in zip(self.names, self.schedulers, sds):
             if req_n != n:
                 raise ValueError(
-                    "Name of scheduler from input state dict does not correspond to required one," f" {n} vs {req_n}"
+                    f"Name of scheduler from input state dict does not correspond to required one, {n} vs {req_n}"
                 )
             s.load_state_dict(sd)
 
