@@ -79,10 +79,6 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
   Refactor text cells
   Use PyTorch-Ignite 0.4.2
   
-- ignite-examples-contrib-cifar10.ipynb
- 
-  Tensorboard error ```No dashboards are active for the current data set.```
-  
 - HandlersTimeProfiler_MNIST.ipynb
 
   Tensorboard error ```403. That’s an error.```
