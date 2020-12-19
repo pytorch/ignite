@@ -21,33 +21,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Build all Horovod flavoured PyTorch-Ignite images
-        working-directory: ./docker
-        run: |
-          chmod +x ./hvd/build_all.sh
-          ./hvd/build_all.sh
-
-      - name: Build all PyTorch-Ignite images
-        working-directory: ./docker
-        run: |
-          chmod +x ./main/build_all.sh
-          ./main/build_all.sh
-      - name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
-        working-directory: ./docker
-        run: |
-          chmod +x ./msdp/build_all.sh
-          ./msdp/build_all.sh
-
-      - name: List built images
-        working-directory: ./docker
-        run: docker images | grep pytorchignite
-
-      - name: Push all PyTorch-Ignite Docker images
-        if: github.event_name == 'push'
+      - name: Trigger Circle-CI pipeline
         env:
-          DOCKER_USER: ${{ secrets.DOCKER_USER }}
-          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-        working-directory: ./docker
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
         run: |
-          chmod +x ./push_all.sh
-          ./push_all.sh
+          if [ $GITHUB_EVENT_NAME == 'pull_request' ]; then should_publish_docker_images=false; else should_publish_docker_images=true; fi
+          branch=$GITHUB_REF
+          sh .github/workflows/trigger_circle_ci.sh $should_publish_docker_images $branch
