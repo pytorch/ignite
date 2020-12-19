@@ -29,7 +29,7 @@ class BaseOptimizerParamsHandler(BaseHandler):
         ):
             raise TypeError(
                 "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
-                "but given {}".format(type(optimizer))
+                f"but given {type(optimizer)}"
             )
 
         self.optimizer = optimizer
@@ -53,19 +53,17 @@ class BaseOutputHandler(BaseHandler):
         if metric_names is not None:
             if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
                 raise TypeError(
-                    "metric_names should be either a list or equal 'all', " "got {} instead.".format(type(metric_names))
+                    f"metric_names should be either a list or equal 'all', got {type(metric_names)} instead."
                 )
 
         if output_transform is not None and not callable(output_transform):
-            raise TypeError("output_transform should be a function, got {} instead.".format(type(output_transform)))
+            raise TypeError(f"output_transform should be a function, got {type(output_transform)} instead.")
 
         if output_transform is None and metric_names is None:
             raise ValueError("Either metric_names or output_transform should be defined")
 
         if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError(
-                "global_step_transform should be a function, got {} instead.".format(type(global_step_transform))
-            )
+            raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
 
         if global_step_transform is None:
 
@@ -88,8 +86,8 @@ class BaseOutputHandler(BaseHandler):
                 for name in self.metric_names:
                     if name not in engine.state.metrics:
                         warnings.warn(
-                            "Provided metric name '{}' is missing "
-                            "in engine's state metrics: {}".format(name, list(engine.state.metrics.keys()))
+                            f"Provided metric name '{name}' is missing "
+                            f"in engine's state metrics: {list(engine.state.metrics.keys())}"
                         )
                         continue
                     metrics[name] = engine.state.metrics[name]
@@ -111,10 +109,10 @@ class BaseWeightsScalarHandler(BaseHandler):
 
     def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
         if not isinstance(model, torch.nn.Module):
-            raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
+            raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
         if not callable(reduction):
-            raise TypeError("Argument reduction should be callable, " "but given {}".format(type(reduction)))
+            raise TypeError(f"Argument reduction should be callable, but given {type(reduction)}")
 
         def _is_0D_tensor(t: torch.Tensor) -> bool:
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
@@ -122,7 +120,7 @@ class BaseWeightsScalarHandler(BaseHandler):
         # Test reduction function on a tensor
         o = reduction(torch.ones(4, 2))
         if not (isinstance(o, numbers.Number) or _is_0D_tensor(o)):
-            raise TypeError("Output of the reduction function should be a scalar, but got {}".format(type(o)))
+            raise TypeError(f"Output of the reduction function should be a scalar, but got {type(o)}")
 
         self.model = model
         self.reduction = reduction
@@ -136,7 +134,7 @@ class BaseWeightsHistHandler(BaseHandler):
 
     def __init__(self, model: nn.Module, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
-            raise TypeError("Argument model should be of type torch.nn.Module, " "but given {}".format(type(model)))
+            raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
         self.model = model
         self.tag = tag
@@ -166,7 +164,7 @@ class BaseLogger(metaclass=ABCMeta):
         name = event_name
 
         if name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(name))
+            raise RuntimeError(f"Unknown event name '{name}'")
 
         return engine.add_event_handler(event_name, log_handler, self, name)
 
