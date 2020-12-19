@@ -74,7 +74,7 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
 
 - Cifar100_bench_amp.ipynb
 
-  ```ERROR: torchvision 0.9.0.dev20201120+cu101 has requirement torch==1.8.0.dev20201120+cu101, but you'll have torch 1.6.0.dev20200411+cu101 which is incompatible.``` when running the installation cells
+  Now, use default colab torch and PyTorch-Ignite 0.4.2
 
 - MNIST_on_TPU.ipynb
 
