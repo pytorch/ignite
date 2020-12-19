@@ -62,6 +62,9 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
 - EfficientNet_Cifar100_finetuning.ipynb
 
   Deprecation warnings after running ```!sh setup.sh``` , ```d = torch.linspace(-10.0, 10.0)```, ```graph_def = graph(model, x, operator_export_type='RAW')```
+  Error, see https://github.com/microsoft/nni/issues/2877 
+  Need to wait the fix from onnx so code is commented
+  Checkpoint filename is model.pt to ease the rerun of the notebook
 
 - Cifar10_Ax_hyperparam_tuning.ipynb
 
