@@ -65,9 +65,7 @@ class ConfusionMatrix(Metric):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() < 2:
-            raise ValueError(
-                f"y_pred must have shape (batch_size, num_categories, ...), but given {y_pred.shape}"
-            )
+            raise ValueError(f"y_pred must have shape (batch_size, num_categories, ...), but given {y_pred.shape}")
 
         if y_pred.shape[1] != self.num_classes:
             raise ValueError(
@@ -172,9 +170,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
         def ignore_index_fn(iou_vector: torch.Tensor) -> torch.Tensor:
             if ignore_idx >= len(iou_vector):
-                raise ValueError(
-                    f"ignore_index {ignore_idx} is larger than the length of IoU vector {len(iou_vector)}"
-                )
+                raise ValueError(f"ignore_index {ignore_idx} is larger than the length of IoU vector {len(iou_vector)}")
             indices = list(range(len(iou_vector)))
             indices.remove(ignore_idx)
             return iou_vector[indices]

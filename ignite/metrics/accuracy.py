@@ -88,9 +88,7 @@ class _BaseClassification(Metric):
             if self._type != update_type:
                 raise RuntimeError(f"Input data type has changed from {self._type} to {update_type}.")
             if self._num_classes != num_classes:
-                raise ValueError(
-                    f"Input data number of classes has changed from {self._num_classes} to {num_classes}"
-                )
+                raise ValueError(f"Input data number of classes has changed from {self._num_classes} to {num_classes}")
 
 
 class Accuracy(_BaseClassification):
