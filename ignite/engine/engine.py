@@ -222,9 +222,7 @@ class Engine(Serializable):
 
         for index, e in enumerate(event_names):
             if not isinstance(e, (str, EventEnum)):
-                raise TypeError(
-                    f"Value at {index} of event_names should be a str or EventEnum, but given {e}"
-                )
+                raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
             self._allowed_events.append(e)
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
@@ -828,7 +826,8 @@ class Engine(Serializable):
                             warnings.warn(
                                 "Data iterator can not provide data anymore but required total number of "
                                 "iterations to run is not reached. "
-                                f"Current iteration: {self.state.iteration} vs Total iterations to run : {self.state.epoch_length * self.state.max_epochs}" # type: ignore[operator]
+                                # type: ignore[operator]
+                                f"Current iteration: {self.state.iteration} vs Total iterations to run : {self.state.epoch_length * self.state.max_epochs}"
                             )
                         break
 

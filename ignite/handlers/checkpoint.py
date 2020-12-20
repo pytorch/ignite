@@ -274,9 +274,7 @@ class Checkpoint(Serializable):
             raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
 
         if global_step_transform is not None and not callable(global_step_transform):
-            raise TypeError(
-                f"global_step_transform should be a function, got {type(global_step_transform)} instead."
-            )
+            raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
@@ -318,9 +316,7 @@ class Checkpoint(Serializable):
 
         if self._check_lt_n_saved() or self._saved[0].priority < priority:
 
-            priority_str = (
-                f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
-            )
+            priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
             checkpoint = self._setup_checkpoint()
 

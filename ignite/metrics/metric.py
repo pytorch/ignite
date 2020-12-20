@@ -303,9 +303,7 @@ class Metric(metaclass=ABCMeta):
         result = self.compute()
         if isinstance(result, Mapping):
             if name in result.keys():
-                raise ValueError(
-                    f"Argument name '{name}' is conflicting with mapping keys: {list(result.keys())}"
-                )
+                raise ValueError(f"Argument name '{name}' is conflicting with mapping keys: {list(result.keys())}")
 
             for key, value in result.items():
                 engine.state.metrics[key] = value
@@ -323,9 +321,7 @@ class Metric(metaclass=ABCMeta):
             elif usage == BatchWise.usage_name:
                 usage = BatchWise()
             else:
-                raise ValueError(
-                    f"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name', get {usage}"
-                )
+                raise ValueError(f"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name', get {usage}")
         if not isinstance(usage, MetricUsage):
             raise TypeError(f"Unhandled usage type {type(usage)}")
         return usage
