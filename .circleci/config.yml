@@ -332,22 +332,19 @@ jobs:
           name: Build all Horovod flavoured PyTorch-Ignite images
           command: |
             cd docker
-            chmod +x ./hvd/build_all.sh
-            ./hvd/build_all.sh
+            sh ./hvd/build_all.sh
 
       - run:
           name: Build all PyTorch-Ignite images
           command: |
             cd docker
-            chmod +x ./main/build_all.sh
-            ./main/build_all.sh
+            sh ./main/build_all.sh
 
       - run:
           name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
           command: |
             cd docker
-            chmod +x ./msdp/build_all.sh
-            ./msdp/build_all.sh
+            sh ./msdp/build_all.sh
 
       - run:
           name: List built images
@@ -360,8 +357,7 @@ jobs:
                 name: Push all PyTorch-Ignite Docker images
                 command: |
                   cd docker
-                  chmod +x ./push_all.sh
-                  ./push_all.sh
+                  sh ./push_all.sh
 
 # -------------------------------------------------------------------------------------
 # Workflows
