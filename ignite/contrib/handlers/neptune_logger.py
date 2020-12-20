@@ -337,18 +337,18 @@ class OutputHandler(BaseOutputHandler):
 
         if not isinstance(global_step, int):
             raise TypeError(
-                "global_step must be int, got {}."
-                " Please check the output of global_step_transform.".format(type(global_step))
+                f"global_step must be int, got {type(global_step)}."
+                " Please check the output of global_step_transform."
             )
 
         for key, value in metrics.items():
             if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.log_metric("{}/{}".format(self.tag, key), x=global_step, y=value)
+                logger.log_metric(f"{self.tag}/{key}", x=global_step, y=value)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    logger.log_metric("{}/{}/{}".format(self.tag, key, i), x=global_step, y=v.item())
+                    logger.log_metric(f"{self.tag}/{key}/{i}", x=global_step, y=v.item())
             else:
-                warnings.warn("NeptuneLogger output_handler can not log metrics value type {}".format(type(value)))
+                warnings.warn(f"NeptuneLogger output_handler can not log metrics value type {type(value)}")
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -399,9 +399,9 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             raise TypeError("Handler OptimizerParamsHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         params = {
-            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            f"{tag_prefix}{self.param_name}/group_{i}": float(param_group[self.param_name])
             for i, param_group in enumerate(self.optimizer.param_groups)
         }
 
@@ -454,16 +454,14 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             raise TypeError("Handler WeightsScalarHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             name = name.replace(".", "/")
             logger.log_metric(
-                "{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name),
-                x=global_step,
-                y=self.reduction(p.data),
+                f"{tag_prefix}weights_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.data),
             )
 
 
@@ -511,16 +509,14 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             raise TypeError("Handler GradsScalarHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             name = name.replace(".", "/")
             logger.log_metric(
-                "{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name),
-                x=global_step,
-                y=self.reduction(p.grad),
+                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.grad),
             )
 
 

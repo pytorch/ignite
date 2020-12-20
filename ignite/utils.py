@@ -48,7 +48,7 @@ def apply_to_type(
         return cast(Callable, type(input_))(*(apply_to_type(sample, input_type, func) for sample in input_))
     if isinstance(input_, collections.Sequence):
         return cast(Callable, type(input_))([apply_to_type(sample, input_type, func) for sample in input_])
-    raise TypeError(("input must contain {}, dicts or lists; found {}".format(input_type, type(input_))))
+    raise TypeError((f"input must contain {input_type}, dicts or lists; found {type(input_)}"))
 
 
 def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:

@@ -203,7 +203,7 @@ def _setup_common_training_handlers(
             else:
                 raise TypeError(
                     "Unhandled type of update_function's output. "
-                    "It should either mapping or sequence, but given {}".format(type(x))
+                    f"It should either mapping or sequence, but given {type(x)}"
                 )
 
         for i, n in enumerate(output_names):
@@ -602,7 +602,7 @@ def gen_save_best_models_by_val_score(
         filename_prefix="best",
         n_saved=n_saved,
         global_step_transform=global_step_transform,
-        score_name="{}_{}".format(tag, metric_name.lower()),
+        score_name=f"{tag}_{metric_name.lower()}",
         score_function=get_default_score_fn(metric_name),
         **kwargs,
     )

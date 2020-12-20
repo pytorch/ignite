@@ -218,21 +218,21 @@ class OutputHandler(BaseOutputHandler):
 
         if not isinstance(global_step, int):
             raise TypeError(
-                "global_step must be int, got {}."
-                " Please check the output of global_step_transform.".format(type(global_step))
+                f"global_step must be int, got {type(global_step)}."
+                " Please check the output of global_step_transform."
             )
 
         rendered_metrics = {"step": global_step}  # type: Dict[str, Union[float, numbers.Number]]
         for key, value in metrics.items():
             if isinstance(value, numbers.Number):
-                rendered_metrics["{}/{}".format(self.tag, key)] = value
+                rendered_metrics[f"{self.tag}/{key}"] = value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics["{}/{}".format(self.tag, key)] = value.item()
+                rendered_metrics[f"{self.tag}/{key}"] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    rendered_metrics["{}/{}/{}".format(self.tag, key, i)] = v.item()
+                    rendered_metrics[f"{self.tag}/{key}/{i}"] = v.item()
             else:
-                warnings.warn("PolyaxonLogger output_handler can not log " "metrics value type {}".format(type(value)))
+                warnings.warn(f"PolyaxonLogger output_handler can not log metrics value type {type(value)}")
 
         logger.log_metrics(**rendered_metrics)
 
@@ -277,9 +277,9 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             raise RuntimeError("Handler OptimizerParamsHandler works only with PolyaxonLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         params = {
-            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            f"{tag_prefix}{self.param_name}/group_{i}": float(param_group[self.param_name])
             for i, param_group in enumerate(self.optimizer.param_groups)
         }
         params["step"] = global_step
