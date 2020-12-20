@@ -1,8 +1,9 @@
+import json
 import os
 import sys
-import requests
-import json
 import time
+
+import requests
 
 
 def assert_result(result, expected_code):
@@ -15,31 +16,23 @@ def get_output(result_text, required_keys):
     print(f"Output: {output}")
 
     if not all([v in output for v in required_keys]):
-        raise RuntimeError(
-            f"Output does not contain required fields: {required_keys}\n"
-            f"Output is: {output}"
-        )
+        raise RuntimeError(f"Output does not contain required fields: {required_keys}\n" f"Output is: {output}")
     return output
 
 
 def trigger_new_pipeline(data, headers):
     result = requests.post(
-        "https://circleci.com/api/v2/project/gh/pytorch/ignite/pipeline",
-        data=json.dumps(data),
-        headers=headers
+        "https://circleci.com/api/v2/project/gh/pytorch/ignite/pipeline", data=json.dumps(data), headers=headers
     )
     assert_result(result, 201)
     print("\ntrigger_new_pipeline: ")
-    output = get_output(result.text, ["id", ])
+    output = get_output(result.text, ["id",])
     return output["id"]
 
 
 def assert_pipeline_created(pipeline_id, headers):
     while True:
-        result = requests.get(
-            f"https://circleci.com/api/v2/pipeline/{pipeline_id}",
-            headers=headers
-        )
+        result = requests.get(f"https://circleci.com/api/v2/pipeline/{pipeline_id}", headers=headers)
         assert_result(result, 200)
         print("\nassert_pipeline_created: ")
         output = get_output(result.text, ["state", "errors"])
@@ -52,25 +45,16 @@ def assert_pipeline_created(pipeline_id, headers):
 
 
 def get_workflow_id(pipeline_id, headers):
-    result = requests.get(
-        f"https://circleci.com/api/v2/pipeline/{pipeline_id}/workflow",
-        headers=headers
-    )
+    result = requests.get(f"https://circleci.com/api/v2/pipeline/{pipeline_id}/workflow", headers=headers)
     assert_result(result, 200)
     print("\nget_workflow_id: ")
-    output = get_output(result.text, ["items", ])
+    output = get_output(result.text, ["items",])
     items = output["items"]
     if len(items) != 1:
-        raise RuntimeError(
-            f"Incorrect number of workflow ids: {len(items)} != 1\n"
-            f"items: {items}"
-        )
+        raise RuntimeError(f"Incorrect number of workflow ids: {len(items)} != 1\n" f"items: {items}")
     item_0 = items[0]
     if "id" not in item_0:
-        raise RuntimeError(
-            "Workflow info does not contain 'id'\n"
-            f"Info: {item_0}"
-        )
+        raise RuntimeError("Workflow info does not contain 'id'\n" f"Info: {item_0}")
     return item_0["id"]
 
 
@@ -79,10 +63,7 @@ def assert_workflows_successful(pipeline_id, headers):
     workflow_id = get_workflow_id(pipeline_id, headers)
 
     while True:
-        result = requests.get(
-            f"https://circleci.com/api/v2/workflow/{workflow_id}",
-            headers=headers
-        )
+        result = requests.get(f"https://circleci.com/api/v2/workflow/{workflow_id}", headers=headers)
         assert_result(result, 200)
         print("\nassert_workflows_successful:")
         output = get_output(result.text, ["name", "status", "pipeline_number"])
@@ -90,10 +71,7 @@ def assert_workflows_successful(pipeline_id, headers):
         if output["status"] in ["error", "failing", "canceled", "not_run", "failed"]:
             base_url = f"https://app.circleci.com/pipelines/github/pytorch/ignite"
             url = f"{base_url}/{output['pipeline_number']}/workflows/{workflow_id}"
-            raise RuntimeError(
-                f"Workflow failed: {output['status']}\n"
-                f"See {url}"
-            )
+            raise RuntimeError(f"Workflow failed: {output['status']}\n" f"See {url}")
         if output["status"] == "success":
             print("Workflow successful")
             break
@@ -106,15 +84,12 @@ if __name__ == "__main__":
 
     if "CIRCLE_TOKEN" not in os.environ:
         raise RuntimeError(
-            "Can not find CIRCLE_TOKEN env variable.\n"
-            "Please, export CIRCLE_TOKEN=<token> before calling this script"
+            "Can not find CIRCLE_TOKEN env variable.\n" "Please, export CIRCLE_TOKEN=<token> before calling this script"
         )
 
     argv = sys.argv
     if len(argv) != 3:
-        raise RuntimeError(
-            "Usage: python trigger_circle_ci.py <true or false> <branch-name>"
-        )
+        raise RuntimeError("Usage: python trigger_circle_ci.py <true or false> <branch-name>")
 
     should_publish_docker_images = json.loads(argv[1])
     branch = argv[2]
@@ -122,18 +97,14 @@ if __name__ == "__main__":
     print(f"- should_publish_docker_images: {should_publish_docker_images}")
     print(f"- Branch: {branch}")
 
-    headers = {
-        "authorization": "Basic",
-        "content-type": "application/json",
-        "Circle-Token": os.environ["CIRCLE_TOKEN"]
-    }
+    headers = {"authorization": "Basic", "content-type": "application/json", "Circle-Token": os.environ["CIRCLE_TOKEN"]}
 
     data = {
         "branch": branch,
         "parameters": {
             "should_build_docker_images": True,
-            "should_publish_docker_images": should_publish_docker_images
-        }
+            "should_publish_docker_images": should_publish_docker_images,
+        },
     }
 
     unique_pipeline_id = trigger_new_pipeline(data, headers)
