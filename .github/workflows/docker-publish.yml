@@ -33,4 +33,4 @@ jobs:
           if [ $GITHUB_EVENT_NAME == 'pull_request' ]; then should_publish_docker_images=false; else should_publish_docker_images=true; fi
           branch=$GITHUB_REF
 
-          python .github/workflows/trigger_circle_ci.py $should_publish_docker_images $branch
+          python -u .github/workflows/trigger_circle_ci.py $should_publish_docker_images $branch

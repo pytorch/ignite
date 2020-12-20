@@ -3,14 +3,15 @@
 
 ARG PTH_VERSION=1.6.0-cuda10.1-cudnn7
 
+# 1/Building apex with pytorch:*-devel
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-hvd-builder
 
-ARG HVD_VERSION=v0.21.0
 ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
 
 # Install git
-RUN apt-get update && apt-get install -y --no-install-recommends git
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
+     rm -rf /var/lib/apt/lists/*
 
 # Build apex
 RUN echo "Setup NVIDIA Apex" && \
@@ -19,6 +20,8 @@ RUN echo "Setup NVIDIA Apex" && \
     git clone https://github.com/NVIDIA/apex $tmp_apex_path && \
     cd $tmp_apex_path && \
     pip wheel --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
+
+ARG HVD_VERSION=v0.21.0
 
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \

@@ -31,7 +31,7 @@ set -eu
 
 image_tag=""
 
-for image_name in "msdp-apex-base" "msdp-apex-vision" "msdp-apex-nlp"
+for image_name in "msdp-apex" "msdp-apex-vision" "msdp-apex-nlp"
 do
 
     retry "docker build -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} ." "\nBuild failed: ${image_name}"
