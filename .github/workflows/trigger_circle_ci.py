@@ -135,8 +135,6 @@ if __name__ == "__main__":
             "should_publish_docker_images": should_publish_docker_images
         }
     }
-    print(data)
-    exit(1)
 
     unique_pipeline_id = trigger_new_pipeline(data, headers)
     assert_pipeline_created(unique_pipeline_id, headers)
