@@ -826,7 +826,7 @@ class Engine(Serializable):
                             warnings.warn(
                                 "Data iterator can not provide data anymore but required total number of "
                                 "iterations to run is not reached. "
-                                f"Current iteration: {self.state.iteration} vs Total iterations to run : {self.state.epoch_length * self.state.max_epochs}" # type: ignore[operator]
+                                f"Current iteration: {self.state.iteration} vs Total iterations to run : {self.state.epoch_length * self.state.max_epochs}"  # type: ignore[operator]
                             )
                         break
 
