@@ -73,7 +73,7 @@ def assert_workflows_successful(pipeline_id, headers):
         if output["status"] in ["error", "failing", "canceled", "not_run", "failed"]:
             raise RuntimeError(f"Workflow failed: {output['status']}\n" f"See {url}")
         if output["status"] == "success":
-            print("Workflow successful")
+            print("\nWorkflow successful")
             break
         time.sleep(30)
         print(".", end=" ")
