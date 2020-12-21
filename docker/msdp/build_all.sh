@@ -30,11 +30,13 @@ cd $curr_dir/msdp
 set -eu
 
 image_tag=""
+pth_version=${PTH_VERSION:-1.6.0-cuda10.1-cudnn7}
+msdp_version=${MSDP_VERSION:-v0.3.8}
 
 for image_name in "msdp-apex" "msdp-apex-vision" "msdp-apex-nlp"
 do
 
-    retry "docker build -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} ." "\nBuild failed: ${image_name}"
+    retry "docker build --build-arg PTH_VERSION=${pth_version} --build-arg MSDP_VERSION=${msdp_version} -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} ." "\nBuild failed: ${image_name}"
     if [ -z $image_tag ]; then
         image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
     fi

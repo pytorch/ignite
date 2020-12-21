@@ -18,6 +18,15 @@ parameters:
   should_publish_docker_images:
     type: boolean
     default: false
+  build_docker_image_pytorch_version:
+    type: string
+    default: "1.6.0-cuda10.1-cudnn7"
+  build_docker_image_hvd_version:
+    type: string
+    default: "v0.21.0"
+  build_docker_image_msdp_version:
+    type: string
+    default: "v0.3.8"
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
@@ -332,18 +341,23 @@ jobs:
           name: Build all Horovod flavoured PyTorch-Ignite images
           command: |
             cd docker
+            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
+            export HVD_VERSION=<< pipeline.parameters.build_docker_image_hvd_version >>
             sh ./hvd/build_all.sh
 
       - run:
           name: Build all PyTorch-Ignite images
           command: |
             cd docker
+            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
             sh ./main/build_all.sh
 
       - run:
           name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
           command: |
             cd docker
+            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
+            export MSDP_VERSION=<< pipeline.parameters.build_docker_image_msdp_version >>
             sh ./msdp/build_all.sh
 
       - run:

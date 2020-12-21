@@ -24,27 +24,29 @@ RUN echo "Setup NVIDIA Apex" && \
 # For pip --use-feature option
 RUN python -m pip install --upgrade pip
 
-# From https://github.com/microsoft/DeepSpeed/blob/master/docker/Dockerfile
-##############################################################################
-# DeepSpeed
-##############################################################################
-RUN git clone https://github.com/microsoft/DeepSpeed.git /tmp/DeepSpeed
-RUN cd /tmp/DeepSpeed && \
-    git checkout . && \
-    git checkout master && \
+# MSDeepSpeed
+ARG MSDP_VERSION=v0.3.8
+
+RUN conda install cmake llvmdev=9.0.1 -c conda-forge
+
+RUN git clone https://github.com/microsoft/DeepSpeed.git -b ${MSDP_VERSION} /tmp/DeepSpeed && cd /tmp/DeepSpeed && \
     ./install.sh --allow_sudo
 
-# Build runtime image
-FROM pytorch/pytorch:${PTH_VERSION}-runtime
+# Build using devel image
+FROM pytorch/pytorch:${PTH_VERSION}-devel
 
 # Apex
 COPY --from=apex-msdp-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
+
 RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
     rm apex-0.1-cp37-cp37m-linux_x86_64.whl
 
 # MSDeepSpeed
+RUN conda install cmake llvmdev=9.0.1 -c conda-forge
+
 COPY --from=apex-msdp-builder /tmp/DeepSpeed/dist/deepspeed-*.whl /msdp/
-RUN cd /msdp && \
+
+RUN cd /msdp && export CUDA_HOME=/usr/local/cuda && \
     pip install --no-cache-dir deepspeed-*.whl && \
     rm -fr /msdp
 
