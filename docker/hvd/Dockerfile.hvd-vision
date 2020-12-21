@@ -15,6 +15,5 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          numpy \
                                          opencv-python \
                                          py_config_runner \
-                                         "trains>=0.15.0"
-
-RUN pip uninstall -y pillow && CC="cc -mavx2" pip install -U --force-reinstall pillow-simd
+                                         pillow \
+                                         trains

@@ -103,7 +103,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
     else:
         kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
 
-    logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
+    logger.info(f"Use data loader kwargs for dataset '{repr(dataset)[:20].strip()}': \n\t{kwargs}")
     dataloader = DataLoader(dataset, **kwargs)
 
     if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and world_size > 1:
@@ -185,7 +185,7 @@ def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
             lrank = idist.get_local_rank()
-            logger.info("Apply torch DistributedDataParallel on model, device id: {}".format(lrank))
+            logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,])
         elif idist.has_native_dist_support and bnd == idist_native.GLOO:
             if sync_bn:
@@ -272,7 +272,7 @@ class DistributedProxySampler(DistributedSampler):
     def __init__(self, sampler: Sampler, num_replicas: Optional[int] = None, rank: Optional[int] = None) -> None:
 
         if not isinstance(sampler, Sampler):
-            raise TypeError("Argument sampler should be instance of torch Sampler, but given: {}".format(type(sampler)))
+            raise TypeError(f"Argument sampler should be instance of torch Sampler, but given: {type(sampler)}")
 
         if not hasattr(sampler, "__len__"):
             raise TypeError("Argument sampler should have length")
@@ -296,7 +296,7 @@ class DistributedProxySampler(DistributedSampler):
         # subsample
         indices = indices[self.rank : self.total_size : self.num_replicas]
         if len(indices) != self.num_samples:
-            raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))
+            raise RuntimeError(f"{len(indices)} vs {self.num_samples}")
 
         return iter(indices)
 
