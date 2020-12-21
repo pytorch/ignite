@@ -34,11 +34,15 @@ image_tag=""
 if [[ -z "${PTH_VERSION}" ]]; then
     echo "PTH_VERSION is not set"
     exit 1
-else
-    pth_version=${PTH_VERSION}
 fi
 
-msdp_version=${MSDP_VERSION:-v0.3.8}
+if [[ -z "${MSDP_VERSION}" ]]; then
+    echo "MSDP_VERSION is not set"
+    exit 1
+fi
+
+pth_version=${PTH_VERSION}
+msdp_version=${MSDP_VERSION}
 
 for image_name in "msdp-apex" "msdp-apex-vision" "msdp-apex-nlp"
 do

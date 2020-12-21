@@ -34,9 +34,9 @@ image_tag=""
 if [[ -z "${PTH_VERSION}" ]]; then
     echo "PTH_VERSION is not set"
     exit 1
-else
-    pth_version=${PTH_VERSION}
 fi
+
+pth_version=${PTH_VERSION}
 
 for image_name in "base" "vision" "nlp" "apex" "apex-vision" "apex-nlp"
 do

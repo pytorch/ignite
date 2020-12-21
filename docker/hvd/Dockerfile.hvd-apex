@@ -21,7 +21,7 @@ RUN echo "Setup NVIDIA Apex" && \
     cd $tmp_apex_path && \
     pip wheel --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
-ARG HVD_VERSION=v0.21.0
+ARG HVD_VERSION
 
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \

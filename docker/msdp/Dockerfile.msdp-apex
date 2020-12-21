@@ -25,7 +25,7 @@ RUN echo "Setup NVIDIA Apex" && \
 RUN python -m pip install --upgrade pip
 
 # MSDeepSpeed
-ARG MSDP_VERSION=v0.3.8
+ARG MSDP_VERSION
 
 RUN conda install cmake llvmdev=9.0.1 -c conda-forge
 

@@ -34,11 +34,15 @@ image_tag=""
 if [[ -z "${PTH_VERSION}" ]]; then
     echo "PTH_VERSION is not set"
     exit 1
-else
-    pth_version=${PTH_VERSION}
 fi
 
-hvd_version=${HVD_VERSION:-v0.21.0}
+if [[ -z "${HVD_VERSION}" ]]; then
+    echo "HVD_VERSION is not set"
+    exit 1
+fi
+
+pth_version=${PTH_VERSION}
+hvd_version=${HVD_VERSION}
 
 for image_name in "hvd-base" "hvd-vision" "hvd-nlp" "hvd-apex" "hvd-apex-vision" "hvd-apex-nlp"
 do
