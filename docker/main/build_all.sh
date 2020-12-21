@@ -30,7 +30,13 @@ cd $curr_dir/main
 set -eu
 
 image_tag=""
-pth_version=${PTH_VERSION:-1.6.0-cuda10.1-cudnn7}
+
+if [[ -z "${PTH_VERSION}" ]]; then
+    echo "PTH_VERSION is not set"
+    exit 1
+fi
+
+pth_version=${PTH_VERSION}
 
 for image_name in "base" "vision" "nlp" "apex" "apex-vision" "apex-nlp"
 do
