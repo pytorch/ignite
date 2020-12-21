@@ -1,5 +1,5 @@
 # Dockerfile.base
-ARG PTH_VERSION=1.7.0-cuda11.0-cudnn8
+ARG PTH_VERSION
 
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
 

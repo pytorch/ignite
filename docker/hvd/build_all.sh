@@ -30,7 +30,14 @@ cd $curr_dir/hvd
 set -eu
 
 image_tag=""
-pth_version=${PTH_VERSION:-1.7.0-cuda11.0-cudnn8}
+
+if [[ -z "${PTH_VERSION}" ]]; then
+    echo "PTH_VERSION is not set"
+    exit 1
+else
+    pth_version=${PTH_VERSION}
+fi
+
 hvd_version=${HVD_VERSION:-v0.21.0}
 
 for image_name in "hvd-base" "hvd-vision" "hvd-nlp" "hvd-apex" "hvd-apex-vision" "hvd-apex-nlp"

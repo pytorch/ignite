@@ -1,7 +1,7 @@
 # Multi-stage build
 # Dockerfile.hvd-apex
 
-ARG PTH_VERSION=1.7.0-cuda11.0-cudnn8
+ARG PTH_VERSION
 
 # 1/Building apex with pytorch:*-devel
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-hvd-builder
