@@ -30,7 +30,7 @@ cd $curr_dir/hvd
 set -eu
 
 image_tag=""
-pth_version=${PTH_VERSION:-1.6.0-cuda10.1-cudnn7}
+pth_version=${PTH_VERSION:-1.7.0-cuda11.0-cudnn8}
 hvd_version=${HVD_VERSION:-v0.21.0}
 
 for image_name in "hvd-base" "hvd-vision" "hvd-nlp" "hvd-apex" "hvd-apex-vision" "hvd-apex-nlp"
