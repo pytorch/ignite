@@ -42,16 +42,20 @@ def assert_pipeline_created(pipeline_id, headers):
 
 
 def get_workflow_id(pipeline_id, headers):
-    result = requests.get(f"https://circleci.com/api/v2/pipeline/{pipeline_id}/workflow", headers=headers)
-    assert_result(result, 200)
-    output = get_output(result.text, ["items",])
-    items = output["items"]
-    if len(items) != 1:
-        raise RuntimeError(f"Incorrect number of workflow ids: {len(items)} != 1\n" f"items: {items}")
-    item_0 = items[0]
-    if "id" not in item_0:
-        raise RuntimeError("Workflow info does not contain 'id'\n" f"Info: {item_0}")
-    return item_0["id"]
+
+    while True:
+        result = requests.get(f"https://circleci.com/api/v2/pipeline/{pipeline_id}/workflow", headers=headers)
+        assert_result(result, 200)
+        output = get_output(result.text, ["items",])
+        items = output["items"]
+        if len(items) > 1:
+            raise RuntimeError(f"Incorrect number of workflow ids: {len(items)} != 1\n" f"items: {items}")
+        if len(items) < 1:
+            continue
+        item_0 = items[0]
+        if "id" not in item_0:
+            raise RuntimeError("Workflow info does not contain 'id'\n" f"Info: {item_0}")
+        return item_0["id"]
 
 
 def assert_workflows_successful(pipeline_id, headers):
