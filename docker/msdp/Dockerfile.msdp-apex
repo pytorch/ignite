@@ -36,10 +36,10 @@ RUN git clone https://github.com/microsoft/DeepSpeed.git -b ${MSDP_VERSION} /tmp
 FROM pytorch/pytorch:${PTH_VERSION}-devel
 
 # Apex
-COPY --from=apex-msdp-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
+COPY --from=apex-msdp-builder /tmp/apex/apex-*.whl /tmp/apex/
 
-RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
-    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
+    rm -fr /tmp/apex
 
 # MSDeepSpeed
 RUN conda install cmake llvmdev=9.0.1 -c conda-forge
