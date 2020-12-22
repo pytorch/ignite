@@ -823,8 +823,10 @@ class Engine(Serializable):
                     # Should exit while loop if we can not iterate
                     if should_exit:
                         if not self._is_done(self.state):
-                            # type: ignore[operator]
-                            msg = f"Current iteration: {self.state.iteration} vs Total iterations to run : {self.state.epoch_length * self.state.max_epochs}"
+                            total_iters = self.state.epoch_length * self.state.max_epochs  # type: ignore[operator]
+                            msg = (
+                                f"Current iteration: {self.state.iteration} vs Total iterations to run : {total_iters}"
+                            )
                             warnings.warn(
                                 "Data iterator can not provide data anymore but required total number of "
                                 f"iterations to run is not reached. {msg}"
