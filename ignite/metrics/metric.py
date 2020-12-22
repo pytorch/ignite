@@ -209,8 +209,8 @@ class Metric(metaclass=ABCMeta):
             # check if reset and update methods are decorated. Compute may not be decorated
             if not (hasattr(self.reset, "_decorated") and hasattr(self.update, "_decorated")):
                 warnings.warn(
-                    "{} class does not support distributed setting. Computed result is not collected "
-                    "across all computing devices".format(self.__class__.__name__),
+                    f"{self.__class__.__name__} class does not support distributed setting. Computed result is not collected "
+                    "across all computing devices",
                     RuntimeWarning,
                 )
 
@@ -282,14 +282,12 @@ class Metric(metaclass=ABCMeta):
         if isinstance(output, Mapping):
             if self.required_output_keys is None:
                 raise TypeError(
-                    "Transformed engine output for {} metric should be a tuple/list, but given {}".format(
-                        self.__class__.__name__, type(output)
-                    )
+                    f"Transformed engine output for {self.__class__.__name__} metric should be a tuple/list, but given {type(output)}"
                 )
             if not all([k in output for k in self.required_output_keys]):
                 raise ValueError(
                     "When transformed engine's output is a mapping, "
-                    "it should contain {} keys, but given {}".format(self.required_output_keys, list(output.keys()))
+                    f"it should contain {self.required_output_keys} keys, but given {list(output.keys())}"
                 )
             output = tuple(output[k] for k in self.required_output_keys)
         self.update(output)
@@ -305,9 +303,7 @@ class Metric(metaclass=ABCMeta):
         result = self.compute()
         if isinstance(result, Mapping):
             if name in result.keys():
-                raise ValueError(
-                    "Argument name '{}' is conflicting with mapping keys: {}".format(name, list(result.keys()))
-                )
+                raise ValueError(f"Argument name '{name}' is conflicting with mapping keys: {list(result.keys())}")
 
             for key, value in result.items():
                 engine.state.metrics[key] = value
@@ -325,11 +321,9 @@ class Metric(metaclass=ABCMeta):
             elif usage == BatchWise.usage_name:
                 usage = BatchWise()
             else:
-                raise ValueError(
-                    "usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name', get {}".format(usage)
-                )
+                raise ValueError(f"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name', get {usage}")
         if not isinstance(usage, MetricUsage):
-            raise TypeError("Unhandled usage type {}".format(type(usage)))
+            raise TypeError(f"Unhandled usage type {type(usage)}")
         return usage
 
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
