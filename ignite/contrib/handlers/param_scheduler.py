@@ -65,7 +65,8 @@ class ParamScheduler(metaclass=ABCMeta):
         if isinstance(value, list):
             if len(value) != len(self.optimizer_param_groups):
                 raise ValueError(
-                    f"size of value is different than optimizer_param_groups {len(value)} != {len(self.optimizer_param_groups)}"
+                    "size of value is different than optimizer_param_groups "
+                    f"{len(value)} != {len(self.optimizer_param_groups)}"
                 )
 
             for i, param_group in enumerate(self.optimizer_param_groups):

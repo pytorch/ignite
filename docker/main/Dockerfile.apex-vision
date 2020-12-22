@@ -1,5 +1,5 @@
 # Dockerfile.apex-vision
-FROM pytorchignite/apex
+FROM pytorchignite/apex:latest
 
 # Install opencv dependencies
 RUN apt-get update && \
@@ -16,4 +16,4 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          opencv-python \
                                          py_config_runner \
                                          pillow \
-                                         "trains>=0.15.0"
+                                         trains
