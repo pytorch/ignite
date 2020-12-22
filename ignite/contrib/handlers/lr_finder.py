@@ -362,7 +362,7 @@ class _ExponentialLR(_LRScheduler):
     """Exponentially increases the learning rate between two boundaries over a number of
     iterations.
 
-    Arguments:
+    Args:
         optimizer (torch.optim.Optimizer): wrapped optimizer.
         end_lr (float, optional): the initial learning rate which is the lower
             boundary of the test. Default: 10.
