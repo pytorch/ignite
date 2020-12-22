@@ -119,13 +119,17 @@ def _test_distrib_accumulator_device(device):
     for metric_device in metric_devices:
         loss = Loss(nll_loss, device=metric_device)
         assert loss._device == metric_device
-        assert loss._sum.device == metric_device, f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            loss._sum.device == metric_device
+        ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
         y = torch.tensor([2, 2]).long()
         loss.update((y_pred, y))
 
-        assert loss._sum.device == metric_device, f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            loss._sum.device == metric_device
+        ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
 
 
 def test_sum_detached():

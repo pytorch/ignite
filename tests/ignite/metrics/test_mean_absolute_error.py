@@ -78,12 +78,16 @@ def _test_distrib_accumulator_device(device):
     for metric_device in metric_devices:
         mae = MeanAbsoluteError(device=metric_device)
         assert mae._device == metric_device
-        assert mae._sum_of_absolute_errors.device == metric_device, f"{type(mae._sum_of_absolute_errors.device)}:{mae._sum_of_absolute_errors.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            mae._sum_of_absolute_errors.device == metric_device
+        ), f"{type(mae._sum_of_absolute_errors.device)}:{mae._sum_of_absolute_errors.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.tensor([[2.0], [-2.0]])
         y = torch.zeros(2)
         mae.update((y_pred, y))
-        assert mae._sum_of_absolute_errors.device == metric_device, f"{type(mae._sum_of_absolute_errors.device)}:{mae._sum_of_absolute_errors.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            mae._sum_of_absolute_errors.device == metric_device
+        ), f"{type(mae._sum_of_absolute_errors.device)}:{mae._sum_of_absolute_errors.device} vs {type(metric_device)}:{metric_device}"
 
 
 def test_accumulator_detached():

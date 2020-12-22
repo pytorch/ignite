@@ -110,13 +110,17 @@ def _test_distrib_accumulator_device(device):
 
         acc = TopKCategoricalAccuracy(2, device=metric_device)
         assert acc._device == metric_device
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.tensor([[0.2, 0.4, 0.6, 0.8], [0.8, 0.6, 0.4, 0.2]])
         y = torch.ones(2).long()
         acc.update((y_pred, y))
 
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed

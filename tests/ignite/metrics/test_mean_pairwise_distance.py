@@ -92,13 +92,17 @@ def _test_distrib_accumulator_device(device):
 
         mpd = MeanPairwiseDistance(device=metric_device)
         assert mpd._device == metric_device
-        assert mpd._sum_of_distances.device == metric_device, f"{type(mpd._sum_of_distances.device)}:{mpd._sum_of_distances.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            mpd._sum_of_distances.device == metric_device
+        ), f"{type(mpd._sum_of_distances.device)}:{mpd._sum_of_distances.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
         y = torch.zeros(2, 2)
         mpd.update((y_pred, y))
 
-        assert mpd._sum_of_distances.device == metric_device, f"{type(mpd._sum_of_distances.device)}:{mpd._sum_of_distances.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            mpd._sum_of_distances.device == metric_device
+        ), f"{type(mpd._sum_of_distances.device)}:{mpd._sum_of_distances.device} vs {type(metric_device)}:{metric_device}"
 
 
 def test_accumulator_detached():

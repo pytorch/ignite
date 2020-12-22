@@ -854,8 +854,12 @@ def _test_distrib_accumulator_device(device):
         y = torch.randint(0, 2, size=(10,)).long()
         re.update((y_reed, y))
 
-        assert re._true_positives.device == metric_device, f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
-        assert re._positives.device == metric_device, f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._true_positives.device == metric_device
+        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._positives.device == metric_device
+        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
@@ -872,15 +876,23 @@ def _test_distrib_multilabel_accumulator_device(device):
         re = Recall(is_multilabel=True, average=average, device=metric_device)
 
         assert re._device == metric_device
-        assert re._true_positives.device == metric_device, f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
-        assert re._positives.device == metric_device, f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._true_positives.device == metric_device
+        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._positives.device == metric_device
+        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
 
         y_reed = torch.randint(0, 2, size=(10, 4, 20, 23))
         y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
         re.update((y_reed, y))
 
-        assert re._true_positives.device == metric_device, f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
-        assert re._positives.device == metric_device, f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._true_positives.device == metric_device
+        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._positives.device == metric_device
+        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":

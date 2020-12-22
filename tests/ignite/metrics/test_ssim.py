@@ -183,13 +183,17 @@ def _test_distrib_accumulator_device(device):
 
         ssim = SSIM(data_range=1.0, device=metric_device)
         assert ssim._device == metric_device
-        assert ssim._kernel.device == metric_device, f"{type(ssim._kernel.device)}:{ssim._kernel.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            ssim._kernel.device == metric_device
+        ), f"{type(ssim._kernel.device)}:{ssim._kernel.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
         ssim.update((y_pred, y))
 
-        assert ssim._sum_of_batchwise_ssim.device == metric_device, f"{type(ssim._sum_of_batchwise_ssim.device)}:{ssim._sum_of_batchwise_ssim.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            ssim._sum_of_batchwise_ssim.device == metric_device
+        ), f"{type(ssim._sum_of_batchwise_ssim.device)}:{ssim._sum_of_batchwise_ssim.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed
