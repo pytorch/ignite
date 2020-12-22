@@ -962,8 +962,12 @@ def test_create_lr_scheduler_with_warmup():
             assert lrs == pytest.approx([v for i, v in simulated_values])
 
             assert lrs[0] == pytest.approx(warmup_start_value), f"lrs={lrs[: warmup_duration + num_iterations]}"
-            assert lrs[warmup_duration - 1] == pytest.approx(warmup_end_value), f"lrs={lrs[: warmup_duration + num_iterations]}"
-            assert lrs[warmup_duration] == pytest.approx(warmup_end_next_value), f"lrs={lrs[: warmup_duration + num_iterations]}"
+            assert lrs[warmup_duration - 1] == pytest.approx(
+                warmup_end_value
+            ), f"lrs={lrs[: warmup_duration + num_iterations]}"
+            assert lrs[warmup_duration] == pytest.approx(
+                warmup_end_next_value
+            ), f"lrs={lrs[: warmup_duration + num_iterations]}"
             scheduler.load_state_dict(state_dict)
 
     t1 = torch.zeros([1], requires_grad=True)

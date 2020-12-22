@@ -757,8 +757,7 @@ def test_trains_saver_callbacks():
 
         output_model_info = context.pre_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
         assert (
-            hasattr(output_model_info, "upload_filename")
-            and f"{basename}_{i}.pt" in output_model_info.upload_filename
+            hasattr(output_model_info, "upload_filename") and f"{basename}_{i}.pt" in output_model_info.upload_filename
         )
         assert hasattr(output_model_info, "local_model_id") and str(checkpoint_key) in output_model_info.local_model_id
 
