@@ -561,7 +561,8 @@ class Engine(Serializable):
         is_done_iters = state.max_iters is not None and state.iteration >= state.max_iters
         is_done_count = (
             state.epoch_length is not None
-            and state.iteration >= state.epoch_length * state.max_epochs  # type: ignore[operator]
+            and state.max_epochs is not None
+            and state.iteration >= state.epoch_length * state.max_epochs
         )
         is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
         return is_done_iters or is_done_count or is_done_epochs
@@ -833,12 +834,17 @@ class Engine(Serializable):
                     # Should exit while loop if we can not iterate
                     if should_exit:
                         if not self._is_done(self.state):
+                            total_iters = (
+                                self.state.epoch_length * self.state.max_epochs
+                                if self.state.max_epochs is not None
+                                else None
+                            )
+
                             warnings.warn(
                                 "Data iterator can not provide data anymore but required total number of "
                                 "iterations to run is not reached. "
                                 "Current iteration: {} vs Total iterations to run : {}".format(
-                                    self.state.iteration,
-                                    self.state.epoch_length * self.state.max_epochs,  # type: ignore[operator]
+                                    self.state.iteration, total_iters,
                                 )
                             )
                         break
