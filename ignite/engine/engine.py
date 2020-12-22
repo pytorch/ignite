@@ -837,7 +837,7 @@ class Engine(Serializable):
                             total_iters = (
                                 self.state.epoch_length * self.state.max_epochs
                                 if self.state.max_epochs is not None
-                                else None
+                                else self.state.max_iters
                             )
 
                             warnings.warn(
