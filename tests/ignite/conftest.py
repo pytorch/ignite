@@ -35,9 +35,9 @@ def local_rank(worker_id):
     elif "master" == worker_id:
         lrank = 0
     else:
-        raise RuntimeError("Can not get rank from worker_id={}".format(worker_id))
+        raise RuntimeError(f"Can not get rank from worker_id={worker_id}")
 
-    os.environ["LOCAL_RANK"] = "{}".format(lrank)
+    os.environ["LOCAL_RANK"] = f"{lrank}"
 
     yield lrank
 
@@ -123,7 +123,7 @@ def _setup_free_port(local_rank):
                 port = h.readline()
                 return int(port)
 
-        raise RuntimeError("Failed to fetch free port on local rank {}".format(local_rank))
+        raise RuntimeError(f"Failed to fetch free port on local rank {local_rank}")
 
 
 @pytest.fixture()
@@ -137,7 +137,7 @@ def distributed_context_single_node_nccl(local_rank, world_size):
         "backend": "nccl",
         "world_size": world_size,
         "rank": local_rank,
-        "init_method": "tcp://localhost:{}".format(free_port),
+        "init_method": f"tcp://localhost:{free_port}",
     }
     yield _create_dist_context(dist_info, local_rank)
     _destroy_dist_context()
@@ -150,11 +150,13 @@ def distributed_context_single_node_gloo(local_rank, world_size):
 
     if sys.platform.startswith("win"):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
-        init_method = "file:///{}".format(temp_file.name.replace("\\", "/"))
+        # can't use backslashes in f-strings
+        backslash = "\\"
+        init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
     else:
         free_port = _setup_free_port(local_rank)
         print(local_rank, "Port:", free_port)
-        init_method = "tcp://localhost:{}".format(free_port)
+        init_method = f"tcp://localhost:{free_port}"
         temp_file = None
 
     dist_info = {

@@ -244,7 +244,7 @@ def test_integration():
 
     def dummy_handler(engine, logger, event_name):
         global_step = engine.state.get_event_attrib_value(event_name)
-        logger.log_metrics(step=global_step, **{"{}".format("test_value"): global_step})
+        logger.log_metrics(step=global_step, **{"test_value": global_step})
 
     plx_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
@@ -268,7 +268,7 @@ def test_integration_as_context_manager():
 
         def dummy_handler(engine, logger, event_name):
             global_step = engine.state.get_event_attrib_value(event_name)
-            logger.log_metrics(step=global_step, **{"{}".format("test_value"): global_step})
+            logger.log_metrics(step=global_step, **{"test_value": global_step})
 
         plx_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 

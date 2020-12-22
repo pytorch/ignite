@@ -16,9 +16,9 @@ class DummyOutputHandler(BaseOutputHandler):
 
 class DummyOptParamsHandler(BaseOptimizerParamsHandler):
     def __call__(self, engine, logger, event_name, **kwargs):
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         params = {
-            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            f"{tag_prefix}{self.param_name}/group_{i}": float(param_group[self.param_name])
             for i, param_group in enumerate(self.optimizer.param_groups)
         }
         return params
