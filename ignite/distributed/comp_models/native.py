@@ -154,8 +154,9 @@ if has_native_dist_support:
             else:
                 warnings.warn(
                     "Local rank information for native distributed setting will be initialized using "
-                    "heuristic approach based on hostname which can be different of real setup. Please, "
-                    "either set `os.environ['LOCAL_RANK']` "
+                    "a heuristic approach based on the hostnames. In some corner cases, determined "
+                    "local rank can be different of the real setup. To avoid this warning, "
+                    "please either set `os.environ['LOCAL_RANK']` "
                     "or use `idist.set_local_rank(local_rank)` with correct local rank index."
                 )
                 # use socket gethostname heuristic to determine number of nodes => local rank
