@@ -109,7 +109,7 @@ def log_model_grads(engine, model=None, fp=None, **kwargs):
         output["grads/total"] += n
         max_counter -= 1
 
-    output_items = " - ".join(["{m}:{v:.4f}" for m, v in output.items()]
+    output_items = " - ".join(["{m}:{v:.4f}" for m, v in output.items()])
     msg = f"{engine.state.epoch} | {engine.state.iteration}: {output_items}"
 
     with open(fp, "a") as h:
@@ -127,7 +127,7 @@ def log_data_stats(engine, fp=None, **kwargs):
         "batch xstd": x.std().item(),
         "batch ymedian": y.median().item(),
     }
-    output_items = " - ".join(["{m}:{v:.4f}" for m, v in output.items()]
+    output_items = " - ".join(["{m}:{v:.4f}" for m, v in output.items()])
     msg = f"{engine.state.epoch} | {engine.state.iteration}: {output_items}"
 
     with open(fp, "a") as h:
