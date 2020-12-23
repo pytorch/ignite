@@ -258,17 +258,13 @@ def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_create_dist_nccl_1(local_rank, world_size):
-    _test__native_dist_model_create_from_backend_dist(
-        local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
-    )
+    _test__native_dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_create_dist_nccl_2(local_rank, world_size):
-    _test__native_dist_model_create_from_context_dist(
-        local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
-    )
+    _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}")
 
 
 @pytest.mark.distributed
