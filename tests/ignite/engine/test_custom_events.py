@@ -160,7 +160,7 @@ def test_callable_events():
     assert isinstance(Events.ITERATION_STARTED.value, str)
 
     # assert ret in Events
-    assert Events.ITERATION_STARTED.name in "{}".format(ret)
+    assert Events.ITERATION_STARTED.name in f"{ret}"
     # assert ret in State.event_to_attr
 
     ret = Events.ITERATION_STARTED(every=10)
@@ -169,7 +169,7 @@ def test_callable_events():
     assert ret.filter is not None
 
     # assert ret in Events
-    assert Events.ITERATION_STARTED.name in "{}".format(ret)
+    assert Events.ITERATION_STARTED.name in f"{ret}"
     # assert ret in State.event_to_attr
 
     ret = Events.ITERATION_STARTED(once=10)
@@ -178,7 +178,7 @@ def test_callable_events():
     assert ret.filter is not None
 
     # assert ret in Events
-    assert Events.ITERATION_STARTED.name in "{}".format(ret)
+    assert Events.ITERATION_STARTED.name in f"{ret}"
     # assert ret in State.event_to_attr
 
     def _attach(e1, e2):
@@ -495,7 +495,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
-    device = "cuda:{}".format(distributed_context_single_node_nccl["local_rank"])
+    device = f"cuda:{distributed_context_single_node_nccl['local_rank']}"
     _test_every_event_filter_with_engine(device)
     _test_every_event_filter_with_engine_with_dataloader(device)
 

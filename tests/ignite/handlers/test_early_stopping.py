@@ -336,7 +336,7 @@ def _test_distrib_integration_engine_early_stopping(device):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = "cuda:{}".format(local_rank)
+    device = f"cuda:{local_rank}"
     _test_distrib_with_engine_early_stopping(device)
     _test_distrib_integration_engine_early_stopping(device)
 
@@ -362,6 +362,6 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    device = f"cuda:{distributed_context_multi_node_nccl['local_rank']}"
     _test_distrib_with_engine_early_stopping(device)
     _test_distrib_integration_engine_early_stopping(device)
