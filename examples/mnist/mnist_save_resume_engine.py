@@ -85,7 +85,7 @@ def log_model_weights(engine, model=None, fp=None, **kwargs):
             output[name] = n
         output["total"] += n
         max_counter -= 1
-    output_items = " - ".join([f"{m}:{v:.4f}" for m, v in output.items()]
+    output_items = " - ".join([f"{m}:{v:.4f}" for m, v in output.items()])
     msg = f"{engine.state.epoch} | {engine.state.iteration}: {output_items}"
 
     with open(fp, "a") as h:
