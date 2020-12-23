@@ -85,10 +85,8 @@ def log_model_weights(engine, model=None, fp=None, **kwargs):
             output[name] = n
         output["total"] += n
         max_counter -= 1
-
-    msg = "{} | {}: {}".format(
-        engine.state.epoch, engine.state.iteration, " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()])
-    )
+    output_items = " - ".join(["{m}:{v:.4f}" for m, v in output.items()]
+    msg = f"{engine.state.epoch} | {engine.state.iteration}: {output_items}"
 
     with open(fp, "a") as h:
         h.write(msg)
@@ -107,13 +105,12 @@ def log_model_grads(engine, model=None, fp=None, **kwargs):
         name = name.replace(".", "/")
         n = torch.norm(p.grad)
         if max_counter > 0:
-            output["grads/{}".format(name)] = n
+            output[f"grads/{name}"] = n
         output["grads/total"] += n
         max_counter -= 1
 
-    msg = "{} | {}: {}".format(
-        engine.state.epoch, engine.state.iteration, " - ".join(["{}:{:.4f}".format(m, v) for m, v in output.items()])
-    )
+    output_items = " - ".join(["{m}:{v:.4f}" for m, v in output.items()]
+    msg = f"{engine.state.epoch} | {engine.state.iteration}: {output_items}"
 
     with open(fp, "a") as h:
         h.write(msg)
@@ -130,10 +127,8 @@ def log_data_stats(engine, fp=None, **kwargs):
         "batch xstd": x.std().item(),
         "batch ymedian": y.median().item(),
     }
-
-    msg = "{} | {}: {}".format(
-        engine.state.epoch, engine.state.iteration, " - ".join(["{}:{:.7f}".format(m, v) for m, v in output.items()])
-    )
+    output_items = " - ".join(["{m}:{v:.4f}" for m, v in output.items()]
+    msg = f"{engine.state.epoch} | {engine.state.iteration}: {output_items}"
 
     with open(fp, "a") as h:
         h.write(msg)
@@ -183,13 +178,12 @@ def run(
     def lr_step(engine):
         lr_scheduler.step()
 
-    desc = "Epoch {} - loss: {:.4f} - lr: {:.4f}"
-    pbar = tqdm(initial=0, leave=False, total=len(train_loader), desc=desc.format(0, 0, lr))
+    pbar = tqdm(initial=0, leave=False, total=len(train_loader), desc=f"Epoch {0} - loss: {0:.4f} - lr: {lr:.4f}")
 
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
         lr = optimizer.param_groups[0]["lr"]
-        pbar.desc = desc.format(engine.state.epoch, engine.state.output, lr)
+        pbar.desc = f"Epoch {engine.state.epoch} - loss: {engine.state.output:.4f} - lr: {lr:.4f}"
         pbar.update(log_interval)
         writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
         writer.add_scalar("lr", lr, engine.state.iteration)

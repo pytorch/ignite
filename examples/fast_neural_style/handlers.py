@@ -23,11 +23,9 @@ class Progbar(object):
         done = int(percent_seen) == 100
 
         bar = "[" + "=" * equal_to + ">" * (not done) + " " * (10 - equal_to) + "]"
-        message = "Epoch {epoch} | {percent_seen:.2f}% | {bar}".format(
-            epoch=engine.state.epoch, percent_seen=percent_seen, bar=bar
-        )
+        message = f"Epoch {engine.state.epoch} | {percent_seen:.2f}% | {bar}"
         for key, value in self.metrics.items():
-            message += " | {name}: {value:.2e}".format(name=key, value=value)
+            message += f" | {key}: {value:.2e}"
 
         message += "\r"
 
