@@ -1,11 +1,11 @@
 # Multi-stage build
 # Dockerfile.hvd-base
 
-ARG PTH_VERSION=1.6.0-cuda10.1-cudnn7
+ARG PTH_VERSION
 
 FROM pytorch/pytorch:${PTH_VERSION}-devel as builder
 
-ARG HVD_VERSION=v0.21.0
+ARG HVD_VERSION
 
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \

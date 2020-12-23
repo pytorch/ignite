@@ -30,8 +30,19 @@ cd $curr_dir/msdp
 set -eu
 
 image_tag=""
-pth_version=${PTH_VERSION:-1.6.0-cuda10.1-cudnn7}
-msdp_version=${MSDP_VERSION:-v0.3.8}
+
+if [[ -z "${PTH_VERSION}" ]]; then
+    echo "PTH_VERSION is not set"
+    exit 1
+fi
+
+if [[ -z "${MSDP_VERSION}" ]]; then
+    echo "MSDP_VERSION is not set"
+    exit 1
+fi
+
+pth_version=${PTH_VERSION}
+msdp_version=${MSDP_VERSION}
 
 for image_name in "msdp-apex" "msdp-apex-vision" "msdp-apex-nlp"
 do

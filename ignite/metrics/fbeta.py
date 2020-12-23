@@ -36,7 +36,7 @@ def Fbeta(
         MetricsLambda, F-beta metric
     """
     if not (beta > 0):
-        raise ValueError("Beta should be a positive integer, but given {}".format(beta))
+        raise ValueError(f"Beta should be a positive integer, but given {beta}")
 
     if precision is not None and output_transform is not None:
         raise ValueError("If precision argument is provided, output_transform should be None")

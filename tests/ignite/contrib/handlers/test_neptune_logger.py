@@ -256,7 +256,7 @@ def test_weights_scalar_handler(dummy_model_factory):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.log_metric.call_count == 4
         mock_logger.log_metric.assert_has_calls(
@@ -329,7 +329,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         mock_logger.log_metric.assert_has_calls(
             [

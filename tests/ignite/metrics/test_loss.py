@@ -119,17 +119,17 @@ def _test_distrib_accumulator_device(device):
     for metric_device in metric_devices:
         loss = Loss(nll_loss, device=metric_device)
         assert loss._device == metric_device
-        assert loss._sum.device == metric_device, "{}:{} vs {}:{}".format(
-            type(loss._sum.device), loss._sum.device, type(metric_device), metric_device
-        )
+        assert (
+            loss._sum.device == metric_device
+        ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
         y = torch.tensor([2, 2]).long()
         loss.update((y_pred, y))
 
-        assert loss._sum.device == metric_device, "{}:{} vs {}:{}".format(
-            type(loss._sum.device), loss._sum.device, type(metric_device), metric_device
-        )
+        assert (
+            loss._sum.device == metric_device
+        ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
 
 
 def test_sum_detached():
@@ -147,7 +147,7 @@ def test_sum_detached():
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    device = torch.device("cuda:{}".format(local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     _test_distrib_compute_on_criterion(device)
     _test_distrib_accumulator_device(device)
 
@@ -186,7 +186,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_compute_on_criterion(device)
     _test_distrib_accumulator_device(device)
 

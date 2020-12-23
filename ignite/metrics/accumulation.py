@@ -46,7 +46,7 @@ class VariableAccumulation(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if not callable(op):
-            raise TypeError("Argument op should be a callable, but given {}".format(type(op)))
+            raise TypeError(f"Argument op should be a callable, but given {type(op)}")
 
         self._op = op
 
@@ -59,7 +59,7 @@ class VariableAccumulation(Metric):
 
     def _check_output_type(self, output: Union[float, torch.Tensor]) -> None:
         if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
-            raise TypeError("Output should be a number or torch.Tensor, but given {}".format(type(output)))
+            raise TypeError(f"Output should be a number or torch.Tensor, but given {type(output)}")
 
     @reinit__is_reduced
     def update(self, output: Union[float, torch.Tensor]) -> None:
@@ -135,7 +135,7 @@ class Average(VariableAccumulation):
     def compute(self) -> Union[float, torch.Tensor]:
         if self.num_examples < 1:
             raise NotComputableError(
-                "{} must have at least one example before it can be computed.".format(self.__class__.__name__)
+                f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
 
         return self.accumulator / self.num_examples
@@ -186,7 +186,7 @@ class GeometricAverage(VariableAccumulation):
     def compute(self) -> Union[float, torch.Tensor]:
         if self.num_examples < 1:
             raise NotComputableError(
-                "{} must have at least one example before it can be computed.".format(self.__class__.__name__)
+                f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
 
         tensor = torch.exp(self.accumulator / self.num_examples)

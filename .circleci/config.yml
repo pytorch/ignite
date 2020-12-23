@@ -20,7 +20,7 @@ parameters:
     default: false
   build_docker_image_pytorch_version:
     type: string
-    default: "1.6.0-cuda10.1-cudnn7"
+    default: "1.7.0-cuda11.0-cudnn8"
   build_docker_image_hvd_version:
     type: string
     default: "v0.21.0"
