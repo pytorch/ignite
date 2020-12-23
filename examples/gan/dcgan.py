@@ -141,7 +141,7 @@ def check_manual_seed(seed):
     random.seed(seed)
     torch.manual_seed(seed)
 
-    print(f"Using manual seed: {seed}"
+    print(f"Using manual seed: {seed}")
 
 
 def check_dataset(dataset, dataroot):
