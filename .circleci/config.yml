@@ -58,6 +58,22 @@ two_gpus: &two_gpus
 # Re-usable commands
 # -------------------------------------------------------------------------------------
 
+install_latest_nvidia: &install_latest_nvidia
+  - run:
+      name: Install latest NVidia-driver and CUDA
+      command: |
+        sudo apt-get purge nvidia* && sudo apt-get autoremove
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-455 cuda-drivers-455
+        # Install nvidia-container-runtime
+        sudo apt-get install -y nvidia-container-runtime
+        # Reload driver : https://stackoverflow.com/a/45319156/6309199
+        # lsof | grep nvidia -> kill Xvfb
+        sudo lsof | grep "/usr/bin/Xvfb" | head -1 | awk '{print $2}' | xargs -I {} sudo kill -9 {}
+        # lsmod | grep nvidia
+        sudo rmmod nvidia_uvm && sudo rmmod nvidia_drm && sudo rmmod nvidia_modeset && sudo rmmod nvidia
+        # reload driver
+        nvidia-smi
+
 pull_pytorch_stable_image: &pull_pytorch_stable_image
   - run:
       name: Pull PyTorch Stable Image
@@ -113,6 +129,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -199,6 +216,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -224,6 +242,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -278,6 +297,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
