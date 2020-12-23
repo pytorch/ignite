@@ -525,7 +525,7 @@ def test_model_checkpoint_simple_recovery(dirname):
 
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
     def _test(ext, require_empty):
-        previous_fname = os.path.join(dirname, f"{_PREFIX}_{'obj'}_{1}{ext}")
+        previous_fname = os.path.join(dirname, f"{_PREFIX}_obj_{1}{ext}")
         with open(previous_fname, "w") as f:
             f.write("test")
 
@@ -634,7 +634,7 @@ def test_last_k(dirname):
         engine.state.iteration = i
         h(engine, to_save)
 
-    expected = [f"{_PREFIX}_{"model"}_{i}.pt" for i in [7, 8]]
+    expected = [f"{_PREFIX}_model_{i}.pt" for i in [7, 8]]
 
     assert sorted(os.listdir(dirname)) == expected, f"{sorted(os.listdir(dirname))} vs {expected}"
 
@@ -656,7 +656,7 @@ def test_disabled_n_saved(dirname):
     saved_files = sorted(os.listdir(dirname))
     assert len(saved_files) == num_iters, f"{saved_files}"
 
-    expected = sorted([f"{_PREFIX}_{"model"}_{i}.pt" for i in range(num_iters)])
+    expected = sorted([f"{_PREFIX}_model_{i}.pt" for i in range(num_iters)])
     assert saved_files == expected, f"{saved_files} vs {expected}"
 
 
@@ -1119,7 +1119,7 @@ def test_disksaver_wrong_input(dirname):
         DiskSaver("/tmp/non-existing-folder", create_dir=False)
 
     def _test(ext):
-        previous_fname = os.path.join(dirname, f"{_PREFIX}_{'obj'}_{1}{ext}")
+        previous_fname = os.path.join(dirname, f"{_PREFIX}_obj_{1}{ext}")
         with open(previous_fname, "w") as f:
             f.write("test")
 
