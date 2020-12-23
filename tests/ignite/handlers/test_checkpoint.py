@@ -437,7 +437,7 @@ def test_checkpoint_last_checkpoint():
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
-    assert checkpointer.last_checkpoint == f"{'model'}_9.pt"
+    assert checkpointer.last_checkpoint == "model_9.pt"
 
 
 def test_checkpoint_last_checkpoint_on_score():
@@ -461,7 +461,7 @@ def test_checkpoint_last_checkpoint_on_score():
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
-    assert checkpointer.last_checkpoint == f"{'model'}_val_acc=0.9000.pt"
+    assert checkpointer.last_checkpoint == "model_val_acc=0.9000.pt"
 
 
 def test_checkpoint_save_handler_callable():
@@ -540,7 +540,7 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
         fname = h.last_checkpoint
         ext = ".pt"
         assert isinstance(fname, str)
-        assert os.path.join(dirname, f"{_PREFIX}_{'model'}_{1}{ext}") == fname
+        assert os.path.join(dirname, f"{_PREFIX}_model_{1}{ext}") == fname
         assert os.path.exists(fname)
         assert os.path.exists(previous_fname)
         loaded_objects = torch.load(fname)
@@ -560,7 +560,7 @@ def test_model_checkpoint_invalid_save_handler(dirname):
 
     with pytest.raises(
         RuntimeError,
-        match=r"Unable to save checkpoint, save_handler should be DiskSaver, got {}.".format(type(h.save_handler)),
+        match=rf"Unable to save checkpoint, save_handler should be DiskSaver, got {type(h.save_handler)}."
     ):
         h.last_checkpoint
 
@@ -676,7 +676,7 @@ def test_best_k(dirname):
     for _ in range(4):
         h(engine, to_save)
 
-    expected = [f"{_PREFIX}_{'model'}_{i:.4f}.pt" for i in [1.2, 3.1]]
+    expected = [f"{_PREFIX}_model_{i:.4f}.pt" for i in [1.2, 3.1]]
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -701,7 +701,7 @@ def test_best_k_with_suffix(dirname):
         engine.state.epoch += 1
         h(engine, to_save)
 
-    expected = [f"{_PREFIX}_{'model'}_val_loss={scores[e - 1]:.4}.pt" for e in [1, 3]]
+    expected = [f"{_PREFIX}_model_val_loss={scores[e - 1]:.4}.pt" for e in [1, 3]]
 
     assert sorted(os.listdir(dirname)) == expected
 
