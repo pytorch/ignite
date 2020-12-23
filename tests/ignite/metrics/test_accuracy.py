@@ -621,7 +621,9 @@ def _test_distrib_multilabel_input_NHW(device):
         y = torch.randint(0, 2, size=(4, 5, 8, 10), device=device).long()
         acc.update((y_pred, y))
 
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
@@ -642,7 +644,9 @@ def _test_distrib_multilabel_input_NHW(device):
         y = torch.randint(0, 2, size=(4, 7, 10, 8), device=device).long()
         acc.update((y_pred, y))
 
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
@@ -676,7 +680,9 @@ def _test_distrib_multilabel_input_NHW(device):
             idx = i * batch_size
             acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
@@ -730,7 +736,9 @@ def _test_distrib_integration_multiclass(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         assert "acc" in engine.state.metrics
         res = engine.state.metrics["acc"]
@@ -781,7 +789,9 @@ def _test_distrib_integration_multilabel(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         assert "acc" in engine.state.metrics
         res = engine.state.metrics["acc"]
@@ -810,13 +820,17 @@ def _test_distrib_accumulator_device(device):
 
         acc = Accuracy(device=metric_device)
         assert acc._device == metric_device
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
         y = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
         acc.update((y_pred, y))
 
-        assert acc._num_correct.device == metric_device, f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed

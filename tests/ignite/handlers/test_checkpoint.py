@@ -559,8 +559,7 @@ def test_model_checkpoint_invalid_save_handler(dirname):
     h(Engine(lambda x, y: None), to_save)
 
     with pytest.raises(
-        RuntimeError,
-        match=rf"Unable to save checkpoint, save_handler should be DiskSaver, got {type(h.save_handler)}."
+        RuntimeError, match=rf"Unable to save checkpoint, save_handler should be DiskSaver, got {type(h.save_handler)}."
     ):
         h.last_checkpoint
 

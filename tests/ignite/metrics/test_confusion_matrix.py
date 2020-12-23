@@ -624,13 +624,17 @@ def _test_distrib_accumulator_device(device):
 
         cm = ConfusionMatrix(num_classes=3, device=metric_device)
         assert cm._device == metric_device
-        assert cm.confusion_matrix.device == metric_device, f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            cm.confusion_matrix.device == metric_device
+        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         y_true, y_pred = get_y_true_y_pred()
         th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
         cm.update((th_y_logits, th_y_true))
 
-        assert cm.confusion_matrix.device == metric_device, f"{type(cm.confusion_matrix.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            cm.confusion_matrix.device == metric_device
+        ), f"{type(cm.confusion_matrix.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed
