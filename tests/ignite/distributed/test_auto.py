@@ -21,10 +21,10 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
     elif sampler_name == "WeightedRandomSampler":
         sampler = WeightedRandomSampler(weights=torch.ones(100), num_samples=100)
     else:
-        raise RuntimeError("Unknown sampler name: {}".format(sampler_name))
+        raise RuntimeError(f"Unknown sampler name: {sampler_name}")
 
     # Test auto_dataloader
-    assert idist.get_world_size() == ws, "{} vs {}".format(idist.get_world_size(), ws)
+    assert idist.get_world_size() == ws, f"{idist.get_world_size()} vs {ws}"
     dataloader = auto_dataloader(
         data, batch_size=batch_size, num_workers=num_workers, sampler=sampler, shuffle=sampler is None
     )
@@ -66,9 +66,9 @@ def _test_auto_model(model, ws, device, sync_bn=False):
     else:
         assert isinstance(model, nn.Module)
 
-    assert all([p.device.type == device for p in model.parameters()]), "{} vs {}".format(
-        [p.device.type for p in model.parameters()], device
-    )
+    assert all(
+        [p.device.type == device for p in model.parameters()]
+    ), f"{[p.device.type for p in model.parameters()]} vs {device}"
 
 
 def _test_auto_model_optimizer(ws, device):
@@ -202,6 +202,6 @@ def test_dist_proxy_sampler():
 
         set_indices_per_rank = set(indices_per_rank)
         set_true_indices = set(true_indices)
-        assert set_indices_per_rank == set_true_indices, "{} | {}".format(
-            set_true_indices - set_indices_per_rank, set_indices_per_rank - set_true_indices
-        )
+        assert (
+            set_indices_per_rank == set_true_indices
+        ), f"{set_true_indices - set_indices_per_rank} | {set_indices_per_rank - set_true_indices}"
