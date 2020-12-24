@@ -141,7 +141,7 @@ def check_manual_seed(seed):
     random.seed(seed)
     torch.manual_seed(seed)
 
-    print("Using manual seed: {seed}".format(seed=seed))
+    print(f"Using manual seed: {seed}")
 
 
 def check_dataset(dataset, dataroot):
@@ -318,12 +318,9 @@ def main(
             if f.tell() == 0:
                 print("\t".join(columns), file=f)
             print("\t".join(values), file=f)
-
-        message = "[{epoch}/{max_epoch}][{i}/{max_i}]".format(
-            epoch=engine.state.epoch, max_epoch=epochs, i=(engine.state.iteration % len(loader)), max_i=len(loader)
-        )
+        message = f"[{engine.state.epoch}/{epochs}][{engine.state.iteration % len(loader)}/{len(loader)}]"
         for name, value in zip(columns, values):
-            message += " | {name}: {value}".format(name=name, value=value)
+            message += f" | {name}: {value}"
 
         pbar.log_message(message)
 
