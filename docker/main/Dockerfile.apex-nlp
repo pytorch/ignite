@@ -2,7 +2,7 @@
 FROM pytorchignite/apex:latest
 
 # Ignite NLP dependencies
-RUN pip install --upgrade --no-cache-dir "torchtext<0.8" \
+RUN pip install --upgrade --no-cache-dir torchtext \
                                          transformers \
                                          spacy \
                                          nltk
