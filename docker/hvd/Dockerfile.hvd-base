@@ -5,6 +5,9 @@ ARG PTH_VERSION
 
 FROM pytorch/pytorch:${PTH_VERSION}-devel as builder
 
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
+
 ARG HVD_VERSION
 
 # Build Horovod
@@ -17,6 +20,9 @@ RUN apt-get update && apt-get install -y git && \
 
 # Build runtime image
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
 
 # Install tzdata / git
 RUN apt-get update && \
