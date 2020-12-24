@@ -6,6 +6,9 @@ ARG PTH_VERSION
 # 1/Building apex with pytorch:*-devel
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-msdp-builder
 
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
+
 ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
 
