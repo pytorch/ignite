@@ -136,7 +136,7 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"Only one of the input arguments should be specified"):
         Events.ITERATION_STARTED(event_filter="123", every=12)
 
-    with pytest.raises(TypeError, match=r"Argument event_filter should be a callable"):
+    with pytest.raises(TypeError, match=r"Argument event_filter should be a callable or a bool"):
         Events.ITERATION_STARTED(event_filter="123")
 
     with pytest.raises(ValueError, match=r"Argument every should be integer and greater than zero"):
@@ -361,6 +361,34 @@ def test_custom_event_filter_with_engine():
     _test(Events.EPOCH_COMPLETED, "epoch", len(special_events))
 
 
+def test_bool_event_filter_with_engine():
+
+    def _test(event_name, event_attr, value):
+
+        engine = Engine(lambda e, b: b)
+
+        num_calls = [
+            0,
+        ]
+
+        @engine.on(event_name(value))
+        def assert_on_special_event(engine):
+            assert value
+            num_calls[0] += 1
+
+        d = list(range(50))
+        engine.run(d, max_epochs=25)
+
+        true_num_calls = 0 if not value else 50 * 25 if event_attr in "iteration" else 25
+
+        assert num_calls[0] == true_num_calls
+
+    _test(Events.ITERATION_STARTED, "iteration", True)
+    _test(Events.ITERATION_COMPLETED, "iteration", False)
+    _test(Events.EPOCH_STARTED, "epoch", True)
+    _test(Events.EPOCH_COMPLETED, "epoch", False)
+
+
 def test_callable_event_bad_behaviour():
 
     special_events = [1, 2, 5, 7, 17, 20]
@@ -537,3 +565,27 @@ def test_list_of_events():
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=1), [1, 1])
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3), [1, 3, 6, 9, 12, 15])
+
+
+def test_list_of_events_with_bool():
+    def _test(event_list, true_iterations):
+
+        engine = Engine(lambda e, b: b)
+
+        iterations = []
+
+        num_calls = [0]
+
+        @engine.on(event_list)
+        def execute_some_handler(e):
+            iterations.append(e.state.iteration)
+            num_calls[0] += 1
+
+        engine.run(range(3), max_epochs=5)
+
+        assert iterations == true_iterations
+        assert num_calls[0] == len(true_iterations)
+
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_COMPLETED(True), [1, ] + list(range(1, 16)))
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_COMPLETED(False), [1, ])
+    _test(Events.ITERATION_STARTED(False) | Events.ITERATION_COMPLETED(every=3), [3, 6, 9, 12, 15])

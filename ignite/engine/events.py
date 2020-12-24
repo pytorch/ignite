@@ -51,27 +51,40 @@ class CallableEventWithFilter:
         return self._value_
 
     def __call__(
-        self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
+        self, event_filter: Optional[Union[Callable, bool]] = None, every: Optional[int] = None, once: Optional[int] = None
     ) -> "CallableEventWithFilter":
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
         (which must take in the engine and current event value and return a boolean) or an every or once value
 
         Args:
-            event_filter (callable, optional): a filter function to check if the event should be executed when
-                the event type was fired
+            event_filter (callable or bool, optional): if callable, it should be a filter function to check if the event
+                should be executed when the event type was fired (See note below). If bool, provided value defines if
+                this event is globally enabled or completely filtered out.
             every (int, optional): a value specifying how often the event should be fired
             once (int, optional): a value specifying when the event should be fired (if only once)
 
         Returns:
             CallableEventWithFilter: A new event having the same value but a different filter function
+
+        Note:
+            Event filter if defined as a callable should have the following signature and
+            return True if attached handlers should be executed:
+
+            ..code-block:: python
+
+                def custom_event_filter(engine, event):
+                    if event in [1, 2, 5, 10, 50, 100]:
+                        return True
+                    return False
+
         """
 
         if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
             raise ValueError("Only one of the input arguments should be specified")
 
-        if (event_filter is not None) and not callable(event_filter):
-            raise TypeError("Argument event_filter should be a callable")
+        if (event_filter is not None) and not (callable(event_filter) or isinstance(event_filter, bool)):
+            raise TypeError("Argument event_filter should be a callable or a bool")
 
         if (every is not None) and not (isinstance(every, numbers.Integral) and every > 0):
             raise ValueError("Argument every should be integer and greater than zero")
@@ -79,21 +92,26 @@ class CallableEventWithFilter:
         if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
             raise ValueError("Argument every should be integer and positive")
 
+        event_filter_fn = None
         if every is not None:
             if every == 1:
                 # Just return the event itself
-                event_filter = None
+                event_filter_fn = None
             else:
-                event_filter = self.every_event_filter(every)
+                event_filter_fn = self.every_event_filter(every)
 
         if once is not None:
-            event_filter = self.once_event_filter(once)
+            event_filter_fn = self.once_event_filter(once)
 
         # check signature:
         if event_filter is not None:
-            _check_signature(event_filter, "event_filter", "engine", "event")
+            if isinstance(event_filter, bool):
+                event_filter_fn = self.bool_event_filter(event_filter)
+            else:
+                _check_signature(event_filter, "event_filter", "engine", "event")
+                event_filter_fn = event_filter
 
-        return CallableEventWithFilter(self.value, event_filter, self.name)
+        return CallableEventWithFilter(self.value, event_filter_fn, self.name)
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
@@ -110,6 +128,13 @@ class CallableEventWithFilter:
             if event == once:
                 return True
             return False
+
+        return wrapper
+
+    @staticmethod
+    def bool_event_filter(value: bool) -> Callable:
+        def wrapper(engine: "Engine", event: int) -> bool:
+            return value
 
         return wrapper
 
@@ -242,18 +267,27 @@ class Events(EventEnum):
         def call_once(engine):
             # do something on 50th iteration
 
-    Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
-    Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
+        # d) switch on/off event filter (see another example below with combined events)
+        assert isinstance(args.optionall_do_something, bool)
+
+        @engine.on(Events.EPOCH_STARTED(args.optionall_do_something))
+        def optionall_do_something():
+            # ...
+
+    Event filter if defined as a function, `event_filter`, accepts as input `engine` and `event` and should
+    return True/False. Argument `event` is the value of iteration or epoch, depending on which type of
+    Events the function is passed. If function returns True, then attached handler is triggered and omitted
+    otherwise.
 
     Since v0.4.0, user can also combine events with `|`-operator:
 
     .. code-block:: python
 
-        events = Events.STARTED | Events.COMPLETED | Events.ITERATION_STARTED(every=3)
-        engine = ...
+        events = Events.STARTED(args.start_validation) | Events.COMPLETED | Events.EPOCH_COMPLETED(every=3)
+        trainer = ...
 
-        @engine.on(events)
-        def call_on_events(engine):
+        @trainer.on(events)
+        def run_validation(trainer):
             # do something
 
     Since v0.4.0, custom events defined by user should inherit from :class:`~ignite.engine.events.EventEnum` :
