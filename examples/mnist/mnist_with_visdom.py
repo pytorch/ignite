@@ -83,8 +83,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
         print(
-            f"Epoch[{engine.state.epoch}] Iteration[{engine.state.iteration}/{len(train_loader)}] Loss: {engine.state.output:.2f}"
-            ""
+            f"Epoch[{engine.state.epoch}] Iteration[{engine.state.iteration}/{len(train_loader)}] "
+            f"Loss: {engine.state.output:.2f}"
         )
         vis.line(
             X=np.array([engine.state.iteration]),
@@ -100,7 +100,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            f"Training Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
+            f"Training Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         vis.line(
             X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]), win=train_avg_accuracy_window, update="append"
@@ -114,7 +114,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            f"Validation Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
+            f"Validation Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         vis.line(
             X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]), win=val_avg_accuracy_window, update="append"

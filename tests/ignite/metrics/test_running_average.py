@@ -289,9 +289,10 @@ def _test_distrib_on_output(device):
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
+        it = engine.state.iteration
         assert engine.state.running_avg_output == pytest.approx(
             engine.state.metrics["running_avg_output"]
-        ), f"{engine.state.iteration}: {engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
+        ), f"{it}: {engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
     trainer.run(data, max_epochs=3)
 

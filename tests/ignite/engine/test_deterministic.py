@@ -405,9 +405,10 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
 
                 def update_fn(_, batch):
                     batch_to_device = batch.to(device)
+                    cfg_msg = f"{num_workers} {resume_iteration}"
                     assert batch_checker.check(
                         batch
-                    ), f"{num_workers} {resume_iteration} | {batch_checker.counter}: {batch_checker.true_batch} vs {batch}"
+                    ), f"{cfg_msg} | {batch_checker.counter}: {batch_checker.true_batch} vs {batch}"
 
                 engine = DeterministicEngine(update_fn)
 

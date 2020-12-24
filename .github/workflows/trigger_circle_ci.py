@@ -62,7 +62,7 @@ def assert_workflows_successful(pipeline_id, headers):
 
     workflow_id = get_workflow_id(pipeline_id, headers)
 
-    base_url = f"https://app.circleci.com/pipelines/github/pytorch/ignite"
+    base_url = "https://app.circleci.com/pipelines/github/pytorch/ignite"
     url = None
 
     while True:
