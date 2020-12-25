@@ -79,17 +79,16 @@ def _test_distrib_accumulator_device(device):
 
         device = torch.device(device)
         mse = MeanSquaredError(device=metric_device)
-        assert mse._device == metric_device
-        assert (
-            mse._sum_of_squared_errors.device == metric_device
-        ), f"{type(mse._sum_of_squared_errors.device)}:{mse._sum_of_squared_errors.device} vs {type(metric_device)}:{metric_device}"
+
+        for dev in [mse._device, mse._sum_of_squared_errors.device]:
+            assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.tensor([[2.0], [-2.0]])
         y = torch.zeros(2)
         mse.update((y_pred, y))
-        assert (
-            mse._sum_of_squared_errors.device == metric_device
-        ), f"{type(mse._sum_of_squared_errors.device)}:{mse._sum_of_squared_errors.device} vs {type(metric_device)}:{metric_device}"
+
+        for dev in [mse._device, mse._sum_of_squared_errors.device]:
+            assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
 
 def test_accumulator_detached():
