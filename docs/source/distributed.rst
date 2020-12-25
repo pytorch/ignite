@@ -7,6 +7,9 @@ Helper module to use distributed settings for multiple backends:
 
 - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_
 
+- using `Horovod distributed framework <https://horovod.readthedocs.io/en/stable/>`_ as a backend
+
+
 Distributed launcher and `auto` helpers
 ---------------------------------------
 

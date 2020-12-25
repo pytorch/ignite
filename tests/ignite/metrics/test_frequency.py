@@ -55,9 +55,9 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, every=1):
         # otherwise, other values of wps are OK
         if idist.model_name() == "horovod-dist" and e.state.iteration in (2, 3, 4):
             return
-        assert estimated_wps * lower_bound_factor < wps <= estimated_wps, "{}: {} < {} < {}".format(
-            e.state.iteration, estimated_wps * lower_bound_factor, wps, estimated_wps
-        )
+        assert (
+            estimated_wps * lower_bound_factor < wps <= estimated_wps
+        ), f"{e.state.iteration}: {estimated_wps * lower_bound_factor} < {wps} < {estimated_wps}"
 
     data = [[i] * batch_size for i in range(0, total_tokens, batch_size)]
     max_epochs = 1 if idist.model_name() != "horovod-dist" else 2

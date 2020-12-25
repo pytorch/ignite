@@ -11,13 +11,13 @@ def training(local_rank, config, **kwargs):
 
     time.sleep(idist.get_rank() * 0.1)
 
-    print(idist.get_rank(), ": run with config:", config, "- kwargs:", kwargs, "- backend={}".format(idist.backend()))
+    print(idist.get_rank(), ": run with config:", config, "- kwargs:", kwargs, f"- backend={idist.backend()}")
 
     t = torch.tensor([idist.get_rank()], device=idist.device())
     t = idist.all_reduce(t)
     t = t.item()
     ws = idist.get_world_size()
-    assert t == ws * (ws - 1) / 2, "{} vs {}".format(t, ws)
+    assert t == ws * (ws - 1) / 2, f"{t} vs {ws}"
     assert local_rank == idist.get_local_rank()
 
 

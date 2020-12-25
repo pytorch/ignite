@@ -186,9 +186,7 @@ class VisdomLogger(BaseLogger):
         self.vis = visdom.Visdom(server=server, port=port, raise_exceptions=raise_exceptions, **kwargs)
 
         if not self.vis.offline and not self.vis.check_connection():  # type: ignore[attr-defined]
-            raise RuntimeError(
-                "Failed to connect to Visdom server at {}. Did you run python -m visdom.server ?".format(server)
-            )
+            raise RuntimeError(f"Failed to connect to Visdom server at {server}. Did you run python -m visdom.server ?")
 
         self.executor = _DummyExecutor()  # type: Union[_DummyExecutor, "ThreadPoolExecutor"]
         if num_workers > 0:
@@ -363,8 +361,8 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         if not isinstance(global_step, int):
             raise TypeError(
-                "global_step must be int, got {}."
-                " Please check the output of global_step_transform.".format(type(global_step))
+                f"global_step must be int, got {type(global_step)}."
+                " Please check the output of global_step_transform."
             )
 
         for key, value in metrics.items():
@@ -376,12 +374,12 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 keys.append(key)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 values = value  # type: ignore[assignment]
-                keys = ["{}/{}".format(key, i) for i in range(len(value))]
+                keys = [f"{key}/{i}" for i in range(len(value))]
             else:
-                warnings.warn("VisdomLogger output_handler can not log " "metrics value type {}".format(type(value)))
+                warnings.warn(f"VisdomLogger output_handler can not log metrics value type {type(value)}")
 
             for k, v in zip(keys, values):
-                k = "{}/{}".format(self.tag, k)
+                k = f"{self.tag}/{k}"
                 self.add_scalar(logger, k, v, event_name, global_step)
 
         logger._save()
@@ -431,9 +429,9 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
             raise RuntimeError("Handler OptimizerParamsHandler works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         params = {
-            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            f"{tag_prefix}{self.param_name}/group_{i}": float(param_group[self.param_name])
             for i, param_group in enumerate(self.optimizer.param_groups)
         }
 
@@ -483,10 +481,10 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             name = name.replace(".", "/")
-            k = "{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, name)
+            k = f"{tag_prefix}weights_{self.reduction.__name__}/{name}"
             v = float(self.reduction(p.data))
             self.add_scalar(logger, k, v, event_name, global_step)
 
@@ -533,10 +531,10 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with VisdomLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             name = name.replace(".", "/")
-            k = "{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, name)
+            k = f"{tag_prefix}grads_{self.reduction.__name__}/{name}"
             v = float(self.reduction(p.grad))
             self.add_scalar(logger, k, v, event_name, global_step)
 

@@ -258,18 +258,18 @@ class OutputHandler(BaseOutputHandler):
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, WandBLogger):
-            raise RuntimeError("Handler '{}' works only with WandBLogger.".format(self.__class__.__name__))
+            raise RuntimeError(f"Handler '{self.__class__.__name__}' works only with WandBLogger.")
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
         if not isinstance(global_step, int):
             raise TypeError(
-                "global_step must be int, got {}."
-                " Please check the output of global_step_transform.".format(type(global_step))
+                f"global_step must be int, got {type(global_step)}."
+                " Please check the output of global_step_transform."
             )
 
         metrics = self._setup_output_metrics(engine)
         if self.tag is not None:
-            metrics = {"{tag}/{name}".format(tag=self.tag, name=name): value for name, value in metrics.items()}
+            metrics = {f"{self.tag}/{name}": value for name, value in metrics.items()}
 
         logger.log(metrics, step=global_step, sync=self.sync)
 
@@ -327,9 +327,9 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             raise RuntimeError("Handler OptimizerParamsHandler works only with WandBLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         params = {
-            "{}{}/group_{}".format(tag_prefix, self.param_name, i): float(param_group[self.param_name])
+            f"{tag_prefix}{self.param_name}/group_{i}": float(param_group[self.param_name])
             for i, param_group in enumerate(self.optimizer.param_groups)
         }
         logger.log(params, step=global_step, sync=self.sync)

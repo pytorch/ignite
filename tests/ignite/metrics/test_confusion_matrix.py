@@ -329,7 +329,7 @@ def test_iou():
             cm.update(output)
             res = iou_metric.compute().numpy()
             true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
-            assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
+            assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
 
     _test()
     _test(average="samples")
@@ -373,7 +373,7 @@ def test_miou():
         cm.update(output)
         res = iou_metric.compute().numpy()
         true_res_ = np.mean(true_res[:ignore_index] + true_res[ignore_index + 1 :])
-        assert res == true_res_, "{}: {} vs {}".format(ignore_index, res, true_res_)
+        assert res == true_res_, f"{ignore_index}: {res} vs {true_res_}"
 
 
 def test_cm_accuracy():
@@ -543,7 +543,7 @@ def test_dice_coefficient():
         cm.update(output)
         res = dice_metric.compute().numpy()
         true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
-        assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
+        assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
 
 
 def _test_distrib_multiclass_images(device):
@@ -624,17 +624,17 @@ def _test_distrib_accumulator_device(device):
 
         cm = ConfusionMatrix(num_classes=3, device=metric_device)
         assert cm._device == metric_device
-        assert cm.confusion_matrix.device == metric_device, "{}:{} vs {}:{}".format(
-            type(cm.confusion_matrix.device), cm._num_correct.device, type(metric_device), metric_device
-        )
+        assert (
+            cm.confusion_matrix.device == metric_device
+        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
         y_true, y_pred = get_y_true_y_pred()
         th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
         cm.update((th_y_logits, th_y_true))
 
-        assert cm.confusion_matrix.device == metric_device, "{}:{} vs {}:{}".format(
-            type(cm.confusion_matrix.device), acc._num_correct.device, type(metric_device), metric_device
-        )
+        assert (
+            cm.confusion_matrix.device == metric_device
+        ), f"{type(cm.confusion_matrix.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed
@@ -642,7 +642,7 @@ def _test_distrib_accumulator_device(device):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    device = torch.device("cuda:{}".format(local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     _test_distrib_multiclass_images(device)
     _test_distrib_accumulator_device(device)
 
@@ -681,7 +681,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_multiclass_images(device)
     _test_distrib_accumulator_device(device)
 

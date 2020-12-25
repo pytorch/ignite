@@ -4,14 +4,29 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime"
+    default: "pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel"
+    default: "pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
+  should_build_docker_images:
+    type: boolean
+    default: false
+  should_publish_docker_images:
+    type: boolean
+    default: false
+  build_docker_image_pytorch_version:
+    type: string
+    default: "1.7.0-cuda11.0-cudnn8"
+  build_docker_image_hvd_version:
+    type: string
+    default: "v0.21.0"
+  build_docker_image_msdp_version:
+    type: string
+    default: "v0.3.8"
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
@@ -42,6 +57,22 @@ two_gpus: &two_gpus
 # -------------------------------------------------------------------------------------
 # Re-usable commands
 # -------------------------------------------------------------------------------------
+
+install_latest_nvidia: &install_latest_nvidia
+  - run:
+      name: Install latest NVidia-driver and CUDA
+      command: |
+        sudo apt-get purge nvidia* && sudo apt-get autoremove
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-455 cuda-drivers-455
+        # Install nvidia-container-runtime
+        sudo apt-get install -y nvidia-container-runtime
+        # Reload driver : https://stackoverflow.com/a/45319156/6309199
+        # lsof | grep nvidia -> kill Xvfb
+        sudo lsof | grep "/usr/bin/Xvfb" | head -1 | awk '{print $2}' | xargs -I {} sudo kill -9 {}
+        # lsmod | grep nvidia
+        sudo rmmod nvidia_uvm && sudo rmmod nvidia_drm && sudo rmmod nvidia_modeset && sudo rmmod nvidia
+        # reload driver
+        nvidia-smi
 
 pull_pytorch_stable_image: &pull_pytorch_stable_image
   - run:
@@ -98,6 +129,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -184,6 +216,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -209,6 +242,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -263,6 +297,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
@@ -317,15 +352,67 @@ jobs:
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
+  build_publish_docker_images:
+    machine:      
+      # https://circleci.com/docs/2.0/configuration-reference/#available-machine-images
+      image: ubuntu-2004:202010-01
+      docker_layer_caching: true
+    # https://circleci.com/docs/2.0/configuration-reference/#machine-executor-linux
+    resource_class: 2xlarge
+  
+    working_directory: << pipeline.parameters.workingdir >>
+    steps:
+      - checkout
+      - run:
+          name: Build all Horovod flavoured PyTorch-Ignite images
+          command: |
+            cd docker
+            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
+            export HVD_VERSION=<< pipeline.parameters.build_docker_image_hvd_version >>
+            sh ./hvd/build_all.sh
+
+      - run:
+          name: Build all PyTorch-Ignite images
+          command: |
+            cd docker
+            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
+            sh ./main/build_all.sh
+
+      - run:
+          name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+          command: |
+            cd docker
+            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
+            export MSDP_VERSION=<< pipeline.parameters.build_docker_image_msdp_version >>
+            sh ./msdp/build_all.sh
+
+      - run:
+          name: List built images
+          command: docker images | grep pytorchignite
+
+      - when:
+          condition: << pipeline.parameters.should_publish_docker_images >>
+          steps:
+            - run:
+                name: Push all PyTorch-Ignite Docker images
+                command: |
+                  cd docker
+                  sh ./push_all.sh
+
 # -------------------------------------------------------------------------------------
 # Workflows
 # -------------------------------------------------------------------------------------
 workflows:
   version: 2
   gpu_tests:
+    unless: << pipeline.parameters.should_build_docker_images >>
     jobs:
       - one_gpu_tests
       - one_gpu_windows_tests
       - two_gpus_tests
       - two_gpus_check_dist_cifar10_example
       - two_gpus_hvd_tests
+  docker_images:
+    when: << pipeline.parameters.should_build_docker_images >>
+    jobs:
+      - build_publish_docker_images

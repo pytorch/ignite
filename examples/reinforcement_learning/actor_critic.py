@@ -113,7 +113,8 @@ def main(env, args):
     def log_episode(engine):
         i_episode = engine.state.epoch
         print(
-            f"Episode {i_episode}\tLast length: {engine.state.timestep:5d}\tAverage length: {engine.state.running_reward:.2f}"
+            f"Episode {i_episode}\tLast length: {engine.state.timestep:5d}"
+            f"\tAverage length: {engine.state.running_reward:.2f}"
         )
 
     @trainer.on(EPISODE_COMPLETED)

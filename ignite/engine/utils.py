@@ -15,7 +15,7 @@ def _check_signature(fn: Callable, fn_description: str, *args: Any, **kwargs: An
         exception_msg = str(exc)
         passed_params = list(args) + list(kwargs)
         raise ValueError(
-            "Error adding {} '{}': "
-            "takes parameters {} but will be called with {}"
-            "({}).".format(fn, fn_description, fn_params, passed_params, exception_msg)
+            f"Error adding {fn} '{fn_description}': "
+            f"takes parameters {fn_params} but will be called with {passed_params}"
+            f"({exception_msg})."
         )

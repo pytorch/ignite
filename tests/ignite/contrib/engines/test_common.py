@@ -64,7 +64,7 @@ def _test_setup_common_training_handlers(
         milestones_values = [(0, 0.0), (step_size, lr), (num_iters * (num_epochs - 1), 0.0)]
         lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
     else:
-        raise ValueError("Unknown lr_scheduler: {}".format(lr_scheduler))
+        raise ValueError(f"Unknown lr_scheduler: {lr_scheduler}")
 
     def update_fn(engine, batch):
         optimizer.zero_grad()
@@ -104,7 +104,7 @@ def _test_setup_common_training_handlers(
     for cls in [
         TerminateOnNan,
     ]:
-        assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+        assert any([isinstance(h[0], cls) for h in handlers]), f"{handlers}"
     assert "batch_loss" in trainer.state.metrics
 
     # Check saved checkpoint
@@ -119,9 +119,9 @@ def _test_setup_common_training_handlers(
             assert any([v in c for c in checkpoints])
 
     # Check LR scheduling
-    assert optimizer.param_groups[0]["lr"] <= lr * gamma ** (num_iters * num_epochs / step_size), "{} vs {}".format(
-        optimizer.param_groups[0]["lr"], lr * gamma ** (num_iters * num_epochs / step_size)
-    )
+    assert optimizer.param_groups[0]["lr"] <= lr * gamma ** (
+        num_iters * num_epochs / step_size
+    ), f"{optimizer.param_groups[0]['lr']} vs {lr * gamma ** (num_iters * num_epochs / step_size)}"
 
 
 def test_asserts_setup_common_training_handlers():
@@ -172,7 +172,7 @@ def test_setup_common_training_handlers(dirname, capsys):
     out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
-    assert "Epoch" in out[-1] or "Epoch" in out[-2], "{}, {}".format(out[-2], out[-1])
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
 
 
 def test_setup_common_training_handlers_using_save_handler(dirname, capsys):
@@ -185,7 +185,7 @@ def test_setup_common_training_handlers_using_save_handler(dirname, capsys):
     out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
-    assert "Epoch" in out[-1] or "Epoch" in out[-2], "{}, {}".format(out[-2], out[-1])
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
 
 
 def test_save_best_model_by_val_score(dirname):
@@ -241,7 +241,7 @@ def test_gen_save_best_models_by_val_score():
         [
             call(
                 obj_to_save,
-                "best_checkpoint_{}_val_acc={:.4f}.pt".format(e, p),
+                f"best_checkpoint_{e}_val_acc={p:.4f}.pt",
                 dict([("basename", "best_checkpoint"), ("score_name", "val_acc"), ("priority", p)]),
             )
             for e, p in zip([1, 2, 3, 4, 6, 7, 8, 9], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.61, 0.7])
@@ -333,21 +333,21 @@ def _test_setup_logging(
     for cls in [
         output_handler_cls,
     ]:
-        assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+        assert any([isinstance(h[0], cls) for h in handlers]), f"{handlers}"
 
     if with_optim:
         handlers = trainer._event_handlers[Events.ITERATION_STARTED]
         for cls in [
             opt_params_handler_cls,
         ]:
-            assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+            assert any([isinstance(h[0], cls) for h in handlers]), f"{handlers}"
 
     if with_eval:
         handlers = evaluator._event_handlers[Events.COMPLETED]
         for cls in [
             output_handler_cls,
         ]:
-            assert any([isinstance(h[0], cls) for h in handlers]), "{}".format(handlers)
+            assert any([isinstance(h[0], cls) for h in handlers]), f"{handlers}"
 
     data = [0, 1, 2]
     trainer.run(data, max_epochs=10)
@@ -358,7 +358,7 @@ def _test_setup_logging(
         for v in [
             "events",
         ]:
-            assert any([v in c for c in tb_files]), "{}".format(tb_files)
+            assert any([v in c for c in tb_files]), f"{tb_files}"
 
     return x_logger
 
@@ -522,7 +522,7 @@ def test_setup_neptune_logging(dirname):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
     local_rank = distributed_context_single_node_nccl["local_rank"]
-    device = "cuda:{}".format(local_rank)
+    device = f"cuda:{local_rank}"
     _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=True)
     test_add_early_stopping_by_val_score()
 
@@ -558,6 +558,6 @@ def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(dirname, distributed_context_multi_node_nccl):
     local_rank = distributed_context_multi_node_nccl["local_rank"]
     rank = distributed_context_multi_node_nccl["rank"]
-    device = "cuda:{}".format(local_rank)
+    device = f"cuda:{local_rank}"
     _test_setup_common_training_handlers(dirname, device, rank=rank, local_rank=local_rank, distributed=True)
     test_add_early_stopping_by_val_score()

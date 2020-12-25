@@ -91,7 +91,7 @@ class ComputationModel(metaclass=ABCMeta):
         # use fix padded size
         size = 1024
         if len(x) > size:
-            warnings.warn("Input string size {} is larger than {} and thus will be truncated".format(len(x), size))
+            warnings.warn(f"Input string size {len(x)} is larger than {size} and thus will be truncated")
             x = x[:size]
 
         name = torch.tensor(bytearray(x, "utf-8")).to(device)
@@ -159,19 +159,19 @@ class ComputationModel(metaclass=ABCMeta):
 
     def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "sum") -> Union[torch.Tensor, float]:
         if not isinstance(tensor, (torch.Tensor, Number)):
-            raise TypeError("Unhandled input type {}".format(type(tensor)))
+            raise TypeError(f"Unhandled input type {type(tensor)}")
 
         return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op))
 
     def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
-            raise TypeError("Unhandled input type {}".format(type(tensor)))
+            raise TypeError(f"Unhandled input type {type(tensor)}")
 
         return self._collective_op(tensor, self._do_all_gather)
 
     def broadcast(self, tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
-            raise TypeError("Unhandled input type {}".format(type(tensor)))
+            raise TypeError(f"Unhandled input type {type(tensor)}")
 
         rank = self.get_rank()
         device = self.device()

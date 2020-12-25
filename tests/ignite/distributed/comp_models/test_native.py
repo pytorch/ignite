@@ -96,7 +96,7 @@ def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_si
     from datetime import timedelta
 
     timeout = timedelta(seconds=20)
-    os.environ["RANK"] = "{}".format(rank)
+    os.environ["RANK"] = f"{rank}"
 
     assert "MASTER_ADDR" not in os.environ
     assert "MASTER_PORT" not in os.environ
@@ -258,17 +258,13 @@ def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_create_dist_nccl_1(local_rank, world_size):
-    _test__native_dist_model_create_from_backend_dist(
-        local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
-    )
+    _test__native_dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_create_dist_nccl_2(local_rank, world_size):
-    _test__native_dist_model_create_from_context_dist(
-        local_rank, local_rank, world_size, "nccl", "cuda:{}".format(local_rank)
-    )
+    _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}")
 
 
 @pytest.mark.distributed
@@ -283,7 +279,7 @@ def test__native_dist_model_warning_index_less_localrank(local_rank, world_size)
     torch.cuda.set_device(0)
 
     model = _NativeDistModel.create_from_context()
-    assert isinstance(model, _NativeDistModel), "{} vs _NativeDistModel".format(type(model))
+    assert isinstance(model, _NativeDistModel), f"{type(model)} vs _NativeDistModel"
 
     if local_rank == 1:
         with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
@@ -298,12 +294,12 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == backend
 
-    assert isinstance(_model, _NativeDistModel), "{} vs _NativeDistModel".format(type(_model))
+    assert isinstance(_model, _NativeDistModel), f"{type(_model)} vs _NativeDistModel"
 
     assert _model.get_local_rank() == local_rank
     assert _model.get_world_size() == world_size
     if backend == "nccl":
-        assert _model.device() == torch.device("{}:{}".format(device, local_rank))
+        assert _model.device() == torch.device(f"{device}:{local_rank}")
     elif backend == "gloo":
         assert _model.device() == torch.device(device)
 

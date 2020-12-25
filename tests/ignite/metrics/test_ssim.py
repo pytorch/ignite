@@ -182,21 +182,16 @@ def _test_distrib_accumulator_device(device):
     for metric_device in metric_devices:
 
         ssim = SSIM(data_range=1.0, device=metric_device)
-        assert ssim._device == metric_device
-        assert ssim._kernel.device == metric_device, "{}:{} vs {}:{}".format(
-            type(ssim._kernel.device), ssim._kernel.device, type(metric_device), metric_device
-        )
+
+        for dev in [ssim._device, ssim._kernel.device]:
+            assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
         ssim.update((y_pred, y))
 
-        assert ssim._sum_of_batchwise_ssim.device == metric_device, "{}:{} vs {}:{}".format(
-            type(ssim._sum_of_batchwise_ssim.device),
-            ssim._sum_of_batchwise_ssim.device,
-            type(metric_device),
-            metric_device,
-        )
+        dev = ssim._sum_of_batchwise_ssim.device
+        assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed
@@ -204,7 +199,7 @@ def _test_distrib_accumulator_device(device):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    device = "cuda:{}".format(local_rank)
+    device = f"cuda:{local_rank}"
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
 
@@ -230,7 +225,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+    device = f"cuda:{distributed_context_multi_node_nccl['local_rank']}"
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
 

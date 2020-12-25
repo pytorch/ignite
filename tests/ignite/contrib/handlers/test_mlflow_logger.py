@@ -240,7 +240,7 @@ def test_integration(dirname):
         global_step = engine.state.get_event_attrib_value(event_name)
         v = global_step * 0.1
         true_values.append(v)
-        logger.log_metrics({"{}".format("test_value"): v}, step=global_step)
+        logger.log_metrics({"test_value": v}, step=global_step)
 
     mlflow_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
@@ -282,7 +282,7 @@ def test_integration_as_context_manager(dirname):
             global_step = engine.state.get_event_attrib_value(event_name)
             v = global_step * 0.1
             true_values.append(v)
-            logger.log_metrics({"{}".format("test_value"): v}, step=global_step)
+            logger.log_metrics({"test_value": v}, step=global_step)
 
         mlflow_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 

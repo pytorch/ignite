@@ -21,6 +21,6 @@ pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv
 if [ ${ngpus} -gt 1 ]; then
 
     export WORLD_SIZE=${ngpus}
-    pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx ${WORLD_SIZE}*popen//python=python3.7 tests -m distributed -vvv
+    pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx ${WORLD_SIZE}*popen//python=python tests -m distributed -vvv
 
 fi

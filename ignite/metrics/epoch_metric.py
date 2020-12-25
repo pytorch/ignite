@@ -88,15 +88,12 @@ class EpochMetric(Metric):
         dtype_preds = self._predictions[-1].dtype
         if dtype_preds != y_pred.dtype:
             raise ValueError(
-                "Incoherent types between input y_pred and stored predictions: "
-                "{} vs {}".format(dtype_preds, y_pred.dtype)
+                f"Incoherent types between input y_pred and stored predictions: {dtype_preds} vs {y_pred.dtype}"
             )
 
         dtype_targets = self._targets[-1].dtype
         if dtype_targets != y.dtype:
-            raise ValueError(
-                "Incoherent types between input y and stored targets: {} vs {}".format(dtype_targets, y.dtype)
-            )
+            raise ValueError(f"Incoherent types between input y and stored targets: {dtype_targets} vs {y.dtype}")
 
     @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
@@ -121,7 +118,7 @@ class EpochMetric(Metric):
             try:
                 self.compute_fn(self._predictions[0], self._targets[0])
             except Exception as e:
-                warnings.warn("Probably, there can be a problem with `compute_fn`:\n {}.".format(e), EpochMetricWarning)
+                warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
     def compute(self) -> float:
         if len(self._predictions) < 1 or len(self._targets) < 1:

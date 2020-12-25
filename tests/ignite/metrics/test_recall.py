@@ -854,12 +854,12 @@ def _test_distrib_accumulator_device(device):
         y = torch.randint(0, 2, size=(10,)).long()
         re.update((y_reed, y))
 
-        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
-            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
-        )
-        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
-            type(re._positives.device), re._positives.device, type(metric_device), metric_device
-        )
+        assert (
+            re._true_positives.device == metric_device
+        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._positives.device == metric_device
+        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
@@ -876,23 +876,23 @@ def _test_distrib_multilabel_accumulator_device(device):
         re = Recall(is_multilabel=True, average=average, device=metric_device)
 
         assert re._device == metric_device
-        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
-            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
-        )
-        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
-            type(re._positives.device), re._positives.device, type(metric_device), metric_device
-        )
+        assert (
+            re._true_positives.device == metric_device
+        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._positives.device == metric_device
+        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
 
         y_reed = torch.randint(0, 2, size=(10, 4, 20, 23))
         y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
         re.update((y_reed, y))
 
-        assert re._true_positives.device == metric_device, "{}:{} vs {}:{}".format(
-            type(re._true_positives.device), re._true_positives.device, type(metric_device), metric_device
-        )
-        assert re._positives.device == metric_device, "{}:{} vs {}:{}".format(
-            type(re._positives.device), re._positives.device, type(metric_device), metric_device
-        )
+        assert (
+            re._true_positives.device == metric_device
+        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
+        assert (
+            re._positives.device == metric_device
+        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
@@ -906,7 +906,7 @@ def _test_distrib_multilabel_accumulator_device(device):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = torch.device("cuda:{}".format(local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
@@ -952,7 +952,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)

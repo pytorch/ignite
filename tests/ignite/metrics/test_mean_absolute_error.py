@@ -77,23 +77,16 @@ def _test_distrib_accumulator_device(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         mae = MeanAbsoluteError(device=metric_device)
-        assert mae._device == metric_device
-        assert mae._sum_of_absolute_errors.device == metric_device, "{}:{} vs {}:{}".format(
-            type(mae._sum_of_absolute_errors.device),
-            mae._sum_of_absolute_errors.device,
-            type(metric_device),
-            metric_device,
-        )
+
+        for dev in [mae._device, mae._sum_of_absolute_errors.device]:
+            assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.tensor([[2.0], [-2.0]])
         y = torch.zeros(2)
         mae.update((y_pred, y))
-        assert mae._sum_of_absolute_errors.device == metric_device, "{}:{} vs {}:{}".format(
-            type(mae._sum_of_absolute_errors.device),
-            mae._sum_of_absolute_errors.device,
-            type(metric_device),
-            metric_device,
-        )
+
+        for dev in [mae._device, mae._sum_of_absolute_errors.device]:
+            assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
 
 def test_accumulator_detached():
@@ -110,7 +103,7 @@ def test_accumulator_detached():
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = torch.device("cuda:{}".format(local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
 
@@ -148,7 +141,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
 

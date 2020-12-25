@@ -341,7 +341,7 @@ def test_pbar_output_tensor(capsys):
         err = captured.err.split("\r")
         err = list(map(lambda x: x.strip(), err))
         err = list(filter(None, err))
-        expected = "Output tensor: [4/5]  80%|████████  , {} [00:00<00:00]".format(out_msg)
+        expected = f"Output tensor: [4/5]  80%|████████  , {out_msg} [00:00<00:00]"
         assert err[-1] == expected
 
     _test(out_tensor=torch.tensor([5, 0]), out_msg="output_0=5, output_1=0")

@@ -51,7 +51,7 @@ class _BasePrecisionRecall(_BaseClassification):
         is_scalar = not isinstance(self._positives, torch.Tensor) or self._positives.ndim == 0
         if is_scalar and self._positives == 0:
             raise NotComputableError(
-                "{} must have at least one example before it can be computed.".format(self.__class__.__name__)
+                f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
 
         if not (self._type == "multilabel" and not self._average):
@@ -149,8 +149,8 @@ class Precision(_BasePrecisionRecall):
             num_classes = y_pred.size(1)
             if y.max() + 1 > num_classes:
                 raise ValueError(
-                    "y_pred contains less classes than y. Number of predicted classes is {}"
-                    " and element in y has invalid class = {}.".format(num_classes, y.max().item() + 1)
+                    f"y_pred contains less classes than y. Number of predicted classes is {num_classes}"
+                    f" and element in y has invalid class = {y.max().item() + 1}."
                 )
             y = to_onehot(y.view(-1), num_classes=num_classes)
             indices = torch.argmax(y_pred, dim=1).view(-1)

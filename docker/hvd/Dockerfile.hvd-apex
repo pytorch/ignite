@@ -1,14 +1,20 @@
 # Multi-stage build
-# 1/Building apex and hvd with pytorch:1.6.0-cuda10.1-cudnn7-devel
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS apex-hvd-builder
+# Dockerfile.hvd-apex
+
+ARG PTH_VERSION
+
+# 1/Building apex with pytorch:*-devel
+FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-hvd-builder
+
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
 
 ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
 
-ARG HVD_VERSION=v0.21.0
-
 # Install git
-RUN apt-get update && apt-get install -y --no-install-recommends git
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
+     rm -rf /var/lib/apt/lists/*
 
 # Build apex
 RUN echo "Setup NVIDIA Apex" && \
@@ -18,6 +24,8 @@ RUN echo "Setup NVIDIA Apex" && \
     cd $tmp_apex_path && \
     pip wheel --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
+ARG HVD_VERSION
+
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \
         git clone --recursive --depth 1 --branch ${HVD_VERSION} https://github.com/horovod/horovod.git /horovod && \
@@ -26,13 +34,16 @@ RUN apt-get update && apt-get install -y git && \
         HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
         rm -rf /var/lib/apt/lists/*
 
-# 2/ Build the runtime image
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-runtime
+# Build runtime image
+FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
 
 # Apex
-COPY --from=apex-hvd-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
-RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
-    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+COPY --from=apex-hvd-builder /tmp/apex/apex-*.whl /tmp/apex/
+RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
+    rm -fr /tmp/apex
 
 # Install tzdata / git
 RUN apt-get update && \
@@ -43,8 +54,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Ignite main dependencies
-RUN pip install tensorboardX tensorboard trains tqdm && \
-    pip install pytorch-ignite
+RUN pip install --upgrade --no-cache-dir pytorch-ignite \
+                                         tensorboard \
+                                         tqdm
 
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \
@@ -57,8 +69,11 @@ RUN mkdir -p pytorch-ignite-examples && \
 
 # Horovod
 RUN conda install -y nccl=2.7 -c conda-forge
+
 ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+
 COPY --from=apex-hvd-builder /horovod/horovod-*.whl /horovod/
+
 RUN cd /horovod && \
     pip install --no-cache-dir horovod-*.whl && \
     rm -fr /horovod

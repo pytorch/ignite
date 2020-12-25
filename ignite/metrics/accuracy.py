@@ -31,7 +31,7 @@ class _BaseClassification(Metric):
             raise ValueError(
                 "y must have shape of (batch_size, ...) and y_pred must have "
                 "shape of (batch_size, num_categories, ...) or (batch_size, ...), "
-                "but given {} vs {}.".format(y.shape, y_pred.shape)
+                f"but given {y.shape} vs {y_pred.shape}."
             )
 
         y_shape = y.shape
@@ -78,19 +78,17 @@ class _BaseClassification(Metric):
                 num_classes = 1
         else:
             raise RuntimeError(
-                "Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation."
-                " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape)
+                f"Invalid shapes of y (shape={y.shape}) and y_pred (shape={y_pred.shape}), check documentation."
+                " for expected shapes of y and y_pred."
             )
         if self._type is None:
             self._type = update_type
             self._num_classes = num_classes
         else:
             if self._type != update_type:
-                raise RuntimeError("Input data type has changed from {} to {}.".format(self._type, update_type))
+                raise RuntimeError(f"Input data type has changed from {self._type} to {update_type}.")
             if self._num_classes != num_classes:
-                raise ValueError(
-                    "Input data number of classes has changed from {} to {}".format(self._num_classes, num_classes)
-                )
+                raise ValueError(f"Input data number of classes has changed from {self._num_classes} to {num_classes}")
 
 
 class Accuracy(_BaseClassification):
