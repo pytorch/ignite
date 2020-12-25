@@ -51,7 +51,10 @@ class CallableEventWithFilter:
         return self._value_
 
     def __call__(
-        self, event_filter: Optional[Union[Callable, bool]] = None, every: Optional[int] = None, once: Optional[int] = None
+        self,
+        event_filter: Optional[Union[Callable, bool]] = None,
+        every: Optional[int] = None,
+        once: Optional[int] = None,
     ) -> "CallableEventWithFilter":
         """
         Makes the event class callable and accepts either an arbitrary callable as filter

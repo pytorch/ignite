@@ -362,7 +362,6 @@ def test_custom_event_filter_with_engine():
 
 
 def test_bool_event_filter_with_engine():
-
     def _test(event_name, event_attr, value):
 
         engine = Engine(lambda e, b: b)
@@ -586,6 +585,6 @@ def test_list_of_events_with_bool():
         assert iterations == true_iterations
         assert num_calls[0] == len(true_iterations)
 
-    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_COMPLETED(True), [1, ] + list(range(1, 16)))
-    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_COMPLETED(False), [1, ])
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_COMPLETED(True), [1,] + list(range(1, 16)))
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_COMPLETED(False), [1,])
     _test(Events.ITERATION_STARTED(False) | Events.ITERATION_COMPLETED(every=3), [3, 6, 9, 12, 15])
