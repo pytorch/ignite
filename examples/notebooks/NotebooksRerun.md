@@ -50,9 +50,15 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
 
   Runs smoothly, nothing to highlight.
 
+  ~~Tensorboard error ```No dashboards are active for the current data set.```~~
+  Display of Tensorboard in Firefox may not work properly. Use Chrome.
+
 - CycleGAN_with_ignite_and_nvdia_apex.ipynb
 
   Runs smoothly, nothing to highlight.
+
+  ~~Tensorboard error ```No dashboards are active for the current data set.```~~
+  Display of Tensorboard in Firefox may not work properly. Use Chrome.
 
 - FastaiLRFinder_MNIST.ipynb
 
@@ -78,10 +84,11 @@ To rerun the notebooks and ensure they're compatible with the latest releases of
 
 - MNIST_on_TPU.ipynb
 
-  Tensorboard error ```No dashboards are active for the current data set.```
+  ~~Tensorboard error ```No dashboards are active for the current data set.```~~
+  Display of Tensorboard in Firefox may not work properly. Use Chrome.
   Refactor text cells
   Use PyTorch-Ignite 0.4.2
   
 - HandlersTimeProfiler_MNIST.ipynb
 
-  Tensorboard error ```403. That’s an error.```
+  Runs smoothly, nothing to highlight.
