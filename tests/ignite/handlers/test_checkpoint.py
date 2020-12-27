@@ -738,9 +738,9 @@ def test_with_engine(dirname):
     model = DummyModel()
     to_save = {"model": model}
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
-    engine.run([0], max_epochs=4)
+    engine.run([0, 1,], max_epochs=4)
 
-    expected = [f"{_PREFIX}_{name}_{i}.pt" for i in [3, 4]]
+    expected = sorted([f"{_PREFIX}_{name}_{i}.pt" for i in [3 * 2, 4 * 2]])
 
     assert sorted(os.listdir(dirname)) == expected
 
@@ -755,7 +755,7 @@ def test_with_state_dict(dirname):
     model = DummyModel()
     to_save = {"model": model}
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
-    engine.run([0], max_epochs=4)
+    engine.run([0, 1, 2], max_epochs=4)
 
     saved_model = os.path.join(dirname, os.listdir(dirname)[0])
     load_model = torch.load(saved_model)
@@ -827,7 +827,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_
             Events.EPOCH_COMPLETED, handler, {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
         )
 
-    engine.run([0], max_epochs=4)
+    engine.run([0, 1, 2], max_epochs=4)
 
     idist.barrier()
 
@@ -937,7 +937,7 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
         return trainer, evaluator, model, optim, lr_scheduler, early_stop, checkpointer
 
     trainer, evaluator, model, optim, scheduler, early, checkpointer = _build_objects([0.2, 0.3, 0.2])
-    trainer.run([0], max_epochs=3)
+    trainer.run([0, 1, 2], max_epochs=3)
 
     saved_objects = sorted(os.listdir(dirname))
     saved_checkpoint = os.path.join(dirname, saved_objects[0])
@@ -994,7 +994,7 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
     _check_state_dict(early, early2)
     _check_state_dict(checkpointer, checkpointer2)
 
-    trainer2.run([0], max_epochs=6)
+    trainer2.run([0, 1, 2], max_epochs=6)
 
     # early stopping should have triggered
     assert trainer2.state.epoch == 4
@@ -1470,3 +1470,59 @@ def test_checkpoint_fixed_filename():
     _test(None)
     _test(1)
     _test(3)
+
+
+def test_checkpoint_reset():
+    model = DummyModel()
+    to_save = {"model": model}
+
+    save_handler = MagicMock(spec=BaseSaveHandler)
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=2)
+    assert checkpointer.last_checkpoint is None
+
+    trainer = Engine(lambda e, b: None)
+
+    trainer.state = State(epoch=0, iteration=123)
+    checkpointer(trainer)
+    trainer.state.iteration = 234
+    checkpointer(trainer)
+
+    assert save_handler.call_count == 2
+    assert checkpointer.last_checkpoint == "model_234.pt"
+    assert len(checkpointer._saved) == 2
+    assert sorted([item.filename for item in checkpointer._saved]) == sorted(["model_123.pt", "model_234.pt"])
+
+    checkpointer.reset()
+    assert len(checkpointer._saved) == 0
+
+    trainer.state.iteration = 124
+    checkpointer(trainer)
+
+    assert save_handler.call_count == 3
+    assert checkpointer.last_checkpoint == "model_124.pt"
+    assert len(checkpointer._saved) == 1
+    assert sorted([item.filename for item in checkpointer._saved]) == sorted(["model_124.pt",])
+
+
+def test_checkpoint_reset_with_engine(dirname):
+    name = "model"
+    engine = Engine(lambda e, b: None)
+    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2)
+
+    model = DummyModel()
+    to_save = {"model": model}
+    engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
+    engine.run([0, 1,], max_epochs=10)
+
+    expected = sorted([f"{_PREFIX}_{name}_{i}.pt" for i in [9 * 2, 10 * 2]])
+    assert sorted(os.listdir(dirname)) == expected
+    assert "PREFIX_model_20.pt" in handler.last_checkpoint
+
+    handler.reset()
+    engine.state.max_epochs = None
+    engine.run([0, 1,], max_epochs=2)
+
+    expected += [f"{_PREFIX}_{name}_{i}.pt" for i in [1 * 2, 2 * 2]]
+    assert sorted(os.listdir(dirname)) == sorted(expected)
+    assert "PREFIX_model_4.pt" in handler.last_checkpoint
