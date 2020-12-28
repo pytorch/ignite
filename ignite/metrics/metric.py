@@ -209,8 +209,8 @@ class Metric(metaclass=ABCMeta):
             # check if reset and update methods are decorated. Compute may not be decorated
             if not (hasattr(self.reset, "_decorated") and hasattr(self.update, "_decorated")):
                 warnings.warn(
-                    f"{self.__class__.__name__} class does not support distributed setting. Computed result is not collected "
-                    "across all computing devices",
+                    f"{self.__class__.__name__} class does not support distributed setting. "
+                    "Computed result is not collected across all computing devices",
                     RuntimeWarning,
                 )
 
@@ -282,7 +282,8 @@ class Metric(metaclass=ABCMeta):
         if isinstance(output, Mapping):
             if self.required_output_keys is None:
                 raise TypeError(
-                    f"Transformed engine output for {self.__class__.__name__} metric should be a tuple/list, but given {type(output)}"
+                    f"Transformed engine output for {self.__class__.__name__} metric should be a tuple/list, "
+                    f"but given {type(output)}"
                 )
             if not all([k in output for k in self.required_output_keys]):
                 raise ValueError(

@@ -208,7 +208,7 @@ def run(
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         tqdm.write(
-            f"Training Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
+            f"Training Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         writer.add_scalar("training/avg_loss", avg_nll, engine.state.epoch)
         writer.add_scalar("training/avg_accuracy", avg_accuracy, engine.state.epoch)
@@ -221,7 +221,7 @@ def run(
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         tqdm.write(
-            f"Validation Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
+            f"Validation Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         pbar.n = pbar.last_print_n = 0
         writer.add_scalar("valdation/avg_loss", avg_nll, engine.state.epoch)

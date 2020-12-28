@@ -666,14 +666,16 @@ class Engine(Serializable):
                 if max_epochs < self.state.epoch:
                     raise ValueError(
                         "Argument max_epochs should be larger than the start epoch "
-                        f"defined in the state: {max_epochs} vs {self.state.epoch}. Please, set engine.state.max_epochs = None "
+                        f"defined in the state: {max_epochs} vs {self.state.epoch}. "
+                        "Please, set engine.state.max_epochs = None "
                         "before calling engine.run() in order to restart the training from the beginning."
                     )
                 self.state.max_epochs = max_epochs
             if epoch_length is not None:
                 if epoch_length != self.state.epoch_length:
                     raise ValueError(
-                        f"Argument epoch_length should be same as in the state, given {epoch_length} vs {self.state.epoch_length}"
+                        "Argument epoch_length should be same as in the state, "
+                        f"but given {epoch_length} vs {self.state.epoch_length}"
                     )
 
         if self.state.max_epochs is None or self._is_done(self.state):
@@ -703,7 +705,8 @@ class Engine(Serializable):
             self.logger.info(f"Engine run starting with max_epochs={max_epochs}.")
         else:
             self.logger.info(
-                f"Engine run resuming from iteration {self.state.iteration}, epoch {self.state.epoch} until {self.state.max_epochs} epochs"
+                f"Engine run resuming from iteration {self.state.iteration}, "
+                f"epoch {self.state.epoch} until {self.state.max_epochs} epochs"
             )
 
         self.state.dataloader = data

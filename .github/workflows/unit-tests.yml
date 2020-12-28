@@ -76,6 +76,14 @@ jobs:
           pip install -r requirements-dev.txt
           python setup.py install
 
+      - name: Check code formatting
+        shell: bash -l {0}
+        run: |
+          pip install flake8 "black==19.10b0" "isort==4.3.21"
+          flake8 ignite/ tests/ examples/
+          black --check .
+          isort -rc -c .
+
       - name: Run Mypy
         shell: bash -l {0}
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -86,7 +94,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} CI_PYTHON_VERSION="${{ matrix.python-version }}" bash tests/run_cpu_tests.sh
+          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
