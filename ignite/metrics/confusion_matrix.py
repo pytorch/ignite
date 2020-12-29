@@ -16,8 +16,8 @@ class ConfusionMatrix(Metric):
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must contain logits and has the following shape (batch_size, num_categories, ...)
     - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices
-        with or without the background class. During the computation, argmax of `y_pred` is taken to determine
-        predicted classes.
+      with or without the background class. During the computation, argmax of `y_pred` is taken to determine
+      predicted classes.
 
     Args:
         num_classes (int): number of classes. See notes for more details.
