@@ -5,8 +5,6 @@ We provide Dockerfiles in order to build containerized execution environment tha
 These images are also provided with the following Horovod configuration:
 
 ```bash
-Horovod v0.20.0:
-
 Available Frameworks:
     [ ] TensorFlow
     [X] PyTorch
