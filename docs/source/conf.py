@@ -19,11 +19,13 @@ sys.path.insert(0, os.path.abspath("../.."))
 import ignite
 import pytorch_sphinx_theme
 
+from datetime import datetime
+
 # -- Project information -----------------------------------------------------
 
 project = "ignite"
-copyright = "2020, PyTorch-Ignite Contributors"
 author = "PyTorch-Ignite Contributors"
+copyright = f"{datetime.now().year}, {author}"
 
 # The short X.Y version
 try:
