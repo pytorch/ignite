@@ -15,7 +15,7 @@ class Parallel:
 
     - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_ (if installed)
 
-    - using `Horovod distributed framework <https://horovod.readthedocs.io>`__ (if installed)
+    - using `Horovod distributed framework <https://horovod.readthedocs.io>`_ (if installed)
 
     Namely, it can 1) spawn ``nproc_per_node`` child processes and initialize a processing group according to
     provided ``backend`` (useful for standalone scripts) or 2) only initialize a processing group given the ``backend``
