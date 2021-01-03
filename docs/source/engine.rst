@@ -133,13 +133,13 @@ Deterministic training
 ``````````````````````
 
 In general, it is rather difficult task to achieve deterministic and reproducible trainings as it relies on multiple
-aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch documentation <https://pytorch.org/docs/stable/notes/randomness.html>`_:
+aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch note on randomness <https://pytorch.org/docs/stable/notes/randomness.html>`_:
 there are some steps to take in order to make computations deterministic on your specific problem on one specific
 platform and PyTorch release:
 
 - setup random state seed
 
-- set `cudnn to deterministic <https://pytorch.org/docs/stable/notes/randomness.html#cudnn>`_ if applicable
+- set `cudnn to deterministic <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`_ if applicable
 
 By default, these two options can be enough to run and rerun experiments in a deterministic way. Ignite's engine does not impact this behaviour.
 
