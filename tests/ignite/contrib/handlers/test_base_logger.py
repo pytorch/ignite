@@ -151,6 +151,12 @@ def test_attach_wrong_event_name():
     with pytest.raises(RuntimeError, match="Unknown event name"):
         logger.attach(trainer, log_handler=mock_log_handler, event_name="unknown")
 
+    events_list = EventsList()
+    events_list._events = ["unknown"]
+
+    with pytest.raises(RuntimeError, match="Unknown event name"):
+        logger.attach(trainer, log_handler=mock_log_handler, event_name=events_list)
+
 
 def test_attach_on_custom_event():
     n_epochs = 10
