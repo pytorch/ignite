@@ -1,11 +1,11 @@
 import math
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine, Events, State
+from ignite.engine import Engine, Events, EventsList, State
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
 
@@ -122,7 +122,12 @@ def test_attach():
 
         trainer.run(data, max_epochs=n_epochs)
 
-        mock_log_handler.assert_called_with(trainer, logger, event)
+        if isinstance(event, EventsList):
+            events = [e for e in event]
+        else:
+            events = [event]
+        calls = [call(trainer, logger, e) for e in events]
+        mock_log_handler.assert_has_calls(calls)
         assert mock_log_handler.call_count == n_calls
 
     _test(Events.ITERATION_STARTED, len(data) * n_epochs)
@@ -133,6 +138,8 @@ def test_attach():
     _test(Events.COMPLETED, 1)
 
     _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
+
+    _test(Events.STARTED | Events.COMPLETED, 2)
 
 
 def test_attach_wrong_event_name():
