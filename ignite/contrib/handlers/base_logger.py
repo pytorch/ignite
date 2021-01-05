@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from ignite.engine import Engine, Events, State
+from ignite.engine import Engine, Events, EventsList, State
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
@@ -147,7 +147,7 @@ class BaseLogger(metaclass=ABCMeta):
     """
 
     def attach(
-        self, engine: Engine, log_handler: Callable, event_name: Union[str, Events, CallableEventWithFilter]
+        self, engine: Engine, log_handler: Callable, event_name: Union[str, Events, CallableEventWithFilter, EventsList]
     ) -> RemovableEventHandle:
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
@@ -161,12 +161,21 @@ class BaseLogger(metaclass=ABCMeta):
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
         """
-        name = event_name
+        if isinstance(event_name, EventsList):
+            for name in event_name:
+                if name not in State.event_to_attr:
+                    raise RuntimeError(f"Unknown event name '{name}'")
+                engine.add_event_handler(name, log_handler, self, name)
 
-        if name not in State.event_to_attr:
-            raise RuntimeError(f"Unknown event name '{name}'")
+            return RemovableEventHandle(event_name, log_handler, engine)
 
-        return engine.add_event_handler(event_name, log_handler, self, name)
+        else:
+            name = event_name
+
+            if name not in State.event_to_attr:
+                raise RuntimeError(f"Unknown event name '{name}'")
+
+            return engine.add_event_handler(event_name, log_handler, self, name)
 
     def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Shortcut method to attach `OutputHandler` to the logger.
