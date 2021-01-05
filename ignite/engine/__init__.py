@@ -6,7 +6,7 @@ import torch
 import ignite.distributed as idist
 from ignite.engine.deterministic import DeterministicEngine
 from ignite.engine.engine import Engine
-from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, State
+from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
 from ignite.metrics import Metric
 from ignite.utils import convert_tensor
 
@@ -21,8 +21,10 @@ __all__ = [
     "Engine",
     "DeterministicEngine",
     "Events",
+    "EventsList",
     "EventEnum",
     "CallableEventWithFilter",
+    "RemovableEventHandle",
 ]
 
 
