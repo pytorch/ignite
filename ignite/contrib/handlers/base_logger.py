@@ -170,12 +170,11 @@ class BaseLogger(metaclass=ABCMeta):
             return RemovableEventHandle(event_name, log_handler, engine)
 
         else:
-            name = event_name
 
-            if name not in State.event_to_attr:
-                raise RuntimeError(f"Unknown event name '{name}'")
+            if event_name not in State.event_to_attr:
+                raise RuntimeError(f"Unknown event name '{event_name}'")
 
-            return engine.add_event_handler(event_name, log_handler, self, name)
+            return engine.add_event_handler(event_name, log_handler, self, event_name)
 
     def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Shortcut method to attach `OutputHandler` to the logger.
