@@ -10,10 +10,9 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tupl
 
 from torch.utils.data import DataLoader
 
-from ignite._utils import _to_hours_mins_secs
 from ignite.base import Serializable
 from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
-from ignite.engine.utils import _check_signature
+from ignite.engine.utils import _check_signature, _to_hours_mins_secs
 
 __all__ = ["Engine"]
 
@@ -242,6 +241,11 @@ class Engine(Serializable):
         setattr(wrapper, "_parent", weakref.ref(handler))
         return wrapper
 
+    def _assert_allowed_event(self, event_name: Any) -> None:
+        if event_name not in self._allowed_events:
+            self.logger.error(f"attempt to add event handler to an invalid event {event_name}")
+            raise ValueError(f"Event {event_name} is not a valid event for this {self.__class__.__name__}.")
+
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.
 
@@ -297,9 +301,7 @@ class Engine(Serializable):
             event_filter = event_name.filter
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
-        if event_name not in self._allowed_events:
-            self.logger.error("attempt to add event handler to an invalid event %s.", event_name)
-            raise ValueError(f"Event {event_name} is not a valid event for this Engine.")
+        self._assert_allowed_event(event_name)
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
         try:
@@ -308,7 +310,7 @@ class Engine(Serializable):
         except ValueError:
             _check_signature(handler, "handler", *(event_args + args), **kwargs)
             self._event_handlers[event_name].append((handler, args, kwargs))
-        self.logger.debug("added handler for event %s.", event_name)
+        self.logger.debug(f"added handler for event {event_name}")
 
         return RemovableEventHandle(event_name, handler, self)
 
@@ -415,13 +417,12 @@ class Engine(Serializable):
             **event_kwargs: optional keyword args to be passed to all handlers.
 
         """
-        if event_name in self._allowed_events:
-            self.logger.debug("firing handlers for event %s ", event_name)
-            self.last_event_name = event_name
-            for func, args, kwargs in self._event_handlers[event_name]:
-                kwargs.update(event_kwargs)
-                first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
-                func(*first, *(event_args + others), **kwargs)
+        self.logger.debug(f"firing handlers for event {event_name}")
+        self.last_event_name = event_name
+        for func, args, kwargs in self._event_handlers[event_name]:
+            kwargs.update(event_kwargs)
+            first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
+            func(*first, *(event_args + others), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
@@ -444,6 +445,7 @@ class Engine(Serializable):
                 :meth:`~ignite.engine.engine.Engine.register_events`.
 
         """
+        self._assert_allowed_event(event_name)
         return self._fire_event(event_name)
 
     def terminate(self) -> None:
@@ -765,9 +767,7 @@ class Engine(Serializable):
                 # update time wrt handlers
                 self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
                 hours, mins, secs = _to_hours_mins_secs(time_taken)
-                self.logger.info(
-                    "Epoch[%s] Complete. Time taken: %02d:%02d:%02d" % (self.state.epoch, hours, mins, secs)
-                )
+                self.logger.info(f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}")
                 if self.should_terminate:
                     break
 
@@ -780,11 +780,11 @@ class Engine(Serializable):
             # update time wrt handlers
             self.state.times[Events.COMPLETED.name] = time_taken
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self.logger.info("Engine run complete. Time taken: %02d:%02d:%02d" % (hours, mins, secs))
+            self.logger.info(f"Engine run complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}")
 
         except BaseException as e:
             self._dataloader_iter = None
-            self.logger.error("Engine run is terminating due to exception: %s.", str(e))
+            self.logger.error(f"Engine run is terminating due to exception: {e}")
             self._handle_exception(e)
 
         self._dataloader_iter = None
@@ -869,7 +869,7 @@ class Engine(Serializable):
                     break
 
         except Exception as e:
-            self.logger.error("Current run is terminating due to exception: %s.", str(e))
+            self.logger.error(f"Current run is terminating due to exception: {e}")
             self._handle_exception(e)
 
         return time.time() - start_time
