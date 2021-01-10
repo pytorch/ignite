@@ -181,7 +181,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[int] = None,
-        **spawn_kwargs: Any
+        **spawn_kwargs: Any,
     ) -> None:
         if backend is not None:
             if backend not in idist.available_backends():
@@ -216,7 +216,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[int] = None,
-        **spawn_kwargs: Any
+        **spawn_kwargs: Any,
     ) -> Dict:
         if nproc_per_node < 1:
             raise ValueError(f"Argument nproc_per_node should positive, but given {nproc_per_node}")

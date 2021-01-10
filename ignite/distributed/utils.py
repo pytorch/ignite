@@ -194,7 +194,7 @@ def spawn(
     args: Tuple,
     kwargs_dict: Optional[Mapping] = None,
     nproc_per_node: int = 1,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """Spawns ``nproc_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
     distributed configuration defined by ``backend``.

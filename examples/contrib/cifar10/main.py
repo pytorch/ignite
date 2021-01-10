@@ -151,7 +151,7 @@ def run(
     nproc_per_node=None,
     stop_iteration=None,
     with_trains=False,
-    **spawn_kwargs
+    **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
 

@@ -129,7 +129,7 @@ if has_hvd_support:
             nproc_per_node: int = 1,
             hosts: Optional[str] = None,
             backend: str = HOROVOD,
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             c1 = "nnodes" in kwargs and kwargs["nnodes"] > 1
             c2 = "node_rank" in kwargs and kwargs["node_rank"] > 0

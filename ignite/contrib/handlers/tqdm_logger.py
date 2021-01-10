@@ -104,7 +104,7 @@ class ProgressBar(BaseLogger):
         self,
         persist: bool = False,
         bar_format: str = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
-        **tqdm_kwargs: Any
+        **tqdm_kwargs: Any,
     ) -> None:
 
         try:

@@ -722,7 +722,7 @@ class ModelCheckpoint(Checkpoint):
         create_dir: bool = True,
         global_step_transform: Optional[Callable] = None,
         include_self: bool = False,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
 
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
