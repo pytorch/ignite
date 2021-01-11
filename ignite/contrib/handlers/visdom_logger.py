@@ -145,7 +145,7 @@ class VisdomLogger(BaseLogger):
         port: Optional[int] = None,
         num_workers: int = 1,
         raise_exceptions: bool = True,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         try:
             import visdom

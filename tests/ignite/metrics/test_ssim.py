@@ -3,15 +3,11 @@ import os
 import numpy as np
 import pytest
 import torch
+from skimage.metrics import structural_similarity as ski_ssim
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import SSIM
-
-try:
-    from skimage.metrics import structural_similarity as ski_ssim
-except ImportError:
-    from skimage.measure import compare_ssim as ski_ssim
 
 
 def test_zero_div():
