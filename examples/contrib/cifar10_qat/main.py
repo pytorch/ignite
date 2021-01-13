@@ -32,10 +32,7 @@ def training(local_rank, config):
 
     output_path = config["output_path"]
     if rank == 0:
-        if config["stop_iteration"] is None:
-            now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        else:
-            now = "stop-on-{}".format(config["stop_iteration"])
+        now = datetime.now().strftime("%Y%m%d-%H%M%S")
 
         folder_name = "{}_backend-{}-{}_{}".format(config["model"], idist.backend(), idist.get_world_size(), now)
         output_path = Path(output_path) / folder_name
@@ -296,7 +293,6 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
             y = y.to(device, non_blocking=True)
 
         model.train()
-        # Supervised part
         y_pred = model(x)
         loss = criterion(y_pred, y)
 
@@ -304,15 +300,8 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
         loss.backward()
         optimizer.step()
 
-        # This can be helpful for XLA to avoid performance slow down if fetch loss.item() every iteration
-        if config["log_every_iters"] > 0 and (engine.state.iteration - 1) % config["log_every_iters"] == 0:
-            batch_loss = loss.item()
-            engine.state.saved_batch_loss = batch_loss
-        else:
-            batch_loss = engine.state.saved_batch_loss
-
         return {
-            "batch loss": batch_loss,
+            "batch loss": loss.item(),
         }
 
     trainer = Engine(train_step)
