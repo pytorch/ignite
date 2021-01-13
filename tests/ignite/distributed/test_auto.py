@@ -54,7 +54,7 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
 def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
     model = auto_model(model, sync_bn=sync_bn, **kwargs)
     bnd = idist.backend()
-    if ws > 1 and device in ("cuda", "cpu"):              
+    if ws > 1 and device in ("cuda", "cpu"):
         if idist.has_native_dist_support and bnd in ("nccl", "gloo"):
             assert isinstance(model, nn.parallel.DistributedDataParallel)
             if sync_bn:
