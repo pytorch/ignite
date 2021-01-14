@@ -638,7 +638,7 @@ class TrainsSaver(DiskSaver):
         output_uri: Optional[str] = None,
         dirname: Optional[str] = None,
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
 
         self._setup_check_trains(logger, output_uri)

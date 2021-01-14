@@ -283,7 +283,7 @@ if has_native_dist_support:
             master_addr: str = "127.0.0.1",
             master_port: int = 2222,
             backend: str = "nccl",
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             world_size = nnodes * nproc_per_node
 

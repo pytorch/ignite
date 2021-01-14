@@ -125,7 +125,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
     return dataloader
 
 
-def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
+def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Module:
     """Helper method to adapt provided model for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -158,6 +158,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
         sync_bn (bool): if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
             distributed only. Default, False. Note, if using Nvidia/Apex, batchnorm conversion should be
             applied before calling ``amp.initialize``.
+        **kwargs: kwargs to model's wrapping class: `torch DistributedDataParallel`_ or `torch DataParallel`_
+            if applicable. Please, make sure to use acceptable kwargs for given backend.
 
     Returns:
         torch.nn.Module
@@ -184,16 +186,19 @@ def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
+            if "device_ids" in kwargs:
+                raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
+
             lrank = idist.get_local_rank()
             logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,])
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,], **kwargs)
         elif idist.has_native_dist_support and bnd == idist_native.GLOO:
             if sync_bn:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
             logger.info("Apply torch DistributedDataParallel on model")
-            model = torch.nn.parallel.DistributedDataParallel(model)
+            model = torch.nn.parallel.DistributedDataParallel(model, **kwargs)
         elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
             import horovod.torch as hvd
 
@@ -203,7 +208,7 @@ def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
     # not distributed but multiple GPUs reachable so data parallel model
     elif torch.cuda.device_count() > 1 and "cuda" in idist.device().type:
         logger.info("Apply torch DataParallel on model")
-        model = torch.nn.parallel.DataParallel(model)
+        model = torch.nn.parallel.DataParallel(model, **kwargs)
 
     return model
 

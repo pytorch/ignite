@@ -113,7 +113,7 @@ if has_xla_support:
             nnodes: int = 1,
             node_rank: int = 0,
             backend: str = XLA_TPU,
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             if "start_method" not in kwargs:
                 kwargs["start_method"] = "fork"
