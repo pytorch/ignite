@@ -1,8 +1,14 @@
 import os
 
-from torchvision import models
-from torchvision import datasets
-from torchvision.transforms import Compose, ToTensor, Normalize, Pad, RandomCrop, RandomHorizontalFlip
+import brevitas
+import brevitas.nn as qnn
+import torch
+import torch.nn as nn
+import torchvision
+from torchvision import datasets, models
+from torchvision.transforms import Compose, Normalize, Pad, RandomCrop, RandomHorizontalFlip, ToTensor
+
+from pact import PACTReLU
 
 train_transform = Compose(
     [
@@ -44,14 +50,6 @@ def get_model(name):
 
 
 # Below code is taken from https://discuss.pytorch.org/t/evaluator-returns-nan/107972/3
-
-import torch
-import torch.nn as nn
-import brevitas
-import brevitas.nn as qnn
-import torchvision
-
-from pact import PACTReLU
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1, weight_bit_width=8):

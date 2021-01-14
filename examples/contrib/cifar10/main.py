@@ -244,7 +244,7 @@ def initialize(config):
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
-    logger.info(f"\nEpoch {epoch} - elapsed: {elapsed} - {tag} metrics:\n {metrics_output}")
+    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {int(elapsed)} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
