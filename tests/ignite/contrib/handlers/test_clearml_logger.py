@@ -1,7 +1,7 @@
 import math
 import os
 from collections import defaultdict
-from unittest.mock import ANY, MagicMock, Mock, call, patch
+from unittest.mock import ANY, MagicMock, Mock, call
 
 import clearml
 import pytest

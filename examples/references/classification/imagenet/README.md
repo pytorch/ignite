@@ -79,9 +79,9 @@ uses distributed sampling, scales batch size etc).
 
 ### Results
 
-| Model     | Training Top-1 Accuracy | Training Top-5 Accuracy | Test Top-1 Accuracy | Test Top-5 Accuracy |
-| --------- | ----------------------- | ----------------------- | ------------------- | ------------------- |
-| ResNet-50 | 78%                     | 92%                     | 77%                 | 94%                 |
+Model | Training Top-1 Accuracy | Training Top-5 Accuracy | Test Top-1 Accuracy | Test Top-5 Accuracy
+---|---|---|---|---
+ResNet-50 | 78% | 92% | 77% | 94%
 
 ## Acknowledgements
 
