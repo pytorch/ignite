@@ -9,6 +9,9 @@ value is then computed using the output of the engine's ``process_function``:
 
 .. code-block:: python
 
+    from ignite.engine import Engine
+    from ignite.metrics import Accuracy
+
     def process_function(engine, batch):
         # ...
         return y_pred, y
@@ -21,6 +24,9 @@ If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pr
 use the ``output_transform`` argument to transform it:
 
 .. code-block:: python
+
+    from ignite.engine import Engine
+    from ignite.metrics import Accuracy
 
     def process_function(engine, batch):
         # ...
@@ -86,6 +92,45 @@ use the ``output_transform`` argument to transform it:
    Metrics cannot be serialized using `pickle` module because the implementation is based on lambda functions.
    Therefore, use the third party library `dill` to overcome the limitation of `pickle`.
 
+
+Reset, Update, Compute API
+--------------------------
+
+User can also call directly the following methods on the metric:
+
+- :meth:`~ignite.metrics.Metric.reset()` : resets internal variables and accumulators
+- :meth:`~ignite.metrics.Metric.update()` : updates internal variables and accumulators with provided batch output ``(y_pred, y)``
+- :meth:`~ignite.metrics.Metric.compute()` : computes custom metric and return the result
+
+This API gives a more fine-grained/custom usage on how to compute a metric. For example:
+
+.. code-block:: python
+
+    from ignite.metrics import Precision
+
+    # Define the metric
+    precision = Precision()
+
+    # Start accumulation:
+    for x, y in data:
+        y_pred = model(x)
+        precision.update((y_pred, y))
+
+    # Compute the result
+    print("Precision: ", precision.compute())
+
+    # Reset metric 
+    precision.reset()
+
+    # Start new accumulation:
+    for x, y in data:
+        y_pred = model(x)
+        precision.update((y_pred, y))
+
+    # Compute new result
+    print("Precision: ", precision.compute())
+
+
 Metric arithmetics
 ------------------
 
@@ -96,6 +141,8 @@ or use a lambda function, such as ``MetricsLambda(lambda a, b: torch.mean(a + b)
 For example:
 
 .. code-block:: python
+
+    from ignite.metrics import Precision, Recall
 
     precision = Precision(average=False)
     recall = Recall(average=False)
@@ -109,6 +156,8 @@ For example:
 Metrics also support indexing operation (if metric's result is a vector/matrix/tensor). For example, this can be useful to compute mean metric (e.g. precision, recall or IoU) ignoring the background:
 
 .. code-block:: python
+
+    from ignite.metrics import ConfusionMatrix
 
     cm = ConfusionMatrix(num_classes=10)
     iou_metric = IoU(cm)

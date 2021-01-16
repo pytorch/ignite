@@ -51,7 +51,7 @@ if has_hvd_support:
         @staticmethod
         def create_from_backend(backend: str, **kwargs: Any) -> "_HorovodDistModel":
             if backend not in _HorovodDistModel.available_backends:
-                raise ValueError("Backend should be one of '{}'".format(_HorovodDistModel.available_backends))
+                raise ValueError(f"Backend should be one of '{_HorovodDistModel.available_backends}'")
 
             rank = _HorovodDistModel._get_hvd_rank()
             if has_hvd_support and rank > -1:
@@ -103,7 +103,7 @@ if has_hvd_support:
                         "Current device index is less than current local rank. "
                         "Please, make sure to call torch.cuda.set_device(local_rank)."
                     )
-                return torch.device("cuda:{}".format(index))
+                return torch.device(f"cuda:{index}")
             return torch.device("cpu")
 
         def backend(self) -> str:
@@ -129,7 +129,7 @@ if has_hvd_support:
             nproc_per_node: int = 1,
             hosts: Optional[str] = None,
             backend: str = HOROVOD,
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             c1 = "nnodes" in kwargs and kwargs["nnodes"] > 1
             c2 = "node_rank" in kwargs and kwargs["node_rank"] > 0
@@ -160,7 +160,7 @@ if has_hvd_support:
 
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
             if op not in self._reduce_op_map:
-                raise ValueError("Unsupported reduction operation: '{}'".format(op))
+                raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
             return hvd.allreduce(tensor, op=op)
 

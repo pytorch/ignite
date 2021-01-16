@@ -77,7 +77,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         pbar.log_message(
-            f"Training Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
+            f"Training Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
 
     @trainer.on(Events.EPOCH_COMPLETED)
@@ -87,7 +87,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         pbar.log_message(
-            f"Validation Results - Epoch: {engine.state.epoch}  Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
+            f"Validation Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
 
         pbar.n = pbar.last_print_n = 0

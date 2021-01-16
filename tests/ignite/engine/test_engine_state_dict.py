@@ -210,9 +210,7 @@ def test_epoch_length():
         batch_checker = BatchChecker(data)
 
         def update_fn(_, batch):
-            assert batch_checker.check(batch), "{}: {} vs {}".format(
-                batch_checker.counter, batch_checker.true_batch, batch
-            )
+            assert batch_checker.check(batch), f"{batch_checker.counter}: {batch_checker.true_batch} vs {batch}"
 
         engine = Engine(update_fn)
         engine.run(data, max_epochs=max_epochs, epoch_length=num_iters)
@@ -226,9 +224,7 @@ def test_epoch_length():
         batch_checker = BatchChecker(data)
 
         def update_fn(_, batch):
-            assert batch_checker.check(batch), "{}: {} vs {}".format(
-                batch_checker.counter, batch_checker.true_batch, batch
-            )
+            assert batch_checker.check(batch), f"{batch_checker.counter}: {batch_checker.true_batch} vs {batch}"
 
         engine = Engine(update_fn)
         engine.run(iter(data), max_epochs=max_epochs, epoch_length=num_iters)

@@ -1,6 +1,13 @@
 # Multi-stage build
-# 1/Building apex with pytorch:1.6.0-cuda10.1-cudnn7-devel
-FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel AS apex-builder
+# Dockerfile.apex
+
+ARG PTH_VERSION
+
+# 1/Building apex with pytorch:*-devel
+FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-builder
+
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
 
 ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
@@ -18,11 +25,14 @@ RUN echo "Setup NVIDIA Apex" && \
     pip wheel --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
 # 2/ Build the runtime image
-FROM pytorch/pytorch:latest
+FROM pytorch/pytorch:${PTH_VERSION}-runtime
 
-COPY --from=apex-builder /tmp/apex/apex-0.1-cp37-cp37m-linux_x86_64.whl apex-0.1-cp37-cp37m-linux_x86_64.whl
-RUN pip install --no-cache-dir apex-0.1-cp37-cp37m-linux_x86_64.whl && \
-    rm apex-0.1-cp37-cp37m-linux_x86_64.whl
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
+
+COPY --from=apex-builder /tmp/apex/apex-*.whl /tmp/apex/
+RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
+    rm -fr /tmp/apex
 
 # Install tzdata / git
 RUN apt-get update && \

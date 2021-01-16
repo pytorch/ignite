@@ -194,7 +194,7 @@ def spawn(
     args: Tuple,
     kwargs_dict: Optional[Mapping] = None,
     nproc_per_node: int = 1,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """Spawns ``nproc_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
     distributed configuration defined by ``backend``.
@@ -217,7 +217,7 @@ def spawn(
                 assert dist.get_world_size() == 4
 
                 device = idist.device()
-                assert device == torch.device("cuda:{}".format(local_rank))
+                assert device == torch.device(f"cuda:{local_rank}")
 
 
             idist.spawn("nccl", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=4)
@@ -243,7 +243,7 @@ def spawn(
                 assert dist.get_world_size() == nnodes * nproc_per_node
 
                 device = idist.device()
-                assert device == torch.device("cuda:{}".format(local_rank))
+                assert device == torch.device(f"cuda:{local_rank}")
 
             idist.spawn(
                 "nccl",
@@ -442,7 +442,7 @@ def _set_model(model: Any, temporary: bool = False) -> None:
 def _assert_backend(backend: str) -> None:
     backends = available_backends()
     if backend not in backends:
-        raise ValueError("Backend should be one of '{}'".format(backends))
+        raise ValueError(f"Backend should be one of '{backends}'")
 
 
 def initialize(backend: str, **kwargs: Any) -> None:
@@ -466,7 +466,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
                 assert dist.get_world_size() == 4
 
                 device = idist.device()
-                assert device == torch.device("cuda:{}".format(local_rank))
+                assert device == torch.device(f"cuda:{local_rank}")
 
 
             idist.initialize("nccl")
@@ -514,16 +514,16 @@ def show_config() -> None:
     # setup parallel logger
     logger = setup_logger(__name__)
 
-    logger.info("distributed configuration: {}".format(model_name()))
-    logger.info("backend: {}".format(backend()))
-    logger.info("device: {}".format(device().type))
-    logger.info("hostname: {}".format(hostname()))
-    logger.info("world size: {}".format(get_world_size()))
-    logger.info("rank: {}".format(get_rank()))
-    logger.info("local rank: {}".format(get_local_rank()))
-    logger.info("num processes per_node: {}".format(get_nproc_per_node()))
-    logger.info("num nodes: {}".format(get_nnodes()))
-    logger.info("node rank: {}".format(get_node_rank()))
+    logger.info(f"distributed configuration: {model_name()}")
+    logger.info(f"backend: {backend()}")
+    logger.info(f"device: {device().type}")
+    logger.info(f"hostname: {hostname()}")
+    logger.info(f"world size: {get_world_size()}")
+    logger.info(f"rank: {get_rank()}")
+    logger.info(f"local rank: {get_local_rank()}")
+    logger.info(f"num processes per_node: {get_nproc_per_node()}")
+    logger.info(f"num nodes: {get_nnodes()}")
+    logger.info(f"node rank: {get_node_rank()}")
 
 
 def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:

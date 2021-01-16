@@ -21,7 +21,7 @@ def test__xla_model():
 def _test_xla_spawn_fn(local_rank, world_size, device):
     from ignite.distributed.utils import _model
 
-    assert isinstance(_model, _XlaDistModel), "{} vs _XlaDistModel".format(type(_model))
+    assert isinstance(_model, _XlaDistModel), f"{type(_model)} vs _XlaDistModel"
 
     assert _model.get_local_rank() == local_rank
     assert _model.get_world_size() == world_size

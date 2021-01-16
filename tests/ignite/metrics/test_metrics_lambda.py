@@ -147,9 +147,9 @@ def test_integration():
     precision = state.metrics["precision"].numpy()
     recall = state.metrics["recall"].numpy()
 
-    assert precision_true == approx(precision), "{} vs {}".format(precision_true, precision)
-    assert recall_true == approx(recall), "{} vs {}".format(recall_true, recall)
-    assert f1_true == approx(state.metrics["f1"]), "{} vs {}".format(f1_true, state.metrics["f1"])
+    assert precision_true == approx(precision), f"{precision_true} vs {precision}"
+    assert recall_true == approx(recall), f"{recall_true} vs {recall}"
+    assert f1_true == approx(state.metrics["f1"]), f"{f1_true} vs {state.metrics['f1']}"
 
 
 def test_integration_ingredients_not_attached():
@@ -190,7 +190,7 @@ def test_integration_ingredients_not_attached():
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
     f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average="macro")
-    assert f1_true == approx(state.metrics["f1"]), "{} vs {}".format(f1_true, state.metrics["f1"])
+    assert f1_true == approx(state.metrics["f1"]), f"{f1_true} vs {state.metrics['f1']}"
 
 
 def test_state_metrics():
@@ -404,7 +404,7 @@ def _test_distrib_metrics_on_diff_devices(device):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    device = torch.device("cuda:{}".format(local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     _test_distrib_integration(device)
     _test_distrib_metrics_on_diff_devices(device)
 
@@ -441,7 +441,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_integration(device)
     _test_distrib_metrics_on_diff_devices(device)
 

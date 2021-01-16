@@ -1,5 +1,10 @@
 # Dockerfile.base
-FROM pytorch/pytorch:latest
+ARG PTH_VERSION
+
+FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Temporary hack to install pth 1.7.1
+RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
 
 # Install tzdata / git
 RUN apt-get update && \
@@ -13,6 +18,7 @@ RUN apt-get update && \
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
                                          tqdm
+
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \
     cd pytorch-ignite-examples && \

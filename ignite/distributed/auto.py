@@ -103,7 +103,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
     else:
         kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
 
-    logger.info("Use data loader kwargs for dataset '{}': \n\t{}".format(repr(dataset)[:20].strip(), kwargs))
+    logger.info(f"Use data loader kwargs for dataset '{repr(dataset)[:20].strip()}': \n\t{kwargs}")
     dataloader = DataLoader(dataset, **kwargs)
 
     if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and world_size > 1:
@@ -125,7 +125,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
     return dataloader
 
 
-def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
+def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Module:
     """Helper method to adapt provided model for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -158,6 +158,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
         sync_bn (bool): if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
             distributed only. Default, False. Note, if using Nvidia/Apex, batchnorm conversion should be
             applied before calling ``amp.initialize``.
+        **kwargs: kwargs to model's wrapping class: `torch DistributedDataParallel`_ or `torch DataParallel`_
+            if applicable. Please, make sure to use acceptable kwargs for given backend.
 
     Returns:
         torch.nn.Module
@@ -184,16 +186,19 @@ def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
+            if "device_ids" in kwargs:
+                raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
+
             lrank = idist.get_local_rank()
-            logger.info("Apply torch DistributedDataParallel on model, device id: {}".format(lrank))
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,])
+            logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,], **kwargs)
         elif idist.has_native_dist_support and bnd == idist_native.GLOO:
             if sync_bn:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
             logger.info("Apply torch DistributedDataParallel on model")
-            model = torch.nn.parallel.DistributedDataParallel(model)
+            model = torch.nn.parallel.DistributedDataParallel(model, **kwargs)
         elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
             import horovod.torch as hvd
 
@@ -203,7 +208,7 @@ def auto_model(model: nn.Module, sync_bn: bool = False) -> nn.Module:
     # not distributed but multiple GPUs reachable so data parallel model
     elif torch.cuda.device_count() > 1 and "cuda" in idist.device().type:
         logger.info("Apply torch DataParallel on model")
-        model = torch.nn.parallel.DataParallel(model)
+        model = torch.nn.parallel.DataParallel(model, **kwargs)
 
     return model
 
@@ -272,7 +277,7 @@ class DistributedProxySampler(DistributedSampler):
     def __init__(self, sampler: Sampler, num_replicas: Optional[int] = None, rank: Optional[int] = None) -> None:
 
         if not isinstance(sampler, Sampler):
-            raise TypeError("Argument sampler should be instance of torch Sampler, but given: {}".format(type(sampler)))
+            raise TypeError(f"Argument sampler should be instance of torch Sampler, but given: {type(sampler)}")
 
         if not hasattr(sampler, "__len__"):
             raise TypeError("Argument sampler should have length")
@@ -296,7 +301,7 @@ class DistributedProxySampler(DistributedSampler):
         # subsample
         indices = indices[self.rank : self.total_size : self.num_replicas]
         if len(indices) != self.num_samples:
-            raise RuntimeError("{} vs {}".format(len(indices), self.num_samples))
+            raise RuntimeError(f"{len(indices)} vs {self.num_samples}")
 
         return iter(indices)
 

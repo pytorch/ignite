@@ -151,7 +151,7 @@ def run(
     nproc_per_node=None,
     stop_iteration=None,
     with_trains=False,
-    **spawn_kwargs
+    **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
 
@@ -243,11 +243,8 @@ def initialize(config):
 
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
-    logger.info(
-        "\nEpoch {} - elapsed: {} - {} metrics:\n {}".format(
-            epoch, elapsed, tag, "\n".join(["\t{}: {}".format(k, v) for k, v in metrics.items()])
-        )
-    )
+    metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
+    logger.info(f"\nEpoch {epoch} - elapsed: {elapsed} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):

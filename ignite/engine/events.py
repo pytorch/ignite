@@ -12,7 +12,7 @@ from ignite.engine.utils import _check_signature
 if TYPE_CHECKING:
     from ignite.engine.engine import Engine
 
-__all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State"]
+__all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State", "EventsList", "RemovableEventHandle"]
 
 
 class CallableEventWithFilter:
@@ -315,7 +315,7 @@ class EventsList:
 
     def _append(self, event: Union[Events, CallableEventWithFilter]) -> None:
         if not isinstance(event, (Events, CallableEventWithFilter)):
-            raise TypeError("Argument event should be Events or CallableEventWithFilter, got: {}".format(type(event)))
+            raise TypeError(f"Argument event should be Events or CallableEventWithFilter, got: {type(event)}")
         self._events.append(event)
 
     def __getitem__(self, item: int) -> Union[Events, CallableEventWithFilter]:
@@ -392,7 +392,7 @@ class State:
 
     def get_event_attrib_value(self, event_name: Union[str, Events, CallableEventWithFilter]) -> int:
         if event_name not in State.event_to_attr:
-            raise RuntimeError("Unknown event name '{}'".format(event_name))
+            raise RuntimeError(f"Unknown event name '{event_name}'")
         return getattr(self, State.event_to_attr[event_name])
 
     def __repr__(self) -> str:
@@ -400,7 +400,7 @@ class State:
         for attr, value in self.__dict__.items():
             if not isinstance(value, (numbers.Number, str)):
                 value = type(value)
-            s += "\t{}: {}\n".format(attr, value)
+            s += f"\t{attr}: {value}\n"
         return s
 
 
@@ -424,7 +424,7 @@ class RemovableEventHandle:
         engine = Engine()
 
         def print_epoch(engine):
-            print("Epoch: {}".format(engine.state.epoch))
+            print(f"Epoch: {engine.state.epoch}")
 
         with engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch):
             # print_epoch handler registered for a single run

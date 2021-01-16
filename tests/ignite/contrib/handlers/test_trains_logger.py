@@ -299,7 +299,7 @@ def test_weights_scalar_handler(dummy_model_factory):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.trains_logger.report_scalar.call_count == 4
         mock_logger.trains_logger.report_scalar.assert_has_calls(
@@ -379,7 +379,7 @@ def test_weights_hist_handler(dummy_model_factory):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.grad_helper.add_histogram.call_count == 4
         mock_logger.grad_helper.add_histogram.assert_has_calls(
@@ -461,7 +461,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         mock_logger.trains_logger.report_scalar.assert_has_calls(
             [
@@ -541,7 +541,7 @@ def test_grads_hist_handler(dummy_model_factory):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.grad_helper.add_histogram.call_count == 4
         mock_logger.grad_helper.add_histogram.assert_has_calls(
@@ -757,8 +757,7 @@ def test_trains_saver_callbacks():
 
         output_model_info = context.pre_callback(str(WeightsFileHandler.CallbackType.save), mock_model_info)
         assert (
-            hasattr(output_model_info, "upload_filename")
-            and "{}_{}.pt".format(basename, i) in output_model_info.upload_filename
+            hasattr(output_model_info, "upload_filename") and f"{basename}_{i}.pt" in output_model_info.upload_filename
         )
         assert hasattr(output_model_info, "local_model_id") and str(checkpoint_key) in output_model_info.local_model_id
 

@@ -84,15 +84,15 @@ def test_integration():
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_acc_values(engine):
-        assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], "{} vs {}".format(
-            engine.state.running_avg_acc, engine.state.metrics["running_avg_accuracy"]
-        )
+        assert (
+            engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"]
+        ), f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
-        assert engine.state.running_avg_output == engine.state.metrics["running_avg_output"], "{} vs {}".format(
-            engine.state.running_avg_output, engine.state.metrics["running_avg_output"]
-        )
+        assert (
+            engine.state.running_avg_output == engine.state.metrics["running_avg_output"]
+        ), f"{engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
     np.random.seed(10)
     running_avg_acc = [
@@ -177,15 +177,15 @@ def test_epoch_unbound():
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_acc_values(engine):
-        assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], "{} vs {}".format(
-            engine.state.running_avg_acc, engine.state.metrics["running_avg_accuracy"]
-        )
+        assert (
+            engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"]
+        ), f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
-        assert engine.state.running_avg_output == engine.state.metrics["running_avg_output"], "{} vs {}".format(
-            engine.state.running_avg_output, engine.state.metrics["running_avg_output"]
-        )
+        assert (
+            engine.state.running_avg_output == engine.state.metrics["running_avg_output"]
+        ), f"{engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
     trainer.run(data, max_epochs=3)
 
@@ -289,11 +289,10 @@ def _test_distrib_on_output(device):
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def assert_equal_running_avg_output_values(engine):
+        it = engine.state.iteration
         assert engine.state.running_avg_output == pytest.approx(
             engine.state.metrics["running_avg_output"]
-        ), "{}: {} vs {}".format(
-            engine.state.iteration, engine.state.running_avg_output, engine.state.metrics["running_avg_output"]
-        )
+        ), f"{it}: {engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
     trainer.run(data, max_epochs=3)
 
@@ -357,9 +356,9 @@ def _test_distrib_on_metric(device):
 
         @trainer.on(Events.ITERATION_COMPLETED)
         def assert_equal_running_avg_acc_values(engine):
-            assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], "{} vs {}".format(
-                engine.state.running_avg_acc, engine.state.metrics["running_avg_accuracy"]
-            )
+            assert (
+                engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"]
+            ), f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
 
         trainer.run(data, max_epochs=3)
 
@@ -385,9 +384,9 @@ def _test_distrib_accumulator_device(device):
             avg.update(torch.tensor(1.0, device=device))
             avg.compute()
 
-            assert avg._value.device == metric_device, "{}:{} vs {}:{}".format(
-                type(avg._value.device), avg._value.device, type(metric_device), metric_device
-            )
+            assert (
+                avg._value.device == metric_device
+            ), f"{type(avg._value.device)}:{avg._value.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed
@@ -395,7 +394,7 @@ def _test_distrib_accumulator_device(device):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    device = torch.device("cuda:{}".format(local_rank))
+    device = torch.device(f"cuda:{local_rank}")
     _test_distrib_on_output(device)
     _test_distrib_on_metric(device)
     _test_distrib_accumulator_device(device)
@@ -438,7 +437,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device("cuda:{}".format(distributed_context_multi_node_nccl["local_rank"]))
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_on_output(device)
     _test_distrib_on_metric(device)
     _test_distrib_accumulator_device(device)

@@ -21,10 +21,10 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
     elif sampler_name == "WeightedRandomSampler":
         sampler = WeightedRandomSampler(weights=torch.ones(100), num_samples=100)
     else:
-        raise RuntimeError("Unknown sampler name: {}".format(sampler_name))
+        raise RuntimeError(f"Unknown sampler name: {sampler_name}")
 
     # Test auto_dataloader
-    assert idist.get_world_size() == ws, "{} vs {}".format(idist.get_world_size(), ws)
+    assert idist.get_world_size() == ws, f"{idist.get_world_size()} vs {ws}"
     dataloader = auto_dataloader(
         data, batch_size=batch_size, num_workers=num_workers, sampler=sampler, shuffle=sampler is None
     )
@@ -51,14 +51,16 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
         assert dataloader.pin_memory == ("cuda" in idist.device().type)
 
 
-def _test_auto_model(model, ws, device, sync_bn=False):
-    model = auto_model(model, sync_bn=sync_bn)
+def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
+    model = auto_model(model, sync_bn=sync_bn, **kwargs)
     bnd = idist.backend()
     if ws > 1 and device in ("cuda", "cpu"):
-        if idist.has_native_dist_support and bnd in ("nccl" or "gloo"):
+        if idist.has_native_dist_support and bnd in ("nccl", "gloo"):
             assert isinstance(model, nn.parallel.DistributedDataParallel)
             if sync_bn:
                 assert any([isinstance(m, nn.SyncBatchNorm) for m in model.modules()])
+            if "find_unused_parameters" in kwargs:
+                assert model.find_unused_parameters == kwargs["find_unused_parameters"]
         elif idist.has_hvd_support and bnd in ("horovod",):
             assert isinstance(model, nn.Module)
     elif device != "cpu" and torch.cuda.is_available() and torch.cuda.device_count() > 1:
@@ -66,9 +68,9 @@ def _test_auto_model(model, ws, device, sync_bn=False):
     else:
         assert isinstance(model, nn.Module)
 
-    assert all([p.device.type == device for p in model.parameters()]), "{} vs {}".format(
-        [p.device.type for p in model.parameters()], device
-    )
+    assert all(
+        [p.device.type == device for p in model.parameters()]
+    ), f"{[p.device.type for p in model.parameters()]} vs {device}"
 
 
 def _test_auto_model_optimizer(ws, device):
@@ -78,6 +80,9 @@ def _test_auto_model_optimizer(ws, device):
 
     model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
     _test_auto_model(model, ws, device, sync_bn="cuda" in device)
+    if ws > 1:
+        _test_auto_model(model, ws, device, find_unused_parameters=True)
+        _test_auto_model(model, ws, device, find_unused_parameters=False)
 
     # Test auto_optim
     bnd = idist.backend()
@@ -202,6 +207,6 @@ def test_dist_proxy_sampler():
 
         set_indices_per_rank = set(indices_per_rank)
         set_true_indices = set(true_indices)
-        assert set_indices_per_rank == set_true_indices, "{} | {}".format(
-            set_true_indices - set_indices_per_rank, set_indices_per_rank - set_true_indices
-        )
+        assert (
+            set_indices_per_rank == set_true_indices
+        ), f"{set_true_indices - set_indices_per_rank} | {set_indices_per_rank - set_true_indices}"

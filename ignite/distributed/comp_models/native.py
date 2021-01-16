@@ -37,9 +37,7 @@ if has_native_dist_support:
         """
 
         name = "native-dist"
-        available_backends = tuple(
-            name for name in [NCCL, GLOO, MPI] if getattr(dist, "is_{}_available".format(name))()
-        )
+        available_backends = tuple(name for name in [NCCL, GLOO, MPI] if getattr(dist, f"is_{name}_available")())
 
         @staticmethod
         def create_from_context() -> Optional["_NativeDistModel"]:
@@ -101,7 +99,7 @@ if has_native_dist_support:
             device = torch.device("cpu")
             if self.backend() == dist.Backend.NCCL:
                 # we manually set cuda device to local rank in order to avoid a hang on all_reduce
-                device = torch.device("cuda:{}".format(local_rank))
+                device = torch.device(f"cuda:{local_rank}")
             tensor = torch.tensor([self.get_local_rank() + 1]).to(device)
             dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
             return int(tensor.item())
@@ -112,7 +110,7 @@ if has_native_dist_support:
             device = "cpu"
             if self.backend() == dist.Backend.NCCL:
                 index = torch.cuda.current_device()
-                device = "cuda:{}".format(index)
+                device = f"cuda:{index}"
             hostname = socket.gethostname()
             name = torch.tensor(bytearray(hostname, "utf-8")).to(device)
             padded_t_name = torch.zeros(256, device=device, dtype=torch.long)
@@ -140,9 +138,7 @@ if has_native_dist_support:
             if local_rank < 0 or self._node < 0:
                 raise ValueError(
                     "Failed to correctly estimate local rank. "
-                    "Debugging info: local rank: {}, node rank: {}, hostnames: {}".format(
-                        local_rank, self._node, hostnames
-                    )
+                    f"Debugging info: local rank: {local_rank}, node rank: {self._node}, hostnames: {hostnames}"
                 )
             return local_rank
 
@@ -158,8 +154,9 @@ if has_native_dist_support:
             else:
                 warnings.warn(
                     "Local rank information for native distributed setting will be initialized using "
-                    "heuristic approach based on hostname which can be different of real setup. Please, "
-                    "either set `os.environ['LOCAL_RANK']` "
+                    "a heuristic approach based on the hostnames. In some corner cases, determined "
+                    "local rank can be different from the real setup. To avoid this warning, "
+                    "please either set `os.environ['LOCAL_RANK']` "
                     "or use `idist.set_local_rank(local_rank)` with correct local rank index."
                 )
                 # use socket gethostname heuristic to determine number of nodes => local rank
@@ -179,7 +176,7 @@ if has_native_dist_support:
             all_env_vars_defined = [k in os.environ for k in necessary_env_vars]
             if any(all_env_vars_defined) and not all(all_env_vars_defined):
                 raise RuntimeError(
-                    "PyTorch distributed configuration should define env variables '{}'".format(necessary_env_vars)
+                    f"PyTorch distributed configuration should define env variables '{necessary_env_vars}'"
                 )
 
             os.environ["RANK"] = os.environ.get("RANK", "0")
@@ -191,7 +188,7 @@ if has_native_dist_support:
         def _setup_env_in_slurm(self) -> None:
             for k in ["SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
                 if k not in os.environ:
-                    raise RuntimeError("SLURM distributed configuration is missing '{}' in env variables".format(k))
+                    raise RuntimeError(f"SLURM distributed configuration is missing '{k}' in env variables")
 
             os.environ["RANK"] = os.environ["SLURM_PROCID"]
             os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
@@ -230,7 +227,7 @@ if has_native_dist_support:
                         "Current device index is less than current local rank. "
                         "Please, make sure to call torch.cuda.set_device(local_rank)."
                     )
-                return torch.device("cuda:{}".format(index))
+                return torch.device(f"cuda:{index}")
             return torch.device("cpu")
 
         def backend(self) -> str:
@@ -286,7 +283,7 @@ if has_native_dist_support:
             master_addr: str = "127.0.0.1",
             master_port: int = 2222,
             backend: str = "nccl",
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             world_size = nnodes * nproc_per_node
 
@@ -330,7 +327,7 @@ if has_native_dist_support:
 
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
             if op not in self._reduce_op_map:
-                raise ValueError("Unsupported reduction operation: '{}'".format(op))
+                raise ValueError(f"Unsupported reduction operation: '{op}'")
             reduce_op = self._reduce_op_map[op]
             dist.all_reduce(tensor, reduce_op)
             return tensor

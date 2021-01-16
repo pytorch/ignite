@@ -12,7 +12,7 @@
 | ![image](https://img.shields.io/badge/-Stable%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch/ignite/badges/version.svg)](https://anaconda.org/pytorch/ignite) [![image](https://anaconda.org/pytorch/ignite/badges/downloads.svg)](https://anaconda.org/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pypi.org/project/pytorch-ignite/) [![image](https://pepy.tech/badge/pytorch-ignite)](https://pepy.tech/project/pytorch-ignite) |
 | ![image](https://img.shields.io/badge/-Nightly%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch-nightly/ignite/badges/version.svg)](https://anaconda.org/pytorch-nightly/ignite) [![image](https://img.shields.io/badge/PyPI-pre%20releases-brightgreen)](https://pypi.org/project/pytorch-ignite/#history) |
 | ![image](https://img.shields.io/badge/-Features:-black?style=flat-square) [![image](https://img.shields.io/badge/docker-hub-blue)](https://hub.docker.com/u/pytorchignite) [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org) [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Twitter](https://img.shields.io/badge/news-twitter-blue)](https://twitter.com/pytorch_ignite) |
-| ![image](https://img.shields.io/badge/-Supported_PyTorch/Python_versions:-black?style=flat-square) [![link](https://img.shields.io/badge/-check_here-blue)](https://github.com/pytorch/ignite/actions?query=workflow%3A.github%2Fworkflows%2Fpytorch-version-tests.yml) |
+| ![image](https://img.shields.io/badge/-Supported_PyTorch/Python_versions:-black?style=flat-square) [![link](https://img.shields.io/badge/-check_here-blue)](https://github.com/pytorch/ignite/actions?query=workflow%3A%22PyTorch+version+tests%22) |
 
 </div>
 
@@ -297,12 +297,12 @@ docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 1
 
 Available pre-built images are :
 
-- `pytorchignite/base:latest | pytorchignite/hvd-base:latest | pytorchignite/msdp-apex-base:latest`
-- `pytorchignite/apex:latest | pytorchignite/hvd-apex:latest`
-- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest | pytorchignite/msdp-apex-vision:latest`
-- `pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest`
-- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest | pytorchignite/msdp-apex-nlp:latest`
-- `pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest`
+- `pytorchignite/base:latest | pytorchignite/hvd-base:latest`
+- `pytorchignite/apex:latest | pytorchignite/hvd-apex:latest | pytorchignite/msdp-apex:latest`
+- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest`
+- `pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest | pytorchignite/msdp-apex-vision:latest`
+- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest`
+- `pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest | pytorchignite/msdp-apex-nlp:latest`
 
 For more details, see [here](docker).
 

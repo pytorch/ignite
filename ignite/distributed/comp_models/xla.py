@@ -113,7 +113,7 @@ if has_xla_support:
             nnodes: int = 1,
             node_rank: int = 0,
             backend: str = XLA_TPU,
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             if "start_method" not in kwargs:
                 kwargs["start_method"] = "fork"
@@ -137,7 +137,7 @@ if has_xla_support:
 
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
             if op not in self._reduce_op_map:
-                raise ValueError("Unsupported reduction operation: '{}'".format(op))
+                raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
             xm.all_reduce(op, [tensor,])
             return tensor

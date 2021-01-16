@@ -16,8 +16,8 @@ class ConfusionMatrix(Metric):
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must contain logits and has the following shape (batch_size, num_categories, ...)
     - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices
-        with or without the background class. During the computation, argmax of `y_pred` is taken to determine
-        predicted classes.
+      with or without the background class. During the computation, argmax of `y_pred` is taken to determine
+      predicted classes.
 
     Args:
         num_classes (int): number of classes. See notes for more details.
@@ -65,20 +65,18 @@ class ConfusionMatrix(Metric):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() < 2:
-            raise ValueError(
-                "y_pred must have shape (batch_size, num_categories, ...), but given {}".format(y_pred.shape)
-            )
+            raise ValueError(f"y_pred must have shape (batch_size, num_categories, ...), but given {y_pred.shape}")
 
         if y_pred.shape[1] != self.num_classes:
             raise ValueError(
-                "y_pred does not have correct number of categories: {} vs {}".format(y_pred.shape[1], self.num_classes)
+                f"y_pred does not have correct number of categories: {y_pred.shape[1]} vs {self.num_classes}"
             )
 
         if not (y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError(
                 "y_pred must have shape (batch_size, num_categories, ...) and y must have "
                 "shape of (batch_size, ...), "
-                "but given {} vs {}.".format(y.shape, y_pred.shape)
+                f"but given {y.shape} vs {y_pred.shape}."
             )
 
         y_shape = y.shape
@@ -155,14 +153,14 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
     """
     if not isinstance(cm, ConfusionMatrix):
-        raise TypeError("Argument cm should be instance of ConfusionMatrix, but given {}".format(type(cm)))
+        raise TypeError(f"Argument cm should be instance of ConfusionMatrix, but given {type(cm)}")
 
     if not (cm.average in (None, "samples")):
         raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
-            raise ValueError("ignore_index should be non-negative integer, but given {}".format(ignore_index))
+            raise ValueError(f"ignore_index should be non-negative integer, but given {ignore_index}")
 
     # Increase floating point precision and pass to CPU
     cm = cm.type(torch.DoubleTensor)
@@ -172,9 +170,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
         def ignore_index_fn(iou_vector: torch.Tensor) -> torch.Tensor:
             if ignore_idx >= len(iou_vector):
-                raise ValueError(
-                    "ignore_index {} is larger than the length of IoU vector {}".format(ignore_idx, len(iou_vector))
-                )
+                raise ValueError(f"ignore_index {ignore_idx} is larger than the length of IoU vector {len(iou_vector)}")
             indices = list(range(len(iou_vector)))
             indices.remove(ignore_idx)
             return iou_vector[indices]
@@ -274,11 +270,11 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
     """
 
     if not isinstance(cm, ConfusionMatrix):
-        raise TypeError("Argument cm should be instance of ConfusionMatrix, but given {}".format(type(cm)))
+        raise TypeError(f"Argument cm should be instance of ConfusionMatrix, but given {type(cm)}")
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
-            raise ValueError("ignore_index should be non-negative integer, but given {}".format(ignore_index))
+            raise ValueError(f"ignore_index should be non-negative integer, but given {ignore_index}")
 
     # Increase floating point precision and pass to CPU
     cm = cm.type(torch.DoubleTensor)
@@ -290,7 +286,7 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
         def ignore_index_fn(dice_vector: torch.Tensor) -> torch.Tensor:
             if ignore_idx >= len(dice_vector):
                 raise ValueError(
-                    "ignore_index {} is larger than the length of Dice vector {}".format(ignore_idx, len(dice_vector))
+                    f"ignore_index {ignore_idx} is larger than the length of Dice vector {len(dice_vector)}"
                 )
             indices = list(range(len(dice_vector)))
             indices.remove(ignore_idx)

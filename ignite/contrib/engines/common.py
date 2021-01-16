@@ -46,7 +46,7 @@ def setup_common_training_handlers(
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
 
@@ -149,7 +149,7 @@ def _setup_common_training_handlers(
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     if output_path is not None and save_handler is not None:
         raise ValueError(
@@ -203,7 +203,7 @@ def _setup_common_training_handlers(
             else:
                 raise TypeError(
                     "Unhandled type of update_function's output. "
-                    "It should either mapping or sequence, but given {}".format(type(x))
+                    f"It should either mapping or sequence, but given {type(x)}"
                 )
 
         for i, n in enumerate(output_names):
@@ -237,7 +237,7 @@ def _setup_common_distrib_training_handlers(
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
 
     _setup_common_training_handlers(
@@ -331,7 +331,7 @@ def setup_tb_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> TensorboardLogger:
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -363,7 +363,7 @@ def setup_visdom_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> VisdomLogger:
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -394,7 +394,7 @@ def setup_mlflow_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> MLflowLogger:
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -425,7 +425,7 @@ def setup_neptune_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> NeptuneLogger:
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -456,7 +456,7 @@ def setup_wandb_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> WandBLogger:
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -487,7 +487,7 @@ def setup_plx_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> PolyaxonLogger:
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -518,7 +518,7 @@ def setup_trains_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> TrainsLogger:
     """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -560,7 +560,7 @@ def gen_save_best_models_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
@@ -602,7 +602,7 @@ def gen_save_best_models_by_val_score(
         filename_prefix="best",
         n_saved=n_saved,
         global_step_transform=global_step_transform,
-        score_name="{}_{}".format(tag, metric_name.lower()),
+        score_name=f"{tag}_{metric_name.lower()}",
         score_function=get_default_score_fn(metric_name),
         **kwargs,
     )
@@ -619,7 +619,7 @@ def save_best_model_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).

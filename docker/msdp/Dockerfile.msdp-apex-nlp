@@ -1,5 +1,5 @@
 # Dockerfile.msdp-apex-nlp
-FROM pytorchignite/msdp-apex-base:latest
+FROM pytorchignite/msdp-apex:latest
 
 # Ignite NLP dependencies
 RUN pip install --upgrade --no-cache-dir torchtext \

@@ -19,7 +19,7 @@ def test__hvd_dist_model():
 def _assert_model(model, true_conf):
 
     if "cuda" in true_conf["device"]:
-        assert model.device() == torch.device("{}:{}".format(true_conf["device"], true_conf["local_rank"]))
+        assert model.device() == torch.device(f"{true_conf['device']}:{true_conf['local_rank']}")
     else:
         assert model.device() == torch.device(true_conf["device"])
     assert model.get_local_rank() == true_conf["local_rank"]
@@ -177,7 +177,7 @@ def _test__hvd_dist_model_warning_index_less_localrank():
     torch.cuda.set_device(0)
 
     model = _HorovodDistModel.create_from_context()
-    assert isinstance(model, _HorovodDistModel), "{} vs _HorovodDistModel".format(type(model))
+    assert isinstance(model, _HorovodDistModel), f"{type(model)} vs _HorovodDistModel"
 
     if hvd.local_rank() == 1:
         with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
@@ -197,14 +197,14 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
 
     assert hvd.rank() > -1
 
-    assert isinstance(_model, _HorovodDistModel), "{} vs _HorovodDistModel".format(type(_model))
+    assert isinstance(_model, _HorovodDistModel), f"{type(_model)} vs _HorovodDistModel"
 
     assert _model.get_local_rank() == local_rank
     assert _model.get_world_size() == world_size
     assert _model.backend() == backend
 
     if "cuda" in device:
-        assert _model.device() == torch.device("{}:{}".format(device, local_rank))
+        assert _model.device() == torch.device(f"{device}:{local_rank}")
     else:
         assert _model.device() == torch.device(device)
 

@@ -307,8 +307,8 @@ class OutputHandler(BaseOutputHandler):
 
         if not isinstance(global_step, int):
             raise TypeError(
-                "global_step must be int, got {}."
-                " Please check the output of global_step_transform.".format(type(global_step))
+                f"global_step must be int, got {type(global_step)}."
+                " Please check the output of global_step_transform."
             )
 
         for key, value in metrics.items():
@@ -317,10 +317,10 @@ class OutputHandler(BaseOutputHandler):
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
                     logger.trains_logger.report_scalar(
-                        title="{}/{}".format(self.tag, key), series=str(i), iteration=global_step, value=v.item()
+                        title=f"{self.tag}/{key}", series=str(i), iteration=global_step, value=v.item()
                     )
             else:
-                warnings.warn("TrainsLogger output_handler can not log metrics value type {}".format(type(value)))
+                warnings.warn(f"TrainsLogger output_handler can not log metrics value type {type(value)}")
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -367,14 +367,14 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             raise RuntimeError("Handler OptimizerParamsHandler works only with TrainsLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         params = {
             str(i): float(param_group[self.param_name]) for i, param_group in enumerate(self.optimizer.param_groups)
         }
 
         for k, v in params.items():
             logger.trains_logger.report_scalar(
-                title="{}{}".format(tag_prefix, self.param_name), series=k, value=v, iteration=global_step
+                title=f"{tag_prefix}{self.param_name}", series=k, value=v, iteration=global_step
             )
 
 
@@ -419,14 +419,14 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             raise RuntimeError("Handler WeightsScalarHandler works only with TrainsLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             title_name, _, series_name = name.partition(".")
             logger.trains_logger.report_scalar(
-                title="{}weights_{}/{}".format(tag_prefix, self.reduction.__name__, title_name),
+                title=f"{tag_prefix}weights_{self.reduction.__name__}/{title_name}",
                 series=series_name,
                 value=self.reduction(p.data),
                 iteration=global_step,
@@ -470,7 +470,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with TrainsLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
@@ -478,7 +478,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             title_name, _, series_name = name.partition(".")
 
             logger.grad_helper.add_histogram(
-                title="{}weights_{}".format(tag_prefix, title_name),
+                title=f"{tag_prefix}weights_{title_name}",
                 series=series_name,
                 step=global_step,
                 hist_data=p.grad.detach().cpu().numpy(),
@@ -525,14 +525,14 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             raise RuntimeError("Handler GradsScalarHandler works only with TrainsLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
 
             title_name, _, series_name = name.partition(".")
             logger.trains_logger.report_scalar(
-                title="{}grads_{}/{}".format(tag_prefix, self.reduction.__name__, title_name),
+                title=f"{tag_prefix}grads_{self.reduction.__name__}/{title_name}",
                 series=series_name,
                 value=self.reduction(p.data),
                 iteration=global_step,
@@ -576,7 +576,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
             raise RuntimeError("Handler 'GradsHistHandler' works only with TrainsLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = "{}/".format(self.tag) if self.tag else ""
+        tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
             if p.grad is None:
                 continue
@@ -584,7 +584,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
             title_name, _, series_name = name.partition(".")
 
             logger.grad_helper.add_histogram(
-                title="{}grads_{}".format(tag_prefix, title_name),
+                title=f"{tag_prefix}grads_{title_name}",
                 series=series_name,
                 step=global_step,
                 hist_data=p.grad.detach().cpu().numpy(),
@@ -638,7 +638,7 @@ class TrainsSaver(DiskSaver):
         output_uri: Optional[str] = None,
         dirname: Optional[str] = None,
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
 
         self._setup_check_trains(logger, output_uri)
@@ -646,13 +646,11 @@ class TrainsSaver(DiskSaver):
         if not dirname:
             dirname = ""
             if idist.get_rank() == 0:
-                dirname = tempfile.mkdtemp(
-                    prefix="ignite_checkpoints_{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S_"))
-                )
+                dirname = tempfile.mkdtemp(prefix=f"ignite_checkpoints_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_')}")
             if idist.get_world_size() > 1:
                 dirname = idist.all_gather(dirname)[0]  # type: ignore[index, assignment]
 
-            warnings.warn("TrainsSaver created a temporary checkpoints directory: {}".format(dirname))
+            warnings.warn(f"TrainsSaver created a temporary checkpoints directory: {dirname}")
             idist.barrier()
 
         # Let's set non-atomic tmp dir saving behaviour
@@ -714,19 +712,18 @@ class TrainsSaver(DiskSaver):
                 self._slots.append(model_info.upload_filename)
                 slot = len(self._slots) - 1
 
-            model_info.upload_filename = "{}_{}{}".format(self._basename, slot, os.path.splitext(self._filename)[1])
-            model_info.local_model_id = "{}:{}".format(self._checkpoint_key, model_info.upload_filename)
+            model_info.upload_filename = f"{self._basename}_{slot}{os.path.splitext(self._filename)[1]}"
+            model_info.local_model_id = f"{self._checkpoint_key}:{model_info.upload_filename}"
             return model_info
 
         def post_callback(self, action: str, model_info: Any) -> Any:
             if action != self._callback_type.save:  # type: ignore[attr-defined]
                 return model_info
 
-            model_info.model.name = "{}: {}".format(model_info.task.name, self._filename)
+            model_info.model.name = f"{model_info.task.name}: {self._filename}"
             prefix = "Checkpoint Metadata: "
-            metadata = "{}{}".format(
-                prefix, ", ".join("{}={}".format(k, v) for k, v in self._metadata.items()) if self._metadata else "none"
-            )
+            metadata_items = ", ".join(f"{k}={v}" for k, v in self._metadata.items()) if self._metadata else "none"
+            metadata = f"{prefix}{metadata_items}"
             comment = "\n".join(
                 metadata if line.startswith(prefix) else line for line in (model_info.model.comment or "").split("\n")
             )
@@ -789,7 +786,7 @@ class TrainsSaver(DiskSaver):
         artifact = self._task.artifacts.get(filename)
         if artifact:
             return artifact.get_local_copy()
-        self._task.get_logger().report_text("Can not find artifact {}".format(filename))
+        self._task.get_logger().report_text(f"Can not find artifact {filename}")
 
         return None
 
