@@ -169,6 +169,11 @@ for detailed usage.
    :members:
    :inherited-members:
 
+trains_logger
+--------------
+
+.. note:: ``trains_logger`` was renamed to ``clearml_logger``. Please refer to :ref:`clearml_logger`.
+
 More on parameter scheduling
 ----------------------------
 
