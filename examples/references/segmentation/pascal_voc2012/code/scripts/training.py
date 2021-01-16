@@ -45,10 +45,10 @@ def initialize(config):
 
 
 def get_save_handler(config):
-    if exp_tracking.has_trains:
-        from ignite.contrib.handlers.trains_logger import TrainsSaver
+    if exp_tracking.has_clearml:
+        from ignite.contrib.handlers.clearml_logger import ClearMLSaver
 
-        return TrainsSaver(dirname=config.output_path.as_posix())
+        return ClearMLSaver(dirname=config.output_path.as_posix())
 
     return DiskSaver(config.output_path.as_posix())
 
@@ -229,7 +229,7 @@ def training(local_rank, config, logger=None):
             evaluators={"training": train_evaluator, "validation": evaluator},
         )
 
-        if not exp_tracking.has_trains:
+        if not exp_tracking.has_clearml:
             exp_tracking_logger = exp_tracking.setup_logging(
                 trainer, optimizer, evaluators={"training": train_evaluator, "validation": evaluator}
             )
@@ -253,8 +253,8 @@ def training(local_rank, config, logger=None):
             event_name=Events.ITERATION_COMPLETED(event_filter=custom_event_filter),
         )
 
-    # Log confusion matrix to Trains:
-    if exp_tracking.has_trains:
+    # Log confusion matrix to ClearML:
+    if exp_tracking.has_clearml:
 
         @trainer.on(Events.COMPLETED)
         def compute_and_log_cm():
@@ -263,10 +263,10 @@ def training(local_rank, config, logger=None):
             cm = ConfusionMatrix.normalize(cm, "recall").cpu().numpy()
 
             if idist.get_rank() == 0:
-                from trains import Task
+                from clearml import Task
 
-                trains_logger = Task.current_task().get_logger()
-                trains_logger.report_confusion_matrix(
+                clearml_logger = Task.current_task().get_logger()
+                clearml_logger.report_confusion_matrix(
                     title="Final Confusion Matrix",
                     series="cm-preds-gt",
                     matrix=cm,
@@ -279,7 +279,7 @@ def training(local_rank, config, logger=None):
 
     if idist.get_rank() == 0:
         tb_logger.close()
-        if not exp_tracking.has_trains:
+        if not exp_tracking.has_clearml:
             exp_tracking_logger.close()
 
 
@@ -301,8 +301,8 @@ def run(config, **kwargs):
         assert hasattr(config, "config_filepath") and isinstance(config.config_filepath, Path)
         assert hasattr(config, "script_filepath") and isinstance(config.script_filepath, Path)
 
-        if idist.get_rank() == 0 and exp_tracking.has_trains:
-            from trains import Task
+        if idist.get_rank() == 0 and exp_tracking.has_clearml:
+            from clearml import Task
 
             task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem)
             task.connect_configuration(config.config_filepath.as_posix())

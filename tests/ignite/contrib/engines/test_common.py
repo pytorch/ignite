@@ -15,6 +15,7 @@ from ignite.contrib.engines.common import (
     gen_save_best_models_by_val_score,
     save_best_model_by_val_score,
     setup_any_logging,
+    setup_clearml_logging,
     setup_common_training_handlers,
     setup_mlflow_logging,
     setup_neptune_logging,
@@ -471,29 +472,49 @@ def test_setup_wandb_logging(dirname):
         setup_wandb_logging(MagicMock())
 
 
-def test_setup_trains_logging():
+def test_setup_clearml_logging():
 
-    handlers.trains_logger.TrainsLogger.set_bypass_mode(True)
+    handlers.clearml_logger.ClearMLLogger.set_bypass_mode(True)
 
     with pytest.warns(UserWarning, match=r"running in bypass mode"):
-        trains_logger = _test_setup_logging(
-            setup_logging_fn=setup_trains_logging,
+        clearml_logger = _test_setup_logging(
+            setup_logging_fn=setup_clearml_logging,
             kwargs_dict={},
-            output_handler_cls=handlers.trains_logger.OutputHandler,
-            opt_params_handler_cls=handlers.trains_logger.OptimizerParamsHandler,
+            output_handler_cls=handlers.clearml_logger.OutputHandler,
+            opt_params_handler_cls=handlers.clearml_logger.OptimizerParamsHandler,
             with_eval=False,
             with_optim=False,
         )
-        trains_logger.close()
-        trains_logger = _test_setup_logging(
-            setup_logging_fn=setup_trains_logging,
+        clearml_logger.close()
+        clearml_logger = _test_setup_logging(
+            setup_logging_fn=setup_clearml_logging,
             kwargs_dict={},
-            output_handler_cls=handlers.trains_logger.OutputHandler,
-            opt_params_handler_cls=handlers.trains_logger.OptimizerParamsHandler,
+            output_handler_cls=handlers.clearml_logger.OutputHandler,
+            opt_params_handler_cls=handlers.clearml_logger.OptimizerParamsHandler,
             with_eval=True,
             with_optim=True,
         )
-        trains_logger.close()
+        clearml_logger.close()
+        clearml_logger = _test_setup_logging(
+            setup_logging_fn=setup_trains_logging,
+            kwargs_dict={},
+            output_handler_cls=handlers.clearml_logger.OutputHandler,
+            opt_params_handler_cls=handlers.clearml_logger.OptimizerParamsHandler,
+            with_eval=True,
+            with_optim=True,
+        )
+        clearml_logger.close()
+
+    with pytest.warns(UserWarning, match="setup_trains_logging was renamed to setup_clearml_logging"):
+        clearml_logger = _test_setup_logging(
+            setup_logging_fn=setup_trains_logging,
+            kwargs_dict={},
+            output_handler_cls=handlers.clearml_logger.OutputHandler,
+            opt_params_handler_cls=handlers.clearml_logger.OptimizerParamsHandler,
+            with_eval=True,
+            with_optim=True,
+        )
+        clearml_logger.close()
 
 
 def test_setup_neptune_logging(dirname):

@@ -153,19 +153,19 @@ for detailed usage.
    :members:
    :inherited-members:
 
-trains_logger
+clearml_logger
 ---------------
 
-See `trains mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_trains_logger.py>`_
+See `clearml mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_clearml_logger.py>`_
 for detailed usage.
 
-.. currentmodule:: ignite.contrib.handlers.trains_logger
+.. currentmodule:: ignite.contrib.handlers.clearml_logger
 
 .. autosummary::
     :nosignatures:
     :autolist:
 
-.. automodule:: ignite.contrib.handlers.trains_logger
+.. automodule:: ignite.contrib.handlers.clearml_logger
    :members:
    :inherited-members:
 
@@ -477,4 +477,3 @@ Concatenate with torch schedulers
 
 
 .. image:: ../_static/img/schedulers/concat_linear_exp_step_lr.png
-

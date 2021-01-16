@@ -17,7 +17,7 @@ mlflow
 neptune-client
 tensorboard
 pynvml
-trains>=0.15.1
+clearml
 scikit-image
 # Examples dependencies
 pandas

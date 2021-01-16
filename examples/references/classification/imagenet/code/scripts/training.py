@@ -249,8 +249,8 @@ def run(config, **kwargs):
         assert hasattr(config, "config_filepath") and isinstance(config.config_filepath, Path)
         assert hasattr(config, "script_filepath") and isinstance(config.script_filepath, Path)
 
-        if idist.get_rank() == 0 and exp_tracking.has_trains:
-            from trains import Task
+        if idist.get_rank() == 0 and exp_tracking.has_clearml:
+            from clearml import Task
 
             task = Task.init("ImageNet Training", config.config_filepath.stem)
             task.connect_configuration(config.config_filepath.as_posix())

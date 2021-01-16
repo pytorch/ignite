@@ -32,15 +32,15 @@ except ImportError:
 
 
 try:
-    import trains
+    import clearml
 
-    if "TRAINS_OUTPUT_PATH" not in os.environ:
-        raise ImportError("TRAINS_OUTPUT_PATH should be defined")
+    if "CLEARML_OUTPUT_PATH" not in os.environ:
+        raise ImportError("CLEARML_OUTPUT_PATH should be defined")
 
-    has_trains = True
-    trains_output_path = None
+    has_clearml = True
+    clearml_output_path = None
 except ImportError:
-    has_trains = False
+    has_clearml = False
 
 
 def _plx_get_output_path():
@@ -85,30 +85,30 @@ def _mlflow_log_params(params_dict):
     mlflow.log_params(params_dict)
 
 
-def _trains_get_output_path():
-    global trains_output_path
+def _clearml_get_output_path():
+    global clearml_output_path
 
-    if trains_output_path is None:
+    if clearml_output_path is None:
         from datetime import datetime
 
-        output_path = Path(os.environ["TRAINS_OUTPUT_PATH"])
-        output_path = output_path / "trains" / datetime.now().strftime("%Y%m%d-%H%M%S")
-        trains_output_path = output_path
+        output_path = Path(os.environ["CLEARML_OUTPUT_PATH"])
+        output_path = output_path / "clearml" / datetime.now().strftime("%Y%m%d-%H%M%S")
+        clearml_output_path = output_path
 
-    return trains_output_path.as_posix()
+    return clearml_output_path.as_posix()
 
 
 @idist.one_rank_only()
-def _trains_log_artifact(fp):
-    from trains import Task
+def _clearml_log_artifact(fp):
+    from clearml import Task
 
     task = Task.current_task()
     task.upload_artifact(Path(fp).name, fp)
 
 
 @idist.one_rank_only()
-def _trains_log_params(params_dict):
-    from trains import Task
+def _clearml_log_params(params_dict):
+    from clearml import Task
 
     task = Task.current_task()
     task.connect(params_dict)
@@ -124,14 +124,14 @@ elif has_mlflow:
     log_params = _mlflow_log_params
     setup_logging = common.setup_mlflow_logging
     log_artifact = _mlflow_log_artifact
-elif has_trains:
-    get_output_path = _trains_get_output_path
-    log_params = _trains_log_params
-    setup_logging = common.setup_trains_logging
-    log_artifact = _trains_log_artifact
+elif has_clearml:
+    get_output_path = _clearml_get_output_path
+    log_params = _clearml_log_params
+    setup_logging = common.setup_clearml_logging
+    log_artifact = _clearml_log_artifact
 else:
     raise RuntimeError(
         "No experiment tracking system is setup. "
-        "Please, setup either MLflow, Polyaxon or Trains. "
+        "Please, setup either MLflow, Polyaxon or ClearML. "
         "For more details see NOTES_*.md"
     )

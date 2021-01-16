@@ -16,4 +16,4 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          opencv-python \
                                          py_config_runner \
                                          pillow \
-                                         "trains>=0.15.0"
+                                         clearml
