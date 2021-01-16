@@ -3,8 +3,7 @@ FROM pytorchignite/hvd-apex:latest
 
 # Install opencv dependencies
 RUN apt-get update && \
-    apt-get -y install --no-install-recommends build-essential \
-                                               ca-certificates \
+    apt-get -y install --no-install-recommends libglib2.0 \
                                                libsm6 \
                                                libxext6 \
                                                libxrender-dev && \
@@ -17,5 +16,3 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          opencv-python \
                                          py_config_runner \
                                          "trains>=0.15.0"
-
-RUN pip uninstall -y pillow && CC="cc -mavx2" pip install -U --force-reinstall pillow-simd

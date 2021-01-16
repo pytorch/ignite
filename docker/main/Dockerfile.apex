@@ -34,18 +34,21 @@ COPY --from=apex-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
     rm -fr /tmp/apex
 
-# Install tzdata / git
+# Install tzdata / git / g++
 RUN apt-get update && \
     ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
     apt-get install -y tzdata && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
-    apt-get -y install --no-install-recommends git && \
+    apt-get -y install --no-install-recommends git g++ && \
     rm -rf /var/lib/apt/lists/*
 
 # Ignite main dependencies
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
                                          tqdm
+
+# replace pillow with pillow-simd
+RUN pip uninstall -y pillow && CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd
 
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \

@@ -3,8 +3,7 @@ FROM pytorchignite/msdp-apex:latest
 
 # Install opencv dependencies
 RUN apt-get update && \
-    apt-get -y install --no-install-recommends build-essential \
-                                               ca-certificates \
+    apt-get -y install --no-install-recommends libglib2.0 \
                                                libsm6 \
                                                libxext6 \
                                                libxrender-dev && \
@@ -16,5 +15,4 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          numpy \
                                          opencv-python \
                                          py_config_runner \
-                                         pillow \
                                          trains
