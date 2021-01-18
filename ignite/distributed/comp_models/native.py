@@ -47,6 +47,9 @@ if has_native_dist_support:
 
         @staticmethod
         def create_from_backend(backend: str, **kwargs: Any) -> "_NativeDistModel":
+            if backend not in _NativeDistModel.available_backends:
+                raise ValueError(f"Backend should be one of '{_NativeDistModel.available_backends}'")
+
             if dist.is_available() and dist.is_initialized():
                 raise RuntimeError("Can not create new distributed process group if default one is already initialized")
             return _NativeDistModel(backend=backend, **kwargs)
