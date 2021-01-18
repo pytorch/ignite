@@ -47,8 +47,8 @@ def training(local_rank, config):
         if "cuda" in device.type:
             config["cuda device name"] = torch.cuda.get_device_name(local_rank)
 
-        if config["with_trains"]:
-            from trains import Task
+        if config["with_clearml"]:
+            from clearml import Task
 
             task = Task.init("CIFAR10-Training", task_name=output_path.stem)
             task.connect_configuration(config)
@@ -150,7 +150,7 @@ def run(
     log_every_iters=15,
     nproc_per_node=None,
     stop_iteration=None,
-    with_trains=False,
+    with_clearml=False,
     **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -177,7 +177,7 @@ def run(
         log_every_iters (int): argument to log batch loss every ``log_every_iters`` iterations.
             It can be 0 to disable it. Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
-        with_trains (bool): if True, experiment Trains logger is setup. Default, False.
+        with_clearml (bool): if True, experiment ClearML logger is setup. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
@@ -340,10 +340,10 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
 
 
 def get_save_handler(config):
-    if config["with_trains"]:
-        from ignite.contrib.handlers.trains_logger import TrainsSaver
+    if config["with_clearml"]:
+        from ignite.contrib.handlers.clearml_logger import ClearMLSaver
 
-        return TrainsSaver(dirname=config["output_path"])
+        return ClearMLSaver(dirname=config["output_path"])
 
     return DiskSaver(config["output_path"], require_empty=False)
 

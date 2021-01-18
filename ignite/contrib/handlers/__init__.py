@@ -1,3 +1,4 @@
+from ignite.contrib.handlers.clearml_logger import ClearMLLogger
 from ignite.contrib.handlers.lr_finder import FastaiLRFinder
 from ignite.contrib.handlers.mlflow_logger import MLflowLogger
 from ignite.contrib.handlers.neptune_logger import NeptuneLogger

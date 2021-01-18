@@ -11,6 +11,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import ignite.distributed as idist
 from ignite.contrib.handlers import (
+    ClearMLLogger,
     LRScheduler,
     MLflowLogger,
     NeptuneLogger,
@@ -513,14 +514,14 @@ def setup_plx_logging(
     return logger
 
 
-def setup_trains_logging(
+def setup_clearml_logging(
     trainer: Engine,
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
     **kwargs: Any,
-) -> TrainsLogger:
-    """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
+) -> ClearMLLogger:
+    """Method to setup ClearML logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -537,11 +538,24 @@ def setup_trains_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.trains_logger.TrainsLogger`
+        :class:`~ignite.contrib.handlers.clearml_logger.ClearMLLogger`
     """
-    logger = TrainsLogger(**kwargs)
+    logger = ClearMLLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
+
+
+def setup_trains_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any,
+) -> ClearMLLogger:
+    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`.
+    """
+    warnings.warn("setup_trains_logging was renamed to setup_clearml_logging.")
+    return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
 
 
 def get_default_score_fn(metric_name: str) -> Any:
