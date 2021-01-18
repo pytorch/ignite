@@ -1,14 +1,14 @@
 """
- MNIST example with training and validation monitoring using Trains.
+ MNIST example with training and validation monitoring using ClearML.
 
  Requirements:
-    Trains: `pip install trains`
+    ClearML: `pip install clearml`
 
  Usage:
 
     Run the example:
     ```bash
-    python mnist_with_trains_logger.py
+    python mnist_with_clearml_logger.py
     ```
 """
 from argparse import ArgumentParser
@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
 
-from ignite.contrib.handlers.trains_logger import *
+from ignite.contrib.handlers.clearml_logger import *
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import Checkpoint
 from ignite.metrics import Accuracy, Loss
@@ -86,9 +86,9 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         train_evaluator.run(train_loader)
         validation_evaluator.run(val_loader)
 
-    trains_logger = TrainsLogger(project_name="examples", task_name="ignite")
+    clearml_logger = ClearMLLogger(project_name="examples", task_name="ignite")
 
-    trains_logger.attach_output_handler(
+    clearml_logger.attach_output_handler(
         trainer,
         event_name=Events.ITERATION_COMPLETED(every=100),
         tag="training",
@@ -96,7 +96,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     )
 
     for tag, evaluator in [("training metrics", train_evaluator), ("validation metrics", validation_evaluator)]:
-        trains_logger.attach_output_handler(
+        clearml_logger.attach_output_handler(
             evaluator,
             event_name=Events.EPOCH_COMPLETED,
             tag=tag,
@@ -104,25 +104,25 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
             global_step_transform=global_step_from_engine(trainer),
         )
 
-    trains_logger.attach_opt_params_handler(
+    clearml_logger.attach_opt_params_handler(
         trainer, event_name=Events.ITERATION_COMPLETED(every=100), optimizer=optimizer
     )
 
-    trains_logger.attach(
+    clearml_logger.attach(
         trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100)
     )
 
-    trains_logger.attach(trainer, log_handler=WeightsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100))
+    clearml_logger.attach(trainer, log_handler=WeightsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100))
 
-    trains_logger.attach(
+    clearml_logger.attach(
         trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100)
     )
 
-    trains_logger.attach(trainer, log_handler=GradsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100))
+    clearml_logger.attach(trainer, log_handler=GradsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100))
 
     handler = Checkpoint(
         {"model": model},
-        TrainsSaver(),
+        ClearMLSaver(),
         n_saved=1,
         score_function=lambda e: e.state.metrics["accuracy"],
         score_name="val_acc",
@@ -134,7 +134,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
 
-    trains_logger.close()
+    clearml_logger.close()
 
 
 if __name__ == "__main__":
