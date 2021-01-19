@@ -124,10 +124,15 @@ class ClearMLLogger(BaseLogger):
             from clearml import Task
             from clearml.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
         except ImportError:
-            raise RuntimeError(
-                "This contrib module requires clearml to be installed. "
-                "You may install clearml using: \n pip install clearml \n"
-            )
+            try:
+                # Backwards-compatibility for legacy Trains SDK
+                from trains import Task
+                from trains.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
+            except ImportError:
+                raise RuntimeError(
+                    "This contrib module requires clearml to be installed. "
+                    "You may install clearml using: \n pip install clearml \n"
+                )
 
         experiment_kwargs = {k: v for k, v in kwargs.items() if k not in ("project_name", "task_name", "task_type")}
 
@@ -667,10 +672,14 @@ class ClearMLSaver(DiskSaver):
         try:
             from clearml import Task
         except ImportError:
-            raise RuntimeError(
-                "This contrib module requires clearml to be installed. "
-                "You may install clearml using: \n pip install clearml \n"
-            )
+            try:
+                # Backwards-compatibility for legacy Trains SDK
+                from trains import Task
+            except ImportError:
+                raise RuntimeError(
+                    "This contrib module requires clearml to be installed. "
+                    "You may install clearml using: \n pip install clearml \n"
+                )
 
         if logger and not isinstance(logger, ClearMLLogger):
             raise TypeError("logger must be an instance of ClearMLLogger")
@@ -739,10 +748,15 @@ class ClearMLSaver(DiskSaver):
             from clearml import Model
             from clearml.binding.frameworks import WeightsFileHandler
         except ImportError:
-            raise RuntimeError(
-                "This contrib module requires clearml to be installed. "
-                "You may install clearml using: \n pip install clearml \n"
-            )
+            try:
+                # Backwards-compatibility for legacy Trains SDK
+                from trains import Model
+                from trains.binding.frameworks import WeightsFileHandler
+            except ImportError:
+                raise RuntimeError(
+                    "This contrib module requires clearml to be installed. "
+                    "You may install clearml using: \n pip install clearml \n"
+                )
 
         try:
             basename = metadata["basename"]  # type: ignore[index]

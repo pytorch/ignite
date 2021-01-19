@@ -263,7 +263,11 @@ def training(local_rank, config, logger=None):
             cm = ConfusionMatrix.normalize(cm, "recall").cpu().numpy()
 
             if idist.get_rank() == 0:
-                from clearml import Task
+                try:
+                    from clearml import Task
+                except ImportError:
+                    # Backwards-compatibility for legacy Trains SDK
+                    from trains import Task
 
                 clearml_logger = Task.current_task().get_logger()
                 clearml_logger.report_confusion_matrix(
@@ -302,7 +306,11 @@ def run(config, **kwargs):
         assert hasattr(config, "script_filepath") and isinstance(config.script_filepath, Path)
 
         if idist.get_rank() == 0 and exp_tracking.has_clearml:
-            from clearml import Task
+            try:
+                from clearml import Task
+            except ImportError:
+                # Backwards-compatibility for legacy Trains SDK
+                from trains import Task
 
             task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem)
             task.connect_configuration(config.config_filepath.as_posix())
