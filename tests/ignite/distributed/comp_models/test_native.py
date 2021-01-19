@@ -31,6 +31,9 @@ def test__native_dist_model():
     else:
         assert "mpi" not in available_backends
 
+    with pytest.raises(ValueError, match=r"Backend should be one of"):
+        _NativeDistModel.create_from_backend("abc")
+
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not dist.is_nccl_available(), reason="Skip if nccl not available")

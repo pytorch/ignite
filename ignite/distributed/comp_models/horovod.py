@@ -44,41 +44,48 @@ if has_hvd_support:
         @staticmethod
         def create_from_context() -> Optional["_HorovodDistModel"]:
             rank = _HorovodDistModel._get_hvd_rank()
-            if not (has_hvd_support and rank > -1):
+            # hvd must be initialized
+            if not rank > -1:
                 return None
             return _HorovodDistModel()
 
         @staticmethod
-        def create_from_backend(backend: str, **kwargs: Any) -> "_HorovodDistModel":
+        def create_from_backend(backend: str = HOROVOD, **kwargs: Any) -> "_HorovodDistModel":
             if backend not in _HorovodDistModel.available_backends:
                 raise ValueError(f"Backend should be one of '{_HorovodDistModel.available_backends}'")
 
             rank = _HorovodDistModel._get_hvd_rank()
-            if has_hvd_support and rank > -1:
+            # hvd must be not initialized
+            if rank > -1:
                 raise RuntimeError("Can not re-initialize Horovod if it is already initialized")
-            return _HorovodDistModel(do_init=True, **kwargs)
+            return _HorovodDistModel(backend, **kwargs)
 
-        def __init__(self, do_init: bool = False, **kwargs: Any) -> None:
+        def __init__(self, backend: Optional[str] = None, **kwargs: Any) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_HorovodDistModel, self).__init__()
-            self._backend = HOROVOD  # type: str
-            if do_init:
-                comm = kwargs.get("comm", None)
-                hvd.init(comm=comm)
+            if backend is not None:
+                self._create_from_backend(backend, **kwargs)
+            else:
+                self._init_from_context()
 
-            self._local_rank = hvd.local_rank()
+        def _create_from_backend(self, backend: str, **kwargs: Any) -> None:
+            self._backend = backend  # type: str
+            comm = kwargs.get("comm", None)
+            hvd.init(comm=comm)
+            self._setup_attrs()
+            if torch.cuda.is_available():
+                torch.cuda.set_device(self.get_local_rank())
 
-            if do_init and torch.cuda.is_available():
-                torch.cuda.set_device(self._local_rank)
-
+        def _init_from_context(self) -> None:
+            self._backend = HOROVOD
             self._setup_attrs()
 
         def _compute_nproc_per_node(self) -> int:
             return hvd.local_size()
 
         def get_local_rank(self) -> int:
-            return self._local_rank
+            return hvd.local_rank()
 
         def get_rank(self) -> int:
             return hvd.rank()
