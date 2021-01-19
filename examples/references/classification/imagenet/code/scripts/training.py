@@ -250,7 +250,11 @@ def run(config, **kwargs):
         assert hasattr(config, "script_filepath") and isinstance(config.script_filepath, Path)
 
         if idist.get_rank() == 0 and exp_tracking.has_clearml:
-            from clearml import Task
+            try:
+                from clearml import Task
+            except ImportError:
+                # Backwards-compatibility for legacy Trains SDK
+                from trains import Task
 
             task = Task.init("ImageNet Training", config.config_filepath.stem)
             task.connect_configuration(config.config_filepath.as_posix())

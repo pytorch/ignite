@@ -32,7 +32,10 @@ except ImportError:
 
 
 try:
-    import clearml
+    try:
+        import clearml
+    except ImportError:
+        import trains
 
     if "CLEARML_OUTPUT_PATH" not in os.environ:
         raise ImportError("CLEARML_OUTPUT_PATH should be defined")
@@ -100,7 +103,11 @@ def _clearml_get_output_path():
 
 @idist.one_rank_only()
 def _clearml_log_artifact(fp):
-    from clearml import Task
+    try:
+        from clearml import Task
+    except ImportError:
+        # Backwards-compatibility for legacy Trains SDK
+        from trains import Task
 
     task = Task.current_task()
     task.upload_artifact(Path(fp).name, fp)
@@ -108,7 +115,11 @@ def _clearml_log_artifact(fp):
 
 @idist.one_rank_only()
 def _clearml_log_params(params_dict):
-    from clearml import Task
+    try:
+        from clearml import Task
+    except ImportError:
+        # Backwards-compatibility for legacy Trains SDK
+        from trains import Task
 
     task = Task.current_task()
     task.connect(params_dict)
