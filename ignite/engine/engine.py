@@ -5,7 +5,7 @@ import warnings
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union, Sized
 
 from torch.utils.data import DataLoader
 
@@ -117,10 +117,11 @@ class Engine(Serializable):
 
     """
 
-    _state_dict_all_req_keys = ("epoch_length", "max_epochs")
-    _state_dict_one_of_opt_keys = ("iteration", "epoch")
+    _state_dict_all_req_keys = ("epoch_length", )
+    _state_dict_one_of_opt_keys = (("iteration", "epoch"), ("max_epochs", "max_iters"))
 
     def __init__(self, process_function: Callable):
+        super(Engine, self).__init__()
         self._event_handlers = defaultdict(list)  # type: Dict[Any, List]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
@@ -128,7 +129,6 @@ class Engine(Serializable):
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.state = State()
-        self._state_dict_user_keys = []  # type: List[str]
         self._allowed_events = []  # type: List[EventEnum]
 
         self._dataloader_iter = None  # type: Optional[Iterator[Any]]
@@ -468,13 +468,9 @@ class Engine(Serializable):
         else:
             raise e
 
-    @property
-    def state_dict_user_keys(self) -> List:
-        return self._state_dict_user_keys
-
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "epoch_length", "max_epochs" and "iteration" and
-        other state values defined by `engine.state_dict_user_keys`
+        """Returns a dictionary containing engine's state: "epoch_length", "iteration", "max_iters" or "max_epoch"
+        and other state values defined by ``engine.state_dict_user_keys``.
 
         .. code-block:: python
 
@@ -499,15 +495,20 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)  # type: Tuple[str, ...]
+        keys = self._state_dict_all_req_keys  # type: Tuple[str, ...]
+        keys += ("iteration", )
+        if self.state.max_epochs is not None:
+            keys += ("max_epochs", )
+        else:
+            keys += ("max_iters", )
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
-        State dictionary should contain keys: `iteration` or `epoch`, `max_epochs` and `epoch_length`.
-        If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
+        State dictionary should contain keys: `iteration` or `epoch`, `max_epochs` or `max_iters` and `epoch_length`.
+        If ``engine.state_dict_user_keys`` contains keys, they should be also present in the state dictionary.
         Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
         This method does not remove any custom attributes added by user.
@@ -529,13 +530,9 @@ class Engine(Serializable):
         """
         super(Engine, self).load_state_dict(state_dict)
 
-        for k in self._state_dict_user_keys:
-            if k not in state_dict:
-                raise ValueError(
-                    f"Required user state attribute '{k}' is absent in provided state_dict '{state_dict.keys()}'"
-                )
-        self.state.max_epochs = state_dict["max_epochs"]
-        self.state.epoch_length = state_dict["epoch_length"]
+        for k in self._state_dict_all_req_keys:
+            setattr(self.state, k, state_dict[k])
+
         for k in self._state_dict_user_keys:
             setattr(self.state, k, state_dict[k])
 
@@ -544,7 +541,7 @@ class Engine(Serializable):
             self.state.epoch = 0
             if self.state.epoch_length is not None:
                 self.state.epoch = self.state.iteration // self.state.epoch_length
-        elif "epoch" in state_dict:
+        else:
             self.state.epoch = state_dict["epoch"]
             if self.state.epoch_length is None:
                 raise ValueError(
@@ -552,6 +549,9 @@ class Engine(Serializable):
                     f"Input state_dict: {state_dict}"
                 )
             self.state.iteration = self.state.epoch_length * self.state.epoch
+
+        self._check_and_set_max_epochs(state_dict.get("max_epochs", None))
+        self._check_and_set_max_iters(state_dict.get("max_iters", None))
 
     @staticmethod
     def _is_done(state: State) -> bool:
@@ -636,7 +636,8 @@ class Engine(Serializable):
 
         Note:
             User can dynamically preprocess input batch at :attr:`~ignite.engine.events.Events.ITERATION_STARTED` and
-            store output batch in `engine.state.batch`. Latter is passed as usually to `process_function` as argument:
+            store output batch in ``engine.state.batch``. Latter is passed as usually to ``process_function``
+            as argument:
 
             .. code-block:: python
 
@@ -674,6 +675,12 @@ class Engine(Serializable):
         if self.state.max_epochs is None and self.state.max_iters is None:
             self.state.max_epochs = 1
 
+        if self.state.max_epochs is not None and self.state.max_iters is not None:
+            raise ValueError(
+                "State attributes max_iters and max_epochs are mutually exclusive."
+                "Please set max_epochs or max_iters to None"
+            )
+
         msg = "Engine run starting with {}."
         if self._is_done(self.state):
             # Reset iteration/epoch counters
@@ -697,7 +704,7 @@ class Engine(Serializable):
         state.times[Events.EPOCH_COMPLETED.name] = 0.0
         state.times[Events.COMPLETED.name] = 0.0
 
-    def _get_data_length(self, data: Iterable) -> Optional[int]:
+    def _get_data_length(self, data: Union[Iterable, Sized]) -> Optional[int]:
         try:
             if hasattr(data, "__len__"):
                 return len(data)  # type: ignore[arg-type]
@@ -711,7 +718,7 @@ class Engine(Serializable):
             if max_epochs is not None:
                 if max_epochs < self.state.epoch:
                     raise ValueError(
-                        "Argument max_epochs should be larger than the start epoch "
+                        "Argument max_epochs should be larger than the current epoch "
                         f"defined in the state: {max_epochs} vs {self.state.epoch}. "
                         "Please, set engine.state.max_epochs = None "
                         "before calling engine.run() in order to restart the training from the beginning."
@@ -726,7 +733,7 @@ class Engine(Serializable):
         if self.state.max_iters is not None and max_iters is not None:
             if max_iters < self.state.iteration:
                 raise ValueError(
-                    "Argument max_iters should be larger than the start iteration "
+                    "Argument max_iters should be larger than the current iteration "
                     f"defined in the state: {max_iters} vs {self.state.iteration}. "
                     "Please, set engine.state.max_iters = None "
                     "before calling engine.run() in order to restart the training from the beginning."
