@@ -337,6 +337,12 @@ def test__is_done():
     state = State(iteration=11, epoch=2, max_epochs=None, epoch_length=11, max_iters=22)
     assert not Engine._is_done(state)
 
+    state = State(iteration=100, epoch=1, max_epochs=None, epoch_length=100, max_iters=250)
+    assert not Engine._is_done(state)
+
+    state = State(iteration=250, epoch=1, max_epochs=None, epoch_length=100, max_iters=250)
+    assert Engine._is_done(state)
+
 
 def test__setup_engine():
     engine = Engine(lambda e, b: 1)
@@ -418,7 +424,20 @@ def test_time_stored_in_state():
     _test(list(range(200)), max_epochs=5, epoch_length=100)
 
 
-def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=None):
+def _test_check_triggered_events(
+    data,
+    max_epochs=None,
+    epoch_length=None,
+    max_iters=None,
+    n_epoch_started=None,
+    n_epoch_completed=None,
+    n_iter_started=None,
+    n_iter_completed=None,
+    n_batch_started=None,
+    n_batch_completed=None,
+    n_dl_stops=None,
+    n_terminate=None,
+):
     engine = Engine(lambda e, b: 1)
     events = [
         Events.STARTED,
@@ -430,6 +449,8 @@ def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=
         Events.GET_BATCH_STARTED,
         Events.GET_BATCH_COMPLETED,
         Events.DATALOADER_STOP_ITERATION,
+        Events.TERMINATE,
+        Events.TERMINATE_SINGLE_EPOCH,
     ]
 
     handlers = {e: MagicMock() for e in events}
@@ -437,18 +458,40 @@ def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=
     for e, handler in handlers.items():
         engine.add_event_handler(e, handler)
 
-    engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    engine.run(data, max_epochs=max_epochs, max_iters=max_iters, epoch_length=epoch_length)
+
+    if epoch_length is None:
+        epoch_length = engine.state.epoch_length
+
+    assert epoch_length is not None
+
+    if n_iter_started is None:
+        n_iter_started = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+    if n_iter_completed is None:
+        n_iter_completed = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+    if n_batch_started is None:
+        n_batch_started = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+    if n_batch_completed is None:
+        n_batch_completed = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+    if n_terminate is None:
+        n_terminate = int(n_epoch_started != n_epoch_completed) if max_iters is not None else 0
 
     expected_num_calls = {
         Events.STARTED: 1,
         Events.COMPLETED: 1,
-        Events.EPOCH_STARTED: max_epochs,
-        Events.EPOCH_COMPLETED: max_epochs,
-        Events.ITERATION_STARTED: max_epochs * epoch_length,
-        Events.ITERATION_COMPLETED: max_epochs * epoch_length,
-        Events.GET_BATCH_STARTED: max_epochs * epoch_length,
-        Events.GET_BATCH_COMPLETED: max_epochs * epoch_length,
-        Events.DATALOADER_STOP_ITERATION: (max_epochs - 1) if exp_iter_stops is None else exp_iter_stops,
+        Events.EPOCH_STARTED: n_epoch_started if n_epoch_started is not None else max_epochs,
+        Events.EPOCH_COMPLETED: n_epoch_completed if n_epoch_completed is not None else max_epochs,
+        Events.ITERATION_STARTED: n_iter_started,
+        Events.ITERATION_COMPLETED: n_iter_completed,
+        Events.GET_BATCH_STARTED: n_batch_started,
+        Events.GET_BATCH_COMPLETED: n_batch_completed,
+        Events.DATALOADER_STOP_ITERATION: n_dl_stops if n_dl_stops is not None else (max_epochs - 1),
+        Events.TERMINATE: n_terminate,
+        Events.TERMINATE_SINGLE_EPOCH: 0,
     }
 
     for n, handler in handlers.items():
@@ -457,10 +500,16 @@ def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=
 
 def _test_run_check_triggered_events():
     # tests issue https://github.com/pytorch/ignite/issues/818
-    _test_check_triggered_events(list(range(10)), max_epochs=4, epoch_length=10)
-    _test_check_triggered_events(list(range(100)), max_epochs=5, epoch_length=100)
-    _test_check_triggered_events(list(range(100)), max_epochs=5, epoch_length=50, exp_iter_stops=50 * 5 // 100)
-    _test_check_triggered_events(list(range(100)), max_epochs=5, epoch_length=150, exp_iter_stops=150 * 5 // 100)
+    _test_check_triggered_events(list(range(20)), max_epochs=5, epoch_length=20)
+    _test_check_triggered_events(list(range(20)), max_epochs=5, epoch_length=10, n_dl_stops=10 * 5 // 20)
+    _test_check_triggered_events(list(range(20)), max_epochs=5, epoch_length=25, n_dl_stops=25 * 5 // 20)
+
+    kwargs = dict(n_dl_stops=4, n_epoch_started=5, n_epoch_completed=5)
+    _test_check_triggered_events(list(range(20)), max_iters=100, epoch_length=20, **kwargs)
+    kwargs = dict(n_dl_stops=2, n_epoch_started=5, n_epoch_completed=5)
+    _test_check_triggered_events(list(range(20)), max_iters=50, epoch_length=10, **kwargs)
+    kwargs = dict(n_dl_stops=2, n_epoch_started=3, n_epoch_completed=2)
+    _test_check_triggered_events(list(range(20)), max_iters=55, epoch_length=25, **kwargs)
 
 
 def test_run_check_triggered_events_list():
@@ -470,32 +519,93 @@ def test_run_check_triggered_events_list():
 def _test_run_check_triggered_events_on_iterator():
     def infinite_data_iterator():
         while True:
-            for i in range(100):
+            for i in range(12):
                 yield i
 
-    _test_check_triggered_events(infinite_data_iterator(), max_epochs=5, epoch_length=100, exp_iter_stops=0)
-    _test_check_triggered_events(infinite_data_iterator(), max_epochs=5, epoch_length=50, exp_iter_stops=0)
-    _test_check_triggered_events(infinite_data_iterator(), max_epochs=5, epoch_length=150, exp_iter_stops=0)
+    _test_check_triggered_events(infinite_data_iterator(), max_epochs=5, epoch_length=20, n_dl_stops=0)
+
+    kwargs = dict(n_dl_stops=0, n_epoch_started=5, n_epoch_completed=5)
+    _test_check_triggered_events(infinite_data_iterator(), max_iters=100, epoch_length=20, **kwargs)
+    kwargs = dict(n_dl_stops=0, n_epoch_started=1, n_epoch_completed=0)
+    _test_check_triggered_events(infinite_data_iterator(), max_iters=10, epoch_length=20, **kwargs)
+    kwargs = dict(n_dl_stops=0, n_epoch_started=2, n_epoch_completed=1)
+    _test_check_triggered_events(infinite_data_iterator(), max_iters=30, epoch_length=20, **kwargs)
 
     def limited_data_iterator():
-        for i in range(100):
+        for i in range(20):
             yield i
 
-    _test_check_triggered_events(limited_data_iterator(), max_epochs=1, epoch_length=100, exp_iter_stops=0)
-    _test_check_triggered_events(limited_data_iterator(), max_epochs=10, epoch_length=10, exp_iter_stops=0)
+    _test_check_triggered_events(limited_data_iterator(), max_epochs=1, epoch_length=20, n_dl_stops=0)
+    _test_check_triggered_events(limited_data_iterator(), max_epochs=5, epoch_length=4, n_dl_stops=0)
 
-    # These tests will fail
-    with pytest.raises(AssertionError):
-        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
-            _test_check_triggered_events(limited_data_iterator(), max_epochs=3, epoch_length=100)
+    kwargs = dict(n_dl_stops=0, n_epoch_started=1, n_epoch_completed=1)
+    _test_check_triggered_events(limited_data_iterator(), max_iters=20, epoch_length=20, **kwargs)
+    kwargs = dict(n_dl_stops=0, n_epoch_started=2, n_epoch_completed=1)
+    _test_check_triggered_events(limited_data_iterator(), max_iters=19, epoch_length=10, **kwargs)
 
-    with pytest.raises(AssertionError):
-        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
-            _test_check_triggered_events(limited_data_iterator(), max_epochs=3, epoch_length=75)
+    with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+        kwargs = dict(
+            n_dl_stops=1,
+            n_epoch_started=2,
+            n_epoch_completed=1,
+            n_iter_started=20,
+            n_iter_completed=20,
+            n_batch_started=21,
+            n_batch_completed=20,
+            n_terminate=1,
+        )
+        _test_check_triggered_events(limited_data_iterator(), max_epochs=3, epoch_length=20, **kwargs)
 
-    with pytest.raises(AssertionError):
-        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
-            _test_check_triggered_events(limited_data_iterator(), max_epochs=1, epoch_length=101)
+    with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+        kwargs = dict(
+            n_dl_stops=1,
+            n_epoch_started=2,
+            n_epoch_completed=1,
+            n_iter_started=20,
+            n_iter_completed=20,
+            n_batch_started=22,  # 22 and not 21. GET_BATCH_STARTED is called once more to epoch_length
+            n_batch_completed=20,
+            n_terminate=1,
+        )
+        _test_check_triggered_events(limited_data_iterator(), max_epochs=3, **kwargs)
+
+    with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+        kwargs = dict(
+            n_dl_stops=1,
+            n_epoch_started=2,
+            n_epoch_completed=1,
+            n_iter_started=20,
+            n_iter_completed=20,
+            n_batch_started=21,
+            n_batch_completed=20,
+            n_terminate=1,
+        )
+        _test_check_triggered_events(limited_data_iterator(), max_epochs=3, epoch_length=15, **kwargs)
+
+    kwargs = dict(
+        n_dl_stops=1,
+        n_epoch_started=1,
+        n_epoch_completed=0,
+        n_iter_started=20,
+        n_iter_completed=20,
+        n_batch_started=21,
+        n_batch_completed=20,
+        n_terminate=1,
+    )
+    _test_check_triggered_events(limited_data_iterator(), max_epochs=1, epoch_length=21, **kwargs)
+
+    with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+        kwargs = dict(
+            n_dl_stops=1,
+            n_epoch_started=2,
+            n_epoch_completed=1,
+            n_iter_started=20,
+            n_iter_completed=20,
+            n_batch_started=21,
+            n_batch_completed=20,
+            n_terminate=1,
+        )
+        _test_check_triggered_events(limited_data_iterator(), max_iters=21, epoch_length=12, **kwargs)
 
 
 def test_run_check_triggered_events_on_iterator():
@@ -664,7 +774,6 @@ def test_run_once_finite_iterator_no_epoch_length():
 
         # engine = Engine(lambda e, b: bc.check(b))
         engine = Engine(foo)
-        engine.debug()
 
         epoch_completed_handler = MagicMock()
         engine.add_event_handler(Events.EPOCH_COMPLETED, epoch_completed_handler)
@@ -676,19 +785,26 @@ def test_run_once_finite_iterator_no_epoch_length():
         engine.run(data_iter, **kwargs)
 
         assert bc.counter == engine.state.iteration
-        # assert engine.state.epoch == 1, engine.state
-        if len(kwargs) == 0:            
+        if len(kwargs) == 0:
+            assert engine.state.epoch == 1
             assert engine.state.iteration == unknown_size
             assert epoch_completed_handler.call_count == 1
         else:
             max_iters = kwargs["max_iters"]
-            assert engine.state.iteration == max_iters            
-        assert completed_handler.call_count == 1        
+            if max_iters <= unknown_size:
+                assert engine.state.epoch == 1
+                assert engine.state.iteration == max_iters
+            else:
+                assert engine.state.epoch == 2
+                assert engine.state.iteration == unknown_size
 
-    # _test()
-    # _test(max_iters=unknown_size)
-    # _test(max_iters=unknown_size // 2)
-    _test(max_iters=unknown_size * 2)
+        assert completed_handler.call_count == 1
+
+    _test()
+    _test(max_iters=unknown_size)
+    _test(max_iters=unknown_size // 2)
+    with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+        _test(max_iters=unknown_size * 2)
 
 
 def test_run_finite_iterator_no_epoch_length():
@@ -964,11 +1080,3 @@ def test_epoch_events_fired():
         assert engine.state.iteration % engine.state.epoch_length == 0
 
     engine.run([0] * 10, max_iters=max_iters)
-
-
-def test_is_done_with_max_iters():
-    state = State(iteration=100, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
-    assert not Engine._is_done(state)
-
-    state = State(iteration=250, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
-    assert Engine._is_done(state)

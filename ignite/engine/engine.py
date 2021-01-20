@@ -1,6 +1,5 @@
 import functools
 import logging
-import math
 import time
 import warnings
 import weakref
@@ -679,7 +678,7 @@ class Engine(Serializable):
         if self._is_done(self.state):
             # Reset iteration/epoch counters
             self.state.iteration = 0
-            self.state.epoch = 0    
+            self.state.epoch = 0
         elif self.state.iteration > 0:
             msg = f"Engine run resuming from iteration {self.state.iteration}, epoch {self.state.epoch} " + "until {}."
 
@@ -836,9 +835,7 @@ class Engine(Serializable):
                 raise RuntimeError(
                     "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
                 )
-            c = 0
-            # while True:
-            while c < 30:
+            while True:
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
@@ -852,16 +849,10 @@ class Engine(Serializable):
                     if self.state.epoch_length is None:
                         # Define epoch length and stop the epoch
                         self.state.epoch_length = iter_counter
-                        
-                        print("defined epoch length", self.state)
-                        # Let's avoid that
-                        # if self.state.max_iters is not None:
-                        #     self.state.max_epochs = math.ceil(self.state.max_iters / self.state.epoch_length)
                         break
 
                     # Should exit while loop if we can not iterate
                     if should_exit:
-                        print("should_exit", self.state, self._is_done(self.state))
                         if not self._is_done(self.state):
                             total_iters = (
                                 self.state.epoch_length * self.state.max_epochs
@@ -874,6 +865,7 @@ class Engine(Serializable):
                                 "iterations to run is not reached. "
                                 f"Current iteration: {self.state.iteration} vs Total iterations to run : {total_iters}"
                             )
+                        self.should_terminate = True
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
@@ -904,10 +896,6 @@ class Engine(Serializable):
                     self.should_terminate = True
                     break
 
-                c += 1
-
-            print("c=", c)
-
         except Exception as e:
             self.logger.error(f"Current run is terminating due to exception: {e}")
             self._handle_exception(e)
@@ -915,11 +903,12 @@ class Engine(Serializable):
         return time.time() - start_time
 
     def debug(self, enabled: bool = True) -> None:
-        """Enables/Disables engine logging debug mode
+        """Enables/disables engine's logging debug mode
         """
         from ignite.utils import setup_logger
 
         if enabled:
+            setattr(self, "_stored_logger", self.logger)
             self.logger = setup_logger(level=logging.DEBUG)
-        else:
-            self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        elif hasattr(self, "_stored_logger"):
+            self.logger = getattr(self, "_stored_logger")
