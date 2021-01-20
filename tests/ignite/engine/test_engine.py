@@ -1124,6 +1124,21 @@ def test_epoch_events_fired():
     engine.run([0] * 10, max_iters=max_iters)
 
 
+def test_restart_training():
+    data = range(10)
+    engine = Engine(lambda e, b: 1)
+    state = engine.run(data, max_epochs=5)
+    with pytest.raises(
+        ValueError,
+        match=r"Argument max_epochs should be larger than the current epoch defined in the state: 2 vs 5. "
+        r"Please, .+ "
+        r"before calling engine.run\(\) in order to restart the training from the beginning.",
+    ):
+        engine.run(data, max_epochs=2)
+    state.max_epochs = None
+    engine.run(data, max_epochs=2)
+
+
 def test_engine_multiple_runs():
     engine = Engine(lambda e, b: 1)
 
@@ -1164,3 +1179,21 @@ def test_engine_multiple_runs():
 
     assert engine.state.epoch == 6
     assert engine.state.iteration == 6 * epoch_length
+
+
+def test_engine_multiple_runs_2():
+
+    e = Engine(lambda _, b: None)
+    data = iter(range(100))
+
+    e.run(data, max_iters=50)
+    assert e.state.iteration == 50
+    assert e.state.epoch == 1
+    e.run(data, max_iters=52)
+    assert e.state.iteration == 52
+    # should be 1 and if 2 this is a bug : https://github.com/pytorch/ignite/issues/1386
+    assert e.state.epoch == 2
+    e.run(data, max_iters=100)
+    assert e.state.iteration == 100
+    # should be 1 and if 3 this is a bug : https://github.com/pytorch/ignite/issues/1386
+    assert e.state.epoch == 3

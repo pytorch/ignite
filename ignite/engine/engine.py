@@ -5,7 +5,7 @@ import warnings
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union, Sized
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -117,8 +117,8 @@ class Engine(Serializable):
 
     """
 
-    _state_dict_all_req_keys = ("epoch_length", )
-    _state_dict_one_of_opt_keys = (("iteration", "epoch"), ("max_epochs", "max_iters"))
+    _state_dict_all_req_keys = ("epoch_length",)
+    _state_dict_one_of_opt_keys = (("iteration", "epoch",), ("max_epochs", "max_iters",))
 
     def __init__(self, process_function: Callable):
         super(Engine, self).__init__()
@@ -496,11 +496,11 @@ class Engine(Serializable):
 
         """
         keys = self._state_dict_all_req_keys  # type: Tuple[str, ...]
-        keys += ("iteration", )
+        keys += ("iteration",)
         if self.state.max_epochs is not None:
-            keys += ("max_epochs", )
+            keys += ("max_epochs",)
         else:
-            keys += ("max_iters", )
+            keys += ("max_iters",)
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
@@ -664,7 +664,7 @@ class Engine(Serializable):
 
         if max_epochs is not None and max_iters is not None:
             raise ValueError(
-                "Arguments max_iters and max_epochs are mutually exclusive."
+                "Arguments max_iters and max_epochs are mutually exclusive. "
                 "Please provide only max_epochs or max_iters."
             )
 
@@ -677,7 +677,7 @@ class Engine(Serializable):
 
         if self.state.max_epochs is not None and self.state.max_iters is not None:
             raise ValueError(
-                "State attributes max_iters and max_epochs are mutually exclusive."
+                "State attributes max_iters and max_epochs are mutually exclusive. "
                 "Please set max_epochs or max_iters to None"
             )
 
@@ -713,25 +713,24 @@ class Engine(Serializable):
             pass
         return None
 
-    def _check_and_set_max_epochs(self, max_epochs: Optional[int] = None):
-        if self.state.max_epochs is not None:
-            if max_epochs is not None:
-                if max_epochs < self.state.epoch:
-                    raise ValueError(
-                        "Argument max_epochs should be larger than the current epoch "
-                        f"defined in the state: {max_epochs} vs {self.state.epoch}. "
-                        "Please, set engine.state.max_epochs = None "
-                        "before calling engine.run() in order to restart the training from the beginning."
-                    )
-                self.state.max_epochs = max_epochs
-        elif max_epochs is not None:
+    def _check_and_set_max_epochs(self, max_epochs: Optional[int] = None) -> None:
+        if max_epochs is not None:
             if max_epochs < 1:
                 raise ValueError("Argument max_epochs is invalid. Please, set a correct max_epochs positive value")
+            if self.state.max_epochs is not None and max_epochs <= self.state.epoch:
+                raise ValueError(
+                    "Argument max_epochs should be larger than the current epoch "
+                    f"defined in the state: {max_epochs} vs {self.state.epoch}. "
+                    "Please, set engine.state.max_epochs = None "
+                    "before calling engine.run() in order to restart the training from the beginning."
+                )
             self.state.max_epochs = max_epochs
 
-    def _check_and_set_max_iters(self, max_iters: Optional[int] = None):
-        if self.state.max_iters is not None and max_iters is not None:
-            if max_iters < self.state.iteration:
+    def _check_and_set_max_iters(self, max_iters: Optional[int] = None) -> None:
+        if max_iters is not None:
+            if max_iters < 1:
+                raise ValueError("Argument max_iters is invalid. Please, set a correct max_iters positive value")
+            if (self.state.max_iters is not None) and max_iters <= self.state.iteration:
                 raise ValueError(
                     "Argument max_iters should be larger than the current iteration "
                     f"defined in the state: {max_iters} vs {self.state.iteration}. "
@@ -739,12 +738,8 @@ class Engine(Serializable):
                     "before calling engine.run() in order to restart the training from the beginning."
                 )
             self.state.max_iters = max_iters
-        elif max_iters is not None:
-            if max_iters < 1:
-                raise ValueError("Argument max_iters is invalid. Please, set a correct max_iters positive value")
-            self.state.max_iters = max_iters
 
-    def _check_and_set_epoch_length(self, data: Iterable, epoch_length: Optional[int] = None):
+    def _check_and_set_epoch_length(self, data: Iterable, epoch_length: Optional[int] = None) -> None:
         # Can't we accept a redefinition ?
         if self.state.epoch_length is not None:
             if epoch_length is not None:

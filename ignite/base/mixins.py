@@ -1,14 +1,14 @@
 from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Tuple, List
+from typing import List, Tuple
 
 
 class Serializable:
 
     _state_dict_all_req_keys = ()  # type: Tuple[str, ...]
-    _state_dict_one_of_opt_keys = ()  # type: Tuple[Tuple[str, ...]]
+    _state_dict_one_of_opt_keys = ((),)  # type: Tuple[Tuple[str, ...], ...]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._state_dict_user_keys = []  # type: List[str]
 
     @property
