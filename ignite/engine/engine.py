@@ -612,12 +612,12 @@ class Engine(Serializable):
 
         Engine has a state and the following logic is applied in this function:
 
-        - At the first call, new state is defined by `max_epochs`, `max_iters`, `epoch_length`, if provided.
+        - At the first call, new state is defined by `max_epochs` or `max_iters` and `epoch_length`, if provided.
           A timer for total and per-epoch time is initialized when Events.STARTED is handled.
-        - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
-          provided, state is kept and used in the function.
-        - If state is defined and engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
-        - If state is defined, engine is NOT "done", then input arguments if provided override defined state.
+        - If state is defined such that there are iterations to run until `max_epochs` or `max_iters`
+          and no input arguments provided, state is kept and used in the function.
+        - If engine is "done" (no iterations to run until `max_epochs`), a new state is defined.
+        - If engine is NOT "done", then input arguments if provided override defined state.
 
         Args:
             data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
@@ -662,54 +662,33 @@ class Engine(Serializable):
         if not isinstance(data, Iterable):
             raise TypeError("Argument data should be iterable")
 
-        if self.state.max_epochs is not None:
-            # Check and apply overridden parameters
-            if max_epochs is not None:
-                if max_epochs < self.state.epoch:
-                    raise ValueError(
-                        "Argument max_epochs should be larger than the start epoch "
-                        f"defined in the state: {max_epochs} vs {self.state.epoch}. "
-                        "Please, set engine.state.max_epochs = None "
-                        "before calling engine.run() in order to restart the training from the beginning."
-                    )
-                self.state.max_epochs = max_epochs
-            if epoch_length is not None:
-                if epoch_length != self.state.epoch_length:
-                    raise ValueError(
-                        "Argument epoch_length should be same as in the state, "
-                        f"but given {epoch_length} vs {self.state.epoch_length}"
-                    )
-
-        if self.state.max_epochs is None or self._is_done(self.state):
-            # Create new state
-            if epoch_length is None:
-                epoch_length = self._get_data_length(data)
-                if epoch_length is not None and epoch_length < 1:
-                    raise ValueError("Input data has zero size. Please provide non-empty data")
-
-            if max_iters is None:
-                if max_epochs is None:
-                    max_epochs = 1
-            else:
-                if max_epochs is not None:
-                    raise ValueError(
-                        "Arguments max_iters and max_epochs are mutually exclusive."
-                        "Please provide only max_epochs or max_iters."
-                    )
-                if epoch_length is not None:
-                    max_epochs = math.ceil(max_iters / epoch_length)
-
-            self.state.iteration = 0
-            self.state.epoch = 0
-            self.state.max_epochs = max_epochs
-            self.state.max_iters = max_iters
-            self.state.epoch_length = epoch_length
-            self.logger.info(f"Engine run starting with max_epochs={max_epochs}.")
-        else:
-            self.logger.info(
-                f"Engine run resuming from iteration {self.state.iteration}, "
-                f"epoch {self.state.epoch} until {self.state.max_epochs} epochs"
+        if max_epochs is not None and max_iters is not None:
+            raise ValueError(
+                "Arguments max_iters and max_epochs are mutually exclusive."
+                "Please provide only max_epochs or max_iters."
             )
+
+        self._check_and_set_max_epochs(max_epochs)
+        self._check_and_set_max_iters(max_iters)
+        self._check_and_set_epoch_length(data, epoch_length)
+
+        if self.state.max_epochs is None and self.state.max_iters is None:
+            self.state.max_epochs = 1
+
+        msg = "Engine run starting with {}."
+        if self._is_done(self.state):
+            # Reset iteration/epoch counters
+            self.state.iteration = 0
+            self.state.epoch = 0    
+        elif self.state.iteration > 0:
+            msg = f"Engine run resuming from iteration {self.state.iteration}, epoch {self.state.epoch} " + "until {}."
+
+        if self.state.max_epochs is not None:
+            msg = msg.format(f"max_epochs={self.state.max_epochs}")
+        elif self.state.max_iters is not None:
+            msg = msg.format(f"max_iters={self.state.max_iters}")
+
+        self.logger.info(msg)
 
         self.state.dataloader = data
         return self._internal_run()
@@ -727,6 +706,58 @@ class Engine(Serializable):
             # _InfiniteConstantSampler can raise a TypeError on DataLoader length of a IterableDataset
             pass
         return None
+
+    def _check_and_set_max_epochs(self, max_epochs: Optional[int] = None):
+        if self.state.max_epochs is not None:
+            if max_epochs is not None:
+                if max_epochs < self.state.epoch:
+                    raise ValueError(
+                        "Argument max_epochs should be larger than the start epoch "
+                        f"defined in the state: {max_epochs} vs {self.state.epoch}. "
+                        "Please, set engine.state.max_epochs = None "
+                        "before calling engine.run() in order to restart the training from the beginning."
+                    )
+                self.state.max_epochs = max_epochs
+        elif max_epochs is not None:
+            if max_epochs < 1:
+                raise ValueError("Argument max_epochs is invalid. Please, set a correct max_epochs positive value")
+            self.state.max_epochs = max_epochs
+
+    def _check_and_set_max_iters(self, max_iters: Optional[int] = None):
+        if self.state.max_iters is not None and max_iters is not None:
+            if max_iters < self.state.iteration:
+                raise ValueError(
+                    "Argument max_iters should be larger than the start iteration "
+                    f"defined in the state: {max_iters} vs {self.state.iteration}. "
+                    "Please, set engine.state.max_iters = None "
+                    "before calling engine.run() in order to restart the training from the beginning."
+                )
+            self.state.max_iters = max_iters
+        elif max_iters is not None:
+            if max_iters < 1:
+                raise ValueError("Argument max_iters is invalid. Please, set a correct max_iters positive value")
+            self.state.max_iters = max_iters
+
+    def _check_and_set_epoch_length(self, data: Iterable, epoch_length: Optional[int] = None):
+        # Can't we accept a redefinition ?
+        if self.state.epoch_length is not None:
+            if epoch_length is not None:
+                if epoch_length != self.state.epoch_length:
+                    raise ValueError(
+                        "Argument epoch_length should be same as in the state, "
+                        f"but given {epoch_length} vs {self.state.epoch_length}"
+                    )
+        else:
+            if epoch_length is None:
+                epoch_length = self._get_data_length(data)
+
+            if epoch_length is not None and epoch_length < 1:
+                raise ValueError(
+                    "Argument epoch_length is invalid. Please, either set a correct epoch_length value or "
+                    "check if input data has non-zero size."
+                )
+
+            self.state.epoch_length = epoch_length
 
     def _setup_engine(self) -> None:
         if self.state.dataloader is None:
@@ -805,8 +836,9 @@ class Engine(Serializable):
                 raise RuntimeError(
                     "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
                 )
-
-            while True:
+            c = 0
+            # while True:
+            while c < 30:
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
@@ -820,12 +852,16 @@ class Engine(Serializable):
                     if self.state.epoch_length is None:
                         # Define epoch length and stop the epoch
                         self.state.epoch_length = iter_counter
-                        if self.state.max_iters is not None:
-                            self.state.max_epochs = math.ceil(self.state.max_iters / self.state.epoch_length)
+                        
+                        print("defined epoch length", self.state)
+                        # Let's avoid that
+                        # if self.state.max_iters is not None:
+                        #     self.state.max_epochs = math.ceil(self.state.max_iters / self.state.epoch_length)
                         break
 
                     # Should exit while loop if we can not iterate
                     if should_exit:
+                        print("should_exit", self.state, self._is_done(self.state))
                         if not self._is_done(self.state):
                             total_iters = (
                                 self.state.epoch_length * self.state.max_epochs
@@ -868,8 +904,22 @@ class Engine(Serializable):
                     self.should_terminate = True
                     break
 
+                c += 1
+
+            print("c=", c)
+
         except Exception as e:
             self.logger.error(f"Current run is terminating due to exception: {e}")
             self._handle_exception(e)
 
         return time.time() - start_time
+
+    def debug(self, enabled: bool = True) -> None:
+        """Enables/Disables engine logging debug mode
+        """
+        from ignite.utils import setup_logger
+
+        if enabled:
+            self.logger = setup_logger(level=logging.DEBUG)
+        else:
+            self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)

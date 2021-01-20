@@ -334,6 +334,9 @@ def test__is_done():
     state = State(iteration=1000, max_epochs=10, epoch_length=100)
     assert Engine._is_done(state)
 
+    state = State(iteration=11, epoch=2, max_epochs=None, epoch_length=11, max_iters=22)
+    assert not Engine._is_done(state)
+
 
 def test__setup_engine():
     engine = Engine(lambda e, b: 1)
@@ -349,7 +352,10 @@ def test__setup_engine():
 def test_run_asserts():
     engine = Engine(lambda e, b: 1)
 
-    with pytest.raises(ValueError, match=r"Input data has zero size. Please provide non-empty data"):
+    with pytest.raises(
+        ValueError,
+        match=r"Argument epoch_length is invalid. Please, either set a correct epoch_length value or check if input data has non-zero size.",
+    ):
         engine.run([])
 
 
@@ -619,15 +625,25 @@ def test_engine_with_dataloader_no_auto_batching():
         data, batch_size=None, sampler=BatchSampler(RandomSampler(data), batch_size=8, drop_last=True)
     )
 
-    counter = [0]
+    def _test(**kwargs):
+        counter = [0]
 
-    def foo(e, b):
-        counter[0] += 1
+        def foo(e, b):
+            counter[0] += 1
 
-    engine = Engine(foo)
-    engine.run(data_loader, epoch_length=10, max_epochs=5)
+        engine = Engine(foo)
+        epoch_length = 10
+        engine.run(data_loader, epoch_length=epoch_length, **kwargs)
 
-    assert counter[0] == 50
+        max_epochs = kwargs.get("max_epochs", None)
+        max_iters = kwargs.get("max_iters", None)
+        if max_epochs:
+            assert counter[0] == epoch_length * max_epochs
+        else:
+            assert counter[0] == max_iters
+
+    _test(max_epochs=5)
+    _test(max_iters=25)
 
 
 def test_run_once_finite_iterator_no_epoch_length():
@@ -639,19 +655,40 @@ def test_run_once_finite_iterator_no_epoch_length():
         for i in range(unknown_size):
             yield i
 
-    bc = BatchChecker(data=list(range(unknown_size)))
+    def _test(**kwargs):
+        bc = BatchChecker(data=list(range(unknown_size)))
 
-    engine = Engine(lambda e, b: bc.check(b))
+        def foo(e, b):
+            print(e.state.iteration, ":", b)
+            bc.check(b)
 
-    completed_handler = MagicMock()
-    engine.add_event_handler(Events.COMPLETED, completed_handler)
+        # engine = Engine(lambda e, b: bc.check(b))
+        engine = Engine(foo)
+        engine.debug()
 
-    data_iter = finite_unk_size_data_iter()
-    engine.run(data_iter)
+        epoch_completed_handler = MagicMock()
+        engine.add_event_handler(Events.EPOCH_COMPLETED, epoch_completed_handler)
 
-    assert engine.state.epoch == 1
-    assert engine.state.iteration == unknown_size
-    assert completed_handler.call_count == 1
+        completed_handler = MagicMock()
+        engine.add_event_handler(Events.COMPLETED, completed_handler)
+
+        data_iter = finite_unk_size_data_iter()
+        engine.run(data_iter, **kwargs)
+
+        assert bc.counter == engine.state.iteration
+        # assert engine.state.epoch == 1, engine.state
+        if len(kwargs) == 0:            
+            assert engine.state.iteration == unknown_size
+            assert epoch_completed_handler.call_count == 1
+        else:
+            max_iters = kwargs["max_iters"]
+            assert engine.state.iteration == max_iters            
+        assert completed_handler.call_count == 1        
+
+    # _test()
+    # _test(max_iters=unknown_size)
+    # _test(max_iters=unknown_size // 2)
+    _test(max_iters=unknown_size * 2)
 
 
 def test_run_finite_iterator_no_epoch_length():
