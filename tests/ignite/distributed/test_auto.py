@@ -99,7 +99,7 @@ def _test_auto_model_optimizer(ws, device):
 def test_auto_methods_no_dist():
 
     _test_auto_dataloader(1, 1, batch_size=1)
-    _test_auto_dataloader(1, 1, batch_size=10, num_workers=10)
+    _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="WeightedRandomSampler")
 
     _test_auto_model_optimizer(1, "cpu")
@@ -111,7 +111,7 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
 
     ws = distributed_context_single_node_gloo["world_size"]
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
-    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
 
     _test_auto_model_optimizer(ws, "cpu")
@@ -162,7 +162,7 @@ def _test_auto_methods_xla(index, ws):
             pass
 
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, dl_type=dl_type)
-    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10, dl_type=dl_type)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, dl_type=dl_type)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler", dl_type=dl_type)
 
     device = "xla"
