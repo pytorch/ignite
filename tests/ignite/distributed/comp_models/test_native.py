@@ -321,8 +321,8 @@ def _test__native_dist_model_spawn(backend, num_workers_per_machine, device, **s
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__native_dist_model_spawn_gloo():
-    _test__native_dist_model_spawn("gloo", num_workers_per_machine=2, device="cpu")
-    _test__native_dist_model_spawn("gloo", num_workers_per_machine=2, device="cpu", start_method="fork")
+    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu")
+    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu", start_method="fork")
 
 
 @pytest.mark.distributed
