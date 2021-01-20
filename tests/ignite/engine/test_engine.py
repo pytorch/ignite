@@ -1141,6 +1141,7 @@ def test_restart_training():
 
 def test_engine_multiple_runs():
     engine = Engine(lambda e, b: 1)
+    engine.debug()
 
     init_epoch = 0
     init_iter = 0
@@ -1157,6 +1158,8 @@ def test_engine_multiple_runs():
     engine.run(data, max_epochs=2)
     assert engine.state.epoch == 2
     assert engine.state.iteration == 2 * epoch_length
+
+    engine.debug(False)
 
     # Continue run with max_epochs
     data = range(15)
