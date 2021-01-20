@@ -77,4 +77,4 @@ reproducible baselines for vision tasks:
 Features:
 
 - Distributed training with mixed precision by `nvidia/apex <https://github.com/NVIDIA/apex/>`_
-- Experiments tracking with `MLflow <https://mlflow.org/>`_ or `Polyaxon <https://polyaxon.com/>`_ or `TRAINS <https://github.com/allegroai/trains/>`_
+- Experiments tracking with `MLflow <https://mlflow.org/>`_ or `Polyaxon <https://polyaxon.com/>`_ or `ClearML <https://github.com/allegroai/clearml/>`_

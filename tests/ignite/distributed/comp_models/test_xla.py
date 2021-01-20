@@ -17,6 +17,9 @@ def test__xla_model():
     available_backends = _XlaDistModel.available_backends
     assert "xla-tpu" in available_backends
 
+    with pytest.raises(ValueError, match=r"Backend should be one of"):
+        _XlaDistModel.create_from_backend("abc")
+
 
 def _test_xla_spawn_fn(local_rank, world_size, device):
     from ignite.distributed.utils import _model

@@ -15,4 +15,4 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          numpy \
                                          opencv-python \
                                          py_config_runner \
-                                         "trains>=0.15.0"
+                                         clearml
