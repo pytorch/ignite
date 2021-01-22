@@ -31,17 +31,18 @@ class MetricUsage:
             :meth:`~ignite.metrics.Metric.iteration_completed`.
     """
 
-    def __init__(self, started: Events, completed: Events, iteration_completed: CallableEventWithFilter) -> None:
+    def __init__(self, started: CallableEventWithFilter, completed: CallableEventWithFilter,
+                 iteration_completed: CallableEventWithFilter) -> None:
         self.__started = started
         self.__completed = completed
         self.__iteration_completed = iteration_completed
 
     @property
-    def STARTED(self) -> Events:
+    def STARTED(self) -> CallableEventWithFilter:
         return self.__started
 
     @property
-    def COMPLETED(self) -> Events:
+    def COMPLETED(self) -> CallableEventWithFilter:
         return self.__completed
 
     @property

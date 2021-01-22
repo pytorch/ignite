@@ -7,7 +7,7 @@ import torch
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
-from ignite.metrics import Frequency
+from ignite.metrics import Frequency, FrequencyWise
 
 if sys.platform.startswith("darwin"):
     pytest.skip("Skip if on MacOS", allow_module_level=True)
@@ -45,7 +45,7 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, every=1):
     engine = Engine(update_fn)
     wps_metric = Frequency(output_transform=lambda x: x["ntokens"])
     event = Events.ITERATION_COMPLETED(every=every)
-    wps_metric.attach(engine, "wps", event_name=event)
+    wps_metric.attach(engine, "wps", usage=FrequencyWise(event))
 
     @engine.on(event)
     def assert_wps(e):

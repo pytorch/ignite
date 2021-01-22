@@ -3,9 +3,19 @@ from typing import Any, Callable, Union
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, Events, CallableEventWithFilter
 from ignite.handlers.timing import Timer
-from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
+
+
+class FrequencyWise(MetricUsage):
+
+    def __init__(self, event: CallableEventWithFilter = Events.ITERATION_COMPLETED) -> None:
+        super(FrequencyWise, self).__init__(
+            started=Events.EPOCH_STARTED,
+            completed=event,
+            iteration_completed=Events.ITERATION_COMPLETED,
+        )
 
 
 class Frequency(Metric):
@@ -30,7 +40,7 @@ class Frequency(Metric):
 
             # Compute number of tokens processed
             wps_metric = Frequency(output_transform=lambda x: x['ntokens'])
-            wps_metric.attach(trainer, name='wps', event_name=Events.ITERATION_COMPLETED(every=50))
+            wps_metric.attach(trainer, name='wps', usage=FrequencyWise(Events.ITERATION_COMPLETED(every=50)))
             # Logging with TQDM
             ProgressBar(persist=True).attach(trainer, metric_names=['wps'])
             # Progress bar will look like
@@ -41,6 +51,10 @@ class Frequency(Metric):
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ) -> None:
         super(Frequency, self).__init__(output_transform=output_transform, device=device)
+        self._timer = Timer()
+        self._acc = 0
+        self._n = 0
+        self._elapsed = 0.0
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -48,7 +62,6 @@ class Frequency(Metric):
         self._acc = 0
         self._n = 0
         self._elapsed = 0.0
-        super(Frequency, self).reset()
 
     @reinit__is_reduced
     def update(self, output: int) -> None:
@@ -58,21 +71,9 @@ class Frequency(Metric):
 
     @sync_all_reduce("_n", "_elapsed")
     def compute(self) -> float:
-        time_divisor = 1.0
-
-        if idist.get_world_size() > 1:
-            time_divisor *= idist.get_world_size()
-
         # Returns the average processed objects per second across all workers
-        return self._n / self._elapsed * time_divisor
+        return int(self._n / self._elapsed * idist.get_world_size())
 
-    def completed(self, engine: Engine, name: str) -> None:
-        engine.state.metrics[name] = int(self.compute())
-
-    # TODO: see issue https://github.com/pytorch/ignite/issues/1405
-    def attach(  # type: ignore
-        self, engine: Engine, name: str, event_name: Events = Events.ITERATION_COMPLETED
-    ) -> None:
-        engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(event_name, self.completed, name)
+    # override the method attach() of Metrics to define a different default value for usage
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = FrequencyWise()) -> None:
+        super(Frequency, self).attach(engine, name, usage)
