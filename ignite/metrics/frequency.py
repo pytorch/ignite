@@ -3,18 +3,15 @@ from typing import Any, Callable, Union
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import Engine, Events, CallableEventWithFilter
+from ignite.engine import CallableEventWithFilter, Engine, Events
 from ignite.handlers.timing import Timer
 from ignite.metrics.metric import Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
 
 
 class FrequencyWise(MetricUsage):
-
     def __init__(self, event: CallableEventWithFilter = Events.ITERATION_COMPLETED) -> None:
         super(FrequencyWise, self).__init__(
-            started=Events.EPOCH_STARTED,
-            completed=event,
-            iteration_completed=Events.ITERATION_COMPLETED,
+            started=Events.EPOCH_STARTED, completed=event, iteration_completed=Events.ITERATION_COMPLETED,
         )
 
 
