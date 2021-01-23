@@ -45,7 +45,7 @@ def test_invalid_psnr():
 
 
 def _test_psnr(y_pred, y, data_range, device):
-    psnr = PSNR(data_range=data_range)
+    psnr = PSNR(data_range=data_range, device=device)
     psnr.update((y_pred, y))
     psnr_compute = psnr.compute()
 
