@@ -6,9 +6,9 @@ import torch
 from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
 import ignite.distributed as idist
-from ignite.utils import manual_seed
 from ignite.exceptions import NotComputableError
 from ignite.metrics import PSNR
+from ignite.utils import manual_seed
 
 manual_seed(42)
 

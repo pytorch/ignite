@@ -1,4 +1,4 @@
-from typing import Union, Callable, Sequence, Optional
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 import torch.nn.functional as F
