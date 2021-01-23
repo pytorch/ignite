@@ -53,7 +53,7 @@ def _test_psnr(y_pred, y, data_range, device):
     np_y = y.permute(0, 2, 3, 1).cpu().numpy()
 
     assert isinstance(psnr_compute, torch.Tensor)
-    # assert psnr_compute.dtype == torch.float64
+    assert psnr_compute.dtype == torch.float64
     assert psnr_compute.device == torch.device(device)
     assert np.allclose(psnr_compute.numpy(), ski_psnr(np_y, np_y_pred, data_range=data_range) / y.shape[0])
 
@@ -69,6 +69,10 @@ def test_psnr():
     y = y_pred * 0.8
     _test_psnr(y_pred, y, None, device)
     _test_psnr(y_pred, y, 1.0, device)
+
+    y_pred = torch.empty(2, 3, 12, 12, device=device).random_(-1, 2)
+    y = torch.empty(2, 3, 12, 12, device=device).random_(-1, 2)
+    _test_psnr(y_pred, y, None, device)
 
 
 def _test_distrib_integration(device):
@@ -96,7 +100,7 @@ def _test_distrib_integration(device):
 
         np_y_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
         np_y = y.permute(0, 2, 3, 1).cpu().numpy()
-        print(ski_psnr(np_y, np_y_pred, data_range=data_range) / s)
+
         assert np.allclose(result, ski_psnr(np_y, np_y_pred, data_range=data_range) / s)
 
     y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)

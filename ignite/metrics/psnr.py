@@ -94,7 +94,9 @@ class PSNR(Metric):
                 self.data_range = dmax - dmin
 
         mse_error = F.mse_loss(y_pred, y)
-        self._sum_of_batchwise_psnr += 10.0 * torch.log10((self.data_range ** 2) / mse_error)
+        self._sum_of_batchwise_psnr += 10.0 * torch.log10((self.data_range ** 2) / mse_error).to(
+            dtype=torch.float64, device=self._device
+        )
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
