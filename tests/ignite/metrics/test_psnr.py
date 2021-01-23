@@ -75,7 +75,7 @@ def test_psnr():
     _test_psnr(y_pred, y, None, device)
 
 
-def _test_distrib_integration(device, atol=1e-7):
+def _test_distrib_integration(device, atol=1e-6):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
