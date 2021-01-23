@@ -75,7 +75,7 @@ def test_psnr():
     _test_psnr(y_pred, y, None, device)
 
 
-def _test_distrib_integration(device):
+def _test_distrib_integration(device, atol=1e-7):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -101,7 +101,7 @@ def _test_distrib_integration(device):
         np_y_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
         np_y = y.permute(0, 2, 3, 1).cpu().numpy()
 
-        assert np.allclose(result, ski_psnr(np_y, np_y_pred, data_range=data_range) / s)
+        assert np.allclose(result, ski_psnr(np_y, np_y_pred, data_range=data_range) / s, atol=atol)
 
     y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)
     y = y_pred * 0.65
