@@ -57,7 +57,7 @@ class PSNR(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_batchwise_psnr = 0
+        self._sum_of_batchwise_psnr = 0  # type: Union[float, torch.Tensor]
         self._num_examples = 0
 
     @reinit__is_reduced
@@ -101,4 +101,4 @@ class PSNR(Metric):
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return torch.sum(self._sum_of_batchwise_psnr / self._num_examples)
+        return torch.sum(self._sum_of_batchwise_psnr / self._num_examples)  # type: ignore[arg-type]
