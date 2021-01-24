@@ -194,7 +194,7 @@ def spawn(
     args: Tuple,
     kwargs_dict: Optional[Mapping] = None,
     nproc_per_node: int = 1,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """Spawns ``nproc_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
     distributed configuration defined by ``backend``.
@@ -496,7 +496,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
     for comp_model_cls in registered_computation_models:
         if backend not in comp_model_cls.available_backends:
             continue
-        _set_model(comp_model_cls(backend, **kwargs))  # type: ignore[arg-type]
+        _set_model(comp_model_cls(backend, **kwargs))
 
 
 def finalize() -> None:

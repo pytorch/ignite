@@ -196,10 +196,24 @@ class Checkpoint(Serializable):
             lr_scheduler = ...
 
             to_save = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'trainer': trainer}
-            handler = Checkpoint(to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2)
-            trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
+
+            if (checkpoint_iters):
+                # A: Output is "checkpoint_<iteration>.pt"
+                handler = Checkpoint(
+                    to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2
+                )
+                trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
+            else:
+                # B:Output is "checkpoint_<epoch>.pt"
+                gst = lambda *_: trainer.state.epoch
+                handler = Checkpoint(
+                    to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2, global_step_transform=gst
+                )
+                trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
+
             trainer.run(data_loader, max_epochs=6)
-            > ["checkpoint_7000.pt", "checkpoint_8000.pt", ]
+            > A: ["checkpoint_7000.pt", "checkpoint_8000.pt", ]
+            > B: ["checkpoint_5.pt", "checkpoint_6.pt", ]
 
         Attach the handler to an evaluator to save best model during the training
         according to computed validation metric:
@@ -287,6 +301,32 @@ class Checkpoint(Serializable):
         self.filename_pattern = filename_pattern
         self._saved = []  # type: List["Checkpoint.Item"]
         self.include_self = include_self
+
+    def reset(self) -> None:
+        """Method to reset saved checkpoint names.
+
+        Use this method if the engine will independently run multiple times:
+
+        .. code-block:: python
+
+            from ignite.handlers import Checkpoint
+
+            trainer = ...
+            checkpointer = Checkpoint(...)
+
+            trainer.add_event_handler(Events.COMPLETED, checkpointer)
+            trainer.add_event_handler(Events.STARTED, checkpointer.reset)
+
+            # fold 0
+            trainer.run(data0, max_epochs=max_epochs)
+            print("Last checkpoint:", checkpointer.last_checkpoint)
+
+            # fold 1
+            trainer.run(data1, max_epochs=max_epochs)
+            print("Last checkpoint:", checkpointer.last_checkpoint)
+
+        """
+        self._saved = []
 
     @property
     def last_checkpoint(self) -> Optional[str]:
@@ -663,11 +703,11 @@ class ModelCheckpoint(Checkpoint):
         >>> handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True)
         >>> model = nn.Linear(3, 3)
         >>> trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
-        >>> trainer.run([0], max_epochs=6)
+        >>> trainer.run([0, 1, 2, 3, 4], max_epochs=6)
         >>> os.listdir('/tmp/models')
-        ['myprefix_mymodel_4.pt', 'myprefix_mymodel_6.pt']
+        ['myprefix_mymodel_20.pt', 'myprefix_mymodel_30.pt']
         >>> handler.last_checkpoint
-        ['/tmp/models/myprefix_mymodel_6.pt']
+        ['/tmp/models/myprefix_mymodel_30.pt']
     """
 
     def __init__(
@@ -682,7 +722,7 @@ class ModelCheckpoint(Checkpoint):
         create_dir: bool = True,
         global_step_transform: Optional[Callable] = None,
         include_self: bool = False,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
 
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)

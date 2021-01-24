@@ -27,7 +27,7 @@ def test_update_dataloader():
         total_batch_size = 4
         num_iters = 17
         data = torch.randint(0, 1000, size=(num_iters * total_batch_size,))
-        num_workers = 4
+        num_workers = 2
 
         sampler, batch_size = setup_sampler(sampler_type, num_iters, total_batch_size)
         dataloader = DataLoader(
@@ -251,7 +251,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
 
         for resume_epoch in range(1, max_epochs, 2):
 
-            for num_workers in [0, 4]:
+            for num_workers in [0, 2]:
                 sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
 
                 orig_dataloader = DataLoader(
@@ -359,7 +359,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
 
         for resume_iteration in range(2, min(num_iters * max_epochs, epoch_length * max_epochs), 13):
 
-            for num_workers in [0, 4]:
+            for num_workers in [0, 2]:
 
                 sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
                 orig_dataloader = DataLoader(
@@ -663,7 +663,7 @@ def _test_gradients_on_resume(
 
     def random_train_data_loader(size):
         d = AugmentedData(torch.rand(size, 3, 32, 32), enabled=with_dataaugs)
-        return DataLoader(d, batch_size=batch_size, shuffle=True, num_workers=4)
+        return DataLoader(d, batch_size=batch_size, shuffle=True, num_workers=2)
 
     def _train(save_iter=None, save_epoch=None, sd=None):
         w_norms = []

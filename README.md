@@ -4,7 +4,6 @@
 
 <img src="assets/logo/ignite_logo_mixed.svg" width=512>
 
-
 <!-- [![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite) -->
 
 | ![image](https://img.shields.io/badge/-Tests:-black?style=flat-square) [![image](https://github.com/pytorch/ignite/workflows/Run%20unit%20tests/badge.svg)](https://github.com/pytorch/ignite/actions) [![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master) [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html) |
@@ -297,12 +296,12 @@ docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 1
 
 Available pre-built images are :
 
-- `pytorchignite/base:latest | pytorchignite/hvd-base:latest | pytorchignite/msdp-apex-base:latest`
-- `pytorchignite/apex:latest | pytorchignite/hvd-apex:latest`
-- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest | pytorchignite/msdp-apex-vision:latest`
-- `pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest`
-- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest | pytorchignite/msdp-apex-nlp:latest`
-- `pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest`
+- `pytorchignite/base:latest | pytorchignite/hvd-base:latest`
+- `pytorchignite/apex:latest | pytorchignite/hvd-apex:latest | pytorchignite/msdp-apex:latest`
+- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest`
+- `pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest | pytorchignite/msdp-apex-vision:latest`
+- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest`
+- `pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest | pytorchignite/msdp-apex-nlp:latest`
 
 For more details, see [here](docker).
 
@@ -364,9 +363,8 @@ Complete list of examples can be found [here](https://pytorch.org/ignite/example
 - [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb) [MNIST training on a single
   TPU](https://github.com/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)
 - [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E9zJrptnLJ_PKhmaP5Vhb6DTVRvyrKHx) [CIFAR10 Training on multiple TPUs](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/HandlersTimeProfiler_MNIST.ipynb) [Basic example of handlers 
+- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/HandlersTimeProfiler_MNIST.ipynb) [Basic example of handlers
   time profiling on MNIST training example](https://github.com/pytorch/ignite/blob/master/examples/notebooks/HandlersTimeProfiler_MNIST.ipynb)
-
 
 ## Reproducible Training Examples
 
@@ -379,7 +377,7 @@ we provide several reproducible baselines for vision tasks:
 Features:
 
 - Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
-- Experiments tracking with [MLflow](https://mlflow.org/), [Polyaxon](https://polyaxon.com/) or [TRAINS](https://github.com/allegroai/trains/)
+- Experiments tracking with [MLflow](https://mlflow.org/), [Polyaxon](https://polyaxon.com/) or [ClearML](https://github.com/allegroai/clearml/)
 
 <!-- ############################################################################################################### -->
 

@@ -51,14 +51,16 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
         assert dataloader.pin_memory == ("cuda" in idist.device().type)
 
 
-def _test_auto_model(model, ws, device, sync_bn=False):
-    model = auto_model(model, sync_bn=sync_bn)
+def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
+    model = auto_model(model, sync_bn=sync_bn, **kwargs)
     bnd = idist.backend()
     if ws > 1 and device in ("cuda", "cpu"):
-        if idist.has_native_dist_support and bnd in ("nccl" or "gloo"):
+        if idist.has_native_dist_support and bnd in ("nccl", "gloo"):
             assert isinstance(model, nn.parallel.DistributedDataParallel)
             if sync_bn:
                 assert any([isinstance(m, nn.SyncBatchNorm) for m in model.modules()])
+            if "find_unused_parameters" in kwargs:
+                assert model.find_unused_parameters == kwargs["find_unused_parameters"]
         elif idist.has_hvd_support and bnd in ("horovod",):
             assert isinstance(model, nn.Module)
     elif device != "cpu" and torch.cuda.is_available() and torch.cuda.device_count() > 1:
@@ -78,6 +80,9 @@ def _test_auto_model_optimizer(ws, device):
 
     model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
     _test_auto_model(model, ws, device, sync_bn="cuda" in device)
+    if ws > 1:
+        _test_auto_model(model, ws, device, find_unused_parameters=True)
+        _test_auto_model(model, ws, device, find_unused_parameters=False)
 
     # Test auto_optim
     bnd = idist.backend()
@@ -94,7 +99,7 @@ def _test_auto_model_optimizer(ws, device):
 def test_auto_methods_no_dist():
 
     _test_auto_dataloader(1, 1, batch_size=1)
-    _test_auto_dataloader(1, 1, batch_size=10, num_workers=10)
+    _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="WeightedRandomSampler")
 
     _test_auto_model_optimizer(1, "cpu")
@@ -106,7 +111,7 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
 
     ws = distributed_context_single_node_gloo["world_size"]
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
-    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
 
     _test_auto_model_optimizer(ws, "cpu")
@@ -157,7 +162,7 @@ def _test_auto_methods_xla(index, ws):
             pass
 
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, dl_type=dl_type)
-    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10, dl_type=dl_type)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, dl_type=dl_type)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler", dl_type=dl_type)
 
     device = "xla"

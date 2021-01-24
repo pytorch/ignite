@@ -39,6 +39,9 @@ if has_xla_support:
 
         @staticmethod
         def create_from_backend(backend: str = XLA_TPU, **kwargs: Any) -> "_XlaDistModel":
+            if backend not in _XlaDistModel.available_backends:
+                raise ValueError(f"Backend should be one of '{_XlaDistModel.available_backends}'")
+
             return _XlaDistModel(backend=backend, **kwargs)
 
         def __init__(self, backend: Optional[str] = None, **kwargs: Any):
@@ -113,7 +116,7 @@ if has_xla_support:
             nnodes: int = 1,
             node_rank: int = 0,
             backend: str = XLA_TPU,
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             if "start_method" not in kwargs:
                 kwargs["start_method"] = "fork"

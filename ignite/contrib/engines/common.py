@@ -11,6 +11,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import ignite.distributed as idist
 from ignite.contrib.handlers import (
+    ClearMLLogger,
     LRScheduler,
     MLflowLogger,
     NeptuneLogger,
@@ -46,7 +47,7 @@ def setup_common_training_handlers(
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
 
@@ -149,7 +150,7 @@ def _setup_common_training_handlers(
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     if output_path is not None and save_handler is not None:
         raise ValueError(
@@ -237,7 +238,7 @@ def _setup_common_distrib_training_handlers(
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
 
     _setup_common_training_handlers(
@@ -331,7 +332,7 @@ def setup_tb_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> TensorboardLogger:
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -363,7 +364,7 @@ def setup_visdom_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> VisdomLogger:
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -394,7 +395,7 @@ def setup_mlflow_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> MLflowLogger:
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -425,7 +426,7 @@ def setup_neptune_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> NeptuneLogger:
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -456,7 +457,7 @@ def setup_wandb_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> WandBLogger:
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -487,7 +488,7 @@ def setup_plx_logging(
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> PolyaxonLogger:
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
 
@@ -513,14 +514,14 @@ def setup_plx_logging(
     return logger
 
 
-def setup_trains_logging(
+def setup_clearml_logging(
     trainer: Engine,
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
     evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
     log_every_iters: int = 100,
-    **kwargs: Any
-) -> TrainsLogger:
-    """Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:
+    **kwargs: Any,
+) -> ClearMLLogger:
+    """Method to setup ClearML logging on trainer and a list of evaluators. Logged metrics are:
 
         - Training metrics, e.g. running average loss values
         - Learning rate(s)
@@ -537,11 +538,24 @@ def setup_trains_logging(
         **kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.trains_logger.TrainsLogger`
+        :class:`~ignite.contrib.handlers.clearml_logger.ClearMLLogger`
     """
-    logger = TrainsLogger(**kwargs)
+    logger = ClearMLLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
+
+
+def setup_trains_logging(
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]] = None,
+    log_every_iters: int = 100,
+    **kwargs: Any,
+) -> ClearMLLogger:
+    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`.
+    """
+    warnings.warn("setup_trains_logging was renamed to setup_clearml_logging.")
+    return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
 
 
 def get_default_score_fn(metric_name: str) -> Any:
@@ -560,7 +574,7 @@ def gen_save_best_models_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
@@ -619,7 +633,7 @@ def save_best_model_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
     (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).

@@ -3,16 +3,24 @@ import os
 from collections import defaultdict
 from unittest.mock import ANY, MagicMock, Mock, call
 
+import clearml
 import pytest
 import torch
-import trains
-from trains.binding.frameworks import WeightsFileHandler
-from trains.model import Framework
+from clearml.binding.frameworks import WeightsFileHandler
+from clearml.model import Framework
 
 import ignite.distributed as idist
+from ignite.contrib.handlers.clearml_logger import *
 from ignite.contrib.handlers.trains_logger import *
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
+
+
+def test_trains_logger_alias(dirname):
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        TrainsLogger.set_bypass_mode(True)
+        logger = TrainsLogger(output_uri=dirname)
+        assert isinstance(logger, ClearMLLogger)
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -25,7 +33,7 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with TrainsLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with ClearMLLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -33,21 +41,21 @@ def test_optimizer_params():
 
     optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.iteration = 123
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.trains_logger.report_scalar.assert_called_once_with(iteration=123, series="0", title="lr", value=0.01)
+    mock_logger.clearml_logger.report_scalar.assert_called_once_with(iteration=123, series="0", title="lr", value=0.01)
 
     wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.trains_logger.report_scalar.assert_called_once_with(
+    mock_logger.clearml_logger.report_scalar.assert_called_once_with(
         iteration=123, series="0", title="generator/lr", value=0.01
     )
 
@@ -58,15 +66,15 @@ def test_output_handler_with_wrong_logger_type():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler OutputHandler works only with TrainsLogger"):
+    with pytest.raises(RuntimeError, match="Handler OutputHandler works only with ClearMLLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_output_handler_output_transform(dirname):
 
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -75,16 +83,16 @@ def test_output_handler_output_transform(dirname):
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    mock_logger.trains_logger.report_scalar.assert_called_once_with(
+    mock_logger.clearml_logger.report_scalar.assert_called_once_with(
         iteration=123, series="output", title="tag", value=12345
     )
 
     wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x})
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.trains_logger.report_scalar.assert_called_once_with(
+    mock_logger.clearml_logger.report_scalar.assert_called_once_with(
         iteration=123, series="loss", title="another_tag", value=12345
     )
 
@@ -92,8 +100,8 @@ def test_output_handler_output_transform(dirname):
 def test_output_handler_metric_names(dirname):
 
     wrapper = OutputHandler("tag", metric_names=["a", "b"])
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -101,8 +109,8 @@ def test_output_handler_metric_names(dirname):
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.trains_logger.report_scalar.call_count == 2
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 2
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [
             call(title="tag", series="a", iteration=5, value=12.23),
             call(title="tag", series="b", iteration=5, value=23.45),
@@ -116,21 +124,21 @@ def test_output_handler_metric_names(dirname):
     mock_engine.state = State(metrics={"a": 55.56, "c": "Some text"})
     mock_engine.state.iteration = 7
 
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
-    with pytest.warns(UserWarning, match=r"TrainsLogger output_handler can not log metrics value type"):
+    with pytest.warns(UserWarning, match=r"ClearMLLogger output_handler can not log metrics value type"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.trains_logger.report_scalar.call_count == 1
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 1
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [call(title="tag", series="a", iteration=7, value=55.56)], any_order=True
     )
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -138,8 +146,8 @@ def test_output_handler_metric_names(dirname):
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.trains_logger.report_scalar.call_count == 2
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 2
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [
             call(title="tag", series="a", iteration=5, value=12.23),
             call(title="tag", series="b", iteration=5, value=23.45),
@@ -149,8 +157,8 @@ def test_output_handler_metric_names(dirname):
 
     # log a torch vector
     wrapper = OutputHandler("tag", metric_names="all")
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     vector = torch.tensor([0.1, 0.2, 0.1, 0.2, 0.33])
@@ -159,8 +167,8 @@ def test_output_handler_metric_names(dirname):
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.trains_logger.report_scalar.call_count == 5
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 5
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [call(title="tag/vector", series=str(i), iteration=5, value=vector[i].item()) for i in range(5)],
         any_order=True,
     )
@@ -169,8 +177,8 @@ def test_output_handler_metric_names(dirname):
 def test_output_handler_both(dirname):
 
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -179,8 +187,8 @@ def test_output_handler_both(dirname):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.trains_logger.report_scalar.call_count == 3
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 3
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [
             call(title="tag", series="a", iteration=5, value=12.23),
             call(title="tag", series="b", iteration=5, value=23.45),
@@ -195,8 +203,8 @@ def test_output_handler_with_wrong_global_step_transform_output():
         return "a"
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -220,8 +228,8 @@ def test_output_handler_with_global_step_from_engine():
         global_step_transform=global_step_from_engine(mock_another_engine),
     )
 
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -229,8 +237,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_engine.state.output = 0.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.trains_logger.report_scalar.call_count == 1
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 1
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [call(title="tag", series="loss", iteration=mock_another_engine.state.epoch, value=mock_engine.state.output)]
     )
 
@@ -238,8 +246,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_engine.state.output = 1.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.trains_logger.report_scalar.call_count == 2
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 2
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [call(title="tag", series="loss", iteration=mock_another_engine.state.epoch, value=mock_engine.state.output)]
     )
 
@@ -249,8 +257,8 @@ def test_output_handler_with_global_step_transform():
         return 10
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -258,8 +266,8 @@ def test_output_handler_with_global_step_transform():
     mock_engine.state.output = 12345
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.trains_logger.report_scalar.call_count == 1
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    assert mock_logger.clearml_logger.report_scalar.call_count == 1
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [call(title="tag", series="loss", iteration=10, value=12345)]
     )
 
@@ -279,7 +287,7 @@ def test_weights_scalar_handler_wrong_setup():
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler WeightsScalarHandler works only with TrainsLogger"):
+    with pytest.raises(RuntimeError, match="Handler WeightsScalarHandler works only with ClearMLLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -290,8 +298,8 @@ def test_weights_scalar_handler(dummy_model_factory):
     # define test wrapper to test with and without optional tag
     def _test(tag=None):
         wrapper = WeightsScalarHandler(model, tag=tag)
-        mock_logger = MagicMock(spec=TrainsLogger)
-        mock_logger.trains_logger = MagicMock()
+        mock_logger = MagicMock(spec=ClearMLLogger)
+        mock_logger.clearml_logger = MagicMock()
 
         mock_engine = MagicMock()
         mock_engine.state = State()
@@ -301,8 +309,8 @@ def test_weights_scalar_handler(dummy_model_factory):
 
         tag_prefix = f"{tag}/" if tag else ""
 
-        assert mock_logger.trains_logger.report_scalar.call_count == 4
-        mock_logger.trains_logger.report_scalar.assert_has_calls(
+        assert mock_logger.clearml_logger.report_scalar.call_count == 4
+        mock_logger.clearml_logger.report_scalar.assert_has_calls(
             [
                 call(title=tag_prefix + "weights_norm/fc1", series="weight", iteration=5, value=0.0),
                 call(title=tag_prefix + "weights_norm/fc1", series="bias", iteration=5, value=0.0),
@@ -321,8 +329,8 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
 
     wrapper = WeightsScalarHandler(model)
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -330,7 +338,7 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [
             call(title="weights_norm/fc2", series="weight", iteration=5, value=12.0),
             call(title="weights_norm/fc2", series="bias", iteration=5, value=math.sqrt(12.0)),
@@ -339,7 +347,7 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
     )
 
     with pytest.raises(AssertionError):
-        mock_logger.trains_logger.report_scalar.assert_has_calls(
+        mock_logger.clearml_logger.report_scalar.assert_has_calls(
             [
                 call(title="weights_norm/fc1", series="weight", iteration=5, value=12.0),
                 call(title="weights_norm/fc1", series="bias", iteration=5, value=math.sqrt(12.0)),
@@ -347,7 +355,7 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
             any_order=True,
         )
 
-    assert mock_logger.trains_logger.report_scalar.call_count == 2
+    assert mock_logger.clearml_logger.report_scalar.call_count == 2
 
 
 def test_weights_hist_handler_wrong_setup():
@@ -359,7 +367,7 @@ def test_weights_hist_handler_wrong_setup():
     wrapper = WeightsHistHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'WeightsHistHandler' works only with TrainsLogger"):
+    with pytest.raises(RuntimeError, match="Handler 'WeightsHistHandler' works only with ClearMLLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -370,7 +378,7 @@ def test_weights_hist_handler(dummy_model_factory):
     # define test wrapper to test with and without optional tag
     def _test(tag=None):
         wrapper = WeightsHistHandler(model, tag=tag)
-        mock_logger = MagicMock(spec=TrainsLogger)
+        mock_logger = MagicMock(spec=ClearMLLogger)
         mock_logger.grad_helper = MagicMock()
 
         mock_engine = MagicMock()
@@ -401,7 +409,7 @@ def test_weights_hist_handler_frozen_layers(dummy_model_factory):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
 
     wrapper = WeightsHistHandler(model)
-    mock_logger = MagicMock(spec=TrainsLogger)
+    mock_logger = MagicMock(spec=ClearMLLogger)
     mock_logger.grad_helper = MagicMock()
 
     mock_engine = MagicMock()
@@ -441,7 +449,7 @@ def test_grads_scalar_handler_wrong_setup():
     wrapper = GradsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler GradsScalarHandler works only with TrainsLogger"):
+    with pytest.raises(RuntimeError, match="Handler GradsScalarHandler works only with ClearMLLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -451,8 +459,8 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
     # define test wrapper to test with and without optional tag
     def _test(tag=None):
         wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
-        mock_logger = MagicMock(spec=TrainsLogger)
-        mock_logger.trains_logger = MagicMock()
+        mock_logger = MagicMock(spec=ClearMLLogger)
+        mock_logger.clearml_logger = MagicMock()
 
         mock_engine = MagicMock()
         mock_engine.state = State()
@@ -463,7 +471,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
         tag_prefix = f"{tag}/" if tag else ""
 
-        mock_logger.trains_logger.report_scalar.assert_has_calls(
+        mock_logger.clearml_logger.report_scalar.assert_has_calls(
             [
                 call(
                     title=tag_prefix + "grads_norm/fc1", value=ANY, series="weight", iteration=mock_engine.state.epoch
@@ -476,7 +484,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
             ],
             any_order=True,
         )
-        assert mock_logger.trains_logger.report_scalar.call_count == 4
+        assert mock_logger.clearml_logger.report_scalar.call_count == 4
         assert norm_mock.call_count == 4
 
     _test()
@@ -487,8 +495,8 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
 
     wrapper = GradsScalarHandler(model, reduction=norm_mock)
-    mock_logger = MagicMock(spec=TrainsLogger)
-    mock_logger.trains_logger = MagicMock()
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -497,7 +505,7 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.trains_logger.report_scalar.assert_has_calls(
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
         [
             call(title="grads_norm/fc2", value=ANY, series="weight", iteration=mock_engine.state.epoch),
             call(title="grads_norm/fc2", value=ANY, series="bias", iteration=mock_engine.state.epoch),
@@ -506,10 +514,10 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
     )
 
     with pytest.raises(AssertionError):
-        mock_logger.trains_logger.report_scalar.assert_has_calls(
+        mock_logger.clearml_logger.report_scalar.assert_has_calls(
             [call(title="grads_norm/fc1", value=ANY, iteration=5), call("grads_norm/fc1", ANY, 5)], any_order=True
         )
-    assert mock_logger.trains_logger.report_scalar.call_count == 2
+    assert mock_logger.clearml_logger.report_scalar.call_count == 2
     assert norm_mock.call_count == 2
 
 
@@ -522,7 +530,7 @@ def test_grads_hist_handler_wrong_setup():
     wrapper = GradsHistHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'GradsHistHandler' works only with TrainsLogger"):
+    with pytest.raises(RuntimeError, match="Handler 'GradsHistHandler' works only with ClearMLLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -532,7 +540,7 @@ def test_grads_hist_handler(dummy_model_factory):
     # define test wrapper to test with and without optional tag
     def _test(tag=None):
         wrapper = GradsHistHandler(model, tag=tag)
-        mock_logger = MagicMock(spec=TrainsLogger)
+        mock_logger = MagicMock(spec=ClearMLLogger)
         mock_logger.grad_helper = MagicMock()
 
         mock_engine = MagicMock()
@@ -562,7 +570,7 @@ def test_grads_hist_frozen_layers(dummy_model_factory):
     model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
 
     wrapper = GradsHistHandler(model)
-    mock_logger = MagicMock(spec=TrainsLogger)
+    mock_logger = MagicMock(spec=ClearMLLogger)
     mock_logger.grad_helper = MagicMock()
 
     mock_engine = MagicMock()
@@ -603,13 +611,13 @@ def test_integration(dirname):
 
     trainer = Engine(update_fn)
 
-    with pytest.warns(UserWarning, match="TrainsSaver: running in bypass mode"):
-        TrainsLogger.set_bypass_mode(True)
-        logger = TrainsLogger(output_uri=dirname)
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        ClearMLLogger.set_bypass_mode(True)
+        logger = ClearMLLogger(output_uri=dirname)
 
         def dummy_handler(engine, logger, event_name):
             global_step = engine.state.get_event_attrib_value(event_name)
-            logger.trains_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
+            logger.clearml_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
 
         logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
@@ -628,54 +636,54 @@ def test_integration_as_context_manager(dirname):
     def update_fn(engine, batch):
         return next(losses_iter)
 
-    with pytest.warns(UserWarning, match="TrainsSaver: running in bypass mode"):
-        TrainsLogger.set_bypass_mode(True)
-        with TrainsLogger(output_uri=dirname) as trains_logger:
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        ClearMLLogger.set_bypass_mode(True)
+        with ClearMLLogger(output_uri=dirname) as clearml_logger:
 
             trainer = Engine(update_fn)
 
             def dummy_handler(engine, logger, event_name):
                 global_step = engine.state.get_event_attrib_value(event_name)
-                logger.trains_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
+                logger.clearml_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
 
-            trains_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
+            clearml_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
             trainer.run(data, max_epochs=n_epochs)
 
 
-def test_trains_disk_saver_integration():
+def test_clearml_disk_saver_integration():
     model = torch.nn.Module()
     to_save_serializable = {"model": model}
-    with pytest.warns(UserWarning, match="TrainsSaver created a temporary checkpoints directory"):
-        mock_logger = MagicMock(spec=TrainsLogger)
-        trains.Task.current_task = Mock(return_value=object())
-        trains_saver = TrainsSaver(mock_logger)
-        trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+    with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
+        mock_logger = MagicMock(spec=ClearMLLogger)
+        clearml.Task.current_task = Mock(return_value=object())
+        clearml_saver = ClearMLSaver(mock_logger)
+        clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
-    checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=trains_saver, n_saved=1)
+    checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=clearml_saver, n_saved=1)
 
     trainer = Engine(lambda e, b: None)
     trainer.state = State(epoch=0, iteration=0)
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)
-    if trains_saver._atomic:
-        assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+    if clearml_saver._atomic:
+        assert clearml.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
     else:
-        saved_files = list(os.listdir(trains_saver.dirname))
+        saved_files = list(os.listdir(clearml_saver.dirname))
         assert len(saved_files) == 1
         assert saved_files[0] == "model_1.pt"
 
 
-def test_trains_disk_saver_integration_no_logger():
+def test_clearml_disk_saver_integration_no_logger():
     model = torch.nn.Module()
     to_save_serializable = {"model": model}
 
-    with pytest.warns(UserWarning, match="TrainsSaver created a temporary checkpoints directory"):
-        trains.Task.current_task = Mock(return_value=object())
-        trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
-        trains_saver = TrainsSaver()
-        checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=trains_saver, n_saved=1)
+    with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
+        clearml.Task.current_task = Mock(return_value=object())
+        clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+        clearml_saver = ClearMLSaver()
+        checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=clearml_saver, n_saved=1)
 
     trainer = Engine(lambda e, b: None)
     trainer.state = State(epoch=0, iteration=0)
@@ -683,19 +691,19 @@ def test_trains_disk_saver_integration_no_logger():
     trainer.state.iteration = 1
     checkpoint(trainer)
 
-    if trains_saver._atomic:
-        assert trains.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
+    if clearml_saver._atomic:
+        assert clearml.binding.frameworks.WeightsFileHandler.create_output_model.call_count == 2
     else:
-        saved_files = list(os.listdir(trains_saver.dirname))
+        saved_files = list(os.listdir(clearml_saver.dirname))
         assert len(saved_files) == 1
         assert saved_files[0] == "model_1.pt"
 
 
-def test_trains_saver_callbacks():
-    mock_task = MagicMock(spec=trains.Task)
+def test_clearml_saver_callbacks():
+    mock_task = MagicMock(spec=clearml.Task)
     mock_task.name = "check-task"
 
-    mock_model = MagicMock(spec=trains.OutputModel)
+    mock_model = MagicMock(spec=clearml.OutputModel)
 
     model_info = WeightsFileHandler.ModelInfo(
         model=mock_model,
@@ -746,7 +754,7 @@ def test_trains_saver_callbacks():
         basename = metadata["basename"]
         checkpoint_key = (dirname, basename)
 
-        context = TrainsSaver._CallbacksContext(
+        context = ClearMLSaver._CallbacksContext(
             callback_type=WeightsFileHandler.CallbackType,
             slots=_checkpoint_slots[checkpoint_key],
             checkpoint_key=str(checkpoint_key),
@@ -784,8 +792,8 @@ class DummyModel(torch.nn.Module):
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=False):
 
     if idist.get_rank() == 0:
-        trains.Task.current_task = Mock(return_value=object())
-        trains.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
+        clearml.Task.current_task = Mock(return_value=object())
+        clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
     torch.manual_seed(23)
 
@@ -815,20 +823,20 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
 
     to_save = {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
 
-    with pytest.warns(UserWarning, match=r"TrainsSaver created a temporary checkpoints directory"):
-        trains_saver = TrainsSaver()
+    with pytest.warns(UserWarning, match=r"ClearMLSaver created a temporary checkpoints directory"):
+        clearml_saver = ClearMLSaver()
 
     if (not on_zero_rank) or (on_zero_rank and idist.get_rank() == 0):
-        checkpoint = Checkpoint(to_save=to_save, save_handler=trains_saver, n_saved=1)
+        checkpoint = Checkpoint(to_save=to_save, save_handler=clearml_saver, n_saved=1)
         engine.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
 
     engine.run([0], max_epochs=4)
 
     idist.barrier()
 
-    saved_objects = sorted(os.listdir(trains_saver.dirname))
+    saved_objects = sorted(os.listdir(clearml_saver.dirname))
     # saved object is ['PREFIX_checkpoint_3.pt', ]
-    saved_checkpoint = os.path.join(trains_saver.dirname, saved_objects[0])
+    saved_checkpoint = os.path.join(clearml_saver.dirname, saved_objects[0])
 
     if idist.has_xla_support:
         device = "cpu"

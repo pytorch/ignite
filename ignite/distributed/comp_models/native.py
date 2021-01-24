@@ -47,6 +47,9 @@ if has_native_dist_support:
 
         @staticmethod
         def create_from_backend(backend: str, **kwargs: Any) -> "_NativeDistModel":
+            if backend not in _NativeDistModel.available_backends:
+                raise ValueError(f"Backend should be one of '{_NativeDistModel.available_backends}'")
+
             if dist.is_available() and dist.is_initialized():
                 raise RuntimeError("Can not create new distributed process group if default one is already initialized")
             return _NativeDistModel(backend=backend, **kwargs)
@@ -154,8 +157,9 @@ if has_native_dist_support:
             else:
                 warnings.warn(
                     "Local rank information for native distributed setting will be initialized using "
-                    "heuristic approach based on hostname which can be different of real setup. Please, "
-                    "either set `os.environ['LOCAL_RANK']` "
+                    "a heuristic approach based on the hostnames. In some corner cases, determined "
+                    "local rank can be different from the real setup. To avoid this warning, "
+                    "please either set `os.environ['LOCAL_RANK']` "
                     "or use `idist.set_local_rank(local_rank)` with correct local rank index."
                 )
                 # use socket gethostname heuristic to determine number of nodes => local rank
@@ -282,7 +286,7 @@ if has_native_dist_support:
             master_addr: str = "127.0.0.1",
             master_port: int = 2222,
             backend: str = "nccl",
-            **kwargs: Any
+            **kwargs: Any,
         ) -> None:
             world_size = nnodes * nproc_per_node
 
