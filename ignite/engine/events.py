@@ -344,7 +344,7 @@ class State:
         state.dataloader        # data passed to engine
         state.epoch_length      # optional length of an epoch
         state.max_epochs        # number of epochs to run
-        state.max_iter          # number of iterations to run
+        state.max_iters         # number of iterations to run
         state.batch             # batch passed to `process_function`
         state.output            # output of `process_function` after a single iteration
         state.metrics           # dictionary with defined metrics if any
