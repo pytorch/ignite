@@ -59,7 +59,7 @@ function can return everything user wants. Output is set to ``trainer.state.outp
     will be automatically determined when data iterator is exhausted.
 
 
-**Mostly any complexity training logic** can be coded as ``train_step`` method and a trainer can be constructed using this method.
+**Training logic of any complexity** can be coded with ``train_step`` method and a trainer can be constructed using this method.
 Argument ``batch`` in ``train_step`` function is user-defined and can contain any data required for a single iteration.
 
 .. code-block:: python
