@@ -320,7 +320,8 @@ class Metric(metaclass=ABCMeta):
 
             engine.state.metrics[name] = result
 
-    def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
+    @staticmethod
+    def _check_usage(usage: Union[str, MetricUsage]) -> MetricUsage:
         if isinstance(usage, str):
             if usage == EpochWise.usage_name:
                 usage = EpochWise()
