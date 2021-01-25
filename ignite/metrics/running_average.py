@@ -4,9 +4,18 @@ import torch
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
-from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["RunningAverage"]
+
+
+class RunningAverageWise(MetricUsage):
+    def __init__(self) -> None:
+        super(RunningAverageWise, self).__init__(
+            started=Events.EPOCH_STARTED,
+            completed=Events.ITERATION_COMPLETED,
+            iteration_completed=Events.ITERATION_COMPLETED,
+        )
 
 
 class RunningAverage(Metric):
@@ -82,10 +91,12 @@ class RunningAverage(Metric):
         self.alpha = alpha
         self.epoch_bound = epoch_bound
         super(RunningAverage, self).__init__(output_transform=output_transform, device=device)  # type: ignore[arg-type]
+        self._value = None  # type: Optional[Union[float, torch.Tensor]]
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._value = None  # type: Optional[Union[float, torch.Tensor]]
+        if self.epoch_bound:
+            self._value = None
 
     @reinit__is_reduced
     def update(self, output: Sequence) -> None:
@@ -100,14 +111,8 @@ class RunningAverage(Metric):
 
         return self._value
 
-    def attach(self, engine: Engine, name: str, _usage: Union[str, MetricUsage] = EpochWise()) -> None:
-        if self.epoch_bound:
-            # restart average every epoch
-            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        # compute metric
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        # apply running average
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.completed, name)
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = RunningAverageWise()) -> None:
+        super(RunningAverage, self).attach(engine, name, usage)
 
     def _get_metric_value(self) -> Union[torch.Tensor, float]:
         return self.src.compute()
