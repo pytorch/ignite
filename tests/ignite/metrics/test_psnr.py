@@ -10,12 +10,10 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import PSNR
 from ignite.utils import manual_seed
 
-manual_seed(42)
-
 
 def test_zero_div():
     psnr = PSNR()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match="PSNR must have at least one example before it can be computed"):
         psnr.compute()
 
 
@@ -26,22 +24,16 @@ def test_invalid_psnr():
     with pytest.raises(TypeError, match=r"Expected y_pred and y to have the same data type."):
         psnr = PSNR()
         psnr.update((y_pred, y.double()))
-        psnr.compute()
-
-    with pytest.raises(ValueError, match=r"Expected y_pred and y to have BxCxHxW shape."):
-        psnr = PSNR()
-        psnr.update((y.squeeze(dim=0), y.squeeze(dim=0)))
-        psnr.compute()
 
     with pytest.raises(ValueError, match=r"Expected y_pred and y to have the same shape."):
         psnr = PSNR()
         psnr.update((y_pred, y.squeeze(dim=0)))
-        psnr.compute()
 
     with pytest.raises(ValueError, match=r"y has intensity values outside the range expected"):
         psnr = PSNR()
+        psnr.update((y_pred, y))
+        # to catch ValueError for this batch
         psnr.update((y_pred, y + 1.0))
-        psnr.compute()
 
 
 def _test_psnr(y_pred, y, data_range, device):
@@ -49,8 +41,8 @@ def _test_psnr(y_pred, y, data_range, device):
     psnr.update((y_pred, y))
     psnr_compute = psnr.compute()
 
-    np_y_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
-    np_y = y.permute(0, 2, 3, 1).cpu().numpy()
+    np_y_pred = y_pred.cpu().numpy()
+    np_y = y.cpu().numpy()
 
     assert isinstance(psnr_compute, torch.Tensor)
     assert psnr_compute.dtype == torch.float64
@@ -60,22 +52,30 @@ def _test_psnr(y_pred, y, data_range, device):
 
 def test_psnr():
     device = idist.device()
-    y_pred = torch.rand(8, 3, 224, 224, device=device)
+    manual_seed(42)
+    y_pred = torch.rand(8, 3, 28, 28, device=device)
     y = y_pred * 0.8
     _test_psnr(y_pred, y, None, device)
     _test_psnr(y_pred, y, 0.8, device)
-
-    y_pred = torch.rand(12, 3, 28, 28, device=device)
-    y = y_pred * 0.8
-    _test_psnr(y_pred, y, None, device)
     _test_psnr(y_pred, y, 1.0, device)
 
+    # test for true_min < 0
+    manual_seed(42)
     y_pred = torch.empty(2, 3, 12, 12, device=device).random_(-1, 2)
     y = torch.empty(2, 3, 12, 12, device=device).random_(-1, 2)
     _test_psnr(y_pred, y, None, device)
+    _test_psnr(y_pred, y, 0.5, device)
+    _test_psnr(y_pred, y, 1, device)
+
+    manual_seed(42)
+    y_pred = torch.randint(0, 255, (4, 3, 16, 16), dtype=torch.uint8, device=device)
+    y = (y_pred * 0.8).to(torch.uint8)
+    _test_psnr(y_pred, y, None, device)
+    _test_psnr(y_pred, y, 240, device)
+    _test_psnr(y_pred, y, 255, device)
 
 
-def _test_distrib_integration(device, atol=1e-6):
+def _test_distrib_integration(device, atol=1e-4):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -98,21 +98,55 @@ def _test_distrib_integration(device, atol=1e-6):
         result = engine.state.metrics["psnr"]
         assert "psnr" in engine.state.metrics
 
-        np_y_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
-        np_y = y.permute(0, 2, 3, 1).cpu().numpy()
+        np_y_pred = y_pred.cpu().numpy()
+        np_y = y.cpu().numpy()
 
         assert np.allclose(result, ski_psnr(np_y, np_y_pred, data_range=data_range) / s, atol=atol)
 
+    manual_seed(42)
     y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)
     y = y_pred * 0.65
     _test(y_pred, y, None, "cpu")
     _test(y_pred, y, 0.5, "cpu")
+    _test(y_pred, y, 1, "cpu")
+
+    # test for true_min < 0
+    manual_seed(42)
+    y_pred = torch.empty(offset * idist.get_world_size(), 3, 12, 12, device=device).random_(-1, 2)
+    y = -1 * y_pred
+    _test(y_pred, y, None, "cpu")
+    _test(y_pred, y, 0.5, "cpu")
+    _test(y_pred, y, 1, "cpu")
+
+    manual_seed(42)
+    y_pred = torch.randint(0, 255, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
+    y = (y_pred * 0.65).to(torch.uint8)
+    _test(y_pred, y, None, "cpu")
+    _test(y_pred, y, 240, "cpu")
+    _test(y_pred, y, 255, "cpu")
 
     if torch.device(device).type != "xla":
+        manual_seed(42)
         y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)
         y = y_pred * 0.65
         _test(y_pred, y, None, idist.device())
         _test(y_pred, y, 0.5, idist.device())
+        _test(y_pred, y, 1, idist.device())
+
+        # test for true_min < 0
+        manual_seed(42)
+        y_pred = torch.empty(offset * idist.get_world_size(), 3, 12, 12, device=device).random_(-1, 2)
+        y = -1 * y_pred
+        _test(y_pred, y, None, idist.device())
+        _test(y_pred, y, 0.5, idist.device())
+        _test(y_pred, y, 1, idist.device())
+
+        manual_seed(42)
+        y_pred = torch.randint(0, 255, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
+        y = (y_pred * 0.65).to(torch.uint8)
+        _test(y_pred, y, None, idist.device())
+        _test(y_pred, y, 240, idist.device())
+        _test(y_pred, y, 255, idist.device())
 
 
 def _test_distrib_accumulator_device(device):
@@ -124,13 +158,13 @@ def _test_distrib_accumulator_device(device):
     for metric_device in metric_devices:
         psnr = PSNR(data_range=1.0, device=metric_device)
         dev = psnr._device
-        assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+        assert dev == metric_device, f"{dev} vs {metric_device}"
 
         y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
         psnr.update((y_pred, y))
         dev = psnr._sum_of_batchwise_psnr.device
-        assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+        assert dev == metric_device, f"{dev} vs {metric_device}"
 
 
 @pytest.mark.distributed
