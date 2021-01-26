@@ -698,7 +698,7 @@ class ModelCheckpoint(Checkpoint):
         **kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
 
     .. versionchanged:: 0.4.2
-        Accept ``kwargs`` for torch.save or xm.save
+        Accept ``kwargs`` for `torch.save` or `xm.save`
 
     Examples:
         >>> import os
