@@ -171,10 +171,9 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
         torch.nn.SyncBatchNorm.convert_sync_batchnorm
 
     .. versionchanged:: 0.4.2
-        Added Horovod distributed framework.
 
-    .. versionchanged:: 0.4.2
-        Added ``sync_bn`` argument.
+        - Added Horovod distributed framework.
+        - Added ``sync_bn`` argument.
     """
     logger = setup_logger(__name__ + ".auto_model")
 
