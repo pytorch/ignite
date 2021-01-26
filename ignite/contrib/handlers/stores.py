@@ -31,6 +31,7 @@ class EpochOutputStore:
             output = eos.data
             # do something with output, e.g., plotting
 
+    .. versionadded:: 0.4.2
     """
 
     def __init__(self, output_transform: Callable = lambda x: x) -> None:
