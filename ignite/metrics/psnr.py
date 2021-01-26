@@ -14,6 +14,8 @@ class PSNR(Metric):
     .. math::
         \text{PSNR}(i, j) = 10 * \log_{10}\left(\frac{ MAX_{i}^2 }{ \text{ MSE } }\right)
 
+    where :math:`\text{MSE}` is `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_.
+
     - `y_pred` and `y` must be in the following shape (batch_size, ...).
     - `y_pred` and `y` must have same dtype and same shape.
 
