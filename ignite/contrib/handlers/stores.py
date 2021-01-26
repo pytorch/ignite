@@ -9,16 +9,14 @@ class EpochOutputStore:
 
     Note:
         This can potentially lead to a memory error if the output data is
-    larger than available RAM.
+        larger than available RAM.
 
     Args:
-         output_transform (callable, optional): a callable that is used to
-         transform the :class:`~ignite.engine.engine.Engine`'s
-         ``process_function``'s output , e.g., lambda x: x[0]
+        output_transform (callable, optional): a callable that is used to
+            transform the :class:`~ignite.engine.engine.Engine`'s
+            ``process_function``'s output , e.g., lambda x: x[0]
 
-    Examples:
-    .. code-block:: python
-        import ...
+    Examples::
 
         eos = EpochOutputStore()
         trainer = create_supervised_trainer(model, optimizer, loss)

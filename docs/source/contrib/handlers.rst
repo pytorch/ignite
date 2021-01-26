@@ -48,11 +48,11 @@ stores
 
 .. currentmodule:: ignite.contrib.handlers.stores
 
-.. autosummary:
+.. autosummary::
     :nosignatures:
     :autolist:
 
-.. automodule: ignite.contrib.handlers.stores
+.. automodule:: ignite.contrib.handlers.stores
     :members:
 
 tensorboard_logger
