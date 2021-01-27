@@ -77,6 +77,9 @@ def device() -> torch.device:
 
     Returns:
         torch.device
+
+    .. versionchanged:: 0.4.2
+        Added Horovod distributed framework.
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
@@ -94,6 +97,9 @@ def backend() -> Optional[str]:
 
     Returns:
         str or None
+
+    .. versionchanged:: 0.4.2
+        Added Horovod distributed framework.
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
@@ -118,6 +124,8 @@ def model_name() -> str:
     - `xla-dist` for XLA distributed configuration
     - `horovod-dist` for Horovod distributed framework
 
+    .. versionchanged:: 0.4.2
+        `horovod-dist` will be returned for Horovod distributed framework.
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
@@ -301,6 +309,8 @@ def spawn(
     .. _xmp.spawn: http://pytorch.org/xla/release/1.6/index.html#torch_xla.distributed.xla_multiprocessing.spawn
     .. _hvd_run: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
+    .. versionchanged:: 0.4.2
+        ``backend`` now accepts `horovod` distributed framework.
     """
     _assert_backend(backend)
 
@@ -387,6 +397,7 @@ def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[to
             x = idist.broadcast(x, src=0)
             # >>> x = 12.3456
 
+    .. versionadded:: 0.4.2
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
@@ -485,6 +496,8 @@ def initialize(backend: str, **kwargs: Any) -> None:
 
     .. _hvd_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
 
+    .. versionchanged:: 0.4.2
+        ``backend`` now accepts `horovod` distributed framework.
     """
     if not (has_xla_support or has_native_dist_support or has_hvd_support):
         # nothing to do => serial model

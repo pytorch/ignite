@@ -43,6 +43,17 @@ time_profilers
 .. automodule:: ignite.contrib.handlers.time_profilers
    :members:
 
+stores
+-------
+
+.. currentmodule:: ignite.contrib.handlers.stores
+
+.. autosummary::
+    :nosignatures:
+    :autolist:
+
+.. automodule:: ignite.contrib.handlers.stores
+    :members:
 
 tensorboard_logger
 ------------------
