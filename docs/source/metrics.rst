@@ -19,6 +19,10 @@ value is then computed using the output of the engine's ``process_function``:
     engine = Engine(process_function)
     metric = Accuracy()
     metric.attach(engine, "accuracy")
+    # ...
+    state = engine.run(data)
+    print(f"Accuracy: {state.metrics['accuracy']}")
+
 
 If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``, the user can
 use the ``output_transform`` argument to transform it:
@@ -42,6 +46,9 @@ use the ``output_transform`` argument to transform it:
 
     metric = Accuracy(output_transform=output_transform)
     metric.attach(engine, "accuracy")
+    # ...
+    state = engine.run(data)
+    print(f"Accuracy: {state.metrics['accuracy']}")
 
 
 .. warning::
