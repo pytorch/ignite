@@ -170,6 +170,10 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     .. _torch convert_sync_batchnorm: https://pytorch.org/docs/stable/generated/torch.nn.SyncBatchNorm.html#
         torch.nn.SyncBatchNorm.convert_sync_batchnorm
 
+    .. versionchanged:: 0.4.2
+
+        - Added Horovod distributed framework.
+        - Added ``sync_bn`` argument.
     """
     logger = setup_logger(__name__ + ".auto_model")
 
@@ -233,7 +237,6 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
 
         optimizer = idist.auto_optim(optimizer)
 
-
     Args:
         optimizer (Optimizer): input torch optimizer
 
@@ -242,6 +245,8 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
 
     .. _xm.optimizer_step: http://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
 
+    .. versionchanged:: 0.4.2
+        Added Horovod distributed optimizer.
     """
     bnd = idist.backend()
     if idist.has_xla_support and bnd == idist_xla.XLA_TPU:

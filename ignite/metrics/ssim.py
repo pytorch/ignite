@@ -24,6 +24,9 @@ class SSIM(Metric):
         output_transform (callable, optional): A callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric.
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
     Example:
 
@@ -42,6 +45,8 @@ class SSIM(Metric):
         engine = Engine(process_function)
         metric = SSIM(data_range=1.0)
         metric.attach(engine, "ssim")
+
+    .. versionadded:: 0.4.2
     """
 
     def __init__(
