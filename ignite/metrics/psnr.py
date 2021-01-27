@@ -54,7 +54,6 @@ class PSNR(Metric):
     ):
         super().__init__(output_transform=output_transform, device=device)
         self.data_range = data_range
-        self.__data_range = data_range
 
     def _check_shape_dtype(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -77,9 +76,10 @@ class PSNR(Metric):
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape_dtype(output)
         y_pred, y = output[0].detach(), output[1].detach()
+        data_range = self.data_range
 
-        if self.__data_range is None:
-            dmin, dmax = dtype_range[y.dtype]
+        if data_range is None:
+            dmin, dmax = _dtype_range[y.dtype]
             true_min, true_max = y.min(), y.max()
             if true_max > dmax or true_min < dmin:
                 raise ValueError(
@@ -88,12 +88,12 @@ class PSNR(Metric):
                 )
             if true_min >= 0:
                 # most common case (255 for uint8, 1 for float)
-                self.data_range = dmax
+                data_range = dmax
             else:
-                self.data_range = dmax - dmin
+                data_range = dmax - dmin
 
         mse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean()
-        data_range_sqrt = self.data_range ** 2  # type: ignore[operator]
+        data_range_sqrt = data_range ** 2  # type: ignore[operator]
         self._sum_of_batchwise_psnr += 10.0 * torch.log10(data_range_sqrt / mse_error).to(device=self._device)
         self._num_examples += y.shape[0]
 
@@ -108,9 +108,9 @@ _int_types = (torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64)
 
 _int_ranges = {k: (torch.iinfo(k).min, torch.iinfo(k).max) for k in _int_types}
 
-dtype_range = {
+_dtype_range = {
     torch.float16: (-1, 1),
     torch.float32: (-1, 1),
     torch.float64: (-1, 1),
 }
-dtype_range.update(_int_ranges)
+_dtype_range.update(_int_ranges)
