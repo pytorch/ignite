@@ -570,6 +570,9 @@ class DiskSaver(BaseSaveHandler):
         require_empty (bool, optional): If True, will raise exception if there are any files in the
             directory ``dirname``.
         **kwargs: Accepted keyword arguments for `torch.save` or `xm.save`.
+
+    .. versionchanged:: 0.4.2
+        Accept ``kwargs`` for `torch.save` or `xm.save`.
     """
 
     def __init__(
@@ -693,6 +696,9 @@ class ModelCheckpoint(Checkpoint):
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
         **kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
+
+    .. versionchanged:: 0.4.2
+        Accept ``kwargs`` for `torch.save` or `xm.save`
 
     Examples:
         >>> import os

@@ -154,3 +154,10 @@ article.pytorch-article table.longtable.docutils.align-default tbody td p {
 article.pytorch-article div.highlight pre {
   white-space: pre;
 }
+
+/* versionadded, versionchanged, deprecated directive */
+
+.versionmodified {
+  font-style: italic;
+  font-weight: bold;
+}
