@@ -42,6 +42,9 @@ class PSNR(Metric):
         engine = Engine(process_function)
         psnr = PSNR()
         psnr.attach(engine, "psnr")
+        # ...
+        state = engine.run(data)
+        print(f"PSNR: {state.metrics['psnr']}")
 
     .. versionadded:: 0.5.0
     """
