@@ -15,6 +15,7 @@ jobs:
         with:
           python-version: 3.7
 
+      - run: sudo npm install katex@latest -g
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
