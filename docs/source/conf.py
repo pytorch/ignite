@@ -200,6 +200,13 @@ intersphinx_mapping = {"https://docs.python.org/3/": None}
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+# -- autodoc configs ---------------------------------------------------------
+
+autodoc_default_options = {
+    "members": True,
+    "member-order": "alphabetical",
+}
+
 # -- Type hints configs ------------------------------------------------------
 
 autodoc_typehints = "signature"

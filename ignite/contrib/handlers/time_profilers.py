@@ -473,6 +473,7 @@ class HandlersTimeProfiler:
 
         profiler.write_results('path_to_dir/time_profiling.csv')
 
+    .. versionadded:: 0.5.0
     """
 
     EVENT_FILTER_THESHOLD_TIME = 0.0001

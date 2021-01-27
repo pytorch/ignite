@@ -325,6 +325,7 @@ class Checkpoint(Serializable):
             trainer.run(data1, max_epochs=max_epochs)
             print("Last checkpoint:", checkpointer.last_checkpoint)
 
+        .. versionadded:: 0.5.0
         """
         self._saved = []
 

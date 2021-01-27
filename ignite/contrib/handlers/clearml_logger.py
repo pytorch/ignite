@@ -117,6 +117,7 @@ class ClearMLLogger(BaseLogger):
                 log_handler=WeightsScalarHandler(model)
             )
 
+    .. versionadded:: 0.5.0
     """
 
     def __init__(self, *_: Any, **kwargs: Any) -> None:
@@ -636,6 +637,7 @@ class ClearMLSaver(DiskSaver):
 
             validation_evaluator.add_event_handler(Events.EVENT_COMPLETED, handler)
 
+    .. versionadded:: 0.5.0
     """
 
     def __init__(
