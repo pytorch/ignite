@@ -2,6 +2,7 @@ import collections.abc as collections
 import logging
 import random
 from typing import Any, Callable, Optional, Tuple, Type, Union, cast
+import functools
 
 import torch
 
@@ -160,3 +161,24 @@ def manual_seed(seed: int) -> None:
         np.random.seed(seed)
     except ImportError:
         pass
+
+
+def deprecated(deprecated_in, removed_in=None, reasons=[], raiseWarning=False):
+
+    def decorator(func):
+        func_doc = func.__doc__
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if raiseWarning:
+                raise DeprecationWarning()
+            return func(*args, **kwargs)
+
+        appended_doc = f'.. deprecated:: {deprecated_in}' + ('\n\n\t' if len(reasons) else '')
+
+        for reason in reasons:
+            appended_doc += '\n\t- ' + reason
+        wrapper.__doc__ = '**Deprecated function**.' + '\n\n    ' + func_doc + appended_doc
+        return wrapper
+
+    return decorator
