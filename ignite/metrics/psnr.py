@@ -93,8 +93,7 @@ class PSNR(Metric):
                 data_range = dmax - dmin
 
         mse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean()
-        data_range_sqrt = data_range ** 2  # type: ignore[operator]
-        self._sum_of_batchwise_psnr += 10.0 * torch.log10(data_range_sqrt / mse_error).to(device=self._device)
+        self._sum_of_batchwise_psnr += 10.0 * torch.log10(data_range ** 2 / mse_error).to(device=self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
