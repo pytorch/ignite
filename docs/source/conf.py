@@ -56,11 +56,14 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
+    "sphinxcontrib.katex",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
 ]
+
+# katex options
+katex_prerender = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
