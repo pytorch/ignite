@@ -47,7 +47,7 @@ def _test_psnr(y_pred, y, data_range, device):
     assert isinstance(psnr_compute, torch.Tensor)
     assert psnr_compute.dtype == torch.float64
     assert psnr_compute.device == torch.device(device)
-    assert np.allclose(psnr_compute.numpy(), ski_psnr(np_y, np_y_pred, data_range=data_range) / y.shape[0])
+    assert np.allclose(psnr_compute.numpy(), ski_psnr(np_y, np_y_pred, data_range=data_range))
 
 
 def test_psnr():
@@ -68,14 +68,14 @@ def test_psnr():
     _test_psnr(y_pred, y, 1, device)
 
     manual_seed(42)
-    y_pred = torch.randint(0, 255, (4, 3, 16, 16), dtype=torch.uint8, device=device)
+    y_pred = torch.randint(0, 256, (4, 3, 16, 16), dtype=torch.uint8, device=device)
     y = (y_pred * 0.8).to(torch.uint8)
     _test_psnr(y_pred, y, None, device)
     _test_psnr(y_pred, y, 240, device)
-    _test_psnr(y_pred, y, 255, device)
+    _test_psnr(y_pred, y, 256, device)
 
 
-def _test_distrib_integration(device, atol=1e-4):
+def _test_distrib_integration(device, atol=1e-8):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -101,7 +101,7 @@ def _test_distrib_integration(device, atol=1e-4):
         np_y_pred = y_pred.cpu().numpy()
         np_y = y.cpu().numpy()
 
-        assert np.allclose(result, ski_psnr(np_y, np_y_pred, data_range=data_range) / s, atol=atol)
+        assert np.allclose(result, ski_psnr(np_y, np_y_pred, data_range=data_range), atol=atol)
 
     manual_seed(42)
     y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)
@@ -119,11 +119,11 @@ def _test_distrib_integration(device, atol=1e-4):
     _test(y_pred, y, 1, "cpu")
 
     manual_seed(42)
-    y_pred = torch.randint(0, 255, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
+    y_pred = torch.randint(0, 256, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
     y = (y_pred * 0.65).to(torch.uint8)
     _test(y_pred, y, None, "cpu")
     _test(y_pred, y, 240, "cpu")
-    _test(y_pred, y, 255, "cpu")
+    _test(y_pred, y, 256, "cpu")
 
     if torch.device(device).type != "xla":
         manual_seed(42)
@@ -142,11 +142,11 @@ def _test_distrib_integration(device, atol=1e-4):
         _test(y_pred, y, 1, idist.device())
 
         manual_seed(42)
-        y_pred = torch.randint(0, 255, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
+        y_pred = torch.randint(0, 256, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
         y = (y_pred * 0.65).to(torch.uint8)
         _test(y_pred, y, None, idist.device())
         _test(y_pred, y, 240, idist.device())
-        _test(y_pred, y, 255, idist.device())
+        _test(y_pred, y, 256, idist.device())
 
 
 def _test_distrib_accumulator_device(device):
@@ -163,7 +163,7 @@ def _test_distrib_accumulator_device(device):
         y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
         psnr.update((y_pred, y))
-        dev = psnr._sum_of_batchwise_psnr.device
+        dev = psnr._sum_of_squared_error.device
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
 

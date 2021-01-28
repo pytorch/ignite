@@ -16,12 +16,14 @@ class PSNR(Metric):
 
     where :math:`\text{MSE}` is `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_.
 
-    - `y_pred` and `y` must be in the following shape (batch_size, ...).
-    - `y_pred` and `y` must have same dtype and same shape.
+    Note:
+        `y_pred` and `y` must have same dtype and same shape.
+        If `y_pred` and `y` have almost identical values, the result will be infinity.
 
     Args:
-        data_range (int or float): Range of the image. If not provided, it will be determined
-            from the image type. Typically, ``1.0`` or ``255``.
+        data_range (int or float): The data range of the target image (distance between minimum
+            and maximum possible values). If not provided, it will be estimated from the input
+            data type. Typically, ``1.0`` for float tensor or ``255`` for unsigned 8-bit tensor.
         output_transform (callable, optional): A callable that is used to transform the Engine’s
             process_function’s output into the form expected by the metric.
         device (str or torch.device): specifies which device updates are accumulated on.
@@ -56,7 +58,7 @@ class PSNR(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         super().__init__(output_transform=output_transform, device=device)
-        self.data_range = data_range
+        self.data_range = self.__data_range = data_range
 
     def _check_shape_dtype(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -72,47 +74,43 @@ class PSNR(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_batchwise_psnr = 0  # type: Union[int, torch.Tensor]
-        self._num_examples = 0
+        self._sum_of_squared_error = 0  # type: Union[int, torch.Tensor]
+        self._num_elements = 0
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape_dtype(output)
         y_pred, y = output[0].detach(), output[1].detach()
-        data_range = self.data_range
 
-        if data_range is None:
+        if self.__data_range is None:
             dmin, dmax = _dtype_range[y.dtype]
             true_min, true_max = y.min(), y.max()
             if true_max > dmax or true_min < dmin:
                 raise ValueError(
                     "y has intensity values outside the range expected "
-                    "for its data type. Please manually specify the `data_range`."
+                    "for its data type. Please manually specify the data_range."
                 )
             if true_min >= 0:
                 # most common case (255 for uint8, 1 for float)
-                data_range = dmax
+                self.data_range = dmax
             else:
-                data_range = dmax - dmin
+                self.data_range = dmax - dmin
 
-        mse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean()
-        self._sum_of_batchwise_psnr += 10.0 * torch.log10(data_range ** 2 / mse_error).to(device=self._device)
-        self._num_examples += y.shape[0]
+        self._sum_of_squared_error += (
+            torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).sum().to(device=self._device)
+        )
+        self._num_elements += y.numel()
 
-    @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
+    @sync_all_reduce("_sum_of_squared_error", "_num_elements")
     def compute(self) -> Union[float, torch.Tensor]:
-        if self._num_examples == 0:
+        if self._num_elements == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return self._sum_of_batchwise_psnr / self._num_examples
+        return 10.0 * torch.log10(self.data_range ** 2 / (self._sum_of_squared_error / self._num_elements))
 
-
-_int_types = (torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64)
-
-_int_ranges = {k: (torch.iinfo(k).min, torch.iinfo(k).max) for k in _int_types}
 
 _dtype_range = {
-    torch.float16: (-1, 1),
-    torch.float32: (-1, 1),
-    torch.float64: (-1, 1),
+    torch.uint8: (0, 255),
+    torch.float16: (-1.0, 1.0),
+    torch.float32: (-1.0, 1.0),
+    torch.float64: (-1.0, 1.0),
 }
-_dtype_range.update(_int_ranges)
