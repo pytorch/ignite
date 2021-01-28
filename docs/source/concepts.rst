@@ -241,9 +241,15 @@ and be registered with :meth:`~ignite.engine.engine.Engine.register_events` in a
         CUSTOM_STARTED = 'custom_started'
         CUSTOM_COMPLETED = 'custom_completed'
 
-    engine.register_events(*CustomEvents)
+    engine.register_events(
+        *CustomEvents,
+        event_to_attr={
+            CustomEvents.CUSTOM_STARTED: "custom_started",
+            CustomEvents.CUSTOM_COMPLETED: "custom_completed",
+        }
+    )
 
-These events could be used to attach any handler and are fired using :meth:`~ignite.engine.engine.Engine.fire_event`.
+`event_to_attr` is a required mapping between events and state counters (see code block below). These events could be used to attach any handler and are fired using :meth:`~ignite.engine.engine.Engine.fire_event`.
 
 .. code-block:: python
 
@@ -254,6 +260,7 @@ These events could be used to attach any handler and are fired using :meth:`~ign
     @engine.on(Events.STARTED)
     def fire_custom_events(engine):
          engine.fire_event(CustomEvents.CUSTOM_STARTED)
+         engine.state.custom_started += 1  # increase state counter for this event (required)
 
 .. Note ::
 
