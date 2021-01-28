@@ -105,7 +105,9 @@ class PSNR(Metric):
     def compute(self) -> Union[float, torch.Tensor]:
         if self._num_elements == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return 10.0 * torch.log10(self.data_range ** 2 / (self._sum_of_squared_error / self._num_elements))
+        return 10.0 * torch.log10(
+            self.data_range ** 2 / (self._sum_of_squared_error / self._num_elements)  # type: ignore[operator, arg-type]
+        )
 
 
 _dtype_range = {
