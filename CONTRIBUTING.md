@@ -206,6 +206,16 @@ cd docs
 pip install -r requirements.txt
 ```
 
+[Katex](https://katex.org/) is also needed to build the documentation.
+To install katex, you need to have [nodejs](https://nodejs.org/en/) installed.
+Then you can install katex with [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/) (if installed).
+
+```bash
+npm install -g katex
+# or if you use yarn package manager
+yarn global add katex
+```
+
 ##### Build
 
 ```bash
