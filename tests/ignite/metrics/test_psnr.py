@@ -36,6 +36,28 @@ def test_invalid_psnr():
         psnr.update((y_pred, y + 1.0))
 
 
+def _test_psnr_per_image(y_pred, y, data_range, device):
+    psnr = PSNR(data_range=data_range, device=device)
+    psnr.update((y_pred, y))
+
+    np_y_pred = y_pred.cpu().numpy()
+    np_y = y.cpu().numpy()
+    np_psnr = []
+    for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
+        np_psnr.append(ski_psnr(np_y_, np_y_pred_, data_range=data_range))
+
+    assert np.allclose(psnr._sum_of_batchwise_psnr.cpu().numpy(), np_psnr)
+
+
+def test_psnr_per_image():
+    device = idist.device()
+    manual_seed(42)
+    y_pred = torch.rand(8, 3, 28, 28, device=device)
+    y = y_pred * 0.8
+
+    _test_psnr_per_image(y_pred, y, None, device)
+
+
 def _test_psnr(y_pred, y, data_range, device):
     psnr = PSNR(data_range=data_range, device=device)
     psnr.update((y_pred, y))
@@ -43,11 +65,14 @@ def _test_psnr(y_pred, y, data_range, device):
 
     np_y_pred = y_pred.cpu().numpy()
     np_y = y.cpu().numpy()
+    np_psnr = 0
+    for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
+        np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
 
     assert isinstance(psnr_compute, torch.Tensor)
     assert psnr_compute.dtype == torch.float64
     assert psnr_compute.device == torch.device(device)
-    assert np.allclose(psnr_compute.numpy(), ski_psnr(np_y, np_y_pred, data_range=data_range))
+    assert np.allclose(psnr_compute.numpy(), np_psnr / np_y.shape[0])
 
 
 def test_psnr():
@@ -73,6 +98,14 @@ def test_psnr():
     _test_psnr(y_pred, y, None, device)
     _test_psnr(y_pred, y, 240, device)
     _test_psnr(y_pred, y, 256, device)
+
+    # test with NHW shape
+    manual_seed(42)
+    y_pred = torch.rand(8, 28, 28, device=device)
+    y = y_pred * 0.8
+    _test_psnr(y_pred, y, None, device)
+    _test_psnr(y_pred, y, 0.3, device)
+    _test_psnr(y_pred, y, 1.0, device)
 
 
 def _test_distrib_integration(device, atol=1e-8):
@@ -100,8 +133,11 @@ def _test_distrib_integration(device, atol=1e-8):
 
         np_y_pred = y_pred.cpu().numpy()
         np_y = y.cpu().numpy()
+        np_psnr = 0
+        for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
+            np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
 
-        assert np.allclose(result, ski_psnr(np_y, np_y_pred, data_range=data_range), atol=atol)
+        assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
 
     manual_seed(42)
     y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)
@@ -124,6 +160,14 @@ def _test_distrib_integration(device, atol=1e-8):
     _test(y_pred, y, None, "cpu")
     _test(y_pred, y, 240, "cpu")
     _test(y_pred, y, 256, "cpu")
+
+    # test with NHW shape
+    manual_seed(42)
+    y_pred = torch.rand(offset * idist.get_world_size(), 28, 28, device=device)
+    y = y_pred * 0.8
+    _test(y_pred, y, None, "cpu")
+    _test(y_pred, y, 0.3, "cpu")
+    _test(y_pred, y, 1, "cpu")
 
     if torch.device(device).type != "xla":
         manual_seed(42)
@@ -148,6 +192,14 @@ def _test_distrib_integration(device, atol=1e-8):
         _test(y_pred, y, 240, idist.device())
         _test(y_pred, y, 256, idist.device())
 
+        # test with NHW shape
+        manual_seed(42)
+        y_pred = torch.rand(offset * idist.get_world_size(), 28, 28, device=device)
+        y = y_pred * 0.8
+        _test(y_pred, y, None, idist.device())
+        _test(y_pred, y, 0.3, idist.device())
+        _test(y_pred, y, 1, idist.device())
+
 
 def _test_distrib_accumulator_device(device):
 
@@ -163,7 +215,7 @@ def _test_distrib_accumulator_device(device):
         y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
         psnr.update((y_pred, y))
-        dev = psnr._sum_of_squared_error.device
+        dev = psnr._sum_of_batchwise_psnr.device
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
 

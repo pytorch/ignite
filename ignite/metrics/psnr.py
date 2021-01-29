@@ -16,8 +16,10 @@ class PSNR(Metric):
 
     where :math:`\text{MSE}` is `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_.
 
+    - `y_pred` and `y` must have (batch_size, ...) shape.
+    - `y_pred` and `y` must have same dtype and same shape.
+
     Note:
-        `y_pred` and `y` must have same dtype and same shape.
         If `y_pred` and `y` have almost identical values, the result will be infinity.
 
     Args:
@@ -58,7 +60,7 @@ class PSNR(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         super().__init__(output_transform=output_transform, device=device)
-        self.data_range = self.__data_range = data_range
+        self.data_range = data_range
 
     def _check_shape_dtype(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -74,15 +76,16 @@ class PSNR(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_squared_error = 0  # type: Union[int, torch.Tensor]
-        self._num_elements = 0
+        self._sum_of_batchwise_psnr = 0  # type: Union[int, torch.Tensor]
+        self._num_examples = 0
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape_dtype(output)
         y_pred, y = output[0].detach(), output[1].detach()
+        data_range = self.data_range
 
-        if self.__data_range is None:
+        if data_range is None:
             dmin, dmax = _dtype_range[y.dtype]
             true_min, true_max = y.min(), y.max()
             if true_max > dmax or true_min < dmin:
@@ -92,22 +95,19 @@ class PSNR(Metric):
                 )
             if true_min >= 0:
                 # most common case (255 for uint8, 1 for float)
-                self.data_range = dmax
+                data_range = dmax
             else:
-                self.data_range = dmax - dmin
+                data_range = dmax - dmin
 
-        self._sum_of_squared_error += (
-            torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).sum().to(device=self._device)
-        )
-        self._num_elements += y.numel()
+        rmse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean(dim=list(range(1, y.ndim))).sqrt()
+        self._sum_of_batchwise_psnr += 20.0 * torch.log10(data_range / rmse_error).to(self._device)
+        self._num_examples += y.shape[0]
 
-    @sync_all_reduce("_sum_of_squared_error", "_num_elements")
-    def compute(self) -> Union[float, torch.Tensor]:
-        if self._num_elements == 0:
+    @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
+    def compute(self) -> torch.Tensor:
+        if self._num_examples == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return 10.0 * torch.log10(
-            self.data_range ** 2 / (self._sum_of_squared_error / self._num_elements)  # type: ignore[operator, arg-type]
-        )
+        return torch.sum(self._sum_of_batchwise_psnr / self._num_examples)  # type: ignore[arg-type]
 
 
 _dtype_range = {
