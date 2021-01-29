@@ -332,6 +332,8 @@ Complete list of metrics
 
 .. autoclass:: MetricsLambda
 
+.. autoclass:: PSNR
+
 .. autoclass:: Precision
 
 .. autoclass:: Recall
