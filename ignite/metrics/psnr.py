@@ -24,7 +24,7 @@ class PSNR(Metric):
         - If `y_pred` and `y` have almost identical values, the result will be infinity.
 
     Args:
-        data_range (int or float): The data range of the target image (distance between minimum
+        data_range (int or float, optional): The data range of the target image (distance between minimum
             and maximum possible values). If not provided, it will be estimated from the input
             data type: ``1.0`` for float/double tensor or ``255`` for unsigned 8-bit tensor.
             For other data types, please set the data range, otherwise an exception will be raised.
