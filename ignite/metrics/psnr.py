@@ -64,7 +64,9 @@ class PSNR(Metric):
         super().__init__(output_transform=output_transform, device=device)
         self.data_range = data_range
 
-    def _check_shape_dtype_drange(self, output: Sequence[torch.Tensor], data_range: Union[int, float]) -> Union[int, float]:
+    def _check_shape_dtype_drange(
+        self, output: Sequence[torch.Tensor], data_range: Union[int, float]
+    ) -> Union[int, float]:
         y_pred, y = output
         if y_pred.dtype != y.dtype:
             raise TypeError(
