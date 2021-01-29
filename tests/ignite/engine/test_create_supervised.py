@@ -19,6 +19,7 @@ def _test_create_supervised_trainer(
     trainer_device: Optional[str] = None,
     trace: bool = False,
     amp: bool = False,
+    scaler: "torch.cuda.amp.GradScaler" = None,
     **grad_norm_kwargs: Any,
 ):
     model = Linear(1, 1)
@@ -29,7 +30,6 @@ def _test_create_supervised_trainer(
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
-    scaler = None
 
     if trace:
         example_input = torch.randn(1, 1)
@@ -62,7 +62,7 @@ def _test_create_supervised_trainer(
         state = trainer.run(data)
 
         if amp:
-            assert state.output[0] is torch.float16
+            assert state.output[0].dtype is torch.float16
         if grad_norm_kwargs:
             assert state.output[-1] == approx(17.0)
             assert model.weight.data[0, 0].item() == 0.0
@@ -137,6 +137,13 @@ def test_create_supervised_trainer_grad_norm():
     _test_create_supervised_trainer(trainer_device="cpu", max_norm=0, norm_type=2.0)
 
 
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0.")
+def test_create_supervised_trainer_scaler_no_amp():
+    scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
+    with pytest.raises(ValueError, match="scaler argument is not None, but amp is False."):
+        _test_create_supervised_trainer(amp=False, scaler=scaler)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_amp():
     model_device = trainer_device = "cuda"
@@ -155,6 +162,14 @@ def test_create_supervised_trainer_on_tpu_no_xla():
     trainer_device = "xla"
     with pytest.raises(RuntimeError, match=r"In order to run on TPU, please install PyTorch XLA"):
         _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_create_supervised_trainer_on_tpu_amp():
+    model_device = trainer_device = "xla"
+    with pytest.raises(ValueError, match="amp cannot be used with xla device."):
+        _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp=True)
 
 
 @pytest.mark.tpu
