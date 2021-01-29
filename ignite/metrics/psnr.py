@@ -26,7 +26,8 @@ class PSNR(Metric):
     Args:
         data_range (int or float): The data range of the target image (distance between minimum
             and maximum possible values). If not provided, it will be estimated from the input
-            data type. Typically, ``1.0`` for float tensor or ``255`` for unsigned 8-bit tensor.
+            data type: ``1.0`` for float/double tensor or ``255`` for unsigned 8-bit tensor.
+            For other data types, please set the data range, otherwise an exception will be raised.
         output_transform (callable, optional): A callable that is used to transform the Engine’s
             process_function’s output into the form expected by the metric.
         device (str or torch.device): specifies which device updates are accumulated on.
