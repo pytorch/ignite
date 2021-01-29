@@ -21,19 +21,22 @@ def test_invalid_psnr():
     y_pred = torch.rand(1, 3, 8, 8)
     y = torch.rand(1, 3, 8, 8)
 
-    with pytest.raises(TypeError, match=r"Expected y_pred and y to have the same data type."):
-        psnr = PSNR()
+    psnr = PSNR()
+    with pytest.raises(TypeError, match="Expected y_pred and y to have the same data type."):
         psnr.update((y_pred, y.double()))
 
-    with pytest.raises(ValueError, match=r"Expected y_pred and y to have the same shape."):
-        psnr = PSNR()
+    with pytest.raises(ValueError, match="Expected y_pred and y to have the same shape."):
+        # psnr = PSNR()
         psnr.update((y_pred, y.squeeze(dim=0)))
 
-    with pytest.raises(ValueError, match=r"y has intensity values outside the range expected"):
-        psnr = PSNR()
+    with pytest.raises(ValueError, match="y has intensity values outside the range expected for its data type."):
+        # psnr = PSNR()
         psnr.update((y_pred, y))
         # to catch ValueError for this batch
         psnr.update((y_pred, y + 1.0))
+
+    with pytest.raises(ValueError, match="Range for this dtype cannot be automatically estimated."):
+        psnr.update((y_pred.long(), y.long()))
 
 
 def _test_psnr_per_image(y_pred, y, data_range, device):
@@ -42,9 +45,9 @@ def _test_psnr_per_image(y_pred, y, data_range, device):
 
     np_y_pred = y_pred.cpu().numpy()
     np_y = y.cpu().numpy()
-    np_psnr = []
+    np_psnr = 0
     for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-        np_psnr.append(ski_psnr(np_y_, np_y_pred_, data_range=data_range))
+        np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
 
     assert np.allclose(psnr._sum_of_batchwise_psnr.cpu().numpy(), np_psnr)
 

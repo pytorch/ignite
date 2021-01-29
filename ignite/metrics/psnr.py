@@ -78,7 +78,7 @@ class PSNR(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_batchwise_psnr = 0  # type: Union[int, torch.Tensor]
+        self._sum_of_batchwise_psnr = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
 
     @reinit__is_reduced
@@ -88,7 +88,12 @@ class PSNR(Metric):
         data_range = self.data_range
 
         if data_range is None:
-            dmin, dmax = _dtype_range[y.dtype]
+            try:
+                dmin, dmax = _dtype_range[y.dtype]
+            except KeyError:
+                raise ValueError(
+                    "Range for this dtype cannot be automatically estimated. Please manually specify the data_range."
+                )
             true_min, true_max = y.min(), y.max()
             if true_max > dmax or true_min < dmin:
                 raise ValueError(
@@ -102,15 +107,17 @@ class PSNR(Metric):
                 data_range = dmax - dmin
 
         dim = tuple(range(1, y.ndim))
-        rmse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean(dim=dim).sqrt()
-        self._sum_of_batchwise_psnr += 20.0 * torch.log10(data_range / rmse_error).to(self._device)
+        mse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean(dim=dim)
+        self._sum_of_batchwise_psnr += torch.sum(10.0 * torch.log10(data_range ** 2 / mse_error)).to(
+            device=self._device
+        )
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return torch.sum(self._sum_of_batchwise_psnr / self._num_examples)  # type: ignore[arg-type]
+        return self._sum_of_batchwise_psnr / self._num_examples
 
 
 _dtype_range = {
