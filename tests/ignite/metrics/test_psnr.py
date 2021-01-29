@@ -39,28 +39,6 @@ def test_invalid_psnr():
         psnr.update((y_pred.long(), y.long()))
 
 
-def _test_psnr_per_image(y_pred, y, data_range, device):
-    psnr = PSNR(data_range=data_range, device=device)
-    psnr.update((y_pred, y))
-
-    np_y_pred = y_pred.cpu().numpy()
-    np_y = y.cpu().numpy()
-    np_psnr = 0
-    for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-        np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
-
-    assert np.allclose(psnr._sum_of_batchwise_psnr.cpu().numpy(), np_psnr)
-
-
-def test_psnr_per_image():
-    device = idist.device()
-    manual_seed(42)
-    y_pred = torch.rand(8, 3, 28, 28, device=device)
-    y = y_pred * 0.8
-
-    _test_psnr_per_image(y_pred, y, None, device)
-
-
 def _test_psnr(y_pred, y, data_range, device):
     psnr = PSNR(data_range=data_range, device=device)
     psnr.update((y_pred, y))

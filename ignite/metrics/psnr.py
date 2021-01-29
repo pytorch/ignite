@@ -64,7 +64,7 @@ class PSNR(Metric):
         super().__init__(output_transform=output_transform, device=device)
         self.data_range = data_range
 
-    def _check_shape_dtype(self, output: Sequence[torch.Tensor]) -> None:
+    def _check_shape_dtype_drange(self, output: Sequence[torch.Tensor], data_range: Union[int, float]) -> None:
         y_pred, y = output
         if y_pred.dtype != y.dtype:
             raise TypeError(
@@ -75,17 +75,6 @@ class PSNR(Metric):
             raise ValueError(
                 f"Expected y_pred and y to have the same shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
-
-    @reinit__is_reduced
-    def reset(self) -> None:
-        self._sum_of_batchwise_psnr = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self._num_examples = 0
-
-    @reinit__is_reduced
-    def update(self, output: Sequence[torch.Tensor]) -> None:
-        self._check_shape_dtype(output)
-        y_pred, y = output[0].detach(), output[1].detach()
-        data_range = self.data_range
 
         if data_range is None:
             try:
@@ -105,6 +94,18 @@ class PSNR(Metric):
                 data_range = dmax
             else:
                 data_range = dmax - dmin
+        return data_range
+
+    @reinit__is_reduced
+    def reset(self) -> None:
+        self._sum_of_batchwise_psnr = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._num_examples = 0
+
+    @reinit__is_reduced
+    def update(self, output: Sequence[torch.Tensor]) -> None:
+        data_range = self.data_range
+        data_range = self._check_shape_dtype_drange(output, data_range)
+        y_pred, y = output[0].detach(), output[1].detach()
 
         dim = tuple(range(1, y.ndim))
         mse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean(dim=dim)
