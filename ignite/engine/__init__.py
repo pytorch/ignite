@@ -52,7 +52,7 @@ def create_supervised_trainer(
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp: bool = False,
-    scaler: "torch.cuda.amp.GradScaler" = None,
+    scaler: "torch.cuda.amp.GradScaler" = None,  # type: ignore[assignment]
     **grad_norm_kwargs: Any,
 ) -> Engine:
     """Factory function for creating a trainer for supervised models.
@@ -123,7 +123,7 @@ def create_supervised_trainer(
         optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         if has_native_amp:
-            with autocast(amp):
+            with autocast(enabled=amp):
                 y_pred = model(x)
                 loss = loss_fn(y_pred, y)
         else:

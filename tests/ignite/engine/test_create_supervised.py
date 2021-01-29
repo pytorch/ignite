@@ -1,6 +1,6 @@
 import os
 from distutils.version import LooseVersion
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import pytest
 import torch
@@ -15,7 +15,11 @@ from ignite.metrics import MeanSquaredError
 
 
 def _test_create_supervised_trainer(
-    model_device: Optional[str] = None, trainer_device: Optional[str] = None, trace: bool = False
+    model_device: Optional[str] = None,
+    trainer_device: Optional[str] = None,
+    trace: bool = False,
+    amp: bool = False,
+    **grad_norm_kwargs: Any,
 ):
     model = Linear(1, 1)
 
@@ -25,12 +29,27 @@ def _test_create_supervised_trainer(
     model.weight.data.zero_()
     model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
+    scaler = None
 
     if trace:
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
-    trainer = create_supervised_trainer(model, optimizer, mse_loss, device=trainer_device)
+    if amp and LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        from torch.cuda.amp import GradScaler
+
+        scaler = GradScaler(enabled=amp)
+
+    trainer = create_supervised_trainer(
+        model,
+        optimizer,
+        mse_loss,
+        device=trainer_device,
+        output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+        amp=amp,
+        scaler=scaler,
+        **grad_norm_kwargs,
+    )
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -42,9 +61,18 @@ def _test_create_supervised_trainer(
     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
         state = trainer.run(data)
 
-        assert state.output == approx(17.0)
-        assert model.weight.data[0, 0].item() == approx(1.3)
-        assert model.bias.item() == approx(0.8)
+        if amp:
+            assert state.output[0] is torch.float16
+        if grad_norm_kwargs:
+            assert state.output[-1] == approx(17.0)
+            assert model.weight.data[0, 0].item() == 0.0
+            assert model.bias.item() == 0.0
+            for p in model.parameters():
+                assert not torch.is_nonzero(p.grad.sum())
+        else:
+            assert state.output[-1] == approx(17.0)
+            assert model.weight.data[0, 0].item() == approx(1.3)
+            assert model.bias.item() == approx(0.8)
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
@@ -103,6 +131,16 @@ def test_create_supervised_trainer_with_cpu():
 
 def test_create_supervised_trainer_traced_with_cpu():
     _test_create_supervised_trainer(trainer_device="cpu", trace=True)
+
+
+def test_create_supervised_trainer_grad_norm():
+    _test_create_supervised_trainer(trainer_device="cpu", max_norm=0, norm_type=2.0)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_trainer_amp():
+    model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
