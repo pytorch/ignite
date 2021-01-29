@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from distutils.version import LooseVersion
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import torch
@@ -50,12 +51,16 @@ def create_supervised_trainer(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
+    amp: bool = False,
+    scaler: "torch.cuda.amp.GradScaler" = None,
+    opt_level: str = "O1",
+    **grad_norm_kwargs: Any,
 ) -> Engine:
     """Factory function for creating a trainer for supervised models.
 
     Args:
-        model (`torch.nn.Module`): the model to train.
-        optimizer (`torch.optim.Optimizer`): the optimizer to use.
+        model (torch.nn.Module): the model to train.
+        optimizer (torch.optim.Optimizer): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
@@ -69,6 +74,12 @@ def create_supervised_trainer(
         deterministic (bool, optional): if True, returns deterministic engine of type
             :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.engine.Engine`
             (default: False).
+        amp (bool, optional): if True, model and optimizer will be casted to float16 using ``torch.cuda.amp``
+            if ``torch>=1.6.0`` else using ``apex``. (default: False)
+        scaler (GradScaler, optional): if ``amp`` set to True and ``torch>=1.6.0``, this argument must be provided.
+        opt_level (str, optional): Pure or mixed precision optimization level. Accepted values are
+            “O0”, “O1”, “O2”, and “O3”.
+        grad_norm_kwargs (Any, optional): kwargs passed to ``torch.nn.utils.clip_grad_norm_``.
 
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
@@ -95,17 +106,48 @@ def create_supervised_trainer(
     if on_tpu and not idist.has_xla_support:
         raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
 
+    if amp and LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        from torch.cuda.amp import autocast
+
+        is_native_amp = True
+    elif amp:
+        try:
+            from apex import amp
+
+            is_apex_amp = True
+        except ImportError:
+            raise ImportError("Please install apex from https://github.com/nvidia/apex.")
+
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
-        y_pred = model(x)
-        loss = loss_fn(y_pred, y)
-        loss.backward()
-
-        if on_tpu:
-            xm.optimizer_step(optimizer, barrier=True)
+        if is_native_amp and not is_apex_amp:
+            with autocast(amp):
+                y_pred = model(x)
+                loss = loss_fn(y_pred, y)
         else:
+            y_pred = model(x)
+            loss = loss_fn(y_pred, y)
+
+        if is_apex_amp and not is_native_amp:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        elif not is_apex_amp and is_native_amp:
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+
+        if grad_norm_kwargs and not is_apex_amp and is_native_amp:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), **grad_norm_kwargs)
+        elif grad_norm_kwargs and is_apex_amp and not is_native_amp:
+            torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), **grad_norm_kwargs)
+
+        if on_tpu and not amp:
+            xm.optimizer_step(optimizer, barrier=True)
+        elif is_native_amp and not is_apex_amp:
+            scaler.step(optimizer)
+            scaler.update()
+        elif not is_native_amp and is_apex_amp:
             optimizer.step()
 
         return output_transform(x, y, y_pred, loss)
