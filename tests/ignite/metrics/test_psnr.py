@@ -26,11 +26,9 @@ def test_invalid_psnr():
         psnr.update((y_pred, y.double()))
 
     with pytest.raises(ValueError, match="Expected y_pred and y to have the same shape."):
-        # psnr = PSNR()
         psnr.update((y_pred, y.squeeze(dim=0)))
 
     with pytest.raises(ValueError, match="y has intensity values outside the range expected for its data type."):
-        # psnr = PSNR()
         psnr.update((y_pred, y))
         # to catch ValueError for this batch
         psnr.update((y_pred, y + 1.0))
