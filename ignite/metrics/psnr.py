@@ -16,11 +16,12 @@ class PSNR(Metric):
 
     where :math:`\text{MSE}` is `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_.
 
-    - `y_pred` and `y` must have (batch_size, ...) shape.
-    - `y_pred` and `y` must have same dtype and same shape.
-
     Note:
-        If `y_pred` and `y` have almost identical values, the result will be infinity.
+        A few things to note:
+
+        - `y_pred` and `y` **must** have (batch_size, ...) shape.
+        - `y_pred` and `y` **must** have same dtype and same shape.
+        - If `y_pred` and `y` have almost identical values, the result will be infinity.
 
     Args:
         data_range (int or float): The data range of the target image (distance between minimum
@@ -99,7 +100,8 @@ class PSNR(Metric):
             else:
                 data_range = dmax - dmin
 
-        rmse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean(dim=list(range(1, y.ndim))).sqrt()
+        dim = tuple(range(1, y.ndim))
+        rmse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean(dim=dim).sqrt()
         self._sum_of_batchwise_psnr += 20.0 * torch.log10(data_range / rmse_error).to(self._device)
         self._num_examples += y.shape[0]
 
