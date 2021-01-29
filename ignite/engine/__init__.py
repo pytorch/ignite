@@ -53,7 +53,6 @@ def create_supervised_trainer(
     deterministic: bool = False,
     amp: bool = False,
     scaler: "torch.cuda.amp.GradScaler" = None,
-    opt_level: str = "O1",
     **grad_norm_kwargs: Any,
 ) -> Engine:
     """Factory function for creating a trainer for supervised models.
@@ -74,12 +73,12 @@ def create_supervised_trainer(
         deterministic (bool, optional): if True, returns deterministic engine of type
             :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.engine.Engine`
             (default: False).
-        amp (bool, optional): if True, model and optimizer will be casted to float16 using ``torch.cuda.amp``
-            if ``torch>=1.6.0`` else using ``apex``. (default: False)
-        scaler (GradScaler, optional): if ``amp`` set to True and ``torch>=1.6.0``, this argument must be provided.
-        opt_level (str, optional): Pure or mixed precision optimization level. Accepted values are
-            “O0”, “O1”, “O2”, and “O3”.
-        grad_norm_kwargs (Any, optional): kwargs passed to ``torch.nn.utils.clip_grad_norm_``.
+        amp (bool, optional): if True, model and optimizer will be casted to float16 using
+            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ if `torch>=1.6.0`
+            else using `apex <https://nvidia.github.io/apex>`_. (default: False)
+        scaler (torch.cuda.amp.GradScaler, optional): if ``amp`` set to True and `torch>=1.6.0`,
+            this argument must be provided.
+        grad_norm_kwargs (Any, optional): kwargs passed to :func:`~torch.nn.utils.clip_grad_norm_`.
 
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
@@ -102,6 +101,7 @@ def create_supervised_trainer(
 
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
+    has_native_amp, has_apex_amp = False, False
 
     if on_tpu and not idist.has_xla_support:
         raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
@@ -109,20 +109,20 @@ def create_supervised_trainer(
     if amp and LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         from torch.cuda.amp import autocast
 
-        is_native_amp = True
+        has_native_amp = True
     elif amp:
         try:
-            from apex import amp
+            from apex import amp as apex_amp
 
-            is_apex_amp = True
+            has_apex_amp = True
         except ImportError:
-            raise ImportError("Please install apex from https://github.com/nvidia/apex.")
+            raise ImportError("Please install apex from https://github.com/nvidia/apex to use amp.")
 
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
-        if is_native_amp and not is_apex_amp:
+        if has_native_amp:
             with autocast(amp):
                 y_pred = model(x)
                 loss = loss_fn(y_pred, y)
@@ -130,24 +130,26 @@ def create_supervised_trainer(
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
 
-        if is_apex_amp and not is_native_amp:
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-        elif not is_apex_amp and is_native_amp:
+        if has_native_amp:
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
+        elif has_apex_amp:
+            with apex_amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
 
-        if grad_norm_kwargs and not is_apex_amp and is_native_amp:
+        if grad_norm_kwargs and has_apex_amp:
+            torch.nn.utils.clip_grad_norm_(apex_amp.master_params(optimizer), **grad_norm_kwargs)
+        elif grad_norm_kwargs:
             torch.nn.utils.clip_grad_norm_(model.parameters(), **grad_norm_kwargs)
-        elif grad_norm_kwargs and is_apex_amp and not is_native_amp:
-            torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), **grad_norm_kwargs)
 
         if on_tpu and not amp:
             xm.optimizer_step(optimizer, barrier=True)
-        elif is_native_amp and not is_apex_amp:
+        elif has_native_amp:
             scaler.step(optimizer)
             scaler.update()
-        elif not is_native_amp and is_apex_amp:
+        else:
             optimizer.step()
 
         return output_transform(x, y, y_pred, loss)
