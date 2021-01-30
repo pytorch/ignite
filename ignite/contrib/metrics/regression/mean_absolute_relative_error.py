@@ -7,10 +7,10 @@ from ignite.exceptions import NotComputableError
 
 
 class MeanAbsoluteRelativeError(_BaseRegression):
-    r"""
-    Calculate Mean Absolute Relative Error:
+    r"""Calculate Mean Absolute Relative Error.
 
-    :math:`\text{MARE} = \frac{1}{n}\sum_{j=1}^n\frac{\left|A_j-P_j\right|}{\left|A_j\right|}`,
+    .. math::
+        \text{MARE} = \frac{1}{n}\sum_{j=1}^n\frac{\left|A_j-P_j\right|}{\left|A_j\right|}
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
