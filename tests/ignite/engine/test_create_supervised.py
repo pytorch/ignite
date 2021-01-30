@@ -35,11 +35,6 @@ def _test_create_supervised_trainer(
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
-    if amp and LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        from torch.cuda.amp import GradScaler
-
-        scaler = GradScaler(enabled=amp)
-
     trainer = create_supervised_trainer(
         model,
         optimizer,

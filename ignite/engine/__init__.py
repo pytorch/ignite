@@ -88,8 +88,8 @@ def create_supervised_trainer(
         amp (bool, optional): if True, model and optimizer will be casted to float16 using
             `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ if `torch>=1.6.0`
             else using `apex <https://nvidia.github.io/apex>`_. (default: False)
-        scaler (torch.cuda.amp.GradScaler, optional): if ``amp`` set to True and `torch>=1.6.0`,
-            this argument must be provided.
+        scaler (torch.cuda.amp.GradScaler, optional): GradScaler instance to pass for gradient scaling
+            ``amp`` argument must be ``True`` if this argument is provided.
         grad_norm_kwargs (Any, optional): kwargs passed to :func:`~torch.nn.utils.clip_grad_norm_`.
 
     Note:
@@ -109,6 +109,12 @@ def create_supervised_trainer(
 
     Returns:
         Engine: a trainer engine with supervised update function.
+
+    .. versionchanged:: 0.5.0
+
+        - Added ``amp`` argument for automatic mixed precision.
+        - Added ``scaler`` argument for GradScaler instance.
+        - Added ``grad_norm_kwargs`` argument for :func:`~torch.nn.utils.clip_grad_norm_`.
     """
 
     device_type = device.type if isinstance(device, torch.device) else device
@@ -140,7 +146,7 @@ def create_supervised_trainer(
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
 
-        if has_native_amp:
+        if has_native_amp and scaler is not None:
             # scaled the loss
             scaler.scale(loss).backward()
         elif has_apex_amp:
@@ -152,7 +158,7 @@ def create_supervised_trainer(
         if grad_norm_kwargs and has_apex_amp:
             torch.nn.utils.clip_grad_norm_(apex_amp.master_params(optimizer), **grad_norm_kwargs)
         elif grad_norm_kwargs:
-            if has_native_amp:
+            if has_native_amp and scaler is not None:
                 # unscale the optimizer
                 scaler.unscale_(optimizer)
             # clip grad norm
@@ -160,7 +166,7 @@ def create_supervised_trainer(
 
         if on_tpu:
             xm.optimizer_step(optimizer, barrier=True)
-        elif has_native_amp:
+        elif has_native_amp and scaler is not None:
             scaler.step(optimizer)
             scaler.update()
         else:
