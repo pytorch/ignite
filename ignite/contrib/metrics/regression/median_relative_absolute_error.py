@@ -11,10 +11,10 @@ def median_relative_absolute_error_compute_fn(y_pred: torch.Tensor, y: torch.Ten
 
 
 class MedianRelativeAbsoluteError(_BaseRegressionEpoch):
-    r"""
-    Calculates the Median Relative Absolute Error:
+    r"""Calculates the Median Relative Absolute Error.
 
-    :math:`\text{MdRAE} = \text{MD}_{j=1,n} \left( \frac{|A_j - P_j|}{|A_j - \bar{A}|} \right)`,
+    .. math::
+        \text{MdRAE} = \text{MD}_{j=1,n} \left( \frac{|A_j - P_j|}{|A_j - \bar{A}|} \right)
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
