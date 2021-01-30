@@ -1,6 +1,6 @@
 import os
 from distutils.version import LooseVersion
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import pytest
 import torch
@@ -140,15 +140,15 @@ def test_create_supervised_trainer_scaler_no_amp():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_amp():
-    model_device = trainer_device = "cuda"
-    _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp=True)
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_trainer_on_cuda_amp():
+    model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp=True)
 
 
 @pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
@@ -160,19 +160,19 @@ def test_create_supervised_trainer_on_tpu_no_xla():
 
 
 @pytest.mark.tpu
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_create_supervised_trainer_on_tpu_amp():
-    model_device = trainer_device = "xla"
-    with pytest.raises(ValueError, match="amp cannot be used with xla device."):
-        _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp=True)
-
-
-@pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_create_supervised_trainer_on_tpu():
     model_device = trainer_device = "xla"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_create_supervised_trainer_on_tpu_amp():
+    model_device = trainer_device = "xla"
+    with pytest.raises(ValueError, match="amp cannot be used with xla device."):
+        _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")

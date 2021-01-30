@@ -88,7 +88,7 @@ def create_supervised_trainer(
         amp (bool, optional): if True, model and optimizer will be casted to float16 using
             `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ if `torch>=1.6.0`
             else using `apex <https://nvidia.github.io/apex>`_. (default: False)
-        scaler (torch.cuda.amp.GradScaler, optional): GradScaler instance to pass for gradient scaling
+        scaler (torch.cuda.amp.GradScaler, optional): GradScaler instance for gradient scaling if `torch>=1.6.0`.
             ``amp`` argument must be ``True`` if this argument is provided.
         grad_norm_kwargs (Any, optional): kwargs passed to :func:`~torch.nn.utils.clip_grad_norm_`.
 
@@ -97,15 +97,21 @@ def create_supervised_trainer(
         of the processed batch by default.
 
     .. warning::
-
         The internal use of `device` has changed.
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
         For more information see:
 
         - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
-
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
+    .. warning::
+        If ``apex`` has been installed and torch version is less than 1.6.0, the model(s) and optimizer(s)
+        must be initialized beforehand if ``amp`` is ``True`` since ``amp.initialize`` should be called
+        after you have finished constructing your model(s) and optimizer(s), but before you send your model
+        through any DistributedDataParallel wrapper.
+
+        See more: https://nvidia.github.io/apex/amp.html#module-apex.amp
 
     Returns:
         Engine: a trainer engine with supervised update function.
@@ -159,7 +165,7 @@ def create_supervised_trainer(
             torch.nn.utils.clip_grad_norm_(apex_amp.master_params(optimizer), **grad_norm_kwargs)
         elif grad_norm_kwargs:
             if has_native_amp and scaler is not None:
-                # unscale the optimizer
+                # unscale the optimizer for clip_grad_norm_
                 scaler.unscale_(optimizer)
             # clip grad norm
             torch.nn.utils.clip_grad_norm_(model.parameters(), **grad_norm_kwargs)
@@ -167,6 +173,7 @@ def create_supervised_trainer(
         if on_tpu:
             xm.optimizer_step(optimizer, barrier=True)
         elif has_native_amp and scaler is not None:
+            # unscale_() is called inside step()
             scaler.step(optimizer)
             scaler.update()
         else:
