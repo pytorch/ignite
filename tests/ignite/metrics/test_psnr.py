@@ -12,7 +12,7 @@ from ignite.utils import manual_seed
 
 
 def test_zero_div():
-    psnr = PSNR()
+    psnr = PSNR(1.0)
     with pytest.raises(NotComputableError, match="PSNR must have at least one example before it can be computed"):
         psnr.compute()
 
@@ -21,20 +21,12 @@ def test_invalid_psnr():
     y_pred = torch.rand(1, 3, 8, 8)
     y = torch.rand(1, 3, 8, 8)
 
-    psnr = PSNR()
+    psnr = PSNR(1.0)
     with pytest.raises(TypeError, match="Expected y_pred and y to have the same data type."):
         psnr.update((y_pred, y.double()))
 
     with pytest.raises(ValueError, match="Expected y_pred and y to have the same shape."):
         psnr.update((y_pred, y.squeeze(dim=0)))
-
-    with pytest.raises(ValueError, match="y has intensity values outside the range expected for its data type."):
-        psnr.update((y_pred, y))
-        # to catch ValueError for this batch
-        psnr.update((y_pred, y + 1.0))
-
-    with pytest.raises(ValueError, match="Range for this dtype cannot be automatically estimated."):
-        psnr.update((y_pred.long(), y.long()))
 
 
 def _test_psnr(y_pred, y, data_range, device):
@@ -48,6 +40,7 @@ def _test_psnr(y_pred, y, data_range, device):
     for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
         np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
 
+    assert torch.gt(psnr_compute, 0.0)
     assert isinstance(psnr_compute, torch.Tensor)
     assert psnr_compute.dtype == torch.float64
     assert psnr_compute.device == torch.device(device)
@@ -56,128 +49,173 @@ def _test_psnr(y_pred, y, data_range, device):
 
 def test_psnr():
     device = idist.device()
+
+    # test for float
     manual_seed(42)
     y_pred = torch.rand(8, 3, 28, 28, device=device)
     y = y_pred * 0.8
-    _test_psnr(y_pred, y, None, device)
-    _test_psnr(y_pred, y, 0.8, device)
-    _test_psnr(y_pred, y, 1.0, device)
+    data_range = (y.max() - y.min()).cpu().item()
+    _test_psnr(y_pred, y, y.max() - y.min(), device)
 
-    # test for true_min < 0
+    # test for YCbCr
     manual_seed(42)
-    y_pred = torch.empty(2, 3, 12, 12, device=device).random_(-1, 2)
-    y = torch.empty(2, 3, 12, 12, device=device).random_(-1, 2)
-    _test_psnr(y_pred, y, None, device)
-    _test_psnr(y_pred, y, 0.5, device)
-    _test_psnr(y_pred, y, 1, device)
+    y_pred = torch.randint(16, 236, (4, 1, 12, 12), dtype=torch.uint8, device=device)
+    y = torch.randint(16, 236, (4, 1, 12, 12), dtype=torch.uint8, device=device)
+    data_range = (y.max() - y.min()).cpu().item()
+    _test_psnr(y_pred, y, data_range, device)
 
+    # test for uint8
     manual_seed(42)
     y_pred = torch.randint(0, 256, (4, 3, 16, 16), dtype=torch.uint8, device=device)
     y = (y_pred * 0.8).to(torch.uint8)
-    _test_psnr(y_pred, y, None, device)
-    _test_psnr(y_pred, y, 240, device)
-    _test_psnr(y_pred, y, 256, device)
+    data_range = (y.max() - y.min()).cpu().item()
+    _test_psnr(y_pred, y, data_range, device)
 
     # test with NHW shape
     manual_seed(42)
     y_pred = torch.rand(8, 28, 28, device=device)
     y = y_pred * 0.8
-    _test_psnr(y_pred, y, None, device)
-    _test_psnr(y_pred, y, 0.3, device)
-    _test_psnr(y_pred, y, 1.0, device)
+    data_range = (y.max() - y.min()).cpu().item()
+    _test_psnr(y_pred, y, data_range, device)
+
+
+def _test(
+    y_pred,
+    y,
+    data_range,
+    metric_device,
+    n_iters,
+    s,
+    offset,
+    rank,
+    atol,
+    output_transform=lambda x: x,
+    compute_y_channel=False,
+):
+    from ignite.engine import Engine
+
+    def update(engine, i):
+        return (
+            y_pred[i * s + offset * rank : (i + 1) * s + offset * rank],
+            y[i * s + offset * rank : (i + 1) * s + offset * rank],
+        )
+
+    engine = Engine(update)
+    PSNR(data_range=data_range, output_transform=output_transform, device=metric_device).attach(engine, "psnr")
+
+    data = list(range(n_iters))
+    engine.run(data=data, max_epochs=1)
+    result = engine.state.metrics["psnr"]
+    assert "psnr" in engine.state.metrics
+
+    if compute_y_channel:
+        np_y_pred = y_pred[:, 0, ...].cpu().numpy()
+        np_y = y[:, 0, ...].cpu().numpy()
+    else:
+        np_y_pred = y_pred.cpu().numpy()
+        np_y = y.cpu().numpy()
+
+    np_psnr = 0
+    for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
+        np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
+
+    assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
 
 
 def _test_distrib_integration(device, atol=1e-8):
-    from ignite.engine import Engine
 
     rank = idist.get_rank()
     n_iters = 100
     s = 10
     offset = n_iters * s
 
-    def _test(y_pred, y, data_range, metric_device):
-        def update(engine, i):
-            return (
-                y_pred[i * s + offset * rank : (i + 1) * s + offset * rank],
-                y[i * s + offset * rank : (i + 1) * s + offset * rank],
-            )
-
-        engine = Engine(update)
-        PSNR(data_range=data_range, device=metric_device).attach(engine, "psnr")
-
-        data = list(range(n_iters))
-        engine.run(data=data, max_epochs=1)
-        result = engine.state.metrics["psnr"]
-        assert "psnr" in engine.state.metrics
-
-        np_y_pred = y_pred.cpu().numpy()
-        np_y = y.cpu().numpy()
-        np_psnr = 0
-        for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-            np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
-
-        assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
-
+    # test for float
     manual_seed(42)
     y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)
     y = y_pred * 0.65
-    _test(y_pred, y, None, "cpu")
-    _test(y_pred, y, 0.5, "cpu")
-    _test(y_pred, y, 1, "cpu")
+    data_range = (y.max() - y.min()).cpu().item()
+    _test(y_pred, y, data_range, "cpu", n_iters, s, offset, rank, atol=atol)
 
-    # test for true_min < 0
+    # test for YCbCr
     manual_seed(42)
-    y_pred = torch.empty(offset * idist.get_world_size(), 3, 12, 12, device=device).random_(-1, 2)
-    y = -1 * y_pred
-    _test(y_pred, y, None, "cpu")
-    _test(y_pred, y, 0.5, "cpu")
-    _test(y_pred, y, 1, "cpu")
+    y_pred = torch.randint(16, 236, (offset * idist.get_world_size(), 1, 12, 12), dtype=torch.uint8, device=device)
+    cbcr_pred = torch.randint(16, 241, (offset * idist.get_world_size(), 2, 12, 12), dtype=torch.uint8, device=device)
+    y = torch.randint(16, 236, (offset * idist.get_world_size(), 1, 12, 12), dtype=torch.uint8, device=device)
+    cbcr = torch.randint(16, 241, (offset * idist.get_world_size(), 2, 12, 12), dtype=torch.uint8, device=device)
 
+    y_pred, y = torch.cat((y_pred, cbcr_pred), dim=1), torch.cat((y, cbcr), dim=1)
+    data_range = (y[:, 0, ...].max() - y[:, 0, ...].min()).cpu().item()
+    _test(
+        y_pred=y_pred,
+        y=y,
+        data_range=data_range,
+        metric_device="cpu",
+        n_iters=n_iters,
+        s=s,
+        offset=offset,
+        rank=rank,
+        atol=atol,
+        output_transform=lambda x: (x[0][:, 0, ...], x[1][:, 0, ...]),
+        compute_y_channel=True,
+    )
+
+    # test for uint8
     manual_seed(42)
     y_pred = torch.randint(0, 256, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
     y = (y_pred * 0.65).to(torch.uint8)
-    _test(y_pred, y, None, "cpu")
-    _test(y_pred, y, 240, "cpu")
-    _test(y_pred, y, 256, "cpu")
+    data_range = (y.max() - y.min()).cpu().item()
+    _test(y_pred, y, data_range, "cpu", n_iters, s, offset, rank, atol=atol)
 
     # test with NHW shape
     manual_seed(42)
     y_pred = torch.rand(offset * idist.get_world_size(), 28, 28, device=device)
     y = y_pred * 0.8
-    _test(y_pred, y, None, "cpu")
-    _test(y_pred, y, 0.3, "cpu")
-    _test(y_pred, y, 1, "cpu")
+    data_range = (y.max() - y.min()).cpu().item()
+    _test(y_pred, y, data_range, "cpu", n_iters, s, offset, rank, atol=atol)
 
     if torch.device(device).type != "xla":
         manual_seed(42)
         y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, device=device)
         y = y_pred * 0.65
-        _test(y_pred, y, None, idist.device())
-        _test(y_pred, y, 0.5, idist.device())
-        _test(y_pred, y, 1, idist.device())
+        data_range = (y.max() - y.min()).cpu().item()
+        _test(y_pred, y, data_range, idist.device(), n_iters, s, offset, rank, atol=atol)
 
-        # test for true_min < 0
+        # test for YCbCr
         manual_seed(42)
-        y_pred = torch.empty(offset * idist.get_world_size(), 3, 12, 12, device=device).random_(-1, 2)
-        y = -1 * y_pred
-        _test(y_pred, y, None, idist.device())
-        _test(y_pred, y, 0.5, idist.device())
-        _test(y_pred, y, 1, idist.device())
+        y_pred = torch.randint(16, 236, (offset * idist.get_world_size(), 1, 12, 12), dtype=torch.uint8, device=device)
+        cbcr_pred = torch.randint(
+            16, 241, (offset * idist.get_world_size(), 2, 12, 12), dtype=torch.uint8, device=device
+        )
+        y = torch.randint(16, 236, (offset * idist.get_world_size(), 1, 12, 12), dtype=torch.uint8, device=device)
+        cbcr = torch.randint(16, 241, (offset * idist.get_world_size(), 2, 12, 12), dtype=torch.uint8, device=device)
+        y_pred, y = torch.cat((y_pred, cbcr_pred), dim=1), torch.cat((y, cbcr), dim=1)
+        data_range = (y[:, 0, ...].max() - y[:, 0, ...].min()).cpu().item()
+        _test(
+            y_pred=y_pred,
+            y=y,
+            data_range=data_range,
+            metric_device=idist.device(),
+            n_iters=n_iters,
+            s=s,
+            offset=offset,
+            rank=rank,
+            atol=atol,
+            output_transform=lambda x: (x[0][:, 0, ...], x[1][:, 0, ...]),
+            compute_y_channel=True,
+        )
 
         manual_seed(42)
         y_pred = torch.randint(0, 256, (offset * idist.get_world_size(), 3, 16, 16), device=device, dtype=torch.uint8)
         y = (y_pred * 0.65).to(torch.uint8)
-        _test(y_pred, y, None, idist.device())
-        _test(y_pred, y, 240, idist.device())
-        _test(y_pred, y, 256, idist.device())
+        data_range = (y.max() - y.min()).cpu().item()
+        _test(y_pred, y, data_range, idist.device(), n_iters, s, offset, rank, atol=atol)
 
         # test with NHW shape
         manual_seed(42)
         y_pred = torch.rand(offset * idist.get_world_size(), 28, 28, device=device)
         y = y_pred * 0.8
-        _test(y_pred, y, None, idist.device())
-        _test(y_pred, y, 0.3, idist.device())
-        _test(y_pred, y, 1, idist.device())
+        data_range = (y.max() - y.min()).cpu().item()
+        _test(y_pred, y, data_range, idist.device(), n_iters, s, offset, rank, atol=atol)
 
 
 def _test_distrib_accumulator_device(device):
