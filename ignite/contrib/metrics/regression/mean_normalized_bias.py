@@ -7,10 +7,10 @@ from ignite.exceptions import NotComputableError
 
 
 class MeanNormalizedBias(_BaseRegression):
-    r"""
-    Calculates the Mean Normalized Bias:
+    r"""Calculates the Mean Normalized Bias.
 
-    :math:`\text{MNB} = \frac{1}{n}\sum_{j=1}^n\frac{A_j - P_j}{A_j}`,
+    .. math::
+        \text{MNB} = \frac{1}{n}\sum_{j=1}^n\frac{A_j - P_j}{A_j}
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
