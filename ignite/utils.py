@@ -1,8 +1,9 @@
 import collections.abc as collections
+import functools
 import logging
 import random
+import warnings
 from typing import Any, Callable, Optional, Tuple, Type, Union, cast
-import functools
 
 import torch
 
@@ -164,21 +165,25 @@ def manual_seed(seed: int) -> None:
 
 
 def deprecated(deprecated_in, removed_in=None, reasons=[], raiseWarning=False):
-
     def decorator(func):
-        func_doc = func.__doc__
+        func_doc = func.__doc__ if func.__doc__ else ""
+        deprecation_warning = (
+            f"This function has been deprecated since version `{deprecated_in}`"
+            + (f" and will be removed in version `{removed_in}`" if removed_in else "")
+            + ".\n Please refer to the documentation for more details."
+        )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if raiseWarning:
-                raise DeprecationWarning()
+                warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
             return func(*args, **kwargs)
 
-        appended_doc = f'.. deprecated:: {deprecated_in}' + ('\n\n\t' if len(reasons) else '')
+        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) else "")
 
         for reason in reasons:
-            appended_doc += '\n\t- ' + reason
-        wrapper.__doc__ = '**Deprecated function**.' + '\n\n    ' + func_doc + appended_doc
+            appended_doc += "\n\t- " + reason
+        wrapper.__doc__ = "**Deprecated function**." + "\n\n    " + func_doc + appended_doc
         return wrapper
 
     return decorator
