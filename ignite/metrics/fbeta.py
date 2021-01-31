@@ -17,7 +17,13 @@ def Fbeta(
     output_transform: Optional[Callable] = None,
     device: Union[str, torch.device] = torch.device("cpu"),
 ) -> MetricsLambda:
-    """Calculates F-beta score
+    r"""Calculates F-beta score.
+
+    .. math::
+        F_\beta = \left( 1 + \beta^2 \right) * \frac{ \text{precision} * \text{recall} }
+        { \left( \beta^2 * \text{precision} \right) + \text{recall} }
+
+    where :math:`\beta` is a positive real factor.
 
     Args:
         beta (float): weight of precision in harmonic mean
