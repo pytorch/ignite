@@ -11,10 +11,10 @@ def median_absolute_percentage_error_compute_fn(y_pred: torch.Tensor, y: torch.T
 
 
 class MedianAbsolutePercentageError(_BaseRegressionEpoch):
-    r"""
-    Calculates the Median Absolute Percentage Error:
+    r"""Calculates the Median Absolute Percentage Error.
 
-    :math:`\text{MdAPE} = 100 \cdot \text{MD}_{j=1,n} \left( \frac{|A_j - P_j|}{|A_j|} \right)`,
+    .. math::
+        \text{MdAPE} = 100 \cdot \text{MD}_{j=1,n} \left( \frac{|A_j - P_j|}{|A_j|} \right)
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
