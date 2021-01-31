@@ -390,7 +390,7 @@ def setup_visdom_logging(
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
     return logger
 
-@deprecated("0.4.2", "0.6.0", ["This is reason 1", "This is reason 2"])
+
 def setup_mlflow_logging(
     trainer: Engine,
     optimizers: Optional[Union[Optimizer, Dict[str, Optimizer]]] = None,
