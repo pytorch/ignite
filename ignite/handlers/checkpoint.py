@@ -358,7 +358,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
-        def _compare_fn(old, new):
+        def _compare_fn(old: Union[int, float], new: Union[int, float]) -> bool:
             if self.greater_or_equal:
                 return new >= old
             else:
