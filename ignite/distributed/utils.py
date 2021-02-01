@@ -525,6 +525,7 @@ def show_config() -> None:
     """
 
     import sys
+
     # setup parallel logger
     logger = setup_logger(__name__, stream=sys.stdout)
 
