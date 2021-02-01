@@ -247,7 +247,7 @@ class Checkpoint(Serializable):
             trainer.run(data_loader, max_epochs=10)
             > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
 
-    .. versionadded:: 0.4.3
+    .. versionchanged:: 0.4.3
         Added ``greater_or_equal`` parameter.
     """
 
