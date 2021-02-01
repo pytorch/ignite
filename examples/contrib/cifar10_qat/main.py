@@ -1,11 +1,11 @@
 from datetime import datetime
 from pathlib import Path
 
-import fire
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import fire
 import ignite
 import ignite.distributed as idist
 import utils
