@@ -524,8 +524,9 @@ def show_config() -> None:
     """Helper method to display distributed configuration via ``logging``.
     """
 
+    import sys
     # setup parallel logger
-    logger = setup_logger(__name__)
+    logger = setup_logger(__name__, stream=sys.stdout)
 
     logger.info(f"distributed configuration: {model_name()}")
     logger.info(f"backend: {backend()}")

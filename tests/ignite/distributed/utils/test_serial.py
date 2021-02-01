@@ -1,5 +1,4 @@
 import torch
-import torch.distributed as dist
 
 import ignite.distributed as idist
 from tests.ignite.distributed.utils import _sanity_check, _test_sync
@@ -24,7 +23,8 @@ def test_no_distrib(capsys):
 
     idist.show_config()
     captured = capsys.readouterr()
-    out = captured.out.split("\r")
+    print(captured)
+    out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
     assert "ignite.distributed.utils INFO: distributed configuration: serial" in out[-1]
