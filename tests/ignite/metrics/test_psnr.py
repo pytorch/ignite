@@ -106,6 +106,7 @@ def _test(
     data = list(range(n_iters))
     engine.run(data=data, max_epochs=1)
     result = engine.state.metrics["psnr"]
+    assert result > 0.0
     assert "psnr" in engine.state.metrics
 
     if compute_y_channel:
