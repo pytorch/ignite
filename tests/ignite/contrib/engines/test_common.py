@@ -170,7 +170,7 @@ def test_setup_common_training_handlers(dirname, capsys):
 
     # Check epoch-wise pbar
     captured = capsys.readouterr()
-    out = captured.out.split("\r")
+    out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
     assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
@@ -183,7 +183,7 @@ def test_setup_common_training_handlers_using_save_handler(dirname, capsys):
 
     # Check epoch-wise pbar
     captured = capsys.readouterr()
-    out = captured.out.split("\r")
+    out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
     assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
