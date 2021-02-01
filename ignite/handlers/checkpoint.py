@@ -98,8 +98,8 @@ class Checkpoint(Serializable):
             details.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
-        greater_or_equal (bool): when comparing priority, whether to save if new priority equals to _saved[0],
-            default to `False` to only save when new priority is greater.
+        greater_or_equal (bool): if `True`, the latest equally scored model is stored. Otherwise, the first model.
+            Default, `False`.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
         torch.nn.parallel.DistributedDataParallel.html
