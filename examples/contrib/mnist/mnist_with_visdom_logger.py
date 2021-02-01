@@ -27,7 +27,7 @@ from torch.optim import SGD
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize
 
-from ignite.contrib.handlers.visdom_logger import *
+from ignite.contrib.handlers.visdom_logger import global_step_from_engine, GradsScalarHandler, WeightsScalarHandler, VisdomLogger
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Accuracy, Loss
 from ignite.handlers import ModelCheckpoint

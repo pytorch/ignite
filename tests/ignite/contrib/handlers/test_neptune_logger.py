@@ -8,7 +8,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.contrib.handlers.neptune_logger import *
+from ignite.contrib.handlers.neptune_logger import NeptuneSaver, NeptuneLogger, GradsScalarHandler, WeightsScalarHandler, OutputHandler, global_step_from_engine, OptimizerParamsHandler
 from ignite.engine import Engine, Events, State
 from ignite.handlers.checkpoint import Checkpoint
 

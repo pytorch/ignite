@@ -634,7 +634,7 @@ def _test_distrib_accumulator_device(device):
 
         assert (
             cm.confusion_matrix.device == metric_device
-        ), f"{type(cm.confusion_matrix.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed

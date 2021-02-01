@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, call
 import pytest
 import torch
 
-from ignite.contrib.handlers.mlflow_logger import *
+from ignite.contrib.handlers.mlflow_logger import MLflowLogger, OutputHandler, OptimizerParamsHandler, global_step_from_engine
 from ignite.engine import Engine, Events, State
 
 

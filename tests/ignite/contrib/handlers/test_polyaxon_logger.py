@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call
 import pytest
 import torch
 
-from ignite.contrib.handlers.polyaxon_logger import *
+from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger, OptimizerParamsHandler, global_step_from_engine, OutputHandler
 from ignite.engine import Engine, Events, State
 
 os.environ["POLYAXON_NO_OP"] = "1"

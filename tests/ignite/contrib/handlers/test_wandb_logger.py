@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import pytest
 import torch
 
-from ignite.contrib.handlers.wandb_logger import *
+from ignite.contrib.handlers.wandb_logger import WandBLogger, OutputHandler, global_step_from_engine, OptimizerParamsHandler
 from ignite.engine import Events, State
 
 
