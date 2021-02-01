@@ -24,7 +24,7 @@ def test_no_distrib(capsys):
 
     idist.show_config()
     captured = capsys.readouterr()
-    out = captured.err.split("\r")
+    out = captured.out.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
     assert "ignite.distributed.utils INFO: distributed configuration: serial" in out[-1]

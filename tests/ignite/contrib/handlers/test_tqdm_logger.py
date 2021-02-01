@@ -40,7 +40,7 @@ def test_pbar(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     if get_tqdm_version() < LooseVersion("4.49.0"):
@@ -122,7 +122,7 @@ def test_pbar_batch_indeces(capsys):
     engine.run(list(range(4)), max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     printed_batch_indeces = set(map(lambda x: int(x.split("/")[0][-1]), err))
@@ -152,7 +152,7 @@ def test_pbar_with_metric(capsys):
     trainer.run(data=data, max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
@@ -186,7 +186,7 @@ def test_pbar_with_all_metric(capsys):
     trainer.run(data=data, max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
@@ -209,7 +209,7 @@ def test_pbar_no_metric_names(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
@@ -231,7 +231,7 @@ def test_pbar_with_output(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     if get_tqdm_version() < LooseVersion("4.49.0"):
@@ -260,7 +260,7 @@ def test_pbar_with_scalar_output(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     if get_tqdm_version() < LooseVersion("4.49.0"):
@@ -281,7 +281,7 @@ def test_pbar_with_str_output(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     if get_tqdm_version() < LooseVersion("4.49.0"):
@@ -301,7 +301,7 @@ def test_pbar_with_tqdm_kwargs(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     expected = "My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]"
@@ -317,7 +317,7 @@ def test_pbar_for_validation(capsys):
     engine.run(loader, max_epochs=1)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     expected = "Validation: [4/5]  80%|████████   [00:00<00:00]"
@@ -338,7 +338,7 @@ def test_pbar_output_tensor(capsys):
         engine.run(loader, max_epochs=1)
 
         captured = capsys.readouterr()
-        err = captured.err.split("\r")
+        err = captured.out.split("\r")
         err = list(map(lambda x: x.strip(), err))
         err = list(filter(None, err))
         expected = f"Output tensor: [4/5]  80%|████████  , {out_msg} [00:00<00:00]"
@@ -374,7 +374,7 @@ def test_pbar_on_epochs(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
@@ -393,7 +393,7 @@ def test_pbar_with_max_epochs_set_to_one(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     if get_tqdm_version() < LooseVersion("4.49.0"):
@@ -466,7 +466,7 @@ def test_pbar_on_callable_events(capsys):
     engine.run(loader, max_epochs=n_epochs)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
@@ -482,7 +482,7 @@ def test_tqdm_logger_epoch_length(capsys):
     engine.run(loader, epoch_length=50)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
@@ -514,7 +514,7 @@ def test_tqdm_logger_iter_without_epoch_length(capsys):
     trainer.run(data_iter, max_epochs=5)
 
     captured = capsys.readouterr()
-    err = captured.err.split("\r")
+    err = captured.out.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
