@@ -343,6 +343,12 @@ class Checkpoint(Serializable):
             return True
         return len(self._saved) < self.n_saved + int(or_equal)
 
+    def _compare_fn(self, new: Union[int, float]) -> bool:
+        if self.greater_or_equal:
+            return new >= self._saved[0].priority
+        else:
+            return new > self._saved[0].priority
+
     def __call__(self, engine: Engine) -> None:
 
         global_step = None
@@ -358,13 +364,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
-        def _compare_fn(old: Union[int, float], new: Union[int, float]) -> bool:
-            if self.greater_or_equal:
-                return new >= old
-            else:
-                return new > old
-
-        if self._check_lt_n_saved() or _compare_fn(self._saved[0].priority, priority):
+        if self._check_lt_n_saved() or self._compare_fn(priority):
 
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
