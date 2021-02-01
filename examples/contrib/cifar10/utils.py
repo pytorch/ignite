@@ -1,7 +1,8 @@
 import os
 
-from torchvision import datasets, models
-from torchvision.transforms import Compose, Normalize, Pad, RandomCrop, RandomHorizontalFlip, ToTensor
+from torchvision import models
+from torchvision import datasets
+from torchvision.transforms import Compose, ToTensor, Normalize, Pad, RandomCrop, RandomHorizontalFlip
 
 train_transform = Compose(
     [

@@ -1,8 +1,9 @@
-import argparse
 import os
+import argparse
 
-from torchvision.datasets.sbd import SBDataset
 from torchvision.datasets.voc import VOCSegmentation
+from torchvision.datasets.sbd import SBDataset
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Download Pascal VOC 2012 and SBD segmentation datasets")
