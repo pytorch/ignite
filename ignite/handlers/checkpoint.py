@@ -98,6 +98,8 @@ class Checkpoint(Serializable):
             details.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        greater_or_equal (bool): when comparing priority, whether to save if new priority equals to _saved[0],
+            default to `False` to only save when new priority is greater.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
         torch.nn.parallel.DistributedDataParallel.html
@@ -261,6 +263,7 @@ class Checkpoint(Serializable):
         global_step_transform: Optional[Callable] = None,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
+        greater_or_equal: bool = False,
     ) -> None:
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
@@ -301,6 +304,7 @@ class Checkpoint(Serializable):
         self.filename_pattern = filename_pattern
         self._saved = []  # type: List["Checkpoint.Item"]
         self.include_self = include_self
+        self.greater_or_equal = greater_or_equal
 
     def reset(self) -> None:
         """Method to reset saved checkpoint names.
@@ -354,7 +358,13 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
-        if self._check_lt_n_saved() or self._saved[0].priority < priority:
+        def _compare_fn(old, new):
+            if self.greater_or_equal:
+                return new >= old
+            else:
+                return new > old
+
+        if self._check_lt_n_saved() or _compare_fn(self._saved[0].priority, priority):
 
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
