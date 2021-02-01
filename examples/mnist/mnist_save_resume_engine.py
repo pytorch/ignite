@@ -9,12 +9,12 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
+from tqdm import tqdm
 
 from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
 from ignite.handlers import Checkpoint, DiskSaver
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed
-from tqdm import tqdm
 
 try:
     from tensorboardX import SummaryWriter

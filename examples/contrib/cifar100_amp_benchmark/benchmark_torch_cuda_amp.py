@@ -1,6 +1,4 @@
 import torch
-
-# Creates a GradScaler once at the beginning of training.
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD

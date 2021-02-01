@@ -11,6 +11,7 @@ from ignite.contrib.handlers.visdom_logger import (
     VisdomLogger,
     WeightsScalarHandler,
     _DummyExecutor,
+    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 

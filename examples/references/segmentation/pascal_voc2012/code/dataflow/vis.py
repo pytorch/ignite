@@ -2,7 +2,6 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import torch
-
 from PIL import Image
 
 try:
