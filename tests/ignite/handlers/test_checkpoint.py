@@ -1558,4 +1558,4 @@ def test_greater_or_equal():
 
     for _ in range(4):
         checkpointer(trainer)
-    assert handler.counter == 3
+    assert handler.counter == 4
