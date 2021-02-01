@@ -1,8 +1,8 @@
-import sys
 import collections.abc as collections
 import logging
 import random
-from typing import Any, Callable, Optional, Tuple, Type, Union, cast, TextIO
+import sys
+from typing import Any, Callable, Optional, TextIO, Tuple, Type, Union, cast
 
 import torch
 
