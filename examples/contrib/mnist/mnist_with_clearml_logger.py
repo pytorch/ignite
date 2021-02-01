@@ -19,7 +19,7 @@ from torch import nn
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
 from ignite.contrib.handlers.clearml_logger import ClearMLSaver, ClearMLLogger, global_step_from_engine, WeightsScalarHandler, WeightsHistHandler, GradsScalarHandler, GradsHistHandler
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator

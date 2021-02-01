@@ -2,21 +2,17 @@
 import os
 from functools import partial
 
-import cv2
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
-
 from torchvision.models.segmentation import deeplabv3_resnet101
 
-import ignite.distributed as idist
-
 import albumentations as A
+import cv2
+import ignite.distributed as idist
 from albumentations.pytorch import ToTensorV2 as ToTensor
-
 from dataflow.dataloaders import get_train_val_loaders
-from dataflow.transforms import ignore_mask_boundaries, prepare_batch_fp32, denormalize
-
+from dataflow.transforms import denormalize, ignore_mask_boundaries, prepare_batch_fp32
 
 # ##############################
 # Global configs

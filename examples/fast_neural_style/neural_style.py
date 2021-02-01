@@ -1,25 +1,22 @@
 # coding: utf-8
 import argparse
 import os
+import random
 import sys
+from collections import OrderedDict
 
 import numpy as np
-import random
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision import transforms
-
-from ignite.engine import Engine, Events
-from ignite.handlers import ModelCheckpoint
+from torchvision import datasets, transforms
 
 import utils
+from handlers import Progbar
+from ignite.engine import Engine, Events
+from ignite.handlers import ModelCheckpoint
 from transformer_net import TransformerNet
 from vgg import Vgg16
-from handlers import Progbar
-
-from collections import OrderedDict
 
 
 def check_paths(args):

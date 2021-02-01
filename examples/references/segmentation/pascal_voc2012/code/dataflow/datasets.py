@@ -1,15 +1,12 @@
-from typing import Type, Callable
+from typing import Callable, Type
 
 import numpy as np
+from torch.utils.data import Dataset
+from torchvision.datasets.sbd import SBDataset
+from torchvision.datasets.voc import VOCSegmentation
 
 import cv2
-
 from PIL import Image
-
-
-from torch.utils.data import Dataset
-from torchvision.datasets.voc import VOCSegmentation
-from torchvision.datasets.sbd import SBDataset
 
 
 class TransformedDataset(Dataset):
