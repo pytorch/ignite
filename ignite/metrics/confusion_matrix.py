@@ -130,7 +130,9 @@ class ConfusionMatrix(Metric):
 
 
 def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
-    """Calculates Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    r"""Calculates Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
+
+    .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
     Args:
         cm (ConfusionMatrix): instance of confusion matrix metric
