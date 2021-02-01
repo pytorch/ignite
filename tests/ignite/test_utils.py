@@ -1,3 +1,4 @@
+import sys
 import logging
 import os
 from collections import namedtuple
@@ -86,33 +87,43 @@ def test_setup_logger(capsys, dirname):
     trainer = Engine(lambda e, b: None)
     evaluator = Engine(lambda e, b: None)
 
-    fp = os.path.join(dirname, "log")
     assert len(trainer.logger.handlers) == 0
     trainer.logger.addHandler(logging.NullHandler())
     trainer.logger.addHandler(logging.NullHandler())
     trainer.logger.addHandler(logging.NullHandler())
 
-    trainer.logger = setup_logger("trainer", filepath=fp)
-    evaluator.logger = setup_logger("evaluator", filepath=fp)
+    fp = os.path.join(dirname, "log")
 
-    assert len(trainer.logger.handlers) == 2
-    assert len(evaluator.logger.handlers) == 2
+    def _test(stream):
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def _(_):
-        evaluator.run([0, 1, 2])
+        trainer.logger = setup_logger("trainer", stream=stream, filepath=fp)
+        evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp)
 
-    trainer.run([0, 1, 2, 3, 4, 5], max_epochs=5)
+        assert len(trainer.logger.handlers) == 2
+        assert len(evaluator.logger.handlers) == 2
 
-    captured = capsys.readouterr()
-    err = captured.err.split("\n")
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def _(_):
+            evaluator.run([0, 1, 2])
 
-    with open(fp, "r") as h:
-        data = h.readlines()
+        trainer.run([0, 1, 2, 3, 4, 5], max_epochs=5)
 
-    for source in [err, data]:
-        assert "trainer INFO: Engine run starting with max_epochs=5." in source[0]
-        assert "evaluator INFO: Engine run starting with max_epochs=1." in source[1]
+        captured = capsys.readouterr()
+        if stream is sys.stdout:
+            err = captured.out.split("\n")
+        else:
+            err = captured.err.split("\n")
+
+        with open(fp, "r") as h:
+            data = h.readlines()
+
+        for source in [err, data]:
+            assert "trainer INFO: Engine run starting with max_epochs=5." in source[0]
+            assert "evaluator INFO: Engine run starting with max_epochs=1." in source[1]
+
+    _test(stream=None)
+    _test(stream=sys.stderr)
+    _test(stream=sys.stdout)
 
     # Needed by windows to release FileHandler in the loggers
     logging.shutdown()
