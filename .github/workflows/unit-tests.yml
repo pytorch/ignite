@@ -79,7 +79,7 @@ jobs:
       - name: Check code formatting
         shell: bash -l {0}
         run: |
-          pip install flake8 "black==19.10b0" isort
+          pip install flake8 "black==19.10b0" "isort==5.7.0"
           flake8 ignite/ tests/ examples/
           black --check .
           isort -c .
