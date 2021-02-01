@@ -98,6 +98,8 @@ class Checkpoint(Serializable):
             details.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        greater_or_equal (bool): if `True`, the latest equally scored model is stored. Otherwise, the first model.
+            Default, `False`.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
         torch.nn.parallel.DistributedDataParallel.html
@@ -261,6 +263,7 @@ class Checkpoint(Serializable):
         global_step_transform: Optional[Callable] = None,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
+        greater_or_equal: bool = False,
     ) -> None:
 
         if to_save is not None:  # for compatibility with ModelCheckpoint
@@ -301,6 +304,7 @@ class Checkpoint(Serializable):
         self.filename_pattern = filename_pattern
         self._saved = []  # type: List["Checkpoint.Item"]
         self.include_self = include_self
+        self.greater_or_equal = greater_or_equal
 
     def reset(self) -> None:
         """Method to reset saved checkpoint names.
@@ -339,6 +343,12 @@ class Checkpoint(Serializable):
             return True
         return len(self._saved) < self.n_saved + int(or_equal)
 
+    def _compare_fn(self, new: Union[int, float]) -> bool:
+        if self.greater_or_equal:
+            return new >= self._saved[0].priority
+        else:
+            return new > self._saved[0].priority
+
     def __call__(self, engine: Engine) -> None:
 
         global_step = None
@@ -354,7 +364,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
-        if self._check_lt_n_saved() or self._saved[0].priority < priority:
+        if self._check_lt_n_saved() or self._compare_fn(priority):
 
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
