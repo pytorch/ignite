@@ -23,7 +23,6 @@ def test_no_distrib(capsys):
 
     idist.show_config()
     captured = capsys.readouterr()
-    print(captured)
     out = captured.err.split("\r")
     out = list(map(lambda x: x.strip(), out))
     out = list(filter(None, out))
