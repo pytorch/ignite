@@ -1,7 +1,8 @@
+import sys
 import collections.abc as collections
 import logging
 import random
-from typing import Any, Callable, Optional, Tuple, Type, Union, cast
+from typing import Any, Callable, Optional, Tuple, Type, Union, cast, TextIO
 
 import torch
 
@@ -63,6 +64,7 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 def setup_logger(
     name: Optional[str] = None,
     level: int = logging.INFO,
+    stream: TextIO = sys.stdout,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
     distributed_rank: Optional[int] = None,
@@ -71,7 +73,8 @@ def setup_logger(
 
     Args:
         name (str, optional): new name for the logger. If None, the standard logger is used.
-        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG
+        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG.
+        stream (TextIO): logging stream. By default, `sys.stdout`.
         format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`
         filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
         distributed_rank (int, optional): Optional, rank in distributed configuration to avoid logger setup for workers.
@@ -127,7 +130,7 @@ def setup_logger(
     else:
         logger.setLevel(level)
 
-        ch = logging.StreamHandler()
+        ch = logging.StreamHandler(stream=stream)
         ch.setLevel(level)
         ch.setFormatter(formatter)
         logger.addHandler(ch)
