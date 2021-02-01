@@ -21,8 +21,16 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.contrib.handlers.clearml_logger import ClearMLSaver, ClearMLLogger, global_step_from_engine, WeightsScalarHandler, WeightsHistHandler, GradsScalarHandler, GradsHistHandler
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.contrib.handlers.clearml_logger import (
+    ClearMLLogger,
+    ClearMLSaver,
+    GradsHistHandler,
+    GradsScalarHandler,
+    WeightsHistHandler,
+    WeightsScalarHandler,
+    global_step_from_engine,
+)
+from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
 from ignite.handlers import Checkpoint
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import setup_logger

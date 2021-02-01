@@ -4,8 +4,14 @@ from unittest.mock import ANY, MagicMock, call
 import pytest
 import torch
 
-from ignite.contrib.handlers.visdom_logger import VisdomLogger, OutputHandler, GradsScalarHandler, WeightsScalarHandler, OptimizerParamsHandler
-from ignite.contrib.handlers.visdom_logger import _DummyExecutor
+from ignite.contrib.handlers.visdom_logger import (
+    GradsScalarHandler,
+    OptimizerParamsHandler,
+    OutputHandler,
+    VisdomLogger,
+    WeightsScalarHandler,
+    _DummyExecutor,
+)
 from ignite.engine import Engine, Events, State
 
 

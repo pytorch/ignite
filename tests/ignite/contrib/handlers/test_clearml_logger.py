@@ -10,7 +10,17 @@ from clearml.binding.frameworks import WeightsFileHandler
 from clearml.model import Framework
 
 import ignite.distributed as idist
-from ignite.contrib.handlers.clearml_logger import ClearMLSaver, ClearMLLogger, GradsHistHandler, GradsScalarHandler, OutputHandler, global_step_from_engine, WeightsScalarHandler, WeightsHistHandler, OptimizerParamsHandler
+from ignite.contrib.handlers.clearml_logger import (
+    ClearMLLogger,
+    ClearMLSaver,
+    GradsHistHandler,
+    GradsScalarHandler,
+    OptimizerParamsHandler,
+    OutputHandler,
+    WeightsHistHandler,
+    WeightsScalarHandler,
+    global_step_from_engine,
+)
 from ignite.contrib.handlers.trains_logger import TrainsLogger, TrainsSaver
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint

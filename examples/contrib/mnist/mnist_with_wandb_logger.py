@@ -26,7 +26,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
 from ignite.contrib.handlers.wandb_logger import WandBLogger, global_step_from_engine
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
 from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import setup_logger
