@@ -1,17 +1,16 @@
 from argparse import ArgumentParser
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
-from torchvision.transforms import Compose, ToTensor, Normalize
 from torchvision.datasets import MNIST
+from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import setup_logger
-
 from tqdm import tqdm
 
 

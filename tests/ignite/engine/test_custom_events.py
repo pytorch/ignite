@@ -508,7 +508,7 @@ def test_event_list():
 
     event_list = e1 | e2 | e3
 
-    assert type(event_list) == EventsList
+    assert isinstance(event_list, EventsList)
     assert len(event_list) == 3
     assert event_list[0] == e1
     assert event_list[1] == e2

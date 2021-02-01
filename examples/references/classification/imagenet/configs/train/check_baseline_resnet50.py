@@ -5,14 +5,11 @@ from functools import partial
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
-
 from torchvision.models.resnet import resnet50
 
 import albumentations as A
-from albumentations.pytorch import ToTensorV2 as ToTensor
-
 import ignite.distributed as idist
-
+from albumentations.pytorch import ToTensorV2 as ToTensor
 from dataflow.dataloaders import get_train_val_loaders
 from dataflow.transforms import denormalize
 
