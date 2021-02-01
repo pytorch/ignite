@@ -1,19 +1,16 @@
-from argparse import ArgumentParser
 from pathlib import Path
+from argparse import ArgumentParser
 
 import torch
-import torch.nn.functional as F
 from torch import nn
 from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, Normalize, ToTensor
+import torch.nn.functional as F
 
-from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
-from ignite.handlers import Checkpoint, DiskSaver
-from ignite.metrics import Accuracy, Loss
-from ignite.utils import manual_seed
+from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.datasets import MNIST
+
 from tqdm import tqdm
 
 try:
@@ -27,6 +24,11 @@ except ImportError:
             "You may install tensorboardX with command: \n pip install tensorboardX \n"
             "or upgrade PyTorch using your package manager of choice (pip or conda)."
         )
+
+from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.metrics import Accuracy, Loss
+from ignite.handlers import Checkpoint, DiskSaver
+from ignite.utils import manual_seed
 
 
 # Basic model's definition

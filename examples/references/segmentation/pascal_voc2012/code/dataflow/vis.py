@@ -1,9 +1,9 @@
-from typing import Callable, Optional, Union
+from typing import Union, Callable, Optional
 
 import numpy as np
-import torch
-
 from PIL import Image
+
+import torch
 
 try:
     from image_dataset_viz import render_datapoint

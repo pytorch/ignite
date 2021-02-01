@@ -1,13 +1,16 @@
+import fire
+
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
+
 from torchvision.models import wide_resnet50_2
 
-import fire
-from ignite.contrib.handlers import ProgressBar
-from ignite.engine import Engine, Events, convert_tensor, create_supervised_evaluator
-from ignite.handlers import Timer
+from ignite.engine import Events, Engine, create_supervised_evaluator, convert_tensor
 from ignite.metrics import Accuracy, Loss
+from ignite.handlers import Timer
+from ignite.contrib.handlers import ProgressBar
+
 from utils import get_train_eval_loaders
 
 

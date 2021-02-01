@@ -1,8 +1,10 @@
 import random
 
-from torch.utils.data import DataLoader, Subset
 from torchvision.datasets.cifar import CIFAR100
-from torchvision.transforms import Compose, Normalize, Pad, RandomCrop, RandomErasing, RandomHorizontalFlip, ToTensor
+from torchvision.transforms import Compose, RandomCrop, Pad, RandomHorizontalFlip
+from torchvision.transforms import ToTensor, Normalize, RandomErasing
+
+from torch.utils.data import Subset, DataLoader
 
 
 def get_train_eval_loaders(path, batch_size=256):
