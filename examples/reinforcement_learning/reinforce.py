@@ -1,20 +1,18 @@
 import argparse
 
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 
+from ignite.engine import Engine, Events
+
 try:
     import gym
 except ImportError:
     raise RuntimeError("Please install opengym: pip install gym")
-
-
-from ignite.engine import Engine, Events
 
 
 class Policy(nn.Module):
