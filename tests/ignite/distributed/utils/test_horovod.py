@@ -72,6 +72,7 @@ def test_hvd_distrib_single_node_spawn_cuda():
 
 def _test_sync_as_hvd():
     import horovod.torch as hvd
+
     from ignite.distributed.comp_models.horovod import _HorovodDistModel
 
     hvd.init()
@@ -105,7 +106,8 @@ def _test_idist_methods_in_hvd_context(backend, device):
     # We explicitly set _model as _SerialModel
     # then call idist.* methods and check that they give correct values
     import horovod.torch as hvd
-    from ignite.distributed.utils import _set_model, _SerialModel
+
+    from ignite.distributed.utils import _SerialModel, _set_model
 
     hvd.init()
 
@@ -175,12 +177,13 @@ def test_idist_barrier_hvd(gloo_hvd_executor):
 
 def _test_idist_methods_overhead(ok_factor, sync_model):
     import time
+
     import horovod.torch as hvd
 
     if sync_model:
         idist.sync()
-        from ignite.distributed.utils import _model
         from ignite.distributed.comp_models.horovod import _HorovodDistModel
+        from ignite.distributed.utils import _model
 
         assert isinstance(_model, _HorovodDistModel)
 

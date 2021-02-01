@@ -1,11 +1,11 @@
 from typing import Callable, Optional, Tuple
 
+import cv2
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Subset
 from torchvision.datasets import ImageNet
 
-import cv2
 import ignite.distributed as idist
 
 

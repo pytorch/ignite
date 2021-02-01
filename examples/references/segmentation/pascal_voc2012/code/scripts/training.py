@@ -6,20 +6,20 @@ from collections.abc import Mapping
 from pathlib import Path
 
 import torch
+from apex import amp
+from dataflow.datasets import VOCSegmentationOpencv
+from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
+from py_config_runner.utils import set_seed
+from utils import exp_tracking
+from utils.handlers import predictions_gt_images_handler
 
 import ignite
 import ignite.distributed as idist
-from apex import amp
-from dataflow.datasets import VOCSegmentationOpencv
 from ignite.contrib.engines import common
 from ignite.engine import Engine, Events, create_supervised_evaluator
 from ignite.handlers import DiskSaver
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.utils import setup_logger
-from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
-from py_config_runner.utils import set_seed
-from utils import exp_tracking
-from utils.handlers import predictions_gt_images_handler
 
 # Adds "code" folder to python path
 sys.path.insert(0, Path(__file__).parent.parent.as_posix())
