@@ -75,6 +75,29 @@ def test_to_onehot():
     y2 = torch.argmax(y_ohe, dim=1)
     assert y.equal(y2)
 
+    # Test with `TorchScript`
+
+    x = torch.tensor([0, 1, 2, 3])
+
+    # Test the raw `to_onehot` function
+    scripted_to_onehot = torch.jit.script(to_onehot)
+    assert scripted_to_onehot(x, 4).allclose(to_onehot(x, 4))
+
+    # Test inside `torch.nn.Module`
+    class SLP(torch.nn.Module):
+        def __init__(self):
+            super(SLP, self).__init__()
+            self.linear = torch.nn.Linear(4, 1)
+
+        def forward(self, x):
+            x = to_onehot(x, 4)
+            return self.linear(x.to(torch.float))
+
+    eager_model = SLP()
+    scripted_model = torch.jit.trace(eager_model, x)
+
+    assert eager_model(x).allclose(scripted_model(x))
+
 
 def test_dist_setup_logger():
 
