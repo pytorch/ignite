@@ -92,8 +92,12 @@ class _BaseClassification(Metric):
 
 
 class Accuracy(_BaseClassification):
-    """
-    Calculates the accuracy for binary, multiclass and multilabel data.
+    r"""Calculates the accuracy for binary, multiclass and multilabel data.
+
+    .. math:: \text{Accuracy} = \frac{ TP + TN }{ TP + TN + FP + FN }
+
+    where :math:`\text{TP}` is true positives, :math:`\text{TN}` is true negatives,
+    :math:`\text{FP}` is false positives and :math:`\text{FN}` is false negatives.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).

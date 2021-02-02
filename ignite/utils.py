@@ -1,7 +1,8 @@
 import collections.abc as collections
 import logging
 import random
-from typing import Any, Callable, Optional, Tuple, Type, Union, cast
+import sys
+from typing import Any, Callable, Optional, TextIO, Tuple, Type, Union, cast
 
 import torch
 
@@ -55,14 +56,19 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     """Convert a tensor of indices of any shape `(N, ...)` to a
     tensor of one-hot indicators of shape `(N, num_classes, ...) and of type uint8. Output's device is equal to the
     input's device`.
+
+    .. versionchanged:: 0.4.3
+        This functions is now torchscriptable.
     """
-    onehot = torch.zeros(indices.shape[0], num_classes, *indices.shape[1:], dtype=torch.uint8, device=indices.device)
+    new_shape = (indices.shape[0], num_classes) + indices.shape[1:]
+    onehot = torch.zeros(new_shape, dtype=torch.uint8, device=indices.device)
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
 
 
 def setup_logger(
     name: Optional[str] = None,
     level: int = logging.INFO,
+    stream: Optional[TextIO] = None,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
     distributed_rank: Optional[int] = None,
@@ -71,8 +77,9 @@ def setup_logger(
 
     Args:
         name (str, optional): new name for the logger. If None, the standard logger is used.
-        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG
-        format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`
+        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG.
+        stream (TextIO, optional): logging stream. If None, the standard stream is used (sys.stderr).
+        format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`.
         filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
         distributed_rank (int, optional): Optional, rank in distributed configuration to avoid logger setup for workers.
             If None, distributed_rank is initialized to the rank of process.
@@ -101,6 +108,8 @@ def setup_logger(
         # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
         # ...
 
+    .. versionchanged:: 0.4.3
+        Added ``stream`` parameter.
     """
     logger = logging.getLogger(name)
 
@@ -127,7 +136,7 @@ def setup_logger(
     else:
         logger.setLevel(level)
 
-        ch = logging.StreamHandler()
+        ch = logging.StreamHandler(stream=stream)
         ch.setLevel(level)
         ch.setFormatter(formatter)
         logger.addHandler(ch)
