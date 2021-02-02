@@ -58,7 +58,6 @@ class ConfusionMatrix(Metric):
             evaluator = create_supervised_evaluator(
                 model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
             )
-
     """
 
     def __init__(
