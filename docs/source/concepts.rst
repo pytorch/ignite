@@ -267,10 +267,10 @@ If you want to use filtering with custom events (e.g. with `CallableEventWithFil
 
 .. code-block:: python
 
-    event_to_attr={
-            CustomEvents.CUSTOM_STARTED: "custom_started",
-            CustomEvents.CUSTOM_COMPLETED: "custom_completed",
-        }
+    event_to_attr = {
+        CustomEvents.CUSTOM_STARTED: "custom_started",
+        CustomEvents.CUSTOM_COMPLETED: "custom_completed",
+    }
 
 - you should increase the counter for the event whenever you fire the event, e.g. `engine.state.custom_started += 1`
 
