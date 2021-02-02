@@ -612,7 +612,7 @@ def test_altered_random_state():
 
 def test_engine_with_dataloader_no_auto_batching():
     # tests https://github.com/pytorch/ignite/issues/941
-    from torch.utils.data import DataLoader, BatchSampler, RandomSampler
+    from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
     data = torch.rand(64, 4, 10)
     data_loader = DataLoader(
