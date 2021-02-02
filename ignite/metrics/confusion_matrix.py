@@ -14,7 +14,7 @@ class ConfusionMatrix(Metric):
     """Calculates confusion matrix for multi-class data.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must contain logits and has the following shape (batch_size, num_categories, ...)
+    - `y_pred` must contain logits and has the following shape (batch_size, num_classes, ...)
     - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices
       with or without the background class. During the computation, argmax of `y_pred` is taken to determine
       predicted classes.
@@ -68,16 +68,16 @@ class ConfusionMatrix(Metric):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() < 2:
-            raise ValueError(f"y_pred must have shape (batch_size, num_categories, ...), but given {y_pred.shape}")
+            raise ValueError(f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...), but given {y_pred.shape}")
 
         if y_pred.shape[1] != self.num_classes:
             raise ValueError(
-                f"y_pred does not have correct number of categories: {y_pred.shape[1]} vs {self.num_classes}"
+                f"y_pred does not have correct number of classes: {y_pred.shape[1]} vs {self.num_classes}"
             )
 
         if not (y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError(
-                "y_pred must have shape (batch_size, num_categories, ...) and y must have "
+                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...) and y must have "
                 "shape of (batch_size, ...), "
                 f"but given {y.shape} vs {y_pred.shape}."
             )
