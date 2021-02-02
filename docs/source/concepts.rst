@@ -241,15 +241,9 @@ and be registered with :meth:`~ignite.engine.engine.Engine.register_events` in a
         CUSTOM_STARTED = 'custom_started'
         CUSTOM_COMPLETED = 'custom_completed'
 
-    engine.register_events(
-        *CustomEvents,
-        event_to_attr={
-            CustomEvents.CUSTOM_STARTED: "custom_started",
-            CustomEvents.CUSTOM_COMPLETED: "custom_completed",
-        }
-    )
+    engine.register_events(*CustomEvents)
 
-`event_to_attr` is a required mapping between events and state counters (see code block below). These events could be used to attach any handler and are fired using :meth:`~ignite.engine.engine.Engine.fire_event`.
+These events could be used to attach any handler and are fired using :meth:`~ignite.engine.engine.Engine.fire_event`.
 
 .. code-block:: python
 
@@ -260,12 +254,30 @@ and be registered with :meth:`~ignite.engine.engine.Engine.register_events` in a
     @engine.on(Events.STARTED)
     def fire_custom_events(engine):
          engine.fire_event(CustomEvents.CUSTOM_STARTED)
-         engine.state.custom_started += 1  # increase state counter for this event (required)
 
 .. Note ::
 
    See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
+
+If you want to use filtering with custom events (e.g. with `CallableEventWithFilter`), you need to do 3 more things:
+
+- `engine.state` should have corresponding attributes for the events, e.g. `engine.state.custom_started`
+- you need to pass a dict `event_to_attr` to `register_events`, which maps between events and state attributes, e.g.
+
+.. code-block:: python
+
+    event_to_attr={
+            CustomEvents.CUSTOM_STARTED: "custom_started",
+            CustomEvents.CUSTOM_COMPLETED: "custom_completed",
+        }
+
+- you should increase the counter for the event whenever you fire the event, e.g. `engine.state.custom_started += 1`
+
+.. Note ::
+
+    This solution for filtering are a temporary workaround and may change in the future.
+
 
 Handlers
 ````````
