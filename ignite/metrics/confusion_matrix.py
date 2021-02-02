@@ -14,7 +14,7 @@ class ConfusionMatrix(Metric):
     """Calculates confusion matrix for multi-class data.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must contain logits and has the following shape (batch_size, num_classes, ...). 
+    - `y_pred` must contain logits and has the following shape (batch_size, num_classes, ...).
       If you are doing binary classification, see Note for an example on how to get this.
     - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices
       with or without the background class. During the computation, argmax of `y_pred` is taken to determine
@@ -39,9 +39,10 @@ class ConfusionMatrix(Metric):
         In case of the targets `y` in `(batch_size, ...)` format, target indices between 0 and `num_classes` only
         contribute to the confusion matrix and others are neglected. For example, if `num_classes=20` and target index
         equal 255 is encountered, then it is filtered out.
-        
+
         If you are doing binary classification with a single output unit, you may have to transform your network output,
-        so that you have one value for each class. E.g. you can transform your network output into a one-hot vector with:
+        so that you have one value for each class. E.g. you can transform your network output into a one-hot vector
+        with:
 
             def binary_one_hot_output_transform(output):
                 y_pred, y = output
@@ -53,8 +54,10 @@ class ConfusionMatrix(Metric):
             metrics = {
                 "confusion_matrix": ConfusionMatrix(2, output_transform=binary_one_hot_output_transform),
             }
-            
-            evaluator = create_supervised_evaluator(model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y))
+
+            evaluator = create_supervised_evaluator(
+                model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
+            )
 
     """
 
@@ -86,7 +89,8 @@ class ConfusionMatrix(Metric):
 
         if y_pred.ndimension() < 2:
             raise ValueError(
-                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...), but given {y_pred.shape}"
+                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...), "
+                f"but given {y_pred.shape}"
             )
 
         if y_pred.shape[1] != self.num_classes:
@@ -94,8 +98,8 @@ class ConfusionMatrix(Metric):
 
         if not (y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError(
-                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...) and y must have "
-                "shape of (batch_size, ...), "
+                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...) "
+                "and y must have shape of (batch_size, ...), "
                 f"but given {y.shape} vs {y_pred.shape}."
             )
 
