@@ -256,7 +256,7 @@ class Checkpoint(Serializable):
 
     def __init__(
         self,
-        to_save: Optional[Mapping],
+        to_save: Mapping,
         save_handler: Union[Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
@@ -268,23 +268,19 @@ class Checkpoint(Serializable):
         greater_or_equal: bool = False,
     ) -> None:
 
-        if to_save is not None:  # for compatibility with ModelCheckpoint
-            if not isinstance(to_save, collections.Mapping):
-                raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
+        if not isinstance(to_save, collections.Mapping):
+            raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
 
-            if len(to_save) < 1:
-                raise ValueError("No objects to checkpoint.")
+        self._check_objects(to_save, "state_dict")
 
-            self._check_objects(to_save, "state_dict")
+        if include_self:
+            if not isinstance(to_save, collections.MutableMapping):
+                raise TypeError(
+                    f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
+                )
 
-            if include_self:
-                if not isinstance(to_save, collections.MutableMapping):
-                    raise TypeError(
-                        f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
-                    )
-
-                if "checkpointer" in to_save:
-                    raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
+            if "checkpointer" in to_save:
+                raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
@@ -746,7 +742,7 @@ class ModelCheckpoint(Checkpoint):
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
 
         super(ModelCheckpoint, self).__init__(
-            to_save=None,
+            to_save={},
             save_handler=disk_saver,
             filename_prefix=filename_prefix,
             score_function=score_function,
