@@ -104,6 +104,8 @@ def setup_logger(
         # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
         # ...
 
+    .. versionchanged:: 0.4.3
+        Added ``stream`` parameter.
     """
     logger = logging.getLogger(name)
 
