@@ -20,7 +20,7 @@ class ConfusionMatrix(Metric):
       predicted classes.
 
     Args:
-        num_classes (int): number of classes. See notes for more details.
+        num_classes (int): Number of classes, should be >1. See notes for more details.
         average (str, optional): confusion matrix values averaging schema: None, "samples", "recall", "precision".
             Default is None. If `average="samples"` then confusion matrix values are normalized by the number of seen
             samples. If `average="recall"` then confusion matrix values are normalized such that diagonal values
@@ -50,6 +50,9 @@ class ConfusionMatrix(Metric):
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")
+        
+        if num_classes <= 1:
+            raise ValueError("Argument num_classes needs to be >1")
 
         self.num_classes = num_classes
         self._num_examples = 0
