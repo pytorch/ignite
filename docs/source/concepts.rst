@@ -263,7 +263,7 @@ These events could be used to attach any handler and are fired using :meth:`~ign
    See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
 
-If you want to use filtering with custom events (e.g. with ``CustomEvents.CUSTOM_STARTED(every=5)``), you need to do 3 more things:
+If you want to use filtering with custom events (e.g. ``CustomEvents.CUSTOM_STARTED(every=5)``), you need to do 3 more things:
 
 - ``engine.state`` should have corresponding attributes for the events, e.g. ``engine.state.custom_started``
 - you need to pass a dict `event_to_attr` to :meth:`~ignite.engine.engine.Engine.register_events`, which maps between events and state attributes, e.g.
