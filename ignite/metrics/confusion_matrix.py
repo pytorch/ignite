@@ -44,6 +44,8 @@ class ConfusionMatrix(Metric):
         so that you have one value for each class. E.g. you can transform your network output into a one-hot vector
         with:
 
+        .. code-block:: python
+
             def binary_one_hot_output_transform(output):
                 y_pred, y = output
                 y_pred = torch.sigmoid(y_pred).round().long()
@@ -58,6 +60,7 @@ class ConfusionMatrix(Metric):
             evaluator = create_supervised_evaluator(
                 model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
             )
+
     """
 
     def __init__(
