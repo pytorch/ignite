@@ -1,21 +1,21 @@
 from argparse import ArgumentParser
 
-import torch
-from torch.utils.data import DataLoader
-from torch import nn
-import torch.nn.functional as F
-from torch.optim import SGD
-from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
 import numpy as np
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.optim import SGD
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
+from torchvision.transforms import Compose, Normalize, ToTensor
+
+from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.metrics import Accuracy, Loss
 
 try:
     import visdom
 except ImportError:
     raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
-
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss
 
 
 class Net(nn.Module):

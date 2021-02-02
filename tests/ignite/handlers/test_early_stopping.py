@@ -286,6 +286,7 @@ def _test_distrib_with_engine_early_stopping(device):
 def _test_distrib_integration_engine_early_stopping(device):
 
     import torch.distributed as dist
+
     from ignite.metrics import Accuracy
 
     rank = dist.get_rank()

@@ -5,44 +5,46 @@ This project is a community effort, and everyone is welcome to contribute !
 If you are interested in contributing to Ignite, there are many ways to help out. Your contributions may fall
 into the following categories:
 
-1. It helps us very much if you could 
-    - Report issues you’re facing
-    - Give a :+1: on issues that others reported and that are relevant to you
-    - Spread a word about the project or simply :star: to say "I use it" 
+1. It helps us very much if you could
 
-2. Answering queries on the issue tracker, investigating bugs and reviewing other developers’ pull requests are 
-very valuable contributions that decrease the burden on the project maintainers.
+   - Report issues you’re facing
+   - Give a :+1: on issues that others reported and that are relevant to you
+   - Spread a word about the project or simply :star: to say "I use it"
 
-3. You would like to improve the documentation. This is no less important than improving the library itself! 
-If you find a typo in the documentation, do not hesitate to submit a GitHub pull request.
+2. Answering queries on the issue tracker, investigating bugs and reviewing other developers’ pull requests are
+   very valuable contributions that decrease the burden on the project maintainers.
+
+3. You would like to improve the documentation. This is no less important than improving the library itself!
+   If you find a typo in the documentation, do not hesitate to submit a GitHub pull request.
 
 4. You would like propose a new feature and implement it
-    - Post about your intended feature, and we shall discuss the design and
-    implementation. Once we agree that the plan looks good, go ahead and implement it.
+
+   - Post about your intended feature, and we shall discuss the design and
+     implementation. Once we agree that the plan looks good, go ahead and implement it.
 
 5. You would like implement a feature or bug-fix for an outstanding issue
-    - Look at the issues labelled as 
-["help wanted"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
-    - Pick an issue and comment on the task that you want to work on this feature.
-    - If you need more context on a particular issue, please ask and we shall provide.
-
+   - Look at the issues labelled as ["help wanted"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+   - Pick an issue and comment on the task that you want to work on this feature.
+   - If you need more context on a particular issue, please ask and we shall provide.
 
 ## Developing Ignite
 
 ### Quickstart guide for first-time contributors
- 
+
 <summary>
 
 <details>
 
 - Install [miniconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/index.html) for your system.
 - Create an isolated conda environment for pytorch-ignite:
- ```bash
-conda create -n pytorch-ignite-dev python=3
+
+```bash
+conda create -n pytorch-ignite-dev python=3.8
 ```
 
 - Activate the newly created environment:
- ```bash
+
+```bash
 conda activate pytorch-ignite-dev
 ```
 
@@ -57,12 +59,13 @@ conda activate pytorch-ignite-dev
 ### Installation
 
 To get the development installation with the necessary dependencies, run the following:
+
 ```bash
 git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==4.3.21" mypy
+pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
 ```
 
 ### Code development
@@ -70,21 +73,22 @@ pip install flake8 "black==19.10b0" "isort==4.3.21" mypy
 #### Codebase structure
 
 - [ignite](ignite) - Core library files
-    - [engine](ignite/engine) - Module containing core classes like Engine, Events, State.
-    - [handlers](ignite/handlers) - Module containing out-of-the-box handlers
-    - [metrics](ignite/metrics) - Module containing out-of-the-box metrics
-    - [contrib](ignite/contrib) - Contrib module with other metrics, handlers classes that may require additional dependencies
-    - [distributed](ignite/distributed) - Module with helpers for distributed computations
+  - [engine](ignite/engine) - Module containing core classes like Engine, Events, State.
+  - [handlers](ignite/handlers) - Module containing out-of-the-box handlers
+  - [metrics](ignite/metrics) - Module containing out-of-the-box metrics
+  - [contrib](ignite/contrib) - Contrib module with other metrics, handlers classes that may require additional dependencies
+  - [distributed](ignite/distributed) - Module with helpers for distributed computations
 - [tests](tests) - Python unit tests
 - [examples](examples) - Examples and notebook tutorials
 - [docs](docs) - Documentation files
 
-If you modify the code, you will most probably also need to code some tests to ensure the correct behaviour. We are using 
+If you modify the code, you will most probably also need to code some tests to ensure the correct behaviour. We are using
 `pytest` to write our tests:
-  - naming convention for files `test_*.py`, e.g. `test_precision.py`
-  - naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
 
-New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests, 
+- naming convention for files `test_*.py`, e.g. `test_precision.py`
+- naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
+
+New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests,
 please run lint checking and tests:
 
 #### Formatting Code
@@ -92,10 +96,10 @@ please run lint checking and tests:
 To ensure the codebase complies with a style guide, we use [flake8](https://flake8.pycqa.org/en/latest/),
 [black](https://black.readthedocs.io/en/stable/) and [isort](https://pycqa.github.io/isort/) tools to
 format and check codebase for compliance with PEP8.
-  
+
 ##### Formatting without pre-commit
 
-If you choose not to use pre-commit, you can take advantage of IDE extensions configured to black format or invoke 
+If you choose not to use pre-commit, you can take advantage of IDE extensions configured to black format or invoke
 black manually to format files and commit them.
 
 ```bash
@@ -122,16 +126,16 @@ pre-commit install
 ```
 
 3. When files are committed:
-    - If the stages files are not compliant with black, black will autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
-    - If the staged files are not compliant with flake8, errors will be raised. These errors should be fixed and the files should be committed again. See example code below.
-    
+   - If the stages files are not compliant with black, black will autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
+   - If the staged files are not compliant with flake8, errors will be raised. These errors should be fixed and the files should be committed again. See example code below.
+
 ```bash
 git add .
 git commit -m "Added awesome feature"
 # DONT'T WORRY IF ERRORS ARE RAISED.
 # YOUR CODE IS NOT COMPLIANT WITH flake8, isort or black
 # Fix any flake8 errors by following their suggestions
-# isort and black will automatically format the files so they might look different, but you'll need to stage the files 
+# isort and black will automatically format the files so they might look different, but you'll need to stage the files
 # again for committing
 # After fixing any flake8 errors
 git add .
@@ -141,16 +145,21 @@ git commit -m "Added feature"
 #### Run tests:
 
 To run a specific test, for example `test_terminate` from `test_engine.py`
+
 ```bash
 pytest tests/ignite/engine/test_engine.py -vvv -k test_terminate
 ```
+
 To run all tests with coverage (assuming installed `pytest-cov`):
+
 ```bash
 bash tests/run_cpu_tests.sh
 ```
 
 #### Run Mypy checks:
+
 To run mypy to check the optional static type:
+
 ```bash
 mypy --config-file mypy.ini
 ```
@@ -162,6 +171,7 @@ To change any config for specif folder, please see the file mypy.ini
 If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
 
 If you are not familiar with creating a Pull Request, here are some guides:
+
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
@@ -193,7 +203,17 @@ git merge upstream/master
 ### Writing documentation
 
 Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
-for formatting docstrings. Length of line inside docstrings block must be limited to 120 characters.
+for formatting docstrings and
+
+- [`.. versionadded::`] directive for adding new classes, class methods, functions,
+- [`.. versionchanged::`] directive for adding new arguments, changing internal behaviours, fixing bugs and
+- [`.. deprecated::`] directive for deprecations.
+
+Length of line inside docstrings block must be limited to 120 characters.
+
+[`.. versionadded::`]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded
+[`.. versionchanged::`]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionchanged
+[`.. deprecated::`]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-deprecated
 
 #### Local documentation building and deploying
 
@@ -206,6 +226,16 @@ cd docs
 pip install -r requirements.txt
 ```
 
+[Katex](https://katex.org/) is also needed to build the documentation.
+To install katex, you need to have [nodejs](https://nodejs.org/en/) installed.
+Then you can install katex with [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/) (if installed).
+
+```bash
+npm install -g katex
+# or if you use yarn package manager
+yarn global add katex
+```
+
 ##### Build
 
 ```bash
@@ -216,9 +246,11 @@ make html
 ##### Local deployment
 
 Please, use python 3.X for the command below:
+
 ```bash
 cd docs/build
 python -m http.server <port>
 # python -m http.server 1234
 ```
+
 Then open the browser at `0.0.0.0:<port>` (e.g. `0.0.0.0:1234`) and click to `html` folder.

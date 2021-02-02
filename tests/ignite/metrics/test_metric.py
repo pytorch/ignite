@@ -540,7 +540,7 @@ class DummyMetric2(Metric):
 
 def _test_distrib_sync_all_reduce_decorator(device):
 
-    from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
+    from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
     class DummyMetric(Metric):
         @reinit__is_reduced

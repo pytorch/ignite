@@ -7,10 +7,10 @@ from ignite.exceptions import NotComputableError
 
 
 class FractionalAbsoluteError(_BaseRegression):
-    r"""
-    Calculates the Fractional Absolute Error.
+    r"""Calculates the Fractional Absolute Error.
 
-    :math:`\text{FAE} = \frac{1}{n}\sum_{j=1}^n\frac{2 |A_j - P_j|}{|A_j| + |P_j|}`
+    .. math::
+        \text{FAE} = \frac{1}{n}\sum_{j=1}^n\frac{2 |A_j - P_j|}{|A_j| + |P_j|}
 
     where, :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 

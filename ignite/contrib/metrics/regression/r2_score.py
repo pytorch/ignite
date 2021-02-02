@@ -8,17 +8,17 @@ from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class R2Score(_BaseRegression):
-    r"""
-        Calculates the R-Squared, the
-        `coefficient of determination <https://en.wikipedia.org/wiki/Coefficient_of_determination>`_:
+    r"""Calculates the R-Squared, the
+    `coefficient of determination <https://en.wikipedia.org/wiki/Coefficient_of_determination>`_.
 
-        :math:`R^2 = 1 - \frac{\sum_{j=1}^n(A_j - P_j)^2}{\sum_{j=1}^n(A_j - \bar{A})^2}`,
+    .. math::
+        R^2 = 1 - \frac{\sum_{j=1}^n(A_j - P_j)^2}{\sum_{j=1}^n(A_j - \bar{A})^2}
 
-        where :math:`A_j` is the ground truth, :math:`P_j` is the predicted value and
-        :math:`\bar{A}` is the mean of the ground truth.
+    where :math:`A_j` is the ground truth, :math:`P_j` is the predicted value and
+    :math:`\bar{A}` is the mean of the ground truth.
 
-        - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-        - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
     """
 
     def __init__(
