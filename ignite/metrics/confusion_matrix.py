@@ -70,7 +70,7 @@ class ConfusionMatrix(Metric):
             raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")
         
         if num_classes <= 1:
-            raise ValueError("Argument num_classes needs to be >1")
+            raise ValueError("Argument num_classes needs to be > 1")
 
         self.num_classes = num_classes
         self._num_examples = 0
