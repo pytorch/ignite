@@ -366,9 +366,9 @@ def main(
 
             mpl.use("agg")
 
+            import matplotlib.pyplot as plt
             import numpy as np
             import pandas as pd
-            import matplotlib.pyplot as plt
 
         except ImportError:
             warnings.warn("Loss plots will not be generated -- pandas or matplotlib not found")

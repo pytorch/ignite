@@ -98,6 +98,8 @@ class Checkpoint(Serializable):
             details.
         include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        greater_or_equal (bool): if `True`, the latest equally scored model is stored. Otherwise, the first model.
+            Default, `False`.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
         torch.nn.parallel.DistributedDataParallel.html
@@ -245,6 +247,8 @@ class Checkpoint(Serializable):
             trainer.run(data_loader, max_epochs=10)
             > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
 
+    .. versionchanged:: 0.4.3
+        Added ``greater_or_equal`` parameter.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
@@ -252,7 +256,7 @@ class Checkpoint(Serializable):
 
     def __init__(
         self,
-        to_save: Optional[Mapping],
+        to_save: Mapping,
         save_handler: Union[Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
@@ -261,25 +265,22 @@ class Checkpoint(Serializable):
         global_step_transform: Optional[Callable] = None,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
+        greater_or_equal: bool = False,
     ) -> None:
 
-        if to_save is not None:  # for compatibility with ModelCheckpoint
-            if not isinstance(to_save, collections.Mapping):
-                raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
+        if not isinstance(to_save, collections.Mapping):
+            raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
 
-            if len(to_save) < 1:
-                raise ValueError("No objects to checkpoint.")
+        self._check_objects(to_save, "state_dict")
 
-            self._check_objects(to_save, "state_dict")
+        if include_self:
+            if not isinstance(to_save, collections.MutableMapping):
+                raise TypeError(
+                    f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
+                )
 
-            if include_self:
-                if not isinstance(to_save, collections.MutableMapping):
-                    raise TypeError(
-                        f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
-                    )
-
-                if "checkpointer" in to_save:
-                    raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
+            if "checkpointer" in to_save:
+                raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
@@ -301,6 +302,7 @@ class Checkpoint(Serializable):
         self.filename_pattern = filename_pattern
         self._saved = []  # type: List["Checkpoint.Item"]
         self.include_self = include_self
+        self.greater_or_equal = greater_or_equal
 
     def reset(self) -> None:
         """Method to reset saved checkpoint names.
@@ -339,6 +341,12 @@ class Checkpoint(Serializable):
             return True
         return len(self._saved) < self.n_saved + int(or_equal)
 
+    def _compare_fn(self, new: Union[int, float]) -> bool:
+        if self.greater_or_equal:
+            return new >= self._saved[0].priority
+        else:
+            return new > self._saved[0].priority
+
     def __call__(self, engine: Engine) -> None:
 
         global_step = None
@@ -354,7 +362,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
-        if self._check_lt_n_saved() or self._saved[0].priority < priority:
+        if self._check_lt_n_saved() or self._compare_fn(priority):
 
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
@@ -734,7 +742,7 @@ class ModelCheckpoint(Checkpoint):
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
 
         super(ModelCheckpoint, self).__init__(
-            to_save=None,
+            to_save={},
             save_handler=disk_saver,
             filename_prefix=filename_prefix,
             score_function=score_function,

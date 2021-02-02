@@ -102,8 +102,8 @@ def _find_free_port():
 
 
 def _setup_free_port(local_rank):
-    import time
     import os
+    import time
 
     port_file = "/tmp/free_port"
 
@@ -255,6 +255,7 @@ def _xla_template_worker_task(index, fn, args):
 
 def _xla_execute(fn, args, nprocs):
     import os
+
     import torch_xla.distributed.xla_multiprocessing as xmp
 
     spawn_kwargs = {}

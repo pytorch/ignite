@@ -12,8 +12,9 @@ python_below_36 = (sys.version[0] == "3" and int(sys.version[2]) < 6) or int(sys
 
 @pytest.fixture
 def no_site_packages():
-    import pynvml
     import sys
+
+    import pynvml
 
     assert "pynvml" in sys.modules
     pynvml_module = sys.modules["pynvml"]

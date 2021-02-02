@@ -1,5 +1,4 @@
 import torch
-import torch.distributed as dist
 
 import ignite.distributed as idist
 from tests.ignite.distributed.utils import _sanity_check, _test_sync
