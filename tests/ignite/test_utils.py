@@ -94,7 +94,7 @@ def test_to_onehot():
             return self.linear(x.to(torch.float))
 
     eager_model = SLP()
-    scripted_model = torch.jit.trace(eager_model, x)
+    scripted_model = torch.jit.script(eager_model)
 
     assert eager_model(x).allclose(scripted_model(x))
 
