@@ -262,7 +262,7 @@ These events could be used to attach any handler and are fired using :meth:`~ign
 
 If you want to use filtering with custom events (e.g. with `CallableEventWithFilter`), you need to do 3 more things:
 
-- `engine.state` should have corresponding attributes for the events, e.g. `engine.state.custom_started`
+- ``engine.state`` should have corresponding attributes for the events, e.g. ``engine.state.custom_started``
 - you need to pass a dict `event_to_attr` to `register_events`, which maps between events and state attributes, e.g.
 
 .. code-block:: python
