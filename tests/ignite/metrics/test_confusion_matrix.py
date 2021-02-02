@@ -19,6 +19,11 @@ def test_no_update():
         cm.compute()
 
 
+def test_num_classes_wrong_input():
+    with pytest.raises(ValueError, match="Argument num_classes needs to be >1"):
+        ConfusionMatrix(num_classes=1)
+
+
 def test_multiclass_wrong_inputs():
     cm = ConfusionMatrix(10)
 
