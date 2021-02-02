@@ -21,7 +21,7 @@ class ConfusionMatrix(Metric):
       predicted classes.
 
     Args:
-        num_classes (int): Number of classes, should be >1. See notes for more details.
+        num_classes (int): Number of classes, should be > 1. See notes for more details.
         average (str, optional): confusion matrix values averaging schema: None, "samples", "recall", "precision".
             Default is None. If `average="samples"` then confusion matrix values are normalized by the number of seen
             samples. If `average="recall"` then confusion matrix values are normalized such that diagonal values
