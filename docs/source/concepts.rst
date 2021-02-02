@@ -276,7 +276,7 @@ If you want to use filtering with custom events (e.g. with `CallableEventWithFil
 
 .. Note ::
 
-    This solution for filtering are a temporary workaround and may change in the future.
+    This solution for filtering is a temporary workaround and may change in the future.
 
 
 Handlers
