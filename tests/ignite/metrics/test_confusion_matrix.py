@@ -20,7 +20,7 @@ def test_no_update():
 
 
 def test_num_classes_wrong_input():
-    with pytest.raises(ValueError, match="Argument num_classes needs to be >1"):
+    with pytest.raises(ValueError, match="Argument num_classes needs to be > 1"):
         ConfusionMatrix(num_classes=1)
 
 
