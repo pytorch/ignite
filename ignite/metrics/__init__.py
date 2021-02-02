@@ -11,6 +11,7 @@ from ignite.metrics.mean_squared_error import MeanSquaredError
 from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.precision import Precision
+from ignite.metrics.psnr import PSNR
 from ignite.metrics.recall import Recall
 from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.running_average import RunningAverage
@@ -35,6 +36,7 @@ __all__ = [
     "IoU",
     "mIoU",
     "Precision",
+    "PSNR",
     "Recall",
     "RootMeanSquaredError",
     "RunningAverage",

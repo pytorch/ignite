@@ -171,6 +171,9 @@ class Parallel:
         master_port (int, optional): optional argument, master node port for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
         **spawn_kwargs: kwargs to ``idist.spawn`` function.
+
+    .. versionchanged:: 0.4.2
+        ``backend`` now accepts `horovod` distributed framework.
     """
 
     def __init__(

@@ -7,10 +7,10 @@ from ignite.exceptions import NotComputableError
 
 
 class GeometricMeanRelativeAbsoluteError(_BaseRegression):
-    r"""
-    Calculates the Geometric Mean Relative Absolute Error:
+    r"""Calculates the Geometric Mean Relative Absolute Error.
 
-    :math:`\text{GMRAE} = \exp(\frac{1}{n}\sum_{j=1}^n \ln\frac{|A_j - P_j|}{|A_j - \bar{A}|})`
+    .. math::
+        \text{GMRAE} = \exp(\frac{1}{n}\sum_{j=1}^n \ln\frac{|A_j - P_j|}{|A_j - \bar{A}|})
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 

@@ -33,6 +33,7 @@ def test_compute():
 
 def _test_distrib_integration(device, tol=1e-6):
     import numpy as np
+
     from ignite.engine import Engine
 
     rank = idist.get_rank()

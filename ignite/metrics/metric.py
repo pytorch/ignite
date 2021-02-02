@@ -196,6 +196,8 @@ class Metric(metaclass=ABCMeta):
 
             res = evaluator.run(data)
 
+    .. versionchanged:: 0.4.2
+        ``required_output_keys`` became public attribute.
     """
 
     # public class attribute

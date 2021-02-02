@@ -4,8 +4,15 @@ from unittest.mock import ANY, MagicMock, call
 import pytest
 import torch
 
-from ignite.contrib.handlers.visdom_logger import *
-from ignite.contrib.handlers.visdom_logger import _DummyExecutor
+from ignite.contrib.handlers.visdom_logger import (
+    GradsScalarHandler,
+    OptimizerParamsHandler,
+    OutputHandler,
+    VisdomLogger,
+    WeightsScalarHandler,
+    _DummyExecutor,
+    global_step_from_engine,
+)
 from ignite.engine import Engine, Events, State
 
 
@@ -930,6 +937,7 @@ def test_integration_with_executor_as_context_manager(visdom_server, visdom_serv
 @pytest.fixture
 def no_site_packages():
     import sys
+
     import visdom
 
     plx_module = sys.modules["visdom"]
