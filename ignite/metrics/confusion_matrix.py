@@ -44,7 +44,6 @@ class ConfusionMatrix(Metric):
         so that you have one value for each class. E.g. you can transform your network output into a one-hot vector with:
 
             def binary_one_hot_output_transform(output):
-                """Ouptuts a one-hot encoded vector with 0 or 1 values."""
                 y_pred, y = output
                 y_pred = torch.sigmoid(y_pred).round().long()
                 y_pred = ignite.utils.to_onehot(y_pred, 2)
@@ -68,7 +67,7 @@ class ConfusionMatrix(Metric):
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")
-        
+
         if num_classes <= 1:
             raise ValueError("Argument num_classes needs to be > 1")
 
@@ -86,12 +85,12 @@ class ConfusionMatrix(Metric):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() < 2:
-            raise ValueError(f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...), but given {y_pred.shape}")
+            raise ValueError(
+                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...), but given {y_pred.shape}"
+            )
 
         if y_pred.shape[1] != self.num_classes:
-            raise ValueError(
-                f"y_pred does not have correct number of classes: {y_pred.shape[1]} vs {self.num_classes}"
-            )
+            raise ValueError(f"y_pred does not have correct number of classes: {y_pred.shape[1]} vs {self.num_classes}")
 
         if not (y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError(
