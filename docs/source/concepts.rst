@@ -274,7 +274,7 @@ If you want to use filtering with custom events (e.g. with `CallableEventWithFil
 
 - you should increase the counter for the event whenever you fire the event, e.g. `engine.state.custom_started += 1`
 
-.. Note ::
+.. warning::
 
     This solution for filtering is a temporary workaround and may change in the future.
 
