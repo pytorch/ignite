@@ -227,6 +227,9 @@ event filtering function:
     trainer.run(train_loader, max_epochs=100)
 
 
+Custom events
+``````````````
+
 The user can also define custom events. Events defined by user should inherit from :class:`~ignite.engine.events.EventEnum`
 and be registered with :meth:`~ignite.engine.engine.Engine.register_events` in an `engine`.
 
@@ -338,7 +341,7 @@ which includes the following:
 
 Other attributes can be found in the docs of :class:`~ignite.engine.events.State`.
 
-In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at 
+In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at
 every iteration.
 
 .. code-block:: python
