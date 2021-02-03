@@ -155,14 +155,14 @@ def test_setup_logger(capsys, dirname):
 
 def test_deprecated():
 
-    # No docs in orignal function, no reasons
+    # Test on function without docs, @deprecated without reasons
     @deprecated("0.4.2", "0.6.0")
     def func_no_docs():
         return 24
 
     assert func_no_docs.__doc__ == "**Deprecated function**.\n\n    .. deprecated:: 0.4.2"
 
-    # Docs but no reasons
+    # Test on function with docs, @deprecated without reasons
     @deprecated("0.4.2", "0.6.0")
     def func_no_reasons():
         """Docs are cool
@@ -171,7 +171,7 @@ def test_deprecated():
 
     assert func_no_reasons.__doc__ == "**Deprecated function**.\n\n    Docs are cool\n        .. deprecated:: 0.4.2"
 
-    # Docs and reasons
+    # Test on function with docs, @deprecated with reasons
     @deprecated("0.4.2", "0.6.0", reasons=["r1", "r2"])
     def func_no_warnings():
         """Docs are very cool
@@ -183,26 +183,21 @@ def test_deprecated():
         == "**Deprecated function**.\n\n    Docs are very cool\n        .. deprecated:: 0.4.2\n\n\t\n\t- r1\n\t- r2"
     )
 
-    # Docs and Reasons and Warning
-    @deprecated("0.4.2", "0.6.0", reasons=["r1", "r2"], raiseWarning=True)
-    def func_with_everything():
+    # Tests that the function emits DeprecationWarning
+    @deprecated("0.4.2", "0.6.0", reasons=["r1", "r2"])
+    def func_check_warning():
         """Docs are very ...
         """
         return 24
 
-    assert (
-        func_with_everything.__doc__
-        == "**Deprecated function**.\n\n    Docs are very ...\n        .. deprecated:: 0.4.2\n\n\t\n\t- r1\n\t- r2"
-    )
-
     with pytest.deprecated_call():
-        func_with_everything()
-    assert func_with_everything() == 24
+        func_check_warning()
+    assert func_check_warning() == 24
     with warnings.catch_warnings(record=True) as w:
         # Cause all warnings to always be triggered.
         warnings.simplefilter("always")
         # Trigger a warning.
-        func_with_everything()
+        func_check_warning()
         # Verify some things
         assert len(w) == 1
         assert issubclass(w[-1].category, DeprecationWarning)
@@ -211,3 +206,17 @@ def test_deprecated():
             + "\n Please refer to the documentation for more details."
             in str(w[-1].message)
         )
+
+    # Test that the function raises Exception
+    @deprecated("0.4.2", "0.6.0", reasons=["reason1", "reason2"], raiseException=True)
+    def func_with_everything():
+        return 1
+
+    with pytest.raises(Exception) as exec_info:
+        func_with_everything()
+
+    assert (
+        str(exec_info.value)
+        == "This function has been deprecated since version `0.4.2` and will be removed in version `0.6.0`."
+        + "\n Please refer to the documentation for more details."
+    )

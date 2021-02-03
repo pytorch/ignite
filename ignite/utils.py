@@ -173,7 +173,7 @@ def manual_seed(seed: int) -> None:
         pass
 
 
-def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], raiseWarning: bool = False) -> Callable:
+def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], raiseException: bool = False) -> Callable:
 
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -187,8 +187,9 @@ def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], rai
 
         @functools.wraps(func)
         def wrapper(*args: int, **kwargs: float) -> Callable:
-            if raiseWarning:
-                warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
+            if raiseException:
+                raise DeprecationWarning(deprecation_warning)
+            warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
             return func(*args, **kwargs)
 
         appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) else "")
