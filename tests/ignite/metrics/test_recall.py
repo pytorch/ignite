@@ -837,7 +837,7 @@ def _test_distrib_integration_multilabel(device):
         re.update((y_pred, y))
         re_compute1 = re.compute()
         re_compute2 = re.compute()
-        assert len(re_compute1) == 4 * 6 * 8
+        assert len(re_compute1) == idist.get_world_size() * 4 * 6 * 8
         assert (re_compute1 == re_compute2).all()
 
 
