@@ -190,7 +190,7 @@ def _setup_common_training_handlers(
 
     if with_gpu_stats:
         GpuInfo().attach(
-            trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)  # type: ignore[arg-type]
+            trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)  # type: ignore
         )
 
     if output_names is not None:
@@ -280,8 +280,8 @@ def empty_cuda_cache(_: Engine) -> None:
     "0.6.0",
     ["Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc."],
     raiseException=True,
-)
-def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:  # type: ignore
+)  # type: ignore
+def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:
     pass
 
 
