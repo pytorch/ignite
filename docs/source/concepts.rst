@@ -227,6 +227,9 @@ event filtering function:
     trainer.run(train_loader, max_epochs=100)
 
 
+Custom events
+``````````````
+
 The user can also define custom events. Events defined by user should inherit from :class:`~ignite.engine.events.EventEnum`
 and be registered with :meth:`~ignite.engine.engine.Engine.register_events` in an `engine`.
 
@@ -259,6 +262,25 @@ These events could be used to attach any handler and are fired using :meth:`~ign
 
    See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
+
+If you want to use filtering with custom events (e.g. ``CustomEvents.CUSTOM_STARTED(every=5)``), you need to do 3 more things:
+
+- ``engine.state`` should have corresponding attributes for the events, e.g. ``engine.state.custom_started``
+- you need to pass a dict `event_to_attr` to :meth:`~ignite.engine.engine.Engine.register_events`, which maps between events and state attributes, e.g.
+
+.. code-block:: python
+
+    event_to_attr = {
+        CustomEvents.CUSTOM_STARTED: "custom_started",
+        CustomEvents.CUSTOM_COMPLETED: "custom_completed",
+    }
+
+- you should increase the counter for the event whenever you fire the event, e.g. ``engine.state.custom_started += 1``
+
+.. warning::
+
+    This solution for filtering is a temporary workaround and may change in the future.
+
 
 Handlers
 ````````
@@ -319,7 +341,7 @@ which includes the following:
 
 Other attributes can be found in the docs of :class:`~ignite.engine.events.State`.
 
-In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at 
+In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at
 every iteration.
 
 .. code-block:: python
