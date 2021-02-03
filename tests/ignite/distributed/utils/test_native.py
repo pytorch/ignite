@@ -93,7 +93,7 @@ def test_sync_as_native_nccl(distributed_context_single_node_nccl):
 def _test_idist_methods_in_native_context(backend, device, local_rank):
     # We explicitly set _model as _SerialModel
     # then call idist.* methods and check that they give correct values
-    from ignite.distributed.utils import _set_model, _SerialModel
+    from ignite.distributed.utils import _SerialModel, _set_model
 
     _set_model(_SerialModel())
 
@@ -120,7 +120,7 @@ def test_idist_methods_in_native_nccl_context(distributed_context_single_node_nc
 def _test_idist_methods_in_native_context_set_local_rank(backend, device, local_rank):
     # We explicitly set _model as _SerialModel
     # then call idist.* methods and check that they give correct values
-    from ignite.distributed.utils import _set_model, _SerialModel
+    from ignite.distributed.utils import _SerialModel, _set_model
 
     _set_model(_SerialModel())
 
@@ -256,8 +256,8 @@ def test_idist_methods_overhead_gloo(distributed_context_single_node_gloo):
     _test_idist_methods_overhead(2.5)
 
     idist.sync()
-    from ignite.distributed.utils import _model
     from ignite.distributed.comp_models.native import _NativeDistModel
+    from ignite.distributed.utils import _model
 
     assert isinstance(_model, _NativeDistModel)
 
@@ -271,8 +271,8 @@ def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
     _test_idist_methods_overhead(2.5)
 
     idist.sync()
-    from ignite.distributed.utils import _model
     from ignite.distributed.comp_models.native import _NativeDistModel
+    from ignite.distributed.utils import _model
 
     assert isinstance(_model, _NativeDistModel)
 

@@ -45,9 +45,6 @@ def test_checkpoint_wrong_input():
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
         Checkpoint([12], lambda x: x, "prefix")
 
-    with pytest.raises(ValueError, match=r"No objects to checkpoint."):
-        Checkpoint({}, lambda x: x, "prefix")
-
     model = DummyModel()
     to_save = {"model": model}
 
