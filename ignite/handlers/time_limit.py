@@ -18,10 +18,10 @@ class TimeLimit:
     Examples:
 
         .. code-block:: python
-    
+
             from ignite.engine import Events
             from ignite.handlers import TimeLimit
-            handler = TimeLimit(288800) # 8 hours of training 
+            handler = TimeLimit(288800) # 8 hours of training
             trainer.add_event_handler(Events.ITERATION_COMPLETED, handler)
     """
 
