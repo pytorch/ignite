@@ -24,9 +24,10 @@ class TimeLimit:
             handler = TimeLimit(288800) # 8 hours of training 
             trainer.add_event_handler(Events.ITERATION_COMPLETED, handler)
     """
-    def __init__(self, limit_sec:  Optional[int] = 3600):
 
-        if not isinstance(limit_sec,int):
+    def __init__(self, limit_sec: Optional[int] = 3600):
+
+        if not isinstance(limit_sec, int):
             raise TypeError("Argument limit_sec should be an integer.")
         if limit_sec <= 0:
             raise ValueError("Argument limit_sec should be a positive integer.")

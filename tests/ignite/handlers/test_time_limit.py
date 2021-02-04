@@ -11,8 +11,9 @@ def test_arg_validation():
     with pytest.raises(ValueError, match=r"Argument limit_sec should be a positive integer."):
         TimeLimit(limit_sec=-5)
 
-    with pytest.raises(TypeError,match=r"Argument limit_sec should be an integer."):
+    with pytest.raises(TypeError, match=r"Argument limit_sec should be an integer."):
         TimeLimit(limit_sec="abc")
+
 
 def test_terminate_on_time_limit():
 
