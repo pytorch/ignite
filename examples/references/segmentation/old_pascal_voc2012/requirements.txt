@@ -2,11 +2,10 @@ albumentations
 image-dataset-viz
 numpy
 opencv-python
-fire
-gin-config
+py_config_runner
 pytorch-ignite
+pillow
 tensorboard
 torch
 torchvision
 tqdm
-clearml
