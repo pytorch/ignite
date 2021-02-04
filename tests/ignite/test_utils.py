@@ -208,7 +208,7 @@ def test_deprecated():
         )
 
     # Test that the function raises Exception
-    @deprecated("0.4.2", "0.6.0", reasons=["reason1", "reason2"], raiseException=True)
+    @deprecated("0.4.2", "0.6.0", reasons=["reason1", "reason2"], raise_exception=True)
     def func_with_everything():
         return 1
 

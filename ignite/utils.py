@@ -173,7 +173,7 @@ def manual_seed(seed: int) -> None:
         pass
 
 
-def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], raiseException: bool = False) -> Callable:
+def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], raise_exception: bool = False) -> Callable:
 
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -187,7 +187,7 @@ def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], rai
 
         @functools.wraps(func)
         def wrapper(*args: int, **kwargs: float) -> Callable:
-            if raiseException:
+            if raise_exception:
                 raise DeprecationWarning(deprecation_warning)
             warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
             return func(*args, **kwargs)

@@ -276,12 +276,12 @@ def empty_cuda_cache(_: Engine) -> None:
 
 
 @deprecated(
-    "0.4.0",  # type: ignore
+    "0.4.0",
     "0.6.0",
     ["Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc."],
-    raiseException=True,
+    raise_exception=True,
 )
-def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:
+def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:  # type: ignore
     pass
 
 
