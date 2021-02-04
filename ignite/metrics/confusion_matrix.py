@@ -7,11 +7,19 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 from ignite.metrics.metrics_lambda import MetricsLambda
 
-__all__ = ["ConfusionMatrix", "MultiLabelConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "cmPrecision", "cmRecall"]
+__all__ = [
+    "ConfusionMatrix",
+    "MultiLabelConfusionMatrix",
+    "mIoU",
+    "IoU",
+    "DiceCoefficient",
+    "cmAccuracy",
+    "cmPrecision",
+    "cmRecall",
+]
 
 
 class MultiLabelConfusionMatrix(Metric):
-
     def __init__(
         self,
         num_classes: int,
@@ -47,7 +55,6 @@ class MultiLabelConfusionMatrix(Metric):
 
         self.confusion_matrix += torch.cat([tn, fp, fn, tp], dim=0).T.reshape(-1, 2, 2)
 
- 
     @sync_all_reduce("confusion_matrix", "_num_examples")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
@@ -60,10 +67,17 @@ class MultiLabelConfusionMatrix(Metric):
         else:
             return self.confusion_matrix
 
-
     def _check_input(self, output: Sequence[torch.Tensor]) -> None:
-        if not isinstance(output, Sequence) or len(output) < 2 or not isinstance(output[0], torch.Tensor) or not isinstance(output[1], torch.Tensor):
-            raise ValueError("Agrument must consist of a Python Sequence of two tensors such that the first is the predicted tensor and the second is the ground-truth tensor")
+        if (
+            not isinstance(output, Sequence)
+            or len(output) < 2
+            or not isinstance(output[0], torch.Tensor)
+            or not isinstance(output[1], torch.Tensor)
+        ):
+            raise ValueError(
+                "Agrument must consist of a Python Sequence of two tensors such that the first is the predicted tensor \
+                 and the second is the ground-truth tensor"
+            )
 
         y_pred, y = output[0].detach(), output[1].detach()
 
@@ -80,7 +94,7 @@ class MultiLabelConfusionMatrix(Metric):
             )
 
         if y_pred.shape[0] != y.shape[0]:
-            raise ValueError(f"y_pred and y have different batch size: {y_pred.shape[0]} vs {y.shape[0]}")            
+            raise ValueError(f"y_pred and y have different batch size: {y_pred.shape[0]} vs {y.shape[0]}")
 
         if y_pred.shape[1] != self.num_classes:
             raise ValueError(f"y_pred does not have correct number of classes: {y_pred.shape[1]} vs {self.num_classes}")
@@ -88,12 +102,17 @@ class MultiLabelConfusionMatrix(Metric):
         if y.shape[1] != self.num_classes:
             raise ValueError(f"y does not have correct number of classes: {y.shape[1]} vs {self.num_classes}")
 
-        if int(self.num_classes * y_pred.shape[0]) != ((y_pred.type(torch.int64) == 0).sum() + (y_pred.type(torch.int64) == 1).sum()).item():
-            raise ValueError('y_pred must be a binary tensor')
+        if (
+            int(self.num_classes * y_pred.shape[0])
+            != ((y_pred.type(torch.int64) == 0).sum() + (y_pred.type(torch.int64) == 1).sum()).item()
+        ):
+            raise ValueError("y_pred must be a binary tensor")
 
-        if int(self.num_classes * y.shape[0]) != ((y.type(torch.int64) == 0).sum() + (y.type(torch.int64) == 1).sum()).item():
-            raise ValueError('y must be a binary tensor')
-
+        if (
+            int(self.num_classes * y.shape[0])
+            != ((y.type(torch.int64) == 0).sum() + (y.type(torch.int64) == 1).sum()).item()
+        ):
+            raise ValueError("y must be a binary tensor")
 
 
 class ConfusionMatrix(Metric):
