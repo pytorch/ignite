@@ -21,6 +21,10 @@ class ManhattanDistance(_BaseRegression):
 
     __ https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
 
+    .. versionchanged:: 0.4.3
+
+        - Fix formula and compare to sklearn.
+        - Work with ddp.
     """
 
     def __init__(

@@ -19,6 +19,9 @@ class R2Score(_BaseRegression):
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
+
+    .. versionchanged:: 0.4.3
+        Work with ddp.
     """
 
     def __init__(

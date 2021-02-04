@@ -22,6 +22,10 @@ class CanberraMetric(_BaseRegression):
     .. _scikit-learn distance metrics:
         https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
 
+    .. versionchanged:: 0.4.3
+
+        - Use ``abs`` in denominator.
+        - Work with ddp.
     """
 
     def __init__(

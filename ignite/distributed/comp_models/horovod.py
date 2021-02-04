@@ -27,6 +27,9 @@ if has_hvd_support:
 
     class _HorovodDistModel(ComputationModel):
         """Private class for `Horovod <https://horovod.readthedocs.io/en/stable/>`_ distributed computation model.
+
+        .. versionchanged:: 0.4.3
+             Improved Horovod initializer.
         """
 
         name = "horovod-dist"
