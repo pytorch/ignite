@@ -1,7 +1,6 @@
 import time
 
 import pytest
-import torch
 
 from ignite.engine import Engine, Events
 from ignite.handlers import TimeLimit
@@ -9,9 +8,11 @@ from ignite.handlers import TimeLimit
 
 def test_arg_validation():
 
-    with pytest.raises(ValueError, match=r"Argument limit_sec should be a positive number."):
+    with pytest.raises(ValueError, match=r"Argument limit_sec should be a positive integer."):
         TimeLimit(limit_sec=-5)
 
+    with pytest.raises(TypeError,match=r"Argument limit_sec should be an integer."):
+        TimeLimit(limit_sec="abc")
 
 def test_terminate_on_time_limit():
 

@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Union
+from typing import Optional
 
 from ignite.engine import Engine
 
@@ -10,21 +10,26 @@ __all__ = ["TimeLimit"]
 
 
 class TimeLimit:
-    def __init__(self, limit_sec: Union[int, float] = 3600):
-        """Time limit for training , .
-        Args:
-            limit_sec (int, optional): Time limit in seconds. Defaults to 3600.
+    """TimeLimit handler can be used to control training time for computing environments where session time is limited.
 
-        Examples:
+    Args:
+        limit_sec (int, optional): Maximum time before training terminates (in seconds). Defaults to 3600.
+
+    Examples:
 
         .. code-block:: python
-        from ignite.engine import Events
-        from ignite.handlers import TimeLimit
-        handler = TimeLimit(288800) # 8 hours of training 
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, handler)
-        """
+    
+            from ignite.engine import Events
+            from ignite.handlers import TimeLimit
+            handler = TimeLimit(288800) # 8 hours of training 
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, handler)
+    """
+    def __init__(self, limit_sec:  Optional[int] = 3600):
+
+        if not isinstance(limit_sec,int):
+            raise TypeError("Argument limit_sec should be an integer.")
         if limit_sec <= 0:
-            raise ValueError("Argument limit_sec should be a positive number.")
+            raise ValueError("Argument limit_sec should be a positive integer.")
 
         self.limit_sec = limit_sec
         self.start_time = time.time()

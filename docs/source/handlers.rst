@@ -29,4 +29,5 @@ Complete list of handlers
 
 .. autofunction:: global_step_from_engine
 
-.. autofunction:: TimeLimit
+.. autoclass:: TimeLimit
+   :members:
