@@ -274,7 +274,7 @@ def test_add_early_stopping_by_val_score():
 
 def test_deprecated_setup_any_logging():
 
-    with pytest.raises(DeprecationWarning, match=r"is deprecated since 0\.4\.0\."):
+    with pytest.raises(DeprecationWarning, match=r"deprecated since version `0.4.0`"):
         setup_any_logging(None, None, None, None, None, None)
 
 
