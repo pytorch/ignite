@@ -7,10 +7,10 @@ from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class ManhattanDistance(_BaseRegression):
-    r"""
-    Calculates the Manhattan Distance:
+    r"""Calculates the Manhattan Distance.
 
-    :math:`\text{MD} = \sum_{j=1}^n |A_j - P_j|`,
+    .. math::
+        \text{MD} = \sum_{j=1}^n |A_j - P_j|
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
@@ -21,6 +21,10 @@ class ManhattanDistance(_BaseRegression):
 
     __ https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
 
+    .. versionchanged:: 0.4.3
+
+        - Fixed sklearn compatibility.
+        - Workes with DDP.
     """
 
     def __init__(

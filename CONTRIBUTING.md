@@ -65,7 +65,7 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==4.3.21" mypy
+pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
 ```
 
 ### Code development
@@ -203,7 +203,17 @@ git merge upstream/master
 ### Writing documentation
 
 Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
-for formatting docstrings. Length of line inside docstrings block must be limited to 120 characters.
+for formatting docstrings and
+
+- [`.. versionadded::`] directive for adding new classes, class methods, functions,
+- [`.. versionchanged::`] directive for adding new arguments, changing internal behaviours, fixing bugs and
+- [`.. deprecated::`] directive for deprecations.
+
+Length of line inside docstrings block must be limited to 120 characters.
+
+[`.. versionadded::`]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded
+[`.. versionchanged::`]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionchanged
+[`.. deprecated::`]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-deprecated
 
 #### Local documentation building and deploying
 

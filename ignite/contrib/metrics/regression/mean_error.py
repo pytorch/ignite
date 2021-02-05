@@ -7,10 +7,10 @@ from ignite.exceptions import NotComputableError
 
 
 class MeanError(_BaseRegression):
-    r"""
-    Calculates the Mean Error:
+    r"""Calculates the Mean Error.
 
-    :math:`\text{ME} = \frac{1}{n}\sum_{j=1}^n (A_j - P_j)`,
+    .. math::
+        \text{ME} = \frac{1}{n}\sum_{j=1}^n (A_j - P_j)
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 

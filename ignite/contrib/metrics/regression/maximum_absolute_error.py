@@ -7,10 +7,10 @@ from ignite.exceptions import NotComputableError
 
 
 class MaximumAbsoluteError(_BaseRegression):
-    r"""
-    Calculates the Maximum Absolute Error:
+    r"""Calculates the Maximum Absolute Error.
 
-    :math:`\text{MaxAE} = \max_{j=1,n} \left( \lvert A_j-P_j \rvert \right)`,
+    .. math::
+        \text{MaxAE} = \max_{j=1,n} \left( \lvert A_j-P_j \rvert \right)
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
