@@ -4,7 +4,6 @@ from typing import Optional
 
 from ignite.engine import Engine
 
-log = logging.getLogger(__name__)
 
 __all__ = ["TimeLimit"]
 
@@ -15,7 +14,7 @@ class TimeLimit:
     This handler gracefully terminates the training if time passed in the training exceeds a limit.
 
     Args:
-        limit_sec (int, optional): Maximum time before training terminates (in seconds). Defaults to 288800.
+        limit_sec (int, optional): Maximum time before training terminates (in seconds). Defaults to 28800.
 
     Examples:
 
@@ -27,7 +26,7 @@ class TimeLimit:
             trainer.add_event_handler(Events.ITERATION_COMPLETED, handler)
     """
 
-    def __init__(self, limit_sec: Optional[int] = 288800):
+    def __init__(self, limit_sec: Optional[int] = 28800):
 
         if not isinstance(limit_sec, int):
             raise TypeError("Argument limit_sec should be an integer.")
