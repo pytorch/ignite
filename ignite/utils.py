@@ -4,7 +4,7 @@ import logging
 import random
 import sys
 import warnings
-from typing import Any, Callable, Optional, TextIO, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union, cast
 
 import torch
 
@@ -173,7 +173,9 @@ def manual_seed(seed: int) -> None:
         pass
 
 
-def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], raise_exception: bool = False) -> Callable:
+def deprecated(
+    deprecated_in: str, removed_in: str = "", reasons: Tuple[str, ...] = (), raise_exception: bool = False
+) -> Callable:
 
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -186,7 +188,7 @@ def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], rai
         )
 
         @functools.wraps(func)
-        def wrapper(*args: int, **kwargs: float) -> Callable:
+        def wrapper(*args: Any, **kwargs: Dict[str, Any]) -> Callable:
             if raise_exception:
                 raise DeprecationWarning(deprecation_warning)
             warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
@@ -196,7 +198,7 @@ def deprecated(deprecated_in: str, removed_in: str = "", reasons: list = [], rai
 
         for reason in reasons:
             appended_doc += "\n\t- " + reason
-        wrapper.__doc__ = "**Deprecated function**." + "\n\n    " + func_doc + appended_doc
+        wrapper.__doc__ = f"**Deprecated function**.\n\n    {func_doc}{appended_doc}"
         return cast(F, wrapper)
 
     return decorator
