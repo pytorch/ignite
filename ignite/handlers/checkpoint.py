@@ -250,7 +250,7 @@ class Checkpoint(Serializable):
     .. versionchanged:: 0.4.3
 
         - Checkpoint can save model with same filename.
-        - Added ``greater_or_equal`` parameter.
+        - Added ``greater_or_equal`` argument.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
