@@ -11,6 +11,8 @@ __all__ = ["TimeLimit"]
 
 class TimeLimit:
     """TimeLimit handler can be used to control training time for computing environments where session time is limited.
+    Timer starts when handler is created and not training started.
+    This handler gracefully terminates the training if time passed in the training exceeds a limit.
 
     Args:
         limit_sec (int, optional): Maximum time before training terminates (in seconds). Defaults to 288800.
@@ -39,5 +41,5 @@ class TimeLimit:
     def __call__(self, engine: Engine) -> None:
         elapsed_time = time.time() - self.start_time
         if elapsed_time > self.limit_sec:
-            log.warning("Reached the time limit: {} sec. Stop training".format(self.limit_sec))
+            self.logger.info("Reached the time limit: {} sec. Stop training".format(self.limit_sec))
             engine.terminate()

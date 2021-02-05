@@ -16,32 +16,16 @@ def test_arg_validation():
 
 
 def test_terminate_on_time_limit():
-
-    sleep_time = 1
-
     def _train_func(engine, batch):
-        time.sleep(sleep_time)
+        time.sleep(1)
 
-    trainer = Engine(_train_func)
+    def _test(n_iters, limit):
+        started = time.time()
+        trainer = Engine(_train_func)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, TimeLimit(limit))
+        trainer.run(range(n_iters))
+        elapsed = round(time.time() - started)
+        assert elapsed <= limit + 1
 
-    started = time.time()
-    n_iter = 3
-    limit = 2
-
-    h = TimeLimit(limit)
-
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, h)
-
-    trainer.run(range(n_iter))
-    elapsed = round(time.time() - started)
-    assert elapsed == limit
-
-    started = time.time()
-    n_iter = 2
-    limit = 3
-    h = TimeLimit(limit)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, h)
-
-    trainer.run(range(n_iter))
-    elapsed = round(time.time() - started)
-    assert elapsed + 1 < limit
+    _test(20, 10)
+    _test(5, 10)
