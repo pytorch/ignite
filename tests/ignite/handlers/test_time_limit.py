@@ -24,20 +24,24 @@ def test_terminate_on_time_limit():
 
     trainer = Engine(_train_func)
 
+    started = time.time()
     n_iter = 3
     limit = 2
 
-    low_limit = TimeLimit(limit)
+    h = TimeLimit(limit)
 
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, low_limit)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, h)
 
     trainer.run(range(n_iter))
-    assert trainer.state.iteration == limit
+    elapsed = round(time.time() - started, 1)
+    assert elapsed == limit
 
+    started = time.time()
     n_iter = 2
     limit = 3
-    high_limit = TimeLimit(limit)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, high_limit)
+    h = TimeLimit(limit)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, h)
 
     trainer.run(range(n_iter))
-    assert trainer.state.iteration < limit
+    elapsed = round(time.time() - started, 1)
+    assert elapsed + 1 < limit
