@@ -190,7 +190,7 @@ def _setup_common_training_handlers(
 
     if with_gpu_stats:
         GpuInfo().attach(
-            trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)  # type: ignore
+            trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)  # type: ignore[arg-type]
         )
 
     if output_names is not None:
