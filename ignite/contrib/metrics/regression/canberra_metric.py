@@ -24,8 +24,8 @@ class CanberraMetric(_BaseRegression):
 
     .. versionchanged:: 0.4.3
 
-        - Use ``abs`` in denominator.
-        - Work with ddp.
+        - Fixed implementation: ``abs`` in denominator.
+        - Works with DDP.
     """
 
     def __init__(
