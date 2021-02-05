@@ -23,8 +23,8 @@ class ManhattanDistance(_BaseRegression):
 
     .. versionchanged:: 0.4.3
 
-        - Fix formula and compare to sklearn.
-        - Work with ddp.
+        - Fixed sklearn compatibility.
+        - Workes with DDP.
     """
 
     def __init__(
