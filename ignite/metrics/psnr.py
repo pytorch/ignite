@@ -64,7 +64,7 @@ class PSNR(Metric):
         state = engine.run(data)
         print(f"PSNR: {state.metrics['psrn']}")
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.3
     """
 
     def __init__(
