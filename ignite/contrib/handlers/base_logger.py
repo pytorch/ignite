@@ -207,6 +207,9 @@ class BaseLogger(metaclass=ABCMeta):
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+
+        .. versionchanged:: 0.4.3
+            Added missing return statement.
         """
         return self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
 
