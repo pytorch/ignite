@@ -33,7 +33,7 @@ def test_terminate_on_time_limit():
     trainer.add_event_handler(Events.ITERATION_COMPLETED, h)
 
     trainer.run(range(n_iter))
-    elapsed = round(time.time() - started, 1)
+    elapsed = round(time.time() - started)
     assert elapsed == limit
 
     started = time.time()
@@ -43,5 +43,5 @@ def test_terminate_on_time_limit():
     trainer.add_event_handler(Events.ITERATION_COMPLETED, h)
 
     trainer.run(range(n_iter))
-    elapsed = round(time.time() - started, 1)
+    elapsed = round(time.time() - started)
     assert elapsed + 1 < limit
