@@ -4,7 +4,6 @@ from typing import Optional
 
 from ignite.engine import Engine
 
-
 __all__ = ["TimeLimit"]
 
 
