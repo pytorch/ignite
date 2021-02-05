@@ -184,8 +184,8 @@ def deprecated(
     def decorator(func: F) -> F:
         func_doc = func.__doc__ if func.__doc__ else ""
         deprecation_warning = (
-            f"This function has been deprecated since version `{deprecated_in}`"
-            + (f" and will be removed in version `{removed_in}`" if removed_in else "")
+            f"This function has been deprecated since version {deprecated_in}"
+            + (f" and will be removed in version {removed_in}" if removed_in else "")
             + ".\n Please refer to the documentation for more details."
         )
 

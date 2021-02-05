@@ -202,7 +202,7 @@ def test_deprecated():
         assert len(w) == 1
         assert issubclass(w[-1].category, DeprecationWarning)
         assert (
-            "This function has been deprecated since version `0.4.2` and will be removed in version `0.6.0`."
+            "This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
             + "\n Please refer to the documentation for more details."
             in str(w[-1].message)
         )
@@ -217,6 +217,6 @@ def test_deprecated():
 
     assert (
         str(exec_info.value)
-        == "This function has been deprecated since version `0.4.2` and will be removed in version `0.6.0`."
+        == "This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
         + "\n Please refer to the documentation for more details."
     )
