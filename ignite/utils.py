@@ -156,6 +156,8 @@ def manual_seed(seed: int) -> None:
     Args:
         seed (int): Random state seed
 
+    .. versionchanged:: 0.4.3
+        Added ``torch.cuda.manual_seed_all(seed)``.
     """
     random.seed(seed)
     torch.manual_seed(seed)
