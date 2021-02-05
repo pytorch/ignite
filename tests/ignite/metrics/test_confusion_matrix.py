@@ -1,14 +1,21 @@
 import os
+from unittest import TestCase
 
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score
+from sklearn.metrics import accuracy_score, confusion_matrix, multilabel_confusion_matrix, precision_score, recall_score
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
-from ignite.metrics.confusion_matrix import DiceCoefficient, cmAccuracy, cmPrecision, cmRecall
+from ignite.metrics.confusion_matrix import (
+    DiceCoefficient,
+    MultiLabelConfusionMatrix,
+    cmAccuracy,
+    cmPrecision,
+    cmRecall,
+)
 
 torch.manual_seed(12)
 
@@ -645,6 +652,132 @@ def _test_distrib_accumulator_device(device):
         assert (
             cm.confusion_matrix.device == metric_device
         ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+
+
+def test_multiLabelConfusionMatrix():
+
+    output = torch.Tensor([[1, 1, 0], [0, 1, 0], [1, 0, 1], [1, 1, 1]])
+    target = torch.Tensor([[0, 1, 0], [0, 0, 1], [1, 0, 1], [1, 0, 1]])
+
+    mtr = MultiLabelConfusionMatrix(3, normalized=False)
+    mtr.update([output, target])
+
+    conf_mtrx = mtr.compute()
+    correct_conf_mtrx = torch.tensor([[[1, 1], [0, 2]], [[1, 2], [0, 1]], [[1, 0], [1, 2]]])
+
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[0, 0, 0], correct_conf_mtrx[0, 0, 0]), "incorrect true negatives for class 0"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[1, 0, 0], correct_conf_mtrx[1, 0, 0]), "incorrect true negatives for class 1"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[2, 0, 0], correct_conf_mtrx[2, 0, 0]), "incorrect true negatives for class 2"
+    )
+
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[0, 0, 1], correct_conf_mtrx[0, 0, 1]), "incorrect false positives for class 0"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[1, 0, 1], correct_conf_mtrx[1, 0, 1]), "incorrect false positives for class 1"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[2, 0, 1], correct_conf_mtrx[2, 0, 1]), "incorrect false positives for class 2"
+    )
+
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[0, 1, 0], correct_conf_mtrx[0, 1, 0]), "incorrect false negatives for class 0"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[1, 1, 0], correct_conf_mtrx[1, 1, 0]), "incorrect false negatives for class 1"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[2, 1, 0], correct_conf_mtrx[2, 1, 0]), "incorrect false negatives for class 2"
+    )
+
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[0, 1, 1], correct_conf_mtrx[0, 1, 1]), "incorrect true positives for class 0"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[1, 1, 1], correct_conf_mtrx[1, 1, 1]), "incorrect true positives for class 1"
+    )
+    TestCase.assertTrue(
+        torch.equal(conf_mtrx[2, 1, 1], correct_conf_mtrx[2, 1, 1]), "incorrect true positives for class 2"
+    )
+
+    mtr = MultiLabelConfusionMatrix(3, normalized=True)
+    mtr.update([output, target])
+
+    conf_mtrx_normalized = mtr.compute()
+    correct_conf_mtrx_normalized = torch.tensor(
+        [[[0.25, 0.25], [0, 0.5]], [[0.25, 0.5], [0, 0.25]], [[0.25, 0], [0.25, 0.5]]], dtype=torch.float64
+    )
+
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[0, 0, 0], correct_conf_mtrx_normalized[0, 0, 0]),
+        "incorrect normalized true negatives for class 0",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[1, 0, 0], correct_conf_mtrx_normalized[1, 0, 0]),
+        "incorrect normalized true negatives for class 1",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[2, 0, 0], correct_conf_mtrx_normalized[2, 0, 0]),
+        "incorrect normalized true negatives for class 2",
+    )
+
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[0, 0, 1], correct_conf_mtrx_normalized[0, 0, 1]),
+        "incorrect normalized false positives for class 0",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[1, 0, 1], correct_conf_mtrx_normalized[1, 0, 1]),
+        "incorrect normalized false positives for class 1",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[2, 0, 1], correct_conf_mtrx_normalized[2, 0, 1]),
+        "incorrect normalized false positives for class 2",
+    )
+
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[0, 1, 0], correct_conf_mtrx_normalized[0, 1, 0]),
+        "incorrect normalized false negatives for class 0",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[1, 1, 0], correct_conf_mtrx_normalized[1, 1, 0]),
+        "incorrect normalized false negatives for class 1",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[2, 1, 0], correct_conf_mtrx_normalized[2, 1, 0]),
+        "incorrect normalized false negatives for class 2",
+    )
+
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[0, 1, 1], correct_conf_mtrx_normalized[0, 1, 1]),
+        "incorrect normalized true positives for class 0",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[1, 1, 1], correct_conf_mtrx_normalized[1, 1, 1]),
+        "incorrect normalized true positives for class 1",
+    )
+    TestCase.assertTrue(
+        torch.allclose(conf_mtrx_normalized[2, 1, 1], correct_conf_mtrx_normalized[2, 1, 1]),
+        "incorrect normalized true positives for class 2",
+    )
+
+    num_iters = 100
+    num_samples = 100
+    num_classes = 10
+    for _ in range(num_iters):
+        target = np.random.randint(0, 2, size=(num_samples, num_classes))
+        prediction = np.random.randint(0, 2, size=(num_samples, num_classes))
+        sklearn_CM = multilabel_confusion_matrix(target, prediction)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
+        ignite_CM = mlcm.compute().numpy()
+        np.testing.assert_array_equal(sklearn_CM.astype(np.int64), ignite_CM.astype(np.int64))
+
+    return
 
 
 @pytest.mark.distributed
