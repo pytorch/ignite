@@ -21,7 +21,7 @@ class R2Score(_BaseRegression):
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
 
     .. versionchanged:: 0.4.3
-        Work with ddp.
+        Works with DDP.
     """
 
     def __init__(
