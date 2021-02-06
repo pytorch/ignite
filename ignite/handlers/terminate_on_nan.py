@@ -5,7 +5,7 @@ from typing import Callable, Union
 import torch
 
 from ignite.engine import Engine
-from ignite.utils import apply_to_type
+from ignite.utils import apply_to_type, setup_logger
 
 __all__ = ["TerminateOnNan"]
 
@@ -33,7 +33,7 @@ class TerminateOnNan:
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
         self.logger.addHandler(logging.StreamHandler())
         self._output_transform = output_transform
 
