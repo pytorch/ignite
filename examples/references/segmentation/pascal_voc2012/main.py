@@ -4,9 +4,16 @@ from pathlib import Path
 import fire
 import gin
 import torch
+
+import cv2
+import albumentations as A
+from albumentations.pytorch import ToTensorV2 as ToTensor
+
 import ignite.distributed as idist
+from ignite.utils import setup_logger, manual_seed
 
 import utils
+import dataflow as data
 
 
 def download_datasets(output_path):
@@ -28,14 +35,59 @@ def download_datasets(output_path):
     print("Download SBD - Training without Pascal VOC validation part")
     sbd_path = output_path / "SBD"
     sbd_path.mkdir(exist_ok=True)
-    SBDataset(sbd_path.as_posix(), image_set="train_noval", mode="segmentation", download=True)
+    SBDataset(
+        sbd_path.as_posix(), image_set="train_noval", mode="segmentation", download=True
+    )
     print("Done")
     print(f"Pascal VOC 2012 is at : {(output_path / 'VOCdevkit').as_posix()}")
     print(f"SBD is at : {sbd_path.as_posix()}")
 
 
-def training(local_rank, config, logger=None):
-    pass
+mean = (0.485, 0.456, 0.406)
+std = (0.229, 0.224, 0.225)
+
+
+train_img_size = 480
+val_img_size = 513
+
+
+train_transforms = A.Compose(
+    [
+        A.RandomScale(scale_limit=(0.0, 1.5), interpolation=cv2.INTER_LINEAR, p=1.0),
+        A.PadIfNeeded(val_img_size, val_img_size, border_mode=cv2.BORDER_CONSTANT),
+        A.RandomCrop(train_img_size, train_img_size),
+        A.HorizontalFlip(),
+        A.Blur(blur_limit=3),
+        A.Normalize(mean=mean, std=std),
+        data.ignore_mask_boundaries,
+        ToTensor(),
+    ]
+)
+
+
+val_transforms = A.Compose(
+    [
+        A.PadIfNeeded(val_img_size, val_img_size, border_mode=cv2.BORDER_CONSTANT),
+        A.Normalize(mean=mean, std=std),
+        data.ignore_mask_boundaries,
+        ToTensor(),
+    ]
+)
+
+
+@gin.configurable
+def training(local_rank, data_path, sbd_data_path, logger, **config):
+
+    manual_seed(config["seed"] + local_rank)
+    torch.backends.cudnn.benchmark = True
+    utils.log_basic_info(logger, config)
+
+    train_loader, val_loader, train_eval_loader = data.get_train_val_loaders(
+        data_path,
+        train_transforms=train_transforms,
+        val_transforms=val_transforms,
+        sbd_path=sbd_data_path,
+    )
 
 
 def run_training(config, backend="nccl", with_clearml=True):
@@ -51,22 +103,29 @@ def run_training(config, backend="nccl", with_clearml=True):
 
     assert Path(config).exists(), f"File '{config}' is not found"
 
+    assert "DATASET_PATH" in os.environ
+    data_path = os.environ["DATASET_PATH"]
+    assert "SBD_DATASET_PATH" in os.environ
+    sbd_data_path = os.environ["SBD_DATASET_PATH"]
+
     with idist.Parallel(backend=backend) as parallel:
-
-        logger = setup_logger(name="Pascal-VOC12 Training", distributed_rank=idist.get_rank())
-
-        utils.log_basic_info(logger, config)
-
+        logger = setup_logger(
+            name="Pascal-VOC12 Training", distributed_rank=idist.get_rank()
+        )
         gin.parse_config_file(config)
 
         try:
-            parallel.run(training, config, logger=logger)
+            parallel.run(
+                training,
+                data_path=data_path,
+                sbd_data_path=sbd_data_path,
+                logger=logger,
+            )
         except KeyboardInterrupt:
             logger.info("Catched KeyboardInterrupt -> exit")
         except Exception as e:  # noqa
             logger.exception("")
             raise e
-
 
 
 def run_evaluation(config, backend="nccl"):
@@ -80,4 +139,10 @@ def run_evaluation(config, backend="nccl"):
 
 
 if __name__ == "__main__":
-    fire.Fire({"download": download_datasets, "training": run_training, "eval": run_evaluation})
+    fire.Fire(
+        {
+            "download": download_datasets,
+            "training": run_training,
+            "eval": run_evaluation,
+        }
+    )

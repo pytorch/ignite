@@ -1,0 +1,18 @@
+
+
+training.seed = 12
+training.debug = False
+training.num_classes = 21
+# training.train_img_size = 480
+# training.val_img_size = 513
+training.accumulation_steps = 4
+training.val_interval = 3
+
+
+get_train_val_loaders.batch_size = 9  # total batch size
+get_train_val_loaders.val_batch_size = 18  # total batch size
+get_train_val_loaders.num_workers = 12  # total num workers per node
+
+
+
+
