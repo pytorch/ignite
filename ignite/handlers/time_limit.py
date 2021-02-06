@@ -1,10 +1,11 @@
-import logging
 import time
 from typing import Optional
 
 from ignite.engine import Engine
 
 __all__ = ["TimeLimit"]
+
+from ignite.utils import setup_logger
 
 
 class TimeLimit:
@@ -37,7 +38,7 @@ class TimeLimit:
 
         self.limit_sec = limit_sec
         self.start_time = time.time()
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
 
     def __call__(self, engine: Engine) -> None:
         elapsed_time = time.time() - self.start_time

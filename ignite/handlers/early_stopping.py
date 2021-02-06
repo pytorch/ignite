@@ -1,9 +1,9 @@
-import logging
 from collections import OrderedDict
 from typing import Callable, Mapping, Optional, cast
 
 from ignite.base import Serializable
 from ignite.engine import Engine
+from ignite.utils import setup_logger
 
 __all__ = ["EarlyStopping"]
 
@@ -76,7 +76,7 @@ class EarlyStopping(Serializable):
         self.trainer = trainer
         self.counter = 0
         self.best_score = None  # type: Optional[float]
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
 
     def __call__(self, engine: Engine) -> None:
         score = self.score_function(engine)
