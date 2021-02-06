@@ -28,3 +28,6 @@ Complete list of handlers
 .. autoclass:: TerminateOnNan
 
 .. autofunction:: global_step_from_engine
+
+.. autoclass:: TimeLimit
+   :members:
