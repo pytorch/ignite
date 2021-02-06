@@ -1,13 +1,14 @@
 import logging
 import os
 import sys
+import warnings
 from collections import namedtuple
 
 import pytest
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.utils import convert_tensor, setup_logger, to_onehot
+from ignite.utils import convert_tensor, deprecated, setup_logger, to_onehot
 
 
 def test_convert_tensor():
@@ -150,3 +151,72 @@ def test_setup_logger(capsys, dirname):
 
     # Needed by windows to release FileHandler in the loggers
     logging.shutdown()
+
+
+def test_deprecated():
+
+    # Test on function without docs, @deprecated without reasons
+    @deprecated("0.4.2", "0.6.0")
+    def func_no_docs():
+        return 24
+
+    assert func_no_docs.__doc__ == "**Deprecated function**.\n\n    .. deprecated:: 0.4.2"
+
+    # Test on function with docs, @deprecated without reasons
+    @deprecated("0.4.2", "0.6.0")
+    def func_no_reasons():
+        """Docs are cool
+        """
+        return 24
+
+    assert func_no_reasons.__doc__ == "**Deprecated function**.\n\n    Docs are cool\n        .. deprecated:: 0.4.2"
+
+    # Test on function with docs, @deprecated with reasons
+    @deprecated("0.4.2", "0.6.0", reasons=("r1", "r2"))
+    def func_no_warnings():
+        """Docs are very cool
+        """
+        return 24
+
+    assert (
+        func_no_warnings.__doc__
+        == "**Deprecated function**.\n\n    Docs are very cool\n        .. deprecated:: 0.4.2\n\n\t\n\t- r1\n\t- r2"
+    )
+
+    # Tests that the function emits DeprecationWarning
+    @deprecated("0.4.2", "0.6.0", reasons=("r1", "r2"))
+    def func_check_warning():
+        """Docs are very ...
+        """
+        return 24
+
+    with pytest.deprecated_call():
+        func_check_warning()
+    assert func_check_warning() == 24
+    with warnings.catch_warnings(record=True) as w:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter("always")
+        # Trigger a warning.
+        func_check_warning()
+        # Verify some things
+        assert len(w) == 1
+        assert issubclass(w[-1].category, DeprecationWarning)
+        assert (
+            "This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
+            + "\n Please refer to the documentation for more details."
+            in str(w[-1].message)
+        )
+
+    # Test that the function raises Exception
+    @deprecated("0.4.2", "0.6.0", reasons=("reason1", "reason2"), raise_exception=True)
+    def func_with_everything():
+        return 1
+
+    with pytest.raises(Exception) as exec_info:
+        func_with_everything()
+
+    assert (
+        str(exec_info.value)
+        == "This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
+        + "\n Please refer to the documentation for more details."
+    )
