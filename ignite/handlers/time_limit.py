@@ -21,8 +21,11 @@ class TimeLimit:
 
             from ignite.engine import Events
             from ignite.handlers import TimeLimit
+
             handler = TimeLimit() # 8 hours of training
             trainer.add_event_handler(Events.ITERATION_COMPLETED, handler)
+
+    .. versionadded:: 0.4.3
     """
 
     def __init__(self, limit_sec: Optional[int] = 28800):
