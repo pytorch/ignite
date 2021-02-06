@@ -156,6 +156,11 @@ To run all tests with coverage (assuming installed `pytest-cov`):
 bash tests/run_cpu_tests.sh
 ```
 
+On Windows , distributed tests should be skipped
+```bash
+SKIP_DISTRIB_TESTS=1 sh tests/run_cpu_tests.sh
+```
+
 #### Run Mypy checks:
 
 To run mypy to check the optional static type:
