@@ -13,7 +13,7 @@ fi
 
 docker_image="pytorch/pytorch:latest"
 docker_python_version=`docker run --rm -i $docker_image python -c "import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]), end=\"\")"`
-install_test_requirements="pip install mock pytest pytest-xdist scikit-learn"
+install_test_requirements="pip install mock pytest pytest-xdist scikit-learn scikit-image dill matplotlib clearml"
 cmd="pytest --dist=each --tx $nproc_per_node*popen//python=python$docker_python_version tests -m multinode_distributed -vvv $@"
 
 
