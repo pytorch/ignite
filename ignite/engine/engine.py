@@ -812,11 +812,7 @@ class Engine(Serializable):
                     # Should exit while loop if we can not iterate
                     if should_exit:
                         if not self._is_done(self.state):
-                            total_iters = (
-                                self.state.epoch_length * self.state.max_epochs
-                                if self.state.max_epochs is not None
-                                else self.state.max_iters
-                            )
+                            total_iters = self.state.epoch_length * self.state.max_epochs  # type: ignore[operator]
 
                             warnings.warn(
                                 "Data iterator can not provide data anymore but required total number of "
