@@ -567,6 +567,32 @@ class Checkpoint(Serializable):
         super().load_state_dict(state_dict)
         self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["saved"]]
 
+    @staticmethod
+    def get_default_score_fn(metric_name: str) -> Any:
+        """Helper method to get default score function based on the metric name.
+
+        Exemples:
+
+        .. code-block:: python
+
+            from ignite.handlers import Checkpoint
+
+            best_acc_score = Checkpoint.get_default_score_fn(accuracy)
+
+            best_model_handler = Checkpoint(
+                to_save, save_handler, score_name="val_accuracy", score_function=best_acc_score
+            )
+            evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+
+        .. versionadded:: 0.4.3
+        """
+
+        def wrapper(engine: Engine) -> Any:
+            score = engine.state.metrics[metric_name]
+            return score
+
+        return wrapper
+
 
 class DiskSaver(BaseSaveHandler):
     """Handler that saves input checkpoint on a disk.

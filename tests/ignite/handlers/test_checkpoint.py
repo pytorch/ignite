@@ -1556,3 +1556,13 @@ def test_greater_or_equal():
     for _ in range(4):
         checkpointer(trainer)
     assert handler.counter == 4
+
+
+def test_get_default_score_fn():
+
+    engine = Engine(lambda e, b: None)
+    engine.state.metrics["acc"] = 0.9
+
+    score_fn = Checkpoint.get_default_score_fn("acc")
+    score = score_fn(engine)
+    assert score == 0.9

@@ -569,12 +569,7 @@ def setup_trains_logging(
     return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
 
 
-def get_default_score_fn(metric_name: str) -> Any:
-    def wrapper(engine: Engine) -> Any:
-        score = engine.state.metrics[metric_name]
-        return score
-
-    return wrapper
+get_default_score_fn = Checkpoint.get_default_score_fn
 
 
 def gen_save_best_models_by_val_score(
@@ -628,7 +623,7 @@ def gen_save_best_models_by_val_score(
         n_saved=n_saved,
         global_step_transform=global_step_transform,
         score_name=f"{tag}_{metric_name.lower()}",
-        score_function=get_default_score_fn(metric_name),
+        score_function=Checkpoint.get_default_score_fn(metric_name),
         **kwargs,
     )
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
