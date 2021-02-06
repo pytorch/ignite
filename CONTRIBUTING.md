@@ -156,9 +156,9 @@ To run all tests with coverage (assuming installed `pytest-cov`):
 bash tests/run_cpu_tests.sh
 ```
 
-On Windows , distributed tests should be skipped
+On Windows, distributed tests should be skipped
 ```bash
-SKIP_DISTRIB_TESTS=1 sh tests/run_cpu_tests.sh
+SKIP_DISTRIB_TESTS=1 bash tests/run_cpu_tests.sh
 ```
 
 #### Run Mypy checks:
