@@ -353,13 +353,13 @@ jobs:
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
   build_publish_docker_images:
-    machine:      
+    machine:
       # https://circleci.com/docs/2.0/configuration-reference/#available-machine-images
       image: ubuntu-2004:202010-01
       docker_layer_caching: true
     # https://circleci.com/docs/2.0/configuration-reference/#machine-executor-linux
     resource_class: 2xlarge
-  
+
     working_directory: << pipeline.parameters.workingdir >>
     steps:
       - checkout
