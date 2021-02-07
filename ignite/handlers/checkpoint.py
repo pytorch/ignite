@@ -328,6 +328,7 @@ class Checkpoint(Serializable):
             trainer.run(data1, max_epochs=max_epochs)
             print("Last checkpoint:", checkpointer.last_checkpoint)
 
+        .. versionadded:: 0.4.3
         """
         self._saved = []
 
@@ -462,6 +463,8 @@ class Checkpoint(Serializable):
 
                 print(filename_pattern)
                 > "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
+
+        .. versionadded:: 0.4.3
         """
         filename_pattern = "{name}"
 
