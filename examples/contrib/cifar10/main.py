@@ -13,7 +13,7 @@ import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
 from ignite.engine import Engine, Events, create_supervised_evaluator
-from ignite.handlers import Checkpoint, DiskSaver
+from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
 
@@ -103,16 +103,17 @@ def training(local_rank, config):
         evaluators = {"training": train_evaluator, "test": evaluator}
         tb_logger = common.setup_tb_logging(output_path, trainer, optimizer, evaluators=evaluators)
 
-    # Store 3 best models by validation accuracy starting from num_epochs / 2:
-    common.gen_save_best_models_by_val_score(
-        save_handler=get_save_handler(config),
-        evaluator=evaluator,
-        models={"model": model},
-        metric_name="accuracy",
+    # Store 2 best models by validation accuracy starting from num_epochs / 2:
+    best_model_handler = Checkpoint(
+        {"model": model},
+        get_save_handler(config),
+        filename_prefix="best",
         n_saved=2,
-        trainer=trainer,
-        tag="test",
+        global_step_transform=global_step_from_engine(trainer),
+        score_name="test_accuracy",
+        score_function=common.get_default_score_fn("accuracy")
     )
+    evaluator.add_event_handler(Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler)
 
     # In order to check training resuming we can stop training on a given iteration
     if config["stop_iteration"] is not None:
@@ -125,9 +126,8 @@ def training(local_rank, config):
     try:
         trainer.run(train_loader, max_epochs=config["num_epochs"])
     except Exception as e:
-        import traceback
-
-        print(traceback.format_exc())
+        logger.exception("")
+        raise e
 
     if rank == 0:
         tb_logger.close()
@@ -248,7 +248,7 @@ def initialize(config):
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
-    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {int(elapsed)} - {tag} metrics:\n {metrics_output}")
+    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {elapsed:.2f} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
