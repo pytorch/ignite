@@ -82,7 +82,7 @@ jobs:
           pip install flake8 "black==19.10b0" "isort==5.7.0"
           flake8 ignite/ tests/ examples/
           black --check .
-          isort -c .
+          isort -c --profile black .
 
       - name: Run Mypy
         shell: bash -l {0}

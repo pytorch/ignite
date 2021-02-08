@@ -12,6 +12,7 @@ repos:
     rev: v2.2.1
     hooks:
       - id: prettier
+        exclude_types: ["python", "jupyter", "shell", "gitignore"]
 
   - repo: https://github.com/python/black
     rev: 19.10b0
