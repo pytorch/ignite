@@ -11,7 +11,7 @@ Complete list of handlers
     :autolist:
 
 .. autoclass:: Checkpoint
-    :members: load_objects
+    :members: reset, setup_filename_pattern, load_objects, state_dict, load_state_dict, get_default_score_fn
 
 .. autoclass:: ignite.handlers.checkpoint.BaseSaveHandler
     :members: __call__, remove
