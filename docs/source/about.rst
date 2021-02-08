@@ -26,7 +26,6 @@ Authors
 The following people are currently core contributors to PyTorch-Ignite’s development and maintenance:
 
 - Victor Fomin `@vfdev-5 <https://github.com/vfdev-5>`_
-- Anmol Joshi `@anmolsjoshi <https://github.com/anmolsjoshi>`_
 - Sylvain Desroziers `@sdesrozis <https://github.com/sdesrozis>`_
 
 
@@ -37,7 +36,7 @@ The following people have been active contributors in the past, but are no longe
 
 - Alykhan Tejani `@alykhantejani <https://github.com/alykhantejani>`_
 - Jason Kriss `@jasonkriss <https://github.com/jasonkriss>`_
-
+- Anmol Joshi `@anmolsjoshi <https://github.com/anmolsjoshi>`_
 
 Join Core Team
 --------------
