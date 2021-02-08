@@ -93,14 +93,20 @@ class PolyaxonLogger(BaseLogger):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         try:
-            from polyaxon_client.tracking import Experiment
-        except ImportError:
-            raise RuntimeError(
-                "This contrib module requires polyaxon-client to be installed. "
-                "Please install it with command: \n pip install polyaxon-client"
-            )
+            from polyaxon.tracking import Run
 
-        self.experiment = Experiment(*args, **kwargs)
+            self.experiment = Run(*args, **kwargs)
+        except ImportError:
+            try:
+                from polyaxon_client.tracking import Experiment
+                
+                self.experiment = Experiment(*args, **kwargs)
+            except ImportError:
+                raise RuntimeError(
+                    "This contrib module requires polyaxon to be installed.\n"
+                    "For Polyaxon v1.x please install it with command: \n pip install polyaxon\n"
+                    "For Polyaxon v0.x please install it with command: \n pip install polyaxon-client"
+                )
 
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self.experiment, attr)
