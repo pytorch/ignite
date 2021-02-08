@@ -1,8 +1,7 @@
 ---
 name: "\U0001F4DA Documentation"
 about: Report an issue, comment or suggestion related to project's docs
-labels: 'docs'
-
+labels: "docs"
 ---
 
 ## 📚 Documentation
