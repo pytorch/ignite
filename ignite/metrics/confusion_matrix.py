@@ -14,13 +14,14 @@ class ConfusionMatrix(Metric):
     """Calculates confusion matrix for multi-class data.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must contain logits and has the following shape (batch_size, num_categories, ...)
+    - `y_pred` must contain logits and has the following shape (batch_size, num_classes, ...).
+      If you are doing binary classification, see Note for an example on how to get this.
     - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices
       with or without the background class. During the computation, argmax of `y_pred` is taken to determine
       predicted classes.
 
     Args:
-        num_classes (int): number of classes. See notes for more details.
+        num_classes (int): Number of classes, should be > 1. See notes for more details.
         average (str, optional): confusion matrix values averaging schema: None, "samples", "recall", "precision".
             Default is None. If `average="samples"` then confusion matrix values are normalized by the number of seen
             samples. If `average="recall"` then confusion matrix values are normalized such that diagonal values
@@ -39,6 +40,27 @@ class ConfusionMatrix(Metric):
         contribute to the confusion matrix and others are neglected. For example, if `num_classes=20` and target index
         equal 255 is encountered, then it is filtered out.
 
+        If you are doing binary classification with a single output unit, you may have to transform your network output,
+        so that you have one value for each class. E.g. you can transform your network output into a one-hot vector
+        with:
+
+        .. code-block:: python
+
+            def binary_one_hot_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.sigmoid(y_pred).round().long()
+                y_pred = ignite.utils.to_onehot(y_pred, 2)
+                y = y.long()
+                return y_pred, y
+
+            metrics = {
+                "confusion_matrix": ConfusionMatrix(2, output_transform=binary_one_hot_output_transform),
+            }
+
+            evaluator = create_supervised_evaluator(
+                model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
+            )
+
     """
 
     def __init__(
@@ -50,6 +72,9 @@ class ConfusionMatrix(Metric):
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")
+
+        if num_classes <= 1:
+            raise ValueError("Argument num_classes needs to be > 1")
 
         self.num_classes = num_classes
         self._num_examples = 0
@@ -65,17 +90,18 @@ class ConfusionMatrix(Metric):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if y_pred.ndimension() < 2:
-            raise ValueError(f"y_pred must have shape (batch_size, num_categories, ...), but given {y_pred.shape}")
+            raise ValueError(
+                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...), "
+                f"but given {y_pred.shape}"
+            )
 
         if y_pred.shape[1] != self.num_classes:
-            raise ValueError(
-                f"y_pred does not have correct number of categories: {y_pred.shape[1]} vs {self.num_classes}"
-            )
+            raise ValueError(f"y_pred does not have correct number of classes: {y_pred.shape[1]} vs {self.num_classes}")
 
         if not (y.ndimension() + 1 == y_pred.ndimension()):
             raise ValueError(
-                "y_pred must have shape (batch_size, num_categories, ...) and y must have "
-                "shape of (batch_size, ...), "
+                f"y_pred must have shape (batch_size, num_classes (currently set to {self.num_classes}), ...) "
+                "and y must have shape of (batch_size, ...), "
                 f"but given {y.shape} vs {y_pred.shape}."
             )
 
@@ -130,7 +156,9 @@ class ConfusionMatrix(Metric):
 
 
 def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
-    """Calculates Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    r"""Calculates Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
+
+    .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
     Args:
         cm (ConfusionMatrix): instance of confusion matrix metric

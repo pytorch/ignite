@@ -10,8 +10,11 @@ __all__ = ["Recall"]
 
 
 class Recall(_BasePrecisionRecall):
-    """
-    Calculates recall for binary and multiclass data.
+    r"""Calculates recall for binary and multiclass data.
+
+    .. math:: \text{Recall} = \frac{ TP }{ TP + FN }
+
+    where :math:`\text{TP}` is true positives and :math:`\text{FN}` is false negatives.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).

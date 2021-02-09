@@ -9,8 +9,11 @@ __all__ = ["MeanAbsoluteError"]
 
 
 class MeanAbsoluteError(Metric):
-    """
-    Calculates the mean absolute error.
+    r"""Calculates `the mean absolute error <https://en.wikipedia.org/wiki/Mean_absolute_error>`_.
+
+    .. math:: \text{MAE} = \frac{1}{N} \sum_{i=1}^N \lvert y_{i} - x_{i} \rvert
+
+    where :math:`y_{i}` is the prediction tensor and :math:`x_{i}` is ground true tensor.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     """

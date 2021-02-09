@@ -1,23 +1,20 @@
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 import fire
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import utils
 
 import ignite
 import ignite.distributed as idist
-from ignite.engine import Events, Engine, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss
-from ignite.handlers import Checkpoint, DiskSaver
-from ignite.utils import manual_seed, setup_logger
-
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
-
-import utils
+from ignite.engine import Engine, Events, create_supervised_evaluator
+from ignite.handlers import Checkpoint, DiskSaver
+from ignite.metrics import Accuracy, Loss
+from ignite.utils import manual_seed, setup_logger
 
 
 def training(local_rank, config):
