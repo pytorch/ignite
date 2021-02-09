@@ -23,7 +23,7 @@ Configurations:
 - [python-fire](https://github.com/google/python-fire): `pip install fire`
 - Optional: [clearml](https://github.com/allegroai/clearml): `pip install clearml`
 
-Alternatively install the all requirements using `pip install -r requirements.txt` command instead of typing pip several times. 
+Alternatively, install the all requirements using `pip install -r requirements.txt`.
 
 ## Usage:
 
