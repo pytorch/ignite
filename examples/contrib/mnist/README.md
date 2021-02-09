@@ -3,6 +3,7 @@
 ported from [pytorch-examples](https://github.com/pytorch/examples/tree/master/mnist)
 
 Basic neural network training with Ignite and various built-in loggers from `ignite.contrib`:
+
 - TQDM progress bar
 - Tensorboard
 - Visdom
@@ -17,6 +18,7 @@ Basic neural network training with Ignite and various built-in loggers from `ign
 #### Logging with TQDM progress bar
 
 Run the example:
+
 ```
 python mnist_with_tqdm_logger.py
 ```
@@ -36,11 +38,13 @@ Optionally, user can install `pynvml` package on Python 3 and log GPU informatio
 #### Usage:
 
 Run the example:
+
 ```bash
 python mnist_with_tensorboard_logger.py --log_dir=/tmp/tensorboard_logs
 ```
 
 Start tensorboard:
+
 ```bash
 tensorboard --logdir=/tmp/tensorboard_logs/
 ```
@@ -57,6 +61,7 @@ Example with training and validation monitoring using Visdom
 #### Usage:
 
 Run the example:
+
 ```bash
 python mnist_with_visdom_logger.py
 ```

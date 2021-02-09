@@ -19,17 +19,27 @@ def test_no_update():
         cm.compute()
 
 
+def test_num_classes_wrong_input():
+    with pytest.raises(ValueError, match="Argument num_classes needs to be > 1"):
+        ConfusionMatrix(num_classes=1)
+
+
 def test_multiclass_wrong_inputs():
     cm = ConfusionMatrix(10)
 
-    with pytest.raises(ValueError, match=r"y_pred must have shape \(batch_size, num_categories, ...\)"):
+    with pytest.raises(
+        ValueError, match=r"y_pred must have shape \(batch_size, num_classes " r"\(currently set to 10\), ...\)"
+    ):
         cm.update((torch.rand(10), torch.randint(0, 2, size=(10,)).long()))
 
-    with pytest.raises(ValueError, match=r"y_pred does not have correct number of categories:"):
+    with pytest.raises(ValueError, match=r"y_pred does not have correct number of classes:"):
         cm.update((torch.rand(10, 5, 4), torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(
-        ValueError, match=r"y_pred must have shape \(batch_size, num_categories, ...\) " r"and y must have "
+        ValueError,
+        match=r"y_pred must have shape \(batch_size, num_classes "
+        r"\(currently set to 10\), ...\) "
+        r"and y must have ",
     ):
         cm.update((torch.rand(4, 10, 12, 12), torch.randint(0, 10, size=(10,)).long()))
 
@@ -634,7 +644,7 @@ def _test_distrib_accumulator_device(device):
 
         assert (
             cm.confusion_matrix.device == metric_device
-        ), f"{type(cm.confusion_matrix.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
 @pytest.mark.distributed

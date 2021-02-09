@@ -3,6 +3,31 @@ import ignite
 import ignite.distributed as idist
 
 
+def initialize(config):
+
+    device = idist.device()
+
+    model = config["model"].to(device)
+    optimizer = config["optimizer"]
+
+    try:
+        from apex import amp
+        # Setup Nvidia/Apex AMP
+        model, optimizer = amp.initialize(
+            model, optimizer, opt_level=getattr(config, "fp16_opt_level", "O2"), num_losses=1
+        )
+    except ImportError:
+        pass
+
+    # Adapt model to dist config
+    model = idist.auto_model(model)
+    optimizer = idist.auto_optim(optimizer)
+
+    criterion = config["criterion"].to(device)
+
+    return model, optimizer, criterion
+
+
 def log_basic_info(logger, config):
 
     logger.info(f"- PyTorch version: {torch.__version__}")

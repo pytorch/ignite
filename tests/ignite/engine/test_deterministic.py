@@ -595,6 +595,7 @@ def test_concepts_snippet_resume():
 
     import torch
     from torch.utils.data import DataLoader
+
     from ignite.engine import DeterministicEngine, Events
     from ignite.utils import manual_seed
 
@@ -658,8 +659,8 @@ def _test_gradients_on_resume(
 
     debug = True
 
-    from torch.utils.data import DataLoader
     from torch.optim import SGD
+    from torch.utils.data import DataLoader
 
     def random_train_data_loader(size):
         d = AugmentedData(torch.rand(size, 3, 32, 32), enabled=with_dataaugs)
@@ -691,7 +692,7 @@ def _test_gradients_on_resume(
         opt = SGD(model.parameters(), lr=0.001)
 
         def proc_fn(e, b):
-            from ignite.engine.deterministic import _repr_rng_state, _get_rng_states
+            from ignite.engine.deterministic import _get_rng_states, _repr_rng_state
 
             s = _repr_rng_state(_get_rng_states())
             model.train()
@@ -813,7 +814,7 @@ def test_gradients_on_resume_on_cuda(dirname):
 
 def test_engine_with_dataloader_no_auto_batching():
     # tests https://github.com/pytorch/ignite/issues/941
-    from torch.utils.data import DataLoader, BatchSampler, RandomSampler
+    from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
     data = torch.rand(64, 4, 10)
     data_loader = DataLoader(

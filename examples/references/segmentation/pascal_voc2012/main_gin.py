@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import fire
+import gin
 import torch
 
 import cv2

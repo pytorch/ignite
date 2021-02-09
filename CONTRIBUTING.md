@@ -65,7 +65,7 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==4.3.21" mypy
+pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
 ```
 
 ### Code development
@@ -104,8 +104,8 @@ black manually to format files and commit them.
 
 ```bash
 # This should autoformat the files
-isort -rc .
 black .
+isort --profile black .
 # Run lint checking
 flake8 ignite/ tests/ examples/
 # If everything is OK, then commit
@@ -154,6 +154,12 @@ To run all tests with coverage (assuming installed `pytest-cov`):
 
 ```bash
 bash tests/run_cpu_tests.sh
+```
+
+On Windows, distributed tests should be skipped
+
+```bash
+SKIP_DISTRIB_TESTS=1 bash tests/run_cpu_tests.sh
 ```
 
 #### Run Mypy checks:

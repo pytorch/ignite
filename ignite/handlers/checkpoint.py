@@ -231,8 +231,7 @@ class Checkpoint(Serializable):
             # Run evaluation on epoch completed event
             # ...
 
-            def score_function(engine):
-                return engine.state.metrics['accuracy']
+            score_function = Checkpoint.get_default_score_fn("accuracy")
 
             to_save = {'model': model}
             handler = Checkpoint(
@@ -248,7 +247,9 @@ class Checkpoint(Serializable):
             > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
 
     .. versionchanged:: 0.4.3
-        Added ``greater_or_equal`` parameter.
+
+        - Checkpoint can save model with same filename.
+        - Added ``greater_or_equal`` argument.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
@@ -256,7 +257,7 @@ class Checkpoint(Serializable):
 
     def __init__(
         self,
-        to_save: Optional[Mapping],
+        to_save: Mapping,
         save_handler: Union[Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
@@ -268,23 +269,19 @@ class Checkpoint(Serializable):
         greater_or_equal: bool = False,
     ) -> None:
 
-        if to_save is not None:  # for compatibility with ModelCheckpoint
-            if not isinstance(to_save, collections.Mapping):
-                raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
+        if not isinstance(to_save, collections.Mapping):
+            raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
 
-            if len(to_save) < 1:
-                raise ValueError("No objects to checkpoint.")
+        self._check_objects(to_save, "state_dict")
 
-            self._check_objects(to_save, "state_dict")
+        if include_self:
+            if not isinstance(to_save, collections.MutableMapping):
+                raise TypeError(
+                    f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
+                )
 
-            if include_self:
-                if not isinstance(to_save, collections.MutableMapping):
-                    raise TypeError(
-                        f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
-                    )
-
-                if "checkpointer" in to_save:
-                    raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
+            if "checkpointer" in to_save:
+                raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
@@ -331,6 +328,7 @@ class Checkpoint(Serializable):
             trainer.run(data1, max_epochs=max_epochs)
             print("Last checkpoint:", checkpointer.last_checkpoint)
 
+        .. versionadded:: 0.4.3
         """
         self._saved = []
 
@@ -465,6 +463,8 @@ class Checkpoint(Serializable):
 
                 print(filename_pattern)
                 > "{filename_prefix}_{name}_{global_step}_{score_name}={score}.{ext}"
+
+        .. versionadded:: 0.4.3
         """
         filename_pattern = "{name}"
 
@@ -563,11 +563,65 @@ class Checkpoint(Serializable):
                 obj.load_state_dict(checkpoint[k])
 
     def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
+        """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
+        Can be used to save internal state of the class.
+        """
         return OrderedDict([("saved", [(p, f) for p, f in self._saved])])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
+        """Method replace internal state of the class with provided state dict data.
+
+        Args:
+            state_dict (Mapping): a dict with "saved" key and list of ``(priority, filename)`` pairs as values.
+        """
         super().load_state_dict(state_dict)
         self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["saved"]]
+
+    @staticmethod
+    def get_default_score_fn(metric_name: str, score_sign: float = 1.0) -> Callable:
+        """Helper method to get default score function based on the metric name.
+
+        Args:
+            metric_name (str): metric name to get the value from ``engine.state.metrics``.
+                Engine is the one to which :class:`~ignite.handlers.checkpoint.Checkpoint` handler is added.
+            score_sign (float): sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+                a negative score sign should be used (objects with larger score are retained). Default, 1.0.
+
+        Exemples:
+
+        .. code-block:: python
+
+            from ignite.handlers import Checkpoint
+
+            best_acc_score = Checkpoint.get_default_score_fn("accuracy")
+
+            best_model_handler = Checkpoint(
+                to_save, save_handler, score_name="val_accuracy", score_function=best_acc_score
+            )
+            evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+
+        Usage with error-like metric:
+
+        .. code-block:: python
+
+            from ignite.handlers import Checkpoint
+
+            neg_loss_score = Checkpoint.get_default_score_fn("loss", -1.0)
+
+            best_model_handler = Checkpoint(
+                to_save, save_handler, score_name="val_neg_loss", score_function=neg_loss_score
+            )
+            evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+
+        .. versionadded:: 0.4.3
+        """
+        if score_sign not in (1.0, -1.0):
+            raise ValueError("Argument score_sign should be 1 or -1")
+
+        def wrapper(engine: Engine) -> float:
+            return score_sign * engine.state.metrics[metric_name]
+
+        return wrapper
 
 
 class DiskSaver(BaseSaveHandler):
@@ -746,7 +800,7 @@ class ModelCheckpoint(Checkpoint):
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
 
         super(ModelCheckpoint, self).__init__(
-            to_save=None,
+            to_save={},
             save_handler=disk_saver,
             filename_prefix=filename_prefix,
             score_function=score_function,

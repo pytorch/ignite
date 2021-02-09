@@ -82,11 +82,17 @@ python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py train
 
 #### Using Horovod as distributed framework
 
+<<<<<<< HEAD
 ```bash
 horovodrun -np=2 python -u main.py training configs/baseline_resnet101_sbd.py --backend="horovod"
 # or without SBD
 # horovodrun -np=2 python -u main.py training configs/baseline_resnet101.py --backend="horovod"
 ```
+=======
+| Model                | with SBD | Training mIoU+BG | Test mIoU+BG |
+| -------------------- | -------- | ---------------- | ------------ |
+| DeepLabV3 ResNet-101 | X        | 86%              | 68%          |
+>>>>>>> 6753b19b74fd8d128188dd0a75b405d19aa515b5
 
 ## Acknowledgements
 
