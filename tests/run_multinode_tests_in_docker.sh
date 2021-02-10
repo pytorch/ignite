@@ -67,7 +67,13 @@ do
 
     export node_id=$i
 
-    docker run --rm $is_detached --gpus all \
+    if [ $gpu -gt 0 ]; then
+      gpu_options="--gpus $i"
+    else
+      gpu_options=""
+    fi
+
+    docker run $is_detached $gpu_options \
                -v $PWD:/workspace $env_multinode_option \
                --env nnodes \
                --env nproc_per_node \
@@ -81,5 +87,12 @@ do
 done
 
 sleep 5
+
+for i in $(seq 0 $((nnodes - 1)) )
+do
+    echo "Removing Node $i"
+    node_name="node$i"
+    docker rm $node_name
+done
 
 docker network rm $network
