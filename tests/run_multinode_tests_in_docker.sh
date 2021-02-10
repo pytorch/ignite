@@ -2,24 +2,24 @@
 
 # Tests configuration:
 if [[ -z "$1" || "$1" -lt 2 ]]; then
-    echo "nnodes invalid : default is 2"
+    echo "nnodes setting default to 2"
     export nnodes=2
 else
-    export nnodes="$1"
+    export nnodes=$1
 fi
 
 if [[ -z "$2" || "$2" -lt 1 ]]; then
-    echo "nproc_per_node invalid : default is 2"
-    export nproc_per_node=2
+    echo "nproc_per_node setting default to 4"
+    export nproc_per_node=4
 else
-    export nproc_per_node="$2"
+    export nproc_per_node=$2
 fi
 
 if [ -z "$3" ]; then
-    echo "gpu not set : default is 0 ( False )"
+    echo "gpu setting default to 0 ( False )"
     export gpu=0
 else
-    export gpu="$3"
+    export gpu=$3
 fi
 
 # Start script from ignite root folder
@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir mock pytest pytest-xdist scikit-learn scikit-imag
 EOF
 
 docker_python_version=`docker run --rm -i $docker_image python -c "import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]), end=\"\")"`
-cmd="pytest --dist=each --tx $nproc_per_node*popen//python$docker_python_version tests -m multinode_distributed -vvv"
+cmd="pytest --dist=each --tx $nproc_per_node*popen//python${docker_python_version} -m multinode_distributed -vvv tests"
 
 export MASTER_ADDR=node0
 export MASTER_PORT=9999
