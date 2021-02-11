@@ -1556,3 +1556,21 @@ def test_greater_or_equal():
     for _ in range(4):
         checkpointer(trainer)
     assert handler.counter == 4
+
+
+def test_get_default_score_fn():
+
+    with pytest.raises(ValueError, match=r"Argument score_sign should be 1 or -1"):
+        Checkpoint.get_default_score_fn("acc", 2.0)
+
+    engine = Engine(lambda e, b: None)
+    engine.state.metrics["acc"] = 0.9
+    engine.state.metrics["loss"] = 0.123
+
+    score_fn = Checkpoint.get_default_score_fn("acc")
+    score = score_fn(engine)
+    assert score == 0.9
+
+    score_fn = Checkpoint.get_default_score_fn("loss", -1)
+    score = score_fn(engine)
+    assert score == -0.123
