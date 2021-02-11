@@ -111,7 +111,7 @@ def training(local_rank, config):
         n_saved=2,
         global_step_transform=global_step_from_engine(trainer),
         score_name="test_accuracy",
-        score_function=Checkpoint.get_default_score_fn("accuracy"),
+        score_function=Checkpoint.get_default_score_fn("Accuracy"),
     )
     evaluator.add_event_handler(
         Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler
@@ -173,7 +173,7 @@ def run(
         learning_rate (float): peak of piecewise linear learning rate scheduler. Default, 0.4.
         num_warmup_epochs (int): number of warm-up epochs before learning rate decay. Default, 4.
         validate_every (int): run model's validation every ``validate_every`` epochs. Default, 3.
-        checkpoint_every (int): store training checkpoint every ``checkpoint_every`` iterations. Default, 200.
+        checkpoint_every (int): store training checkpoint every ``checkpoint_every`` iterations. Default, 1000.
         backend (str, optional): backend to use for distributed configuration. Possible values: None, "nccl", "xla-tpu",
             "gloo" etc. Default, None.
         nproc_per_node (int, optional): optional argument to setup number of processes per node. It is useful,

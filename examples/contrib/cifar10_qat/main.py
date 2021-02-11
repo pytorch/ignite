@@ -108,7 +108,7 @@ def training(local_rank, config):
         n_saved=2,
         global_step_transform=global_step_from_engine(trainer),
         score_name="test_accuracy",
-        score_function=Checkpoint.get_default_score_fn("accuracy"),
+        score_function=Checkpoint.get_default_score_fn("Accuracy"),
     )
     evaluator.add_event_handler(
         Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler
