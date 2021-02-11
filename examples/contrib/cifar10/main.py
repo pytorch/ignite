@@ -5,8 +5,8 @@ import fire
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import GradScaler, autocast
 import utils
+from torch.cuda.amp import GradScaler, autocast
 
 import ignite
 import ignite.distributed as idist
@@ -77,8 +77,8 @@ def training(local_rank, config):
 
     # Let's now setup evaluator engine to perform model's validation and compute metrics
     metrics = {
-        "accuracy": Accuracy(),
-        "loss": Loss(criterion),
+        "Accuracy": Accuracy(),
+        "Loss": Loss(criterion),
     }
 
     # We define two evaluators as they wont have exactly similar roles:
@@ -111,9 +111,11 @@ def training(local_rank, config):
         n_saved=2,
         global_step_transform=global_step_from_engine(trainer),
         score_name="test_accuracy",
-        score_function=Checkpoint.get_default_score_fn("accuracy")
+        score_function=Checkpoint.get_default_score_fn("accuracy"),
     )
-    evaluator.add_event_handler(Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler)
+    evaluator.add_event_handler(
+        Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler
+    )
 
     # In order to check training resuming we can stop training on a given iteration
     if config["stop_iteration"] is not None:
@@ -298,7 +300,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
             y = y.to(device, non_blocking=True)
 
         model.train()
-        
+
         with autocast(enabled=with_amp):
             y_pred = model(x)
             loss = criterion(y_pred, y)
