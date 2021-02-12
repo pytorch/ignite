@@ -6,13 +6,14 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import utils
+from torch.cuda.amp import GradScaler, autocast
 
 import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
 from ignite.engine import Engine, Events, create_supervised_evaluator
-from ignite.handlers import Checkpoint, DiskSaver
+from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
 
@@ -76,8 +77,8 @@ def training(local_rank, config):
 
     # Let's now setup evaluator engine to perform model's validation and compute metrics
     metrics = {
-        "accuracy": Accuracy(),
-        "loss": Loss(criterion),
+        "Accuracy": Accuracy(),
+        "Loss": Loss(criterion),
     }
 
     # We define two evaluators as they wont have exactly similar roles:
@@ -102,15 +103,18 @@ def training(local_rank, config):
         evaluators = {"training": train_evaluator, "test": evaluator}
         tb_logger = common.setup_tb_logging(output_path, trainer, optimizer, evaluators=evaluators)
 
-    # Store 3 best models by validation accuracy:
-    common.gen_save_best_models_by_val_score(
-        save_handler=get_save_handler(config),
-        evaluator=evaluator,
-        models={"model": model},
-        metric_name="accuracy",
-        n_saved=3,
-        trainer=trainer,
-        tag="test",
+    # Store 2 best models by validation accuracy starting from num_epochs / 2:
+    best_model_handler = Checkpoint(
+        {"model": model},
+        get_save_handler(config),
+        filename_prefix="best",
+        n_saved=2,
+        global_step_transform=global_step_from_engine(trainer),
+        score_name="test_accuracy",
+        score_function=Checkpoint.get_default_score_fn("accuracy"),
+    )
+    evaluator.add_event_handler(
+        Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler
     )
 
     # In order to check training resuming we can stop training on a given iteration
@@ -124,9 +128,8 @@ def training(local_rank, config):
     try:
         trainer.run(train_loader, max_epochs=config["num_epochs"])
     except Exception as e:
-        import traceback
-
-        print(traceback.format_exc())
+        logger.exception("")
+        raise e
 
     if rank == 0:
         tb_logger.close()
@@ -145,13 +148,14 @@ def run(
     learning_rate=0.4,
     num_warmup_epochs=4,
     validate_every=3,
-    checkpoint_every=200,
+    checkpoint_every=1000,
     backend=None,
     resume_from=None,
     log_every_iters=15,
     nproc_per_node=None,
     stop_iteration=None,
     with_clearml=False,
+    with_amp=False,
     **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -179,6 +183,7 @@ def run(
             It can be 0 to disable it. Default, 15.
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_clearml (bool): if True, experiment ClearML logger is setup. Default, False.
+        with_amp (bool): if True, enables native automatic mixed precision. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
@@ -245,13 +250,17 @@ def initialize(config):
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
-    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {int(elapsed)} - {tag} metrics:\n {metrics_output}")
+    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {elapsed:.2f} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
     logger.info(f"Train {config['model']} on CIFAR10")
     logger.info(f"- PyTorch version: {torch.__version__}")
     logger.info(f"- Ignite version: {ignite.__version__}")
+    if torch.cuda.is_available():
+        logger.info(f"- GPU Device: {torch.cuda.get_device_name(idist.get_local_rank())}")
+        logger.info(f"- CUDA version: {torch.version.cuda}")
+        logger.info(f"- CUDNN version: {torch.backends.cudnn.version()}")
 
     logger.info("\n")
     logger.info("Configuration:")
@@ -279,6 +288,9 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     #    - RunningAverage` on `train_step` output
     #    - Two progress bars on epochs and optionally on iterations
 
+    with_amp = config["with_amp"]
+    scaler = GradScaler(enabled=with_amp)
+
     def train_step(engine, batch):
 
         x, y = batch[0], batch[1]
@@ -288,28 +300,21 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
             y = y.to(device, non_blocking=True)
 
         model.train()
-        # Supervised part
-        y_pred = model(x)
-        loss = criterion(y_pred, y)
+
+        with autocast(enabled=with_amp):
+            y_pred = model(x)
+            loss = criterion(y_pred, y)
 
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        # This can be helpful for XLA to avoid performance slow down if fetch loss.item() every iteration
-        if config["log_every_iters"] > 0 and (engine.state.iteration - 1) % config["log_every_iters"] == 0:
-            batch_loss = loss.item()
-            engine.state.saved_batch_loss = batch_loss
-        else:
-            batch_loss = engine.state.saved_batch_loss
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
         return {
-            "batch loss": batch_loss,
+            "batch loss": loss.item(),
         }
 
     trainer = Engine(train_step)
-    trainer.state.saved_batch_loss = -1.0
-    trainer.state_dict_user_keys.append("saved_batch_loss")
     trainer.logger = logger
 
     to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
