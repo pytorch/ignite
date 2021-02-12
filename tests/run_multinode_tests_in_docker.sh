@@ -68,7 +68,7 @@ do
     export node_id=$i
 
     if [ $gpu -gt 0 ]; then
-      gpu_options="--gpus $i"
+      gpu_options="--gpus device=$i"
     else
       gpu_options=""
     fi
