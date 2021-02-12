@@ -30,6 +30,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, TerminateOnNan
 from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.metrics import RunningAverage
+from ignite.utils import deprecated
 
 
 def setup_common_training_handlers(
@@ -274,11 +275,21 @@ def empty_cuda_cache(_: Engine) -> None:
     gc.collect()
 
 
-def setup_any_logging(logger, logger_module, trainer, optimizers, evaluators, log_every_iters) -> None:  # type: ignore
-    raise DeprecationWarning(
-        "ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. and will be remove in 0.6.0. "
-        "Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc."
-    )
+@deprecated(
+    "0.4.0",
+    "0.6.0",
+    ("Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc.",),
+    raise_exception=True,
+)
+def setup_any_logging(
+    logger: BaseLogger,
+    logger_module: Any,
+    trainer: Engine,
+    optimizers: Optional[Union[Optimizer, Dict[str, Optimizer], Dict[None, Optimizer]]],
+    evaluators: Optional[Union[Engine, Dict[str, Engine]]],
+    log_every_iters: int,
+) -> None:
+    pass
 
 
 def _setup_logging(
@@ -558,12 +569,7 @@ def setup_trains_logging(
     return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
 
 
-def get_default_score_fn(metric_name: str) -> Any:
-    def wrapper(engine: Engine) -> Any:
-        score = engine.state.metrics[metric_name]
-        return score
-
-    return wrapper
+get_default_score_fn = Checkpoint.get_default_score_fn
 
 
 def gen_save_best_models_by_val_score(
@@ -617,7 +623,7 @@ def gen_save_best_models_by_val_score(
         n_saved=n_saved,
         global_step_transform=global_step_transform,
         score_name=f"{tag}_{metric_name.lower()}",
-        score_function=get_default_score_fn(metric_name),
+        score_function=Checkpoint.get_default_score_fn(metric_name),
         **kwargs,
     )
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler)

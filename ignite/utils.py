@@ -1,8 +1,10 @@
 import collections.abc as collections
+import functools
 import logging
 import random
 import sys
-from typing import Any, Callable, Optional, TextIO, Tuple, Type, Union, cast
+import warnings
+from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union, cast
 
 import torch
 
@@ -156,6 +158,8 @@ def manual_seed(seed: int) -> None:
     Args:
         seed (int): Random state seed
 
+    .. versionchanged:: 0.4.3
+        Added ``torch.cuda.manual_seed_all(seed)``.
     """
     random.seed(seed)
     torch.manual_seed(seed)
@@ -169,3 +173,34 @@ def manual_seed(seed: int) -> None:
         np.random.seed(seed)
     except ImportError:
         pass
+
+
+def deprecated(
+    deprecated_in: str, removed_in: str = "", reasons: Tuple[str, ...] = (), raise_exception: bool = False
+) -> Callable:
+
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    def decorator(func: F) -> F:
+        func_doc = func.__doc__ if func.__doc__ else ""
+        deprecation_warning = (
+            f"This function has been deprecated since version {deprecated_in}"
+            + (f" and will be removed in version {removed_in}" if removed_in else "")
+            + ".\n Please refer to the documentation for more details."
+        )
+
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Dict[str, Any]) -> Callable:
+            if raise_exception:
+                raise DeprecationWarning(deprecation_warning)
+            warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) else "")
+
+        for reason in reasons:
+            appended_doc += "\n\t- " + reason
+        wrapper.__doc__ = f"**Deprecated function**.\n\n    {func_doc}{appended_doc}"
+        return cast(F, wrapper)
+
+    return decorator
