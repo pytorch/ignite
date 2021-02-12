@@ -1,6 +1,6 @@
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 from ignite.metrics.accuracy import Accuracy
-from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, mIoU, MultiLabelConfusionMatrix
+from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, mIoU
 from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.frequency import Frequency
@@ -10,6 +10,7 @@ from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
 from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage
 from ignite.metrics.metrics_lambda import MetricsLambda
+from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from ignite.metrics.precision import Precision
 from ignite.metrics.psnr import PSNR
 from ignite.metrics.recall import Recall
