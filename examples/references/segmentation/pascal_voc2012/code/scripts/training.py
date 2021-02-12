@@ -1,17 +1,29 @@
 # This a training script launched with py_config_runner
 # It should obligatory contain `run(config, **kwargs)` method
-
+from pathlib import  Path
+import os
 import sys
-from collections.abc import Mapping
-from pathlib import Path
 
+#importing the package parent
+#so no path conflict not happen
+
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+from dataflow.datasets import VOCSegmentationOpencv 
 import torch
 from apex import amp
-from dataflow.datasets import VOCSegmentationOpencv
+#from dataflow.datasets import VOCSegmentationOpencv  # <---- imported before sys.path.insert
 from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
 from py_config_runner.utils import set_seed
-from utils import exp_tracking
-from utils.handlers import predictions_gt_images_handler
+from utils import exp_tracking  # <---- imported before sys.path.insert
+from utils.handlers import predictions_gt_images_handler  # <---- imported before sys.path.insert
+
+# Adds "code" folder to python path
+sys.path.insert(0, Path(__file__).parent.parent.as_posix())
+
+print("executed")
 
 import ignite
 import ignite.distributed as idist
