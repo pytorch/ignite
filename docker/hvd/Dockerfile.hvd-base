@@ -30,6 +30,7 @@ RUN apt-get update && \
     apt-get install -y tzdata && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
     apt-get -y install --no-install-recommends git g++ && \
+    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Ignite main dependencies
@@ -38,7 +39,9 @@ RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tqdm
 
 # replace pillow with pillow-simd
-RUN pip uninstall -y pillow && CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd
+RUN pip uninstall -y pillow && \
+    CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
+    apt-get autoremove -y
 
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \
