@@ -1,29 +1,19 @@
 # This a training script launched with py_config_runner
 # It should obligatory contain `run(config, **kwargs)` method
-from pathlib import  Path
 import os
 import sys
+from pathlib import Path
 
-#importing the package parent
-#so no path conflict not happen
-
-PACKAGE_PARENT = '..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-
-from dataflow.datasets import VOCSegmentationOpencv 
 import torch
 from apex import amp
-#from dataflow.datasets import VOCSegmentationOpencv  # <---- imported before sys.path.insert
+
+
+sys.path.insert(0, Path(__file__).parent.parent.as_posix())
+from dataflow.datasets import VOCSegmentationOpencv 
 from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
 from py_config_runner.utils import set_seed
-from utils import exp_tracking  # <---- imported before sys.path.insert
-from utils.handlers import predictions_gt_images_handler  # <---- imported before sys.path.insert
-
-# Adds "code" folder to python path
-sys.path.insert(0, Path(__file__).parent.parent.as_posix())
-
-print("executed")
+from utils import exp_tracking 
+from utils.handlers import predictions_gt_images_handler 
 
 import ignite
 import ignite.distributed as idist
@@ -32,9 +22,6 @@ from ignite.engine import Engine, Events, create_supervised_evaluator
 from ignite.handlers import DiskSaver
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.utils import setup_logger
-
-# Adds "code" folder to python path
-sys.path.insert(0, Path(__file__).parent.parent.as_posix())
 
 
 def initialize(config):
