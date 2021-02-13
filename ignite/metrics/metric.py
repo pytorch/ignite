@@ -191,6 +191,8 @@ class Metric(metaclass=ABCMeta):
 
             res = evaluator.run(data)
 
+    .. versionchanged:: 0.4.2
+        ``required_output_keys`` became public attribute.
     """
 
     # public class attribute
@@ -300,6 +302,9 @@ class Metric(metaclass=ABCMeta):
         Args:
             engine (Engine): the engine to which the metric must be attached
             name (str): the name of the metric used as key in dict `engine.state.metrics`
+
+        .. versionchanged:: 0.4.3
+            Added dict in metrics results.
         """
         result = self.compute()
         if isinstance(result, Mapping):

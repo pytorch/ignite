@@ -16,7 +16,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: 3.7
+          python-version: 3.8
 
       - name: Setup nightly version
         run: |

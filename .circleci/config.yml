@@ -256,7 +256,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python ${example_path}/main.py run"
+            export test_cmd="CI=1 python ${example_path}/main.py run --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
@@ -268,7 +268,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env ${example_path}/main.py run --backend=nccl"
+            export test_cmd="CI=1 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env ${example_path}/main.py run --backend=nccl --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
@@ -280,7 +280,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2"
+            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
@@ -334,7 +334,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="cd ${example_path} && CI=1 horovodrun -np 2 python -u main.py run --backend=horovod"
+            export test_cmd="cd ${example_path} && CI=1 horovodrun -np 2 python -u main.py run --backend=horovod --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
@@ -346,20 +346,20 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="cd ${example_path} && CI=1 python -u main.py run --backend=horovod --nproc_per_node=2"
+            export test_cmd="cd ${example_path} && CI=1 python -u main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
   build_publish_docker_images:
-    machine:      
+    machine:
       # https://circleci.com/docs/2.0/configuration-reference/#available-machine-images
       image: ubuntu-2004:202010-01
       docker_layer_caching: true
     # https://circleci.com/docs/2.0/configuration-reference/#machine-executor-linux
     resource_class: 2xlarge
-  
+
     working_directory: << pipeline.parameters.workingdir >>
     steps:
       - checkout

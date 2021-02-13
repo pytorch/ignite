@@ -69,8 +69,11 @@ class _BasePrecisionRecall(_BaseClassification):
 
 
 class Precision(_BasePrecisionRecall):
-    """
-    Calculates precision for binary and multiclass data.
+    r"""Calculates precision for binary and multiclass data.
+
+    .. math:: \text{Precision} = \frac{ TP }{ TP + FP }
+
+    where :math:`\text{TP}` is true positives and :math:`\text{FP}` is false positives.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
