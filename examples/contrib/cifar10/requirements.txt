@@ -1,0 +1,6 @@
+pytorch-ignite
+torchvision
+tqdm
+tensorboardX
+fire
+clearml

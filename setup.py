@@ -18,7 +18,9 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-readme = read("README.md")
+readme = read("README.md").replace(
+    'src="assets/', 'src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/'
+)
 
 VERSION = find_version("ignite", "__init__.py")
 
