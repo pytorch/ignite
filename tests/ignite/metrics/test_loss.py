@@ -75,7 +75,7 @@ def test_reset():
         loss.compute()
 
 
-def _test_distrib_compute_on_criterion(device):
+def _test_distrib_compute_on_criterion(device, tol=1e-6):
     def _test(metric_device):
         criterion = nn.NLLLoss().to(device)
         loss = Loss(criterion, device=metric_device)
@@ -104,7 +104,7 @@ def _test_distrib_compute_on_criterion(device):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
         true_loss_value = criterion(y_pred, y)
-        assert_almost_equal(res, true_loss_value.item())
+        assert pytest.approx(res, rel=tol) == true_loss_value.item()
 
     _test("cpu")
     if device.type != "xla":
