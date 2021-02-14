@@ -104,11 +104,11 @@ def _test_distrib_compute_on_criterion(device, tol=None):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
         true_loss_value = criterion(y_pred, y)
-        assert (
-            pytest.approx(res, rel=tol) == true_loss_value.item()
-            if tol
-            else assert_almost_equal(res, true_loss_value.item())
-        )
+        if tol is None:
+            assert_almost_equal(res, true_loss_value.item())
+        else:
+            assert pytest.approx(res, rel=tol) == true_loss_value.item()
+
 
     _test("cpu")
     if device.type != "xla":
