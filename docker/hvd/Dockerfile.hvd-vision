@@ -16,5 +16,4 @@ RUN pip install --upgrade --no-cache-dir albumentations \
                                          numpy \
                                          opencv-python-headless \
                                          py_config_runner \
-                                         pillow \
                                          clearml
