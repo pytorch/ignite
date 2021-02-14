@@ -43,7 +43,7 @@ RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tqdm
 
 # replace pillow with pillow-simd
-RUN apt-get -y install --no-install-recommends g++ && \
+RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
     pip uninstall -y pillow && \
     CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
     apt-get remove -y g++ && \
