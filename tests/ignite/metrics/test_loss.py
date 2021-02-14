@@ -75,7 +75,7 @@ def test_reset():
         loss.compute()
 
 
-def _test_distrib_compute_on_criterion(device, tol=1e-6):
+def _test_distrib_compute_on_criterion(device, tol=None):
     def _test(metric_device):
         criterion = nn.NLLLoss().to(device)
         loss = Loss(criterion, device=metric_device)
@@ -104,7 +104,11 @@ def _test_distrib_compute_on_criterion(device, tol=1e-6):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
         true_loss_value = criterion(y_pred, y)
-        assert pytest.approx(res, rel=tol) == true_loss_value.item()
+        assert (
+            pytest.approx(res, rel=tol) == true_loss_value.item()
+            if tol
+            else assert_almost_equal(res, true_loss_value.item())
+        )
 
     _test("cpu")
     if device.type != "xla":
@@ -178,7 +182,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = torch.device("cpu")
-    _test_distrib_compute_on_criterion(device)
+    _test_distrib_compute_on_criterion(device, tol=1e-6)
     _test_distrib_accumulator_device(device)
 
 
