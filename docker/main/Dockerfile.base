@@ -3,10 +3,7 @@ ARG PTH_VERSION
 
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
 
-# Temporary hack to install pth 1.7.1
-RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
-
-# Install tzdata / git / g++
+# Install tzdata / git
 RUN apt-get update && \
     ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
     apt-get install -y tzdata && \
