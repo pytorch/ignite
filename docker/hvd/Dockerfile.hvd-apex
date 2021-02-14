@@ -39,10 +39,10 @@ COPY --from=apex-hvd-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
     rm -fr /tmp/apex
 
-# Install tzdata / git / g++
+# Install tzdata / git
 RUN apt-get update && \
     ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
-    apt-get -y install --no-install-recommends tzdata git g++ && \
+    apt-get -y install --no-install-recommends tzdata git && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
     apt-get autoremove -y && \
     apt-get clean -y && \
@@ -54,10 +54,12 @@ RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tqdm
 
 # replace pillow with pillow-simd
-RUN pip uninstall -y pillow && \
+RUN apt-get -y install --no-install-recommends g++ && \
+    pip uninstall -y pillow && \
     CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
     apt-get remove -y g++ && \
-    apt-get autoremove -y
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \
