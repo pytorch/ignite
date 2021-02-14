@@ -109,7 +109,6 @@ def _test_distrib_compute_on_criterion(device, tol=None):
         else:
             assert pytest.approx(res, rel=tol) == true_loss_value.item()
 
-
     _test("cpu")
     if device.type != "xla":
         _test(idist.device())
