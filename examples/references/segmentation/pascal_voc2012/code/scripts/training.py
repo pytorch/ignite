@@ -1,19 +1,18 @@
 # This a training script launched with py_config_runner
 # It should obligatory contain `run(config, **kwargs)` method
-import os
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 
 import torch
 from apex import amp
 
-
 sys.path.insert(0, Path(__file__).parent.parent.as_posix())
-from dataflow.datasets import VOCSegmentationOpencv 
+from dataflow.datasets import VOCSegmentationOpencv
 from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
 from py_config_runner.utils import set_seed
-from utils import exp_tracking 
-from utils.handlers import predictions_gt_images_handler 
+from utils import exp_tracking
+from utils.handlers import predictions_gt_images_handler
 
 import ignite
 import ignite.distributed as idist
