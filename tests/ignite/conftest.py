@@ -236,6 +236,8 @@ def distributed_context_multi_node_nccl(multi_node_conf):
     assert "MASTER_ADDR" in os.environ
     assert "MASTER_PORT" in os.environ
 
+    os.environ["MASTER_PORT"] = str(int(os.getenv("MASTER_PORT")) + 1)
+
     dist_info = {
         "backend": "nccl",
         "init_method": "env://",
