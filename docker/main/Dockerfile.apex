@@ -6,10 +6,7 @@ ARG PTH_VERSION
 # 1/Building apex with pytorch:*-devel
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-builder
 
-# Temporary hack to install pth 1.7.1
-RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
-
-ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
+ARG ARG_TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX 8.0"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
 
 # Install git
@@ -26,9 +23,6 @@ RUN echo "Setup NVIDIA Apex" && \
 
 # 2/ Build the runtime image
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
-
-# Temporary hack to install pth 1.7.1
-RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
 
 COPY --from=apex-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
