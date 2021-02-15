@@ -825,13 +825,7 @@ def _test_distrib_integration_multilabel(device):
             _test(average=True, n_epochs=2, metric_device=metric_device)
 
     if idist.get_world_size() > 1:
-        with pytest.warns(
-            RuntimeWarning,
-            match="Precision/Recall metrics do not work in distributed setting when "
-            "average=False and is_multilabel=True",
-        ):
-            pr = Precision(average=False, is_multilabel=True)
-
+        pr = Precision(average=False, is_multilabel=True)
         y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
         y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
         pr.update((y_pred, y))

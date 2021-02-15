@@ -20,14 +20,6 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        if idist.get_world_size() > 1:
-            if (not average) and is_multilabel:
-                warnings.warn(
-                    "Precision/Recall metrics do not work in distributed setting when average=False "
-                    "and is_multilabel=True. Results are not reduced across computing devices. Computed result "
-                    "corresponds to the local rank's (single process) result.",
-                    RuntimeWarning,
-                )
 
         self._average = average
         self.eps = 1e-20
