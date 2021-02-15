@@ -128,7 +128,7 @@ def test_create_supervised_trainer_apex_error():
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) > LooseVersion("1.6.0"), reason="Skip if > 1.6.0.")
 def test_create_supervised_trainer_amp_attr_error():
-    with pytest.raises(AttributeError, "autocast cannot be imported, please install torch>=1.6.0."):
+    with pytest.raises(AttributeError, match="autocast cannot be imported, please install torch>=1.6.0."):
         _test_create_supervised_trainer(amp_mode="amp")
 
 
@@ -145,6 +145,7 @@ def test_create_supervised_trainer_on_cuda():
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0.")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp():
     model_device = trainer_device = "cuda"
