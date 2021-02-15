@@ -7,6 +7,7 @@ from pathlib import Path
 import torch
 from apex import amp
 
+# Adds "code" folder to python path
 sys.path.insert(0, Path(__file__).parent.parent.as_posix())
 from dataflow.datasets import VOCSegmentationOpencv
 from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
