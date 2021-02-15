@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime"
+    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel"
+    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -20,7 +20,7 @@ parameters:
     default: false
   build_docker_image_pytorch_version:
     type: string
-    default: "1.7.0-cuda11.0-cudnn8"
+    default: "1.7.1-cuda11.0-cudnn8"
   build_docker_image_hvd_version:
     type: string
     default: "v0.21.0"
@@ -195,7 +195,7 @@ jobs:
           name: Install dependencies
           command: |
             conda --version
-            conda install -y pytorch torchvision cudatoolkit=10.1 -c pytorch
+            conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
 
@@ -256,7 +256,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python ${example_path}/main.py run"
+            export test_cmd="CI=1 python ${example_path}/main.py run --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
@@ -268,7 +268,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env ${example_path}/main.py run --backend=nccl"
+            export test_cmd="CI=1 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env ${example_path}/main.py run --backend=nccl --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
@@ -280,7 +280,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2"
+            export test_cmd="CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
@@ -334,7 +334,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="cd ${example_path} && CI=1 horovodrun -np 2 python -u main.py run --backend=horovod"
+            export test_cmd="cd ${example_path} && CI=1 horovodrun -np 2 python -u main.py run --backend=horovod --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
@@ -346,7 +346,7 @@ jobs:
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="cd ${example_path} && CI=1 python -u main.py run --backend=horovod --nproc_per_node=2"
+            export test_cmd="cd ${example_path} && CI=1 python -u main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
