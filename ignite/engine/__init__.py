@@ -1,7 +1,9 @@
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from warnings import warn
 
 import torch
+from torch.cuda import amp
 
 import ignite.distributed as idist
 from ignite.engine.deterministic import DeterministicEngine
@@ -45,7 +47,7 @@ def _prepare_batch(
     )
 
 
-def _arg_check(on_tpu: bool, amp_mode: Optional[str], scaler: Optional["torch.cuda.amp.GradScaler"]) -> None:
+def _check_arg(on_tpu: bool, amp_mode: Optional[str], scaler: Optional["torch.cuda.amp.GradScaler"]) -> str:
     """Checking tpu, amp and GradScaler instance combinations."""
     if on_tpu and not idist.has_xla_support:
         raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
@@ -54,32 +56,9 @@ def _arg_check(on_tpu: bool, amp_mode: Optional[str], scaler: Optional["torch.cu
         raise ValueError("amp_mode cannot be used with xla device. Consider using amp_mode=None or device='cuda'.")
 
     if scaler is not None and not amp_mode:
-        raise ValueError(
-            "scaler argument is provided, but amp_mode is not. Please choose ('amp', 'apex') for amp_mode."
-        )
+        warn("scaler argument is provided, but amp_mode is not. Consider using amp_mode='amp'.")
 
-
-def _train_zero_grad_prepare_batch(
-    model: torch.nn.Module,
-    optimizer: torch.optim.Optimizer,
-    device: Optional[Union[str, torch.device]],
-    non_blocking: bool,
-    prepare_batch: Callable,
-    batch: Any,
-) -> Tuple[Union[torch.Tensor, Sequence, Mapping, str, bytes], ...]:
-    """Convert model to train mode, gradient to zero and get a batch."""
-    model.train()
-    optimizer.zero_grad()
-    return prepare_batch(batch, device=device, non_blocking=non_blocking)
-
-
-def _forward_loss(
-    model: torch.nn.Module, loss_fn: Union[Callable, torch.nn.Module], x: Any, y: Any
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Model forward pass and compute loss."""
-    y_pred: torch.Tensor = model(x)
-    loss: torch.Tensor = loss_fn(y_pred, y)
-    return y_pred, loss
+    return "tpu" if on_tpu else amp_mode
 
 
 def supervised_trainer_step(
@@ -112,8 +91,11 @@ def supervised_trainer_step(
     """
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        x, y = _train_zero_grad_prepare_batch(model, optimizer, device, non_blocking, prepare_batch, batch)
-        y_pred, loss = _forward_loss(model, loss_fn, x, y)
+        model.train()
+        optimizer.zero_grad()
+        x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+        y_pred = model(x)
+        loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
         return output_transform(x, y, y_pred, loss)
@@ -153,15 +135,18 @@ def supervised_trainer_step_amp(
         Callable: update function.
     """
 
-    if hasattr(torch.cuda.amp, "autocast"):
+    if hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast"):
         from torch.cuda.amp import autocast
     else:
         raise AttributeError("autocast cannot be imported, please install torch>=1.6.0.")
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        x, y = _train_zero_grad_prepare_batch(model, optimizer, device, non_blocking, prepare_batch, batch)
-        with autocast():
-            y_pred, loss = _forward_loss(model, loss_fn, x, y)
+        model.train()
+        optimizer.zero_grad()
+        x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+        with autocast(enabled=True):
+            y_pred = model(x)
+            loss = loss_fn(y_pred, y)
         if scaler:
             scaler.scale(loss).backward()
             scaler.step(optimizer)
@@ -205,12 +190,15 @@ def supervised_trainer_step_apex(
 
     try:
         from apex import amp as apex_amp
-    except ImportError:
-        raise ImportError("Please install apex from https://github.com/nvidia/apex to use amp_mode.")
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'.")
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        x, y = _train_zero_grad_prepare_batch(model, optimizer, device, non_blocking, prepare_batch, batch)
-        y_pred, loss = _forward_loss(model, loss_fn, x, y)
+        model.train()
+        optimizer.zero_grad()
+        x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+        y_pred = model(x)
+        loss = loss_fn(y_pred, y)
         with apex_amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
         optimizer.step()
@@ -249,8 +237,11 @@ def supervised_trainer_step_tpu(
     """
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        x, y = _train_zero_grad_prepare_batch(model, optimizer, device, non_blocking, prepare_batch, batch)
-        y_pred, loss = _forward_loss(model, loss_fn, x, y)
+        model.train()
+        optimizer.zero_grad()
+        x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+        y_pred = model(x)
+        loss = loss_fn(y_pred, y)
         loss.backward()
         xm.optimizer_step(optimizer, barrier=True)
         return output_transform(x, y, y_pred, loss)
@@ -321,23 +312,22 @@ def create_supervised_trainer(
     .. versionchanged:: 0.5.0
 
         - Added ``amp_mode`` argument for automatic mixed precision.
-        - Added ``scaler`` argument for GradScaler instance.
+        - Added ``scaler`` argument for gradient scaling.
     """
 
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
-    _arg_check(on_tpu, amp_mode, scaler)
+    mode = _check_arg(on_tpu, amp_mode, scaler)
 
-    if amp_mode == "amp":
+    if mode == "amp":
         _update = supervised_trainer_step_amp(
             model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, scaler
         )
-    elif amp_mode == "apex":
+    elif mode == "apex":
         _update = supervised_trainer_step_apex(
             model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
         )
-
-    if on_tpu:
+    elif mode == "tpu":
         _update = supervised_trainer_step_tpu(
             model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
         )

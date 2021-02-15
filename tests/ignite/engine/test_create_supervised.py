@@ -119,10 +119,23 @@ def test_create_supervised_trainer_traced_with_cpu():
     _test_create_supervised_trainer(trainer_device="cpu", trace=True)
 
 
+def test_create_supervised_trainer_apex_error():
+    with pytest.raises(
+        ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
+    ):
+        _test_create_supervised_trainer(amp_mode="apex")
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) > LooseVersion("1.6.0"), reason="Skip if > 1.6.0.")
+def test_create_supervised_trainer_amp_attr_error():
+    with pytest.raises(AttributeError, "autocast cannot be imported, please install torch>=1.6.0."):
+        _test_create_supervised_trainer(amp_mode="amp")
+
+
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0.")
 def test_create_supervised_trainer_scaler_no_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
-    with pytest.raises(ValueError, match="scaler argument is provided, but amp_mode is not."):
+    with pytest.warns(UserWarning, match="scaler argument is provided, but amp_mode is not."):
         _test_create_supervised_trainer(amp_mode=None, scaler=scaler)
 
 
@@ -152,7 +165,9 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
 def test_create_supervised_trainer_on_cuda_apex():
     model_device = trainer_device = "cuda"
     # TODO: install apex for this test
-    with pytest.raises(ImportError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode."):
+    with pytest.raises(
+        ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
+    ):
         _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
 
 
@@ -176,7 +191,7 @@ def test_create_supervised_trainer_on_tpu():
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_create_supervised_trainer_on_tpu_amp():
     model_device = trainer_device = "xla"
-    with pytest.raises(ValueError, match="amp cannot be used with xla device."):
+    with pytest.raises(ValueError, match="amp_mode cannot be used with xla device."):
         _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
 
 
