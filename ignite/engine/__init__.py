@@ -3,7 +3,6 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 from warnings import warn
 
 import torch
-from torch.cuda import amp
 
 import ignite.distributed as idist
 from ignite.engine.deterministic import DeterministicEngine
