@@ -573,6 +573,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
 
+@pytest.mark.xfail
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
