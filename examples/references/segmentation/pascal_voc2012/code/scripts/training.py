@@ -1,12 +1,14 @@
 # This a training script launched with py_config_runner
 # It should obligatory contain `run(config, **kwargs)` method
-
 import sys
 from collections.abc import Mapping
 from pathlib import Path
 
 import torch
 from apex import amp
+
+# Adds "code" folder to python path
+sys.path.insert(0, Path(__file__).parent.parent.as_posix())
 from dataflow.datasets import VOCSegmentationOpencv
 from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
 from py_config_runner.utils import set_seed
@@ -20,9 +22,6 @@ from ignite.engine import Engine, Events, create_supervised_evaluator
 from ignite.handlers import DiskSaver
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.utils import setup_logger
-
-# Adds "code" folder to python path
-sys.path.insert(0, Path(__file__).parent.parent.as_posix())
 
 
 def initialize(config):
