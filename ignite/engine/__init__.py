@@ -47,7 +47,7 @@ def _prepare_batch(
     )
 
 
-def _check_arg(on_tpu: bool, amp_mode: Optional[str], scaler: Optional["torch.cuda.amp.GradScaler"]) -> str:
+def _check_arg(on_tpu: bool, amp_mode: Optional[str], scaler: Optional["torch.cuda.amp.GradScaler"]) -> Optional[str]:
     """Checking tpu, amp and GradScaler instance combinations."""
     if on_tpu and not idist.has_xla_support:
         raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
@@ -283,7 +283,7 @@ def create_supervised_trainer(
             `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
             using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
         scaler (torch.cuda.amp.GradScaler, optional): GradScaler instance for gradient scaling if `torch>=1.6.0`
-            and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
+            and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored. (default: None)
 
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
