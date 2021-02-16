@@ -292,12 +292,12 @@ def create_supervised_trainer(
             using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
         scaler (torch.cuda.amp.GradScaler, bool): GradScaler instance for gradient scaling if `torch>=1.6.0`
             and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
-            If True, will create default GradScaler. If GradScaler instance is passed, it will be used for scaling.
+            If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
             (default: False)
 
     Note:
         If ``scaler`` is True, GradScaler instance will be created internally and trainer state has attribute named
-        ``scaler`` and can be used for saving/loading.
+        ``scaler`` for that instance and can be used for saving and loading.
 
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
@@ -313,10 +313,9 @@ def create_supervised_trainer(
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     .. warning::
-        If ``apex`` has been installed and torch version is less than 1.6.0, the model(s) and optimizer(s)
-        must be initialized beforehand if ``amp_mode`` is provided since ``amp.initialize`` should be called
-        after you have finished constructing your model(s) and optimizer(s), but before you send your model
-        through any DistributedDataParallel wrapper.
+        If ``amp_mode='apex'`` , the model(s) and optimizer(s) must be initialized beforehand
+        since ``amp.initialize`` should be called after you have finished constructing your model(s)
+        and optimizer(s), but before you send your model through any DistributedDataParallel wrapper.
 
         See more: https://nvidia.github.io/apex/amp.html#module-apex.amp
 
@@ -334,7 +333,7 @@ def create_supervised_trainer(
     mode = _check_arg(on_tpu, amp_mode, scaler)
 
     if mode == "amp":
-        _update, scaler = supervised_training_step_amp(
+        _update, scaler_ = supervised_training_step_amp(
             model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, scaler
         )
     elif mode == "apex":
@@ -351,8 +350,8 @@ def create_supervised_trainer(
         )
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
-    if scaler and mode == "amp":
-        trainer.state.scaler = scaler  # type: ignore[attr-defined]
+    if scaler and isinstance(scaler, bool) and mode == "amp":
+        trainer.state.scaler = scaler_  # type: ignore[attr-defined]
 
     return trainer
 

@@ -57,7 +57,7 @@ def _test_create_supervised_trainer(
 
         if amp_mode:
             assert state.output[0].dtype is torch.half
-        if amp_mode == "amp" and scaler:
+        if amp_mode == "amp" and scaler and isinstance(scaler, bool):
             assert hasattr(state, "scaler")
         assert state.output[-1] == approx(17.0)
         assert model.weight.data[0, 0].item() == approx(1.3)
@@ -165,6 +165,9 @@ def test_create_supervised_trainer_on_cuda_amp():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp_scaler():
     model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer(
+        model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=True
+    )
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
     _test_create_supervised_trainer(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=scaler
