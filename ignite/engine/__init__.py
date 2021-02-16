@@ -51,7 +51,7 @@ def supervised_training_step(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
 ) -> Callable:
-    """Helper function defined the training step.
+    """Factory function for supervised training.
 
     Args:
         model (torch.nn.Module): the model to train.
@@ -94,7 +94,7 @@ def supervised_training_step_amp(
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
 ) -> Tuple[Callable, Union[bool, "torch.cuda.amp.GradScaler"]]:
-    """Helper function defined the training step for torch.cuda.amp.
+    """Factory function for supervised training using ``torch.cuda.amp``.
 
     Args:
         model (torch.nn.Module): the model to train.
@@ -118,18 +118,18 @@ def supervised_training_step_amp(
     """
 
     try:
-        from torch.cuda.amp import GradScaler, autocast
+        from torch.cuda import amp
     except ModuleNotFoundError:
-        raise ModuleNotFoundError("autocast cannot be imported, please install torch>=1.6.0.")
+        raise ModuleNotFoundError("Please install torch>=1.6.0 to use amp_mode='amp'.")
 
     if scaler and isinstance(scaler, bool):
-        scaler = GradScaler(enabled=True)
+        scaler = amp.GradScaler(enabled=True)
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
-        with autocast(enabled=True):
+        with amp.autocast(enabled=True):
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
         if scaler:
@@ -153,7 +153,7 @@ def supervised_training_step_apex(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
 ) -> Callable:
-    """Helper function defined the training step for apex.
+    """Factory function for supervised training using apex.
 
     Args:
         model (torch.nn.Module): the model to train.
@@ -201,7 +201,7 @@ def supervised_training_step_tpu(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
 ) -> Callable:
-    """Helper function defined the training step for tpu.
+    """Factory function for supervised training using ``torch_xla``.
 
     Args:
         model (torch.nn.Module): the model to train.
@@ -296,8 +296,8 @@ def create_supervised_trainer(
             (default: False)
 
     Note:
-        If ``scaler`` is True, GradScaler instance will be created internally and you have access to that instance as
-        ``state.scaler`` and can be used for serialization with :class:`~ignite.handlers.checkpoint.ModelCheckpoint`.
+        If ``scaler`` is True, GradScaler instance will be created internally and trainer state has attribute named
+        ``scaler`` and can be used for saving/loading.
 
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss

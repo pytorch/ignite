@@ -1,6 +1,7 @@
 import os
 from distutils.version import LooseVersion
 from typing import Optional, Union
+from unittest import mock
 
 import pytest
 import torch
@@ -130,7 +131,7 @@ def test_create_supervised_trainer_apex_error():
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) > LooseVersion("1.6.0"), reason="Skip if > 1.6.0.")
 def test_create_supervised_trainer_amp_error():
-    with pytest.raises(ModuleNotFoundError, match="autocast cannot be imported, please install torch>=1.6.0."):
+    with pytest.raises(ModuleNotFoundError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
 
 
