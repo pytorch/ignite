@@ -119,6 +119,8 @@ ignite.engine.events
 
 .. autoclass:: EventEnum
 
+.. autoclass:: EventsList
+
 .. autoclass:: State
 
 .. autoclass:: RemovableEventHandle
