@@ -111,6 +111,9 @@ install_dependencies: &install_dependencies
       name: Install dependencies
       command: |
         docker exec -it pthd pip install -r requirements-dev.txt
+        export install_apex_cmd='pip install -v --disable-pip-version-check --no-cache-dir git+https://github.com/NVIDIA/apex'
+        export install_git_apex_cmd="apt-get update && apt-get install -y --no-install-recommends git && ${install_apex_cmd}"
+        docker exec -it pthd /bin/bash -c "$install_git_apex_cmd"
         export install_ignite_cmd='python setup.py install'
         docker exec -it pthd /bin/bash -c "$install_ignite_cmd"
 
