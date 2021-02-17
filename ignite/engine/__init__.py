@@ -57,14 +57,14 @@ def supervised_training_step(
         model (torch.nn.Module): the model to train.
         optimizer (torch.optim.Optimizer): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
-        device (str): device type specification (default: None).
+        device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU or TPU.
-        non_blocking (bool): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
     Returns:
@@ -93,28 +93,28 @@ def supervised_training_step_amp(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
-) -> Tuple[Callable, Union[bool, "torch.cuda.amp.GradScaler"]]:
+) -> Tuple[Callable, Optional["torch.cuda.amp.GradScaler"]]:
     """Factory function for supervised training using ``torch.cuda.amp``.
 
     Args:
         model (torch.nn.Module): the model to train.
         optimizer (torch.optim.Optimizer): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
-        device (str): device type specification (default: None).
+        device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU or TPU.
-        non_blocking (bool): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-        scaler (torch.cuda.amp.GradScaler, bool): GradScaler instance for gradient scaling.
-            If True, will create default GradScaler. If GradScaler instance is passed, it will be used for scaling.
+        scaler (torch.cuda.amp.GradScaler, bool, optional): GradScaler instance for gradient scaling.
+            If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
             (default: False)
 
     Returns:
-        Tuple[Callable, Union[bool, torch.cuda.amp.GradScaler]]: update function and scaler
+        Tuple[Callable, Optional[torch.cuda.amp.GradScaler]]: update function and GradScaler instance
     """
 
     try:
@@ -123,7 +123,9 @@ def supervised_training_step_amp(
         raise ModuleNotFoundError("Please install torch>=1.6.0 to use amp_mode='amp'.")
 
     if scaler and isinstance(scaler, bool):
-        scaler = amp.GradScaler(enabled=True)
+        scaler_ = amp.GradScaler(enabled=True)
+    elif isinstance(scaler, amp.GradScaler):
+        scaler_ = scaler
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
@@ -132,16 +134,19 @@ def supervised_training_step_amp(
         with amp.autocast(enabled=True):
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
-        if scaler:
-            scaler.scale(loss).backward()  # type: ignore[union-attr]
-            scaler.step(optimizer)  # type: ignore[union-attr]
-            scaler.update()  # type: ignore[union-attr]
+        if scaler_:
+            scaler_.scale(loss).backward()
+            scaler_.step(optimizer)
+            scaler_.update()
         else:
             loss.backward()
             optimizer.step()
         return output_transform(x, y, y_pred, loss)
 
-    return update, scaler
+    if scaler:
+        return update, scaler_
+    else:
+        return update, None
 
 
 def supervised_training_step_apex(
@@ -159,14 +164,14 @@ def supervised_training_step_apex(
         model (torch.nn.Module): the model to train.
         optimizer (torch.optim.Optimizer): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
-        device (str): device type specification (default: None).
+        device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU or TPU.
-        non_blocking (bool): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
     Returns:
@@ -207,14 +212,14 @@ def supervised_training_step_tpu(
         model (torch.nn.Module): the model to train.
         optimizer (torch.optim.Optimizer): the optimizer to use.
         loss_fn (torch.nn loss function): the loss function to use.
-        device (str): device type specification (default: None).
+        device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU or TPU.
-        non_blocking (bool): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
     Returns:
@@ -290,7 +295,7 @@ def create_supervised_trainer(
         amp_mode (str, optional): can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
             `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
             using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
-        scaler (torch.cuda.amp.GradScaler, bool): GradScaler instance for gradient scaling if `torch>=1.6.0`
+        scaler (torch.cuda.amp.GradScaler, bool, optional): GradScaler instance for gradient scaling if `torch>=1.6.0`
             and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
             If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
             (default: False)
@@ -333,7 +338,7 @@ def create_supervised_trainer(
     mode = _check_arg(on_tpu, amp_mode, scaler)
 
     if mode == "amp":
-        _update, scaler_ = supervised_training_step_amp(
+        _update, _scaler = supervised_training_step_amp(
             model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, scaler
         )
     elif mode == "apex":
@@ -351,7 +356,7 @@ def create_supervised_trainer(
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
     if scaler and isinstance(scaler, bool) and mode == "amp":
-        trainer.state.scaler = scaler_  # type: ignore[attr-defined]
+        trainer.state.scaler = _scaler  # type: ignore[attr-defined]
 
     return trainer
 
