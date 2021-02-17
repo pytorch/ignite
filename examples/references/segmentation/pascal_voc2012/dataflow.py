@@ -2,15 +2,15 @@ import numpy as np
 import cv2
 from PIL import Image
 
+import torch
 from torch.utils.data import Dataset
 from torch.utils.data.dataset import Subset
 
 from torchvision.datasets.voc import VOCSegmentation
 from torchvision.datasets.sbd import SBDataset
 
-import gin
-
 import ignite.distributed as idist
+from ignite.utils import convert_tensor
 
 
 class TransformedDataset(Dataset):
@@ -68,11 +68,7 @@ class VOCSegmentationOpencv(VOCSegmentation):
             return {
                 "image": img,
                 "mask": mask,
-                "meta": {
-                    "index": index,
-                    "image_path": self.images[index],
-                    "mask_path": self.masks[index],
-                },
+                "meta": {"index": index, "image_path": self.images[index], "mask_path": self.masks[index],},
             }
 
         return {"image": img, "mask": mask}
@@ -81,9 +77,7 @@ class VOCSegmentationOpencv(VOCSegmentation):
 class SBDatasetOpencv(SBDataset):
     def __init__(self, *args, return_meta=False, **kwargs):
         super(SBDatasetOpencv, self).__init__(*args, **kwargs)
-        assert (
-            self.mode == "segmentation"
-        ), "SBDatasetOpencv should be in segmentation mode only"
+        assert self.mode == "segmentation", "SBDatasetOpencv should be in segmentation mode only"
         self.return_meta = return_meta
 
     def _get_segmentation_target(self, filepath):
@@ -101,11 +95,7 @@ class SBDatasetOpencv(SBDataset):
             return {
                 "image": img,
                 "mask": mask,
-                "meta": {
-                    "index": index,
-                    "image_path": self.images[index],
-                    "mask_path": self.masks[index],
-                },
+                "meta": {"index": index, "image_path": self.images[index], "mask_path": self.masks[index],},
             }
 
         return {"image": img, "mask": mask}
@@ -113,45 +103,28 @@ class SBDatasetOpencv(SBDataset):
 
 def get_train_dataset(root_path, return_meta=False):
     return VOCSegmentationOpencv(
-        root=root_path,
-        year="2012",
-        image_set="train",
-        download=False,
-        return_meta=return_meta,
+        root=root_path, year="2012", image_set="train", download=False, return_meta=return_meta,
     )
 
 
 def get_val_dataset(root_path, return_meta=False):
-    return VOCSegmentationOpencv(
-        root=root_path,
-        year="2012",
-        image_set="val",
-        download=False,
-        return_meta=return_meta,
-    )
+    return VOCSegmentationOpencv(root=root_path, year="2012", image_set="val", download=False, return_meta=return_meta,)
 
 
 def get_train_noval_sbdataset(root_path, return_meta=False):
-    return SBDatasetOpencv(
-        root_path, image_set="train_noval", mode="segmentation", return_meta=return_meta
-    )
+    return SBDatasetOpencv(root_path, image_set="train_noval", mode="segmentation", return_meta=return_meta)
 
 
-def get_dataloader(
-    dataset, sampler=None, shuffle=False, limit_num_samples=None, **kwargs
-):
+def get_dataloader(dataset, sampler=None, shuffle=False, limit_num_samples=None, **kwargs):
 
     if limit_num_samples is not None:
         np.random.seed(limit_num_samples)
         indices = np.random.permutation(len(dataset))[:limit_num_samples]
         dataset = Subset(dataset, indices)
 
-    return idist.auto_dataloader(
-        dataset, sampler=sampler, shuffle=(sampler is None) and shuffle, **kwargs
-    )
+    return idist.auto_dataloader(dataset, sampler=sampler, shuffle=(sampler is None) and shuffle, **kwargs)
 
 
-@gin.configurable
 def get_train_val_loaders(
     root_path,
     train_transforms,
@@ -183,9 +156,6 @@ def get_train_val_loaders(
     train_eval_ds = TransformedDataset(train_eval_ds, transform_fn=val_transforms)
 
     val_batch_size = batch_size * 4 if val_batch_size is None else val_batch_size
-    if idist.get_world_size() > 1:
-        batch_size *= idist.get_world_size()
-        val_batch_size *= idist.get_world_size()
 
     train_loader = get_dataloader(
         train_ds,
@@ -218,15 +188,8 @@ def get_train_val_loaders(
     return train_loader, val_loader, train_eval_loader
 
 
-@gin.configurable
 def get_inference_dataloader(
-    root_path,
-    mode,
-    transforms,
-    batch_size=16,
-    num_workers=8,
-    pin_memory=True,
-    limit_num_samples=None,
+    root_path, mode, transforms, batch_size=16, num_workers=8, pin_memory=True, limit_num_samples=None,
 ):
     assert mode in ("train", "test"), "Mode should be 'train' or 'test'"
 
@@ -251,3 +214,21 @@ def ignore_mask_boundaries(force_apply, **kwargs):
     mask[mask == 255] = 0
     kwargs["mask"] = mask
     return kwargs
+
+
+def denormalize(t, mean, std, max_pixel_value=255):
+    assert isinstance(t, torch.Tensor), f"{type(t)}"
+    assert t.ndim == 3
+    d = t.device
+    mean = torch.tensor(mean, device=d).unsqueeze(-1).unsqueeze(-1)
+    std = torch.tensor(std, device=d).unsqueeze(-1).unsqueeze(-1)
+    tensor = std * t + mean
+    tensor *= max_pixel_value
+    return tensor
+
+
+def prepare_image_mask(batch, device, non_blocking):
+    x, y = batch["image"], batch["mask"]
+    x = convert_tensor(x, device, non_blocking=non_blocking)
+    y = convert_tensor(y, device, non_blocking=non_blocking).long()
+    return x, y

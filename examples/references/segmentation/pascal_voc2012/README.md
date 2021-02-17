@@ -54,7 +54,7 @@ Please, export the `DATASET_PATH` environment variable for the Pascal VOC2012 da
 
 ```bash
 export DATASET_PATH=/path/to/pascal_voc2012
-# e.g. export DATASET_PATH=$PWD/input/ where VOCdevkit is located
+# e.g. export DATASET_PATH=/data/ where VOCdevkit is located
 ```
 
 Optionally, if using SBD dataset, export the `SBD_DATASET_PATH` environment variable:
@@ -66,33 +66,30 @@ export SBD_DATASET_PATH=/path/to/SBD/
 
 ### Single GPU
 
+- Adjust batch size for your GPU type in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
+Run the following command:
 ```bash
-python -u main.py training configs/baseline_resnet101_sbd.py
+CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py
 # or without SBD 
-# python -u main.py training configs/baseline_resnet101.py
+# CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101.py
 ```
 
 ### Multiple GPUs
 
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_resnet101_sbd.py
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101_sbd.py
 # or without SBD 
-# python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_resnet101.py
+# python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101.py
 ```
 
 #### Using Horovod as distributed framework
 
-<<<<<<< HEAD
 ```bash
-horovodrun -np=2 python -u main.py training configs/baseline_resnet101_sbd.py --backend="horovod"
+horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py --backend="horovod"
 # or without SBD
-# horovodrun -np=2 python -u main.py training configs/baseline_resnet101.py --backend="horovod"
+# horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101.py --backend="horovod"
 ```
-=======
-| Model                | with SBD | Training mIoU+BG | Test mIoU+BG |
-| -------------------- | -------- | ---------------- | ------------ |
-| DeepLabV3 ResNet-101 | X        | 86%              | 68%          |
->>>>>>> 6753b19b74fd8d128188dd0a75b405d19aa515b5
 
 ## Acknowledgements
 
