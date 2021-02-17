@@ -95,7 +95,7 @@ def supervised_training_step_amp(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
-) -> Tuple[Callable, Optional["torch.cuda.amp.GradScaler"]]:
+) -> Callable:
     """Factory function for supervised training using ``torch.cuda.amp``.
 
     Args:
@@ -114,7 +114,7 @@ def supervised_training_step_amp(
         scaler (torch.cuda.amp.GradScaler, optional): GradScaler instance for gradient scaling. (default: None)
 
     Returns:
-        Tuple[Callable, Optional[torch.cuda.amp.GradScaler]]: update function and GradScaler instance
+        Callable: update function
 
     .. versionadded:: 0.5.0
     """
@@ -140,7 +140,7 @@ def supervised_training_step_amp(
             optimizer.step()
         return output_transform(x, y, y_pred, loss)
 
-    return update, scaler
+    return update
 
 
 def supervised_training_step_apex(
@@ -345,11 +345,11 @@ def create_supervised_trainer(
 
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, _scaler = _check_arg(on_tpu, amp_mode, scaler)
+    mode, scaler_ = _check_arg(on_tpu, amp_mode, scaler)
 
     if mode == "amp":
-        _update, _scaler = supervised_training_step_amp(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, _scaler
+        _update = supervised_training_step_amp(
+            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, scaler_
         )
     elif mode == "apex":
         _update = supervised_training_step_apex(
@@ -365,8 +365,8 @@ def create_supervised_trainer(
         )
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
-    if _scaler:
-        trainer.state.scaler = _scaler  # type: ignore[attr-defined]
+    if scaler_:
+        trainer.state.scaler = scaler_  # type: ignore[attr-defined]
 
     return trainer
 
