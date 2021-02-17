@@ -69,6 +69,8 @@ def supervised_training_step(
 
     Returns:
         Callable: update function.
+
+    .. versionadded:: 0.5.0
     """
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -92,7 +94,7 @@ def supervised_training_step_amp(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
-    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    scaler: Optional["torch.cuda.amp.GradScaler"] = None,
 ) -> Tuple[Callable, Optional["torch.cuda.amp.GradScaler"]]:
     """Factory function for supervised training using ``torch.cuda.amp``.
 
@@ -109,44 +111,36 @@ def supervised_training_step_amp(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-        scaler (torch.cuda.amp.GradScaler, bool, optional): GradScaler instance for gradient scaling.
-            If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
-            (default: False)
+        scaler (torch.cuda.amp.GradScaler, optional): GradScaler instance for gradient scaling. (default: None)
 
     Returns:
         Tuple[Callable, Optional[torch.cuda.amp.GradScaler]]: update function and GradScaler instance
+
+    .. versionadded:: 0.5.0
     """
 
     try:
-        from torch.cuda import amp
+        from torch.cuda.amp import autocast
     except ModuleNotFoundError:
         raise ModuleNotFoundError("Please install torch>=1.6.0 to use amp_mode='amp'.")
-
-    if scaler and isinstance(scaler, bool):
-        scaler_ = amp.GradScaler(enabled=True)
-    elif isinstance(scaler, amp.GradScaler):
-        scaler_ = scaler
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
-        with amp.autocast(enabled=True):
+        with autocast(enabled=True):
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
-        if scaler_:
-            scaler_.scale(loss).backward()
-            scaler_.step(optimizer)
-            scaler_.update()
+        if scaler:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
         else:
             loss.backward()
             optimizer.step()
         return output_transform(x, y, y_pred, loss)
 
-    if scaler:
-        return update, scaler_
-    else:
-        return update, None
+    return update, scaler
 
 
 def supervised_training_step_apex(
@@ -176,6 +170,8 @@ def supervised_training_step_apex(
 
     Returns:
         Callable: update function.
+
+    .. versionadded:: 0.5.0
     """
 
     try:
@@ -224,6 +220,8 @@ def supervised_training_step_tpu(
 
     Returns:
         Callable: update function.
+
+    .. versionadded:: 0.5.0
     """
     try:
         import torch_xla.core.xla_model as xm
@@ -245,7 +243,7 @@ def supervised_training_step_tpu(
 
 def _check_arg(
     on_tpu: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.cuda.amp.GradScaler"]]
-) -> Optional[str]:
+) -> Tuple[Optional[str], Optional["torch.cuda.amp.GradScaler"]]:
     """Checking tpu, amp and GradScaler instance combinations."""
     if on_tpu and not idist.has_xla_support:
         raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
@@ -253,13 +251,25 @@ def _check_arg(
     if amp_mode and on_tpu:
         raise ValueError("amp_mode cannot be used with xla device. Consider using amp_mode=None or device='cuda'.")
 
-    if scaler and amp_mode != "amp":
-        warn(
-            f"scaler argument is {scaler}, but amp_mode is {amp_mode}."
-            " scaler argument will be ignored. Consider using amp_mode='amp'."
-        )
+    if scaler:
+        if amp_mode != "amp":
+            warn(
+                f"scaler argument is {scaler}, but amp_mode is {amp_mode}."
+                " scaler argument will be ignored. Consider using amp_mode='amp'."
+            )
+        elif amp_mode == "amp" and isinstance(scaler, bool):
+            try:
+                from torch.cuda.amp import GradScaler
+            except ModuleNotFoundError:
+                raise ModuleNotFoundError("Please install torch>=1.6.0 to use scaler argument.")
+            scaler = GradScaler(enabled=True)
 
-    return "tpu" if on_tpu else amp_mode
+    if on_tpu:
+        return "tpu", None
+    elif scaler and amp_mode == "amp":
+        return amp_mode, scaler  # type: ignore[return-value]
+    else:
+        return amp_mode, None
 
 
 def create_supervised_trainer(
@@ -335,11 +345,11 @@ def create_supervised_trainer(
 
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode = _check_arg(on_tpu, amp_mode, scaler)
+    mode, _scaler = _check_arg(on_tpu, amp_mode, scaler)
 
     if mode == "amp":
         _update, _scaler = supervised_training_step_amp(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, scaler
+            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, _scaler
         )
     elif mode == "apex":
         _update = supervised_training_step_apex(
@@ -355,7 +365,7 @@ def create_supervised_trainer(
         )
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
-    if scaler and isinstance(scaler, bool) and mode == "amp":
+    if _scaler:
         trainer.state.scaler = _scaler  # type: ignore[attr-defined]
 
     return trainer
