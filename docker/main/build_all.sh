@@ -46,7 +46,7 @@ set -eu
 
 image_tag=""
 
-if [[ -z "${PTH_VERSION}" ]]; then
+if [ -z "${PTH_VERSION}" ]; then
     echo "PTH_VERSION is not set"
     exit 1
 fi
@@ -60,7 +60,7 @@ do
     if [ -z $image_tag ]; then
         image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
     fi
-    if [[ ${image_name} == "vision" || ${image_name} == "apex-vision" ]]; then
+    if [ ${image_name} = "vision" ] || [ ${image_name} = "apex-vision" ]; then
         check_opencv "pytorchignite/${image_name}:latest"
     fi
 
