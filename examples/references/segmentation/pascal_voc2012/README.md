@@ -6,7 +6,7 @@ dataset.
 Features:
 
 - Distributed training with native automatic mixed precision
-- Experiments tracking [ClearML](https://github.com/allegroai/clearml)
+- Experiments tracking with [ClearML](https://github.com/allegroai/clearml)
 
 ClearML Server: TODO: ADD THE LINK
 
@@ -64,7 +64,9 @@ export SBD_DATASET_PATH=/path/to/SBD/
 # e.g. export SBD_DATASET_PATH=/data/SBD/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
 ```
 
-### Single GPU
+### Training
+
+#### Single GPU
 
 - Adjust batch size for your GPU type in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
 
@@ -75,7 +77,9 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet1
 # CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101.py
 ```
 
-### Multiple GPUs
+#### Multiple GPUs
+
+- Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
 
 ```bash
 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101_sbd.py
@@ -85,11 +89,34 @@ python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py train
 
 #### Using Horovod as distributed framework
 
+- Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
 ```bash
 horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py --backend="horovod"
 # or without SBD
 # horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101.py --backend="horovod"
 ```
+
+### Evaluation
+
+#### Single GPU
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+```
+
+#### Multiple GPUs
+
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+```
+
+#### Using Horovod as distributed framework
+
+```bash
+horovodrun -np=2 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py --backend="horovod"
+```
+
 
 ## Acknowledgements
 

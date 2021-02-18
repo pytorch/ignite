@@ -6,22 +6,26 @@ import fire
 import torch
 
 try:
-    from torch.cuda.amp import autocast, GradScaler
+    from torch.cuda.amp import GradScaler, autocast
 except ImportError:
     raise RuntimeError("Please, use recent PyTorch version, e.g. >=1.6.0")
 
 import ignite.distributed as idist
-from ignite.utils import setup_logger, manual_seed
 from ignite.contrib.engines import common
-from ignite.engine import Engine, Events, create_supervised_evaluator
+from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
+from ignite.utils import manual_seed, setup_logger
+from py_config_runner import (
+    ConfigObject,
+    InferenceConfigSchema,
+    TrainvalConfigSchema,
+    get_params,
+)
 
-from py_config_runner import ConfigObject, TrainvalConfigSchema, InferenceConfigSchema, get_params
-
+import dataflow as data
 import utils
 import vis
-import dataflow as data
 
 
 def download_datasets(output_path):
@@ -30,8 +34,8 @@ def download_datasets(output_path):
     Args:
         output_path (str): path where to download and unzip the dataset
     """
-    from torchvision.datasets.voc import VOCSegmentation
     from torchvision.datasets.sbd import SBDataset
+    from torchvision.datasets.voc import VOCSegmentation
 
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -173,7 +177,7 @@ def compute_and_log_cm(cm_metric, iteration):
         )
 
 
-def create_trainer(model, optimizer, criterion, train_sampler, config, logger, with_clearml):    
+def create_trainer(model, optimizer, criterion, train_sampler, config, logger, with_clearml):
     device = config.device
     prepare_batch = data.prepare_image_mask
 
@@ -197,7 +201,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
         scaler.scale(loss).backward()
         if engine.state.iteration % accumulation_steps == 0:
             scaler.step(optimizer)
-            scaler.update()  
+            scaler.update()
             optimizer.zero_grad()
 
     def hvd_amp_backward_pass(engine, loss):
@@ -218,7 +222,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
         output = {"supervised batch loss": loss.item()}
         backward_pass(engine, loss)
         return output
-    
+
     trainer = Engine(training_step)
     trainer.logger = logger
 
@@ -244,7 +248,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
         save_every_iters=save_every_iters,
         save_handler=utils.get_save_handler(config.output_path.as_posix(), with_clearml),
         lr_scheduler=lr_scheduler,
-        output_names=output_names,        
+        output_names=output_names,
         with_pbars=not with_clearml,
         log_every_iters=1,
     )
@@ -265,9 +269,10 @@ def create_evaluator(model, metrics, config, with_clearml, tag="val"):
     with_amp = config.get("with_amp", True)
     prepare_batch = data.prepare_image_mask
 
+    @torch.no_grad()
     def evaluate_step(engine, batch):
         model.eval()
-        with torch.no_grad():
+        with autocast(enabled=with_amp):
             x, y = prepare_batch(batch, device=config.device, non_blocking=True)
             y_pred = model(x)
             y_pred = model_output_transform(y_pred)
@@ -287,17 +292,21 @@ def create_evaluator(model, metrics, config, with_clearml, tag="val"):
 def setup_experiment_tracking(config, with_clearml, task_type="training"):
     from datetime import datetime
 
+    assert task_type in ("training", "testing"), task_type
+
     output_path = ""
     if idist.get_rank() == 0:
         if with_clearml:
             from clearml import Task
 
-            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem, task_type=task_type)
+            schema = TrainvalConfigSchema if task_type == "training" else InferenceConfigSchema
+
+            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem, task_type=task_type,)
             task.connect_configuration(config.config_filepath.as_posix())
 
             task.upload_artifact(config.script_filepath.name, config.script_filepath.as_posix())
             task.upload_artifact(config.config_filepath.name, config.config_filepath.as_posix())
-            task.connect(get_params(config, TrainvalConfigSchema))
+            task.connect(get_params(config, schema))
 
             output_path = Path(os.environ.get("CLEARML_OUTPUT_PATH", "/tmp"))
             output_path = output_path / "clearml" / datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -305,7 +314,7 @@ def setup_experiment_tracking(config, with_clearml, task_type="training"):
             import shutil
 
             output_path = Path(os.environ.get("OUTPUT_PATH", "/tmp/output-pascal-voc12"))
-            output_path = output_path / task_type / config.config_filepath.stem 
+            output_path = output_path / task_type / config.config_filepath.stem
             output_path = output_path / datetime.now().strftime("%Y%m%d-%H%M%S")
             output_path.mkdir(parents=True, exist_ok=True)
 
@@ -359,7 +368,7 @@ def run_training(config_filepath, backend="nccl", with_clearml=True):
 
 def get_model_weights(config, logger, with_clearml):
 
-    path = ""    
+    path = ""
     if with_clearml:
         from clearml import Task
 
@@ -474,7 +483,6 @@ def run_evaluation(config_filepath, backend="nccl", with_clearml=True):
         except Exception as e:  # noqa
             logger.exception("")
             raise e
-
 
 
 if __name__ == "__main__":

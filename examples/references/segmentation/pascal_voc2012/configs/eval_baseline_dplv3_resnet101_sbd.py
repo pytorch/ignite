@@ -1,15 +1,12 @@
 # Basic training configuration
 import os
-from pathlib import Path
-from functools import partial
 
 import albumentations as A
 import cv2
-import torch.nn as nn
 from albumentations.pytorch import ToTensorV2 as ToTensor
-from dataflow import get_inference_dataloader
-from dataflow import ignore_mask_boundaries
 from torchvision.models.segmentation import deeplabv3_resnet101
+
+from dataflow import get_inference_dataloader, ignore_mask_boundaries
 
 # ##############################
 # Global configs
@@ -17,7 +14,7 @@ from torchvision.models.segmentation import deeplabv3_resnet101
 
 seed = 21
 device = "cuda"
-debug = True
+debug = False
 # Use AMP with torch native
 with_amp = True
 
@@ -54,7 +51,7 @@ val_transforms = A.Compose(
 
 data_loader = get_inference_dataloader(
     root_path=data_path,
-    mode='test',
+    mode="test",
     transforms=val_transforms,
     batch_size=batch_size,
     num_workers=num_workers,
@@ -73,6 +70,7 @@ def model_output_transform(output):
     return output["out"]
 
 
-# training_task_id = "33ebd1b3c85a4e74b4450df646e224a7"
-# weights_path = "baseline_dplv3_resnet101_sbd: best_model_60_val_miou_bg=0.6726.pt"
-weights_path = "/mnt/data2/2f8e1ee50ee57b47eeb5ca3f97d26edd.best_model_0.pt"
+training_task_id = "8103ae140d2a4d90972cc8880580fdd9"
+weights_path = "baseline_dplv3_resnet101_sbd: best_model_78_val_miou_bg=0.6871.pt"
+# or can specify a path
+# weights_path = "/path/to/best_model.pt"

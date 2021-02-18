@@ -8,9 +8,9 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
 from albumentations.pytorch import ToTensorV2 as ToTensor
-from dataflow import get_train_val_loaders
-from dataflow import ignore_mask_boundaries
 from torchvision.models.segmentation import deeplabv3_resnet101
+
+from dataflow import get_train_val_loaders, ignore_mask_boundaries
 
 # ##############################
 # Global configs
