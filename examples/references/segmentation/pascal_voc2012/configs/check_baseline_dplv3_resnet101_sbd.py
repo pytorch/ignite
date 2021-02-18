@@ -25,7 +25,7 @@ with_amp = True
 
 
 num_classes = 21
-batch_size = 4  # total batch size
+batch_size = 9  # total batch size
 val_batch_size = batch_size * 2
 num_workers = 12  # total num workers per node
 val_interval = 5
@@ -84,7 +84,7 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
 )
 
 # ##############################
-# Setup models
+# Setup model
 # ##############################
 
 num_classes = 21

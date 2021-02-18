@@ -84,7 +84,7 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
 )
 
 # ##############################
-# Setup models
+# Setup model
 # ##############################
 
 num_classes = 21
