@@ -101,6 +101,9 @@ if __name__ == "__main__":
 
     print(f"- should_publish_docker_images: {should_publish_docker_images}")
     print(f"- Branch: {branch}")
+    if branch.startswith("refs/pull") and branch.endswith("/merge"):
+        branch = branch.replace("/merge", "/head")
+        print(f"Replaced /merge -> /head : {branch}")
 
     headers = {"authorization": "Basic", "content-type": "application/json", "Circle-Token": os.environ["CIRCLE_TOKEN"]}
 
