@@ -14,6 +14,7 @@ class Rouge(Metric):
         self._num_examples = 0
         self.alpha = alpha
         self.n = n
+        self._scorelist = []
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
     def _ngramify(self, text, n):
@@ -46,10 +47,35 @@ class Rouge(Metric):
         # print('Recall: ',recall_score)
         # print('Precision: ',precision_score)
         denom = (1.0 - alpha) * precision_score + alpha * recall_score
-        if denom > 0.0:
-            return (precision_score * recall_score) / denom
-        else:
-            return 0.0
+        f1_score = self._safe_divide(precision_score * recall_score , denom)
+        scores = dict()
+        scores['recall'] = recall_score
+        scores['precision'] = precision_score
+        scores['f1'] = f1_score
+        self._scorelist.append(scores)
+        return f1_score
+
+    def _lcs(self, a, b):
+        if len(a) < len(b):
+            a, b = b, a
+
+        if len(b) == 0:
+            return 0
+
+        row = [0] * len(b)
+        for ai in a:
+            left = 0
+            diag = 0
+            for j, bj in enumerate(b):
+                up = row[j]
+                if ai == bj:
+                    value = diag + 1
+                else:
+                    value = max(left, up)
+                row[j] = value
+                left = value
+                diag = up
+        return left
 
     def rouge_n(self, peer, models):
         matches = 0
@@ -63,19 +89,37 @@ class Rouge(Metric):
                 if model_dict[ngram]:
                     matches += peer_dict[ngram]
         precision_total = len(models) * max((len(peer) - n + 1), 0)
-        return self._f1_score(matches, recall_total, precision_total)
+        print(matches, recall_total, precision_total)
+        f1_score = self._f1_score(matches, recall_total, precision_total)
+        return f1_score
+
+    def rouge_l(self,peer,models):
+        matches = 0
+        recall_total = 0
+        for model in models:
+            matches += int(self._lcs(model, peer))
+            recall_total += len(model)
+        precision_total = len(models) * len(peer)
+        print(matches, recall_total, precision_total)
+        f1_score = self._f1_score(matches, recall_total, precision_total)
+        return f1_score
 
     @reinit__is_reduced
     def reset(self):
         self._rougelist = torch.tensor([], device=self._device)
         self._num_examples = 0
+        self._scorelist = []
         super(Rouge, self).reset()
 
     @reinit__is_reduced
     def update(self, output):
         peer, models = output[0], output[1]
-        self._rougelist = torch.cat((self._rougelist, torch.tensor(
-            self.rouge_n(peer, models), device=self._device).unsqueeze(0)), dim=-1)
+        if self.n == 'l':
+            self._rougelist = torch.cat((self._rougelist, torch.tensor(
+                self.rouge_l(peer, models), device=self._device).unsqueeze(0)), dim=-1)
+        else:
+            self._rougelist = torch.cat((self._rougelist, torch.tensor(
+                self.rouge_n(peer, models), device=self._device).unsqueeze(0)), dim=-1)
         self._num_examples += 1
 
     @sync_all_reduce("_num_examples", "_num_correct")

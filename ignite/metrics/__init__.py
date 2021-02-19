@@ -17,7 +17,7 @@ from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.ssim import SSIM
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
-from ignite.metrics.rouge_n import Rouge
+from ignite.metrics.rouge import Rouge
 
 __all__ = [
     "Metric",
