@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, DefaultDict, Dict, List, Optional, Union
 
 import torch
 
@@ -39,7 +39,7 @@ class Rouge(Metric):
         self,
         alpha: float,
         n: int,
-        output_transform: Optional[Callable] = None,
+        output_transform: Callable = None,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
         self._rougetotal: torch.Tensor = torch.tensor(0, device=device)
@@ -52,13 +52,13 @@ class Rouge(Metric):
     def _check_parameters(self, alpha: float, n: int) -> None:
         if alpha < 0 or alpha > 1:
             raise ValueError("Alpha has to be between 0 and 1 to calculate Rouge f1 score.")
-        if type(n) == str and n != "l" and n != "L":
+        if isinstance(n, str) and n != "l" and n != "L":
             raise ValueError('Invalid String, Only Rouge-L supported.Please use "l" or "L"')
-        elif type(n) == int and n < 1:
-            raise ValueError("Ignite needs atleast unigram to calculate ROuge")
+        elif isinstance(n, int) and n < 1:
+            raise ValueError("Ignite needs atleast unigram to calculate Rouge")
 
     def _ngramify(self, text: List[str], n: int) -> Dict:
-        ngram_dict = defaultdict(int)
+        ngram_dict: DefaultDict = defaultdict(int)
         start = 0
         end = n
         ngram = ""
@@ -75,7 +75,7 @@ class Rouge(Metric):
         ngram_dict[ngram] += 1
         return ngram_dict
 
-    def _safe_divide(self, numerator: int, denominator: int) -> float:
+    def _safe_divide(self, numerator: float, denominator: float) -> float:
         if denominator > 0:
             return numerator / denominator
         else:
@@ -88,7 +88,7 @@ class Rouge(Metric):
         f1_score = self._safe_divide(precision_score * recall_score, denom)
         return f1_score
 
-    def _lcs(self, a: List[str], b: List[str]) -> int:
+    def _lcs(self, a: str, b: List[str]) -> int:
         if len(a) < len(b):
             a, b = b, a
 
@@ -139,13 +139,12 @@ class Rouge(Metric):
     def reset(self) -> None:
         self._rougetotal = torch.tensor(0, device=self._device)
         self._num_examples = 0
-        self._scorelist = []
         super(Rouge, self).reset()
 
     @reinit__is_reduced
     def update(self, output: List[List[str]]) -> None:
         y_pred, y = output[0], output[1]
-        if self.n == "l" or self.n == "L":
+        if isinstance(self.n, str):
             self._rougetotal = torch.add(self._rougetotal, self.rouge_l(y_pred, y))
         else:
             self._rougetotal = torch.add(self._rougetotal, self.rouge_n(y_pred, y))
