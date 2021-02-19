@@ -104,7 +104,7 @@ class Rouge(Metric):
                 diag = up
         return left
 
-    def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
+    def rouge_n(self, y_pred: List[str], y: List[List[str]]) -> float:
         matches = 0
         recall_total = 0
         n = self.n
