@@ -119,7 +119,7 @@ class Rouge(Metric):
         f1_score = self._f1_score(matches, recall_total, precision_total, self.alpha)
         return f1_score
 
-    def rouge_l(self, y_pred: List[str], y: List[str]) -> float:
+    def rouge_l(self, y_pred: List[str], y: List[List[str]]) -> float:
         matches = 0
         recall_total = 0
         for model in y:
@@ -136,7 +136,7 @@ class Rouge(Metric):
         super(Rouge, self).reset()
 
     @reinit__is_reduced
-    def update(self, output: List[List[str]]) -> None:
+    def update(self, output: List[List]) -> None:
         y_pred, y = output[0], output[1]
         if isinstance(self.n, str):
             self._rougetotal = torch.add(self._rougetotal, self.rouge_l(y_pred, y))
