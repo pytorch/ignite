@@ -69,8 +69,6 @@
     {% endtrans %}
   {%- endif %}
 
-  {%- block extrafooter %} {% endblock %}
-
   {%- if show_netlify_badge %}
     {% trans %}
       <div>
@@ -78,5 +76,7 @@
       </div>
     {% endtrans %}
   {%- endif %}
+
+  {%- block extrafooter %} {% endblock %}
 
 </footer>
