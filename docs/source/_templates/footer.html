@@ -32,45 +32,55 @@
   {% endif %}
 
   <div role="contentinfo">
-    <p>
-    {%- if show_copyright %}
-      {%- if hasdoc('copyright') %}
-        {% trans path=pathto('copyright'), copyright=copyright|e %}&copy; <a href="{{ path }}">Copyright</a> {{ copyright }}.{% endtrans %}
-      {%- else %}
-        {% trans copyright=copyright|e %}&copy; Copyright {{ copyright }}.{% endtrans %}
-      {%- endif %}
-    {%- endif %}
+    <table>
+      <tr>
+        <td>
+            <p>
+            {%- if show_copyright %}
+              {%- if hasdoc('copyright') %}
+                {% trans path=pathto('copyright'), copyright=copyright|e %}&copy; <a href="{{ path }}">Copyright</a> {{ copyright }}.{% endtrans %}
+              {%- else %}
+                {% trans copyright=copyright|e %}&copy; Copyright {{ copyright }}.{% endtrans %}
+              {%- endif %}
+            {%- endif %}
 
-    {%- if build_id and build_url %}
-      {% trans build_url=build_url, build_id=build_id %}
-        <span class="build">
-          Build
-          <a href="{{ build_url }}">{{ build_id }}</a>.
-        </span>
-      {% endtrans %}
-    {%- elif commit %}
-      {% trans commit=commit %}
-        <span class="commit">
-          Revision <code>{{ commit }}</code>.
-        </span>
-      {% endtrans %}
-    {%- elif last_updated %}
-      {% trans last_updated=last_updated|e %}Last updated on {{ last_updated }}.{% endtrans %}
-    {%- endif %}
+            {%- if build_id and build_url %}
+              {% trans build_url=build_url, build_id=build_id %}
+                <span class="build">
+                  Build
+                  <a href="{{ build_url }}">{{ build_id }}</a>.
+                </span>
+              {% endtrans %}
+            {%- elif commit %}
+              {% trans commit=commit %}
+                <span class="commit">
+                  Revision <code>{{ commit }}</code>.
+                </span>
+              {% endtrans %}
+            {%- elif last_updated %}
+              {% trans last_updated=last_updated|e %}Last updated on {{ last_updated }}.{% endtrans %}
+            {%- endif %}
+            </p>
 
-    {%- if show_netlify_badge %}
-      {% trans %}
-        <a href="https://www.netlify.com"><img align="right" src="https://www.netlify.com/img/global/badges/netlify-light.svg" alt="Deploys by Netlify" /></a>
-        <br>
-      {% endtrans %}
-    {%- endif %}
-
-    {%- if show_sphinx %}
-      {% trans %}
-        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-      {% endtrans %}
-    {%- endif %}
-    </p>
+          {%- if show_sphinx %}
+            {% trans %}
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          {% endtrans %}
+        {%- endif %}
+        </td>
+        <td>
+          {%- if show_netlify_badge %}
+            {% trans %}
+              <div>
+                <a href="https://www.netlify.com"><img src="https://www.netlify.com/img/global/badges/netlify-light.svg" alt="Deploys by Netlify" /></a>
+              </div>
+            {% endtrans %}
+          {%- endif %}
+        </td>
+      </tr>
+    </table>
   </div>
 
   {%- block extrafooter %} {% endblock %}
