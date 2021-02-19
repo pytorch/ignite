@@ -35,19 +35,13 @@ class Rouge(Metric):
 
     """
 
-    def __init__(
-        self,
-        alpha: float,
-        n: int,
-        output_transform: Callable = None,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ) -> None:
+    def __init__(self, alpha: float, n: int, device: Union[str, torch.device] = torch.device("cpu")) -> None:
         self._rougetotal: torch.Tensor = torch.tensor(0, device=device)
         self._num_examples: int = 0
         self._check_parameters(alpha, n)
         self.alpha: float = alpha
         self.n: int = n
-        super(Rouge, self).__init__(output_transform=output_transform, device=device)
+        super(Rouge, self).__init__(device=device)
 
     def _check_parameters(self, alpha: float, n: int) -> None:
         if alpha < 0 or alpha > 1:
@@ -88,7 +82,7 @@ class Rouge(Metric):
         f1_score = self._safe_divide(precision_score * recall_score, denom)
         return f1_score
 
-    def _lcs(self, a: str, b: List[str]) -> int:
+    def _lcs(self, a: List[str], b: List[str]) -> int:
         if len(a) < len(b):
             a, b = b, a
 
@@ -110,7 +104,7 @@ class Rouge(Metric):
                 diag = up
         return left
 
-    def rouge_n(self, y_pred: List[str], y: List[List[str]]) -> float:
+    def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
         recall_total = 0
         n = self.n
