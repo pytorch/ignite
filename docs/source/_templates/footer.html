@@ -58,25 +58,19 @@
       {% trans last_updated=last_updated|e %}Last updated on {{ last_updated }}.{% endtrans %}
     {%- endif %}
 
+    {%- if show_sphinx %}
+      {% trans %}
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      {% endtrans %}
+    {%- endif %}
+
+    {%- if show_netlify_badge %}
+      {% trans %}
+        <a href="https://www.netlify.com"><img src="https://www.netlify.com/img/global/badges/netlify-light.svg" alt="Deploys by Netlify" /></a>
+      {% endtrans %}
+    {%- endif %}
     </p>
   </div>
-
-  {%- if show_sphinx %}
-    {% trans %}
-      <div>
-        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-      </div>
-    {% endtrans %}
-  {%- endif %}
-
-  {%- if show_netlify_badge %}
-    {% trans %}
-      <div>
-        <a href="https://www.netlify.com"><img src="https://www.netlify.com/img/global/badges/netlify-light.svg" alt="Deploys by Netlify" /></a>
-      </div>
-    {% endtrans %}
-  {%- endif %}
-
   {%- block extrafooter %} {% endblock %}
 
 </footer>
