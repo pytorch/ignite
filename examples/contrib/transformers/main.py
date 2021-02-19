@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import utils
-from torch._C import dtype
 from torch.cuda.amp import GradScaler, autocast
 
 import ignite
@@ -34,11 +33,8 @@ def training(local_rank, config):
 
     output_path = config["output_dir"]
     if rank == 0:
-        if config["stop_iteration"] is None:
-            now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        else:
-            now = f"stop-on-{config['stop_iteration']}"
 
+        now = datetime.now().strftime("%Y%m%d-%H%M%S")
         folder_name = f"{config['model']}_backend-{idist.backend()}-{idist.get_world_size()}_{now}"
         output_path = Path(output_path) / folder_name
         if not output_path.exists():
@@ -144,14 +140,6 @@ def training(local_rank, config):
         Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler
     )
 
-    # In order to check training resuming we can stop training on a given iteration
-    if config["stop_iteration"] is not None:
-
-        @trainer.on(Events.ITERATION_STARTED(once=config["stop_iteration"]))
-        def _():
-            logger.info(f"Stop training on {trainer.state.iteration} iteration")
-            trainer.terminate()
-
     try:
         trainer.run(train_loader, max_epochs=config["num_epochs"])
     except Exception as e:
@@ -185,7 +173,6 @@ def run(
     resume_from=None,
     log_every_iters=15,
     nproc_per_node=None,
-    stop_iteration=None,
     with_clearml=False,
     with_amp=False,
     **spawn_kwargs,
@@ -218,7 +205,6 @@ def run(
         resume_from (str, optional): path to checkpoint to use to resume the training from. Default, None.
         log_every_iters (int): argument to log batch loss every ``log_every_iters`` iterations.
             It can be 0 to disable it. Default, 15.
-        stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_clearml (bool): if True, experiment ClearML logger is setup. Default, False.
         with_amp (bool): if True, enables native automatic mixed precision. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes

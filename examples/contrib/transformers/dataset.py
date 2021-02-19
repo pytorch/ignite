@@ -1,5 +1,4 @@
 import torch
-from torch._C import dtype
 
 
 class TransformerDataset(torch.utils.data.Dataset):

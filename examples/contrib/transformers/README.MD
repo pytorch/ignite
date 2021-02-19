@@ -11,7 +11,6 @@ Configurations:
 
 - [x] single GPU
 - [x] multi GPUs on a single node
-- [x] multi GPUs on multiple nodes
 - [x] TPUs on Colab
 
 ## Requirements:
@@ -94,69 +93,6 @@ VERSION = "nightly"
 from main import run
 run(backend="xla-tpu", nproc_per_node=8)
 ```
-
-#### Multiple nodes, multiple GPUs
-
-Let's start training on two nodes with 2 gpus each. We assuming that master node can be connected as `master`, e.g. `ping master`.
-
-1. Execute on master node
-
-```bash
-python -u -m torch.distributed.launch \
-    --nnodes=2 \
-    --nproc_per_node=2 \
-    --node_rank=0 \
-    --master_addr=master --master_port=2222 --use_env \
-    main.py run --backend="nccl"
-```
-
-2. Execute on worker node
-
-```bash
-python -u -m torch.distributed.launch \
-    --nnodes=2 \
-    --nproc_per_node=2 \
-    --node_rank=1 \
-    --master_addr=master --master_port=2222 \
-    main.py run --backend="nccl"
-```
-
-### Check resume training
-
-#### Single GPU
-
-Initial training with a stop on 1000 iteration (~11 epochs)
-
-```bash
-python main.py run --stop_iteration=1000
-```
-
-Resume from the latest checkpoint
-
-```bash
-python main.py run --resume-from=/tmp/output-imdb/resnet18_backend-None-1_stop-on-1000/training_checkpoint_1000.pt
-```
-
-### Distributed training
-
-#### Single node, multiple GPUs
-
-Initial training on a single node with 2 gpus with a stop on 1000 iteration (~11 epochs):
-
-```bash
-# using torch.distributed.launch
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" --stop_iteration=1000
-```
-
-Resume from the latest checkpoint
-
-```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" \
-    --resume-from=/tmp/output-imdb/resnet18_backend-nccl-2_stop-on-1000/training_checkpoint_1000.pt
-```
-
-Similar commands can be adapted for other cases.
-
 ## ClearML fileserver
 
 If `ClearML` server is used (i.e. `--with_clearml` argument), the configuration to upload artifact must be done by
