@@ -35,7 +35,7 @@ def _test_create_supervised_trainer(
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
-    if amp_mode == "apex":
+    if amp_mode == "apex" and model_device == trainer_device == "cuda":
         from apex import amp
 
         model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
@@ -50,8 +50,8 @@ def _test_create_supervised_trainer(
         scaler=scaler,
     )
 
-    x = torch.tensor([[0.001], [0.002]])
-    y = torch.tensor([[0.003], [0.005]])
+    x = torch.tensor([[0.1], [0.2]])
+    y = torch.tensor([[0.3], [0.5]])
     data = [(x, y)]
 
     assert model.weight.data[0, 0].item() == approx(0.0)
@@ -60,13 +60,14 @@ def _test_create_supervised_trainer(
     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
         state = trainer.run(data)
 
-        if amp_mode:
+        assert state.output[-1] == approx(0.17), state.output[-1]
+        assert round(model.weight.data[0, 0].item(), 3) == approx(0.013), model.weight.item()
+        assert round(model.bias.item(), 3) == approx(0.08), model.bias.item()
+
+        if amp_mode == "amp":
             assert state.output[0].dtype is torch.half
-        if amp_mode == "amp" and scaler and isinstance(scaler, bool):
-            assert hasattr(state, "scaler")
-        assert state.output[-1] == approx(1.7e-5)
-        assert model.weight.data[0, 0].item() == approx(1.3e-6, 1e-3)
-        assert model.bias.item() == approx(0.0008, 1e-3)
+            if scaler and isinstance(scaler, bool):
+                assert hasattr(state, "scaler")
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
