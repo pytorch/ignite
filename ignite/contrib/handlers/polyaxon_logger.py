@@ -99,7 +99,7 @@ class PolyaxonLogger(BaseLogger):
         except ImportError:
             try:
                 from polyaxon_client.tracking import Experiment
-                
+
                 self.experiment = Experiment(*args, **kwargs)
             except ImportError:
                 raise RuntimeError(
