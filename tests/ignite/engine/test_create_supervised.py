@@ -1,7 +1,7 @@
 import os
 from distutils.version import LooseVersion
+from importlib.util import find_spec
 from typing import Optional, Union
-from unittest import mock
 
 import pytest
 import torch
@@ -35,6 +35,11 @@ def _test_create_supervised_trainer(
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
+    if amp_mode == "apex":
+        from apex import amp
+
+        model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
+
     trainer = create_supervised_trainer(
         model,
         optimizer,
@@ -45,8 +50,8 @@ def _test_create_supervised_trainer(
         scaler=scaler,
     )
 
-    x = torch.tensor([[1.0], [2.0]])
-    y = torch.tensor([[3.0], [5.0]])
+    x = torch.tensor([[0.001], [0.002]])
+    y = torch.tensor([[0.003], [0.005]])
     data = [(x, y)]
 
     assert model.weight.data[0, 0].item() == approx(0.0)
@@ -59,9 +64,9 @@ def _test_create_supervised_trainer(
             assert state.output[0].dtype is torch.half
         if amp_mode == "amp" and scaler and isinstance(scaler, bool):
             assert hasattr(state, "scaler")
-        assert state.output[-1] == approx(17.0)
-        assert model.weight.data[0, 0].item() == approx(1.3)
-        assert model.bias.item() == approx(0.8)
+        assert state.output[-1] == approx(1.7e-5)
+        assert model.weight.data[0, 0].item() == approx(1.3e-6, 1e-3)
+        assert model.bias.item() == approx(0.0008, 1e-3)
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
@@ -129,23 +134,19 @@ def test_create_supervised_trainer_apex_error():
         _test_create_supervised_trainer(amp_mode="apex")
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) > LooseVersion("1.6.0"), reason="Skip if > 1.6.0.")
+@pytest.mark.skipif(LooseVersion(torch.__version__) > LooseVersion("1.6.0"), reason="Skip if > 1.6.0")
 def test_create_supervised_trainer_amp_error():
     with pytest.raises(ModuleNotFoundError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0.")
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
     with pytest.warns(UserWarning, match=f"scaler argument is {scaler}, but amp_mode is None."):
         _test_create_supervised_trainer(amp_mode=None, scaler=scaler)
-    # with pytest.warns(UserWarning, match=f"scaler argument is {scaler}, but amp_mode is apex."):
-    #     _test_create_supervised_trainer(amp_mode="apex", scaler=scaler)
     with pytest.warns(UserWarning, match="scaler argument is True, but amp_mode is None."):
         _test_create_supervised_trainer(amp_mode=None, scaler=True)
-    # with pytest.warns(UserWarning, match="scaler argument is True, but amp_mode is apex."):
-    #     _test_create_supervised_trainer(amp_mode="apex", scaler=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -154,14 +155,14 @@ def test_create_supervised_trainer_on_cuda():
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0.")
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0.")
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp_scaler():
     model_device = trainer_device = "cuda"
@@ -177,11 +178,23 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_apex():
     model_device = trainer_device = "cuda"
-    # TODO: install apex for this test
-    with pytest.raises(
-        ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
-    ):
-        _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
+    _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+@pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+def test_create_supervised_trainer_on_cuda_apex_scaler():
+    model_device = trainer_device = "cuda"
+    scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
+    with pytest.warns(UserWarning, match="scaler argument is True, but amp_mode is apex."):
+        _test_create_supervised_trainer(
+            model_device=model_device, trainer_device=trainer_device, amp_mode="apex", scaler=True
+        )
+    with pytest.warns(UserWarning, match=f"scaler argument is {scaler}, but amp_mode is apex."):
+        _test_create_supervised_trainer(
+            model_device=model_device, trainer_device=trainer_device, amp_mode="apex", scaler=scaler
+        )
 
 
 @pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
