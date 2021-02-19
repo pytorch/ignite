@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import torch
 
@@ -41,7 +41,7 @@ class Rouge(Metric):
         n: int,
         output_transform: Optional[Callable] = None,
         device: Union[str, torch.device] = torch.device("cpu"),
-    ):
+    ) -> None:
         self._rougetotal: torch.Tensor = torch.tensor(0, device=device)
         self._num_examples: int = 0
         self._check_parameters(alpha, n)
@@ -49,7 +49,7 @@ class Rouge(Metric):
         self.n: int = n
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_parameters(self, alpha: float, n: int):
+    def _check_parameters(self, alpha: float, n: int) -> None:
         if alpha < 0 or alpha > 1:
             raise ValueError("Alpha has to be between 0 and 1 to calculate Rouge f1 score.")
         if type(n) == str and n != "l" and n != "L":
@@ -57,7 +57,7 @@ class Rouge(Metric):
         elif type(n) == int and n < 1:
             raise ValueError("Ignite needs atleast unigram to calculate ROuge")
 
-    def _ngramify(self, text: List[str], n: int):
+    def _ngramify(self, text: List[str], n: int) -> Dict:
         ngram_dict = defaultdict(int)
         start = 0
         end = n
@@ -75,20 +75,20 @@ class Rouge(Metric):
         ngram_dict[ngram] += 1
         return ngram_dict
 
-    def _safe_divide(self, numerator: int, denominator: int):
+    def _safe_divide(self, numerator: int, denominator: int) -> float:
         if denominator > 0:
             return numerator / denominator
         else:
-            return 0
+            return 0.0
 
-    def _f1_score(self, matches: int, recall_total: int, precision_total: int, alpha: float = 1):
+    def _f1_score(self, matches: int, recall_total: int, precision_total: int, alpha: float = 1) -> float:
         recall_score = self._safe_divide(matches, recall_total)
         precision_score = self._safe_divide(matches, precision_total)
         denom = (1.0 - alpha) * precision_score + alpha * recall_score
         f1_score = self._safe_divide(precision_score * recall_score, denom)
         return f1_score
 
-    def _lcs(self, a: List[str], b: List[str]):
+    def _lcs(self, a: List[str], b: List[str]) -> int:
         if len(a) < len(b):
             a, b = b, a
 
@@ -110,7 +110,7 @@ class Rouge(Metric):
                 diag = up
         return left
 
-    def rouge_n(self, y_pred: List[str], y: List[List[str]]):
+    def rouge_n(self, y_pred: List[str], y: List[List[str]]) -> float:
         matches = 0
         recall_total = 0
         n = self.n
@@ -125,7 +125,7 @@ class Rouge(Metric):
         f1_score = self._f1_score(matches, recall_total, precision_total, self.alpha)
         return f1_score
 
-    def rouge_l(self, y_pred: List[str], y: List[str]):
+    def rouge_l(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
         recall_total = 0
         for model in y:
@@ -136,14 +136,14 @@ class Rouge(Metric):
         return f1_score
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         self._rougetotal = torch.tensor(0, device=self._device)
         self._num_examples = 0
         self._scorelist = []
         super(Rouge, self).reset()
 
     @reinit__is_reduced
-    def update(self, output: List[List[str]]):
+    def update(self, output: List[List[str]]) -> None:
         y_pred, y = output[0], output[1]
         if self.n == "l" or self.n == "L":
             self._rougetotal = torch.add(self._rougetotal, self.rouge_l(y_pred, y))
@@ -152,7 +152,7 @@ class Rouge(Metric):
         self._num_examples += 1
 
     @sync_all_reduce("_num_examples", "_num_correct")
-    def compute(self):
+    def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Rouge must have at least one example before it can be computed.")
         return torch.div(self._rougetotal, self._num_examples)
