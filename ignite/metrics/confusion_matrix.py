@@ -7,15 +7,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 from ignite.metrics.metrics_lambda import MetricsLambda
 
-__all__ = [
-    "ConfusionMatrix",
-    "mIoU",
-    "IoU",
-    "DiceCoefficient",
-    "cmAccuracy",
-    "cmPrecision",
-    "cmRecall"
-]
+__all__ = ["ConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "cmPrecision", "cmRecall"]
 
 
 class ConfusionMatrix(Metric):
