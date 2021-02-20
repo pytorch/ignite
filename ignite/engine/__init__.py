@@ -345,11 +345,11 @@ def create_supervised_trainer(
 
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, scaler_ = _check_arg(on_tpu, amp_mode, scaler)
+    mode, _scaler = _check_arg(on_tpu, amp_mode, scaler)
 
     if mode == "amp":
         _update = supervised_training_step_amp(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, scaler_
+            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, _scaler
         )
     elif mode == "apex":
         _update = supervised_training_step_apex(
@@ -365,8 +365,8 @@ def create_supervised_trainer(
         )
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
-    if scaler_ and scaler and isinstance(scaler, bool):
-        trainer.state.scaler = scaler_  # type: ignore[attr-defined]
+    if _scaler and scaler and isinstance(scaler, bool):
+        trainer.state.scaler = _scaler  # type: ignore[attr-defined]
 
     return trainer
 
