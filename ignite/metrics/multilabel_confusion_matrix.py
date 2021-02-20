@@ -15,17 +15,19 @@ class MultiLabelConfusionMatrix(Metric):
 
     - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` must contain 0s and 1s and has the following shape (batch_size, num_classes, ...).
-      For example, y_pred[i,j] = 1 denotes that the j'th class is one of the labels of the i'th sample as predicted.
+      For example, `y_pred[i, j]` = 1 denotes that the j'th class is one of the labels of the i'th sample as predicted.
     - `y` should have the following shape (batch_size, num_classes, ...) with 0s and 1s. For example,
-      y[i,j] = 1 denotes that the j'th class is one of the labels of the i'th sample according to the ground truth.
-    - both 'y' and 'y_pred' must be torch Tensors having any of the following types:
+      `y[i, j]` = 1 denotes that the j'th class is one of the labels of the i'th sample according to the ground truth.
+    - both `y` and `y_pred` must be torch Tensors having any of the following types:
       {torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64}. They must have the same dimensions.
     - The confusion matrix 'M' is of dimension (num_classes, 2, 2).
-      M[i, 0, 0] corresponds to count/rate of true negatives of class i,
-      M[i, 0, 1] corresponds to count/rate of false positives of class i,
-      M[i, 1, 0] corresponds to count/rate of false negatives of class i,
-      M[i, 1, 1] corresponds to count/rate of true positives of class i.
-    - The classes present in M are indexed as 0, ..., num_classes-1 as can be inferred from above.
+
+      * M[i, 0, 0] corresponds to count/rate of true negatives of class i
+      * M[i, 0, 1] corresponds to count/rate of false positives of class i
+      * M[i, 1, 0] corresponds to count/rate of false negatives of class i
+      * M[i, 1, 1] corresponds to count/rate of true positives of class i
+
+    - The classes present in M are indexed as 0, ... , num_classes-1 as can be inferred from above.
 
     Args:
         num_classes (int): Number of classes, should be > 1.
