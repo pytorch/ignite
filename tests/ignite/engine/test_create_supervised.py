@@ -2,6 +2,7 @@ import os
 from distutils.version import LooseVersion
 from importlib.util import find_spec
 from typing import Optional, Union
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -11,7 +12,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, supervised_training_step_tpu
 from ignite.metrics import MeanSquaredError
 
 
@@ -135,10 +136,20 @@ def test_create_supervised_trainer_apex_error():
         _test_create_supervised_trainer(amp_mode="apex")
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) > LooseVersion("1.6.0"), reason="Skip if > 1.6.0")
-def test_create_supervised_trainer_amp_error():
+@pytest.fixture
+def mock_torch_cuda_amp_module():
+    with patch.dict(
+        "sys.modules",
+        {"torch.cuda.amp": None, "torch.cuda.amp.grad_scaler": None, "torch.cuda.amp.autocast_mode": None},
+    ):
+        yield torch
+
+
+def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
     with pytest.raises(ModuleNotFoundError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
+    with pytest.raises(ModuleNotFoundError, match="Please install torch>=1.6.0 to use scaler argument."):
+        _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
@@ -196,6 +207,12 @@ def test_create_supervised_trainer_on_cuda_apex_scaler():
         _test_create_supervised_trainer(
             model_device=model_device, trainer_device=trainer_device, amp_mode="apex", scaler=scaler
         )
+
+
+@pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
+def test_supervised_training_step_tpu_no_xla():
+    with pytest.raises(ModuleNotFoundError, match="torch_xla cannot be imported, please install PyTorch XLA."):
+        supervised_training_step_tpu(model=None, optimizer=None, loss_fn=None)
 
 
 @pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
