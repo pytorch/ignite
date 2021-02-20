@@ -14,7 +14,7 @@ import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
 from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+from ignite.handlers import Checkpoint, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
 
@@ -85,29 +85,8 @@ def training(local_rank, config):
 
     # We define two evaluators as they wont have exactly similar roles:
     # - `evaluator` will save the best model based on validation score
-
-    def eval_step(engine, batch):
-        model.eval()
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        token_type_ids = batch["token_type_ids"]
-        labels = batch["label"].view(-1, 1)
-
-        if input_ids.device != device:
-            input_ids = input_ids.to(device, non_blocking=True, dtype=torch.long)
-            attention_mask = attention_mask.to(device, non_blocking=True, dtype=torch.long)
-            token_type_ids = token_type_ids.to(device, non_blocking=True, dtype=torch.long)
-            labels = labels.to(device, non_blocking=True, dtype=torch.float)
-
-        output = model(input_ids, attention_mask, token_type_ids)
-        output = output.cpu().detach()
-        labels = labels.cpu().detach()
-        return output, labels
-
-    evaluator = Engine(eval_step)
-    train_evaluator = Engine(eval_step)
-    utils.attach_metrics(train_evaluator, metrics)
-    utils.attach_metrics(evaluator, metrics)
+    evaluator = create_evaluator(model, metrics, config, tag="val")
+    train_evaluator = create_evaluator(model, metrics, config, tag="train")
 
     def run_validation(engine):
         epoch = trainer.state.epoch
@@ -116,7 +95,9 @@ def training(local_rank, config):
         state = evaluator.run(test_loader)
         log_metrics(logger, epoch, state.times["COMPLETED"], "Test", state.metrics)
 
-    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=config["validate_every"]) | Events.COMPLETED, run_validation)
+    trainer.add_event_handler(
+        Events.EPOCH_COMPLETED(every=config["validate_every"]) | Events.COMPLETED | Events.STARTED, run_validation
+    )
 
     if rank == 0:
         # Setup TensorBoard logging on trainer and evaluators. Logged values are:
@@ -124,12 +105,14 @@ def training(local_rank, config):
         #  - Learning rate
         #  - Evaluation train/test metrics
         evaluators = {"training": train_evaluator, "test": evaluator}
-        tb_logger = common.setup_tb_logging(output_path, trainer, optimizer, evaluators=evaluators)
+        tb_logger = common.setup_tb_logging(
+            output_path, trainer, optimizer, evaluators=evaluators, log_every_iters=config["log_every_iters"]
+        )
 
     # Store 2 best models by validation accuracy starting from num_epochs / 2:
     best_model_handler = Checkpoint(
         {"model": model},
-        get_save_handler(config),
+        utils.get_save_handler(config),
         filename_prefix="best",
         n_saved=2,
         global_step_transform=global_step_from_engine(trainer),
@@ -152,11 +135,11 @@ def training(local_rank, config):
 
 def run(
     seed=543,
-    data_dir="./tmp/data",
-    output_dir="./tmp/output-imdb/",
+    data_dir="/tmp/data",
+    output_dir="/tmp/output-imdb/",
     model="bert-base-uncased",
-    model_dir="./tmp/model",
-    tokenizer_dir="./tmp/tokenizer",
+    model_dir="/tmp/model",
+    tokenizer_dir="/tmp/tokenizer",
     num_classes=1,
     dropout=0.3,
     n_fc=768,
@@ -167,7 +150,7 @@ def run(
     num_epochs=3,
     learning_rate=5e-5,
     num_warmup_epochs=0,
-    validate_every=3,
+    validate_every=1,
     checkpoint_every=1000,
     backend=None,
     resume_from=None,
@@ -180,12 +163,12 @@ def run(
     """Main entry to fintune a transformer model on the IMDB dataset for sentiment classification.
     Args:
         seed (int): random state seed to set. Default, 543.
-        data_dir (str): dataset cache directory. Default, "./tmp/data".
-        output_path (str): output path. Default, "./tmp/output-IMDB".
+        data_dir (str): dataset cache directory. Default, "/tmp/data".
+        output_path (str): output path. Default, "/tmp/output-IMDB".
         model (str): model name (from transformers) to setup model,tokenize and config to train. Default,
         "bert-base-uncased".
-        model_dir (str): cache directory to download the pretrained model. Default, "./tmp/model".
-        tokenizer_dir (str) : tokenizer cache directory. Default, "./tmp/tokenizer".
+        model_dir (str): cache directory to download the pretrained model. Default, "/tmp/model".
+        tokenizer_dir (str) : tokenizer cache directory. Default, "/tmp/tokenizer".
         num_classes (int) : number of target classes. Default, 1 (binary classification).
         dropout (float) : dropout probability. Default, 0.3.
         n_fc (int) : number of neurons in the last fully connected layer. Default, 768.
@@ -352,16 +335,21 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     metric_names = [
         "batch loss",
     ]
+    if config["log_every_iters"] == 0:
+        # Disable logging training metrics:
+        metric_names = None
+        config["log_every_iters"] = 15
 
     common.setup_common_training_handlers(
         trainer=trainer,
         train_sampler=train_sampler,
         to_save=to_save,
         save_every_iters=config["checkpoint_every"],
-        save_handler=get_save_handler(config),
+        save_handler=utils.get_save_handler(config),
         lr_scheduler=lr_scheduler,
-        output_names=metric_names if config["log_every_iters"] > 0 else None,
-        with_pbars=False,
+        output_names=metric_names,
+        log_every_iters=config["log_every_iters"],
+        with_pbars=not config["with_clearml"],
         clear_cuda_cache=False,
     )
 
@@ -376,13 +364,37 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     return trainer
 
 
-def get_save_handler(config):
-    if config["with_clearml"]:
-        from ignite.contrib.handlers.clearml_logger import ClearMLSaver
+def create_evaluator(model, metrics, config, tag="val"):
+    with_amp = config["with_amp"]
+    device = idist.device()
 
-        return ClearMLSaver(dirname=config["output_dir"])
+    @torch.no_grad()
+    def evaluate_step(engine, batch):
+        model.eval()
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        token_type_ids = batch["token_type_ids"]
+        labels = batch["label"].view(-1, 1)
 
-    return DiskSaver(config["output_dir"], require_empty=False)
+        if input_ids.device != device:
+            input_ids = input_ids.to(device, non_blocking=True, dtype=torch.long)
+            attention_mask = attention_mask.to(device, non_blocking=True, dtype=torch.long)
+            token_type_ids = token_type_ids.to(device, non_blocking=True, dtype=torch.long)
+            labels = labels.to(device, non_blocking=True, dtype=torch.float)
+
+        with autocast(enabled=with_amp):
+            output = model(input_ids, attention_mask, token_type_ids)
+        return output, labels
+
+    evaluator = Engine(evaluate_step)
+
+    for name, metric in metrics.items():
+        metric.attach(evaluator, name)
+
+    if idist.get_rank() == 0 and (not config["with_clearml"]):
+        common.ProgressBar(desc=f"Evaluation ({tag})", persist=False).attach(evaluator)
+
+    return evaluator
 
 
 if __name__ == "__main__":

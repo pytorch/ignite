@@ -4,6 +4,8 @@ from datasets import load_dataset
 from model import TransformerModel
 from transformers import AutoTokenizer
 
+from ignite.handlers import DiskSaver
+
 
 def get_tokenizer(tokenizer_name, tokenizer_dir):
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir=tokenizer_dir, do_lower_case=True)
@@ -30,6 +32,10 @@ def thresholded_output_transform(output):
     return torch.round(torch.sigmoid(y_pred)), y
 
 
-def attach_metrics(evaluator, metrics):
-    for name, metric in metrics.items():
-        metric.attach(evaluator, name)
+def get_save_handler(config):
+    if config["with_clearml"]:
+        from ignite.contrib.handlers.clearml_logger import ClearMLSaver
+
+        return ClearMLSaver(dirname=config["output_dir"])
+
+    return DiskSaver(config["output_dir"], require_empty=False)

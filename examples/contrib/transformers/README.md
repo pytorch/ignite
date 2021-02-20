@@ -32,6 +32,7 @@ Run the example on a single GPU:
 ```bash
 python main.py run
 ```
+If needed, please, adjust the batch size to your GPU device with `--batch_size` argument.
 
 For details on accepted arguments:
 
@@ -93,6 +94,7 @@ VERSION = "nightly"
 from main import run
 run(backend="xla-tpu", nproc_per_node=8)
 ```
+
 ## ClearML fileserver
 
 If `ClearML` server is used (i.e. `--with_clearml` argument), the configuration to upload artifact must be done by
