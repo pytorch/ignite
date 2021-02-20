@@ -1,5 +1,4 @@
 import os
-from unittest import TestCase
 
 import numpy as np
 import pytest
@@ -26,13 +25,6 @@ def test_num_classes_wrong_input():
 
 def test_multiclass_wrong_inputs():
     cm = MultiLabelConfusionMatrix(10)
-
-    with pytest.raises(
-        ValueError,
-        match=(r"Argument must consist of a Python Sequence of two tensors such that the first is the predicted" 
-        r" tensor and the second is the ground-truth tensor")
-    ):
-        cm.update([torch.rand(10, 3), None])
 
     with pytest.raises(
         ValueError, match=r"y_pred must at least have shape \(batch_size, num_classes \(currently set to 10\), ...\)"
@@ -223,66 +215,61 @@ def test_simple_2D_input():
     num_iters = 100
     num_samples = 100
     num_classes = 10
+    torch.manual_seed(0)
     for _ in range(num_iters):
-        target = np.random.randint(0, 2, size=(num_samples, num_classes))
-        prediction = np.random.randint(0, 2, size=(num_samples, num_classes))
-        sklearn_CM = multilabel_confusion_matrix(target, prediction)
+        target = torch.randint(0, 2, size=(num_samples, num_classes))
+        prediction = torch.randint(0, 2, size=(num_samples, num_classes))
+        sklearn_CM = multilabel_confusion_matrix(target.numpy(), prediction.numpy())
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
+        mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
-
-    return
 
 
 def test_simple_ND_input():
 
-    # 3D tests
     num_iters = 100
     num_samples = 100
     num_classes = 10
-    size_3d = 4
+    torch.manual_seed(0)
 
+    size_3d = 4
     for _ in range(num_iters):  # 3D tests
-        target = np.random.randint(0, 2, size=(num_samples, num_classes, size_3d))
-        prediction = np.random.randint(0, 2, size=(num_samples, num_classes, size_3d))
+        target = torch.randint(0, 2, size=(num_samples, num_classes, size_3d))
+        prediction = torch.randint(0, 2, size=(num_samples, num_classes, size_3d))
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
+        mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
-        target_reshaped = target.transpose(0, 2, 1).reshape(size_3d * num_samples, num_classes)
-        prediction_reshaped = prediction.transpose(0, 2, 1).reshape(size_3d * num_samples, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped, prediction_reshaped)
+        target_reshaped = target.permute(0, 2, 1).reshape(size_3d * num_samples, num_classes)
+        prediction_reshaped = prediction.permute(0, 2, 1).reshape(size_3d * num_samples, num_classes)
+        sklearn_CM = multilabel_confusion_matrix(target_reshaped.numpy(), prediction_reshaped.numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_4d = 4
     for _ in range(num_iters):  # 4D tests
-        target = np.random.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d))
-        prediction = np.random.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d))
+        target = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d))
+        prediction = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d))
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
+        mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
-        target_reshaped = target.transpose(0, 2, 3, 1).reshape(size_3d * size_4d * num_samples, num_classes)
-        prediction_reshaped = prediction.transpose(0, 2, 3, 1).reshape(size_3d * size_4d * num_samples, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped, prediction_reshaped)
+        target_reshaped = target.permute(0, 2, 3, 1).reshape(size_3d * size_4d * num_samples, num_classes)
+        prediction_reshaped = prediction.permute(0, 2, 3, 1).reshape(size_3d * size_4d * num_samples, num_classes)
+        sklearn_CM = multilabel_confusion_matrix(target_reshaped.numpy(), prediction_reshaped.numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_5d = 4
     for _ in range(num_iters):  # 5D tests
-        target = np.random.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d, size_5d))
-        prediction = np.random.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d, size_5d))
+        target = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d, size_5d))
+        prediction = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d, size_5d))
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
+        mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
-        target_reshaped = target.transpose(0, 2, 3, 4, 1).reshape(
+        target_reshaped = target.permute(0, 2, 3, 4, 1).reshape(size_3d * size_4d * size_5d * num_samples, num_classes)
+        prediction_reshaped = prediction.permute(0, 2, 3, 4, 1).reshape(
             size_3d * size_4d * size_5d * num_samples, num_classes
         )
-        prediction_reshaped = prediction.transpose(0, 2, 3, 4, 1).reshape(
-            size_3d * size_4d * size_5d * num_samples, num_classes
-        )
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped, prediction_reshaped)
+        sklearn_CM = multilabel_confusion_matrix(target_reshaped.numpy(), prediction_reshaped.numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
-
-    return
 
 
 def test_simple_batched():
@@ -291,78 +278,75 @@ def test_simple_batched():
     num_samples = 100
     num_classes = 10
     batch_size = 1
+    torch.manual_seed(0)
 
-    for _ in range(num_iters):
+    for _ in range(num_iters):  # 2D tests
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        target = np.random.randint(0, 2, size=(1, num_classes))
-        prediction = np.random.randint(0, 2, size=(1, num_classes))
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
-        for _ in range(int(num_samples / batch_size) - 1):
-            target_sample = np.random.randint(0, 2, size=(1, num_classes))
-            prediction_sample = np.random.randint(0, 2, size=(1, num_classes))
-            mlcm.update([torch.tensor(prediction_sample), torch.tensor(target_sample)])
-            target = np.concatenate((target, target_sample))
-            prediction = np.concatenate((prediction, prediction_sample))
+        targets = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes))
+        predictions = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes))
+        for i in range(int(num_samples / batch_size)):
+            target_sample = targets[i]
+            prediction_sample = predictions[i]
+            mlcm.update([prediction_sample, target_sample])
 
         ignite_CM = mlcm.compute().numpy()
-        sklearn_CM = multilabel_confusion_matrix(target, prediction)
+        targets_reshaped = targets.reshape(-1, num_classes)
+        predictions_reshaped = predictions.reshape(-1, num_classes)
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_3d = 4
     for _ in range(num_iters):  # 3D tests
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        target = np.random.randint(0, 2, size=(1, num_classes, size_3d))
-        prediction = np.random.randint(0, 2, size=(1, num_classes, size_3d))
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
-        for _ in range(int(num_samples / batch_size) - 1):
-            target_sample = np.random.randint(0, 2, size=(1, num_classes, size_3d))
-            prediction_sample = np.random.randint(0, 2, size=(1, num_classes, size_3d))
-            mlcm.update([torch.tensor(prediction_sample), torch.tensor(target_sample)])
-            target = np.concatenate((target, target_sample))
-            prediction = np.concatenate((prediction, prediction_sample))
+        targets = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d))
+        predictions = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d))
+        for i in range(int(num_samples / batch_size)):
+            target_sample = targets[i]
+            prediction_sample = predictions[i]
+            mlcm.update([prediction_sample, target_sample])
 
         ignite_CM = mlcm.compute().numpy()
-        target_reshaped = target.transpose((0, 2, 1)).reshape(-1, num_classes)
-        prediction_reshaped = prediction.transpose((0, 2, 1)).reshape(-1, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped, prediction_reshaped)
+        targets_reshaped = targets.permute(0, 1, 3, 2).reshape(-1, num_classes)
+        predictions_reshaped = predictions.permute(0, 1, 3, 2).reshape(-1, num_classes)
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_4d = 4
     for _ in range(num_iters):  # 4D tests
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        target = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d))
-        prediction = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d))
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
-        for _ in range(int(num_samples / batch_size) - 1):
-            target_sample = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d))
-            prediction_sample = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d))
-            mlcm.update([torch.tensor(prediction_sample), torch.tensor(target_sample)])
-            target = np.concatenate((target, target_sample))
-            prediction = np.concatenate((prediction, prediction_sample))
+        targets = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d, size_4d))
+        predictions = torch.randint(
+            0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d, size_4d)
+        )
+        for i in range(int(num_samples / batch_size)):
+            target_sample = targets[i]
+            prediction_sample = predictions[i]
+            mlcm.update([prediction_sample, target_sample])
 
         ignite_CM = mlcm.compute().numpy()
-        target_reshaped = target.transpose((0, 2, 3, 1)).reshape(-1, num_classes)
-        prediction_reshaped = prediction.transpose((0, 2, 3, 1)).reshape(-1, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped, prediction_reshaped)
+        targets_reshaped = targets.permute(0, 1, 3, 4, 2).reshape(-1, num_classes)
+        predictions_reshaped = predictions.permute(0, 1, 3, 4, 2).reshape(-1, num_classes)
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_5d = 4
     for _ in range(num_iters):  # 5D tests
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
-        target = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d, size_5d))
-        prediction = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d, size_5d))
-        mlcm.update([torch.tensor(prediction), torch.tensor(target)])
-        for _ in range(int(num_samples / batch_size) - 1):
-            target_sample = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d, size_5d))
-            prediction_sample = np.random.randint(0, 2, size=(1, num_classes, size_3d, size_4d, size_5d))
-            mlcm.update([torch.tensor(prediction_sample), torch.tensor(target_sample)])
-            target = np.concatenate((target, target_sample))
-            prediction = np.concatenate((prediction, prediction_sample))
+        targets = torch.randint(
+            0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d, size_4d, size_5d)
+        )
+        predictions = torch.randint(
+            0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d, size_4d, size_5d)
+        )
+        for i in range(int(num_samples / batch_size)):
+            target_sample = targets[i]
+            prediction_sample = predictions[i]
+            mlcm.update([prediction_sample, target_sample])
 
         ignite_CM = mlcm.compute().numpy()
-        target_reshaped = target.transpose((0, 2, 3, 4, 1)).reshape(-1, num_classes)
-        prediction_reshaped = prediction.transpose((0, 2, 3, 4, 1)).reshape(-1, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped, prediction_reshaped)
+        targets_reshaped = targets.permute(0, 1, 3, 4, 5, 2).reshape(-1, num_classes)
+        predictions_reshaped = predictions.permute(0, 1, 3, 4, 5, 2).reshape(-1, num_classes)
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
 

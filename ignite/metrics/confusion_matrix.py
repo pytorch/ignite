@@ -14,7 +14,7 @@ __all__ = [
     "DiceCoefficient",
     "cmAccuracy",
     "cmPrecision",
-    "cmRecall",
+    "cmRecall"
 ]
 
 
