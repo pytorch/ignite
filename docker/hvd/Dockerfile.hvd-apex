@@ -6,10 +6,7 @@ ARG PTH_VERSION
 # 1/Building apex with pytorch:*-devel
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-hvd-builder
 
-# Temporary hack to install pth 1.7.1
-RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
-
-ARG ARG_TORCH_CUDA_ARCH_LIST="6.0;6.1;6.2;7.0;7.5"
+ARG ARG_TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX 8.0"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
 
 # Install git
@@ -37,9 +34,6 @@ RUN apt-get update && apt-get install -y git && \
 # Build runtime image
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
 
-# Temporary hack to install pth 1.7.1
-RUN conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
-
 # Apex
 COPY --from=apex-hvd-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
@@ -48,15 +42,24 @@ RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
 # Install tzdata / git
 RUN apt-get update && \
     ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
-    apt-get install -y tzdata && \
+    apt-get -y install --no-install-recommends tzdata git && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
-    apt-get -y install --no-install-recommends git && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Ignite main dependencies
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
                                          tqdm
+
+# replace pillow with pillow-simd
+RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
+    pip uninstall -y pillow && \
+    CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
+    apt-get remove -y g++ && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \

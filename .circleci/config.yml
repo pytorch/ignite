@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.0-cuda11.0-cudnn8-runtime"
+    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.0-cuda11.0-cudnn8-devel"
+    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -20,7 +20,7 @@ parameters:
     default: false
   build_docker_image_pytorch_version:
     type: string
-    default: "1.7.0-cuda11.0-cudnn8"
+    default: "1.7.1-cuda11.0-cudnn8"
   build_docker_image_hvd_version:
     type: string
     default: "v0.21.0"
@@ -111,6 +111,9 @@ install_dependencies: &install_dependencies
       name: Install dependencies
       command: |
         docker exec -it pthd pip install -r requirements-dev.txt
+        export install_apex_cmd='pip install -v --disable-pip-version-check --no-cache-dir git+https://github.com/NVIDIA/apex'
+        export install_git_apex_cmd="apt-get update && apt-get install -y --no-install-recommends git && ${install_apex_cmd}"
+        docker exec -it pthd /bin/bash -c "$install_git_apex_cmd"
         export install_ignite_cmd='python setup.py install'
         docker exec -it pthd /bin/bash -c "$install_ignite_cmd"
 
@@ -195,7 +198,7 @@ jobs:
           name: Install dependencies
           command: |
             conda --version
-            conda install -y pytorch torchvision cudatoolkit=10.1 -c pytorch
+            conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
 
