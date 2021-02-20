@@ -69,6 +69,8 @@ def _test_create_supervised_trainer(
             assert state.output[0].dtype is torch.half
             if scaler and isinstance(scaler, bool):
                 assert hasattr(state, "scaler")
+            else:
+                assert not hasattr(state, "scaler")
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
