@@ -302,7 +302,7 @@ class EventsList:
 
     or
 
-     .. code-block:: python
+    .. code-block:: python
 
         @engine.on(Events.STARTED | Events.COMPLETED | Events.ITERATION_STARTED(every=3))
         def call_on_events(engine):

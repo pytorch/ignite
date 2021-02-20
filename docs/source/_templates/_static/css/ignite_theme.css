@@ -161,3 +161,10 @@ article.pytorch-article div.highlight pre {
   font-style: italic;
   font-weight: bold;
 }
+
+/* Footer */
+
+footer table {
+  width: 100%;
+  margin-bottom: 1rem;
+}
