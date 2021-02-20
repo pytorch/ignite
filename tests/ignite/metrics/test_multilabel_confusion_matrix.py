@@ -228,7 +228,7 @@ def test_simple_2D_input():
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=True)
         mlcm.update([prediction, target])
         ignite_CM_normalized = mlcm.compute().numpy()
-        sklearn_CM_normalized = sklearn_CM / sklearn_CM.sum(axis=(1,2))[:,None,None]
+        sklearn_CM_normalized = sklearn_CM / sklearn_CM.sum(axis=(1, 2))[:, None, None]
         assert np.allclose(sklearn_CM_normalized, ignite_CM_normalized)
 
 
