@@ -31,7 +31,7 @@ class MultiLabelConfusionMatrix(Metric):
     - The classes present in M are indexed as 0, ..., num_classes-1 as can be inferred from above.
 
     Args:
-        num_classes (int): Number of classes, should be > 1. See notes for more details.
+        num_classes (int): Number of classes, should be > 1.
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -39,6 +39,8 @@ class MultiLabelConfusionMatrix(Metric):
         device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+
+    .. versionadded:: 0.5.0
 
     """
 

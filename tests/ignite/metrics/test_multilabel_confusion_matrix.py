@@ -211,8 +211,9 @@ def _test_distrib_accumulator_device(device):
 
 
 def test_simple_2D_input():
+    # Tests for 2D inputs with normalized = True and False
 
-    num_iters = 100
+    num_iters = 5
     num_samples = 100
     num_classes = 10
     torch.manual_seed(0)
@@ -224,11 +225,16 @@ def test_simple_2D_input():
         mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=True)
+        mlcm.update([prediction, target])
+        ignite_CM_normalized = mlcm.compute().numpy()
+        sklearn_CM_normalized = sklearn_CM / sklearn_CM.sum(axis=(1,2))[:,None,None]
+        assert np.allclose(sklearn_CM_normalized, ignite_CM_normalized)
 
 
 def test_simple_ND_input():
 
-    num_iters = 100
+    num_iters = 5
     num_samples = 100
     num_classes = 10
     torch.manual_seed(0)
@@ -274,7 +280,7 @@ def test_simple_ND_input():
 
 def test_simple_batched():
 
-    num_iters = 100
+    num_iters = 5
     num_samples = 100
     num_classes = 10
     batch_size = 1
@@ -350,73 +356,73 @@ def test_simple_batched():
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
 
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+# def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
-    device = torch.device(f"cuda:{local_rank}")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-
-    device = torch.device("cpu")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
+#     device = torch.device(f"cuda:{local_rank}")
+#     _test_distrib_multiclass_images(device)
+#     _test_distrib_accumulator_device(device)
 
 
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_distrib_hvd(gloo_hvd_executor):
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# def test_distrib_cpu(distributed_context_single_node_gloo):
 
-    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
-    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-
-    gloo_hvd_executor(_test_distrib_multiclass_images, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
+#     device = torch.device("cpu")
+#     _test_distrib_multiclass_images(device)
+#     _test_distrib_accumulator_device(device)
 
 
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+# @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+# def test_distrib_hvd(gloo_hvd_executor):
+
+#     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+#     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+#     gloo_hvd_executor(_test_distrib_multiclass_images, (device,), np=nproc, do_init=True)
+#     gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
 
 
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
+# @pytest.mark.multinode_distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+# def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+#     device = torch.device("cpu")
+#     _test_distrib_multiclass_images(device)
+#     _test_distrib_accumulator_device(device)
 
 
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_single_device_xla():
-    device = idist.device()
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
+# @pytest.mark.multinode_distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+# def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+#     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+#     _test_distrib_multiclass_images(device)
+#     _test_distrib_accumulator_device(device)
 
 
-def _test_distrib_xla_nprocs(index):
-    device = idist.device()
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
+# @pytest.mark.tpu
+# @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+# @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+# def test_distrib_single_device_xla():
+#     device = idist.device()
+#     _test_distrib_multiclass_images(device)
+#     _test_distrib_accumulator_device(device)
 
 
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+# def _test_distrib_xla_nprocs(index):
+#     device = idist.device()
+#     _test_distrib_multiclass_images(device)
+#     _test_distrib_accumulator_device(device)
+
+
+# @pytest.mark.tpu
+# @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+# @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+# def test_distrib_xla_nprocs(xmp_executor):
+#     n = int(os.environ["NUM_TPU_WORKERS"])
+#     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
