@@ -17,6 +17,14 @@ on:
       - "docs/**"
       - "conda.recipe"
       - "**.md"
+  pull_request_target:
+    paths-ignore:
+      - "assets/**"
+      - ".circleci/**"
+      - "docker/**"
+      - "docs/**"
+      - "conda.recipe"
+      - "**.md"
 
 jobs:
   code-style:
