@@ -104,7 +104,7 @@ def supervised_training_step_amp(
         loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
-            Device can be CPU, GPU or TPU.
+            Device can be CPU, GPU.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
@@ -160,7 +160,7 @@ def supervised_training_step_apex(
         loss_fn (torch.nn loss function): the loss function to use.
         device (str, optional): device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
-            Device can be CPU, GPU or TPU.
+            Device can be CPU, GPU.
         non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
