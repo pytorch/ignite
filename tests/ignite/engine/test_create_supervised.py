@@ -190,6 +190,7 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+@pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
 def test_create_supervised_trainer_on_cuda_apex():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
