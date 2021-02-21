@@ -121,8 +121,8 @@ def supervised_training_step_amp(
 
     try:
         from torch.cuda.amp import autocast
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError("Please install torch>=1.6.0 to use amp_mode='amp'.")
+    except ImportError:
+        raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
@@ -260,8 +260,8 @@ def _check_arg(
         elif amp_mode == "amp" and isinstance(scaler, bool):
             try:
                 from torch.cuda.amp import GradScaler
-            except ModuleNotFoundError:
-                raise ModuleNotFoundError("Please install torch>=1.6.0 to use scaler argument.")
+            except ImportError:
+                raise ImportError("Please install torch>=1.6.0 to use scaler argument.")
             scaler = GradScaler(enabled=True)
 
     if on_tpu:

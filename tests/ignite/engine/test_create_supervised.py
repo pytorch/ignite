@@ -149,9 +149,9 @@ def mock_torch_cuda_amp_module():
 
 
 def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
-    with pytest.raises(ModuleNotFoundError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
-    with pytest.raises(ModuleNotFoundError, match="Please install torch>=1.6.0 to use scaler argument."):
+    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
