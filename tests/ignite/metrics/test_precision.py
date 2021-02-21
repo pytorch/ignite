@@ -792,7 +792,7 @@ def _test_distrib_integration_multilabel(device):
 
         engine = Engine(update)
 
-        pr = Precision(average=average, is_multilabel=True)
+        pr = Precision(average=average, is_multilabel=True, device=metric_device)
         pr.attach(engine, "pr")
 
         data = list(range(n_iters))
@@ -808,13 +808,13 @@ def _test_distrib_integration_multilabel(device):
         else:
             assert res == res2
 
+        np_y_preds = to_numpy_multilabel(y_preds)
+        np_y_true = to_numpy_multilabel(y_true)
+        assert pr._type == "multilabel"
+        res = res if average else res.mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            true_res = precision_score(
-                to_numpy_multilabel(y_true), to_numpy_multilabel(y_preds), average="samples" if average else None
-            )
-
-        assert pytest.approx(res) == true_res
+            assert precision_score(np_y_true, np_y_preds, average="samples") == pytest.approx(res)
 
     metric_devices = ["cpu"]
     if device.type != "xla":
@@ -823,16 +823,16 @@ def _test_distrib_integration_multilabel(device):
         for metric_device in metric_devices:
             _test(average=True, n_epochs=1, metric_device=metric_device)
             _test(average=True, n_epochs=2, metric_device=metric_device)
+            _test(average=False, n_epochs=1, metric_device=metric_device)
+            _test(average=False, n_epochs=2, metric_device=metric_device)
 
-    if idist.get_world_size() > 1:
-        pr = Precision(average=False, is_multilabel=True)
-        y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
-        y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
-        pr.update((y_pred, y))
-        pr_compute1 = pr.compute()
-        pr_compute2 = pr.compute()
-        assert len(pr_compute1) == idist.get_world_size() * 4 * 6 * 8
-        assert (pr_compute1 == pr_compute2).all()
+    pr1 = Precision(is_multilabel=True, average=True)
+    pr2 = Precision(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
+    pr1.update((y_pred, y))
+    pr2.update((y_pred, y))
+    assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
 
 
 def _test_distrib_accumulator_device(device):
