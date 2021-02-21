@@ -131,6 +131,7 @@ def test_create_supervised_trainer_traced_with_cpu():
     _test_create_supervised_trainer(trainer_device="cpu", trace=True)
 
 
+@pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
 def test_create_supervised_trainer_apex_error():
     with pytest.raises(
         ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
