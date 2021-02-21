@@ -61,3 +61,9 @@ jobs:
         shell: bash -l {0}
         run: |
           pytest tests -vvv
+
+      - uses: JasonEtco/create-an-issue@v2
+        name: Create issue if pytorch version tests failed
+        if: failure()
+        with:
+          filename: .github/failed_schedule_issue_template.md
