@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
-from warnings import warn
 
 import torch
 
@@ -253,10 +252,7 @@ def _check_arg(
 
     if scaler:
         if amp_mode != "amp":
-            warn(
-                f"scaler argument is {scaler}, but amp_mode is {amp_mode}."
-                " scaler argument will be ignored. Consider using amp_mode='amp'."
-            )
+            raise ValueError(f"scaler argument is {scaler}, but amp_mode is {amp_mode}. Consider using amp_mode='amp'.")
         elif amp_mode == "amp" and isinstance(scaler, bool):
             try:
                 from torch.cuda.amp import GradScaler

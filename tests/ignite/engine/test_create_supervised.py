@@ -158,10 +158,14 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
-    with pytest.warns(UserWarning, match=f"scaler argument is {scaler}, but amp_mode is None."):
+    with pytest.raises(ValueError, match=f"scaler argument is {scaler}, but amp_mode is None."):
         _test_create_supervised_trainer(amp_mode=None, scaler=scaler)
-    with pytest.warns(UserWarning, match="scaler argument is True, but amp_mode is None."):
+    with pytest.raises(ValueError, match="scaler argument is True, but amp_mode is None."):
         _test_create_supervised_trainer(amp_mode=None, scaler=True)
+    with pytest.raises(ValueError, match="scaler argument is True, but amp_mode is apex."):
+        _test_create_supervised_trainer(amp_mode="apex", scaler=True)
+    with pytest.raises(ValueError, match=f"scaler argument is {scaler}, but amp_mode is apex."):
+        _test_create_supervised_trainer(amp_mode="apex", scaler=scaler)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -195,22 +199,6 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
 def test_create_supervised_trainer_on_cuda_apex():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-@pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
-def test_create_supervised_trainer_on_cuda_apex_scaler():
-    model_device = trainer_device = "cuda"
-    scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
-    with pytest.warns(UserWarning, match="scaler argument is True, but amp_mode is apex."):
-        _test_create_supervised_trainer(
-            model_device=model_device, trainer_device=trainer_device, amp_mode="apex", scaler=True
-        )
-    with pytest.warns(UserWarning, match=f"scaler argument is {scaler}, but amp_mode is apex."):
-        _test_create_supervised_trainer(
-            model_device=model_device, trainer_device=trainer_device, amp_mode="apex", scaler=scaler
-        )
 
 
 @pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
