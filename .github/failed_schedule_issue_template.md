@@ -2,7 +2,6 @@
 title: Scheduled workflow failed
 labels:
   - bug
-  - "module: datasets"
 ---
 
 Oh no, something went wrong in the scheduled workflow **{{ env.GITHUB_WORKFLOW }}/{{ env.GITHUB_JOB }} with commit {{ env.GITHUB_SHA }}**.
