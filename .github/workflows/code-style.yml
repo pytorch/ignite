@@ -2,6 +2,8 @@ name: Format python code
 
 on:
   push:
+    branches:
+      - master
     paths-ignore:
       - "assets/**"
       - ".circleci/**"
@@ -10,6 +12,8 @@ on:
       - "conda.recipe"
       - "**.md"
   pull_request:
+    branches:
+      - master
     paths-ignore:
       - "assets/**"
       - ".circleci/**"
