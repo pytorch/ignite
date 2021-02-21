@@ -69,6 +69,15 @@ def supervised_training_step(
     Returns:
         Callable: update function.
 
+    Example::
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+
+        update_fn = supervised_training_step(model, optimizer, loss_fn, 'cuda')
+        trainer = Engine(update_fn)
+
     .. versionadded:: 0.5.0
     """
 
@@ -114,6 +123,16 @@ def supervised_training_step_amp(
 
     Returns:
         Callable: update function
+
+    Example::
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+        scaler = torch.cuda.amp.GradScaler(2**10)
+
+        update_fn = supervised_training_step_amp(model, optimizer, loss_fn, 'cuda', scaler=scaler)
+        trainer = Engine(update_fn)
 
     .. versionadded:: 0.5.0
     """
@@ -170,6 +189,15 @@ def supervised_training_step_apex(
     Returns:
         Callable: update function.
 
+    Example::
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+
+        update_fn = supervised_training_step_apex(model, optimizer, loss_fn, 'cuda')
+        trainer = Engine(update_fn)
+
     .. versionadded:: 0.5.0
     """
 
@@ -219,6 +247,15 @@ def supervised_training_step_tpu(
 
     Returns:
         Callable: update function.
+
+    Example::
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+
+        update_fn = supervised_training_step_tpu(model, optimizer, loss_fn, 'xla')
+        trainer = Engine(update_fn)
 
     .. versionadded:: 0.5.0
     """
