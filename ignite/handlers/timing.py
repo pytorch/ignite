@@ -10,7 +10,7 @@ class Timer:
     """ Timer object can be used to measure (average) time between events.
 
     Args:
-        average (bool, optional): if True, then when ``.value()`` method is called, the returned value
+        average: if True, then when ``.value()`` method is called, the returned value
             will be equal to total time measured, divided by the value of internal counter.
 
     Attributes:
