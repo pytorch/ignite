@@ -344,7 +344,7 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
         train_evaluator = ...
 
         cm = ConfusionMatrix(num_classes=num_classes)
-        JaccardIndex(cm, ignore_index=0).attach(train_evaluator, 'IoU')
+        JaccardIndex(cm, ignore_index=0).attach(train_evaluator, 'JaccardIndex')
 
         state = train_evaluator.run(train_dataset)
         # state.metrics['JaccardIndex'] -> tensor of shape (num_classes - 1, )
