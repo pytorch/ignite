@@ -50,7 +50,7 @@ class CohenKappa(EpochMetric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         weights (str): a string is used to define the type of Cohen's Kappa whether Non-Weighted or Linear or Quadratic
-            (default: `None`)
+            (default: "")
         check_compute_fn (bool): Default False. If True, `cohen_kappa_score
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>`_
             is run on the first batch of data to ensure there are
@@ -68,9 +68,9 @@ class CohenKappa(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, weights: str = None, check_compute_fn: bool = False):
+    def __init__(self, output_transform: Callable = lambda x: x, weights: str = "", check_compute_fn: bool = False):
 
-        if weights is None:
+        if weights == "":
             self.cohen_kappa_compute = non_weighted_cohen_kappa_compute_fn
         elif weights == "linear":
             self.cohen_kappa_compute = linear_cohen_kappa_compute_fn
