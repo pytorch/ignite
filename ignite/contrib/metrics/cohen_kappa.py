@@ -10,15 +10,15 @@ def non_weighted_cohen_kappa_compute_fn(y_preds: torch.Tensor, y_targets: torch.
         from sklearn.metrics import cohen_kappa_score
     except ImportError:
         raise RuntimeError("This contrib module requires sklearn to be installed.")
-    
+
     y_true = y_targets.numpy()
     y_pred = y_preds.numpy()
     return cohen_kappa_score(y_true, y_pred, weights=None)
 
 
 class NonWeightedCohenKappa(EpochMetric):
-    """Computes Cohen Kappa with no weights. Applying `sklearn.metrics.cohen_kappa_score <https://scikit-learn.org/stable/modules/
-    generated/sklearn.metrics.cohen_kappa_score.html>` .
+    """Computes Cohen Kappa with no weights. Applying `sklearn.metrics.cohen_kappa_score 
+    <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>` .
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
@@ -40,7 +40,7 @@ class NonWeightedCohenKappa(EpochMetric):
         non_weighted_cohen_kappa = NonWeightedCohenKappa(activated_output_transform)
 
     """
-    
+
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         super(NonWeightedCohenKappa, self).__init__(
             non_weighted_cohen_kappa_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
@@ -52,7 +52,7 @@ def linear_cohen_kappa_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor
         from sklearn.metrics import cohen_kappa_score
     except ImportError:
         raise RuntimeError("This contrib module requires sklearn to be installed.")
-    
+
     y_true = y_targets.numpy()
     y_pred = y_preds.numpy()
     return cohen_kappa_score(y_true, y_pred, weights='linear')
