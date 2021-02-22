@@ -326,8 +326,8 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
 
 
 def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
-    r"""Calculates the Jaccard Index using :class:`~ignite.metrics.ConfusionMatrix` metric.
-    This is the same like the IoU metric
+    r"""Calculates the Jaccard Index using :class:`~ignite.metrics.ConfusionMatrix` metric. Implementation is based on :meth:`~ignite.metrics.IoU`.
+
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
     Args:
