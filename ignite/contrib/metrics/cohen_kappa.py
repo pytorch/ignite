@@ -59,8 +59,8 @@ def linear_cohen_kappa_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor
 
 
 class LinearCohenKappa(EpochMetric):
-    """Computes Cohen Kappa with linear weights. Applying `sklearn.metrics.cohen_kappa_score <https://scikit-learn.org/stable/modules/
-    generated/sklearn.metrics.cohen_kappa_score.html>` .
+    """Computes Cohen Kappa with linear weights. Applying `sklearn.metrics.cohen_kappa_score 
+    <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>` .
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
@@ -82,7 +82,7 @@ class LinearCohenKappa(EpochMetric):
         lienar_cohen_kappa = LinearCohenKappa(activated_output_transform)
 
     """
-    
+
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         super(LinearCohenKappa, self).__init__(
             linear_cohen_kappa_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
@@ -94,15 +94,15 @@ def quadratic_cohen_kappa_compute_fn(y_preds: torch.Tensor, y_targets: torch.Ten
         from sklearn.metrics import cohen_kappa_score
     except ImportError:
         raise RuntimeError("This contrib module requires sklearn to be installed.")
-    
+
     y_true = y_targets.numpy()
     y_pred = y_preds.numpy()
     return cohen_kappa_score(y_true, y_pred, weights='quadratic')
 
 
 class QuadraticCohenKappa(EpochMetric):
-    """Computes Cohen Kappa with quadratic weights. Applying `sklearn.metrics.cohen_kappa_score <https://scikit-learn.org/stable/modules/
-    generated/sklearn.metrics.cohen_kappa_score.html>` .
+    """Computes Cohen Kappa with quadratic weights. Applying `sklearn.metrics.cohen_kappa_score 
+    <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>` .
 
     Args:
         output_transform (callable, optional): a callable that is used to transform the
@@ -124,7 +124,7 @@ class QuadraticCohenKappa(EpochMetric):
         quadratic_cohen_kappa = QuadraticCohenKappa(activated_output_transform)
 
     """
-    
+
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         super(QuadraticCohenKappa, self).__init__(
             quadratic_cohen_kappa_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
