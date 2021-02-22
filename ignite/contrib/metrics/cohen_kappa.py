@@ -52,7 +52,7 @@ class CohenKappa(EpochMetric):
         weights (str): a string is used to define the type of Cohen's Kappa whether Non-Weighted or Linear or Quadratic
             (default: `None`)
         check_compute_fn (bool): Default False. If True, `cohen_kappa_score
-            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>`_ 
+            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>`_
             is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
 
@@ -68,21 +68,16 @@ class CohenKappa(EpochMetric):
 
     """
 
-    def __init__(
-        self, 
-        output_transform: Callable = lambda x: x, 
-        weights: str = None,
-        check_compute_fn: bool = False
-        ):
+    def __init__(self, output_transform: Callable = lambda x: x, weights: str = None, check_compute_fn: bool = False):
 
         if weights is None:
             self.cohen_kappa_compute = non_weighted_cohen_kappa_compute_fn
-        elif weights == 'linear':
+        elif weights == "linear":
             self.cohen_kappa_compute = linear_cohen_kappa_compute_fn
-        elif weights == 'quadratic':
+        elif weights == "quadratic":
             self.cohen_kappa_compute = quadratic_cohen_kappa_compute_fn
         else:
-            raise ValueError("Weights must be None or linear or quadratic.")       
+            raise ValueError("Weights must be None or linear or quadratic.")
 
         super(CohenKappa, self).__init__(
             self.cohen_kappa_compute, output_transform=output_transform, check_compute_fn=check_compute_fn
