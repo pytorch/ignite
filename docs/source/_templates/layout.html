@@ -8,6 +8,7 @@
 {%- endif %}
 {%- set lang_attr = 'en' if language == None else (language | replace('_', '-')) %}
 {% import 'theme_variables.jinja' as theme_variables %}
+{% set show_netlify_badge = True %}
 
 <!DOCTYPE html>
 <!--[if IE 8]><html class="no-js lt-ie9" lang="{{ lang_attr }}" > <![endif]-->

@@ -10,8 +10,11 @@ __all__ = ["Recall"]
 
 
 class Recall(_BasePrecisionRecall):
-    """
-    Calculates recall for binary and multiclass data.
+    r"""Calculates recall for binary and multiclass data.
+
+    .. math:: \text{Recall} = \frac{ TP }{ TP + FN }
+
+    where :math:`\text{TP}` is true positives and :math:`\text{FN}` is false negatives.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
@@ -44,11 +47,6 @@ class Recall(_BasePrecisionRecall):
         In multilabel cases, if average is False, current implementation stores all input data (output and target) in
         as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
         than available RAM.
-
-    .. warning::
-
-        In multilabel cases, if average is False, current implementation does not work with distributed computations.
-        Results are not reduced across the GPUs. Computed result corresponds to the local rank's (single GPU) result.
 
 
     Args:

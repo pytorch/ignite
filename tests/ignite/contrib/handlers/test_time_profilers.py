@@ -782,7 +782,7 @@ def test_write_results_basic_profiler(dirname):
 
     file_length = 0
     with open(fp) as f:
-        for l in f:
+        for _ in f:
             file_length += 1
 
     assert file_length == (true_max_epochs * true_num_iters) + 1
@@ -805,7 +805,7 @@ def test_write_results_handlers_profiler(dirname):
 
     file_length = 0
     with open(fp) as f:
-        for l in f:
+        for _ in f:
             file_length += 1
 
     assert file_length == (true_max_epochs * true_num_iters) + 1

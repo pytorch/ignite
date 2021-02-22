@@ -17,12 +17,16 @@
 
 from argparse import ArgumentParser
 
-from torch.utils.data import DataLoader
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import SGD
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
+
+from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.metrics import Accuracy, Loss, RunningAverage
 
 try:
     import torch_xla.core.xla_model as xm
@@ -32,11 +36,6 @@ except ImportError:
         "\n\t- curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o xla-setup.py"
         "\n\t- python xla-setup.py --version 1.5"
     )
-
-from torch.utils.tensorboard import SummaryWriter
-
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss, RunningAverage
 
 
 class Net(nn.Module):

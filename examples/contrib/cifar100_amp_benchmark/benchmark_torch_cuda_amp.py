@@ -1,20 +1,15 @@
 import fire
-
 import torch
+from torch.cuda.amp import GradScaler, autocast
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-
-# Creates a GradScaler once at the beginning of training.
-from torch.cuda.amp import GradScaler, autocast
-
 from torchvision.models import wide_resnet50_2
-
-from ignite.engine import Events, Engine, create_supervised_evaluator, convert_tensor
-from ignite.metrics import Accuracy, Loss
-from ignite.handlers import Timer
-from ignite.contrib.handlers import ProgressBar
-
 from utils import get_train_eval_loaders
+
+from ignite.contrib.handlers import ProgressBar
+from ignite.engine import Engine, Events, convert_tensor, create_supervised_evaluator
+from ignite.handlers import Timer
+from ignite.metrics import Accuracy, Loss
 
 
 def main(dataset_path, batch_size=256, max_epochs=10):

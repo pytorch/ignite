@@ -81,7 +81,7 @@ def test_sync_as_xla_in_child_proc(xmp_executor):
 def test_idist_methods_in_xla_context():
     # We explicitly set _model as _SerialModel
     # then call idist.* methods and check that they give correct values
-    from ignite.distributed.utils import _set_model, _SerialModel
+    from ignite.distributed.utils import _SerialModel, _set_model
 
     _set_model(_SerialModel())
 
@@ -91,7 +91,7 @@ def test_idist_methods_in_xla_context():
 def _test_idist_methods_in_xla_context_in_child_proc(index):
     # We explicitly set _model as _SerialModel
     # then call idist.* methods and check that they give correct values
-    from ignite.distributed.utils import _set_model, _SerialModel
+    from ignite.distributed.utils import _SerialModel, _set_model
 
     _set_model(_SerialModel())
 

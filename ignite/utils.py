@@ -1,7 +1,10 @@
 import collections.abc as collections
+import functools
 import logging
 import random
-from typing import Any, Callable, Optional, Tuple, Type, Union, cast
+import sys
+import warnings
+from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union, cast
 
 import torch
 
@@ -55,14 +58,19 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     """Convert a tensor of indices of any shape `(N, ...)` to a
     tensor of one-hot indicators of shape `(N, num_classes, ...) and of type uint8. Output's device is equal to the
     input's device`.
+
+    .. versionchanged:: 0.4.3
+        This functions is now torchscriptable.
     """
-    onehot = torch.zeros(indices.shape[0], num_classes, *indices.shape[1:], dtype=torch.uint8, device=indices.device)
+    new_shape = (indices.shape[0], num_classes) + indices.shape[1:]
+    onehot = torch.zeros(new_shape, dtype=torch.uint8, device=indices.device)
     return onehot.scatter_(1, indices.unsqueeze(1), 1)
 
 
 def setup_logger(
     name: Optional[str] = None,
     level: int = logging.INFO,
+    stream: Optional[TextIO] = None,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
     distributed_rank: Optional[int] = None,
@@ -71,8 +79,9 @@ def setup_logger(
 
     Args:
         name (str, optional): new name for the logger. If None, the standard logger is used.
-        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG
-        format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`
+        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG.
+        stream (TextIO, optional): logging stream. If None, the standard stream is used (sys.stderr).
+        format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`.
         filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
         distributed_rank (int, optional): Optional, rank in distributed configuration to avoid logger setup for workers.
             If None, distributed_rank is initialized to the rank of process.
@@ -101,6 +110,8 @@ def setup_logger(
         # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
         # ...
 
+    .. versionchanged:: 0.4.3
+        Added ``stream`` parameter.
     """
     logger = logging.getLogger(name)
 
@@ -127,7 +138,7 @@ def setup_logger(
     else:
         logger.setLevel(level)
 
-        ch = logging.StreamHandler()
+        ch = logging.StreamHandler(stream=stream)
         ch.setLevel(level)
         ch.setFormatter(formatter)
         logger.addHandler(ch)
@@ -147,6 +158,8 @@ def manual_seed(seed: int) -> None:
     Args:
         seed (int): Random state seed
 
+    .. versionchanged:: 0.4.3
+        Added ``torch.cuda.manual_seed_all(seed)``.
     """
     random.seed(seed)
     torch.manual_seed(seed)
@@ -160,3 +173,34 @@ def manual_seed(seed: int) -> None:
         np.random.seed(seed)
     except ImportError:
         pass
+
+
+def deprecated(
+    deprecated_in: str, removed_in: str = "", reasons: Tuple[str, ...] = (), raise_exception: bool = False
+) -> Callable:
+
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    def decorator(func: F) -> F:
+        func_doc = func.__doc__ if func.__doc__ else ""
+        deprecation_warning = (
+            f"This function has been deprecated since version {deprecated_in}"
+            + (f" and will be removed in version {removed_in}" if removed_in else "")
+            + ".\n Please refer to the documentation for more details."
+        )
+
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Dict[str, Any]) -> Callable:
+            if raise_exception:
+                raise DeprecationWarning(deprecation_warning)
+            warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) else "")
+
+        for reason in reasons:
+            appended_doc += "\n\t- " + reason
+        wrapper.__doc__ = f"**Deprecated function**.\n\n    {func_doc}{appended_doc}"
+        return cast(F, wrapper)
+
+    return decorator

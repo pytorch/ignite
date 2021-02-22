@@ -808,13 +808,13 @@ def _test_distrib_integration_multilabel(device):
         else:
             assert res == res2
 
+        np_y_preds = to_numpy_multilabel(y_preds)
+        np_y_true = to_numpy_multilabel(y_true)
+        assert re._type == "multilabel"
+        res = res if average else res.mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            true_res = recall_score(
-                to_numpy_multilabel(y_true), to_numpy_multilabel(y_preds), average="samples" if average else None
-            )
-
-        assert pytest.approx(res) == true_res
+            assert recall_score(np_y_true, np_y_preds, average="samples") == pytest.approx(res)
 
     metric_devices = ["cpu"]
     if device.type != "xla":
@@ -823,22 +823,16 @@ def _test_distrib_integration_multilabel(device):
         for metric_device in metric_devices:
             _test(average=True, n_epochs=1, metric_device=metric_device)
             _test(average=True, n_epochs=2, metric_device=metric_device)
+            _test(average=False, n_epochs=1, metric_device=metric_device)
+            _test(average=False, n_epochs=2, metric_device=metric_device)
 
-    if idist.get_world_size() > 1:
-        with pytest.warns(
-            RuntimeWarning,
-            match="Precision/Recall metrics do not work in distributed setting when "
-            "average=False and is_multilabel=True",
-        ):
-            re = Recall(average=False, is_multilabel=True)
-
-        y_pred = torch.randint(0, 2, size=(4, 3, 6, 8))
-        y = torch.randint(0, 2, size=(4, 3, 6, 8)).long()
-        re.update((y_pred, y))
-        re_compute1 = re.compute()
-        re_compute2 = re.compute()
-        assert len(re_compute1) == 4 * 6 * 8
-        assert (re_compute1 == re_compute2).all()
+    re1 = Recall(is_multilabel=True, average=True)
+    re2 = Recall(is_multilabel=True, average=False)
+    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
+    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
+    re1.update((y_pred, y))
+    re2.update((y_pred, y))
+    assert re1.compute() == pytest.approx(re2.compute().mean().item())
 
 
 def _test_distrib_accumulator_device(device):

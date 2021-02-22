@@ -175,8 +175,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
         - Added Horovod distributed framework.
         - Added ``sync_bn`` argument.
 
-    .. versionchanged:: 0.5.0
-        Added ``kwargs`` for `torch.nn.parallel.DataParallel` or `torch.nn.paralle.DistributedDataParallel`.
+    .. versionchanged:: 0.4.3
+        Added kwargs to ``idist.auto_model``.
     """
     logger = setup_logger(__name__ + ".auto_model")
 

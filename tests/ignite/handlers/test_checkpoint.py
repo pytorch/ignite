@@ -45,9 +45,6 @@ def test_checkpoint_wrong_input():
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
         Checkpoint([12], lambda x: x, "prefix")
 
-    with pytest.raises(ValueError, match=r"No objects to checkpoint."):
-        Checkpoint({}, lambda x: x, "prefix")
-
     model = DummyModel()
     to_save = {"model": model}
 
@@ -1526,3 +1523,54 @@ def test_checkpoint_reset_with_engine(dirname):
     expected += [f"{_PREFIX}_{name}_{i}.pt" for i in [1 * 2, 2 * 2]]
     assert sorted(os.listdir(dirname)) == sorted(expected)
     assert "PREFIX_model_4.pt" in handler.last_checkpoint
+
+
+def test_greater_or_equal():
+    scores = iter([1, 2, 2, 2])
+
+    def score_function(_):
+        return next(scores)
+
+    class Saver:
+        def __init__(self):
+            self.counter = 0
+
+        def __call__(self, c, f, m):
+            if self.counter == 0:
+                assert f == "model_1.pt"
+            else:
+                assert f == "model_2.pt"
+            self.counter += 1
+
+    handler = Saver()
+
+    checkpointer = Checkpoint(
+        to_save={"model": DummyModel()},
+        save_handler=handler,
+        score_function=score_function,
+        n_saved=2,
+        greater_or_equal=True,
+    )
+    trainer = Engine(lambda e, b: None)
+
+    for _ in range(4):
+        checkpointer(trainer)
+    assert handler.counter == 4
+
+
+def test_get_default_score_fn():
+
+    with pytest.raises(ValueError, match=r"Argument score_sign should be 1 or -1"):
+        Checkpoint.get_default_score_fn("acc", 2.0)
+
+    engine = Engine(lambda e, b: None)
+    engine.state.metrics["acc"] = 0.9
+    engine.state.metrics["loss"] = 0.123
+
+    score_fn = Checkpoint.get_default_score_fn("acc")
+    score = score_fn(engine)
+    assert score == 0.9
+
+    score_fn = Checkpoint.get_default_score_fn("loss", -1)
+    score = score_fn(engine)
+    assert score == -0.123

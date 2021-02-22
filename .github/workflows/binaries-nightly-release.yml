@@ -16,7 +16,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: 3.7
+          python-version: 3.8
 
       - name: Setup nightly version
         run: |
@@ -46,3 +46,9 @@ jobs:
           python setup.py sdist bdist_wheel
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
+
+      - uses: JasonEtco/create-an-issue@v2
+        name: Create issue if nightly releases failed
+        if: failure()
+        with:
+          filename: .github/failed_schedule_issue_template.md

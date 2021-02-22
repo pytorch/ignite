@@ -19,6 +19,10 @@ value is then computed using the output of the engine's ``process_function``:
     engine = Engine(process_function)
     metric = Accuracy()
     metric.attach(engine, "accuracy")
+    # ...
+    state = engine.run(data)
+    print(f"Accuracy: {state.metrics['accuracy']}")
+
 
 If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``, the user can
 use the ``output_transform`` argument to transform it:
@@ -42,18 +46,21 @@ use the ``output_transform`` argument to transform it:
 
     metric = Accuracy(output_transform=output_transform)
     metric.attach(engine, "accuracy")
+    # ...
+    state = engine.run(data)
+    print(f"Accuracy: {state.metrics['accuracy']}")
 
 
 .. warning::
 
     Please, be careful when using ``lambda`` functions to setup multiple ``output_transform`` for multiple metrics
-    
+
     .. code-block:: python
 
         # Wrong
         # metrics_group = [Accuracy(output_transform=lambda output: output[name]) for name in names]
         # As lambda can not store `name` and all `output_transform` will use the last `name`
-        
+
         # A correct way. For example, using functools.partial
         from functools import partial
 
@@ -61,7 +68,7 @@ use the ``output_transform`` argument to transform it:
             return output[name]
 
         metrics_group = [Accuracy(output_transform=partial(ot_func, name=name)) for name in names]
-    
+
     For more details, see `here <https://discuss.pytorch.org/t/evaluate-multiple-models-with-one-evaluator-results-weird-metrics/96695>`_
 
 .. Note ::
@@ -119,7 +126,7 @@ This API gives a more fine-grained/custom usage on how to compute a metric. For 
     # Compute the result
     print("Precision: ", precision.compute())
 
-    # Reset metric 
+    # Reset metric
     precision.reset()
 
     # Start new accumulation:
@@ -325,6 +332,10 @@ Complete list of metrics
 
 .. autoclass:: MetricsLambda
 
+.. autoclass:: MultiLabelConfusionMatrix
+
+.. autoclass:: PSNR
+
 .. autoclass:: Precision
 
 .. autoclass:: Recall
@@ -353,4 +364,3 @@ Complete list of metrics
 .. autofunction:: reinit__is_reduced
 
 .. autofunction:: sync_all_reduce
-

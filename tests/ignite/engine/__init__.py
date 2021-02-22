@@ -53,8 +53,8 @@ def setup_sampler(sampler_type, num_iters, batch_size):
         return WeightedRandomSampler(w, num_samples=num_iters * batch_size, replacement=True), batch_size
 
     if sampler_type == "distributed":
-        from torch.utils.data.distributed import DistributedSampler
         import torch.distributed as dist
+        from torch.utils.data.distributed import DistributedSampler
 
         num_replicas = 1
         rank = 0

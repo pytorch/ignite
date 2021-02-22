@@ -45,7 +45,7 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
 
 
 def _test_sync(cls):
-    from ignite.distributed.utils import _set_model, _SerialModel
+    from ignite.distributed.utils import _SerialModel, _set_model
 
     _set_model(_SerialModel())
 

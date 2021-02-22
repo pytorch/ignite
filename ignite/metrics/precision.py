@@ -20,14 +20,6 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        if idist.get_world_size() > 1:
-            if (not average) and is_multilabel:
-                warnings.warn(
-                    "Precision/Recall metrics do not work in distributed setting when average=False "
-                    "and is_multilabel=True. Results are not reduced across computing devices. Computed result "
-                    "corresponds to the local rank's (single process) result.",
-                    RuntimeWarning,
-                )
 
         self._average = average
         self.eps = 1e-20
@@ -53,12 +45,14 @@ class _BasePrecisionRecall(_BaseClassification):
             raise NotComputableError(
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
-
-        if not (self._type == "multilabel" and not self._average):
-            if not self._is_reduced:
+        if not self._is_reduced:
+            if not (self._type == "multilabel" and not self._average):
                 self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[assignment]
                 self._positives = idist.all_reduce(self._positives)  # type: ignore[assignment]
-                self._is_reduced = True  # type: bool
+            else:
+                self._true_positives = cast(torch.Tensor, idist.all_gather(self._true_positives))
+                self._positives = cast(torch.Tensor, idist.all_gather(self._positives))
+            self._is_reduced = True  # type: bool
 
         result = self._true_positives / (self._positives + self.eps)
 
@@ -69,8 +63,11 @@ class _BasePrecisionRecall(_BaseClassification):
 
 
 class Precision(_BasePrecisionRecall):
-    """
-    Calculates precision for binary and multiclass data.
+    r"""Calculates precision for binary and multiclass data.
+
+    .. math:: \text{Precision} = \frac{ TP }{ TP + FP }
+
+    where :math:`\text{TP}` is true positives and :math:`\text{FP}` is false positives.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
@@ -103,11 +100,6 @@ class Precision(_BasePrecisionRecall):
         In multilabel cases, if average is False, current implementation stores all input data (output and target) in
         as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
         than available RAM.
-
-    .. warning::
-
-        In multilabel cases, if average is False, current implementation does not work with distributed computations.
-        Results are not reduced across the GPUs. Computed result corresponds to the local rank's (single GPU) result.
 
 
     Args:
