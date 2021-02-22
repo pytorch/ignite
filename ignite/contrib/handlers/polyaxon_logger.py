@@ -17,9 +17,13 @@ class PolyaxonLogger(BaseLogger):
     `Polyaxon <https://polyaxon.com/>`_ tracking client handler to log parameters and metrics during the training
     and validation.
 
-    This class requires `polyaxon-client <https://github.com/polyaxon/polyaxon-client/>`_ package to be installed:
+    This class requires `polyaxon <https://github.com/polyaxon/polyaxon/>`_ package to be installed:
 
     .. code-block:: bash
+
+        pip install polyaxon
+
+        // If you are using polyaxon v0.x
 
         pip install polyaxon-client
 
@@ -85,9 +89,9 @@ class PolyaxonLogger(BaseLogger):
 
     Args:
         *args: Positional arguments accepted from
-            `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
+            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
         **kwargs: Keyword arguments accepted from
-            `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
+            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
 
     """
 

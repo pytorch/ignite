@@ -301,5 +301,8 @@ def no_site_packages():
 
 def test_no_polyaxon_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires polyaxon-client to be installed"):
+    with pytest.raises(
+        RuntimeError,
+        match=r"This contrib module requires polyaxon (polyaxon-client if you are using polyaxon v0.x) to be installed"
+    ):
         PolyaxonLogger()

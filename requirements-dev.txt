@@ -11,6 +11,7 @@ scikit-learn
 matplotlib
 tensorboardX
 visdom
+polyaxon
 polyaxon-client
 wandb
 mlflow
