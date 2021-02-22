@@ -193,6 +193,8 @@ def run(
     del config["spawn_kwargs"]
 
     spawn_kwargs["nproc_per_node"] = nproc_per_node
+    if backend == "xla-tpu" and with_amp:
+        raise RuntimeError("The value of with_amp should be False if backend is xla")
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
 
