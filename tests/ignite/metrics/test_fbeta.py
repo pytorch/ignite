@@ -12,26 +12,32 @@ from ignite.metrics import Fbeta, Precision, Recall
 torch.manual_seed(12)
 
 
-def test_wrong_inputs():
+@pytest.mark.parametrize(
+    "match, fbeta, precision, recall, output_transform",
+    [
+        ("Beta should be a positive integer", 0.0, None, None, None),
+        ("Input precision metric should have average=False", 1.0, Precision(average=True), None, None),
+        ("Input recall metric should have average=False", 1.0, None, Recall(average=True), None),
+        (
+            "If precision argument is provided, output_transform should be None",
+            1.0,
+            Precision(average=False),
+            None,
+            lambda x: x,
+        ),
+        (
+            "If recall argument is provided, output_transform should be None",
+            1.0,
+            None,
+            Recall(average=False),
+            lambda x: x,
+        ),
+    ],
+)
+def test_wrong_inputs(match, fbeta, precision, recall, output_transform):
 
-    with pytest.raises(ValueError, match=r"Beta should be a positive integer"):
-        Fbeta(0.0)
-
-    with pytest.raises(ValueError, match=r"Input precision metric should have average=False"):
-        p = Precision(average=True)
-        Fbeta(1.0, precision=p)
-
-    with pytest.raises(ValueError, match=r"Input recall metric should have average=False"):
-        r = Recall(average=True)
-        Fbeta(1.0, recall=r)
-
-    with pytest.raises(ValueError, match=r"If precision argument is provided, output_transform should be None"):
-        p = Precision(average=False)
-        Fbeta(1.0, precision=p, output_transform=lambda x: x)
-
-    with pytest.raises(ValueError, match=r"If recall argument is provided, output_transform should be None"):
-        r = Recall(average=False)
-        Fbeta(1.0, recall=r, output_transform=lambda x: x)
+    with pytest.raises(ValueError, match=fr"{match}"):
+        Fbeta(fbeta, precision=precision, recall=recall, output_transform=output_transform)
 
 
 def test_integration():

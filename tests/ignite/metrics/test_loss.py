@@ -17,22 +17,9 @@ def test_zero_div():
         loss.compute()
 
 
-def test_compute():
-    loss = Loss(nll_loss)
-
-    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
-    y = torch.tensor([2, 2]).long()
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), 1.1512925625)
-
-    y_pred = torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log()
-    y = torch.tensor([2, 0, 2]).long()
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), 1.1253643036)  # average
-
-
-def test_compute_on_criterion():
-    loss = Loss(nn.NLLLoss())
+@pytest.mark.parametrize("loss_function", [nll_loss, nn.NLLLoss()])
+def test_compute(loss_function):
+    loss = Loss(loss_function)
 
     y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]]).log()
     y = torch.tensor([2, 2]).long()
@@ -133,16 +120,6 @@ def _test_distrib_accumulator_device(device):
         assert (
             loss._sum.device == metric_device
         ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
-
-
-def test_sum_detached():
-    loss = Loss(nll_loss)
-
-    y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], requires_grad=True).log()
-    y = torch.tensor([2, 2]).long()
-    loss.update((y_pred, y))
-
-    assert not loss._sum.requires_grad
 
 
 @pytest.mark.distributed
