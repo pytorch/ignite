@@ -43,7 +43,7 @@ class VisdomLogger(BaseLogger):
         num_workers: number of workers to use in `concurrent.futures.ThreadPoolExecutor` to post data to
             visdom server. Default, `num_workers=1`. If `num_workers=0` and logger uses the main thread. If using
             Python 2.7 and `num_workers>0` the package `futures` should be installed: `pip install futures`
-        **kwargs: kwargs to pass into
+        kwargs: kwargs to pass into
             `visdom.Visdom <https://github.com/facebookresearch/visdom#visdom-arguments-python-only>`_.
 
     Note:

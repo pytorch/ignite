@@ -21,8 +21,8 @@ class WandBLogger(BaseLogger):
     this wrapper. See examples on how to save model parameters and gradients.
 
     Args:
-        *args: Positional arguments accepted by `wandb.init`.
-        **kwargs: Keyword arguments accepted by `wandb.init`.
+        args: Positional arguments accepted by `wandb.init`.
+        kwargs: Keyword arguments accepted by `wandb.init`.
             Please see `wandb.init <https://docs.wandb.com/library/init>`_ for documentation of possible parameters.
 
     Examples:

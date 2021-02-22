@@ -44,10 +44,10 @@ class TensorboardLogger(BaseLogger):
     (>=v1.2.0).
 
     Args:
-        *args: Positional arguments accepted from
+        args: Positional arguments accepted from
             `SummaryWriter
             <https://pytorch.org/docs/stable/tensorboard.html>`_.
-        **kwargs: Keyword arguments accepted from
+        kwargs: Keyword arguments accepted from
             `SummaryWriter
             <https://pytorch.org/docs/stable/tensorboard.html>`_.
             For example, `log_dir` to setup path to the directory where to log.

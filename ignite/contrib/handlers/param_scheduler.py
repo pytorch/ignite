@@ -152,10 +152,10 @@ class ParamScheduler(metaclass=ABCMeta):
 
         Args:
             num_events: number of events during the simulation.
-            **scheduler_kwargs : parameter scheduler configuration kwargs.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
 
         Returns:
-            list of pairs: [event_index, value]
+            event_index, value
 
         Examples:
 
@@ -194,7 +194,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
         Args:
             num_events: number of events during the simulation.
-            **scheduler_kwargs : parameter scheduler configuration kwargs.
+            scheduler_kwargs : parameter scheduler configuration kwargs.
 
         Returns:
             matplotlib.lines.Line2D
@@ -589,6 +589,7 @@ class ConcatScheduler(ParamScheduler):
             durations: list of number of events that lasts a parameter scheduler from schedulers.
             param_names: parameter name or list of parameter names to simulate values.
                 By default, the first scheduler's parameter name is taken.
+            kwargs:
 
         Returns:
             list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
@@ -714,7 +715,7 @@ class LRScheduler(ParamScheduler):
             lr_scheduler: lr_scheduler object to wrap.
 
         Returns:
-            list of pairs: [event_index, value]
+            event_index, value
 
         """
 
@@ -774,7 +775,7 @@ def create_lr_scheduler_with_warmup(
             by 100 simulated learning rate values.
 
     Returns:
-        ConcatScheduler: learning rate scheduler with linear warm-up.
+        learning rate scheduler with linear warm-up.
 
     Note:
         If the first learning rate value provided by `lr_scheduler` is different from `warmup_end_value`, an additional
@@ -886,7 +887,7 @@ class PiecewiseLinear(ParamScheduler):
         param_group_index: optimizer's parameters group to use.
 
     Returns:
-        PiecewiseLinear: piecewise linear scheduler
+        piecewise linear scheduler instance
 
 
     .. code-block:: python
@@ -909,7 +910,7 @@ class PiecewiseLinear(ParamScheduler):
         milestones_values: List[Tuple[int, float]],
         save_history: bool = False,
         param_group_index: Optional[int] = None,
-    ):
+    ) -> None:
         super(PiecewiseLinear, self).__init__(optimizer, param_name, save_history, param_group_index=param_group_index)
 
         if not isinstance(milestones_values, Sequence):
@@ -969,6 +970,7 @@ class ParamGroupScheduler:
     Args:
         schedulers: list/tuple of parameter schedulers.
         names: list of names of schedulers.
+        save_history: whether to save history or not.
 
     .. code-block:: python
 
@@ -1085,9 +1087,10 @@ class ParamGroupScheduler:
         Args:
             num_events: number of events during the simulation.
             schedulers: lr_scheduler object to wrap.
+            kwargs:
 
         Returns:
-            list of pairs: [event_index, value]
+            event_index, value
 
         """
 

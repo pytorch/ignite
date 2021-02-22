@@ -84,9 +84,9 @@ class PolyaxonLogger(BaseLogger):
             )
 
     Args:
-        *args: Positional arguments accepted from
+        args: Positional arguments accepted from
             `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
-        **kwargs: Keyword arguments accepted from
+        kwargs: Keyword arguments accepted from
             `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
 
     """

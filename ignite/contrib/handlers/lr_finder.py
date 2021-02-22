@@ -289,11 +289,11 @@ class FastaiLRFinder:
             diverge_th: Used for stopping the search when `current loss > diverge_th * best_loss`.
                 Default, 5.0.
 
+        Returns:
+            trainer_with_lr_finder (trainer used for finding the lr)
+
         Note:
             lr_finder cannot be attached to more than one trainer at a time.
-
-        Returns:
-            trainer_with_lr_finder: trainer used for finding the lr
         """
         if not isinstance(to_save, Mapping):
             raise TypeError(f"Argument to_save should be a mapping, but given {type(to_save)}")
