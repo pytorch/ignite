@@ -71,6 +71,8 @@ def supervised_training_step(
 
     Example::
 
+        from ignite.engine import Engine, supervised_training_step
+
         model = ...
         optimizer = ...
         loss_fn = ...
@@ -125,6 +127,8 @@ def supervised_training_step_amp(
         Callable: update function
 
     Example::
+
+        from ignite.engine import Engine, supervised_training_step_amp
 
         model = ...
         optimizer = ...
@@ -191,6 +195,8 @@ def supervised_training_step_apex(
 
     Example::
 
+        from ignite.engine import Engine, supervised_training_step_apex
+
         model = ...
         optimizer = ...
         loss_fn = ...
@@ -249,6 +255,8 @@ def supervised_training_step_tpu(
         Callable: update function.
 
     Example::
+
+        from ignite.engine import Engine, supervised_training_step_tpu
 
         model = ...
         optimizer = ...
