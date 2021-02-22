@@ -71,23 +71,23 @@ def setup_common_training_handlers(
             exclusive with ``save_handler``.
         lr_scheduler: learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
-        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
+        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
         output_names: list of names associated with `update_function` output dictionary.
         with_pbars: if True, two progress bars on epochs and optionally on iterations are attached.
             Default, True.
         with_pbar_on_iters: if True, a progress bar on iterations is attached to the trainer.
             Default, True.
-        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
+        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.GpuInfo` and for
             epoch-wise progress bar. Default, 100.
         stop_on_nan: if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.
             Default, True.
         clear_cuda_cache: if True, `torch.cuda.empty_cache()` is called every end of epoch.
             Default, True.
         save_handler: Method or callable
-            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
+            class to use to store ``to_save``. See :class:`~ignite.handlers.Checkpoint` for more details.
             Argument is mutually exclusive with ``output_path``.
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
     """
 
     if idist.get_world_size() > 1:
