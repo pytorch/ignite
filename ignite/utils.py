@@ -78,12 +78,12 @@ def setup_logger(
     """Setups logger: name, level, format etc.
 
     Args:
-        name (str, optional): new name for the logger. If None, the standard logger is used.
-        level (int): logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG.
-        stream (TextIO, optional): logging stream. If None, the standard stream is used (sys.stderr).
-        format (str): logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`.
-        filepath (str, optional): Optional logging file path. If not None, logs are written to the file.
-        distributed_rank (int, optional): Optional, rank in distributed configuration to avoid logger setup for workers.
+        name: new name for the logger. If None, the standard logger is used.
+        level: logging level, e.g. CRITICAL, ERROR, WARNING, INFO, DEBUG.
+        stream: logging stream. If None, the standard stream is used (sys.stderr).
+        format: logging format. By default, `%(asctime)s %(name)s %(levelname)s: %(message)s`.
+        filepath: Optional logging file path. If not None, logs are written to the file.
+        distributed_rank: Optional, rank in distributed configuration to avoid logger setup for workers.
             If None, distributed_rank is initialized to the rank of process.
 
     Returns:
@@ -156,7 +156,7 @@ def manual_seed(seed: int) -> None:
     """Setup random state from a seed for `torch`, `random` and optionally `numpy` (if can be imported).
 
     Args:
-        seed (int): Random state seed
+        seed: Random state seed
 
     .. versionchanged:: 0.4.3
         Added ``torch.cuda.manual_seed_all(seed)``.
