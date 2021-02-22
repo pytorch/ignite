@@ -57,18 +57,21 @@ def create_supervised_tbptt_trainer(
     `tbtt_step` time steps.
 
     Args:
-        model (`torch.nn.Module`): the model to train.
-        optimizer (`torch.optim.Optimizer`): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        tbtt_step (int): the length of time chunks (last one may be smaller).
-        dim (int): axis representing the time dimension.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        tbtt_step: the length of time chunks (last one may be smaller).
+        dim: axis representing the time dimension.
+        device: device type specification (default: None).
             Applies to batches.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU,
+        non_blocking: if True and this copy is between CPU and GPU,
             the copy may occur asynchronously with respect to the host. For other cases,
             this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`,
+        prepare_batch: function that receives `batch`, `device`,
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
+
+    Returns:
+        a trainer engine with supervised update function.
 
     .. warning::
 
@@ -80,10 +83,6 @@ def create_supervised_tbptt_trainer(
 
         * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
         * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
-
-    Returns:
-        Engine: a trainer engine with supervised update function.
-
     """
 
     def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> float:
