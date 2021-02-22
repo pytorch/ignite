@@ -196,11 +196,11 @@ class FastaiLRFinder:
             pip install matplotlib
 
         Args:
-            skip_start (int, optional): number of batches to trim from the start.
+            skip_start: number of batches to trim from the start.
                 Default: 10.
-            skip_end (int, optional): number of batches to trim from the start.
+            skip_end: number of batches to trim from the start.
                 Default: 5.
-            log_lr (bool, optional): True to plot the learning rate in a logarithmic
+            log_lr: True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
         """
         try:
@@ -273,20 +273,20 @@ class FastaiLRFinder:
                 trainer_with_lr_finder.run(dataloader)`
 
         Args:
-            trainer (Engine): lr_finder is attached to this trainer. Please, keep in mind that all attached handlers
+            trainer: lr_finder is attached to this trainer. Please, keep in mind that all attached handlers
                 will be executed.
-            to_save (Mapping): dictionary with optimizer and other objects that needs to be restored after running
+            to_save: dictionary with optimizer and other objects that needs to be restored after running
                 the LR finder. For example, `to_save={'optimizer': optimizer, 'model': model}`. All objects should
                 implement `state_dict` and `load_state_dict` methods.
-            output_transform (callable, optional): function that transforms the trainer's `state.output` after each
+            output_transform: function that transforms the trainer's `state.output` after each
                 iteration. It must return the loss of that iteration.
-            num_iter (int, optional): number of iterations for lr schedule between base lr and end_lr. Default, it will
+            num_iter: number of iterations for lr schedule between base lr and end_lr. Default, it will
                 run for `trainer.state.epoch_length * trainer.state.max_epochs`.
-            end_lr (float, optional): upper bound for lr search. Default, 10.0.
-            step_mode (str, optional): "exp" or "linear", which way should the lr be increased from optimizer's initial
+            end_lr: upper bound for lr search. Default, 10.0.
+            step_mode: "exp" or "linear", which way should the lr be increased from optimizer's initial
                 lr to `end_lr`. Default, "exp".
-            smooth_f (float, optional): loss smoothing factor in range `[0, 1)`. Default, 0.05
-            diverge_th (float, optional): Used for stopping the search when `current loss > diverge_th * best_loss`.
+            smooth_f: loss smoothing factor in range `[0, 1)`. Default, 0.05
+            diverge_th: Used for stopping the search when `current loss > diverge_th * best_loss`.
                 Default, 5.0.
 
         Note:
@@ -363,12 +363,12 @@ class _ExponentialLR(_LRScheduler):
     iterations.
 
     Args:
-        optimizer (torch.optim.Optimizer): wrapped optimizer.
-        end_lr (float, optional): the initial learning rate which is the lower
+        optimizer: wrapped optimizer.
+        end_lr: the initial learning rate which is the lower
             boundary of the test. Default: 10.
-        num_iter (int, optional): the number of iterations over which the test
+        num_iter: the number of iterations over which the test
             occurs. Default: 100.
-        last_epoch (int): the index of last epoch. Default: -1.
+        last_epoch: the index of last epoch. Default: -1.
 
     """
 

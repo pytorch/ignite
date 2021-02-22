@@ -152,8 +152,8 @@ class BaseLogger(metaclass=ABCMeta):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
         Args:
-            engine (Engine): engine object.
-            log_handler (callable): a logging handler to execute
+            engine: engine object.
+            log_handler: a logging handler to execute
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
@@ -180,12 +180,12 @@ class BaseLogger(metaclass=ABCMeta):
         """Shortcut method to attach `OutputHandler` to the logger.
 
         Args:
-            engine (Engine): engine object.
+            engine: engine object.
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            *args: args to initialize `OutputHandler`
-            **kwargs: kwargs to initialize `OutputHandler`
+            args: args to initialize `OutputHandler`
+            kwargs: kwargs to initialize `OutputHandler`
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
@@ -198,12 +198,12 @@ class BaseLogger(metaclass=ABCMeta):
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
         Args:
-            engine (Engine): engine object.
+            engine: engine object.
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            *args: args to initialize `OptimizerParamsHandler`
-            **kwargs: kwargs to initialize `OptimizerParamsHandler`
+            args: args to initialize `OptimizerParamsHandler`
+            kwargs: kwargs to initialize `OptimizerParamsHandler`
 
         Returns:
             :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.

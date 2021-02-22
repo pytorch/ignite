@@ -218,19 +218,19 @@ class OutputHandler(BaseOutputHandler):
             )
 
     Args:
-        tag (str): common title for all produced plots. For example, "training"
-        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
-        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.wandb_logger.global_step_from_engine`.
-        sync (bool, optional): If set to False, process calls to log in a seperate thread. Default (None) uses whatever
+        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
             the default value of wandb.log.
 
     Note:
@@ -308,11 +308,11 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, "generator"
-        sync (bool, optional): If set to False, process calls to log in a seperate thread. Default (None) uses whatever
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
+        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
             the default value of wandb.log.
     """
 

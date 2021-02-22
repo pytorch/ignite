@@ -14,8 +14,8 @@ class ProgressBar(BaseLogger):
     TQDM progress bar handler to log training progress and computed metrics.
 
     Args:
-        persist (bool, optional): set to ``True`` to persist the progress bar after completion (default = ``False``)
-        bar_format  (str, optional): Specify a custom bar string formatting. May impact performance.
+        persist: set to ``True`` to persist the progress bar after completion (default = ``False``)
+        bar_format : Specify a custom bar string formatting. May impact performance.
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
             Set to ``None`` to use ``tqdm`` default bar formatting: '{l_bar}{bar}{r_bar}', where
             l_bar='{desc}: {percentage:3.0f}%|' and
@@ -149,7 +149,7 @@ class ProgressBar(BaseLogger):
         Logs a message, preserving the progress bar correct output format.
 
         Args:
-            message (str): string you wish to log.
+            message: string you wish to log.
         """
         from tqdm import tqdm
 
@@ -167,10 +167,10 @@ class ProgressBar(BaseLogger):
         Attaches the progress bar to an engine object.
 
         Args:
-            engine (Engine): engine object.
-            metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+            engine: engine object.
+            metric_names: list of metric names to plot or a string "all" to plot all available
                 metrics.
-            output_transform (callable, optional): a function to select what you want to print from the engine's
+            output_transform: a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
             event_name: event's name on which the progress bar advances. Valid events are from
@@ -217,10 +217,10 @@ class _OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
     Args:
-        description (str): progress bar description.
-        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+        description: progress bar description.
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
-        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.

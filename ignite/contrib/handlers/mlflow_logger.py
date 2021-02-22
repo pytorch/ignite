@@ -24,7 +24,7 @@ class MLflowLogger(BaseLogger):
         pip install mlflow
 
     Args:
-        tracking_uri (str): MLflow tracking uri. See MLflow docs for more details
+        tracking_uri: MLflow tracking uri. See MLflow docs for more details
 
     Examples:
 
@@ -182,14 +182,14 @@ class OutputHandler(BaseOutputHandler):
             )
 
     Args:
-        tag (str): common title for all produced plots. For example, 'training'
-        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+        tag: common title for all produced plots. For example, 'training'
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
-        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
@@ -284,10 +284,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        param_name: parameter name
+        tag: common title for all produced plots. For example, 'generator'
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
