@@ -17,7 +17,7 @@ def non_weighted_cohen_kappa_compute_fn(y_preds: torch.Tensor, y_targets: torch.
 
 
 class NonWeightedCohenKappa(EpochMetric):
-    """Computes Cohen Kappa with no weights. Applying `sklearn.metrics.cohen_kappa_score 
+    """Computes Cohen Kappa with no weights. Applying `sklearn.metrics.cohen_kappa_score
     <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>` .
 
     Args:
@@ -59,7 +59,7 @@ def linear_cohen_kappa_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor
 
 
 class LinearCohenKappa(EpochMetric):
-    """Computes Cohen Kappa with linear weights. Applying `sklearn.metrics.cohen_kappa_score 
+    """Computes Cohen Kappa with linear weights. Applying `sklearn.metrics.cohen_kappa_score
     <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>` .
 
     Args:
@@ -101,7 +101,7 @@ def quadratic_cohen_kappa_compute_fn(y_preds: torch.Tensor, y_targets: torch.Ten
 
 
 class QuadraticCohenKappa(EpochMetric):
-    """Computes Cohen Kappa with quadratic weights. Applying `sklearn.metrics.cohen_kappa_score 
+    """Computes Cohen Kappa with quadratic weights. Applying `sklearn.metrics.cohen_kappa_score
     <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>` .
 
     Args:
