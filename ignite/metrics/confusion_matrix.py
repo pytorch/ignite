@@ -7,7 +7,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 from ignite.metrics.metrics_lambda import MetricsLambda
 
-__all__ = ["ConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "cmPrecision", "cmRecall"]
+__all__ = ["ConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "cmPrecision", "cmRecall", "JaccardIndex"]
 
 
 class ConfusionMatrix(Metric):
@@ -323,3 +323,31 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
         return MetricsLambda(ignore_index_fn, dice)
     else:
         return dice
+
+
+def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
+    r"""Calculates the Jaccard Index using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    This is the same like the IoU metric
+    .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
+
+    Args:
+        cm (ConfusionMatrix): instance of confusion matrix metric
+        ignore_index (int, optional): index to ignore, e.g. background index
+
+    Returns:
+        MetricsLambda
+
+    Examples:
+
+    .. code-block:: python
+
+        train_evaluator = ...
+
+        cm = ConfusionMatrix(num_classes=num_classes)
+        JaccardIndex(cm, ignore_index=0).attach(train_evaluator, 'IoU')
+
+        state = train_evaluator.run(train_dataset)
+        # state.metrics['JaccardIndex'] -> tensor of shape (num_classes - 1, )
+
+    """
+    return IoU(cm, ignore_index)
