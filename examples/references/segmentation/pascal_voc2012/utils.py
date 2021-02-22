@@ -1,6 +1,7 @@
+import torch
+
 import ignite
 import ignite.distributed as idist
-import torch
 from ignite.handlers import DiskSaver
 
 

@@ -4,9 +4,8 @@ import os
 import albumentations as A
 import cv2
 from albumentations.pytorch import ToTensorV2 as ToTensor
-from torchvision.models.segmentation import deeplabv3_resnet101
-
 from dataflow import get_inference_dataloader, ignore_mask_boundaries
+from torchvision.models.segmentation import deeplabv3_resnet101
 
 # ##############################
 # Global configs
@@ -70,7 +69,7 @@ def model_output_transform(output):
     return output["out"]
 
 
-training_task_id = "8103ae140d2a4d90972cc8880580fdd9"
-weights_path = "baseline_dplv3_resnet101_sbd: best_model_78_val_miou_bg=0.6871.pt"
+# baseline_dplv3_resnet101_sbd: best_model_78_val_miou_bg=0.6871.pt
+weights_path = "d8b4687d86cf445a944853fdd6a6b999"
 # or can specify a path
 # weights_path = "/path/to/best_model.pt"

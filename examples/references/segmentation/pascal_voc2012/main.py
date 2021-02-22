@@ -10,22 +10,17 @@ try:
 except ImportError:
     raise RuntimeError("Please, use recent PyTorch version, e.g. >=1.6.0")
 
+import dataflow as data
+import utils
+import vis
+from py_config_runner import ConfigObject, InferenceConfigSchema, TrainvalConfigSchema, get_params
+
 import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint
 from ignite.metrics import ConfusionMatrix, IoU, mIoU
 from ignite.utils import manual_seed, setup_logger
-from py_config_runner import (
-    ConfigObject,
-    InferenceConfigSchema,
-    TrainvalConfigSchema,
-    get_params,
-)
-
-import dataflow as data
-import utils
-import vis
 
 
 def download_datasets(output_path):
@@ -370,26 +365,16 @@ def get_model_weights(config, logger, with_clearml):
 
     path = ""
     if with_clearml:
-        from clearml import Task
+        from clearml import Model
 
         if idist.get_rank() > 0:
             idist.barrier()
         else:
-            assert "training_task_id" in config
-            training_task_id = config.training_task_id
-            model_name = config.weights_path
+            model_id = config.weights_path
 
-            logger.info(f"Loading {model_name} from {training_task_id}")
-
-            training_task = Task.get_task(training_task_id)
-            assert training_task is not None, training_task_id
-            model = None
-
-            for m in training_task.get_models()["output"]:
-                if m.name == model_name:
-                    model = m
-
-            assert model is not None, f"{model_name} vs {[m.name for m in training_task.get_models()['output']]}"
+            logger.info(f"Loading trained model: {model_id}")
+            model = Model(model_id)
+            assert model is not None, f"{model_id}"
             path = model.get_local_copy()
             idist.barrier()
         path = idist.broadcast(path, src=0)
@@ -397,6 +382,7 @@ def get_model_weights(config, logger, with_clearml):
         path = config.weights_path
         logger.info(f"Loading {path}")
 
+    assert Path(path).exists(), f"{path} is not found"
     return torch.load(path)
 
 

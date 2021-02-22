@@ -1,13 +1,14 @@
 import cv2
-import ignite.distributed as idist
 import numpy as np
 import torch
-from ignite.utils import convert_tensor
 from PIL import Image
 from torch.utils.data import Dataset
 from torch.utils.data.dataset import Subset
 from torchvision.datasets.sbd import SBDataset
 from torchvision.datasets.voc import VOCSegmentation
+
+import ignite.distributed as idist
+from ignite.utils import convert_tensor
 
 
 class TransformedDataset(Dataset):
