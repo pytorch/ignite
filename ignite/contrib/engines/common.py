@@ -602,7 +602,7 @@ def gen_save_best_models_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
 
     Returns:
         A :class:`~ignite.handlers.Checkpoint` handler.
@@ -654,7 +654,7 @@ def save_best_model_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
 
     Returns:
         A :class:`~ignite.handlers.Checkpoint` handler.
