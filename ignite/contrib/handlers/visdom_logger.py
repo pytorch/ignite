@@ -209,7 +209,7 @@ class VisdomLogger(BaseLogger):
 
 
 class _BaseVisDrawer:
-    def __init__(self, show_legend: bool = False) -> None:
+    def __init__(self, show_legend: bool = False):
         self.windows = {}  # type: Dict[str, Any]
         self.show_legend = show_legend
 
@@ -346,7 +346,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         show_legend: bool = False,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -420,7 +420,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
 
     def __init__(
         self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, show_legend: bool = False,
-    ) -> None:
+    ):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -471,7 +471,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
 
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
-    ) -> None:
+    ):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -522,7 +522,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
 
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
-    ) -> None:
+    ):
         super(GradsScalarHandler, self).__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 

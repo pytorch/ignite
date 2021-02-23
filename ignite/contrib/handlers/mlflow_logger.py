@@ -86,7 +86,7 @@ class MLflowLogger(BaseLogger):
             )
     """
 
-    def __init__(self, tracking_uri: Optional[str] = None) -> None:
+    def __init__(self, tracking_uri: Optional[str] = None):
         try:
             import mlflow
         except ImportError:
@@ -290,7 +290,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag: common title for all produced plots. For example, 'generator'
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, Events]) -> None:

@@ -107,7 +107,7 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
@@ -159,7 +159,7 @@ class BaseLogger(metaclass=ABCMeta):
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         if isinstance(event_name, EventsList):
             for name in event_name:
@@ -188,7 +188,7 @@ class BaseLogger(metaclass=ABCMeta):
             kwargs: kwargs to initialize `OutputHandler`
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
@@ -206,7 +206,7 @@ class BaseLogger(metaclass=ABCMeta):
             kwargs: kwargs to initialize `OptimizerParamsHandler`
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
 
         .. versionchanged:: 0.4.3
             Added missing return statement.

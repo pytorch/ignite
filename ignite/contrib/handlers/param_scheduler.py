@@ -40,7 +40,7 @@ class ParamScheduler(metaclass=ABCMeta):
         param_name: str,
         save_history: bool = False,
         param_group_index: Optional[int] = None,
-    ) -> None:
+    ):
 
         if not (
             isinstance(optimizer, Optimizer)
@@ -444,7 +444,7 @@ class ConcatScheduler(ParamScheduler):
 
     """
 
-    def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False) -> None:
+    def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False):
 
         if not isinstance(schedulers, Sequence):
             raise TypeError(f"Argument schedulers should be a sequence, but given {schedulers}")
@@ -672,7 +672,7 @@ class LRScheduler(ParamScheduler):
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
 
-    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False) -> None:
+    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False):
 
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
@@ -886,10 +886,6 @@ class PiecewiseLinear(ParamScheduler):
             `engine.state.param_history`, (default=False).
         param_group_index: optimizer's parameters group to use.
 
-    Returns:
-        PiecewiseLinear
-
-
     .. code-block:: python
 
         scheduler = PiecewiseLinear(optimizer, "lr",
@@ -910,7 +906,7 @@ class PiecewiseLinear(ParamScheduler):
         milestones_values: List[Tuple[int, float]],
         save_history: bool = False,
         param_group_index: Optional[int] = None,
-    ) -> None:
+    ):
         super(PiecewiseLinear, self).__init__(optimizer, param_name, save_history, param_group_index=param_group_index)
 
         if not isinstance(milestones_values, Sequence):
@@ -1087,7 +1083,8 @@ class ParamGroupScheduler:
         Args:
             num_events: number of events during the simulation.
             schedulers: lr_scheduler object to wrap.
-            kwargs: kwargs passed to construct an instance of :class:`ignite.contrib.handlers.ParamGroupScheduler`.
+            kwargs: kwargs passed to construct an instance of
+                :class:`ignite.contrib.handlers.param_scheduler.ParamGroupScheduler`.
 
         Returns:
             event_index, value

@@ -116,7 +116,7 @@ class WandBLogger(BaseLogger):
             evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             import wandb
 
@@ -251,7 +251,7 @@ class OutputHandler(BaseOutputHandler):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         sync: Optional[bool] = None,
-    ) -> None:
+    ):
         super().__init__(tag, metric_names, output_transform, global_step_transform)
         self.sync = sync
 
@@ -318,7 +318,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
     def __init__(
         self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, sync: Optional[bool] = None,
-    ) -> None:
+    ):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         self.sync = sync
 

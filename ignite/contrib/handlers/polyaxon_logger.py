@@ -91,7 +91,7 @@ class PolyaxonLogger(BaseLogger):
 
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             from polyaxon_client.tracking import Experiment
         except ImportError:
@@ -204,7 +204,7 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
@@ -269,7 +269,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag: common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:

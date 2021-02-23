@@ -105,7 +105,7 @@ class ProgressBar(BaseLogger):
         persist: bool = False,
         bar_format: str = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
         **tqdm_kwargs: Any,
-    ) -> None:
+    ):
 
         try:
             from tqdm.autonotebook import tqdm
@@ -236,7 +236,7 @@ class _OutputHandler(BaseOutputHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         closing_event_name: Union[Events, CallableEventWithFilter] = Events.EPOCH_COMPLETED,
-    ) -> None:
+    ):
         if metric_names is None and output_transform is None:
             # This helps to avoid 'Either metric_names or output_transform should be defined' of BaseOutputHandler
             metric_names = []

@@ -119,7 +119,7 @@ class ClearMLLogger(BaseLogger):
 
     """
 
-    def __init__(self, *_: Any, **kwargs: Any) -> None:
+    def __init__(self, *_: Any, **kwargs: Any):
         try:
             from clearml import Task
             from clearml.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
@@ -299,7 +299,7 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -365,7 +365,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag: common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -416,7 +416,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -468,7 +468,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, tag: Optional[str] = None):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -523,7 +523,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -574,7 +574,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, tag: Optional[str] = None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -645,7 +645,7 @@ class ClearMLSaver(DiskSaver):
         dirname: Optional[str] = None,
         *args: Any,
         **kwargs: Any,
-    ) -> None:
+    ):
 
         self._setup_check_clearml(logger, output_uri)
 

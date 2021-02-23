@@ -71,7 +71,7 @@ class FastaiLRFinder:
         fastai/lr_find: https://github.com/fastai/fastai
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._diverge_flag = False
         self._history = {}  # type: Dict[str, List[Any]]
         self._best_loss = None
@@ -372,7 +372,7 @@ class _ExponentialLR(_LRScheduler):
 
     """
 
-    def __init__(self, optimizer: Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1) -> None:
+    def __init__(self, optimizer: Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)

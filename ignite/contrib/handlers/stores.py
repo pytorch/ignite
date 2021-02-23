@@ -32,7 +32,7 @@ class EpochOutputStore:
     .. versionadded:: 0.4.2
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x) -> None:
+    def __init__(self, output_transform: Callable = lambda x: x):
         self.data = []  # type: List[Union[int, Tuple[int, int]]]
         self.output_transform = output_transform
 

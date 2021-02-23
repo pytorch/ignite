@@ -149,7 +149,7 @@ class TensorboardLogger(BaseLogger):
 
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
@@ -266,7 +266,7 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]) -> None:
@@ -325,7 +325,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         tag: common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -371,7 +371,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -463,7 +463,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -507,7 +507,7 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
     """
 
-    def __init__(self, model: nn.Module, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, tag: Optional[str] = None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
