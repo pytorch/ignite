@@ -194,7 +194,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
         Args:
             num_events: number of events during the simulation.
-            scheduler_kwargs : parameter scheduler configuration kwargs.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
 
         Returns:
             matplotlib.lines.Line2D
@@ -1087,7 +1087,7 @@ class ParamGroupScheduler:
         Args:
             num_events: number of events during the simulation.
             schedulers: lr_scheduler object to wrap.
-            kwargs:
+            kwargs: kwargs passed to construct an instance of :class:`ignite.contrib.handlers.ParamGroupScheduler`.
 
         Returns:
             event_index, value
