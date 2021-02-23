@@ -12,18 +12,13 @@ class EarlyStopping(Serializable):
     """EarlyStopping handler can be used to stop the training if no improvement after a given number of events.
 
     Args:
-        patience (int):
-            Number of events to wait if no improvement and then stop the training.
-        score_function (callable):
-            It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine` object,
-            and return a score `float`. An improvement is considered if the score is higher.
-        trainer (Engine):
-            trainer engine to stop the run if no improvement.
-        min_delta (float, optional):
-            A minimum increase in the score to qualify as an improvement,
+        patience: Number of events to wait if no improvement and then stop the training.
+        score_function: It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine`
+            object, and return a score `float`. An improvement is considered if the score is higher.
+        trainer: Trainer engine to stop the run if no improvement.
+        min_delta: A minimum increase in the score to qualify as an improvement,
             i.e. an increase of less than or equal to `min_delta`, will count as no improvement.
-        cumulative_delta (bool, optional):
-            It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
+        cumulative_delta: It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
             it defines an increase after the last event. Default value is False.
 
     Examples:
@@ -96,9 +91,17 @@ class EarlyStopping(Serializable):
             self.counter = 0
 
     def state_dict(self) -> "OrderedDict[str, float]":
+        """Method returns state dict with ``counter`` and ``best_score``.
+        Can be used to save internal state of the class.
+        """
         return OrderedDict([("counter", self.counter), ("best_score", cast(float, self.best_score))])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
+        """Method replace internal state of the class with provided state dict data.
+
+        Args:
+            state_dict: a dict with "counter" and "best_score" keys/values.
+        """
         super().load_state_dict(state_dict)
         self.counter = state_dict["counter"]
         self.best_score = state_dict["best_score"]
