@@ -332,8 +332,8 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
     Args:
-        cm (ConfusionMatrix): instance of confusion matrix metric
-        ignore_index (int, optional): index to ignore, e.g. background index
+        cm: instance of confusion matrix metric
+        ignore_index: index to ignore, e.g. background index
 
     Returns:
         MetricsLambda
