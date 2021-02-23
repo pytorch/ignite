@@ -118,8 +118,6 @@ class Engine(Serializable):
 
     """
 
-    state: State
-    last_event_name: Optional[Events]
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
@@ -258,8 +256,8 @@ class Engine(Serializable):
             handler: the callable event handler that should be invoked. No restrictions on its signature.
                 The first argument can be optionally `engine`, the :class:`~ignite.engine.engine.Engine` object,
                 handler is bound to.
-            *args: optional args to be passed to ``handler``.
-            **kwargs: optional keyword args to be passed to ``handler``.
+            args: optional args to be passed to ``handler``.
+            kwargs: optional keyword args to be passed to ``handler``.
 
         Returns:
             :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
