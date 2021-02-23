@@ -775,7 +775,7 @@ def create_lr_scheduler_with_warmup(
             by 100 simulated learning rate values.
 
     Returns:
-        learning rate scheduler with linear warm-up.
+        ConcatScheduler
 
     Note:
         If the first learning rate value provided by `lr_scheduler` is different from `warmup_end_value`, an additional
@@ -887,7 +887,7 @@ class PiecewiseLinear(ParamScheduler):
         param_group_index: optimizer's parameters group to use.
 
     Returns:
-        piecewise linear scheduler instance
+        PiecewiseLinear
 
 
     .. code-block:: python
