@@ -21,14 +21,14 @@ class Engine(Serializable):
     """Runs a given ``process_function`` over each batch of a dataset, emitting events as it goes.
 
     Args:
-        process_function (callable): A function receiving a handle to the engine and the current batch
+        process_function: A function receiving a handle to the engine and the current batch
             in each iteration, and returns data to be stored in the engine's state.
 
     Attributes:
-        state (State): object that is used to pass internal and user-defined state between event handlers.
+        state: object that is used to pass internal and user-defined state between event handlers.
             It is created with the engine and its attributes (e.g. ``state.iteration``, ``state.epoch`` etc) are reset
             on every :meth:`~ignite.engine.engine.Engine.run`.
-        last_event_name (Events): last event name triggered by the engine.
+        last_event_name: last event name triggered by the engine.
 
     Examples:
 
@@ -118,6 +118,8 @@ class Engine(Serializable):
 
     """
 
+    state: State
+    last_event_name: Optional[Events]
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
@@ -154,9 +156,9 @@ class Engine(Serializable):
         By default, the events from :class:`~ignite.engine.events.Events` are registered.
 
         Args:
-            *event_names (iterable): Defines the name of the event being supported. New events can be a str
+            event_names: Defines the name of the event being supported. New events can be a str
                 or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
-            event_to_attr (dict, optional): A dictionary to map an event to a state attribute.
+            event_to_attr: A dictionary to map an event to a state attribute.
 
         Example usage:
 
@@ -253,18 +255,18 @@ class Engine(Serializable):
             event_name: An event or a list of events to attach the handler. Valid events are
                 from :class:`~ignite.engine.events.Events` or any ``event_name`` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
+            handler: the callable event handler that should be invoked. No restrictions on its signature.
                 The first argument can be optionally `engine`, the :class:`~ignite.engine.engine.Engine` object,
                 handler is bound to.
             *args: optional args to be passed to ``handler``.
             **kwargs: optional keyword args to be passed to ``handler``.
 
+        Returns:
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+
         Note:
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
             passed here, for example during :attr:`~ignite.engine.events.Events.EXCEPTION_RAISED`.
-
-        Returns:
-            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
 
         Example usage:
 
@@ -328,7 +330,7 @@ class Engine(Serializable):
         """Check if the specified event has the specified handler.
 
         Args:
-            handler (callable): the callable event handler.
+            handler: the callable event handler.
             event_name: The event the handler attached to. Set this
                 to ``None`` to search all events.
         """
@@ -354,7 +356,7 @@ class Engine(Serializable):
         """Remove event handler `handler` from registered handlers of the engine
 
         Args:
-            handler (callable): the callable event handler that should be removed
+            handler: the callable event handler that should be removed
             event_name: The event the handler attached to.
 
         """
@@ -376,8 +378,8 @@ class Engine(Serializable):
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.events.Events`
                 or any ``event_name`` added by :meth:`~ignite.engine.engine.Engine.register_events`.
-            *args: optional args to be passed to `handler`.
-            **kwargs: optional keyword args to be passed to `handler`.
+            args: optional args to be passed to `handler`.
+            kwargs: optional keyword args to be passed to `handler`.
 
         Example usage:
 
@@ -514,7 +516,7 @@ class Engine(Serializable):
         This method does not remove any custom attributes added by user.
 
         Args:
-            state_dict (Mapping): a dict with parameters
+            state_dict: a dict with parameters
 
         .. code-block:: python
 
@@ -570,7 +572,7 @@ class Engine(Serializable):
         from newly provided data. Please, note that epoch length is not modified.
 
         Args:
-            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
+            data: Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
 
         Example usage:
             User can switch data provider during the training:
@@ -620,16 +622,16 @@ class Engine(Serializable):
         - If state is defined, engine is NOT "done", then input arguments if provided override defined state.
 
         Args:
-            data (Iterable): Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
-            max_epochs (int, optional): Max epochs to run for (default: None).
+            data: Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
+            max_epochs: Max epochs to run for (default: None).
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
                 If run is resuming from a state, provided `max_epochs` will be taken into account and should be larger
                 than `engine.state.max_epochs`.
-            epoch_length (int, optional): Number of iterations to count as one epoch. By default, it can be set as
+            epoch_length: Number of iterations to count as one epoch. By default, it can be set as
                 `len(data)`. If `data` is an iterator and `epoch_length` is not set, then it will be automatically
                 determined as the iteration on which data iterator raises `StopIteration`.
                 This argument should not change if run is resuming from a state.
-            max_iters (int, optional): Number of iterations to run for.
+            max_iters: Number of iterations to run for.
                 `max_iters` and `max_epochs` are mutually exclusive; only one of the two arguments should be provided.
 
         Returns:
