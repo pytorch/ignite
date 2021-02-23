@@ -206,6 +206,7 @@ todo_include_todos = True
 
 # -- Type hints configs ------------------------------------------------------
 
+autodoc_inherit_docstrings = True
 autoclass_content = "both"
 autodoc_typehints = "description"
 napoleon_attr_annotations = True
