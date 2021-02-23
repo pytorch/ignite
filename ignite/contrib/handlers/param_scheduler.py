@@ -625,9 +625,7 @@ class ConcatScheduler(ParamScheduler):
                 s.save_history = False
 
             output = []
-            scheduler = cls(  # type: ignore[call-arg]
-                schedulers=schedulers, save_history=False, durations=durations
-            )
+            scheduler = cls(schedulers=schedulers, save_history=False, durations=durations)
             if param_names is None:
                 param_names = [scheduler.param_name]
             for i in range(num_events):
