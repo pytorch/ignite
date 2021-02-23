@@ -54,21 +54,24 @@ def create_supervised_trainer(
     """Factory function for creating a trainer for supervised models.
 
     Args:
-        model (`torch.nn.Module`): the model to train.
-        optimizer (`torch.optim.Optimizer`): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU or TPU.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-        deterministic (bool, optional): if True, returns deterministic engine of type
+        deterministic: if True, returns deterministic engine of type
             :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.engine.Engine`
             (default: False).
+
+    Returns:
+        Trainer engine with supervised update function.
 
     Note:
         `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss
@@ -85,8 +88,6 @@ def create_supervised_trainer(
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
-    Returns:
-        Engine: a trainer engine with supervised update function.
     """
 
     device_type = device.type if isinstance(device, torch.device) else device
@@ -127,17 +128,20 @@ def create_supervised_evaluator(
     Factory function for creating an evaluator for supervised models.
 
     Args:
-        model (`torch.nn.Module`): the model to train.
-        metrics (dict of str - :class:`~ignite.metrics.Metric`): a map of metric names to Metrics.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        metrics: a map of metric names to Metrics.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
+
+    Returns:
+        an evaluator engine with supervised inference function.
 
     Note:
         `engine.state.output` for this engine is defind by `output_transform` parameter and is
@@ -154,9 +158,6 @@ def create_supervised_evaluator(
         - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
-
-    Returns:
-        Engine: an evaluator engine with supervised inference function.
     """
     metrics = metrics or {}
 
