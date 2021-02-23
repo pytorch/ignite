@@ -1,7 +1,9 @@
+import math
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import torch
+from torch.nn.utils.clip_grad import clip_grad_norm_
 
 import ignite.distributed as idist
 from ignite.engine.deterministic import DeterministicEngine
@@ -49,6 +51,7 @@ def supervised_training_step(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    gradient_clip: float = math.inf,
 ) -> Callable:
     """Factory function for supervised training.
 
@@ -65,6 +68,8 @@ def supervised_training_step(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
+        gradient_clip  (float): maximum norm of the gradients.
+            (default: math.inf)
 
     Returns:
         Callable: update function.
@@ -90,6 +95,7 @@ def supervised_training_step(
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
+        clip_grad_norm_(model.parameters(), gradient_clip)
         optimizer.step()
         return output_transform(x, y, y_pred, loss)
 
@@ -105,6 +111,7 @@ def supervised_training_step_amp(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
+    gradient_clip: float = math.inf,
 ) -> Callable:
     """Factory function for supervised training using ``torch.cuda.amp``.
 
@@ -122,6 +129,8 @@ def supervised_training_step_amp(
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         scaler: GradScaler instance for gradient scaling. (default: None)
+        gradient_clip  (float): maximum norm of the gradients.
+            (default: math.inf)
 
     Returns:
         Callable: update function
@@ -155,10 +164,13 @@ def supervised_training_step_amp(
             loss = loss_fn(y_pred, y)
         if scaler:
             scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            clip_grad_norm_(model.parameters(), gradient_clip)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss.backward()
+            clip_grad_norm_(model.parameters(), gradient_clip)
             optimizer.step()
         return output_transform(x, y, y_pred, loss)
 
@@ -173,6 +185,7 @@ def supervised_training_step_apex(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    gradient_clip: float = math.inf,
 ) -> Callable:
     """Factory function for supervised training using apex.
 
@@ -189,6 +202,8 @@ def supervised_training_step_apex(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
+        gradient_clip  (float): maximum norm of the gradients.
+            (default: math.inf)
 
     Returns:
         Callable: update function.
@@ -220,6 +235,7 @@ def supervised_training_step_apex(
         loss = loss_fn(y_pred, y)
         with apex_amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
+        clip_grad_norm_(apex_amp.master_params(optimizer), gradient_clip)
         optimizer.step()
         return output_transform(x, y, y_pred, loss)
 
@@ -234,6 +250,7 @@ def supervised_training_step_tpu(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    gradient_clip: float = math.inf,
 ) -> Callable:
     """Factory function for supervised training using ``torch_xla``.
 
@@ -250,6 +267,8 @@ def supervised_training_step_tpu(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
+        gradient_clip  (float): maximum norm of the gradients.
+            (default: math.inf)
 
     Returns:
         Callable: update function.
@@ -279,6 +298,8 @@ def supervised_training_step_tpu(
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
         loss.backward()
+        xm.reduce_gradients(optimizer)
+        clip_grad_norm_(model.parameters(), gradient_clip)
         xm.optimizer_step(optimizer, barrier=True)
         return output_transform(x, y, y_pred, loss)
 
@@ -324,6 +345,7 @@ def create_supervised_trainer(
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    gradient_clip: float = math.inf,
 ) -> Engine:
     """Factory function for creating a trainer for supervised models.
 
@@ -390,19 +412,19 @@ def create_supervised_trainer(
 
     if mode == "amp":
         _update = supervised_training_step_amp(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, _scaler
+            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, _scaler, gradient_clip
         )
     elif mode == "apex":
         _update = supervised_training_step_apex(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
+            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, gradient_clip
         )
     elif mode == "tpu":
         _update = supervised_training_step_tpu(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
+            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, gradient_clip
         )
     else:
         _update = supervised_training_step(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
+            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, gradient_clip
         )
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
