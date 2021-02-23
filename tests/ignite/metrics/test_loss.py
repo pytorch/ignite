@@ -55,6 +55,7 @@ def test_non_averaging_loss():
 
 
 def test_gradient_based_loss():
+    # Tests https://github.com/pytorch/ignite/issues/1674
     x = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], requires_grad=True)
     y_pred = x.mm(torch.randn(size=(3, 1)))
 
