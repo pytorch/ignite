@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, DefaultDict, Dict, List, Optional, Union
+from typing import Callable, DefaultDict, List, Union
 
 import torch
 
@@ -13,10 +13,12 @@ from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 class Rouge(Metric):
     r"""Calculates the Rouge Score for two Sequence of Tokens.
 
+    Paper: Lin, Chin-Yew. 2004. ROUGE: a Package for Automatic Evaluation of Summaries.
+    In Proceedings of the Workshop on Text Summarization Branches Out (WAS 2004), Barcelona, Spain, July 25 - 26, 2004.
+
 
     .. math::
-        F_\1 = \left( 1 - \alpha \right) * \frac{ \text{precision} * \text{recall} }
-        { \left( \alpha * \text{precision} \right) + \text{recall} }
+        F_\1 = 2 * \frac{\text{precision} * \text{recall}} {\text{precision} + \text{recall}}
 
     where :math:`\alpha` is a float between 0 and 1.
 
@@ -32,42 +34,46 @@ class Rouge(Metric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
 
+    Example:
+        from ignite.metrics import Rouge
+        import torch
+        m = Rouge(alpha=1,n='l')
+        y_pred = "the cat was found under the bed"
+        y = "the cat was under the bed"
+        m.update([y_pred.split(),[y.split()]]) #Using space to separate sentences into tokens
+        y_pred = "the tiny little cat was found under the big funny bed"
+        y = "the cat was under the bed"
+        m.update([y_pred.split(),[y.split()]])
+        print(m._rougetotal)
+        print(m._num_examples)
+        print(m.compute())
 
+    .. versionadded:: 0.5.0
     """
 
-    def __init__(self, alpha: float, n: int, device: Union[str, torch.device] = torch.device("cpu")) -> None:
+    def __init__(
+        self,
+        n: Union[int, str],
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ) -> None:
         self._rougetotal: torch.Tensor = torch.tensor(0, device=device)
         self._num_examples: int = 0
-        self._check_parameters(alpha, n)
-        self.alpha: float = alpha
+        self._check_parameters(n)
         self.n: int = n
-        super(Rouge, self).__init__(device=device)
+        super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_parameters(self, alpha: float, n: int) -> None:
-        if alpha < 0 or alpha > 1:
-            raise ValueError("Alpha has to be between 0 and 1 to calculate Rouge f1 score.")
+    def _check_parameters(self, n: Union[int, str]) -> None:
         if isinstance(n, str) and n != "l" and n != "L":
             raise ValueError('Invalid String, Only Rouge-L supported.Please use "l" or "L"')
         elif isinstance(n, int) and n < 1:
             raise ValueError("Ignite needs atleast unigram to calculate Rouge")
 
-    def _ngramify(self, text: List[str], n: int) -> Dict:
-        ngram_dict: DefaultDict = defaultdict(int)
-        start = 0
-        end = n
-        ngram = ""
-        for i in range(start, end):
-            ngram += text[i]
-            ngram += " "
-        while end < len(text):
-            ngram_dict[ngram] += 1
-            ngram = ngram[len(text[start]) + 1 :]
-            ngram += text[end]
-            ngram += " "
-            start += 1
-            end += 1
-        ngram_dict[ngram] += 1
-        return ngram_dict
+    def _ngramify(self, tokens: List[str], n: int) -> DefaultDict:
+        ngrams = defaultdict(int)
+        for ngram in (tuple(tokens[i : i + n]) for i in range(len(tokens) - n + 1)):
+            ngrams[ngram] += 1
+        return ngrams
 
     def _safe_divide(self, numerator: float, denominator: float) -> float:
         if denominator > 0:
@@ -75,11 +81,11 @@ class Rouge(Metric):
         else:
             return 0.0
 
-    def _f1_score(self, matches: int, recall_total: int, precision_total: int, alpha: float = 1) -> float:
+    def _f1_score(self, matches: int, recall_total: int, precision_total: int) -> float:
         recall_score = self._safe_divide(matches, recall_total)
         precision_score = self._safe_divide(matches, precision_total)
-        denom = (1.0 - alpha) * precision_score + alpha * recall_score
-        f1_score = self._safe_divide(precision_score * recall_score, denom)
+        denom = precision_score + recall_score
+        f1_score = self._safe_divide(2 * precision_score * recall_score, denom)
         return f1_score
 
     def _lcs(self, a: List[str], b: List[str]) -> int:
@@ -116,7 +122,7 @@ class Rouge(Metric):
                 if model_dict[ngram]:
                     matches += y_pred_dict[ngram]
         precision_total = len(y) * max((len(y_pred) - n + 1), 0)
-        f1_score = self._f1_score(matches, recall_total, precision_total, self.alpha)
+        f1_score = self._f1_score(matches, recall_total, precision_total)
         return f1_score
 
     def rouge_l(self, y_pred: List[str], y: List[List[str]]) -> float:
@@ -126,7 +132,7 @@ class Rouge(Metric):
             matches += int(self._lcs(model, y_pred))
             recall_total += len(model)
         precision_total = len(y) * len(y_pred)
-        f1_score = self._f1_score(matches, recall_total, precision_total, self.alpha)
+        f1_score = self._f1_score(matches, recall_total, precision_total)
         return f1_score
 
     @reinit__is_reduced
