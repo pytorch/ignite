@@ -60,7 +60,7 @@ class Rouge(Metric):
         self._rougetotal: torch.Tensor = torch.tensor(0, device=device)
         self._num_examples: int = 0
         self._check_parameters(n)
-        self.n: Union[str, int] = n
+        self.n: int = (0 if isinstance(n, str) else n)
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
     def _check_parameters(self, n: Union[int, str]) -> None:
@@ -144,7 +144,7 @@ class Rouge(Metric):
     @reinit__is_reduced
     def update(self, output: List[List]) -> None:
         y_pred, y = output[0], output[1]
-        if isinstance(self.n, str):
+        if self.n == 0:
             self._rougetotal = torch.add(self._rougetotal, self.rouge_l(y_pred, y))
         else:
             self._rougetotal = torch.add(self._rougetotal, self.rouge_n(y_pred, y))
