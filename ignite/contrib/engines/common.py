@@ -59,35 +59,35 @@ def setup_common_training_handlers(
         - Two progress bars on epochs and optionally on iterations
 
     Args:
-        trainer (Engine): trainer engine. Output of trainer's `update_function` should be a dictionary
+        trainer: trainer engine. Output of trainer's `update_function` should be a dictionary
             or sequence or a single tensor.
-        train_sampler (torch.utils.data.DistributedSampler, optional): Optional distributed sampler used to call
+        train_sampler: Optional distributed sampler used to call
             `set_epoch` method on epoch started event.
-        to_save (dict, optional): dictionary with objects to save in the checkpoint. This argument is passed to
+        to_save: dictionary with objects to save in the checkpoint. This argument is passed to
             :class:`~ignite.handlers.Checkpoint` instance.
-        save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored
+        save_every_iters: saving interval. By default, `to_save` objects are stored
             each 1000 iterations.
-        output_path (str, optional): output path to indicate where `to_save` objects are stored. Argument is mutually
+        output_path: output path to indicate where `to_save` objects are stored. Argument is mutually
             exclusive with ``save_handler``.
-        lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
+        lr_scheduler: learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
-        with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the
+        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
-        output_names (list/tuple, optional): list of names associated with `update_function` output dictionary.
-        with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached.
+        output_names: list of names associated with `update_function` output dictionary.
+        with_pbars: if True, two progress bars on epochs and optionally on iterations are attached.
             Default, True.
-        with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.
+        with_pbar_on_iters: if True, a progress bar on iterations is attached to the trainer.
             Default, True.
-        log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for
+        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.GpuInfo` and for
             epoch-wise progress bar. Default, 100.
-        stop_on_nan (bool, optional): if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.
+        stop_on_nan: if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.
             Default, True.
-        clear_cuda_cache (bool, optional): if True, `torch.cuda.empty_cache()` is called every end of epoch.
+        clear_cuda_cache: if True, `torch.cuda.empty_cache()` is called every end of epoch.
             Default, True.
-        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`, optional): Method or callable
-            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
+        save_handler: Method or callable
+            class to use to store ``to_save``. See :class:`~ignite.handlers.Checkpoint` for more details.
             Argument is mutually exclusive with ``output_path``.
-        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
     """
 
     if idist.get_world_size() > 1:
@@ -352,15 +352,15 @@ def setup_tb_logging(
         - Evaluation metrics
 
     Args:
-        output_path (str): logging directory path
-        trainer (Engine): trainer engine
-        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+        output_path: logging directory path
+        trainer: trainer engine
+        optimizers: single or dictionary of
             torch optimizers. If a dictionary, keys are used as tags arguments for logging.
-        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+        evaluators: single or dictionary of evaluators. If a dictionary,
             keys are used as tags arguments for logging.
-        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+        log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: optional keyword args to be passed to construct the logger.
+        kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         :class:`~ignite.contrib.handlers.tensorboard_logger.TensorboardLogger`
@@ -384,14 +384,14 @@ def setup_visdom_logging(
         - Evaluation metrics
 
     Args:
-        trainer (Engine): trainer engine
-        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+        trainer: trainer engine
+        optimizers: single or dictionary of
             torch optimizers. If a dictionary, keys are used as tags arguments for logging.
-        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+        evaluators: single or dictionary of evaluators. If a dictionary,
             keys are used as tags arguments for logging.
-        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+        log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: optional keyword args to be passed to construct the logger.
+        kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         :class:`~ignite.contrib.handlers.visdom_logger.VisdomLogger`
@@ -415,14 +415,14 @@ def setup_mlflow_logging(
         - Evaluation metrics
 
     Args:
-        trainer (Engine): trainer engine
-        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+        trainer: trainer engine
+        optimizers: single or dictionary of
             torch optimizers. If a dictionary, keys are used as tags arguments for logging.
-        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+        evaluators: single or dictionary of evaluators. If a dictionary,
             keys are used as tags arguments for logging.
-        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+        log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: optional keyword args to be passed to construct the logger.
+        kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         :class:`~ignite.contrib.handlers.mlflow_logger.MLflowLogger`
@@ -446,14 +446,14 @@ def setup_neptune_logging(
         - Evaluation metrics
 
     Args:
-        trainer (Engine): trainer engine
-        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+        trainer: trainer engine
+        optimizers: single or dictionary of
             torch optimizers. If a dictionary, keys are used as tags arguments for logging.
-        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+        evaluators: single or dictionary of evaluators. If a dictionary,
             keys are used as tags arguments for logging.
-        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+        log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: optional keyword args to be passed to construct the logger.
+        kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         :class:`~ignite.contrib.handlers.neptune_logger.NeptuneLogger`
@@ -477,14 +477,14 @@ def setup_wandb_logging(
         - Evaluation metrics
 
     Args:
-        trainer (Engine): trainer engine
-        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+        trainer: trainer engine
+        optimizers: single or dictionary of
             torch optimizers. If a dictionary, keys are used as tags arguments for logging.
-        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+        evaluators: single or dictionary of evaluators. If a dictionary,
             keys are used as tags arguments for logging.
-        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+        log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: optional keyword args to be passed to construct the logger.
+        kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         :class:`~ignite.contrib.handlers.wandb_logger.WandBLogger`
@@ -508,14 +508,14 @@ def setup_plx_logging(
         - Evaluation metrics
 
     Args:
-        trainer (Engine): trainer engine
-        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+        trainer: trainer engine
+        optimizers: single or dictionary of
             torch optimizers. If a dictionary, keys are used as tags arguments for logging.
-        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+        evaluators: single or dictionary of evaluators. If a dictionary,
             keys are used as tags arguments for logging.
-        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+        log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: optional keyword args to be passed to construct the logger.
+        kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         :class:`~ignite.contrib.handlers.polyaxon_logger.PolyaxonLogger`
@@ -539,14 +539,14 @@ def setup_clearml_logging(
         - Evaluation metrics
 
     Args:
-        trainer (Engine): trainer engine
-        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of
+        trainer: trainer engine
+        optimizers: single or dictionary of
             torch optimizers. If a dictionary, keys are used as tags arguments for logging.
-        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,
+        evaluators: single or dictionary of evaluators. If a dictionary,
             keys are used as tags arguments for logging.
-        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,
+        log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
-        **kwargs: optional keyword args to be passed to construct the logger.
+        kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
         :class:`~ignite.contrib.handlers.clearml_logger.ClearMLLogger`
@@ -588,21 +588,21 @@ def gen_save_best_models_by_val_score(
     ``save_handler``.
 
     Args:
-        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
+        save_handler: Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If ``save_handler`` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
             ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
-        evaluator (Engine): evaluation engine used to provide the score
-        models (nn.Module or Mapping): model or dictionary with the object to save. Objects should have
+        evaluator: evaluation engine used to provide the score
+        models: model or dictionary with the object to save. Objects should have
             implemented ``state_dict`` and ``load_state_dict`` methods.
-        metric_name (str): metric name to use for score evaluation. This metric should be present in
+        metric_name: metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
-        n_saved (int, optional): number of best models to store
-        trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.
-        tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+        n_saved: number of best models to store
+        trainer: trainer engine to fetch the epoch when saving the best model.
+        tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
 
     Returns:
         A :class:`~ignite.handlers.Checkpoint` handler.
@@ -646,15 +646,15 @@ def save_best_model_by_val_score(
     Models with highest metric value will be retained.
 
     Args:
-        output_path (str): output path to indicate where to save best models
-        evaluator (Engine): evaluation engine used to provide the score
-        model (nn.Module): model to store
-        metric_name (str): metric name to use for score evaluation. This metric should be present in
+        output_path: output path to indicate where to save best models
+        evaluator: evaluation engine used to provide the score
+        model: model to store
+        metric_name: metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
-        n_saved (int, optional): number of best models to store
-        trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.
-        tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+        n_saved: number of best models to store
+        trainer: trainer engine to fetch the epoch when saving the best model.
+        tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
 
     Returns:
         A :class:`~ignite.handlers.Checkpoint` handler.
@@ -678,10 +678,10 @@ def add_early_stopping_by_val_score(
     Metric value should increase in order to keep training and not early stop.
 
     Args:
-        patience (int): number of events to wait if no improvement and then stop the training.
-        evaluator (Engine): evaluation engine used to provide the score
-        trainer (Engine): trainer engine to stop the run if no improvement.
-        metric_name (str): metric name to use for score evaluation. This metric should be present in
+        patience: number of events to wait if no improvement and then stop the training.
+        evaluator: evaluation engine used to provide the score
+        trainer: trainer engine to stop the run if no improvement.
+        metric_name: metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
 
     Returns:
