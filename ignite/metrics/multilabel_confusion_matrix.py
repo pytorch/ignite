@@ -38,7 +38,7 @@ class MultiLabelConfusionMatrix(Metric):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
-        normalized: whether to normalized confusion matrix by its sum or not.
+        normalized: whether to normalize confusion matrix by its sum or not.
 
     .. versionadded:: 0.5.0
 
