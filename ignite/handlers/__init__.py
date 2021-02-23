@@ -25,11 +25,11 @@ def global_step_from_engine(engine: Engine, custom_event_name: Optional[Events] 
     This can be helpful for logging trainer epoch/iteration while output handler is attached to an evaluator.
 
     Args:
-        engine (Engine): engine which state is used to provide the global step
-        custom_event_name (optional): registered event name. Optional argument, event name to use.
+        engine: engine which state is used to provide the global step
+        custom_event_name: registered event name. Optional argument, event name to use.
 
     Returns:
-        global step
+        global step based on provided engine
     """
 
     def wrapper(_: Any, event_name: Events) -> int:

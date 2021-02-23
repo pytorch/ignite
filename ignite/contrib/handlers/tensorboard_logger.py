@@ -44,10 +44,10 @@ class TensorboardLogger(BaseLogger):
     (>=v1.2.0).
 
     Args:
-        *args: Positional arguments accepted from
+        args: Positional arguments accepted from
             `SummaryWriter
             <https://pytorch.org/docs/stable/tensorboard.html>`_.
-        **kwargs: Keyword arguments accepted from
+        kwargs: Keyword arguments accepted from
             `SummaryWriter
             <https://pytorch.org/docs/stable/tensorboard.html>`_.
             For example, `log_dir` to setup path to the directory where to log.
@@ -149,7 +149,7 @@ class TensorboardLogger(BaseLogger):
 
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any):
         try:
             from tensorboardX import SummaryWriter
         except ImportError:
@@ -236,14 +236,14 @@ class OutputHandler(BaseOutputHandler):
             )
 
     Args:
-        tag (str): common title for all produced plots. For example, "training"
-        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
-        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
@@ -266,7 +266,7 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]) -> None:
@@ -319,13 +319,13 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -365,13 +365,13 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -411,8 +411,8 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
@@ -457,13 +457,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -502,12 +502,12 @@ class GradsHistHandler(BaseWeightsHistHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: nn.Module, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, tag: Optional[str] = None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
