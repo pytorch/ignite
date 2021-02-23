@@ -48,7 +48,7 @@ class CohenKappa(EpochMetric):
             self.cohen_kappa_compute, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
 
-    def get_cohen_kappa_fn(self) -> float:
+    def get_cohen_kappa_fn(self) -> Callable[[torch.Tensor, torch.Tensor], float]:
 
         try:
             from sklearn.metrics import cohen_kappa_score
