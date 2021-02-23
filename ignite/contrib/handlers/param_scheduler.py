@@ -579,7 +579,6 @@ class ConcatScheduler(ParamScheduler):
         schedulers: List[ParamScheduler],
         durations: List[int],
         param_names: Optional[Union[List[str], Tuple[str]]] = None,
-        **kwargs: Any,
     ) -> List[List[int]]:
         """Method to simulate scheduled values during num_events events.
 
@@ -589,7 +588,6 @@ class ConcatScheduler(ParamScheduler):
             durations: list of number of events that lasts a parameter scheduler from schedulers.
             param_names: parameter name or list of parameter names to simulate values.
                 By default, the first scheduler's parameter name is taken.
-            kwargs:
 
         Returns:
             list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
@@ -628,7 +626,7 @@ class ConcatScheduler(ParamScheduler):
 
             output = []
             scheduler = cls(  # type: ignore[call-arg]
-                schedulers=schedulers, save_history=False, durations=durations, **kwargs
+                schedulers=schedulers, save_history=False, durations=durations
             )
             if param_names is None:
                 param_names = [scheduler.param_name]
