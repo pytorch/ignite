@@ -10,7 +10,7 @@ class Timer:
     """ Timer object can be used to measure (average) time between events.
 
     Args:
-        average (bool, optional): if True, then when ``.value()`` method is called, the returned value
+        average: if True, then when ``.value()`` method is called, the returned value
             will be equal to total time measured, divided by the value of internal counter.
 
     Attributes:
@@ -76,7 +76,7 @@ class Timer:
         ...              step=Events.ITERATION_COMPLETED)
     """
 
-    def __init__(self, average: bool = False) -> None:
+    def __init__(self, average: bool = False):
         self._average = average
 
         self.reset()
@@ -92,20 +92,14 @@ class Timer:
         """ Register callbacks to control the timer.
 
         Args:
-            engine (Engine):
-                Engine that this timer will be attached to.
-            start (Events):
-                Event which should start (reset) the timer.
-            pause (Events):
-                Event which should pause the timer.
-            resume (Events, optional):
-                Event which should resume the timer.
-            step (Events, optional):
-                Event which should call the `step` method of the counter.
+            engine: Engine that this timer will be attached to.
+            start: Event which should start (reset) the timer.
+            pause: Event which should pause the timer.
+            resume: Event which should resume the timer.
+            step: Event which should call the `step` method of the counter.
 
         Returns:
-            self (Timer)
-
+            this timer
         """
 
         engine.add_event_handler(start, self.reset)
