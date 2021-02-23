@@ -1,6 +1,6 @@
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 from ignite.metrics.accuracy import Accuracy
-from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, mIoU
+from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, JaccardIndex, mIoU
 from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.frequency import Frequency
@@ -37,6 +37,7 @@ __all__ = [
     "GeometricAverage",
     "IoU",
     "mIoU",
+    "JaccardIndex",
     "MultiLabelConfusionMatrix",
     "Precision",
     "PSNR",

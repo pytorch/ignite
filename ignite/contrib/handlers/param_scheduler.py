@@ -20,12 +20,12 @@ class ParamScheduler(metaclass=ABCMeta):
     training.
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): name of optimizer's parameter to update.
-        save_history (bool, optional): whether to log the parameter values to
+        param_name: name of optimizer's parameter to update.
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        param_group_index (int, optional): optimizer's parameters group to use
+        param_group_index: optimizer's parameters group to use
 
     Note:
         Parameter scheduler works independently of the internal state of the attached optimizer.
@@ -40,7 +40,7 @@ class ParamScheduler(metaclass=ABCMeta):
         param_name: str,
         save_history: bool = False,
         param_group_index: Optional[int] = None,
-    ) -> None:
+    ):
 
         if not (
             isinstance(optimizer, Optimizer)
@@ -120,7 +120,7 @@ class ParamScheduler(metaclass=ABCMeta):
         """Copies parameters from :attr:`state_dict` into this ParamScheduler.
 
         Args:
-            state_dict (dict): a dict containing parameters.
+            state_dict: a dict containing parameters.
         """
         if not isinstance(state_dict, Mapping):
             raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
@@ -151,11 +151,11 @@ class ParamScheduler(metaclass=ABCMeta):
         """Method to simulate scheduled values during `num_events` events.
 
         Args:
-            num_events (int): number of events during the simulation.
-            **scheduler_kwargs : parameter scheduler configuration kwargs.
+            num_events: number of events during the simulation.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
 
         Returns:
-            list of pairs: [event_index, value]
+            event_index, value
 
         Examples:
 
@@ -193,8 +193,8 @@ class ParamScheduler(metaclass=ABCMeta):
             pip install matplotlib
 
         Args:
-            num_events (int): number of events during the simulation.
-            **scheduler_kwargs : parameter scheduler configuration kwargs.
+            num_events: number of events during the simulation.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
 
         Returns:
             matplotlib.lines.Line2D
@@ -230,21 +230,21 @@ class CyclicalScheduler(ParamScheduler):
     cycle of some size.
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): name of optimizer's parameter to update.
-        start_value (float): value at start of cycle.
-        end_value (float): value at the middle of the cycle.
-        cycle_size (int): length of cycle, value should be larger than 1.
-        cycle_mult (float, optional): ratio by which to change the cycle_size.
+        param_name: name of optimizer's parameter to update.
+        start_value: value at start of cycle.
+        end_value: value at the middle of the cycle.
+        cycle_size: length of cycle, value should be larger than 1.
+        cycle_mult: ratio by which to change the cycle_size.
             at the end of each cycle (default=1.0).
-        start_value_mult (float, optional): ratio by which to change the start value at the
+        start_value_mult: ratio by which to change the start value at the
             end of each cycle (default=1.0).
-        end_value_mult (float, optional): ratio by which to change the end value at the
+        end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
-        save_history (bool, optional): whether to log the parameter values to
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        param_group_index (int, optional): optimizer's parameters group to use.
+        param_group_index: optimizer's parameters group to use.
 
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
@@ -304,21 +304,21 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     adjusts it back to 'start_value' for a half-cycle.
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): name of optimizer's parameter to update.
-        start_value (float): value at start of cycle.
-        end_value (float): value at the middle of the cycle.
-        cycle_size (int): length of cycle.
-        cycle_mult (float, optional): ratio by which to change the cycle_size
+        param_name: name of optimizer's parameter to update.
+        start_value: value at start of cycle.
+        end_value: value at the middle of the cycle.
+        cycle_size: length of cycle.
+        cycle_mult: ratio by which to change the cycle_size
             at the end of each cycle (default=1).
-        start_value_mult (float, optional): ratio by which to change the start value at the
+        start_value_mult: ratio by which to change the start value at the
             end of each cycle (default=1.0).
-        end_value_mult (float, optional): ratio by which to change the end value at the
+        end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
-        save_history (bool, optional): whether to log the parameter values to
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        param_group_index (int, optional): optimizer's parameters group to use.
+        param_group_index: optimizer's parameters group to use.
 
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
@@ -350,21 +350,21 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     wave (as suggested in [Smith17]_).
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): name of optimizer's parameter to update.
-        start_value (float): value at start of cycle.
-        end_value (float): value at the end of the cycle.
-        cycle_size (int): length of cycle.
-        cycle_mult (float, optional): ratio by which to change the cycle_size
+        param_name: name of optimizer's parameter to update.
+        start_value: value at start of cycle.
+        end_value: value at the end of the cycle.
+        cycle_size: length of cycle.
+        cycle_mult: ratio by which to change the cycle_size
             at the end of each cycle (default=1).
-        start_value_mult (float, optional): ratio by which to change the start value at the
+        start_value_mult: ratio by which to change the start value at the
             end of each cycle (default=1.0).
-        end_value_mult (float, optional): ratio by which to change the end value at the
+        end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
-        save_history (bool, optional): whether to log the parameter values to
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        param_group_index (int, optional): optimizer's parameters group to use.
+        param_group_index: optimizer's parameters group to use.
 
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
@@ -418,9 +418,9 @@ class ConcatScheduler(ParamScheduler):
     scheduler is defined by `durations` list of integers.
 
     Args:
-        schedulers (list of ParamScheduler): list of parameter schedulers.
-        durations (list of int): list of number of events that lasts a parameter scheduler from schedulers.
-        save_history (bool, optional): whether to log the parameter values to
+        schedulers: list of parameter schedulers.
+        durations: list of number of events that lasts a parameter scheduler from schedulers.
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
     Examples:
@@ -444,7 +444,7 @@ class ConcatScheduler(ParamScheduler):
 
     """
 
-    def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False) -> None:
+    def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False):
 
         if not isinstance(schedulers, Sequence):
             raise TypeError(f"Argument schedulers should be a sequence, but given {schedulers}")
@@ -520,7 +520,7 @@ class ConcatScheduler(ParamScheduler):
         """Copies parameters from :attr:`state_dict` into this ConcatScheduler.
 
         Args:
-            state_dict (dict): a dict containing parameters.
+            state_dict: a dict containing parameters.
         """
         if not isinstance(state_dict, Mapping):
             raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
@@ -579,15 +579,14 @@ class ConcatScheduler(ParamScheduler):
         schedulers: List[ParamScheduler],
         durations: List[int],
         param_names: Optional[Union[List[str], Tuple[str]]] = None,
-        **kwargs: Any,
     ) -> List[List[int]]:
         """Method to simulate scheduled values during num_events events.
 
         Args:
-            num_events (int): number of events during the simulation.
-            schedulers (list of ParamScheduler): list of parameter schedulers.
-            durations (list of int): list of number of events that lasts a parameter scheduler from schedulers.
-            param_names (list or tuple of str, optional): parameter name or list of parameter names to simulate values.
+            num_events: number of events during the simulation.
+            schedulers: list of parameter schedulers.
+            durations: list of number of events that lasts a parameter scheduler from schedulers.
+            param_names: parameter name or list of parameter names to simulate values.
                 By default, the first scheduler's parameter name is taken.
 
         Returns:
@@ -626,9 +625,7 @@ class ConcatScheduler(ParamScheduler):
                 s.save_history = False
 
             output = []
-            scheduler = cls(  # type: ignore[call-arg]
-                schedulers=schedulers, save_history=False, durations=durations, **kwargs
-            )
+            scheduler = cls(schedulers=schedulers, save_history=False, durations=durations)
             if param_names is None:
                 param_names = [scheduler.param_name]
             for i in range(num_events):
@@ -651,8 +648,8 @@ class LRScheduler(ParamScheduler):
     """A wrapper class to call `torch.optim.lr_scheduler` objects as `ignite` handlers.
 
     Args:
-        lr_scheduler (subclass of `torch.optim.lr_scheduler._LRScheduler`): lr_scheduler object to wrap.
-        save_history (bool, optional): whether to log the parameter values to
+        lr_scheduler: lr_scheduler object to wrap.
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
     .. code-block:: python
@@ -671,7 +668,7 @@ class LRScheduler(ParamScheduler):
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     """
 
-    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False) -> None:
+    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False):
 
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
@@ -710,11 +707,11 @@ class LRScheduler(ParamScheduler):
         """Method to simulate scheduled values during num_events events.
 
         Args:
-            num_events (int): number of events during the simulation.
-            lr_scheduler (subclass of `torch.optim.lr_scheduler._LRScheduler`): lr_scheduler object to wrap.
+            num_events: number of events during the simulation.
+            lr_scheduler: lr_scheduler object to wrap.
 
         Returns:
-            list of pairs: [event_index, value]
+            event_index, value
 
         """
 
@@ -761,20 +758,20 @@ def create_lr_scheduler_with_warmup(
     Helper method to create a learning rate scheduler with a linear warm-up.
 
     Args:
-        lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler
+        lr_scheduler: learning rate scheduler
             after the warm-up.
-        warmup_start_value (float): learning rate start value of the warm-up phase.
-        warmup_duration (int): warm-up phase duration, number of events.
-        warmup_end_value (float, optional): learning rate end value of the warm-up phase, (default=None). If None,
+        warmup_start_value: learning rate start value of the warm-up phase.
+        warmup_duration: warm-up phase duration, number of events.
+        warmup_end_value: learning rate end value of the warm-up phase, (default=None). If None,
              warmup_end_value is set to optimizer initial lr.
-        save_history (bool, optional): whether to log the parameter values to
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        output_simulated_values (list, optional): optional output of simulated learning rate values.
+        output_simulated_values: optional output of simulated learning rate values.
             If output_simulated_values is a list of None, e.g. `[None] * 100`, after the execution it will be filled
             by 100 simulated learning rate values.
 
     Returns:
-        ConcatScheduler: learning rate scheduler with linear warm-up.
+        ConcatScheduler
 
     Note:
         If the first learning rate value provided by `lr_scheduler` is different from `warmup_end_value`, an additional
@@ -876,18 +873,14 @@ class PiecewiseLinear(ParamScheduler):
     Piecewise linear parameter scheduler
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): name of optimizer's parameter to update.
-        milestones_values (list of tuples (int, float)): list of tuples (event index, parameter value)
+        param_name: name of optimizer's parameter to update.
+        milestones_values: list of tuples (event index, parameter value)
             represents milestones and parameter. Milestones should be increasing integers.
-        save_history (bool, optional): whether to log the parameter values to
+        save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        param_group_index (int, optional): optimizer's parameters group to use.
-
-    Returns:
-        PiecewiseLinear: piecewise linear scheduler
-
+        param_group_index: optimizer's parameters group to use.
 
     .. code-block:: python
 
@@ -967,8 +960,9 @@ class ParamGroupScheduler:
     Scheduler helper to group multiple schedulers into one.
 
     Args:
-        schedulers (list/tuple of ParamScheduler): list/tuple of parameter schedulers.
-        names (list of str): list of names of schedulers.
+        schedulers: list/tuple of parameter schedulers.
+        names: list of names of schedulers.
+        save_history: whether to save history or not.
 
     .. code-block:: python
 
@@ -1055,7 +1049,7 @@ class ParamGroupScheduler:
         """Copies parameters from :attr:`state_dict` into this ParamScheduler.
 
         Args:
-            state_dict (dict): a dict containing parameters.
+            state_dict: a dict containing parameters.
         """
         if not isinstance(state_dict, Mapping):
             raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
@@ -1083,11 +1077,13 @@ class ParamGroupScheduler:
         """Method to simulate scheduled values during num_events events.
 
         Args:
-            num_events (int): number of events during the simulation.
-            schedulers (subclass of `torch.optim.lr_scheduler._LRScheduler`): lr_scheduler object to wrap.
+            num_events: number of events during the simulation.
+            schedulers: lr_scheduler object to wrap.
+            kwargs: kwargs passed to construct an instance of
+                :class:`ignite.contrib.handlers.param_scheduler.ParamGroupScheduler`.
 
         Returns:
-            list of pairs: [event_index, value]
+            event_index, value
 
         """
 

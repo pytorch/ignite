@@ -53,21 +53,32 @@ def supervised_training_step(
     """Factory function for supervised training.
 
     Args:
-        model (torch.nn.Module): the model to train.
-        optimizer (torch.optim.Optimizer): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
     Returns:
         Callable: update function.
+
+    Example::
+
+        from ignite.engine import Engine, supervised_training_step
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+
+        update_fn = supervised_training_step(model, optimizer, loss_fn, 'cuda')
+        trainer = Engine(update_fn)
 
     .. versionadded:: 0.5.0
     """
@@ -98,22 +109,34 @@ def supervised_training_step_amp(
     """Factory function for supervised training using ``torch.cuda.amp``.
 
     Args:
-        model (torch.nn.Module): the model to train.
-        optimizer (torch.optim.Optimizer): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-        scaler (torch.cuda.amp.GradScaler, optional): GradScaler instance for gradient scaling. (default: None)
+        scaler: GradScaler instance for gradient scaling. (default: None)
 
     Returns:
         Callable: update function
+
+    Example::
+
+        from ignite.engine import Engine, supervised_training_step_amp
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+        scaler = torch.cuda.amp.GradScaler(2**10)
+
+        update_fn = supervised_training_step_amp(model, optimizer, loss_fn, 'cuda', scaler=scaler)
+        trainer = Engine(update_fn)
 
     .. versionadded:: 0.5.0
     """
@@ -154,21 +177,32 @@ def supervised_training_step_apex(
     """Factory function for supervised training using apex.
 
     Args:
-        model (torch.nn.Module): the model to train.
-        optimizer (torch.optim.Optimizer): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
     Returns:
         Callable: update function.
+
+    Example::
+
+        from ignite.engine import Engine, supervised_training_step_apex
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+
+        update_fn = supervised_training_step_apex(model, optimizer, loss_fn, 'cuda')
+        trainer = Engine(update_fn)
 
     .. versionadded:: 0.5.0
     """
@@ -204,21 +238,32 @@ def supervised_training_step_tpu(
     """Factory function for supervised training using ``torch_xla``.
 
     Args:
-        model (torch.nn.Module): the model to train.
-        optimizer (torch.optim.Optimizer): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, TPU.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
 
     Returns:
         Callable: update function.
+
+    Example::
+
+        from ignite.engine import Engine, supervised_training_step_tpu
+
+        model = ...
+        optimizer = ...
+        loss_fn = ...
+
+        update_fn = supervised_training_step_tpu(model, optimizer, loss_fn, 'xla')
+        trainer = Engine(update_fn)
 
     .. versionadded:: 0.5.0
     """
@@ -283,28 +328,31 @@ def create_supervised_trainer(
     """Factory function for creating a trainer for supervised models.
 
     Args:
-        model (torch.nn.Module): the model to train.
-        optimizer (torch.optim.Optimizer): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU or TPU.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred', 'loss' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-        deterministic (bool, optional): if True, returns deterministic engine of type
+        deterministic: if True, returns deterministic engine of type
             :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.engine.Engine`
             (default: False).
-        amp_mode (str, optional): can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
+        amp_mode: can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
             `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
             using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
-        scaler (torch.cuda.amp.GradScaler, bool, optional): GradScaler instance for gradient scaling if `torch>=1.6.0`
+        scaler: GradScaler instance for gradient scaling if `torch>=1.6.0`
             and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
             If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
             (default: False)
+
+    Returns:
+        a trainer engine with supervised update function.
 
     Note:
         If ``scaler`` is True, GradScaler instance will be created internally and trainer state has attribute named
@@ -329,9 +377,6 @@ def create_supervised_trainer(
         and optimizer(s), but before you send your model through any DistributedDataParallel wrapper.
 
         See more: https://nvidia.github.io/apex/amp.html#module-apex.amp
-
-    Returns:
-        Engine: a trainer engine with supervised update function.
 
     .. versionchanged:: 0.5.0
 
@@ -379,17 +424,20 @@ def create_supervised_evaluator(
     Factory function for creating an evaluator for supervised models.
 
     Args:
-        model (`torch.nn.Module`): the model to train.
-        metrics (dict of str - :class:`~ignite.metrics.Metric`): a map of metric names to Metrics.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        metrics: a map of metric names to Metrics.
+        device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU, the copy may occur asynchronously
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
             with respect to the host. For other cases, this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`, `non_blocking` and outputs
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        output_transform (callable, optional): function that receives 'x', 'y', 'y_pred' and returns value
+        output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
+
+    Returns:
+        an evaluator engine with supervised inference function.
 
     Note:
         `engine.state.output` for this engine is defind by `output_transform` parameter and is
@@ -406,9 +454,6 @@ def create_supervised_evaluator(
         - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
-
-    Returns:
-        Engine: an evaluator engine with supervised inference function.
     """
     metrics = metrics or {}
 

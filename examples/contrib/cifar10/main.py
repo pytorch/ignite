@@ -12,7 +12,7 @@ import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
-from ignite.engine import Engine, Events, create_supervised_evaluator
+from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
@@ -83,8 +83,8 @@ def training(local_rank, config):
 
     # We define two evaluators as they wont have exactly similar roles:
     # - `evaluator` will save the best model based on validation score
-    evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
-    train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
+    evaluator = create_evaluator(model, metrics=metrics, config=config)
+    train_evaluator = create_evaluator(model, metrics=metrics, config=config)
 
     def run_validation(engine):
         epoch = trainer.state.epoch
@@ -193,6 +193,8 @@ def run(
     del config["spawn_kwargs"]
 
     spawn_kwargs["nproc_per_node"] = nproc_per_node
+    if backend == "xla-tpu" and with_amp:
+        raise RuntimeError("The value of with_amp should be False if backend is xla")
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
 
@@ -347,6 +349,33 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
         Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 
     return trainer
+
+
+def create_evaluator(model, metrics, config, tag="val"):
+    with_amp = config["with_amp"]
+    device = idist.device()
+
+    @torch.no_grad()
+    def evaluate_step(engine: Engine, batch):
+        model.eval()
+        x, y = batch[0], batch[1]
+        if x.device != device:
+            x = x.to(device, non_blocking=True)
+            y = y.to(device, non_blocking=True)
+
+        with autocast(enabled=with_amp):
+            output = model(x)
+        return output, y
+
+    evaluator = Engine(evaluate_step)
+
+    for name, metric in metrics.items():
+        metric.attach(evaluator, name)
+
+    if idist.get_rank() == 0 and (not config["with_clearml"]):
+        common.ProgressBar(desc=f"Evaluation ({tag})", persist=False).attach(evaluator)
+
+    return evaluator
 
 
 def get_save_handler(config):
