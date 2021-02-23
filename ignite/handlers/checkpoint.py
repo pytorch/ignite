@@ -36,7 +36,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None):
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         """Method to save `checkpoint` with `filename`. Additionally, metadata dictionary is provided.
 
         Metadata contains:
@@ -54,7 +54,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def remove(self, filename: str):
+    def remove(self, filename: str) -> None:
         """Method to remove saved checkpoint.
 
         Args:
@@ -305,7 +305,7 @@ class Checkpoint(Serializable):
         self.include_self = include_self
         self.greater_or_equal = greater_or_equal
 
-    def reset(self):
+    def reset(self) -> None:
         """Method to reset saved checkpoint names.
 
         Use this method if the engine will independently run multiple times:
@@ -349,7 +349,7 @@ class Checkpoint(Serializable):
         else:
             return new > self._saved[0].priority
 
-    def __call__(self, engine: Engine):
+    def __call__(self, engine: Engine) -> None:
 
         global_step = None
         if self.global_step_transform is not None:
@@ -488,13 +488,13 @@ class Checkpoint(Serializable):
         return filename_pattern
 
     @staticmethod
-    def _check_objects(objs: Mapping, attr: str):
+    def _check_objects(objs: Mapping, attr: str) -> None:
         for k, obj in objs.items():
             if not hasattr(obj, attr):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs: Any):
+    def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
         Exemples:
@@ -568,7 +568,7 @@ class Checkpoint(Serializable):
         """
         return OrderedDict([("saved", [(p, f) for p, f in self._saved])])
 
-    def load_state_dict(self, state_dict: Mapping):
+    def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replace internal state of the class with provided state dict data.
 
         Args:
@@ -651,7 +651,7 @@ class DiskSaver(BaseSaveHandler):
 
     @staticmethod
     @idist.one_rank_only()
-    def _check_and_setup(dirname: str, create_dir: bool, require_empty: bool):
+    def _check_and_setup(dirname: str, create_dir: bool, require_empty: bool) -> None:
         if create_dir:
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
@@ -669,7 +669,7 @@ class DiskSaver(BaseSaveHandler):
                     ""
                 )
 
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None):
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         path = os.path.join(self.dirname, filename)
 
         if idist.has_xla_support:
@@ -678,16 +678,16 @@ class DiskSaver(BaseSaveHandler):
             self._save_native(checkpoint, path)
 
     @idist.one_rank_only()
-    def _save_native(self, checkpoint: Mapping, path: str):
+    def _save_native(self, checkpoint: Mapping, path: str) -> None:
         self._save_func(checkpoint, path, torch.save)
 
-    def _save_xla(self, checkpoint: Mapping, path: str):
+    def _save_xla(self, checkpoint: Mapping, path: str) -> None:
         import torch_xla.core.xla_model as xm
 
         # all tpu procs should enter here as internally performs sync across device
         self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
 
-    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0):
+    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0) -> None:
         if not self._atomic:
             func(checkpoint, path, **self.kwargs)
         else:
@@ -711,7 +711,7 @@ class DiskSaver(BaseSaveHandler):
                     os.rename(tmp.name, path)
 
     @idist.one_rank_only()
-    def remove(self, filename: str):
+    def remove(self, filename: str) -> None:
         path = os.path.join(self.dirname, filename)
         os.remove(path)
 
