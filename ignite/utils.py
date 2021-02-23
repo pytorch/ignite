@@ -11,15 +11,15 @@ __all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "s
 
 
 def convert_tensor(
-    input: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes],
+    x: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes],
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
 ) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
     """Move tensors to relevant device.
 
     Args:
-        input: input tensor or mapping, or sequence of tensors.
-        device: device type to move ``input``.
+        x: input tensor or mapping, or sequence of tensors.
+        device: device type to move ``x``.
         non_blocking: convert a CPU Tensor with pinned memory to a CUDA Tensor
             asynchronously with respect to the host if possible
     """
@@ -27,44 +27,44 @@ def convert_tensor(
     def _func(tensor: torch.Tensor) -> torch.Tensor:
         return tensor.to(device=device, non_blocking=non_blocking) if device is not None else tensor
 
-    return apply_to_tensor(input, _func)
+    return apply_to_tensor(x, _func)
 
 
 def apply_to_tensor(
-    input: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes], func: Callable
+    x: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes], func: Callable
 ) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
     """Apply a function on a tensor or mapping, or sequence of tensors.
 
     Args:
-        input: input tensor or mapping, or sequence of tensors.
-        func: the function to apply on ``input``.
+        x: input tensor or mapping, or sequence of tensors.
+        func: the function to apply on ``x``.
     """
-    return apply_to_type(input, torch.Tensor, func)
+    return apply_to_type(x, torch.Tensor, func)
 
 
 def apply_to_type(
-    input: Union[Any, collections.Sequence, collections.Mapping, str, bytes],
+    x: Union[Any, collections.Sequence, collections.Mapping, str, bytes],
     input_type: Union[Type, Tuple[Type[Any], Any]],
     func: Callable,
 ) -> Union[Any, collections.Sequence, collections.Mapping, str, bytes]:
-    """Apply a function on an object of `inputtype` or mapping, or sequence of objects of `inputtype`.
+    """Apply a function on an object of `input_type` or mapping, or sequence of objects of `input_type`.
 
     Args:
-        input: object or mapping or sequence.
-        input_type: data type of ``input``.
-        func: the function to apply on ``input``.
+        x: object or mapping or sequence.
+        input_type: data type of ``x``.
+        func: the function to apply on ``x``.
     """
-    if isinstance(input, input_type):
-        return func(input)
-    if isinstance(input, (str, bytes)):
-        return input
-    if isinstance(input, collections.Mapping):
-        return cast(Callable, type(input))({k: apply_to_type(sample, input_type, func) for k, sample in input.items()})
-    if isinstance(input, tuple) and hasattr(input, "_fields"):  # namedtuple
-        return cast(Callable, type(input))(*(apply_to_type(sample, input_type, func) for sample in input))
-    if isinstance(input, collections.Sequence):
-        return cast(Callable, type(input))([apply_to_type(sample, input_type, func) for sample in input])
-    raise TypeError((f"input must contain {input_type}, dicts or lists; found {type(input)}"))
+    if isinstance(x, input_type):
+        return func(x)
+    if isinstance(x, (str, bytes)):
+        return x
+    if isinstance(x, collections.Mapping):
+        return cast(Callable, type(x))({k: apply_to_type(sample, input_type, func) for k, sample in x.items()})
+    if isinstance(x, tuple) and hasattr(x, "_fields"):  # namedtuple
+        return cast(Callable, type(x))(*(apply_to_type(sample, input_type, func) for sample in x))
+    if isinstance(x, collections.Sequence):
+        return cast(Callable, type(x))([apply_to_type(sample, input_type, func) for sample in x])
+    raise TypeError((f"x must contain {input_type}, dicts or lists; found {type(x)}"))
 
 
 def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
