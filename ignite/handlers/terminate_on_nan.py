@@ -18,7 +18,7 @@ class TerminateOnNan:
     `[1.23, torch.tensor(...), torch.tensor(float('nan'))]` the handler will stop the training.
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into a number or `torch.tensor`
             or collection of them. This can be useful if, for example, you have a multi-output model and
             you want to check one or multiple values of the output.

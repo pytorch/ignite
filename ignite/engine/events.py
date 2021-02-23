@@ -20,12 +20,11 @@ class CallableEventWithFilter:
     be run at the current event (if the event type is correct)
 
     Args:
-        value (str): The actual enum value. Only needed for internal use. Do not touch!
-        event_filter (callable): A function taking the engine and the current event value as input and returning a
+        value: The actual enum value. Only needed for internal use. Do not touch!
+        event_filter: A function taking the engine and the current event value as input and returning a
             boolean to indicate whether this event should be executed. Defaults to None, which will result to a
             function that always returns `True`
-        name (str, optional): The enum-name of the current object. Only needed for internal use. Do not touch!
-
+        name: The enum-name of the current object. Only needed for internal use. Do not touch!
     """
 
     def __init__(self, value: str, event_filter: Optional[Callable] = None, name: Optional[str] = None) -> None:
@@ -58,10 +57,10 @@ class CallableEventWithFilter:
         (which must take in the engine and current event value and return a boolean) or an every or once value
 
         Args:
-            event_filter (callable, optional): a filter function to check if the event should be executed when
+            event_filter: a filter function to check if the event should be executed when
                 the event type was fired
-            every (int, optional): a value specifying how often the event should be fired
-            once (int, optional): a value specifying when the event should be fired (if only once)
+            every: a value specifying how often the event should be fired
+            once: a value specifying when the event should be fired (if only once)
 
         Returns:
             CallableEventWithFilter: A new event having the same value but a different filter function
@@ -351,6 +350,8 @@ class State:
         state.times             # dictionary with total and per-epoch times fetched on
                                 # keys: Events.EPOCH_COMPLETED.name and Events.COMPLETED.name
 
+    Args:
+        kwargs: keyword arguments to be defined as State attributes.
     """
 
     event_to_attr = {
