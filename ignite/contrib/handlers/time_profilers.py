@@ -42,7 +42,7 @@ class BasicTimeProfiler:
         Events.DATALOADER_STOP_ITERATION,
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._dataflow_timer = Timer()
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()
@@ -483,7 +483,7 @@ class HandlersTimeProfiler:
 
     EVENT_FILTER_THESHOLD_TIME = 0.0001
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._dataflow_timer = Timer()
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()

@@ -71,7 +71,7 @@ class FastaiLRFinder:
         fastai/lr_find: https://github.com/fastai/fastai
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._diverge_flag = False
         self._history = {}  # type: Dict[str, List[Any]]
         self._best_loss = None
