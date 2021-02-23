@@ -25,7 +25,7 @@ def test_cohen_kappa_non_weighted():
     ck_metric.update((y_pred, y))
     ck = ck_metric.compute()
 
-    assert ck == np_ck
+    assert ck == pytest.approx(np_ck)
 
 
 def test_cohen_kappa_linear_weighted():
@@ -43,7 +43,7 @@ def test_cohen_kappa_linear_weighted():
     ck_metric.update((y_pred, y))
     ck = ck_metric.compute()
 
-    assert ck == np_ck
+    assert ck == pytest.approx(np_ck)
 
 
 def test_cohen_kappa_queadratic_weighted():
@@ -61,7 +61,7 @@ def test_cohen_kappa_queadratic_weighted():
     ck_metric.update((y_pred, y))
     ck = ck_metric.compute()
 
-    assert ck == np_ck
+    assert ck == pytest.approx(np_ck)
 
 
 def test_integration_cohen_kappa_non_weighted_with_output_transform():
@@ -175,7 +175,7 @@ def _test_distrib_compute(device):
         np_ck = cohen_kappa_score(np_y, np_y_pred)
 
         res = ck_metric.compute()
-        assert res == np_ck
+        assert res == pytest.approx(np_ck)
 
     for _ in range(3):
         _test("cpu")

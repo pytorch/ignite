@@ -16,13 +16,13 @@ class CohenKappa(EpochMetric):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        weights: a string is used to define the type of Cohen's Kappa whether Non-Weighted or Linear or Quadratic
-            (default: "")
+        weights: a string is used to define the type of Cohen's Kappa whether Non-Weighted or Linear
+            or Quadratic. Default, None.
         check_compute_fn: Default False. If True, `cohen_kappa_score
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>`_
             is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
-        device (str or torch.device, optional): optional device specification for internal storage.
+        device: optional device specification for internal storage.
 
     .. code-block:: python
 
@@ -48,6 +48,9 @@ class CohenKappa(EpochMetric):
             from sklearn.metrics import cohen_kappa_score
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
+
+        if weights not in (None, "linear", "quadratic"):
+            raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 
         # initalize weights
         self.weights = weights
