@@ -13,10 +13,10 @@ class Loss(Metric):
     Calculates the average loss according to the passed loss_fn.
 
     Args:
-        loss_fn (callable): a callable taking a prediction tensor, a target
+        loss_fn: a callable taking a prediction tensor, a target
             tensor, optionally other arguments, and returns the average loss
             over all observations in the batch.
-        output_transform (callable): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric.
             This can be useful if, for example, you have a multi-output model and
@@ -24,9 +24,9 @@ class Loss(Metric):
             The output is expected to be a tuple `(prediction, target)` or
             (prediction, target, kwargs) where kwargs is a dictionary of extra
             keywords arguments. If extra keywords arguments are provided they are passed to `loss_fn`.
-        batch_size (callable): a callable taking a target tensor that returns the
+        batch_size: a callable taking a target tensor that returns the
             first dimension size (usually the batch size).
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the
+        device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 

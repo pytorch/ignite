@@ -208,6 +208,7 @@ todo_include_todos = True
 
 autoclass_content = "both"
 autodoc_typehints = "description"
+napoleon_attr_annotations = True
 
 # -- A patch that turns-off cross refs for type annotations ------------------
 
