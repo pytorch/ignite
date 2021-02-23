@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 
@@ -12,7 +12,7 @@ class CohenKappa(EpochMetric):
     generated/sklearn.metrics.cohen_kappa_score.html>`_ .
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
@@ -35,12 +35,19 @@ class CohenKappa(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, weights: str = "", check_compute_fn: bool = False):
+    def __init__(
+        self, output_transform: Callable = lambda x: x, weights: Optional[str] = None, check_compute_fn: bool = False
+    ):
+
+        try:
+            from sklearn.metrics import cohen_kappa_score
+        except ImportError:
+            raise RuntimeError("This contrib module requires sklearn to be installed.")
+
+        self.cohen_kappa_sk = cohen_kappa_score
+
         # initalize weights
-        if weights == "":
-            self.weights = None
-        else:
-            self.weights = weights
+        self.weights = weights
 
         self.cohen_kappa_compute = self.get_cohen_kappa_fn()
 
@@ -49,15 +56,9 @@ class CohenKappa(EpochMetric):
         )
 
     def get_cohen_kappa_fn(self) -> Callable[[torch.Tensor, torch.Tensor], float]:
-
-        try:
-            from sklearn.metrics import cohen_kappa_score
-        except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
-
         def wrapper(y_targets: torch.Tensor, y_preds: torch.Tensor) -> float:
             y_true = y_targets.numpy()
             y_pred = y_preds.numpy()
-            return cohen_kappa_score(y_true, y_pred, weights=self.weights)
+            return self.cohen_kappa_sk(y_true, y_pred, weights=self.weights)
 
         return wrapper
