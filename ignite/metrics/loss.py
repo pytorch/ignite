@@ -57,7 +57,7 @@ class Loss(Metric):
             kwargs = {}  # type: Dict
         else:
             y_pred, y, kwargs = cast(Tuple[torch.Tensor, torch.Tensor, Dict], output)
-        average_loss = self._loss_fn(y_pred.detach(), y.detach(), **kwargs)
+        average_loss = self._loss_fn(y_pred, y, **kwargs).detach()
 
         if len(average_loss.shape) != 0:
             raise ValueError("loss_fn did not return the average loss.")
