@@ -60,7 +60,7 @@ class Rouge(Metric):
         self._rougetotal: torch.Tensor = torch.tensor(0, device=device)
         self._num_examples: int = 0
         self._check_parameters(n)
-        self.n: int = n
+        self.n: Union[str, int] = n
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
     def _check_parameters(self, n: Union[int, str]) -> None:
@@ -70,7 +70,7 @@ class Rouge(Metric):
             raise ValueError("Ignite needs atleast unigram to calculate Rouge")
 
     def _ngramify(self, tokens: List[str], n: int) -> DefaultDict:
-        ngrams = defaultdict(int)
+        ngrams: DefaultDict = defaultdict(int)
         for ngram in (tuple(tokens[i : i + n]) for i in range(len(tokens) - n + 1)):
             ngrams[ngram] += 1
         return ngrams
