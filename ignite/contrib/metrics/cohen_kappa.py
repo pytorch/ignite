@@ -37,9 +37,10 @@ class CohenKappa(EpochMetric):
 
     def __init__(self, output_transform: Callable = lambda x: x, weights: str = "", check_compute_fn: bool = False):
         # initalize weights
-        self.weights = weights
-        if self.weights == "":
+        if weights == "":
             self.weights = None
+        else:
+            self.weights = weights
 
         self.cohen_kappa_compute = self.get_cohen_kappa_fn()
 
@@ -47,14 +48,14 @@ class CohenKappa(EpochMetric):
             self.cohen_kappa_compute, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
 
-    def get_cohen_kappa_fn(self):
+    def get_cohen_kappa_fn(self) -> float:
 
         try:
             from sklearn.metrics import cohen_kappa_score
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
-        def wrapper(y_targets: torch.Tensor, y_preds: torch.Tensor):
+        def wrapper(y_targets: torch.Tensor, y_preds: torch.Tensor) -> float:
             y_true = y_targets.numpy()
             y_pred = y_preds.numpy()
             return cohen_kappa_score(y_true, y_pred, weights=self.weights)
