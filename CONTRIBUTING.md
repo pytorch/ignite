@@ -208,8 +208,8 @@ git merge upstream/master
 
 ### Writing documentation
 
-Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
-for formatting docstrings and
+Ignite uses [Google style](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html#type-annotations)
+for formatting docstrings, specially from an example of `Google style with Python 3 type annotations` and
 
 - [`.. versionadded::`] directive for adding new classes, class methods, functions,
 - [`.. versionchanged::`] directive for adding new arguments, changing internal behaviours, fixing bugs and
