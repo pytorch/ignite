@@ -583,7 +583,7 @@ class Checkpoint(Serializable):
 
         Args:
             metric_name: metric name to get the value from ``engine.state.metrics``.
-                Engine is the one to which :class:`~ignite.handlers.checkpoint.Checkpoint` handler is added.
+                Engine is the one to which :class:`~ignite.handlers.Checkpoint` handler is added.
             score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
                 a negative score sign should be used (objects with larger score are retained). Default, 1.0.
 

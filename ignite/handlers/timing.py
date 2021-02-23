@@ -76,7 +76,7 @@ class Timer:
         ...              step=Events.ITERATION_COMPLETED)
     """
 
-    def __init__(self, average: bool = False) -> None:
+    def __init__(self, average: bool = False):
         self._average = average
 
         self.reset()
