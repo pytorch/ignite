@@ -319,6 +319,8 @@ Complete list of metrics
 
 .. autofunction:: mIoU
 
+.. autofunction:: JaccardIndex
+
 .. autoclass:: Loss
 
 .. autoclass:: MeanAbsoluteError

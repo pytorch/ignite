@@ -49,11 +49,11 @@ class ClearMLLogger(BaseLogger):
         clearml-init
 
     Args:
-        project_name (str): The name of the project in which the experiment will be created. If the project
+        project_name: The name of the project in which the experiment will be created. If the project
             does not exist, it is created. If ``project_name`` is ``None``, the repository name is used. (Optional)
-        task_name (str): The name of Task (experiment). If ``task_name`` is ``None``, the Python experiment
+        task_name: The name of Task (experiment). If ``task_name`` is ``None``, the Python experiment
             script's file name is used. (Optional)
-        task_type (str): Optional. The task type. Valid values are:
+        task_type: Optional. The task type. Valid values are:
             - ``TaskTypes.training`` (Default)
             - ``TaskTypes.train``
             - ``TaskTypes.testing``
@@ -119,7 +119,7 @@ class ClearMLLogger(BaseLogger):
 
     """
 
-    def __init__(self, *_: Any, **kwargs: Any) -> None:
+    def __init__(self, *_: Any, **kwargs: Any):
         try:
             from clearml import Task
             from clearml.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
@@ -270,14 +270,14 @@ class OutputHandler(BaseOutputHandler):
             )
 
     Args:
-        tag (str): common title for all produced plots. For example, "training"
-        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
-        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
@@ -299,7 +299,7 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -359,13 +359,13 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -410,13 +410,13 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -463,12 +463,12 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        model: model to log weights
+        tag: common title for all produced plots. For example, 'generator'
 
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, tag: Optional[str] = None):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -517,13 +517,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -569,12 +569,12 @@ class GradsHistHandler(BaseWeightsHistHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        tag (str, optional): common title for all produced plots. For example, 'generator'
+        model: model to log weights
+        tag: common title for all produced plots. For example, 'generator'
 
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None) -> None:
+    def __init__(self, model: Module, tag: Optional[str] = None):
         super(GradsHistHandler, self).__init__(model, tag=tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
@@ -602,12 +602,12 @@ class ClearMLSaver(DiskSaver):
     Handler that saves input checkpoint as ClearML artifacts
 
     Args:
-        logger (ClearMLLogger, optional): An instance of :class:`~ignite.contrib.handlers.clearml_logger.ClearMLLogger`,
+        logger: An instance of :class:`~ignite.contrib.handlers.clearml_logger.ClearMLLogger`,
             ensuring a valid ClearML ``Task`` has been initialized. If not provided, and a ClearML Task
             has not been manually initialized, a runtime error will be raised.
-        output_uri (str, optional): The default location for output models and other artifacts uploaded by ClearML. For
+        output_uri: The default location for output models and other artifacts uploaded by ClearML. For
             more information, see ``clearml.Task.init``.
-        dirname (str, optional): Directory path where the checkpoint will be saved. If not provided, a temporary
+        dirname: Directory path where the checkpoint will be saved. If not provided, a temporary
             directory will be created.
 
     Examples:
@@ -645,7 +645,7 @@ class ClearMLSaver(DiskSaver):
         dirname: Optional[str] = None,
         *args: Any,
         **kwargs: Any,
-    ) -> None:
+    ):
 
         self._setup_check_clearml(logger, output_uri)
 
@@ -793,7 +793,7 @@ class ClearMLSaver(DiskSaver):
             In distributed configuration this method should be called on rank 0 process.
 
         Args:
-            filename (str): artifact name.
+            filename: artifact name.
 
         Returns:
              a local path to a downloaded copy of the artifact
