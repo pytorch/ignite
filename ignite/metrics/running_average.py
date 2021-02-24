@@ -13,14 +13,14 @@ class RunningAverage(Metric):
     """Compute running average of a metric or the output of process function.
 
     Args:
-        src (Metric or None): input source: an instance of :class:`~ignite.metrics.Metric` or None. The latter
+        src: input source: an instance of :class:`~ignite.metrics.Metric` or None. The latter
             corresponds to `engine.state.output` which holds the output of process function.
-        alpha (float, optional): running average decay factor, default 0.98
-        output_transform (callable, optional): a function to use to transform the output if `src` is None and
+        alpha: running average decay factor, default 0.98
+        output_transform: a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
-        epoch_bound (boolean, optional): whether the running average should be reset after each epoch (defaults
+        epoch_bound: whether the running average should be reset after each epoch (defaults
             to True).
-        device (str or torch.device, optional): specifies which device updates are accumulated on. Should be
+        device: specifies which device updates are accumulated on. Should be
             None when ``src`` is an instance of :class:`~ignite.metrics.Metric`, as the running average will
             use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
             from the metric is a tensor.
