@@ -25,13 +25,13 @@ class VariableAccumulation(Metric):
         - `+batch_size` if input is a ND `torch.Tensor`. Batch size is the first dimension (`shape[0]`).
 
     Args:
-        op (callable): a callable to update accumulator. Method's signature is `(accumulator, output)`.
+        op: a callable to update accumulator. Method's signature is `(accumulator, output)`.
             For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+        device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
@@ -112,11 +112,11 @@ class Average(VariableAccumulation):
         # state.metrics['mean_custom_var'] -> average of output['custom_var']
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+        device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
     """
@@ -159,11 +159,11 @@ class GeometricAverage(VariableAccumulation):
         is aggregated and added to the accumulator: `accumulator *= prod(x, dim=0)`
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+        device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
