@@ -8,6 +8,58 @@ from sklearn.metrics import cohen_kappa_score
 import ignite.distributed as idist
 from ignite.contrib.metrics import CohenKappa
 from ignite.engine import Engine
+from ignite.exceptions import NotComputableError
+
+
+def test_no_update():
+    ck = CohenKappa()
+
+    with pytest.raises(NotComputableError):
+        ck.compute()
+
+
+def test_wrong_inputs():
+    ck = CohenKappa()
+
+    with pytest.raises(ValueError):
+        # y has not only 0 or 1 values
+        ck.update((torch.randint(0, 2, size=(10, 2, 3)).long(), torch.arange(0, 10).long()))
+
+    with pytest.raises(ValueError):
+        # y_pred values are not thresholded to 0, 1 values
+        ck.update(
+            (
+                torch.rand(
+                    10,
+                ),
+                torch.randint(0, 2, size=(10, 3, 1)).long(),
+            )
+        )
+
+    with pytest.raises(ValueError):
+        # incompatible shapes
+        ck.update((torch.randint(0, 2, size=(10, 2, 3)).long(), torch.randint(0, 2, size=(10, 5)).long()))
+
+    with pytest.raises(ValueError):
+        # incompatible shapes
+        ck.update((torch.randint(0, 2, size=(10, 5, 6)).long(), torch.randint(0, 2, size=(10,)).long()))
+
+    with pytest.raises(ValueError):
+        # incompatible shapes
+        ck.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
+
+
+def test_check_shape():
+    ck = CohenKappa()
+
+    with pytest.raises(ValueError):
+        ck._check_shape((torch.randint(0, 2, size=(10, 1, 5, 12)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
+
+    with pytest.raises(ValueError):
+        ck._check_shape((torch.randint(0, 2, size=(10, 1, 6)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
+
+    with pytest.raises(ValueError):
+        ck._check_shape((torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 5, 2)).long()))
 
 
 def test_cohen_kappa_non_weighted():
