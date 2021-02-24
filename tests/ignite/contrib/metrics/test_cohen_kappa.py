@@ -25,7 +25,14 @@ def test_input_types():
         ck.update((torch.randint(0, 2, size=(10, 2, 3)).long(), torch.arange(0, 10).float()))
 
     with pytest.raises(ValueError):
-        ck.update((torch.rand(10,).float(), torch.randint(0, 2, size=(10, 3, 1)).long()))
+        ck.update(
+            (
+                torch.rand(
+                    10,
+                ).float(),
+                torch.randint(0, 2, size=(10, 3, 1)).long(),
+            )
+        )
 
     with pytest.raises(ValueError):
         ck.update((torch.randint(0, 4, size=(10, 2, 3)).long(), torch.randint(0, 2, size=(10, 5)).long()))
@@ -44,7 +51,7 @@ def test_check_shape():
         ck._check_shape((torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 5, 2)).long()))
 
 
-@pytest.mark.parametrize('weights', [None, 'linear', 'quadratic'])
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
 def test_cohen_kappa_all_weights(weights):
     size = 100
     np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
@@ -65,24 +72,24 @@ def test_cohen_kappa_all_weights(weights):
 def test_cohen_kappa_wrong_weights_type():
     with pytest.raises(ValueError):
         ck = CohenKappa(weights=7)
-        
+
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights='dd')
-        
+        ck = CohenKappa(weights="dd")
+
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights='ss')
-        
+        ck = CohenKappa(weights="ss")
+
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights='l')
-        
+        ck = CohenKappa(weights="l")
+
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights='q')
-        
+        ck = CohenKappa(weights="q")
+
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights='z')
+        ck = CohenKappa(weights="z")
 
 
-@pytest.mark.parametrize('weights', [None, 'linear', 'quadratic'])
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
 def test_cohen_kappa_all_weights_with_output_transform(weights):
     np.random.seed(1)
     size = 100
