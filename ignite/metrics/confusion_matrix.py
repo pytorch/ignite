@@ -21,17 +21,17 @@ class ConfusionMatrix(Metric):
       predicted classes.
 
     Args:
-        num_classes (int): Number of classes, should be > 1. See notes for more details.
-        average (str, optional): confusion matrix values averaging schema: None, "samples", "recall", "precision".
+        num_classes: Number of classes, should be > 1. See notes for more details.
+        average: confusion matrix values averaging schema: None, "samples", "recall", "precision".
             Default is None. If `average="samples"` then confusion matrix values are normalized by the number of seen
             samples. If `average="recall"` then confusion matrix values are normalized such that diagonal values
             represent class recalls. If `average="precision"` then confusion matrix values are normalized such that
             diagonal values represent class precisions.
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+        device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
@@ -161,8 +161,8 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
     Args:
-        cm (ConfusionMatrix): instance of confusion matrix metric
-        ignore_index (int, optional): index to ignore, e.g. background index
+        cm: instance of confusion matrix metric
+        ignore_index: index to ignore, e.g. background index
 
     Returns:
         MetricsLambda
@@ -212,8 +212,8 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
     """Calculates mean Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
 
     Args:
-        cm (ConfusionMatrix): instance of confusion matrix metric
-        ignore_index (int, optional): index to ignore, e.g. background index
+        cm: instance of confusion matrix metric
+        ignore_index: index to ignore, e.g. background index
 
     Returns:
         MetricsLambda
@@ -240,7 +240,7 @@ def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
     """Calculates accuracy using :class:`~ignite.metrics.ConfusionMatrix` metric.
 
     Args:
-        cm (ConfusionMatrix): instance of confusion matrix metric
+        cm: instance of confusion matrix metric
 
     Returns:
         MetricsLambda
@@ -255,8 +255,8 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     """Calculates precision using :class:`~ignite.metrics.ConfusionMatrix` metric.
 
     Args:
-        cm (ConfusionMatrix): instance of confusion matrix metric
-        average (bool, optional): if True metric value is averaged over all classes
+        cm: instance of confusion matrix metric
+        average: if True metric value is averaged over all classes
     Returns:
         MetricsLambda
     """
@@ -274,8 +274,8 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     """
     Calculates recall using :class:`~ignite.metrics.ConfusionMatrix` metric.
     Args:
-        cm (ConfusionMatrix): instance of confusion matrix metric
-        average (bool, optional): if True metric value is averaged over all classes
+        cm: instance of confusion matrix metric
+        average: if True metric value is averaged over all classes
     Returns:
         MetricsLambda
     """
@@ -293,8 +293,8 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
     """Calculates Dice Coefficient for a given :class:`~ignite.metrics.ConfusionMatrix` metric.
 
     Args:
-        cm (ConfusionMatrix): instance of confusion matrix metric
-        ignore_index (int, optional): index to ignore, e.g. background index
+        cm: instance of confusion matrix metric
+        ignore_index: index to ignore, e.g. background index
     """
 
     if not isinstance(cm, ConfusionMatrix):
