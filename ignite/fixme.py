@@ -8,3 +8,4 @@ class Class:
         pass
     def b(self):
         pass
+def fn(): pass
