@@ -31,17 +31,17 @@ class EpochMetric(Metric):
     e.g. ``[[0, 1, 0, 1], ]``.
 
     Args:
-        compute_fn: a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
+        compute_fn (callable): a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
             `predictions` and `targets` and returns a scalar. Input tensors will be on specified ``device``
             (see arg below).
-        output_transform: a callable that is used to transform the
+        output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn: if True, ``compute_fn`` is run on the first batch of data to ensure there are no
+        check_compute_fn (bool): if True, ``compute_fn`` is run on the first batch of data to ensure there are no
             issues. If issues exist, user is warned that there might be an issue with the ``compute_fn``.
             Default, True.
-        device: optional device specification for internal storage.
+        device (str or torch.device, optional): optional device specification for internal storage.
 
     Warnings:
         EpochMetricWarning: User is warned that there are issues with ``compute_fn`` on a batch of data processed.

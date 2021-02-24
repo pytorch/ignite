@@ -26,15 +26,15 @@ def Fbeta(
     where :math:`\beta` is a positive real factor.
 
     Args:
-        beta: weight of precision in harmonic mean
-        average: if True, F-beta score is computed as the unweighted average (across all classes
+        beta (float): weight of precision in harmonic mean
+        average (bool, optional): if True, F-beta score is computed as the unweighted average (across all classes
             in multiclass case), otherwise, returns a tensor with F-beta score for each class in multiclass case.
-        precision: precision object metric with `average=False` to compute F-beta score
-        recall: recall object metric with `average=False` to compute F-beta score
-        output_transform: a callable that is used to transform the
+        precision (Precision, optional): precision object metric with `average=False` to compute F-beta score
+        recall (Precision, optional): recall object metric with `average=False` to compute F-beta score
+        output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. It is used only if precision or recall are not provided.
-        device: specifies which device updates are accumulated on. Setting the metric's
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 

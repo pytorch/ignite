@@ -14,17 +14,17 @@ class SSIM(Metric):
     Computes Structual Similarity Index Measure
 
     Args:
-        data_range: Range of the image. Typically, ``1.0`` or ``255``.
-        kernel_size: Size of the kernel. Default: (11, 11)
-        sigma: Standard deviation of the gaussian kernel.
+        data_range (int or float): Range of the image. Typically, ``1.0`` or ``255``.
+        kernel_size (int or list or tuple of int): Size of the kernel. Default: (11, 11)
+        sigma (float or list or tuple of float): Standard deviation of the gaussian kernel.
             Argument is used if ``gaussian=True``. Default: (1.5, 1.5)
-        k1: Parameter of SSIM. Default: 0.01
-        k2: Parameter of SSIM. Default: 0.03
-        gaussian: ``True`` to use gaussian kernel, ``False`` to use uniform kernel
-        output_transform: A callable that is used to transform the
+        k1 (float): Parameter of SSIM. Default: 0.01
+        k2 (float): Parameter of SSIM. Default: 0.03
+        gaussian (bool): ``True`` to use gaussian kernel, ``False`` to use uniform kernel
+        output_transform (callable, optional): A callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric.
-        device: specifies which device updates are accumulated on. Setting the metric's
+        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
