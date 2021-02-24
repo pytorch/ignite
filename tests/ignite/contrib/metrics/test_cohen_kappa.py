@@ -95,7 +95,7 @@ def test_cohen_kappa_all_weights_with_output_transform(weights):
     size = 100
     np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2 :] = 1
+    np_y[size // 2:] = 1
     np.random.shuffle(np_y)
 
     ck_value_sk = cohen_kappa_score(np_y, np_y_pred)
@@ -104,8 +104,8 @@ def test_cohen_kappa_all_weights_with_output_transform(weights):
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
+        y_true_batch = np_y[idx: idx + batch_size]
+        y_pred_batch = np_y_pred[idx: idx + batch_size]
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
