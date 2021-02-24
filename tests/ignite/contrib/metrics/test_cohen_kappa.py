@@ -64,6 +64,14 @@ def test_cohen_kappa_all_weights(weights):
     assert ck == pytest.approx(np_ck)
 
 
+def test_cohen_kappa_wrong_weights_type():
+    with pytest.raises(ValueError, match=r"Kappa Weighting type must be"):
+        ck = CohenKappa(weights=7)
+
+    with pytest.raises(ValueError, match=r"Kappa Weighting type must be"):
+        ck = CohenKappa(weights="dd")
+
+
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
 def test_cohen_kappa_all_weights_with_output_transform(weights):
     np.random.seed(1)
