@@ -71,22 +71,22 @@ def test_cohen_kappa_all_weights(weights):
 
 def test_cohen_kappa_wrong_weights_type():
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights=7)
+        CohenKappa(weights=7)
 
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights="dd")
+        CohenKappa(weights="dd")
 
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights="ss")
+        CohenKappa(weights="ss")
 
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights="l")
+        CohenKappa(weights="l")
 
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights="q")
+        CohenKappa(weights="q")
 
     with pytest.raises(ValueError):
-        ck = CohenKappa(weights="z")
+        CohenKappa(weights="z")
 
 
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
