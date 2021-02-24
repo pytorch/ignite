@@ -50,8 +50,8 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         )
 
     Args:
-        dataset (Dataset): input torch dataset
-        **kwargs: keyword arguments for `torch DataLoader`_.
+        dataset: input torch dataset
+        kwargs: keyword arguments for `torch DataLoader`_.
 
     Returns:
         `torch DataLoader`_ or `XLA MpDeviceLoader`_ for XLA devices
@@ -154,11 +154,11 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
         model = idist.auto_model(model)
 
     Args:
-        model (torch.nn.Module): model to adapt.
-        sync_bn (bool): if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
+        model: model to adapt.
+        sync_bn: if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
             distributed only. Default, False. Note, if using Nvidia/Apex, batchnorm conversion should be
             applied before calling ``amp.initialize``.
-        **kwargs: kwargs to model's wrapping class: `torch DistributedDataParallel`_ or `torch DataParallel`_
+        kwargs: kwargs to model's wrapping class: `torch DistributedDataParallel`_ or `torch DataParallel`_
             if applicable. Please, make sure to use acceptable kwargs for given backend.
 
     Returns:
@@ -241,7 +241,7 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
         optimizer = idist.auto_optim(optimizer)
 
     Args:
-        optimizer (Optimizer): input torch optimizer
+        optimizer: input torch optimizer
 
     Returns:
         Optimizer
@@ -276,9 +276,9 @@ class DistributedProxySampler(DistributedSampler):
         Input sampler is assumed to have a constant size.
 
     Args:
-        sampler (Sampler): Input torch data sampler.
-        num_replicas (int, optional): Number of processes participating in distributed training.
-        rank (int, optional): Rank of the current process within ``num_replicas``.
+        sampler: Input torch data sampler.
+        num_replicas: Number of processes participating in distributed training.
+        rank: Rank of the current process within ``num_replicas``.
 
     """
 
