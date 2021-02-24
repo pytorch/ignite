@@ -14,40 +14,35 @@ from ignite.exceptions import NotComputableError
 def test_no_update():
     ck = CohenKappa()
 
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+    ):
         ck.compute()
 
 
 def test_input_types():
     ck = CohenKappa()
+    ck.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    ck.update(output1)
 
-    with pytest.raises(ValueError):
-        ck.update((torch.randint(0, 2, size=(10, 2, 3)).long(), torch.arange(0, 10).float()))
+    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
+        ck.update((torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3))))
 
-    with pytest.raises(ValueError):
-        ck.update(
-            (
-                torch.rand(
-                    10,
-                ).float(),
-                torch.randint(0, 2, size=(10, 3, 1)).long(),
-            )
-        )
-
-    with pytest.raises(ValueError):
-        ck.update((torch.randint(0, 4, size=(10, 2, 3)).long(), torch.randint(0, 2, size=(10, 5)).long()))
+    with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
+        ck.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32)))
 
 
 def test_check_shape():
     ck = CohenKappa()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         ck._check_shape((torch.randint(0, 2, size=(10, 1, 5, 12)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         ck._check_shape((torch.randint(0, 2, size=(10, 1, 6)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
         ck._check_shape((torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 5, 2)).long()))
 
 
@@ -69,33 +64,13 @@ def test_cohen_kappa_all_weights(weights):
     assert ck == pytest.approx(np_ck)
 
 
-def test_cohen_kappa_wrong_weights_type():
-    with pytest.raises(ValueError):
-        CohenKappa(weights=7)
-
-    with pytest.raises(ValueError):
-        CohenKappa(weights="dd")
-
-    with pytest.raises(ValueError):
-        CohenKappa(weights="ss")
-
-    with pytest.raises(ValueError):
-        CohenKappa(weights="l")
-
-    with pytest.raises(ValueError):
-        CohenKappa(weights="q")
-
-    with pytest.raises(ValueError):
-        CohenKappa(weights="z")
-
-
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
 def test_cohen_kappa_all_weights_with_output_transform(weights):
     np.random.seed(1)
     size = 100
     np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
     np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2:] = 1
+    np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
     ck_value_sk = cohen_kappa_score(np_y, np_y_pred)
@@ -104,8 +79,8 @@ def test_cohen_kappa_all_weights_with_output_transform(weights):
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx: idx + batch_size]
-        y_pred_batch = np_y_pred[idx: idx + batch_size]
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
