@@ -17,14 +17,6 @@ on:
       - "docs/**"
       - "conda.recipe"
       - "**.md"
-  pull_request_target:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
 
 jobs:
   code-style:
@@ -34,7 +26,10 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
-      - run: |
+
+      - name: Run Auto-Formatters
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: |
           python -m pip install autopep8 "black==19.10b0" "isort==5.7.0"
           autopep8 --recursive --in-place --aggressive --aggressive .
           black .
@@ -47,3 +42,12 @@ jobs:
           commit_message: "autopep8 fix"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Formatters
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          # Install patched pycodestyle
+          python -m pip install git+https://github.com/trsvchn/pycodestyle.git
+          # Run as usual pycodestyle
+          pycodestyle --show-source --show-pep --config setup.cfg .
+          # TODO: Do the same for black and isort
