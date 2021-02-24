@@ -52,7 +52,7 @@ def sync(temporary: bool = False) -> None:
     This method should be used when distributed context is manually created or destroyed.
 
     Args:
-        temporary: If True, distributed model synchronization is done every call of ``idist.get_*`` methods.
+        temporary (bool): If True, distributed model synchronization is done every call of ``idist.get_*`` methods.
             This may have a negative performance impact.
     """
     global _model
@@ -285,15 +285,15 @@ def spawn(
             idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=8)
 
     Args:
-        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`
-        fn: function to called as the entrypoint of the spawned process.
+        backend (str): backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`
+        fn (function): function to called as the entrypoint of the spawned process.
             This function must be defined at the top level of a module so it can be pickled and spawned.
             This is a requirement imposed by multiprocessing. The function is called as ``fn(i, *args, **kwargs_dict)``,
             where `i` is the process index and args is the passed through tuple of arguments.
-        args: arguments passed to `fn`.
-        kwargs_dict: kwargs passed to `fn`.
-        nproc_per_node: number of processes to spawn on a single node. Default, 1.
-        kwargs: acceptable kwargs according to provided backend:
+        args (tuple): arguments passed to `fn`.
+        kwargs_dict (Mapping): kwargs passed to `fn`.
+        nproc_per_node (int): number of processes to spawn on a single node. Default, 1.
+        **kwargs: acceptable kwargs according to provided backend:
 
             - | "nccl" or "gloo" : `nnodes` (default, 1), `node_rank` (default, 0), `master_addr`
               | (default, "127.0.0.1"), `master_port` (default, 2222), `timeout` to `dist.init_process_group`_ function
@@ -329,8 +329,8 @@ def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[tor
     """Helper method to perform all reduce operation.
 
     Args:
-        tensor: tensor or number to collect across participating processes.
-        op: reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
+        tensor (torch.Tensor or number): tensor or number to collect across participating processes.
+        op (str): reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
             Please, several values are not supported for the backend like "horovod".
 
     Returns:
@@ -347,7 +347,7 @@ def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, f
     """Helper method to perform all gather operation.
 
     Args:
-        tensor: tensor or number or str to collect across participating processes.
+        tensor (torch.Tensor or number or str): tensor or number or str to collect across participating processes.
 
     Returns:
         torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)`` if input is a tensor or
@@ -365,9 +365,9 @@ def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[to
     """Helper method to perform broadcast operation.
 
     Args:
-        tensor: tensor or number or str to broadcast to participating processes.
+        tensor (torch.Tensor or number or str): tensor or number or str to broadcast to participating processes.
             Make sure to respect dtype of torch tensor input for all processes, otherwise execution will crash.
-        src: source rank. Default, 0.
+        src (int): source rank. Default, 0.
 
     Returns:
         torch.Tensor or string or number
@@ -434,7 +434,7 @@ def set_local_rank(index: int) -> None:
                 # ...
 
     Args:
-        index: local rank or current process index
+        index (int): local rank or current process index
 
     """
     from ignite.distributed.comp_models.base import ComputationModel
@@ -487,8 +487,8 @@ def initialize(backend: str, **kwargs: Any) -> None:
 
 
     Args:
-        backend: backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
-        kwargs: acceptable kwargs according to provided backend:
+        backend (str, optional): backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
+        **kwargs: acceptable kwargs according to provided backend:
 
             - "nccl" or "gloo" : timeout(=timedelta(minutes=30)).
 
@@ -543,8 +543,8 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
     """Decorator to filter handlers wrt a rank number
 
     Args:
-        rank: rank number of the handler (default: 0).
-        with_barrier: synchronisation with a barrier (default: False).
+        rank (int): rank number of the handler (default: 0).
+        with_barrier (bool): synchronisation with a barrier (default: False).
 
     .. code-block:: python
 
