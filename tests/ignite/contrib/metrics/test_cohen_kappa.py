@@ -18,35 +18,17 @@ def test_no_update():
         ck.compute()
 
 
-def test_wrong_inputs():
+def test_input_types():
     ck = CohenKappa()
 
     with pytest.raises(ValueError):
-        # y has not only 0 or 1 values
-        ck.update((torch.randint(0, 2, size=(10, 2, 3)).long(), torch.arange(0, 10).long()))
+        ck.update((torch.randint(0, 2, size=(10, 2, 3)).long(), torch.arange(0, 10).float()))
 
     with pytest.raises(ValueError):
-        # y_pred values are not thresholded to 0, 1 values
-        ck.update(
-            (
-                torch.rand(
-                    10,
-                ),
-                torch.randint(0, 2, size=(10, 3, 1)).long(),
-            )
-        )
+        ck.update((torch.rand(10,).float(), torch.randint(0, 2, size=(10, 3, 1)).long()))
 
     with pytest.raises(ValueError):
-        # incompatible shapes
-        ck.update((torch.randint(0, 2, size=(10, 2, 3)).long(), torch.randint(0, 2, size=(10, 5)).long()))
-
-    with pytest.raises(ValueError):
-        # incompatible shapes
-        ck.update((torch.randint(0, 2, size=(10, 5, 6)).long(), torch.randint(0, 2, size=(10,)).long()))
-
-    with pytest.raises(ValueError):
-        # incompatible shapes
-        ck.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
+        ck.update((torch.randint(0, 4, size=(10, 2, 3)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
 def test_check_shape():
@@ -62,14 +44,14 @@ def test_check_shape():
         ck._check_shape((torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 5, 2)).long()))
 
 
-def test_cohen_kappa_non_weighted():
-
+@pytest.mark.parametrize('weights', [None, 'linear', 'quadratic'])
+def test_cohen_kappa_all_weights(weights):
     size = 100
     np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
     np_y = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
     np_ck = cohen_kappa_score(np_y, np_y_pred)
 
-    ck_metric = CohenKappa()
+    ck_metric = CohenKappa(weights=weights)
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -80,43 +62,28 @@ def test_cohen_kappa_non_weighted():
     assert ck == pytest.approx(np_ck)
 
 
-def test_cohen_kappa_linear_weighted():
-
-    size = 100
-    np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
-    np_y = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
-    np_ck = cohen_kappa_score(np_y, np_y_pred, weights="linear")
-
-    ck_metric = CohenKappa(weights="linear")
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
-
-    ck_metric.reset()
-    ck_metric.update((y_pred, y))
-    ck = ck_metric.compute()
-
-    assert ck == pytest.approx(np_ck)
-
-
-def test_cohen_kappa_queadratic_weighted():
-
-    size = 100
-    np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
-    np_y = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
-    np_ck = cohen_kappa_score(np_y, np_y_pred, weights="quadratic")
-
-    ck_metric = CohenKappa(weights="quadratic")
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
-
-    ck_metric.reset()
-    ck_metric.update((y_pred, y))
-    ck = ck_metric.compute()
-
-    assert ck == pytest.approx(np_ck)
+def test_cohen_kappa_wrong_weights_type():
+    with pytest.raises(ValueError):
+        ck = CohenKappa(weights=7)
+        
+    with pytest.raises(ValueError):
+        ck = CohenKappa(weights='dd')
+        
+    with pytest.raises(ValueError):
+        ck = CohenKappa(weights='ss')
+        
+    with pytest.raises(ValueError):
+        ck = CohenKappa(weights='l')
+        
+    with pytest.raises(ValueError):
+        ck = CohenKappa(weights='q')
+        
+    with pytest.raises(ValueError):
+        ck = CohenKappa(weights='z')
 
 
-def test_integration_cohen_kappa_non_weighted_with_output_transform():
+@pytest.mark.parametrize('weights', [None, 'linear', 'quadratic'])
+def test_cohen_kappa_all_weights_with_output_transform(weights):
     np.random.seed(1)
     size = 100
     np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
@@ -136,71 +103,13 @@ def test_integration_cohen_kappa_non_weighted_with_output_transform():
 
     engine = Engine(update_fn)
 
-    ck_metric = CohenKappa(output_transform=lambda x: (x[1], x[2]))
+    ck_metric = CohenKappa(output_transform=lambda x: (x[1], x[2]), weights=weights)
     ck_metric.attach(engine, "cohen_kappa")
 
     data = list(range(size // batch_size))
     ck_value = engine.run(data, max_epochs=1).metrics["cohen_kappa"]
 
-    assert np.array_equal(ck_value, ck_value_sk)
-
-
-def test_integration_cohen_kappa_linear_weighted_with_output_transform():
-    np.random.seed(1)
-    size = 100
-    np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
-    np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2 :] = 1
-    np.random.shuffle(np_y)
-
-    ck_value_sk = cohen_kappa_score(np_y, np_y_pred, weights="linear")
-
-    batch_size = 10
-
-    def update_fn(engine, batch):
-        idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
-
-    engine = Engine(update_fn)
-
-    ck_metric = CohenKappa(output_transform=lambda x: (x[1], x[2]), weights="linear")
-    ck_metric.attach(engine, "cohen_kappa")
-
-    data = list(range(size // batch_size))
-    ck_value = engine.run(data, max_epochs=1).metrics["cohen_kappa"]
-
-    assert np.array_equal(ck_value, ck_value_sk)
-
-
-def test_integration_cohen_kappa_quadratic_weighted_with_output_transform():
-    np.random.seed(1)
-    size = 100
-    np_y_pred = np.random.randint(0, 2, size=(size, 1), dtype=np.long)
-    np_y = np.zeros((size,), dtype=np.long)
-    np_y[size // 2 :] = 1
-    np.random.shuffle(np_y)
-
-    ck_value_sk = cohen_kappa_score(np_y, np_y_pred, weights="quadratic")
-
-    batch_size = 10
-
-    def update_fn(engine, batch):
-        idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
-
-    engine = Engine(update_fn)
-
-    ck_metric = CohenKappa(output_transform=lambda x: (x[1], x[2]), weights="quadratic")
-    ck_metric.attach(engine, "cohen_kappa")
-
-    data = list(range(size // batch_size))
-    ck_value = engine.run(data, max_epochs=1).metrics["cohen_kappa"]
-
-    assert np.array_equal(ck_value, ck_value_sk)
+    assert ck_value == pytest.approx(ck_value_sk)
 
 
 def _test_distrib_compute(device):
