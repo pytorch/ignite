@@ -938,13 +938,13 @@ def test_integration_with_executor_as_context_manager(visdom_server, visdom_serv
 def no_site_packages():
     import sys
 
-    plx_module = sys.modules["visdom"]
+    visdom_module = sys.modules["visdom"]
     del sys.modules["visdom"]
     prev_path = list(sys.path)
     sys.path = [p for p in sys.path if "site-packages" not in p]
     yield "no_site_packages"
     sys.path = prev_path
-    sys.modules["visdom"] = plx_module
+    sys.modules["visdom"] = visdom_module
 
 
 def test_no_visdom(no_site_packages):
