@@ -63,6 +63,12 @@ def test_compute():
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
+def test_error_is_not_nan():
+    m = CanberraMetric()
+    m.update((torch.zeros(4), torch.zeros(4)))
+    assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
+
+
 def _test_distrib_compute(device):
     rank = idist.get_rank()
 

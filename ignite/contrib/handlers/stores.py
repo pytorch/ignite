@@ -12,7 +12,7 @@ class EpochOutputStore:
         larger than available RAM.
 
     Args:
-        output_transform (callable, optional): a callable that is used to
+        output_transform: a callable that is used to
             transform the :class:`~ignite.engine.engine.Engine`'s
             ``process_function``'s output , e.g., lambda x: x[0]
 
@@ -32,7 +32,7 @@ class EpochOutputStore:
     .. versionadded:: 0.4.2
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x) -> None:
+    def __init__(self, output_transform: Callable = lambda x: x):
         self.data = []  # type: List[Union[int, Tuple[int, int]]]
         self.output_transform = output_transform
 

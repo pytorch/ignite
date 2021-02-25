@@ -47,6 +47,13 @@ More details about those structures can be found in :doc:`concepts`.
 
 .. autofunction:: ignite.engine.create_supervised_evaluator
 
+.. autofunction:: ignite.engine.supervised_training_step
+
+.. autofunction:: ignite.engine.supervised_training_step_amp
+
+.. autofunction:: ignite.engine.supervised_training_step_apex
+
+.. autofunction:: ignite.engine.supervised_training_step_tpu
 
 Resuming the training
 ---------------------

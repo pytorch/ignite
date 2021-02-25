@@ -48,22 +48,17 @@ class Recall(_BasePrecisionRecall):
         as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
         than available RAM.
 
-    .. warning::
-
-        In multilabel cases, if average is False, current implementation does not work with distributed computations.
-        Results are not reduced across the GPUs. Computed result corresponds to the local rank's (single GPU) result.
-
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        average (bool, optional): if True, precision is computed as the unweighted average (across all classes
+        average: if True, precision is computed as the unweighted average (across all classes
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
-        is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
+        is_multilabel: flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+        device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 

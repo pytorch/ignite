@@ -152,25 +152,25 @@ class Parallel:
     .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
     Args:
-        backend (str, optional): backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
+        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
             configuration.
-        nproc_per_node (int, optional): optional argument, number of processes per
+        nproc_per_node: optional argument, number of processes per
             node to specify. If not None, :meth:`~ignite.distributed.Parallel.run` will spawn ``nproc_per_node``
             processes that run input function with its arguments.
-        nnodes (int, optional): optional argument, number of nodes participating in distributed configuration.
+        nnodes: optional argument, number of nodes participating in distributed configuration.
             If not None, :meth:`~ignite.distributed.Parallel.run` will spawn ``nproc_per_node``
             processes that run input function with its arguments. Total world size is `nproc_per_node * nnodes`.
             This option is only supported by native torch distributed module. For other modules, please setup
             ``spawn_kwargs`` with backend specific arguments.
-        node_rank (int, optional): optional argument, current machine index. Mandatory argument if ``nnodes`` is
+        node_rank: optional argument, current machine index. Mandatory argument if ``nnodes`` is
             specified and larger than one.
             This option is only supported by native torch distributed module. For other modules, please setup
             ``spawn_kwargs`` with backend specific arguments.
-        master_addr (str, optional): optional argument, master node TCP/IP address for torch native backends
+        master_addr: optional argument, master node TCP/IP address for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
-        master_port (int, optional): optional argument, master node port for torch native backends
+        master_port: optional argument, master node port for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
-        **spawn_kwargs: kwargs to ``idist.spawn`` function.
+        spawn_kwargs: kwargs to ``idist.spawn`` function.
 
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
@@ -264,10 +264,10 @@ class Parallel:
                 parallel.run(training, config, a=1, b=2)
 
         Args:
-            func (Callable): function to execute. First argument of the function should be `local_rank` - local process
+            func: function to execute. First argument of the function should be `local_rank` - local process
                 index.
-            *args: positional arguments of ``func`` (without `local_rank`).
-            **kwargs: keyword arguments of ``func``.
+            args: positional arguments of ``func`` (without `local_rank`).
+            kwargs: keyword arguments of ``func``.
 
         """
         if self._spawn_params is not None and self.backend is not None:

@@ -1,6 +1,8 @@
 import os
 from distutils.version import LooseVersion
-from typing import Optional
+from importlib.util import find_spec
+from typing import Optional, Union
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -10,12 +12,16 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, supervised_training_step_tpu
 from ignite.metrics import MeanSquaredError
 
 
 def _test_create_supervised_trainer(
-    model_device: Optional[str] = None, trainer_device: Optional[str] = None, trace: bool = False
+    model_device: Optional[str] = None,
+    trainer_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
 ):
     model = Linear(1, 1)
 
@@ -30,10 +36,23 @@ def _test_create_supervised_trainer(
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
-    trainer = create_supervised_trainer(model, optimizer, mse_loss, device=trainer_device)
+    if amp_mode == "apex" and model_device == trainer_device == "cuda":
+        from apex import amp
 
-    x = torch.tensor([[1.0], [2.0]])
-    y = torch.tensor([[3.0], [5.0]])
+        model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
+
+    trainer = create_supervised_trainer(
+        model,
+        optimizer,
+        mse_loss,
+        device=trainer_device,
+        output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+        amp_mode=amp_mode,
+        scaler=scaler,
+    )
+
+    x = torch.tensor([[0.1], [0.2]])
+    y = torch.tensor([[0.3], [0.5]])
     data = [(x, y)]
 
     assert model.weight.data[0, 0].item() == approx(0.0)
@@ -42,9 +61,16 @@ def _test_create_supervised_trainer(
     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
         state = trainer.run(data)
 
-        assert state.output == approx(17.0)
-        assert model.weight.data[0, 0].item() == approx(1.3)
-        assert model.bias.item() == approx(0.8)
+        assert state.output[-1] == approx(0.17), state.output[-1]
+        assert round(model.weight.data[0, 0].item(), 3) == approx(0.013), model.weight.item()
+        assert round(model.bias.item(), 3) == approx(0.08), model.bias.item()
+
+        if amp_mode == "amp":
+            assert state.output[0].dtype is torch.half
+            if scaler and isinstance(scaler, bool):
+                assert hasattr(state, "scaler")
+            else:
+                assert not hasattr(state, "scaler")
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
@@ -105,10 +131,80 @@ def test_create_supervised_trainer_traced_with_cpu():
     _test_create_supervised_trainer(trainer_device="cpu", trace=True)
 
 
+@pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
+def test_create_supervised_trainer_apex_error():
+    with pytest.raises(
+        ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
+    ):
+        _test_create_supervised_trainer(amp_mode="apex")
+
+
+@pytest.fixture
+def mock_torch_cuda_amp_module():
+    with patch.dict(
+        "sys.modules",
+        {"torch.cuda.amp": None, "torch.cuda.amp.grad_scaler": None, "torch.cuda.amp.autocast_mode": None},
+    ):
+        yield torch
+
+
+def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
+    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+        _test_create_supervised_trainer(amp_mode="amp")
+    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
+        _test_create_supervised_trainer(amp_mode="amp", scaler=True)
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+def test_create_supervised_trainer_scaler_not_amp():
+    scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
+    with pytest.raises(ValueError, match=f"scaler argument is {scaler}, but amp_mode is None."):
+        _test_create_supervised_trainer(amp_mode=None, scaler=scaler)
+    with pytest.raises(ValueError, match="scaler argument is True, but amp_mode is None."):
+        _test_create_supervised_trainer(amp_mode=None, scaler=True)
+    with pytest.raises(ValueError, match="scaler argument is True, but amp_mode is apex."):
+        _test_create_supervised_trainer(amp_mode="apex", scaler=True)
+    with pytest.raises(ValueError, match=f"scaler argument is {scaler}, but amp_mode is apex."):
+        _test_create_supervised_trainer(amp_mode="apex", scaler=scaler)
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_trainer_on_cuda_amp():
+    model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_trainer_on_cuda_amp_scaler():
+    model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer(
+        model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=True
+    )
+    scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
+    _test_create_supervised_trainer(
+        model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=scaler
+    )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+@pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
+def test_create_supervised_trainer_on_cuda_apex():
+    model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
+
+
+@pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
+def test_supervised_training_step_tpu_no_xla():
+    with pytest.raises(ModuleNotFoundError, match="torch_xla cannot be imported, please install PyTorch XLA."):
+        supervised_training_step_tpu(model=None, optimizer=None, loss_fn=None)
 
 
 @pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
@@ -125,6 +221,14 @@ def test_create_supervised_trainer_on_tpu_no_xla():
 def test_create_supervised_trainer_on_tpu():
     model_device = trainer_device = "xla"
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_create_supervised_trainer_on_tpu_amp():
+    model_device = trainer_device = "xla"
+    with pytest.raises(ValueError, match="amp_mode cannot be used with xla device."):
+        _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")

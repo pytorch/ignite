@@ -51,6 +51,7 @@ release = "master"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
@@ -205,7 +206,10 @@ todo_include_todos = True
 
 # -- Type hints configs ------------------------------------------------------
 
-autodoc_typehints = "signature"
+autodoc_inherit_docstrings = True
+autoclass_content = "both"
+autodoc_typehints = "description"
+napoleon_attr_annotations = True
 
 # -- A patch that turns-off cross refs for type annotations ------------------
 

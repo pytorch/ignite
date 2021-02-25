@@ -319,6 +319,8 @@ Complete list of metrics
 
 .. autofunction:: mIoU
 
+.. autofunction:: JaccardIndex
+
 .. autoclass:: Loss
 
 .. autoclass:: MeanAbsoluteError
@@ -331,6 +333,8 @@ Complete list of metrics
     :members:
 
 .. autoclass:: MetricsLambda
+
+.. autoclass:: MultiLabelConfusionMatrix
 
 .. autoclass:: PSNR
 
