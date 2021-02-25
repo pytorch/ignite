@@ -107,7 +107,7 @@ class BaseWeightsScalarHandler(BaseHandler):
     Helper handler to log model's weights as scalars.
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         if not isinstance(model, torch.nn.Module):
             raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
@@ -152,14 +152,14 @@ class BaseLogger(metaclass=ABCMeta):
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
         Args:
-            engine (Engine): engine object.
-            log_handler (callable): a logging handler to execute
+            engine: engine object.
+            log_handler: a logging handler to execute
             event_name: event to attach the logging handler to. Valid events are from
-                :class:`~ignite.engine.events.Events` or class:`~ignite.engine.events.EventsList` or any `event_name`
+                :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         if isinstance(event_name, EventsList):
             for name in event_name:
@@ -180,15 +180,15 @@ class BaseLogger(metaclass=ABCMeta):
         """Shortcut method to attach `OutputHandler` to the logger.
 
         Args:
-            engine (Engine): engine object.
+            engine: engine object.
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            *args: args to initialize `OutputHandler`
-            **kwargs: kwargs to initialize `OutputHandler`
+            args: args to initialize `OutputHandler`
+            kwargs: kwargs to initialize `OutputHandler`
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
@@ -198,15 +198,15 @@ class BaseLogger(metaclass=ABCMeta):
         """Shortcut method to attach `OptimizerParamsHandler` to the logger.
 
         Args:
-            engine (Engine): engine object.
+            engine: engine object.
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            *args: args to initialize `OptimizerParamsHandler`
-            **kwargs: kwargs to initialize `OptimizerParamsHandler`
+            args: args to initialize `OptimizerParamsHandler`
+            kwargs: kwargs to initialize `OptimizerParamsHandler`
 
         Returns:
-            :class:`~ignite.engine.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
 
         .. versionchanged:: 0.4.3
             Added missing return statement.

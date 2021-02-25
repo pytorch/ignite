@@ -20,14 +20,6 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        if idist.get_world_size() > 1:
-            if (not average) and is_multilabel:
-                warnings.warn(
-                    "Precision/Recall metrics do not work in distributed setting when average=False "
-                    "and is_multilabel=True. Results are not reduced across computing devices. Computed result "
-                    "corresponds to the local rank's (single process) result.",
-                    RuntimeWarning,
-                )
 
         self._average = average
         self.eps = 1e-20
@@ -53,12 +45,14 @@ class _BasePrecisionRecall(_BaseClassification):
             raise NotComputableError(
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
-
-        if not (self._type == "multilabel" and not self._average):
-            if not self._is_reduced:
+        if not self._is_reduced:
+            if not (self._type == "multilabel" and not self._average):
                 self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[assignment]
                 self._positives = idist.all_reduce(self._positives)  # type: ignore[assignment]
-                self._is_reduced = True  # type: bool
+            else:
+                self._true_positives = cast(torch.Tensor, idist.all_gather(self._true_positives))
+                self._positives = cast(torch.Tensor, idist.all_gather(self._positives))
+            self._is_reduced = True  # type: bool
 
         result = self._true_positives / (self._positives + self.eps)
 
@@ -107,22 +101,17 @@ class Precision(_BasePrecisionRecall):
         as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
         than available RAM.
 
-    .. warning::
-
-        In multilabel cases, if average is False, current implementation does not work with distributed computations.
-        Results are not reduced across the GPUs. Computed result corresponds to the local rank's (single GPU) result.
-
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        average (bool, optional): if True, precision is computed as the unweighted average (across all classes
+        average: if True, precision is computed as the unweighted average (across all classes
             in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
-        is_multilabel (bool, optional) flag to use in multilabel case. By default, value is False. If True, average
+        is_multilabel: flag to use in multilabel case. By default, value is False. If True, average
             parameter should be True and the average is computed across samples, instead of classes.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+        device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 

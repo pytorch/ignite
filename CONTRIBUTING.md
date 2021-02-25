@@ -144,13 +144,13 @@ git commit -m "Added feature"
 
 #### Run tests:
 
-To run a specific test, for example `test_terminate` from `test_engine.py`
+To run a specific test, for example `test_terminate` from `test_engine.py`:
 
 ```bash
 pytest tests/ignite/engine/test_engine.py -vvv -k test_terminate
 ```
 
-To run all tests with coverage (assuming installed `pytest-cov`):
+To run all tests with coverage (assuming installed `pytest-cov` and `pytest-xdist`):
 
 ```bash
 bash tests/run_cpu_tests.sh
@@ -160,6 +160,14 @@ On Windows, distributed tests should be skipped
 
 ```bash
 SKIP_DISTRIB_TESTS=1 bash tests/run_cpu_tests.sh
+```
+
+##### Run distributed tests only on CPU
+
+To run distributed tests only (assuming installed `pytest-xdist`):
+```bash
+export WORLD_SIZE=2
+CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python tests/ -m distributed -vvv
 ```
 
 #### Run Mypy checks:
@@ -208,8 +216,8 @@ git merge upstream/master
 
 ### Writing documentation
 
-Ignite uses [Google style](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
-for formatting docstrings and
+Ignite uses [Google style](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html#type-annotations)
+for formatting docstrings, specially from an example of `Google style with Python 3 type annotations` and
 
 - [`.. versionadded::`] directive for adding new classes, class methods, functions,
 - [`.. versionchanged::`] directive for adding new arguments, changing internal behaviours, fixing bugs and
