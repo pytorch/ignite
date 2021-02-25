@@ -20,6 +20,8 @@ class R2Score(_BaseRegression):
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)` and of type `float32`.
 
+    Parameters are inherited from ``Metric.__init__``.
+
     Args:
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the

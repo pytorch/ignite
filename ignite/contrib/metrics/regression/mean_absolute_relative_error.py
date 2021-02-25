@@ -21,6 +21,8 @@ class MeanAbsoluteRelativeError(_BaseRegression):
 
     __ https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
 
+    Parameters are inherited from ``Metric.__init__``.
+
     Args:
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the

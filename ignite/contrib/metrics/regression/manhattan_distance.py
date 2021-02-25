@@ -21,6 +21,8 @@ class ManhattanDistance(_BaseRegression):
 
     __ https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
 
+    Parameters are inherited from ``Metric.__init__``.
+
     Args:
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
