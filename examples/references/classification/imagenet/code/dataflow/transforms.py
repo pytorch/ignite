@@ -1,5 +1,3 @@
-from typing import Callable, Type
-
 import torch
 
 
