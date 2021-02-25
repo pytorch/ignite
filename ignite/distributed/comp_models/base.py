@@ -87,23 +87,22 @@ class ComputationModel(metaclass=ABCMeta):
     _collective_op_dtype = None  # type: Any
 
     @staticmethod
-    def _encode_str(x: str, device: torch.device) -> torch.Tensor:
-        # use fix padded size
-        size = 1024
-        if len(x) > size:
-            warnings.warn(f"Input string size {len(x)} is larger than {size} and thus will be truncated")
-            x = x[:size]
-
+    def _encode_str(x: str, device: torch.device, size: int) -> torch.Tensor:
         name = torch.tensor(bytearray(x, "utf-8")).to(device)
         padded_x = torch.zeros(size + 1, device=device, dtype=torch.long)
         padded_x[: len(name)] = name
         padded_x[-1] = len(name)
-        # output is tensor of shape (1, 1025)
+        # output is tensor of shape (1, size + 1)
         return padded_x.unsqueeze(0)
+
+    def _get_max_length(self, x: str, device: torch.device) -> int:
+        size = torch.tensor([len(x),], device=device)
+        size = self._do_all_reduce(size, "MAX")
+        return cast(int, size.item())
 
     @staticmethod
     def _decode_str(xs: torch.Tensor) -> List[str]:
-        # xs.shape = (n, 1025), e.g. (world_size, 1025)
+        # xs.shape = (n, size + 1), e.g. (world_size, size + 1)
         out = [bytearray(x[: x[-1]].tolist()).decode("utf-8") for x in xs]
         return out
 
@@ -144,7 +143,8 @@ class ComputationModel(metaclass=ABCMeta):
             tensor = torch.tensor(tensor, device=device, dtype=self._collective_op_dtype)
         elif isinstance(tensor, str):
             tensor_to_str = True
-            tensor = self._encode_str(tensor, device)
+            max_length = self._get_max_length(tensor, device)
+            tensor = self._encode_str(tensor, device, size=max_length)
 
         tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
 
@@ -176,20 +176,20 @@ class ComputationModel(metaclass=ABCMeta):
         rank = self.get_rank()
         device = self.device()
         tensor_to_number = tensor_to_str = False
-        if rank != src:
-            if isinstance(tensor, Number):
-                tensor_to_number = True
-                tensor = torch.empty(1, device=self.device(), dtype=torch.float)
-            elif isinstance(tensor, str):
-                tensor_to_str = True
-                tensor = torch.empty(1, 1025, device=self.device(), dtype=torch.long)
-        else:
-            if isinstance(tensor, Number):
-                tensor_to_number = True
+
+        if isinstance(tensor, Number):
+            tensor_to_number = True
+            if rank != src:
+                tensor = torch.empty(1, device=device, dtype=torch.float)
+            else:
                 tensor = torch.tensor([tensor,], device=device, dtype=torch.float)
-            elif isinstance(tensor, str):
-                tensor_to_str = True
-                tensor = self._encode_str(tensor, device)
+        elif isinstance(tensor, str):
+            tensor_to_str = True
+            max_length = self._get_max_length(tensor, device)
+            if rank != src:
+                tensor = torch.empty(1, max_length + 1, device=device, dtype=torch.long)
+            else:
+                tensor = self._encode_str(tensor, device, size=max_length)
 
         tensor = self._apply_op(tensor, device, self._do_broadcast, src)
 
