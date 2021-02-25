@@ -10,7 +10,8 @@
 | :---
 | ![image](https://img.shields.io/badge/-Stable%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch/ignite/badges/version.svg)](https://anaconda.org/pytorch/ignite) [![image](https://anaconda.org/pytorch/ignite/badges/downloads.svg)](https://anaconda.org/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pypi.org/project/pytorch-ignite/) [![image](https://pepy.tech/badge/pytorch-ignite)](https://pepy.tech/project/pytorch-ignite) |
 | ![image](https://img.shields.io/badge/-Nightly%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch-nightly/ignite/badges/version.svg)](https://anaconda.org/pytorch-nightly/ignite) [![image](https://img.shields.io/badge/PyPI-pre%20releases-brightgreen)](https://pypi.org/project/pytorch-ignite/#history)|
-| ![image](https://img.shields.io/badge/-Features:-black?style=flat-square) [![image](https://img.shields.io/badge/docker-hub-blue)](https://hub.docker.com/u/pytorchignite) [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org) [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Twitter](https://img.shields.io/badge/news-twitter-blue)](https://twitter.com/pytorch_ignite)|
+| ![image](https://img.shields.io/badge/-Features:-black?style=flat-square) [![image](https://img.shields.io/badge/docker-hub-blue)](https://hub.docker.com/u/pytorchignite) [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org) [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) |
+| ![image](https://img.shields.io/badge/-Community:-black?style=flat-square) [![Twitter](https://img.shields.io/badge/news-twitter-blue)](https://twitter.com/pytorch_ignite) [![numfocus](https://img.shields.io/badge/NumFOCUS-affiliated%20project-green)](https://numfocus.org/sponsored-projects/affiliated-projects) |
 | ![image](https://img.shields.io/badge/-Supported_PyTorch/Python_versions:-black?style=flat-square) [![link](https://img.shields.io/badge/-check_here-blue)](https://github.com/pytorch/ignite/actions?query=workflow%3A%22PyTorch+version+tests%22)|
 
 </div>
@@ -44,17 +45,30 @@ _Click on the image to see complete code_
 
 # Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Why Ignite?](#why-ignite)
+  - [Simplified training and validation loop](#simplified-training-and-validation-loop)
+  - [Power of Events & Handlers](#power-of-events--handlers)
+    - [Execute any number of functions whenever you wish](#execute-any-number-of-functions-whenever-you-wish)
+    - [Built-in events filtering](#built-in-events-filtering)
+    - [Stack events to share some actions](#stack-events-to-share-some-actions)
+    - [Custom events to go beyond standard events](#custom-events-to-go-beyond-standard-events)
+  - [Out-of-the-box metrics](#out-of-the-box-metrics)
 - [Installation](#installation)
+  - [Nightly releases](#nightly-releases)
+  - [Docker Images](#docker-images)
+    - [Using pre-built images](#using-pre-built-images)
 - [Getting Started](#getting-started)
 - [Documentation](#documentation)
+  - [Additional Materials](#additional-materials)
 - [Examples](#examples)
   - [Tutorials](#tutorials)
   - [Reproducible Training Examples](#reproducible-training-examples)
 - [Communication](#communication)
+  - [User feedback](#user-feedback)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
-- [About the team](#about-the-team--disclaimer)
+- [About the team & Disclaimer](#about-the-team--disclaimer)
 
 <!-- ############################################################################################################### -->
 
@@ -294,14 +308,34 @@ Pull a pre-built docker image from [our Docker Hub](https://hub.docker.com/u/pyt
 docker run --gpus all -it -v $PWD:/workspace/project --network=host --shm-size 16G pytorchignite/base:latest /bin/bash
 ```
 
-Available pre-built images are :
+<details>
 
-- `pytorchignite/base:latest | pytorchignite/hvd-base:latest`
-- `pytorchignite/apex:latest | pytorchignite/hvd-apex:latest | pytorchignite/msdp-apex:latest`
-- `pytorchignite/vision:latest | pytorchignite/hvd-vision:latest`
-- `pytorchignite/apex-vision:latest | pytorchignite/hvd-apex-vision:latest | pytorchignite/msdp-apex-vision:latest`
-- `pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest`
-- `pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest | pytorchignite/msdp-apex-nlp:latest`
+<summary>
+List of available pre-built images
+</summary>
+
+Base
+- `pytorchignite/base:latest` 
+- `pytorchignite/apex:latest`
+- `pytorchignite/hvd-base:latest`
+- `pytorchignite/hvd-apex:latest` 
+- `pytorchignite/msdp-apex:latest`
+
+Vision:
+- `pytorchignite/vision:latest`
+- `pytorchignite/hvd-vision:latest`
+- `pytorchignite/apex-vision:latest`
+- `pytorchignite/hvd-apex-vision:latest`
+- `pytorchignite/msdp-apex-vision:latest`
+
+NLP:
+- `pytorchignite/nlp:latest`
+- `pytorchignite/hvd-nlp:latest`
+- `pytorchignite/apex-nlp:latest` 
+- `pytorchignite/hvd-apex-nlp:latest` 
+- `pytorchignite/msdp-apex-nlp:latest`
+
+</details>
 
 For more details, see [here](docker).
 
@@ -337,8 +371,6 @@ Few pointers to get you started:
 <!-- ############################################################################################################### -->
 
 # Examples
-
-Complete list of examples can be found [here](https://pytorch.org/ignite/examples.html).
 
 ## Tutorials
 
@@ -416,7 +448,11 @@ As always, PRs are welcome :)
 
 # Projects using Ignite
 
-## Research papers
+<details>
+
+<summary>
+Research papers
+</summary>
 
 - [BatchBALD: Efficient and Diverse Batch Acquisition for Deep Bayesian Active Learning](https://github.com/BlackHC/BatchBALD)
 - [A Model to Search for Synthesizable Molecules](https://github.com/john-bradshaw/molecule-chef)
@@ -436,7 +472,13 @@ As always, PRs are welcome :)
 - [Volumetric Grasping Network](https://github.com/ethz-asl/vgn)
 - [Mood Classification using Listening Data](https://github.com/fdlm/listening-moods)
 
-## Blog articles, tutorials, books
+</details>
+
+<details>
+
+<summary>
+Blog articles, tutorials, books
+</summary>
 
 - [State-of-the-Art Conversational AI with Transfer Learning](https://github.com/huggingface/transfer-learning-conv-ai)
 - [Tutorial on Transfer Learning in NLP held at NAACL 2019](https://github.com/huggingface/naacl_transfer_learning_tutorial)
@@ -445,13 +487,25 @@ As always, PRs are welcome :)
 - [The Hero Rises: Build Your Own SSD](https://allegro.ai/blog/the-hero-rises-build-your-own-ssd/)
 - [Using Optuna to Optimize PyTorch Ignite Hyperparameters](https://medium.com/optuna/using-optuna-to-optimize-pytorch-ignite-hyperparameters-b680f55ac746)
 
-## Toolkits
+</details>
+
+<details>
+
+<summary>
+Toolkits
+</summary>
 
 - [Project MONAI - AI Toolkit for Healthcare Imaging](https://github.com/Project-MONAI/MONAI)
 - [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
 - [Nussl - a flexible, object oriented Python audio source separation library](https://github.com/nussl/nussl)
 
-## Others
+</details>
+
+<details>
+
+<summary>
+Others
+</summary>
 
 - [Implementation of "Attention is All You Need" paper](https://github.com/akurniawan/pytorch-transformer)
 - [Implementation of DropBlock: A regularization method for convolutional networks in PyTorch](https://github.com/miguelvr/dropblock)
@@ -461,6 +515,8 @@ As always, PRs are welcome :)
 - [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 - [FixMatch experiments in PyTorch and Ignite (CTA dataaug policy)](https://github.com/vfdev-5/FixMatch-pytorch)
 - [Kaggle Birdcall Identification Competition: 1st place solution](https://github.com/ryanwongsa/kaggle-birdsong-recognition)
+
+</details>
 
 See other projects at ["Used by"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
 
@@ -474,7 +530,7 @@ description of the project.
 
 # About the team & Disclaimer
 
-This repository is operated and maintained by volunteers in the PyTorch community in their capacities as individuals
+PyTorch-Ignite is a [NumFOCUS Affiliated Project](https://www.numfocus.org/), operated and maintained by volunteers in the PyTorch community in their capacities as individuals
 (and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html)
 page for a list of core contributors. For usage questions and issues, please see the various channels
 [here](#communication). For all other questions and inquiries, please send an email

@@ -60,10 +60,10 @@ class EpochWise(MetricUsage):
     - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Attributes:
-        usage_name (str): usage name string
+        usage_name: usage name string
     """
 
-    usage_name = "epoch_wise"
+    usage_name: str = "epoch_wise"
 
     def __init__(self) -> None:
         super(EpochWise, self).__init__(
@@ -84,10 +84,10 @@ class BatchWise(MetricUsage):
     - :meth:`~ignite.metrics.Metric.completed` on every ``ITERATION_COMPLETED``.
 
     Attributes:
-        usage_name (str): usage name string
+        usage_name: usage name string
     """
 
-    usage_name = "batch_wise"
+    usage_name: str = "batch_wise"
 
     def __init__(self) -> None:
         super(BatchWise, self).__init__(
@@ -108,8 +108,8 @@ class BatchFiltered(MetricUsage):
     - :meth:`~ignite.metrics.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Args:
-        *args: Positional arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED(*args, **kwargs)`
-        **kwargs: Keyword arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED(*args, **kwargs)`
+        args: Positional arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED(*args, **kwargs)`
+        kwargs: Keyword arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED(*args, **kwargs)`
             handled by :meth:`~ignite.metrics.Metric.iteration_completed`.
 
     """
@@ -127,17 +127,17 @@ class Metric(metaclass=ABCMeta):
     Base class for all Metrics.
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the
+        device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
     Attributes:
-        required_output_keys (tuple): dictionary defines required keys to be found in ``engine.state.output`` if the
+        required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
             latter is a dictionary. Default, ``("y_pred", "y")``. This is useful with custom metrics that can require
             other arguments than predictions ``y_pred`` and targets ``y``. See notes below for an example.
 
@@ -196,7 +196,7 @@ class Metric(metaclass=ABCMeta):
     """
 
     # public class attribute
-    required_output_keys = ("y_pred", "y")  # type: Optional[Tuple]
+    required_output_keys: Optional[Tuple] = ("y_pred", "y")
     # for backward compatibility
     _required_output_keys = required_output_keys
 
@@ -267,7 +267,7 @@ class Metric(metaclass=ABCMeta):
         `engine` with :meth:`~ignite.metrics.Metric.attach`.
 
         Args:
-            engine (Engine): the engine to which the metric must be attached
+            engine: the engine to which the metric must be attached
         """
         self.reset()
 
@@ -277,7 +277,7 @@ class Metric(metaclass=ABCMeta):
         `engine` with :meth:`~ignite.metrics.Metric.attach`.
 
         Args:
-            engine (Engine): the engine to which the metric must be attached
+            engine: the engine to which the metric must be attached
         """
 
         output = self._output_transform(engine.state.output)
@@ -300,8 +300,8 @@ class Metric(metaclass=ABCMeta):
         `engine` with :meth:`~ignite.metrics.Metric.attach`.
 
         Args:
-            engine (Engine): the engine to which the metric must be attached
-            name (str): the name of the metric used as key in dict `engine.state.metrics`
+            engine: the engine to which the metric must be attached
+            name: the name of the metric used as key in dict `engine.state.metrics`
 
         .. versionchanged:: 0.4.3
             Added dict in metrics results.
@@ -338,9 +338,9 @@ class Metric(metaclass=ABCMeta):
         contain computed metric's value under provided name.
 
         Args:
-            engine (Engine): the engine to which the metric must be attached
-            name (str): the name of the metric to attach
-            usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
+            engine: the engine to which the metric must be attached
+            name: the name of the metric to attach
+            usage: the usage of the metric. Valid string values should be
                 :attr:`ignite.metrics.EpochWise.usage_name` (default) or
                 :attr:`ignite.metrics.BatchWise.usage_name`.
 
@@ -381,8 +381,8 @@ class Metric(metaclass=ABCMeta):
         and another metric (e.g. more expensive one) is done every n-th training epoch.
 
         Args:
-            engine (Engine): the engine from which the metric must be detached
-            usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
+            engine: the engine from which the metric must be detached
+            usage: the usage of the metric. Valid string values should be
                 'epoch_wise' (default) or 'batch_wise'.
 
         Example:
@@ -423,8 +423,8 @@ class Metric(metaclass=ABCMeta):
         value is written to `engine.state.metrics` dictionary.
 
         Args:
-            engine (Engine): the engine checked from which the metric should be attached
-            usage (str or MetricUsage, optional): the usage of the metric. Valid string values should be
+            engine: the engine checked from which the metric should be attached
+            usage: the usage of the metric. Valid string values should be
                 'epoch_wise' (default) or 'batch_wise'.
         """
         usage = self._check_usage(usage)
@@ -530,7 +530,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
     See :doc:`metrics` on how to use it.
 
     Args:
-        *attrs: attribute names of decorated class
+        attrs: attribute names of decorated class
 
     """
 
@@ -566,6 +566,8 @@ def reinit__is_reduced(func: Callable) -> Callable:
 
     See :doc:`metrics` on how to use it.
 
+    Args:
+        func: A callable to reinit.
     """
 
     @wraps(func)

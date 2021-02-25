@@ -46,9 +46,9 @@ class BaseSaveHandler(metaclass=ABCMeta):
         - `priority`: checkpoint priority value (higher is better), e.g. `12` or `0.6554435`
 
         Args:
-            checkpoint (Mapping): checkpoint dictionary to save.
-            filename (str): filename associated with checkpoint.
-            metadata (Mapping, optional): metadata on checkpoint to save.
+            checkpoint: checkpoint dictionary to save.
+            filename: filename associated with checkpoint.
+            metadata: metadata on checkpoint to save.
 
         """
         pass
@@ -58,7 +58,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
         """Method to remove saved checkpoint.
 
         Args:
-            filename (str): filename associated with checkpoint.
+            filename: filename associated with checkpoint.
 
         """
         pass
@@ -71,34 +71,34 @@ class Checkpoint(Serializable):
     moving data on TPU to CPU before writing the checkpoint.
 
     Args:
-        to_save (Mapping): Dictionary with the objects to save. Objects should have implemented ``state_dict`` and
+        to_save: Dictionary with the objects to save. Objects should have implemented ``state_dict`` and
             ``load_state_dict`` methods. If contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, their internal wrapped model is automatically saved (to avoid additional key ``module.`` in
             the state dictionary).
-        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to
+        save_handler: Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If ``save_handler`` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
             ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
-        filename_prefix (str, optional): Prefix for the file name to which objects will be saved. See Note for details.
-        score_function (callable, optional): If not None, it should be a function taking a single argument,
+        filename_prefix: Prefix for the file name to which objects will be saved. See Note for details.
+        score_function: If not None, it should be a function taking a single argument,
             :class:`~ignite.engine.engine.Engine` object, and returning a score (`float`). Objects with highest scores
             will be retained.
-        score_name (str, optional): If ``score_function`` not None, it is possible to store its value using
+        score_name: If ``score_function`` not None, it is possible to store its value using
             ``score_name``. See Notes for more details.
-        n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
+        n_saved: Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is ``(engine, event_name)``. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        filename_pattern (str, optional): If ``filename_pattern`` is provided, this pattern will be used to render
+        filename_pattern: If ``filename_pattern`` is provided, this pattern will be used to render
             checkpoint filenames. If the pattern is not defined, the default pattern would be used. See Note for
             details.
-        include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
+        include_self: Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
-        greater_or_equal (bool): if `True`, the latest equally scored model is stored. Otherwise, the first model.
+        greater_or_equal: if `True`, the latest equally scored model is stored. Otherwise, the first model.
             Default, `False`.
 
     .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
@@ -267,7 +267,7 @@ class Checkpoint(Serializable):
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
         greater_or_equal: bool = False,
-    ) -> None:
+    ):
 
         if not isinstance(to_save, collections.Mapping):
             raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
@@ -442,14 +442,14 @@ class Checkpoint(Serializable):
         """Helper method to get the default filename pattern for a checkpoint.
 
         Args:
-            with_prefix (bool): If True, the ``filename_prefix`` is added to the filename pattern:
+            with_prefix: If True, the ``filename_prefix`` is added to the filename pattern:
                 ``{filename_prefix}_{name}...``. Default, True.
-            with_score (bool): If True, ``score`` is added to the filename pattern: ``..._{score}.{ext}``.
+            with_score: If True, ``score`` is added to the filename pattern: ``..._{score}.{ext}``.
                 Default, True. At least one of ``with_score`` and ``with_global_step`` should be True.
-            with_score_name (bool): If True, ``score_name`` is added to the filename pattern:
+            with_score_name: If True, ``score_name`` is added to the filename pattern:
                 ``..._{score_name}={score}.{ext}``. If activated, argument ``with_score`` should be
                 also True, otherwise an error is raised. Default, True.
-            with_global_step (bool): If True, ``{global_step}`` is added to the
+            with_global_step: If True, ``{global_step}`` is added to the
                 filename pattern: ``...{name}_{global_step}...``.
                 At least one of ``with_score`` and ``with_global_step`` should be True.
 
@@ -522,11 +522,11 @@ class Checkpoint(Serializable):
             `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
 
         Args:
-            to_load (Mapping): a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
-            checkpoint (Mapping): a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
+            to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            checkpoint: a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
                 "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
                 corresponding state_dict.
-            **kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+            kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
 
         .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
@@ -572,7 +572,7 @@ class Checkpoint(Serializable):
         """Method replace internal state of the class with provided state dict data.
 
         Args:
-            state_dict (Mapping): a dict with "saved" key and list of ``(priority, filename)`` pairs as values.
+            state_dict: a dict with "saved" key and list of ``(priority, filename)`` pairs as values.
         """
         super().load_state_dict(state_dict)
         self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["saved"]]
@@ -582,9 +582,9 @@ class Checkpoint(Serializable):
         """Helper method to get default score function based on the metric name.
 
         Args:
-            metric_name (str): metric name to get the value from ``engine.state.metrics``.
-                Engine is the one to which :class:`~ignite.handlers.checkpoint.Checkpoint` handler is added.
-            score_sign (float): sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            metric_name: metric name to get the value from ``engine.state.metrics``.
+                Engine is the one to which :class:`~ignite.handlers.Checkpoint` handler is added.
+            score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
                 a negative score sign should be used (objects with larger score are retained). Default, 1.0.
 
         Exemples:
@@ -628,14 +628,14 @@ class DiskSaver(BaseSaveHandler):
     """Handler that saves input checkpoint on a disk.
 
     Args:
-        dirname (str): Directory path where the checkpoint will be saved
-        atomic (bool, optional): if True, checkpoint is serialized to a temporary file, and then
+        dirname: Directory path where the checkpoint will be saved
+        atomic: if True, checkpoint is serialized to a temporary file, and then
             moved to final destination, so that files are guaranteed to not be damaged
             (for example if exception occurs during saving).
-        create_dir (bool, optional): if True, will create directory ``dirname`` if it doesnt exist.
-        require_empty (bool, optional): If True, will raise exception if there are any files in the
+        create_dir: if True, will create directory ``dirname`` if it doesnt exist.
+        require_empty: If True, will raise exception if there are any files in the
             directory ``dirname``.
-        **kwargs: Accepted keyword arguments for `torch.save` or `xm.save`.
+        kwargs: Accepted keyword arguments for `torch.save` or `xm.save`.
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`.
@@ -643,7 +643,7 @@ class DiskSaver(BaseSaveHandler):
 
     def __init__(
         self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs: Any
-    ) -> None:
+    ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
         self._check_and_setup(dirname, create_dir, require_empty)
@@ -739,29 +739,29 @@ class ModelCheckpoint(Checkpoint):
         A single `pt` file is created instead of multiple files.
 
     Args:
-        dirname (str): Directory path where objects will be saved.
-        filename_prefix (str): Prefix for the file names to which objects will be saved. See Notes of
+        dirname: Directory path where objects will be saved.
+        filename_prefix: Prefix for the file names to which objects will be saved. See Notes of
             :class:`~ignite.handlers.Checkpoint` for more details.
-        score_function (callable, optional): if not None, it should be a function taking a single argument, an
+        score_function: if not None, it should be a function taking a single argument, an
             :class:`~ignite.engine.engine.Engine` object, and return a score (`float`). Objects with highest scores
             will be retained.
-        score_name (str, optional): if ``score_function`` not None, it is possible to store its value using
+        score_name: if ``score_function`` not None, it is possible to store its value using
             `score_name`. See Notes for more details.
-        n_saved (int, optional): Number of objects that should be kept on disk. Older files will be removed. If set to
+        n_saved: Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
-        atomic (bool, optional): If True, objects are serialized to a temporary file, and then moved to final
+        atomic: If True, objects are serialized to a temporary file, and then moved to final
             destination, so that files are guaranteed to not be damaged (for example if exception
             occurs during saving).
-        require_empty (bool, optional): If True, will raise exception if there are any files starting with
+        require_empty: If True, will raise exception if there are any files starting with
             ``filename_prefix`` in the directory ``dirname``.
-        create_dir (bool, optional): If True, will create directory ``dirname`` if it does not exist.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        create_dir: If True, will create directory ``dirname`` if it does not exist.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
-        include_self (bool): Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
+        include_self: Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
-        **kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
+        kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`
@@ -795,7 +795,7 @@ class ModelCheckpoint(Checkpoint):
         global_step_transform: Optional[Callable] = None,
         include_self: bool = False,
         **kwargs: Any,
-    ) -> None:
+    ):
 
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
 
@@ -822,7 +822,7 @@ class ModelCheckpoint(Checkpoint):
 
         return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
 
-    def __call__(self, engine: Engine, to_save: Mapping) -> None:  # type: ignore
+    def __call__(self, engine: Engine, to_save: Mapping):  # type: ignore
 
         if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")
