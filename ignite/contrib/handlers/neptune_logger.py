@@ -40,30 +40,30 @@ class NeptuneLogger(BaseLogger):
         pip install neptune-client
 
     Args:
-        api_token (str | None): Required in online mode. Neputne API token, found on https://neptune.ai.
+        api_token: Required in online mode. Neputne API token, found on https://neptune.ai.
             Read how to get your API key
             https://docs.neptune.ai/python-api/tutorials/get-started.html#copy-api-token.
-        project_name (str): Required in online mode. Qualified name of a project in a form of
+        project_name: Required in online mode. Qualified name of a project in a form of
            "namespace/project_name" for example "tom/minst-classification".
            If None, the value of NEPTUNE_PROJECT environment variable will be taken.
            You need to create the project in https://neptune.ai first.
-        offline_mode (bool): Optional default False. If offline_mode=True no logs will be send to neptune.
+        offline_mode: Optional default False. If offline_mode=True no logs will be send to neptune.
            Usually used for debug purposes.
-        experiment_name (str, optional): Optional. Editable name of the experiment.
+        experiment_name: Optional. Editable name of the experiment.
            Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
-        upload_source_files (list, optional): Optional. List of source files to be uploaded.
+        upload_source_files: Optional. List of source files to be uploaded.
            Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
            If None is passed, Python file from which experiment was created will be uploaded.
            Pass empty list (`[]`) to upload no files. Unix style pathname pattern expansion is supported.
            For example, you can pass `*.py` to upload all python source files from the current directory.
            For recursion lookup use `**/*.py` (for Python 3.5 and later). For more information see glob library.
-        params (dict, optional): Optional. Parameters of the experiment. After experiment creation params are read-only.
+        params: Optional. Parameters of the experiment. After experiment creation params are read-only.
            Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
            viewed in experiments view as a column.
-        properties (dict, optional): Optional default is `{}`. Properties of the experiment.
+        properties: Optional default is `{}`. Properties of the experiment.
            They are editable after experiment is created. Properties are displayed in the experiment’s Details and
            each key-value pair can be viewed in experiments view as a column.
-        tags (list, optional): Optional default `[]`. Must be list of str. Tags of the experiment.
+        tags: Optional default `[]`. Must be list of str. Tags of the experiment.
            Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
 
     Examples:
@@ -293,14 +293,14 @@ class OutputHandler(BaseOutputHandler):
             )
 
     Args:
-        tag (str): common title for all produced plots. For example, "training"
-        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
-        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
@@ -323,7 +323,7 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
@@ -385,13 +385,13 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None) -> None:
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
@@ -439,13 +439,13 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
@@ -495,13 +495,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None) -> None:
+    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
         super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
@@ -524,7 +524,7 @@ class NeptuneSaver(BaseSaveHandler):
     """Handler that saves input checkpoint to the Neptune server.
 
     Args:
-        neptune_logger (ignite.contrib.handlers.neptune_logger.NeptuneLogger): an instance of
+        neptune_logger: an instance of
             NeptuneLogger class.
 
     Examples:

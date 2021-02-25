@@ -14,7 +14,7 @@ class TimeLimit:
     This handler gracefully terminates the training if time passed in the training exceeds a limit.
 
     Args:
-        limit_sec (int, optional): Maximum time before training terminates (in seconds). Defaults to 28800.
+        limit_sec: Maximum time before training terminates (in seconds). Defaults to 28800.
 
     Examples:
 

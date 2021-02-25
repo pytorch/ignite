@@ -268,6 +268,9 @@ class BasicTimeProfiler:
         """
         Method to store the unaggregated profiling results to a csv file
 
+        Args:
+            output_path: file output path containing a filename
+
         .. code-block:: python
 
             profiler.write_results('path_to_dir/awesome_filename.csv')
@@ -346,6 +349,9 @@ class BasicTimeProfiler:
     def print_results(results: Dict) -> str:
         """
         Method to print the aggregated results from the profiler
+
+        Args:
+            results: the aggregated results from the profiler
 
         .. code-block:: python
 
@@ -566,6 +572,11 @@ class HandlersTimeProfiler:
         engine.add_event_handler(Events.COMPLETED, self._detach_profiler_handlers)
 
     def attach(self, engine: Engine) -> None:
+        """Attach HandlersTimeProfiler to the given engine.
+
+        Args:
+            engine: the instance of Engine to attach
+        """
         if not isinstance(engine, Engine):
             raise TypeError(f"Argument engine should be ignite.engine.Engine, but given {type(engine)}")
 
@@ -628,6 +639,9 @@ class HandlersTimeProfiler:
         """
         Method to store the unaggregated profiling results to a csv file
 
+        Args:
+            output_path: file output path containing a filename
+
         .. code-block:: python
 
             profiler.write_results('path_to_dir/awesome_filename.csv')
@@ -676,6 +690,9 @@ class HandlersTimeProfiler:
     def print_results(results: List[List[Union[str, float]]]) -> None:
         """
         Method to print the aggregated results from the profiler
+
+        Args:
+            results: the aggregated results from the profiler
 
         .. code-block:: python
 
