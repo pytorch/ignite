@@ -6,6 +6,7 @@ import torch
 import ignite.distributed as idist
 from ignite.distributed.utils import has_hvd_support
 from tests.ignite.distributed.utils import (
+    _test_distrib__get_max_length,
     _test_distrib_all_gather,
     _test_distrib_all_reduce,
     _test_distrib_barrier,
@@ -143,6 +144,16 @@ def test_idist_all_reduce_hvd(gloo_hvd_executor):
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     gloo_hvd_executor(_test_distrib_all_reduce, (device,), np=np, do_init=True)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_idist__model_methods_hvd(gloo_hvd_executor):
+
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    gloo_hvd_executor(_test_distrib__get_max_length, (device,), np=np, do_init=True)
 
 
 @pytest.mark.distributed
