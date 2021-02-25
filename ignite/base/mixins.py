@@ -1,19 +1,13 @@
 from collections import OrderedDict
 from collections.abc import Mapping
-
-
 class Serializable:
-
     _state_dict_all_req_keys = ()  # type: tuple
     _state_dict_one_of_opt_keys = ()  # type: tuple
-
     def state_dict(self) -> OrderedDict:
         pass
-
     def load_state_dict(self, state_dict: Mapping) -> None:
         if not isinstance(state_dict, Mapping):
             raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
-
         for k in self._state_dict_all_req_keys:
             if k not in state_dict:
                 raise ValueError(
