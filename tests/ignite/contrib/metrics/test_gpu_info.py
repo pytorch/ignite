@@ -14,6 +14,8 @@ python_below_36 = (sys.version[0] == "3" and int(sys.version[2]) < 6) or int(sys
 def no_site_packages():
     import sys
 
+    import pynvml  # noqa: F401
+
     assert "pynvml" in sys.modules
     pynvml_module = sys.modules["pynvml"]
     del sys.modules["pynvml"]
