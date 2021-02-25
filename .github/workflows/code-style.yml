@@ -9,14 +9,14 @@ on:
       - "docs/**"
       - "conda.recipe"
       - "**.md"
-  pull_request:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
+#   pull_request:
+#     paths-ignore:
+#       - "assets/**"
+#       - ".circleci/**"
+#       - "docker/**"
+#       - "docs/**"
+#       - "conda.recipe"
+#       - "**.md"
   pull_request_target:
     paths-ignore:
       - "assets/**"
@@ -32,10 +32,10 @@ jobs:
     steps:
       - if: github.event_name == 'push'
         uses: actions/checkout@v2
-      - if: github.event_name == 'pull_request'
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref }}
+#       - if: github.event_name == 'pull_request'
+#         uses: actions/checkout@v2
+#         with:
+#           ref: ${{ github.head_ref }}
       - if: github.event_name == 'pull_request_target'
         uses: actions/checkout@v2
         with:
