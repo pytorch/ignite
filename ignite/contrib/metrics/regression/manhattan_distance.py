@@ -37,11 +37,6 @@ class ManhattanDistance(_BaseRegression):
         - Workes with DDP.
     """
 
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
-    ):
-        super(ManhattanDistance, self).__init__(output_transform, device)
-
     @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_errors = torch.tensor(0.0, device=self._device)

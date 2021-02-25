@@ -37,9 +37,6 @@ class MedianAbsoluteError(_BaseRegressionEpoch):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-        device: specifies which device updates are accumulated on. Setting the
-            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
-            non-blocking. By default, CPU.
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):

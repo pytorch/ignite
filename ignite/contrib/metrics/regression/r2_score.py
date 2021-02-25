@@ -34,11 +34,6 @@ class R2Score(_BaseRegression):
         Works with DDP.
     """
 
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-        super(R2Score, self).__init__(output_transform, device)
-
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_examples = 0
