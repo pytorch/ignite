@@ -17,37 +17,43 @@ on:
       - "docs/**"
       - "conda.recipe"
       - "**.md"
+  pull_request_target:
+    paths-ignore:
+      - "assets/**"
+      - ".circleci/**"
+      - "docker/**"
+      - "docs/**"
+      - "conda.recipe"
+      - "**.md"
 
 jobs:
   code-style:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - if: github.event_name == 'push'
+        uses: actions/checkout@v2
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+      - if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
-
-      - name: Run Auto-Formatters
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: |
+      - run: |
           python -m pip install autopep8 "black==19.10b0" "isort==5.7.0"
           autopep8 --recursive --in-place --aggressive --aggressive .
           black .
           isort --profile black .
 
       - name: Commit and push changes
-        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "autopep8 fix"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run Formatters
-        if: github.event.pull_request.head.repo.full_name != github.repository
-        run: |
-          # Install patched pycodestyle
-          python -m pip install git+https://github.com/trsvchn/pycodestyle.git
-          # Run as usual pycodestyle
-          pycodestyle --show-source --show-pep --config setup.cfg .
-          # TODO: Do the same for black and isort
