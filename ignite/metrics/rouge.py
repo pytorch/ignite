@@ -53,7 +53,7 @@ class Rouge(Metric):
 
     def __init__(
         self,
-        n: Union[int, str],
+        n: Union[int, str] = 1,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:

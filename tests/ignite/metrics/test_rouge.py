@@ -1,0 +1,159 @@
+import os
+
+import pytest
+import torch
+
+import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Rouge
+
+
+def test_zero_div():
+    rouge = Rouge()
+    with pytest.raises(NotComputableError):
+        rouge.compute()
+
+
+def test_compute():
+    rouge = Rouge()
+
+    y_pred = "the cat was found under the bed"
+    y = "the cat was under the bed"
+    rouge.update([y_pred.split(), [y.split()]])
+    assert isinstance(rouge.compute(), torch.Tensor)
+    assert rouge.compute() == 0.9230769276618958
+
+    y_pred = "the tiny little cat was found under the big funny bed"
+    y = "the cat was under the bed"
+    rouge.update([y_pred.split(), [y.split()]])
+    assert isinstance(rouge.compute(), torch.tensor)
+    assert rouge.compute() == 0.814479649066925
+
+
+def _test_distrib_integration(device):
+    import ignite.distributed as idist
+    from ignite.engine import Engine
+    from ignite.metrics import Rouge
+
+    n_iters = 2
+
+    y_true = ["Hi", "Hello"]
+    y_preds = [["Hi there!", "Hi , How are you?"], ["Hello there", "Hello , How are you?"]]
+
+    def update(engine, i):
+        return (y_true[i].split(), [y_preds[i][0].split()])
+
+    def _test(metric_device):
+        engine = Engine(update)
+
+        m = Rouge(device=metric_device)
+        m.attach(engine, "rouge")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
+
+        assert "rouge" in engine.state.metrics
+        print(engine.state.metrics["rouge"])
+
+    _test("cpu")
+    if device.type != "xla":
+        _test(idist.device())
+
+
+# def _test_distrib_accumulator_device(device):
+
+#     metric_devices = [torch.device("cpu")]
+#     if device.type != "xla":
+#         metric_devices.append(idist.device())
+#     for metric_device in metric_devices:
+#         rouge = MeanAbsoluteError(device=metric_device)
+
+#         for dev in [rouge._device, rouge._sum_of_absolute_errors.device]:
+#             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+
+#         y_pred = torch.tensor([[2.0], [-2.0]])
+#         y = torch.zeros(2)
+#         rouge.update((y_pred, y))
+
+#         for dev in [rouge._device, rouge._sum_of_absolute_errors.device]:
+#             assert dev == metric_device, f"{typ e(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+
+
+# def test_accumulator_detached():
+#     rouge = MeanAbsoluteError()
+
+#     y_pred = torch.tensor([[2.0], [-2.0]], requires_grad=True)
+#     y = torch.zeros(2)
+#     rouge.update((y_pred, y))
+
+#     assert not rouge._sum_of_absolute_errors.requires_grad
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+    device = torch.device(f"cuda:{local_rank}")
+    _test_distrib_integration(device)
+    # _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    device = torch.device("cpu")
+    _test_distrib_integration(device)
+    # _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
+    # gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = torch.device("cpu")
+    _test_distrib_integration(device)
+    # _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+    _test_distrib_integration(device)
+    # _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_integration(device)
+    # _test_distrib_accumulator_device(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_integration(device)
+    # _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
