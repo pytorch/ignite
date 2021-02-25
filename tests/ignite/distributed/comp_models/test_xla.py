@@ -160,7 +160,7 @@ def main_fold(fold):
     import torch.optim as optim
     import torch_xla.core.xla_model as xm
 
-    from ignite.engine import Engine, Events
+    from ignite.engine import Engine
 
     device = xm.xla_device(fold)
 

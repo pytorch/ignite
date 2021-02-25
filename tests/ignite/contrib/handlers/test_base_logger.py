@@ -1,4 +1,3 @@
-import math
 from unittest.mock import MagicMock, call
 
 import pytest

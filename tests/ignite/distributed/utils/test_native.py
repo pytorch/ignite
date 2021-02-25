@@ -246,7 +246,7 @@ def _test_idist_methods_overhead(ok_factor):
 
     t2 = 0.0
     t1 = 0.0
-    for j in range(m):
+    for _ in range(m):
         start = time.time()
         for _ in range(n):
             _ = dist.get_world_size()

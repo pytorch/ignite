@@ -597,7 +597,7 @@ def test_concepts_snippet_resume():
     import torch
     from torch.utils.data import DataLoader
 
-    from ignite.engine import DeterministicEngine, Events
+    from ignite.engine import DeterministicEngine
     from ignite.utils import manual_seed
 
     seen_batches = []
