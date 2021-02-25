@@ -165,11 +165,23 @@ if has_hvd_support:
             "ADASUM": hvd.mpi_ops.Adasum,
         }
 
+        _manual_reduce_op_map = {"MIN": torch.min, "MAX": torch.max, "PRODUCT": torch.prod}
+
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+            if op in self._manual_reduce_op_map:
+                op_fn = self._manual_reduce_op_map[op]
+                return self._do_manual_all_reduce(tensor, op_fn)
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
             return hvd.allreduce(tensor, op=op)
+
+        def _do_manual_all_reduce(self, tensor: torch.Tensor, op: Any) -> torch.Tensor:
+            res = self._do_all_gather(tensor)
+            reduced_res = op(res, dim=0)
+            if isinstance(reduced_res, torch.Tensor):
+                return reduced_res
+            return reduced_res[0]
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
             if tensor.ndimension() == 0:

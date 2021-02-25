@@ -27,9 +27,9 @@ def test_serial_model():
     model.all_reduce(1)
     model.all_gather(1)
     model.broadcast(1)
-    model._do_all_reduce(torch.tensor(1))
-    model._do_all_gather(torch.tensor(1))
-    model._do_broadcast(torch.tensor(1), src=0)
+    assert model._do_all_reduce(torch.tensor(1)) == torch.tensor(1)
+    assert model._do_all_gather(torch.tensor(1)) == torch.tensor(1)
+    assert model._do_broadcast(torch.tensor(1), src=0) == torch.tensor(1)
     model.barrier()
 
 
@@ -37,7 +37,7 @@ def test__encode_str__decode_str():
     device = torch.device("cpu")
     s = "test-abcedfg"
 
-    encoded_s = ComputationModel._encode_str(s, device)
+    encoded_s = ComputationModel._encode_str(s, device, 1024)
     assert isinstance(encoded_s, torch.Tensor) and encoded_s.shape == (1, 1025)
 
     decoded_s = ComputationModel._decode_str(encoded_s)

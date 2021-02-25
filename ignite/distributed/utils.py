@@ -331,7 +331,7 @@ def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[tor
     Args:
         tensor: tensor or number to collect across participating processes.
         op: reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
-            Please, several values are not supported for the backend like "horovod".
+            Horovod backend supports only "SUM", "AVERAGE", "ADASUM", "MIN", "MAX", "PRODUCT".
 
     Returns:
         torch.Tensor or number
