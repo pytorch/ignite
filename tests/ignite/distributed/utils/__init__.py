@@ -56,6 +56,16 @@ def _test_sync(cls):
     assert isinstance(_model, cls), f"{type(_model)} vs {cls}"
 
 
+def _test_distrib__get_max_length(device):
+    ws = idist.get_world_size()
+    x = "_test_distrib__get_max_length" * (idist.get_rank() + 2)
+
+    from ignite.distributed.utils import _model
+
+    res = _model._get_max_length(x, device)
+    assert res == len("_test_distrib__get_max_length" * (ws + 1))
+
+
 def _test_distrib_all_reduce(device):
 
     res = idist.all_reduce(10)

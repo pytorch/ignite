@@ -201,7 +201,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -271,7 +271,7 @@ class _SerialModel(ComputationModel):
     def spawn(*args: Any, **kwargs: Any) -> None:
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
-    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "sum") -> Union[torch.Tensor, float]:
+    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
         return tensor
 
     def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
@@ -282,14 +282,14 @@ class _SerialModel(ComputationModel):
     def broadcast(self, tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
         return tensor
 
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
-        pass
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        return tensor
 
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
-        pass
+        return tensor
 
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
-        pass
+        return tensor
 
     def barrier(self) -> None:
         pass
