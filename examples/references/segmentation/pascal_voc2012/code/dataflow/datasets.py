@@ -1,4 +1,4 @@
-from typing import Callable, Type
+from typing import Callable
 
 import cv2
 import numpy as np

@@ -2,7 +2,6 @@
 import argparse
 import os
 import random
-import sys
 from collections import OrderedDict
 
 import numpy as np
