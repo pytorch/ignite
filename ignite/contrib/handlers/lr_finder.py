@@ -270,7 +270,7 @@ class FastaiLRFinder:
 
             to_save = {"model": model, "optimizer": optimizer}
             with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:
-                trainer_with_lr_finder.run(dataloader)`
+                trainer_with_lr_finder.run(dataloader)
 
         Args:
             trainer: lr_finder is attached to this trainer. Please, keep in mind that all attached handlers

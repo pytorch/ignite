@@ -3,11 +3,13 @@ name: Build docs
 on:
   push:
     branches: [master]
+  pull_request:
   release:
     types: [published]
 
 jobs:
   build-deploy:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -34,3 +36,23 @@ jobs:
           publish_dir: docs/build/html
           publish_branch: gh-pages
           commit_message: Deploy pytorch/ignite docs
+
+  linkcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: make linkcheck
+        working-directory: ./docs/
+        run: make linkcheck --jobs 2
