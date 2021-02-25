@@ -82,7 +82,7 @@ flexibility to the user to allow for this:
 
     Events defined by user should inherit from :class:`~ignite.engine.events.EventEnum`
 
-More detailed implementation can be found in `TBPTT Trainer <./_modules/ignite/contrib/engines/tbptt.html#create_supervised_tbptt_trainer>`_.
+More detailed implementation can be found in `TBPTT Trainer <https://pytorch.org/ignite/master/_modules/ignite/contrib/engines/tbptt.html#create_supervised_tbptt_trainer>`_.
 
 
 Gradients accumulation

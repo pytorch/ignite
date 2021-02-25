@@ -55,4 +55,4 @@ jobs:
 
       - name: make linkcheck
         working-directory: ./docs/
-        run: make linkcheck --jobs 2
+        run: make linkcheck --jobs 2 SPHINXOPTS="--color"

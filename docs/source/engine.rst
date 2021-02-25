@@ -110,7 +110,7 @@ from iteration.
 Complete examples that resumes the training from a checkpoint can be found here:
 
 - `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume>`_
-- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#check-resume-training>`_
+- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10/#check-resume-training>`_
 
 
 ignite.engine.events
