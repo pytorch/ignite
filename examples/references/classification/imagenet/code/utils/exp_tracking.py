@@ -12,9 +12,6 @@ from ignite.contrib.engines import common
 try:
     import polyaxon.tracking  # noqa: F401
 
-    if "POLYAXON_RUN_OUTPUTS_PATH" not in os.environ:
-        raise ImportError("Not in Polyaxon cluster")
-
     has_plx = True
 except ImportError:
     try:
