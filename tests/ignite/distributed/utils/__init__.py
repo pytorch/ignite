@@ -56,6 +56,16 @@ def _test_sync(cls):
     assert isinstance(_model, cls), f"{type(_model)} vs {cls}"
 
 
+def _test_distrib__get_max_length(device):
+    ws = idist.get_world_size()
+    x = "_test_distrib__get_max_length" * (idist.get_rank() + 2)
+
+    from ignite.distributed.utils import _model
+
+    res = _model._get_max_length(x, device)
+    assert res == len("_test_distrib__get_max_length" * (ws + 1))
+
+
 def _test_distrib_all_reduce(device):
 
     res = idist.all_reduce(10)
@@ -65,9 +75,27 @@ def _test_distrib_all_reduce(device):
     res = idist.all_reduce(t)
     assert res.item() == 10 * idist.get_world_size()
 
-    t = torch.tensor(idist.get_rank(), device=device)
+    rank = idist.get_rank()
+    t = torch.tensor(rank * 2.0 + 1.0, device=device)
     res = idist.all_reduce(t)
-    assert res.item() == sum([i for i in range(idist.get_world_size())])
+    assert res.item() == sum([i * 2.0 + 1.0 for i in range(idist.get_world_size())])
+
+    t = torch.tensor(rank * 2.0 + 1.0, device=device)
+    res = idist.all_reduce(t, "MIN").item()
+    true_val = min([i * 2 + 1 for i in range(idist.get_world_size())])
+    assert res == true_val, f"{res} vs {true_val}"
+
+    t = torch.tensor(rank * 2.0 + 1.0, device=device)
+    res = idist.all_reduce(t, "MAX").item()
+    true_val = max([i * 2.0 + 1.0 for i in range(idist.get_world_size())])
+    assert res == true_val, f"{res} vs {true_val}"
+
+    t = torch.tensor(rank * 2.0 + 1.0, device=device)
+    res = idist.all_reduce(t, "PRODUCT").item()
+    true_val = 1
+    for v in [i * 2.0 + 1.0 for i in range(idist.get_world_size())]:
+        true_val *= v
+    assert res == true_val, f"{res} vs {true_val}"
 
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
@@ -99,17 +127,13 @@ def _test_distrib_all_gather(device):
     true_res = ["abc",] + ["test-test"] * (idist.get_world_size() - 1)
     assert res == true_res
 
-    base_x = "x" * 1026
+    base_x = "tests/ignite/distributed/utils/test_native.py" * 2000
     x = base_x
     if idist.get_rank() == 0:
         x = "abc"
 
-    if idist.get_rank() > 0:
-        with pytest.warns(UserWarning, match=r"is larger than 1024 and thus will be truncated"):
-            res = idist.all_gather(x)
-    else:
-        res = idist.all_gather(x)
-    true_res = ["abc",] + [base_x[:1024]] * (idist.get_world_size() - 1)
+    res = idist.all_gather(x)
+    true_res = ["abc",] + [base_x] * (idist.get_world_size() - 1)
     assert res == true_res
 
     t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)
@@ -147,14 +171,19 @@ def _test_distrib_broadcast(device):
         true_res = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
         assert (res == true_res).all(), f"{res} vs {true_res}"
 
-        if rank == src:
-            t = "test-abcdefg"
-        else:
-            t = ""
+        def _test(text):
 
-        res = idist.broadcast(t, src=src)
-        true_res = "test-abcdefg"
-        assert res == true_res
+            if rank == src:
+                t = text
+            else:
+                t = ""
+
+            res = idist.broadcast(t, src=src)
+            true_res = text
+            assert res == true_res
+
+        _test("test-abcdefg")
+        _test("tests/ignite/distributed/utils/test_horovod.py::test_idist_broadcast_hvd" * 200)
 
         if rank == src:
             t = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
