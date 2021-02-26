@@ -148,11 +148,11 @@ class Rouge(Metric):
     @reinit__is_reduced
     def update(self, output: List[List]) -> None:
         y_pred, y = output[0], output[1]
-        self._rougetotal = torch.add(self._rougetotal, self.rouge_fn(y_pred, y))
+        self._rougetotal += self.rouge_fn(y_pred, y)
         self._num_examples += 1
 
-    @sync_all_reduce("_num_examples", "_num_correct")
+    @sync_all_reduce("_num_examples", "_rougetotal")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Rouge must have at least one example before it can be computed.")
-        return torch.div(self._rougetotal, self._num_examples)
+        return self._rougetotal / self._num_examples
