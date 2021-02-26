@@ -10,7 +10,7 @@ import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
-from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter, get_iterable_dataset
+from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
 
 
 def test_terminate():
@@ -193,7 +193,7 @@ def test_iteration_events_are_fired():
     assert iteration_complete.call_count == num_batches * max_epochs
 
     expected_calls = []
-    for i in range(max_epochs * num_batches):
+    for _ in range(max_epochs * num_batches):
         expected_calls.append(call.iteration_started(engine))
         expected_calls.append(call.iteration_complete(engine))
 
