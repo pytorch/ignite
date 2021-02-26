@@ -41,7 +41,7 @@ def _test_distrib_integration(device):
     y_preds = [["Hi there!", "Hi , How are you?"], ["Hello there", "Hello , How are you?"]]
 
     def update(engine, i):
-        return (y_true[i].split(), [y_preds[i][0].split()])
+        return (y_true[i].split(), [s.split() for s in y_preds[i]])
 
     def _test(metric_device):
         engine = Engine(update)
@@ -52,7 +52,6 @@ def _test_distrib_integration(device):
         engine.run(data=data, max_epochs=1)
 
         assert "rouge" in engine.state.metrics
-        print(engine.state.metrics["rouge"])
 
     _test("cpu")
     if device.type != "xla":
