@@ -22,11 +22,11 @@ class AveragePrecision(EpochMetric):
     sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score>`_ .
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Default False. If True, `average_precision_score
+        check_compute_fn: Default False. If True, `average_precision_score
             <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
             #sklearn.metrics.average_precision_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
