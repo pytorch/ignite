@@ -15,7 +15,7 @@ torch.manual_seed(12)
 
 def test_no_update():
     recall = Recall()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"Recall must have at least one example before it can be computed"):
         recall.compute()
 
     recall = Recall(is_multilabel=True, average=True)
@@ -26,23 +26,23 @@ def test_no_update():
 def test_binary_wrong_inputs():
     re = Recall()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"For binary cases, y must be comprised of 0's and 1's"):
         # y has not only 0 or 1 values
         re.update((torch.randint(0, 2, size=(10,)), torch.arange(0, 10).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"For binary cases, y_pred must be comprised of 0's and 1's"):
         # y_pred values are not thresholded to 0, 1 values
         re.update((torch.rand(10, 1), torch.randint(0, 2, size=(10,)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y must have shape of"):
         # incompatible shapes
         re.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10, 5)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y must have shape of"):
         # incompatible shapes
         re.update((torch.randint(0, 2, size=(10, 5, 6)), torch.randint(0, 2, size=(10,)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y must have shape of"):
         # incompatible shapes
         re.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10, 5, 6)).long()))
 
