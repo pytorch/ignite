@@ -25,6 +25,8 @@ __all__ = [
     "supervised_training_step_amp",
     "supervised_training_step_apex",
     "supervised_training_step_tpu",
+    "supervised_evaluation_step",
+    "supervised_evaluation_step_amp",
 ]
 
 
@@ -412,20 +414,18 @@ def create_supervised_trainer(
     return trainer
 
 
-def create_supervised_evaluator(
+def supervised_evaluation_step(
     model: torch.nn.Module,
-    metrics: Optional[Dict[str, Metric]] = None,
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
-) -> Engine:
+) -> Callable:
     """
     Factory function for creating an evaluator for supervised models.
 
     Args:
         model: the model to train.
-        metrics: a map of metric names to Metrics.
         device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
         non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
@@ -455,16 +455,134 @@ def create_supervised_evaluator(
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
     """
-    metrics = metrics or {}
 
-    def _inference(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+    def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
             y_pred = model(x)
             return output_transform(x, y, y_pred)
 
-    evaluator = Engine(_inference)
+    return evaluate_step
+
+
+def supervised_evaluation_step_amp(
+    model: torch.nn.Module,
+    device: Optional[Union[str, torch.device]] = None,
+    non_blocking: bool = False,
+    prepare_batch: Callable = _prepare_batch,
+    output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
+) -> Callable:
+    """
+    Factory function for creating an evaluator for supervised models using ``torch.cuda.amp``.
+
+    Args:
+        model: the model to train.
+        device: device type specification (default: None).
+            Applies to batches after starting the engine. Model *will not* be moved.
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
+            with respect to the host. For other cases, this argument has no effect.
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
+            tuple of tensors `(batch_x, batch_y)`.
+        output_transform: function that receives 'x', 'y', 'y_pred' and returns value
+            to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
+            output expected by metrics. If you change it you should use `output_transform` in metrics.
+
+    Returns:
+        an evaluator engine with supervised inference function.
+
+    Note:
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is
+        a tuple of `(batch_pred, batch_y)` by default.
+
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+
+        - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+    """
+    try:
+        from torch.cuda.amp import autocast
+    except ImportError:
+        raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
+
+    def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+        model.eval()
+        with torch.no_grad():
+            x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
+            with autocast(enabled=True):
+                y_pred = model(x)
+            return output_transform(x, y, y_pred)
+
+    return evaluate_step
+
+
+def create_supervised_evaluator(
+    model: torch.nn.Module,
+    metrics: Optional[Dict[str, Metric]] = None,
+    device: Optional[Union[str, torch.device]] = None,
+    non_blocking: bool = False,
+    prepare_batch: Callable = _prepare_batch,
+    output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
+    amp_mode: Optional[str] = None,
+) -> Engine:
+    """
+    Factory function for creating an evaluator for supervised models.
+
+    Args:
+        model: the model to train.
+        metrics: a map of metric names to Metrics.
+        device: device type specification (default: None).
+            Applies to batches after starting the engine. Model *will not* be moved.
+        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously
+            with respect to the host. For other cases, this argument has no effect.
+        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
+            tuple of tensors `(batch_x, batch_y)`.
+        output_transform: function that receives 'x', 'y', 'y_pred' and returns value
+            to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
+            output expected by metrics. If you change it you should use `output_transform` in metrics.
+        amp_mode (str, optional): can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
+            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
+            using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
+
+    Returns:
+        an evaluator engine with supervised inference function.
+
+    Note:
+        `engine.state.output` for this engine is defind by `output_transform` parameter and is
+        a tuple of `(batch_pred, batch_y)` by default.
+
+    .. warning::
+
+        The internal use of `device` has changed.
+        `device` will now *only* be used to move the input data to the correct device.
+        The `model` should be moved by the user before creating an optimizer.
+
+        For more information see:
+
+        - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
+
+        - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+    """
+    device_type = device.type if isinstance(device, torch.device) else device
+    on_tpu = "xla" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, amp_mode, None)
+
+    metrics = metrics or {}
+    if mode == "amp":
+        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch, output_transform,)
+    else:
+        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch, output_transform,)
+
+    metrics = metrics or {}
+
+    evaluator = Engine(evaluate_step)
 
     for name, metric in metrics.items():
         metric.attach(evaluator, name)
