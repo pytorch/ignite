@@ -454,6 +454,8 @@ def supervised_evaluation_step(
         - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
+    .. versionchanged:: 0.5.0
     """
 
     def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -506,6 +508,8 @@ def supervised_evaluation_step_amp(
         - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
+    .. versionchanged:: 0.5.0
     """
     try:
         from torch.cuda.amp import autocast
@@ -569,6 +573,10 @@ def create_supervised_evaluator(
         - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
+
+    .. versionchanged:: 0.5.0
+
+        - Added ``amp_mode`` argument for automatic mixed precision.
     """
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
