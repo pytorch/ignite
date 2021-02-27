@@ -67,10 +67,7 @@ RUN pip install --upgrade --no-cache-dir pytorch-ignite \
 # replace pillow with pillow-simd
 RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
     pip uninstall -y pillow && \
-    CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
-    apt-get remove -y g++ && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+    CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd
 
 # Checkout Ignite examples only
 RUN mkdir -p pytorch-ignite-examples && \
