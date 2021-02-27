@@ -11,7 +11,9 @@ from ignite.metrics import MeanPairwiseDistance
 
 def test_zero_div():
     mpd = MeanPairwiseDistance()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"MeanAbsoluteError must have at least one example before it can be computed"
+    ):
         mpd.compute()
 
 
