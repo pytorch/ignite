@@ -5,6 +5,20 @@ import torch
 from ignite.metrics import EpochMetric
 
 
+def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Union[Any, Any, Any]:
+    from sklearn.metrics import precision_recall_curve
+
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
+    precision, recall, thresholds = precision_recall_curve(y_true, y_pred)
+    precision, recall, thresholds = (
+        torch.from_numpy(precision.copy()),
+        torch.from_numpy(recall.copy()),
+        torch.from_numpy(thresholds.copy()),
+    )
+    return precision, recall, thresholds
+
+
 class PrecisionRecallCurve(EpochMetric):
     """Compute precision-recall pairs for different probability thresholds for binary classification task
     by accumulating predictions and the ground-truth during an epoch and applying
@@ -44,25 +58,13 @@ class PrecisionRecallCurve(EpochMetric):
     ):
 
         try:
-            from sklearn.metrics import average_precision_score
+            from sklearn.metrics import precision_recall_curve
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
-        self.precision_recall_curve_compute = self.precision_recall_curve_compute_fn()
-
         super(PrecisionRecallCurve, self).__init__(
-            self.precision_recall_curve_compute,
+            precision_recall_curve_compute_fn,
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
         )
-
-    def precision_recall_curve_compute_fn(self) -> Tuple[Any, Any, Any]:
-        from sklearn.metrics import precision_recall_curve
-
-        def wrapper(y_preds: torch.Tensor, y_targets: torch.Tensor):
-            y_true = y_targets.cpu().numpy()
-            y_pred = y_preds.cpu().numpy()
-            return precision_recall_curve(y_true, y_pred)
-
-        return wrapper

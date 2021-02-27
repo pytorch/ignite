@@ -1,4 +1,5 @@
 import warnings
+from functools import partial
 from typing import Callable, List, Sequence, Tuple, Union, cast
 
 import torch
@@ -6,6 +7,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.utils import apply_to_type
 
 __all__ = ["EpochMetric"]
 
@@ -139,6 +141,8 @@ class EpochMetric(Metric):
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
             result = self.compute_fn(_prediction_tensor, _target_tensor)
+            if result is not None:
+                apply_to_type(result, (torch.Tensor, float, int, str), partial(idist.broadcast, src=0))
 
         if ws > 1:
             # broadcast result to all processes

@@ -5,6 +5,28 @@ import torch
 from ignite.metrics import EpochMetric
 
 
+def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
+    from sklearn.metrics import roc_auc_score
+
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
+    return roc_auc_score(y_true, y_pred)
+
+
+def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
+    from sklearn.metrics import roc_curve
+
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
+    fpr, tpr, thresholds = roc_curve(y_true, y_pred)
+    fpr, tpr, thresholds = (
+        torch.from_numpy(fpr.copy()),
+        torch.from_numpy(tpr.copy()),
+        torch.from_numpy(thresholds.copy()),
+    )
+    return fpr, tpr, thresholds
+
+
 class ROC_AUC(EpochMetric):
     """Computes Area Under the Receiver Operating Characteristic Curve (ROC AUC)
     accumulating predictions and the ground-truth during an epoch and applying
@@ -48,24 +70,9 @@ class ROC_AUC(EpochMetric):
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
-        self.roc_auc_compute = self.roc_auc_compute_fn()
-
         super(ROC_AUC, self).__init__(
-            self.roc_auc_compute,
-            output_transform=output_transform,
-            check_compute_fn=check_compute_fn,
-            device=device,
+            roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn, device=device,
         )
-
-    def roc_auc_compute_fn(self) -> float:
-        from sklearn.metrics import roc_auc_score
-
-        def wrapper(y_preds: torch.Tensor, y_targets: torch.Tensor):
-            y_true = y_targets.cpu().numpy()
-            y_pred = y_preds.cpu().numpy()
-            return roc_auc_score(y_true, y_pred)
-
-        return wrapper
 
 
 class RocCurve(EpochMetric):
@@ -111,21 +118,9 @@ class RocCurve(EpochMetric):
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
-        self.roc_auc_curve_compute = self.roc_auc_curve_compute_fn()
-
         super(RocCurve, self).__init__(
-            self.roc_auc_curve_compute,
+            roc_auc_curve_compute_fn,
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
         )
-
-    def roc_auc_curve_compute_fn(self) -> Tuple[Any, Any, Any]:
-        from sklearn.metrics import roc_curve
-
-        def wrapper(y_preds: torch.Tensor, y_targets: torch.Tensor):
-            y_true = y_targets.numpy()
-            y_pred = y_preds.numpy()
-            return roc_curve(y_true, y_pred)
-
-        return wrapper

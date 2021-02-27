@@ -5,6 +5,14 @@ import torch
 from ignite.metrics import EpochMetric
 
 
+def average_precision_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
+    from sklearn.metrics import average_precision_score
+
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
+    return average_precision_score(y_true, y_pred)
+
+
 class AveragePrecision(EpochMetric):
     """Computes Average Precision accumulating predictions and the ground-truth during an epoch
     and applying `sklearn.metrics.average_precision_score <http://scikit-learn.org/stable/modules/generated/
@@ -47,21 +55,9 @@ class AveragePrecision(EpochMetric):
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
-        self.average_precision_compute = self.average_precision_compute_fn()
-
         super(AveragePrecision, self).__init__(
-            self.average_precision_compute,
+            average_precision_compute_fn,
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
         )
-
-    def average_precision_compute_fn(self) -> Callable[[torch.Tensor, torch.Tensor], float]:
-        from sklearn.metrics import average_precision_score
-
-        def wrapper(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
-            y_true = y_targets.cpu().numpy()
-            y_pred = y_preds.cpu().numpy()
-            return average_precision_score(y_true, y_pred)
-
-        return wrapper
