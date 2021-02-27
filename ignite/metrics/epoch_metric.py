@@ -142,7 +142,10 @@ class EpochMetric(Metric):
             # Run compute_fn on zero rank only
             result = self.compute_fn(_prediction_tensor, _target_tensor)
             if result is not None:
-                apply_to_type(result, (torch.Tensor, float, int, str), partial(idist.broadcast, src=0))
+                try:
+                    apply_to_type(result, (torch.Tensor, float), partial(idist.broadcast, src=0))
+                except TypeError:
+                    apply_to_type(result, (torch.Tensor, int), partial(idist.broadcast, src=0))
 
         if ws > 1:
             # broadcast result to all processes
