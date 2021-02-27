@@ -79,7 +79,10 @@ def _test_create_supervised_trainer(
 
 
 def _test_create_supervised_evaluator(
-    model_device: Optional[str] = None, evaluator_device: Optional[str] = None, trace: bool = False
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
 ):
     model = Linear(1, 1)
 
@@ -93,7 +96,7 @@ def _test_create_supervised_evaluator(
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
-    evaluator = create_supervised_evaluator(model, device=evaluator_device)
+    evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
@@ -257,6 +260,18 @@ def test_create_supervised_evaluator_on_cuda():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cuda")
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_create_supervised_evaluator_on_cuda_amp():
+    model_device = trainer_device = "cuda"
+    _test_create_supervised_evaluator(model_device=model_device, amp_mode="amp")
+
+
+def test_create_supervised_evaluator_amp_error(mock_torch_cuda_amp_module):
+    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+        _test_create_supervised_evaluator(amp_mode="amp")
 
 
 def test_create_supervised_evaluator_with_metrics():
