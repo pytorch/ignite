@@ -486,6 +486,7 @@ Blog articles, tutorials, books
 - [Once Upon a Repository: How to Write Readable, Maintainable Code with PyTorch](https://towardsdatascience.com/once-upon-a-repository-how-to-write-readable-maintainable-code-with-pytorch-951f03f6a829)
 - [The Hero Rises: Build Your Own SSD](https://allegro.ai/blog/the-hero-rises-build-your-own-ssd/)
 - [Using Optuna to Optimize PyTorch Ignite Hyperparameters](https://medium.com/optuna/using-optuna-to-optimize-pytorch-ignite-hyperparameters-b680f55ac746)
+- [PyTorch Lightning vs Ignite: What Are the Differences?](https://neptune.ai/blog/pytorch-lightning-vs-ignite-differences)
 
 </details>
 
