@@ -551,9 +551,8 @@ def create_supervised_evaluator(
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
-        amp_mode (str, optional): can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
-            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
-            using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
+        amp_mode (str, optional): can be ``amp``, model will be casted to float16 using
+            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp``
 
     Returns:
         an evaluator engine with supervised inference function.
