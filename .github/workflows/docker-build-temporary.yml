@@ -1,7 +1,7 @@
 name: Build Docker Images Tests
 
 on:
-  pull_request:
+  pull_request_target:
     paths:
       - docker/**
       - ".github/workflows/docker-build-temporary.yml"
@@ -12,7 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -20,8 +24,8 @@ jobs:
         run: |
           # Nice to have: trigger only if folder is modified
           pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"
-          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           bash build.sh hvd hvd-base
           bash build.sh hvd hvd-vision
           bash build.sh hvd hvd-nlp
@@ -30,8 +34,8 @@ jobs:
         run: |
           # Nice to have: trigger only if folder is modified
           pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"
-          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           bash build.sh hvd hvd-apex
           bash build.sh hvd hvd-apex-vision
           bash build.sh hvd hvd-apex-nlp
@@ -40,7 +44,7 @@ jobs:
         run: |
           # Nice to have: trigger only if folder is modified
           pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           bash build.sh main base
           bash build.sh main vision
           bash build.sh main nlp
@@ -49,7 +53,7 @@ jobs:
         run: |
           # Nice to have: trigger only if folder is modified
           pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           bash build.sh main apex
           bash build.sh main apex-vision
           bash build.sh main apex-nlp
@@ -58,8 +62,8 @@ jobs:
         run: |
           # Nice to have: trigger only if folder is modified
           pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"
-          export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"        
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"`     
           bash build.sh msdp msdp-apex
           bash build.sh msdp msdp-apex-vision
           bash build.sh msdp msdp-apex-nlp
