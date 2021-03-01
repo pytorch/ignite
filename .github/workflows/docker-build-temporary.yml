@@ -34,6 +34,7 @@ jobs:
     if: contains(env.modified, 'hvd/')
     name: Build all Horovod flavoured PyTorch-Ignite images
     runs-on: ubuntu-latest
+    needs: prepare
     strategy:
       matrix:
         flavour: [ "hvd-base", "hvd-vision", "hvd-nlp" ]
@@ -52,6 +53,7 @@ jobs:
     if: contains(env.modified, 'hvd/')
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     runs-on: ubuntu-latest
+    needs: prepare
     strategy:
       matrix:
         flavour: [ "hvd-apex", "hvd-vision", "hvd-nlp" ]
@@ -70,6 +72,7 @@ jobs:
     if: contains(env.modified, 'main/')
     name: Build all PyTorch-Ignite images
     runs-on: ubuntu-latest
+    needs: prepare
     strategy:
       matrix:
         flavour: [ "base", "vision", "nlp" ]
@@ -87,6 +90,7 @@ jobs:
     if: contains(env.modified, 'main/')
     name: Build all PyTorch-Ignite images with Apex
     runs-on: ubuntu-latest
+    needs: prepare
     strategy:
       matrix:
         flavour: [ "apex", "apex-vision", "apex-nlp" ]
@@ -104,6 +108,7 @@ jobs:
     if: contains(env.modified, 'msdp/')
     name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
     runs-on: ubuntu-latest
+    needs: prepare
     strategy:
       matrix:
         flavour: [ "msdp-apex", "msdp-apex-vision", "msdp-apex-nlp" ]
