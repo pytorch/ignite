@@ -12,13 +12,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2        
+      - uses: actions/checkout@v2
+      - name: Changed Files Exporter
+        id: files
+        uses: futuratrepadeira/changed-files@v3.3.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
 
       # Get list of modified files
-      - run: echo "modified=`git diff-tree --no-commit-id --name-only -r HEAD | tr '\n' ' '`" >> $GITHUB_ENV
+      - run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
+
+      - name: Debug Step
+        run: echo "${{ env.modified }}"
 
       - name: Build all Horovod flavoured PyTorch-Ignite images
         # Trigger only if folder is modified
