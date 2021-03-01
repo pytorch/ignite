@@ -7,7 +7,7 @@ on:
       - ".github/workflows/docker-build-temporary.yml"
 
 jobs:
-  build-publish:
+  prepare:
     name: Build Docker Images
     runs-on: ubuntu-latest
 
@@ -29,60 +29,90 @@ jobs:
       - name: Debug Step
         run: echo "${{ env.modified }}"
 
-      - name: Build all Horovod flavoured PyTorch-Ignite images
-        # Trigger only if folder is modified
-        if: contains(env.modified, 'hvd')
-        run: |
+  build-hvd:
+    # Trigger only if folder is modified
+    if: contains(env.modified, 'hvd/')
+    name: Build all Horovod flavoured PyTorch-Ignite images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [ "hvd-base", "hvd-vision", "hvd-nlp" ]
+    steps:
+      - run: |
+        pip install PyYAML
+        export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+        export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
+        cd docker
+        bash build.sh hvd "${{ matrix.flavour }}"
+        bash build.sh hvd "${{ matrix.flavour }}"
+        bash build.sh hvd "${{ matrix.flavour }}"
+
+  build-hvd-apex:
+    # Trigger only if folder is modified
+    if: contains(env.modified, 'hvd/')
+    name: Build all Horovod + Apex flavoured PyTorch-Ignite images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [ "hvd-apex", "hvd-vision", "hvd-nlp" ]
+    steps:
+      - run: |
+        pip install PyYAML
+        export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+        export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
+        cd docker
+        bash build.sh hvd "${{ matrix.flavour }}"
+        bash build.sh hvd "${{ matrix.flavour }}"
+        bash build.sh hvd "${{ matrix.flavour }}"
+
+  build-main:
+    # Trigger only if folder is modified
+    if: contains(env.modified, 'main/')
+    name: Build all PyTorch-Ignite images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [ "base", "vision", "nlp" ]
+    steps:
+      - run: |
+        pip install PyYAML
+        export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+        cd docker
+        bash build.sh main "${{ matrix.flavour }}"
+        bash build.sh main "${{ matrix.flavour }}"
+        bash build.sh main "${{ matrix.flavour }}"
+
+  build-main-apex:
+    # Trigger only if folder is modified
+    if: contains(env.modified, 'main/')
+    name: Build all PyTorch-Ignite images with Apex
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [ "apex", "apex-vision", "apex-nlp" ]
+    steps:
+      - run: |
           pip install PyYAML
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
-          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           cd docker
-          bash build.sh hvd hvd-base
-          bash build.sh hvd hvd-vision
-          bash build.sh hvd hvd-nlp
+          bash build.sh main "${{ matrix.flavour }}"
+          bash build.sh main "${{ matrix.flavour }}"
+          bash build.sh main "${{ matrix.flavour }}"
 
-      - name: Build all Horovod + Apex flavoured PyTorch-Ignite images
-        # Trigger only if folder is modified
-        if: contains(env.modified, 'hvd')
-        run: |
-          pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
-          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
-          cd docker
-          bash build.sh hvd hvd-apex
-          bash build.sh hvd hvd-apex-vision
-          bash build.sh hvd hvd-apex-nlp
-
-      - name: Build all PyTorch-Ignite images
-        # Trigger only if folder is modified
-        if: contains(env.modified, 'main')
-        run: |
-          pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
-          cd docker
-          bash build.sh main base
-          bash build.sh main vision
-          bash build.sh main nlp
-
-      - name: Build all PyTorch-Ignite images with Apex
-        # Trigger only if folder is modified
-        if: contains(env.modified, 'main')
-        run: |
-          pip install PyYAML
-          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
-          cd docker
-          bash build.sh main apex
-          bash build.sh main apex-vision
-          bash build.sh main apex-nlp
-
-      - name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
-        # Trigger only if folder is modified
-        if: contains(env.modified, 'msdp')
-        run: |
+  build-msdp-apex:
+    # Trigger only if folder is modified
+    if: contains(env.modified, 'msdp/')
+    name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [ "msdp-apex", "msdp-apex-vision", "msdp-apex-nlp" ]
+    steps:
+      - run: |
           pip install PyYAML
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"`     
           cd docker
-          bash build.sh msdp msdp-apex
-          bash build.sh msdp msdp-apex-vision
-          bash build.sh msdp msdp-apex-nlp
+          bash build.sh msdp "${{ matrix.flavour }}"
+          bash build.sh msdp "${{ matrix.flavour }}"
+          bash build.sh msdp "${{ matrix.flavour }}"
