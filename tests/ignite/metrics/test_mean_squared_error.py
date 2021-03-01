@@ -10,7 +10,9 @@ from ignite.metrics import MeanSquaredError
 
 def test_zero_div():
     mse = MeanSquaredError()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"MeanSquaredError must have at least one example before it can be computed"
+    ):
         mse.compute()
 
 

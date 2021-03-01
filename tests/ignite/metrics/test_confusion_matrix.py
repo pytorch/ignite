@@ -15,7 +15,7 @@ torch.manual_seed(12)
 
 def test_no_update():
     cm = ConfusionMatrix(10)
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"Confusion matrix must have at least one example before it "):
         cm.compute()
 
 
