@@ -14,7 +14,8 @@ been leading the development.
 
 Governance
 ----------
-PyTorch-Ignite is a [NumFOCUS Affiliated Project](https://www.numfocus.org/) and open-source community effort. 
+PyTorch-Ignite is a `NumFOCUS Affiliated Project <https://numfocus.org/sponsored-projects/affiliated-projects>`_ and 
+open-source community effort. 
 Project's affiliation to `PyTorch organization <https://github.com/pytorch>`_ is due to historical reasons and it 
 has the same implication to the project's governance as for other community projects from
 `PyTorch Ecosystem <https://pytorch.org/ecosystem/>`_.

@@ -23,10 +23,10 @@ parameters:
     default: "1.7.1-cuda11.0-cudnn8"
   build_docker_image_hvd_version:
     type: string
-    default: "v0.21.0"
+    default: "v0.21.3"
   build_docker_image_msdp_version:
     type: string
-    default: "v0.3.8"
+    default: "v0.3.10"
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
@@ -372,14 +372,24 @@ jobs:
             cd docker
             export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
             export HVD_VERSION=<< pipeline.parameters.build_docker_image_hvd_version >>
-            sh ./hvd/build_all.sh
+            bash build.sh hvd hvd-base
+            bash build.sh hvd hvd-vision
+            bash build.sh hvd hvd-nlp
+            bash build.sh hvd hvd-apex
+            bash build.sh hvd hvd-apex-vision
+            bash build.sh hvd hvd-apex-nlp
 
       - run:
           name: Build all PyTorch-Ignite images
           command: |
             cd docker
             export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
-            sh ./main/build_all.sh
+            bash build.sh main base
+            bash build.sh main vision
+            bash build.sh main nlp
+            bash build.sh main apex
+            bash build.sh main apex-vision
+            bash build.sh main apex-nlp
 
       - run:
           name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
@@ -387,7 +397,9 @@ jobs:
             cd docker
             export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
             export MSDP_VERSION=<< pipeline.parameters.build_docker_image_msdp_version >>
-            sh ./msdp/build_all.sh
+            bash build.sh msdp msdp-apex
+            bash build.sh msdp msdp-apex-vision
+            bash build.sh msdp msdp-apex-nlp
 
       - run:
           name: List built images
