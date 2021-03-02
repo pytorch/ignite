@@ -1,4 +1,4 @@
-name: Build Docker Images Tests
+name: Build Docker Images
 
 on:
   pull_request:
@@ -24,8 +24,8 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Get list of modified files
-      - run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
+      - name: Get a list of modified files
+        run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
 
       - name: Debug Step
         run: echo "${{ env.modified }}"
@@ -37,7 +37,6 @@ jobs:
   build-hvd:
     name: Build all Horovod flavoured PyTorch-Ignite images
     needs: setup
-    # Trigger only if folder is modified
     if: contains(needs.setup.outputs.modified, 'hvd/')
     runs-on: ${{ matrix.os }}
     strategy:
@@ -62,7 +61,6 @@ jobs:
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     needs: setup
-    # Trigger only if folder is modified
     if: contains(needs.setup.outputs.modified, 'hvd/')
     runs-on: ${{ matrix.os }}
     strategy:
@@ -87,7 +85,6 @@ jobs:
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
-    # Trigger only if folder is modified
     if: contains(needs.setup.outputs.modified, 'main/')
     runs-on: ${{ matrix.os }}
     strategy:
@@ -111,7 +108,6 @@ jobs:
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
-    # Trigger only if folder is modified
     if: contains(needs.setup.outputs.modified, 'main/')
     runs-on: ${{ matrix.os }}
     strategy:
@@ -135,7 +131,6 @@ jobs:
   build-msdp-apex:
     name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
     needs: setup
-    # Trigger only if folder is modified
     if: contains(needs.setup.outputs.modified, 'msdp/')
     runs-on: ${{ matrix.os }}
     strategy:
