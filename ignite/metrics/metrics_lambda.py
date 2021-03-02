@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional, Union
 
 import torch
 
-from ignite.engine import Engine, Events
+from ignite.engine import Engine
 from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced
 
 __all__ = ["MetricsLambda"]
