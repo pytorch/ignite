@@ -371,7 +371,7 @@ jobs:
           command: |
             cd docker
             export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
-            export HVD_VERSION=<< pipeline.parameters.build_docker_image_hvd_version >>[]
+            export HVD_VERSION=<< pipeline.parameters.build_docker_image_hvd_version >>
             bash build.sh hvd hvd-base
             bash build.sh hvd hvd-vision
             bash build.sh hvd hvd-nlp
