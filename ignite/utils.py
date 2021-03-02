@@ -69,7 +69,7 @@ def apply_to_type(
 
 def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     """Convert a tensor of indices of any shape `(N, ...)` to a
-    tensor of one-hot indicators of shape `(N, num_classes, ...) and of type uint8. Output's device is equal to the
+    tensor of one-hot indicators of shape `(N, num_classes, ...)` and of type uint8. Output's device is equal to the
     input's device`.
 
     Args:
