@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - docker/**
-      - ".github/workflows/docker-build-temporary.yml"
+      - ".github/workflows/docker-build.yml"
 
 jobs:
   setup:
