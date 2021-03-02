@@ -50,11 +50,13 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - run: |
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
           pip install PyYAML
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           cd docker
+          docker system prune -a -f
           bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
 
   build-hvd-apex:
@@ -73,11 +75,13 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - run: |
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
           pip install PyYAML
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           cd docker
+          docker system prune -a -f
           bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
 
   build-main:
@@ -96,10 +100,12 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - run: |
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
           pip install PyYAML
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           cd docker
+          docker system prune -a -f
           bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
 
   build-main-apex:
@@ -118,10 +124,12 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - run: |
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
           pip install PyYAML
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           cd docker
+          docker system prune -a -f
           bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
 
   build-msdp-apex:
@@ -140,9 +148,11 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - run: |
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
           pip install PyYAML
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"`     
           cd docker
+          docker system prune -a -f
           bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
