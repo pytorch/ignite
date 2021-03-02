@@ -107,6 +107,7 @@ html_theme_options = {
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": True,
+    "navigation_with_keys": True,
 }
 
 html_logo = "_templates/_static/img/ignite_logo.svg"
