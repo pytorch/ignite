@@ -422,7 +422,7 @@ def supervised_evaluation_step(
     output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
-    Factory function for creating an evaluator for supervised models.
+    Factory function for supervised evaluation.
 
     Args:
         model: the model to train.
@@ -437,7 +437,7 @@ def supervised_evaluation_step(
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
     Returns:
-        an evaluator engine with supervised inference function.
+        Inference function.
 
     Note:
         `engine.state.output` for this engine is defind by `output_transform` parameter and is
@@ -449,13 +449,7 @@ def supervised_evaluation_step(
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
 
-        For more information see:
-
-        - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
-
-        - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
-
-    .. versionchanged:: 0.5.0
+    .. versionadded:: 0.5.0
     """
 
     def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -476,7 +470,7 @@ def supervised_evaluation_step_amp(
     output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
-    Factory function for creating an evaluator for supervised models using ``torch.cuda.amp``.
+    Factory function for supervised evaluation using ``torch.cuda.amp``.
 
     Args:
         model: the model to train.
@@ -491,7 +485,7 @@ def supervised_evaluation_step_amp(
             output expected by metrics. If you change it you should use `output_transform` in metrics.
 
     Returns:
-        an evaluator engine with supervised inference function.
+        Inference function.
 
     Note:
         `engine.state.output` for this engine is defind by `output_transform` parameter and is
@@ -503,13 +497,7 @@ def supervised_evaluation_step_amp(
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
 
-        For more information see:
-
-        - `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
-
-        - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
-
-    .. versionchanged:: 0.5.0
+    .. versionadded:: 0.5.0
     """
     try:
         from torch.cuda.amp import autocast
@@ -551,8 +539,8 @@ def create_supervised_evaluator(
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
-        amp_mode (str, optional): can be ``amp``, model will be casted to float16 using
-            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp``
+        amp_mode: can be ``amp``, model will be casted to float16 using
+            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_
 
     Returns:
         an evaluator engine with supervised inference function.
@@ -574,7 +562,6 @@ def create_supervised_evaluator(
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
     .. versionchanged:: 0.5.0
-
         - Added ``amp_mode`` argument for automatic mixed precision.
     """
     device_type = device.type if isinstance(device, torch.device) else device
@@ -583,11 +570,9 @@ def create_supervised_evaluator(
 
     metrics = metrics or {}
     if mode == "amp":
-        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch, output_transform,)
+        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch, output_transform)
     else:
-        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch, output_transform,)
-
-    metrics = metrics or {}
+        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch, output_transform)
 
     evaluator = Engine(evaluate_step)
 

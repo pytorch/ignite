@@ -265,8 +265,8 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_evaluator_on_cuda_amp():
-    model_device = trainer_device = "cuda"
-    _test_create_supervised_evaluator(model_device=model_device, amp_mode="amp")
+    model_device = evaluator_device = "cuda"
+    _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device, amp_mode="amp")
 
 
 def test_create_supervised_evaluator_amp_error(mock_torch_cuda_amp_module):
