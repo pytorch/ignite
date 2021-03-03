@@ -14,19 +14,15 @@
 #   pip install docker
 #
 import argparse
-import docker
 import json
 import os
+
+import docker
 
 
 def run_python_cmd(cmd):
     try:
-        out = client.containers.run(
-            args.image, 
-            f"python -c '{cmd}'",
-            auto_remove=True,
-            stderr=True,
-        )
+        out = client.containers.run(args.image, f"python -c '{cmd}'", auto_remove=True, stderr=True,)
         assert isinstance(out, bytes), type(out)
         out = out.decode("utf-8").strip()
     except docker.errors.ContainerError as e:
@@ -73,18 +69,17 @@ if __name__ == "__main__":
         "torch": torch_version,
         "ignite": ignite_version,
     }
-    
+
     hvd_cmd = ""
     if "hvd" in image_type:
-        hvd_cmd = "import horovod; result[\"hvd\"] = horovod.__version__"
+        hvd_cmd = 'import horovod; result["hvd"] = horovod.__version__'
         assert "HVD_VERSION" in os.environ
         val = os.environ["HVD_VERSION"]
         expected_out["hvd"] = val if val[0] != "v" else val[1:]
 
-
     msdp_cmd = ""
     if "msdp" in image_type:
-        msdp_cmd = "import deepspeed; result[\"msdp\"] = deepspeed.__version__"
+        msdp_cmd = 'import deepspeed; result["msdp"] = deepspeed.__version__'
         assert "MSDP_VERSION" in os.environ
         val = os.environ["MSDP_VERSION"]
         expected_out["msdp"] = val if val[0] != "v" else val[1:]
@@ -92,7 +87,7 @@ if __name__ == "__main__":
     cmd = base_cmd.format(hvd=hvd_cmd, msdp=msdp_cmd)
     out = run_python_cmd(cmd)
     try:
-        out = out.replace("\'", "\"")
+        out = out.replace("'", '"')
         out = json.loads(out)
     except json.decoder.JSONDecodeError:
         raise RuntimeError(out)
@@ -100,7 +95,7 @@ if __name__ == "__main__":
     for k, v in expected_out.items():
         assert k in out, f"{k} not in {out.keys()}"
         assert v in out[k], f"{v} not in {out[k]}"
-    
+
     if "vision" in image_type:
         run_python_cmd("import cv2")
 
