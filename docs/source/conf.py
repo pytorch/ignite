@@ -32,8 +32,8 @@ try:
     version = os.environ["code_version"]
     if "master" in version:
         version = "master (" + ignite.__version__ + ")"
-    else:
-        version = version.replace("v", "")
+    # else:
+    #     version = version.replace("v", "")
 except KeyError:
     version = ignite.__version__
 

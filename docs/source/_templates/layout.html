@@ -484,11 +484,18 @@
     })
   </script>
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js"></script>
-  <script type="text/javascript"> docsearch({
+  <script type="text/javascript">
+  let VERSION
+  if ('{{ version }}'.includes('v')) {
+    VERSION = '{{ version }}'
+  } else {
+    VERSION = '{{ release }}'
+  }
+  docsearch({
   apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
   indexName: 'ignite',
   inputSelector: '#rtd-search-form input[type="text"]',
-  // algoliaOptions: { 'facetFilters': ["version:$VERSION"], hitsPerPage: 20 },
+  algoliaOptions: { 'facetFilters': [`version:${VERSION}`] },
   debug: true // Set debug to true if you want to inspect the dropdown
   });
   </script>
