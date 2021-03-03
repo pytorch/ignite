@@ -130,7 +130,7 @@ html_context = {
         # 'https://fonts.googleapis.com/css?family=Lato',
         # '_static/css/pytorch_theme.css'
         "_static/css/ignite_theme.css",
-        "https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css"
+        "https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css",
     ],
 }
 
