@@ -1,0 +1,153 @@
+name: Build Docker Images
+
+on:
+  pull_request:
+    paths:
+      - docker/**
+      - ".github/workflows/docker-build.yml"
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ${{ matrix.os }}
+    outputs:
+      modified: ${{ steps.set-modified.outputs.modified }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Changed Files Exporter
+        id: files
+        uses: futuratrepadeira/changed-files@v3.3.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get a list of modified files
+        run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
+
+      - name: Debug Step
+        run: echo "${{ env.modified }}"
+
+      - name: Set outputs
+        id: set-modified
+        run: echo "::set-output name=modified::${{ env.modified }}"
+
+  build-hvd:
+    name: Build all Horovod flavoured PyTorch-Ignite images
+    needs: setup
+    if: contains(needs.setup.outputs.modified, 'hvd/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        type: [hvd]
+        flavour: [hvd-base, hvd-vision, hvd-nlp]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
+          pip install PyYAML
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
+          cd docker
+          docker system prune -a -f
+          bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
+
+  build-hvd-apex:
+    name: Build all Horovod + Apex flavoured PyTorch-Ignite images
+    needs: setup
+    if: contains(needs.setup.outputs.modified, 'hvd/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        type: [hvd]
+        flavour: [hvd-apex, hvd-apex-vision, hvd-apex-nlp]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
+          pip install PyYAML
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
+          cd docker
+          docker system prune -a -f
+          bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
+
+  build-main:
+    name: Build all PyTorch-Ignite images
+    needs: setup
+    if: contains(needs.setup.outputs.modified, 'main/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        type: [main]
+        flavour: [base, vision, nlp]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
+          pip install PyYAML
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          cd docker
+          docker system prune -a -f
+          bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
+
+  build-main-apex:
+    name: Build all PyTorch-Ignite images with Apex
+    needs: setup
+    if: contains(needs.setup.outputs.modified, 'main/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        type: [main]
+        flavour: [apex, apex-vision, apex-nlp]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
+          pip install PyYAML
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          cd docker
+          docker system prune -a -f
+          bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
+
+  build-msdp-apex:
+    name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+    needs: setup
+    if: contains(needs.setup.outputs.modified, 'msdp/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        type: [msdp]
+        flavour: [msdp-apex, msdp-apex-vision, msdp-apex-nlp]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: "Build ${{ matrix.type }} ${{ matrix.flavour }}"
+        run: |
+          pip install PyYAML
+          export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
+          export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"`     
+          cd docker
+          docker system prune -a -f
+          bash build.sh "${{ matrix.type }}" "${{ matrix.flavour }}"
