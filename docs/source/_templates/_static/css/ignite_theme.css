@@ -168,3 +168,33 @@ footer table {
   width: 100%;
   margin-bottom: 1rem;
 }
+
+.algolia-autocomplete {
+  width: 100%;
+}
+
+/* Main dropdown wrapper */
+.algolia-autocomplete .ds-dropdown-menu {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* Main category (eg. Getting Started) */
+.algolia-autocomplete .algolia-docsearch-suggestion--category-header {
+  background-color: #ee4c2c !important;
+  color: #f6f6f6 !important;
+  font-weight: bold !important;
+  padding: 5px !important;
+}
+
+/* Category (eg. Downloads) */
+.algolia-autocomplete .algolia-docsearch-suggestion--subcategory-column {
+  color: #222 !important;
+}
+
+/* Highlighted text */
+.algolia-autocomplete .algolia-docsearch-suggestion--highlight {
+  color: var(--red) !important;
+  background-color: #ff0 !important;
+}
