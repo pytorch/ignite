@@ -1,7 +1,7 @@
 import numbers
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
 
 import torch
 import torch.nn as nn
@@ -18,7 +18,6 @@ from ignite.contrib.handlers import (
     PolyaxonLogger,
     ProgressBar,
     TensorboardLogger,
-    TrainsLogger,
     VisdomLogger,
     WandBLogger,
     global_step_from_engine,

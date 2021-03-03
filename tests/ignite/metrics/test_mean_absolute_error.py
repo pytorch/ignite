@@ -10,7 +10,9 @@ from ignite.metrics import MeanAbsoluteError
 
 def test_zero_div():
     mae = MeanAbsoluteError()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"MeanAbsoluteError must have at least one example before it can be computed"
+    ):
         mae.compute()
 
 
