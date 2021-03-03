@@ -85,3 +85,6 @@ fi
 docker tag pytorchignite/${image_name}:latest pytorchignite/${image_name}:${image_tag}
 
 cd $curr_dir
+
+# Test built image
+python test_image.py pytorchignite/${image_name}:${image_tag} 
