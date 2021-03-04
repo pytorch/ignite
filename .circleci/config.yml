@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime"
+    default: "pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-devel"
+    default: "pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -20,7 +20,7 @@ parameters:
     default: false
   build_docker_image_pytorch_version:
     type: string
-    default: "1.7.1-cuda11.0-cudnn8"
+    default: "1.8.0-cuda11.1-cudnn8"
   build_docker_image_hvd_version:
     type: string
     default: "v0.21.3"
@@ -205,7 +205,7 @@ jobs:
           name: Install dependencies
           command: |
             conda --version
-            conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
+            conda install -y pytorch torchvision cudatoolkit=11.1 -c pytorch -c conda-forge
             pip install -r requirements-dev.txt
             pip install .
 
