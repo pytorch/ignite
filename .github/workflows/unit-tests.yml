@@ -106,6 +106,13 @@ jobs:
       - name: Run MNIST Examples
         shell: bash -l {0}
         run: |
+          # MNIST patch
+          # 0) mnist.py
+          python examples/mnist/mnist_patch.py
+
+      - name: Run MNIST Examples
+        shell: bash -l {0}
+        run: |
           # MNIST
           # 1) mnist.py
           python examples/mnist/mnist.py --epochs=1
