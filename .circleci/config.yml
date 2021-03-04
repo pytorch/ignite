@@ -146,6 +146,13 @@ jobs:
 
             # MNIST tests
 
+            # 0) mnist_patch.py
+            # https://github.com/pytorch/ignite/issues/1737
+            export install_wget_cmd='apt-get update && apt-get install -y wget'
+            docker exec -it pthd /bin/bash -c "$install_wget_cmd"
+            export minst0_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_patch.py'
+            docker exec -it pthd /bin/bash -c "$minst0_cmd"
+
             # 1) mnist.py
             export minst1_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist.py --epochs=1'
             docker exec -it pthd /bin/bash -c "$minst1_cmd"
