@@ -21,8 +21,6 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get a list of modified files
         run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
-      - name: Debug Step
-        run: echo "${{ env.modified }}"
       - name: Set outputs
         id: set-modified
         run: echo "::set-output name=modified::${{ env.modified }}"
