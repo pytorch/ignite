@@ -7,8 +7,6 @@ on:
     paths:
       - docker/**
       - ".github/workflows/docker-publish.yml"
-  release:
-    types: [published]
 
 jobs:
   build-publish:
