@@ -17,7 +17,7 @@ RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
                                          tqdm
 
-# replace pillow with pillow-simd
+# Replace pillow with pillow-simd
 RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
     pip uninstall -y pillow && \
     CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
