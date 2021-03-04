@@ -103,7 +103,13 @@ jobs:
           flags: cpu
           fail_ci_if_error: true
 
-      - name: Run MNIST Examples
+      - name: Install wget on win
+        if: ${{ matrix.os }} == 'windows-latest'
+        uses: crazy-max/ghaction-chocolatey@v1
+        with:
+          args: install wget
+
+      - name: Run MNIST Patch
         shell: bash -l {0}
         run: |
           # MNIST patch

@@ -145,6 +145,7 @@ jobs:
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
             # MNIST tests
+
             # 0) mnist_patch.py
             export minst0_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_patch.py'
             docker exec -it pthd /bin/bash -c "$minst0_cmd"
