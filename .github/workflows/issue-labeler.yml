@@ -2,7 +2,7 @@ name: Issue Labeler
 
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
 
 jobs:
   triage:
