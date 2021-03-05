@@ -10,7 +10,7 @@ ARG HVD_VERSION
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \
         git clone --recursive --depth 1 --branch ${HVD_VERSION} https://github.com/horovod/horovod.git /horovod && \
-        conda install -y cmake=3.16 nccl=2.7 -c conda-forge && \
+        conda install -y cmake nccl=2.8 -c conda-forge && \
         cd /horovod && \
         HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
         rm -rf /var/lib/apt/lists/*
@@ -20,7 +20,7 @@ FROM pytorch/pytorch:${PTH_VERSION}-runtime
 
 # Install tzdata / git
 RUN apt-get update && \
-    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime && \
     apt-get -y install --no-install-recommends tzdata git && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
     apt-get autoremove -y && \
@@ -30,7 +30,8 @@ RUN apt-get update && \
 # Ignite main dependencies
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
-                                         tqdm
+                                         tqdm \
+                                         fire
 
 # Replace pillow with pillow-simd
 RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
@@ -50,7 +51,7 @@ RUN mkdir -p pytorch-ignite-examples && \
     git pull origin master
 
 # Horovod
-RUN conda install -y nccl=2.7 -c conda-forge
+RUN conda install -y nccl=2.8 -c conda-forge
 
 ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
 

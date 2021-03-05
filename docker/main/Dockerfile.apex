@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
 
 # Install tzdata / git
 RUN apt-get update && \
-    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime && \
     apt-get -y install --no-install-recommends tzdata git && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
     apt-get autoremove -y && \
@@ -40,7 +40,8 @@ RUN apt-get update && \
 # Ignite main dependencies
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
-                                         tqdm
+                                         tqdm \
+                                         fire
 
 # replace pillow with pillow-simd
 RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
