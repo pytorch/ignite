@@ -39,3 +39,24 @@ jobs:
           python setup.py sdist bdist_wheel
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
+
+  docker-build-publish:
+    name: Trigger Build and Push Docker images to Docker Hub
+    needs: build-publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Trigger Circle-CI pipeline
+        env:
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+        run: |
+          pip install requests
+
+          if [ $GITHUB_EVENT_NAME == 'pull_request' ]; then should_publish_docker_images=false; else should_publish_docker_images=true; fi
+          branch=$GITHUB_REF
+
+          python -u .github/workflows/trigger_circle_ci.py $should_publish_docker_images $branch

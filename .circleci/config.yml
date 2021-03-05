@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime"
+    default: "pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.7.1-cuda11.0-cudnn8-devel"
+    default: "pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -20,7 +20,7 @@ parameters:
     default: false
   build_docker_image_pytorch_version:
     type: string
-    default: "1.7.1-cuda11.0-cudnn8"
+    default: "1.8.0-cuda11.1-cudnn8"
   build_docker_image_hvd_version:
     type: string
     default: "v0.21.3"
@@ -147,6 +147,9 @@ jobs:
             # MNIST tests
 
             # 0) mnist_patch.py
+            # https://github.com/pytorch/ignite/issues/1737
+            export install_wget_cmd='apt-get update && apt-get install -y wget'
+            docker exec -it pthd /bin/bash -c "$install_wget_cmd"
             export minst0_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_patch.py'
             docker exec -it pthd /bin/bash -c "$minst0_cmd"
 
@@ -202,7 +205,7 @@ jobs:
           name: Install dependencies
           command: |
             conda --version
-            conda install -y pytorch torchvision cudatoolkit=11.0 -c pytorch
+            conda install -y pytorch torchvision cudatoolkit=11.1 -c pytorch -c conda-forge
             pip install -r requirements-dev.txt
             pip install .
 
@@ -316,7 +319,7 @@ jobs:
             # and https://github.com/horovod/horovod/issues/1944#issuecomment-628192778
             docker exec -it pthd /bin/bash -c "apt-get update && apt-get install -y git"
             docker exec -it pthd /bin/bash -c "git clone --recursive https://github.com/horovod/horovod.git /horovod && cd /horovod && python setup.py sdist"
-            docker exec -it pthd /bin/bash -c "conda install -y cmake=3.16 nccl=2.7 -c conda-forge"
+            docker exec -it pthd /bin/bash -c "conda install -y cmake nccl=2.8 -c conda-forge"
             docker exec -it pthd /bin/bash -c 'cd /horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig'
             docker exec -it pthd horovodrun --check-build
 
