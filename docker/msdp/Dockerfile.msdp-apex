@@ -76,4 +76,6 @@ RUN mkdir -p pytorch-ignite-examples && \
     git config core.sparsecheckout true && \
     echo examples >> .git/info/sparse-checkout && \
     git remote add -f origin https://github.com/pytorch/ignite.git && \
-    git pull origin master
+    git pull origin master && \
+    # rm very large .git folder
+    rm -rf .git
