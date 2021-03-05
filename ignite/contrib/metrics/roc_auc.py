@@ -34,11 +34,11 @@ class ROC_AUC(EpochMetric):
     sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score>`_ .
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Default False. If True, `roc_curve
+        check_compute_fn: Default False. If True, `roc_curve
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#
             sklearn.metrics.roc_auc_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
@@ -70,11 +70,11 @@ class RocCurve(EpochMetric):
     sklearn.metrics.roc_curve.html#sklearn.metrics.roc_curve>`_ .
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Default False. If True, `sklearn.metrics.roc_curve
+        check_compute_fn: Default False. If True, `sklearn.metrics.roc_curve
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#
             sklearn.metrics.roc_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.

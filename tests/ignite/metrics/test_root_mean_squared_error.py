@@ -10,7 +10,9 @@ from ignite.metrics import RootMeanSquaredError
 
 def test_zero_div():
     rmse = RootMeanSquaredError()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"MeanSquaredError must have at least one example before it can be computed"
+    ):
         rmse.compute()
 
 

@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 import torch
@@ -14,7 +12,9 @@ torch.manual_seed(12)
 
 def test_no_update():
     cm = MultiLabelConfusionMatrix(10)
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"Confusion matrix must have at least one example before it can be computed"
+    ):
         cm.compute()
 
 

@@ -7,6 +7,7 @@ import torch.distributed as dist
 import ignite.distributed as idist
 from ignite.distributed.utils import has_native_dist_support
 from tests.ignite.distributed.utils import (
+    _test_distrib__get_max_length,
     _test_distrib_all_gather,
     _test_distrib_all_reduce,
     _test_distrib_barrier,
@@ -155,6 +156,23 @@ def test_idist_methods_in_native_nccl_context_set_local_rank(distributed_context
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist__model_methods_nccl(distributed_context_single_node_nccl):
+
+    device = f"cuda:{distributed_context_single_node_nccl['local_rank']}"
+    _test_distrib__get_max_length(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+def test_idist__model_methods_gloo(distributed_context_single_node_gloo):
+
+    device = "cpu"
+    _test_distrib__get_max_length(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_all_reduce_nccl(distributed_context_single_node_nccl):
 
     device = f"cuda:{distributed_context_single_node_nccl['local_rank']}"
@@ -228,7 +246,7 @@ def _test_idist_methods_overhead(ok_factor):
 
     t2 = 0.0
     t1 = 0.0
-    for j in range(m):
+    for _ in range(m):
         start = time.time()
         for _ in range(n):
             _ = dist.get_world_size()

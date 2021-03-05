@@ -31,6 +31,12 @@ class MedianRelativeAbsoluteError(_BaseRegressionEpoch):
 
     __ https://arxiv.org/abs/1809.03006
 
+    Args:
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+            By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):
