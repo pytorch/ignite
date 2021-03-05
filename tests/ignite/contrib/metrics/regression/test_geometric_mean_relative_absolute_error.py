@@ -4,22 +4,32 @@ import torch
 
 from ignite.contrib.metrics.regression import GeometricMeanRelativeAbsoluteError
 from ignite.engine import Engine
+from ignite.exceptions import NotComputableError
+
+
+def test_zero_sample():
+    m = GeometricMeanRelativeAbsoluteError()
+    with pytest.raises(
+        NotComputableError,
+        match=r"GeometricMeanRelativeAbsoluteError must have at least one example before it can be computed",
+    ):
+        m.compute()
 
 
 def test_wrong_input_shapes():
     m = GeometricMeanRelativeAbsoluteError()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
 
 def test_geometric_mean_relative_absolute_error():
