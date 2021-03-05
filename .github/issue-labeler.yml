@@ -1,0 +1,11 @@
+# Add/remove 'bug' label if issue contains the words 'Bug' or 'bug'
+bug:
+  - '(Bug|bug)'
+
+# Add/remove 'docker' label if issue contains the words 'Docker' or 'docker'
+docker:
+  - '(Docker|docker)'
+
+# Add/remove 'docs' label if issue contains the words 'Docs' or 'docs' or 'Documentation' or 'documentation'
+docs:
+  - '(Docs|docs|Documentation|documentation)'
