@@ -59,6 +59,9 @@ jobs:
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           cd docker
           bash build.sh hvd hvd-nlp
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
 
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
@@ -94,7 +97,10 @@ jobs:
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           cd docker
           bash build.sh hvd hvd-apex-nlp
-
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
+  
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
@@ -126,7 +132,10 @@ jobs:
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           cd docker
           bash build.sh main nlp
-
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
+  
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
@@ -158,7 +167,10 @@ jobs:
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           cd docker
           bash build.sh main apex-nlp
-
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
+  
   build-msdp-apex:
     name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
     needs: setup
@@ -193,3 +205,6 @@ jobs:
           export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"`     
           cd docker
           bash build.sh msdp msdp-apex-nlp
+      - name: List all
+        run: |
+          docker images | grep pytorchignite  
