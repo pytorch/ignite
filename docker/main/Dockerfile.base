@@ -5,7 +5,7 @@ FROM pytorch/pytorch:${PTH_VERSION}-runtime
 
 # Install tzdata / git
 RUN apt-get update && \
-    ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
+    ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime && \
     apt-get -y install --no-install-recommends tzdata git && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
     apt-get autoremove -y && \
@@ -15,7 +15,8 @@ RUN apt-get update && \
 # Ignite main dependencies
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
                                          tensorboard \
-                                         tqdm
+                                         tqdm \
+                                         fire
 
 # Replace pillow with pillow-simd
 RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
@@ -32,4 +33,6 @@ RUN mkdir -p pytorch-ignite-examples && \
     git config core.sparsecheckout true && \
     echo examples >> .git/info/sparse-checkout && \
     git remote add -f origin https://github.com/pytorch/ignite.git && \
-    git pull origin master
+    git pull origin master && \
+    # rm very large .git folder
+    rm -rf .git

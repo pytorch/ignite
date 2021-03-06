@@ -374,6 +374,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install deps
+          command: |
+            pip install docker
+      - run:
           name: Build all Horovod flavoured PyTorch-Ignite images
           command: |
             cd docker
