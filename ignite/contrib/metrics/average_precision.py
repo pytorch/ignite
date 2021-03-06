@@ -18,7 +18,7 @@ def average_precision_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor)
 
 class AveragePrecision(EpochMetric):
     """Computes Average Precision accumulating predictions and the ground-truth during an epoch
-    and applying `sklearn.metrics.average_precision_score <http://scikit-learn.org/stable/modules/generated/
+    and applying `sklearn.metrics.average_precision_score <https://scikit-learn.org/stable/modules/generated/
     sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score>`_ .
 
     Args:
@@ -27,7 +27,7 @@ class AveragePrecision(EpochMetric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         check_compute_fn: Default False. If True, `average_precision_score
-            <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
+            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
             #sklearn.metrics.average_precision_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
 

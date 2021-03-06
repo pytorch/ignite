@@ -10,7 +10,7 @@ __all__ = ["WandBLogger", "OutputHandler", "OptimizerParamsHandler", "global_ste
 
 
 class WandBLogger(BaseLogger):
-    """`Weights & Biases <https://app.wandb.ai/>`_ handler to log metrics, model/optimizer parameters, gradients
+    """`Weights & Biases <https://wandb.ai/site>`_ handler to log metrics, model/optimizer parameters, gradients
     during training and validation. It can also be used to log model checkpoints to the Weights & Biases cloud.
 
     .. code-block:: bash
@@ -23,7 +23,7 @@ class WandBLogger(BaseLogger):
     Args:
         args: Positional arguments accepted by `wandb.init`.
         kwargs: Keyword arguments accepted by `wandb.init`.
-            Please see `wandb.init <https://docs.wandb.com/library/init>`_ for documentation of possible parameters.
+            Please see `wandb.init <https://docs.wandb.ai/library/init>`_ for documentation of possible parameters.
 
     Examples:
 

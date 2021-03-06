@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.6
+      - name: Set up Python 3.7
         uses: actions/setup-python@v2
         with:
-          python-version: "3.6.10"
+          python-version: "3.7"
           architecture: "x64"
 
       - name: Get year & week number
@@ -51,24 +51,14 @@ jobs:
 
       - name: Install Torch XLA and others
         run: |
-
-          ## Install gsutil
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-          sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-
-          ## Install openblas and mkl
+          
+          ## Install openblas, mkl, gsutil
           sudo apt-get install -y libopenblas-dev libomp5
-          pip install mkl
-
-          ## Download torch & xla
-          gsutil cp gs://tpu-pytorch/wheels/torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
-          gsutil cp gs://tpu-pytorch/wheels/torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl .
+          pip install mkl requests gsutil
 
           ## Install torch & xla
-          pip install torch-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
-          pip install torch_xla-${{ matrix.xla-version }}-cp36-cp36m-linux_x86_64.whl
+          curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
+          python pytorch-xla-env-setup.py --version "nightly"
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
