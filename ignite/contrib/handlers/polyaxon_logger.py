@@ -14,7 +14,7 @@ __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_
 
 class PolyaxonLogger(BaseLogger):
     """
-    `Polyaxon <https://polyaxon.com/>`_ tracking client handler to log parameters and metrics during the training
+    `Polyaxon tracking client <https://polyaxon.com/>`_ handler to log parameters and metrics during the training
     and validation.
 
     This class requires `polyaxon <https://github.com/polyaxon/polyaxon/>`_ package to be installed:

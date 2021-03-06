@@ -30,12 +30,12 @@ class VisdomLogger(BaseLogger):
     """
     VisdomLogger handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
-    This class requires `visdom <https://github.com/facebookresearch/visdom/>`_ package to be installed:
+    This class requires `visdom <https://github.com/fossasia/visdom/>`_ package to be installed:
 
     .. code-block:: bash
 
 
-        pip install git+https://github.com/facebookresearch/visdom.git
+        pip install git+https://github.com/fossasia/visdom.git
 
     Args:
         server: visdom server URL. It can be also specified by environment variable `VISDOM_SERVER_URL`
@@ -44,7 +44,7 @@ class VisdomLogger(BaseLogger):
             visdom server. Default, `num_workers=1`. If `num_workers=0` and logger uses the main thread. If using
             Python 2.7 and `num_workers>0` the package `futures` should be installed: `pip install futures`
         kwargs: kwargs to pass into
-            `visdom.Visdom <https://github.com/facebookresearch/visdom#visdom-arguments-python-only>`_.
+            `visdom.Visdom <https://github.com/fossasia/visdom#user-content-visdom-arguments-python-only>`_.
 
     Note:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
@@ -153,7 +153,7 @@ class VisdomLogger(BaseLogger):
             raise RuntimeError(
                 "This contrib module requires visdom package. "
                 "Please install it with command:\n"
-                "pip install git+https://github.com/facebookresearch/visdom.git"
+                "pip install git+https://github.com/fossasia/visdom.git"
             )
 
         if num_workers > 0:
