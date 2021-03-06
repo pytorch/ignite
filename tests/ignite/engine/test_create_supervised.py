@@ -12,7 +12,13 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer, supervised_training_step_tpu
+from ignite.engine import (
+    create_supervised_evaluator,
+    create_supervised_trainer,
+    supervised_evaluation_step,
+    supervised_evaluation_step_amp,
+    supervised_training_step_tpu,
+)
 from ignite.metrics import MeanSquaredError
 
 
@@ -97,6 +103,8 @@ def _test_create_supervised_evaluator(
         model = torch.jit.trace(model, example_input)
 
     evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
+
+    assert evaluator._process_function is supervised_evaluation_step or supervised_evaluation_step_amp
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
