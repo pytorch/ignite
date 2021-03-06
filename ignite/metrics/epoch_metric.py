@@ -12,8 +12,8 @@ __all__ = ["EpochMetric"]
 
 class EpochMetric(Metric):
     """Class for metrics that should be computed on the entire output history of a model.
-    Model's output and targets are restricted to be of shape ``(batch_size, n_classes)``. Output
-    datatype should be `float32`. Target datatype should be `long`.
+    Model's output and targets are restricted to be of shape ``(batch_size, n_targets)``. Output
+    datatype should be `float32`. Target datatype should be `long` for classification and `float` for regression.
 
     .. warning::
 
@@ -26,9 +26,6 @@ class EpochMetric(Metric):
         all processes.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-
-    If target shape is ``(batch_size, n_classes)`` and ``n_classes > 1`` than it should be binary:
-    e.g. ``[[0, 1, 0, 1], ]``.
 
     Args:
         compute_fn: a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
@@ -72,14 +69,10 @@ class EpochMetric(Metric):
     def _check_shape(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         if y_pred.ndimension() not in (1, 2):
-            raise ValueError("Predictions should be of shape (batch_size, n_classes) or (batch_size, ).")
+            raise ValueError("Predictions should be of shape (batch_size, n_targets) or (batch_size, ).")
 
         if y.ndimension() not in (1, 2):
-            raise ValueError("Targets should be of shape (batch_size, n_classes) or (batch_size, ).")
-
-        if y.ndimension() == 2:
-            if not torch.equal(y ** 2, y):
-                raise ValueError("Targets should be binary (0 or 1).")
+            raise ValueError("Targets should be of shape (batch_size, n_targets) or (batch_size, ).")
 
     def _check_type(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
