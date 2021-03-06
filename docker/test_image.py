@@ -30,7 +30,7 @@ try:
     main()
 except Exception as e:
     import traceback
-    print(traceback.format_exc())    
+    print(traceback.format_exc())
     """
     try:
         out = client.containers.run(args.image, f"python -c '{try_except_cmd}'", auto_remove=True, stderr=True,)
