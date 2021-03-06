@@ -21,17 +21,32 @@ import docker
 
 
 def run_python_cmd(cmd):
+
+    try_except_cmd = f"""
+def main():
+    {cmd}
+
+try:
+    main()
+except Exception as e:
+    import traceback
+    print(traceback.format_exc())    
+    """
     try:
-        out = client.containers.run(args.image, f"python -c '{cmd}'", auto_remove=True, stderr=True,)
+        out = client.containers.run(args.image, f"python -c '{try_except_cmd}'", auto_remove=True, stderr=True,)
         assert isinstance(out, bytes), type(out)
         out = out.decode("utf-8").strip()
+
+        out_lower = out.lower()
+        if any([k in out_lower for k in ["error", "exception"]]):
+            raise RuntimeError(out)
+
     except docker.errors.ContainerError as e:
         raise RuntimeError(e)
     return out
 
 
 base_cmd = """
-def main():
     import torch
     import ignite
 
@@ -43,12 +58,6 @@ def main():
     {msdp}
 
     print(result)
-
-
-try:
-    main()
-except Exception as e:
-    print(e)
 """
 
 
