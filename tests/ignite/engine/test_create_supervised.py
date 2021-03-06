@@ -104,7 +104,10 @@ def _test_create_supervised_evaluator(
 
     evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
 
-    assert evaluator._process_function is supervised_evaluation_step or supervised_evaluation_step_amp
+    if amp_mode == "amp":
+        assert evaluator._process_function is supervised_evaluation_step_amp
+    else:
+        assert evaluator._process_function is supervised_evaluation_step
 
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
