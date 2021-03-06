@@ -1,0 +1,16 @@
+name: Flake8 Labeller
+
+on:
+  pull_request_target
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: tayfun/flake8-your-pr@master
+      with:
+        select: E3,E4,E5,E7,W6,F,B,G0
+        maxlinelength: 100
+        repotoken: ${{ secrets.GITHUB_TOKEN }}
