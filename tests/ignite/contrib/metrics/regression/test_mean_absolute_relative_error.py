@@ -8,17 +8,17 @@ from ignite.exceptions import NotComputableError
 def test_wrong_input_shapes():
     m = MeanAbsoluteRelativeError()
 
-    with raises(ValueError):
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with raises(ValueError):
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
 
 def test_mean_absolute_relative_error():
@@ -68,11 +68,11 @@ def test_zero_div():
     ground_truth = torch.tensor([0.0, 0.5, 0.2, 1.0])
 
     m = MeanAbsoluteRelativeError()
-    with raises(NotComputableError):
+    with raises(NotComputableError, match=r"The ground truth has 0"):
         m.update((a, ground_truth))
 
 
 def test_zero_sample():
     m = MeanAbsoluteRelativeError()
-    with raises(NotComputableError):
+    with raises(NotComputableError, match=r"MeanAbsoluteRelativeError must have at least one sample"):
         m.compute()
