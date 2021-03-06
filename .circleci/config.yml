@@ -35,7 +35,7 @@ parameters:
 one_gpu: &one_gpu
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-1604-cuda-10.1:201909-23 # CUDA 10.1, docker 19.03.0-ce, nvidia-docker 2.2.2
+    image: ubuntu-1604-cuda-11.1:202012-01 # CUDA v11.1, Docker v19.03.13, nvidia-container-toolkit v1.4.0-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.small
@@ -132,7 +132,6 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
-      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -226,7 +225,6 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
-      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -252,7 +250,6 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
-      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
@@ -307,7 +304,6 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
-      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
@@ -363,19 +359,23 @@ jobs:
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
   build_publish_docker_images:
-    machine:
-      # https://circleci.com/docs/2.0/configuration-reference/#available-machine-images
-      image: ubuntu-2004:202010-01
-      docker_layer_caching: true
-    # https://circleci.com/docs/2.0/configuration-reference/#machine-executor-linux
+    # https://circleci.com/docs/2.0/building-docker-images/
+    docker:
+      - image: cimg/python:3.8.8
+
+    # https://circleci.com/docs/2.0/executor-types/#available-docker-resource-classes
     resource_class: 2xlarge
 
     working_directory: << pipeline.parameters.workingdir >>
     steps:
       - checkout
+      - setup_remote_docker:
+          version: 19.03.14
+          docker_layer_caching: true
       - run:
           name: Install deps
           command: |
+            pip --version
             pip install docker
       - run:
           name: Build all Horovod flavoured PyTorch-Ignite images
