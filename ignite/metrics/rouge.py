@@ -148,7 +148,7 @@ class Rouge(Metric):
     @reinit__is_reduced
     def update(self, output: List[List]) -> None:
         y_pred, y = output[0], output[1]
-        self._rougetotal += self.rouge_fn(y_pred, y)
+        self._rougetotal = torch.add(self._rougetotal, self.rouge_fn(y_pred, y))
         self._num_examples += 1
 
     @sync_all_reduce("_num_examples", "_rougetotal")
