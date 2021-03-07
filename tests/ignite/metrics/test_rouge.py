@@ -115,6 +115,16 @@ def _test_distrib_accumulator_device(device):
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
 
+def test_accumulator_detached():
+    rouge = Rouge()
+
+    y_pred = "the cat was found under the big funny bed"
+    y = "the tiny little cat was under the bed"
+    rouge.update([y_pred.split(), [y.split()]])
+
+    assert not rouge._rougetotal.requires_grad
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
