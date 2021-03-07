@@ -20,7 +20,7 @@ Project's affiliation to `PyTorch organization <https://github.com/pytorch>`_ is
 has the same implication to the project's governance as for other community projects from
 `PyTorch Ecosystem <https://pytorch.org/ecosystem/>`_.
 
-The decision making process and governance structure of the project is described in the `governance document <governance.html>`_.
+The decision making process and governance structure of the project is described in the :ref:`governance document<PyTorch-Ignite governance>`.
 
 Authors
 -------
