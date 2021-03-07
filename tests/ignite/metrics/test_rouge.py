@@ -58,23 +58,22 @@ def _test_distrib_integration(device):
         _test(idist.device())
 
 
-# def _test_distrib_accumulator_device(device):
+def _test_distrib_accumulator_device(device):
 
-#     metric_devices = [torch.device("cpu")]
-#     if device.type != "xla":
-#         metric_devices.append(idist.device())
-#     for metric_device in metric_devices:
-#         rouge = MeanAbsoluteError(device=metric_device)
+    metric_devices = [torch.device("cpu")]
+    if torch.device(device).type != "xla":
+        metric_devices.append(idist.device())
 
-#         for dev in [rouge._device, rouge._sum_of_absolute_errors.device]:
-#             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+    for metric_device in metric_devices:
+        rouge = Rouge(data_range=1.0, device=metric_device)
+        dev = rouge._device
+        assert dev == metric_device, f"{dev} vs {metric_device}"
 
-#         y_pred = torch.tensor([[2.0], [-2.0]])
-#         y = torch.zeros(2)
-#         rouge.update((y_pred, y))
-
-#         for dev in [rouge._device, rouge._sum_of_absolute_errors.device]:
-#             assert dev == metric_device, f"{typ e(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+        y_pred = "the tiny little cat was found under the big funny bed"
+        y = "the cat was under the bed"
+        rouge.update([y_pred.split(), [y.split()]])
+        dev = rouge._sum_of_batchwise_psnr.device
+        assert dev == metric_device, f"{dev} vs {metric_device}"
 
 
 # def test_accumulator_detached():
@@ -93,7 +92,7 @@ def _test_distrib_integration(device):
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = torch.device(f"cuda:{local_rank}")
     _test_distrib_integration(device)
-    # _test_distrib_accumulator_device(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -101,7 +100,7 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
     device = torch.device("cpu")
     _test_distrib_integration(device)
-    # _test_distrib_accumulator_device(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -113,7 +112,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
-    # gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -122,7 +121,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = torch.device("cpu")
     _test_distrib_integration(device)
-    # _test_distrib_accumulator_device(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
@@ -131,7 +130,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_integration(device)
-    # _test_distrib_accumulator_device(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -140,13 +139,13 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_integration(device)
-    # _test_distrib_accumulator_device(device)
+    _test_distrib_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_integration(device)
-    # _test_distrib_accumulator_device(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
