@@ -11,9 +11,9 @@ from ignite.handlers import TerminateOnNan
     [
         (1.0, False),
         (torch.tensor(123.45), False),
-        (torch.asin(torch.randn(10,)), True),
+        (torch.asin(torch.tensor([1.0, 2.0, 0.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])), True),
         (torch.asin(torch.randn(4, 4)), True),
-        ((10.0, 1.0 / torch.randint(0, 2, size=(4,)).type(torch.float), 1.0), True),
+        ((10.0, 1.0 / torch.tensor([1.0, 2.0, 0.0, 3.0]), 1.0), True),
         ((1.0, torch.tensor(1.0), "abc"), False),
         (1.0 / torch.randint(0, 2, size=(4, 4)).type(torch.float), True),
         ((float("nan"), 10.0), True),
