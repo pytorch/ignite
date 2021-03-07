@@ -32,17 +32,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Remove cache
+        run: |
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
       - name: Build hvd hvd-base
         run: |
-          pip install PyYAML
+          pip install PyYAML docker
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           docker system prune -a -f
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           cd docker
           bash build.sh hvd hvd-base
       - name: Build hvd hvd-vision
@@ -57,6 +59,9 @@ jobs:
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           cd docker
           bash build.sh hvd hvd-nlp
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
 
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
@@ -65,17 +70,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Remove cache
+        run: |
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
       - name: Build hvd hvd-apex
         run: |
-          pip install PyYAML
+          pip install PyYAML docker
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           docker system prune -a -f
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           cd docker
           bash build.sh hvd hvd-apex
       - name: Build hvd hvd-apex-vision
@@ -90,7 +97,10 @@ jobs:
           export HVD_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_hvd_version']['default'])"`
           cd docker
           bash build.sh hvd hvd-apex-nlp
-
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
+  
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
@@ -98,16 +108,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Remove cache
+        run: |
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
       - name: Build main base
         run: |
-          pip install PyYAML
+          pip install PyYAML docker
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           docker system prune -a -f
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           cd docker
           bash build.sh main base
       - name: Build main vision
@@ -120,7 +132,10 @@ jobs:
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           cd docker
           bash build.sh main nlp
-
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
+  
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
@@ -128,16 +143,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Remove cache
+        run: |
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
       - name: Build main apex
         run: |
-          pip install PyYAML
+          pip install PyYAML docker
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           docker system prune -a -f
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           cd docker
           bash build.sh main apex
       - name: Build main apex-vision
@@ -150,7 +167,10 @@ jobs:
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           cd docker
           bash build.sh main apex-nlp
-
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
+  
   build-msdp-apex:
     name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
     needs: setup
@@ -158,17 +178,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Remove cache
+        run: |
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
       - name: Build msdp msdp-apex
         run: |
-          pip install PyYAML
+          pip install PyYAML docker
           export PTH_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_pytorch_version']['default'])"`
           export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"`     
           docker system prune -a -f
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           cd docker
           bash build.sh msdp msdp-apex
       - name: Build msdp msdp-apex-vision
@@ -183,3 +205,6 @@ jobs:
           export MSDP_VERSION=`python -c "import yaml; f=open('.circleci/config.yml'); d=yaml.safe_load(f); print(d['parameters']['build_docker_image_msdp_version']['default'])"`     
           cd docker
           bash build.sh msdp msdp-apex-nlp
+      - name: List all
+        run: |
+          docker images | grep pytorchignite  

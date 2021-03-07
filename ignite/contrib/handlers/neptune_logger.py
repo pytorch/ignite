@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-import ignite
 import ignite.distributed as idist
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
