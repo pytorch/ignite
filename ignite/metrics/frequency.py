@@ -1,11 +1,11 @@
-from typing import Any, Callable, Union
+from typing import Callable, Union
 
 import torch
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.handlers.timing import Timer
-from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 
 class Frequency(Metric):

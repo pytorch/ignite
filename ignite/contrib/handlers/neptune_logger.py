@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-import ignite
 import ignite.distributed as idist
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
@@ -42,7 +41,7 @@ class NeptuneLogger(BaseLogger):
     Args:
         api_token: Required in online mode. Neputne API token, found on https://neptune.ai.
             Read how to get your API key
-            https://docs.neptune.ai/python-api/tutorials/get-started.html#copy-api-token.
+            https://docs.neptune.ai/security-and-privacy/api-tokens/how-to-find-and-set-neptune-api-token.html.
         project_name: Required in online mode. Qualified name of a project in a form of
            "namespace/project_name" for example "tom/minst-classification".
            If None, the value of NEPTUNE_PROJECT environment variable will be taken.
