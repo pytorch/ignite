@@ -36,6 +36,9 @@ class Rouge(Metric):
             you want to compute the metric with respect to one of the outputs.
 
     Example:
+
+    .. code-block:: python
+
         from ignite.metrics import Rouge
         m = Rouge(beta=1,n='l')
         y_pred = "the cat was found under the bed"
