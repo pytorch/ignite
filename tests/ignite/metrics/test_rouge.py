@@ -65,7 +65,7 @@ def _test_distrib_accumulator_device(device):
         metric_devices.append(idist.device())
 
     for metric_device in metric_devices:
-        rouge = Rouge(data_range=1.0, device=metric_device)
+        rouge = Rouge(device=metric_device)
         dev = rouge._device
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
