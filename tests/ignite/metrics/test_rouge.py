@@ -115,16 +115,6 @@ def _test_distrib_accumulator_device(device):
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
 
-# def test_accumulator_detached():
-#     rouge = MeanAbsoluteError()
-
-#     y_pred = torch.tensor([[2.0], [-2.0]], requires_grad=True)
-#     y = torch.zeros(2)
-#     rouge.update((y_pred, y))
-
-#     assert not rouge._sum_of_absolute_errors.requires_grad
-
-
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
