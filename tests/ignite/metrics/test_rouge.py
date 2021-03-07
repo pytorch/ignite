@@ -14,6 +14,17 @@ def test_zero_div():
         rouge.compute()
 
 
+def test_input():
+    with pytest.raises(TypeError):
+        rouge = Rouge(beta="l", n=1)
+
+    with pytest.raises(ValueError):
+        rouge = Rouge(n="m")
+
+    with pytest.raises(ValueError):
+        rouge = Rouge(n=-1)
+
+
 def test_compute():
     rouge = Rouge()
 
@@ -28,6 +39,22 @@ def test_compute():
     rouge.update([y_pred.split(), [y.split()]])
     assert isinstance(rouge.compute(), torch.Tensor)
     assert rouge.compute() == 0.701298713684082
+
+    rouge = Rouge(n="l")
+
+    y_pred = "the cat was found under the bed"
+    y = "the cat was not under the bed"
+    rouge.update([y_pred.split(), [y.split()]])
+
+    assert isinstance(rouge.compute(), torch.Tensor)
+    assert rouge.compute() == 0.8571428656578064
+
+    y_pred = "the cat was found under the big funny bed"
+    y = "the tiny little cat was under the bed"
+    rouge.update([y_pred.split(), [y.split()]])
+
+    assert isinstance(rouge.compute(), torch.Tensor)
+    assert rouge.compute() == 0.761904776096344
 
 
 def _test_distrib_integration(device):

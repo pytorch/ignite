@@ -61,7 +61,7 @@ class Rouge(Metric):
         self.n: int = 1
         self.beta, self.n = self._check_parameters(beta, n)
         self.beta_sq = self.beta ** 2
-        self.rouge_fn = self.rouge_l if n == 0 else self.rouge_n
+        self.rouge_fn = self.rouge_l if self.n == 0 else self.rouge_n
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
     def _check_parameters(self, beta: float, n: Union[int, str]) -> Tuple:
