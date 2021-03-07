@@ -13,7 +13,7 @@ from ignite.metrics import Loss
 
 def test_zero_div():
     loss = Loss(nll_loss)
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"Loss must have at least one example before it can be computed"):
         loss.compute()
 
 

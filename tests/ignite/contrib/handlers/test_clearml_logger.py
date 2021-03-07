@@ -21,7 +21,7 @@ from ignite.contrib.handlers.clearml_logger import (
     WeightsScalarHandler,
     global_step_from_engine,
 )
-from ignite.contrib.handlers.trains_logger import TrainsLogger, TrainsSaver
+from ignite.contrib.handlers.trains_logger import TrainsLogger
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
 

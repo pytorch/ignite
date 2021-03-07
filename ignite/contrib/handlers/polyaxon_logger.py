@@ -14,12 +14,16 @@ __all__ = ["PolyaxonLogger", "OutputHandler", "OptimizerParamsHandler", "global_
 
 class PolyaxonLogger(BaseLogger):
     """
-    `Polyaxon <https://polyaxon.com/>`_ tracking client handler to log parameters and metrics during the training
+    `Polyaxon tracking client <https://polyaxon.com/>`_ handler to log parameters and metrics during the training
     and validation.
 
-    This class requires `polyaxon-client <https://github.com/polyaxon/polyaxon-client/>`_ package to be installed:
+    This class requires `polyaxon <https://github.com/polyaxon/polyaxon/>`_ package to be installed:
 
     .. code-block:: bash
+
+        pip install polyaxon
+
+        // If you are using polyaxon v0.x
 
         pip install polyaxon-client
 
@@ -85,22 +89,28 @@ class PolyaxonLogger(BaseLogger):
 
     Args:
         args: Positional arguments accepted from
-            `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
+            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
         kwargs: Keyword arguments accepted from
-            `Experiment <https://docs.polyaxon.com/references/polyaxon-tracking-api/experiments/>`_.
+            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
 
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
         try:
-            from polyaxon_client.tracking import Experiment
-        except ImportError:
-            raise RuntimeError(
-                "This contrib module requires polyaxon-client to be installed. "
-                "Please install it with command: \n pip install polyaxon-client"
-            )
+            from polyaxon.tracking import Run
 
-        self.experiment = Experiment(*args, **kwargs)
+            self.experiment = Run(*args, **kwargs)
+        except ImportError:
+            try:
+                from polyaxon_client.tracking import Experiment
+
+                self.experiment = Experiment(*args, **kwargs)
+            except ImportError:
+                raise RuntimeError(
+                    "This contrib module requires polyaxon to be installed.\n"
+                    "For Polyaxon v1.x please install it with command: \n pip install polyaxon\n"
+                    "For Polyaxon v0.x please install it with command: \n pip install polyaxon-client"
+                )
 
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self.experiment, attr)
