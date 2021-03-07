@@ -43,7 +43,7 @@ def _test_distrib_integration(device):
     def update(engine, i):
         return (y_true[i].split(), [s.split() for s in y_preds[i]])
 
-    def _test(metric_device):
+    def _test_n(metric_device):
         engine = Engine(update)
         m = Rouge(device=metric_device)
         m.attach(engine, "rouge")
@@ -53,9 +53,21 @@ def _test_distrib_integration(device):
 
         assert "rouge" in engine.state.metrics
 
-    _test("cpu")
+    def _test_l(metric_device):
+        engine = Engine(update)
+        m = Rouge(n="l", device=metric_device)
+        m.attach(engine, "rouge")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
+
+        assert "rouge" in engine.state.metrics
+
+    _test_n("cpu")
+    _test_l("cpu")
     if device.type != "xla":
-        _test(idist.device())
+        _test_n(idist.device())
+        _test_l(idist.device())
 
 
 def _test_distrib_accumulator_device(device):
@@ -72,7 +84,7 @@ def _test_distrib_accumulator_device(device):
         y_pred = "the tiny little cat was found under the big funny bed"
         y = "the cat was under the bed"
         rouge.update([y_pred.split(), [y.split()]])
-        dev = rouge._sum_of_batchwise_psnr.device
+        dev = rouge._rougetotal.device
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
 
