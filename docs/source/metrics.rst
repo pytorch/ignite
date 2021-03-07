@@ -342,6 +342,8 @@ Complete list of metrics
 
 .. autoclass:: Recall
 
+.. autoclass:: Rouge
+
 .. autoclass:: RootMeanSquaredError
 
 .. autoclass:: RunningAverage
