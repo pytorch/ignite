@@ -49,7 +49,7 @@ one_gpu_windows: &one_gpu_windows
 two_gpus: &two_gpus
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-1604-cuda-10.1:201909-23 # CUDA 10.1, docker 19.03.0-ce, nvidia-docker 2.2.2
+    image: ubuntu-1604-cuda-11.1:202012-01 # CUDA v11.1, Docker v19.03.13, nvidia-container-toolkit v1.4.0-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.medium
