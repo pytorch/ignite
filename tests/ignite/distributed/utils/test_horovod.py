@@ -97,8 +97,6 @@ def test_sync_as_hvd():
 @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_sync_as_hvd_inside_gloo_executor(gloo_hvd_executor):
-    from ignite.distributed.comp_models.horovod import _HorovodDistModel
-
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     gloo_hvd_executor(_test_sync_as_hvd, (), np=np)
 
@@ -203,7 +201,7 @@ def _test_idist_methods_overhead(ok_factor, sync_model):
 
     t2 = 0.0
     t1 = 0.0
-    for j in range(m):
+    for _ in range(m):
         start = time.time()
         for _ in range(n):
             _ = hvd.size()

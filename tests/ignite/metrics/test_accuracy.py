@@ -13,43 +13,43 @@ torch.manual_seed(12)
 
 def test_no_update():
     acc = Accuracy()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"Accuracy must have at least one example before it can be computed"):
         acc.compute()
 
 
 def test__check_shape():
     acc = Accuracy()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y and y_pred must have compatible shapes"):
         acc._check_shape((torch.randint(0, 2, size=(10, 1, 5, 12)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y and y_pred must have compatible shapes"):
         acc._check_shape((torch.randint(0, 2, size=(10, 1, 6)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y and y_pred must have compatible shapes"):
         acc._check_shape((torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
 def test_binary_wrong_inputs():
     acc = Accuracy()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"For binary cases, y must be comprised of 0's and 1's"):
         # y has not only 0 or 1 values
         acc.update((torch.randint(0, 2, size=(10,)).long(), torch.arange(0, 10).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"For binary cases, y_pred must be comprised of 0's and 1's"):
         # y_pred values are not thresholded to 0, 1 values
-        acc.update((torch.rand(10,), torch.randint(0, 2, size=(10,)).long()))
+        acc.update((torch.rand(10,), torch.randint(0, 2, size=(10,)).long(),))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y must have shape of "):
         # incompatible shapes
         acc.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y must have shape of "):
         # incompatible shapes
         acc.update((torch.randint(0, 2, size=(10, 5, 6)).long(), torch.randint(0, 2, size=(10,)).long()))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"y must have shape of "):
         # incompatible shapes
         acc.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
 

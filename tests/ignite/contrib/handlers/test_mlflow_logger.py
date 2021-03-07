@@ -324,7 +324,7 @@ def test_mlflow_bad_metric_name_handling(dirname):
             engine.state.epoch = 1
             handler(engine, mlflow_logger, event_name=Events.EPOCH_COMPLETED)
 
-            for i, v in enumerate(true_values):
+            for _, v in enumerate(true_values):
                 engine.state.epoch += 1
                 engine.state.metrics["metric 0"] = v
                 handler(engine, mlflow_logger, event_name=Events.EPOCH_COMPLETED)

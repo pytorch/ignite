@@ -1,5 +1,4 @@
 import numbers
-import warnings
 import weakref
 from enum import Enum
 from types import DynamicClassAttribute

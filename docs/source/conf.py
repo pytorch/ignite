@@ -32,8 +32,8 @@ try:
     version = os.environ["code_version"]
     if "master" in version:
         version = "master (" + ignite.__version__ + ")"
-    else:
-        version = version.replace("v", "")
+    # else:
+    #     version = version.replace("v", "")
 except KeyError:
     version = ignite.__version__
 
@@ -107,6 +107,7 @@ html_theme_options = {
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": True,
+    "navigation_with_keys": True,
 }
 
 html_logo = "_templates/_static/img/ignite_logo.svg"
@@ -128,7 +129,8 @@ html_context = {
     "css_files": [
         # 'https://fonts.googleapis.com/css?family=Lato',
         # '_static/css/pytorch_theme.css'
-        "_static/css/ignite_theme.css"
+        "_static/css/ignite_theme.css",
+        "https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css",
     ],
 }
 

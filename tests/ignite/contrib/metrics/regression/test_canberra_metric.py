@@ -12,17 +12,17 @@ from ignite.contrib.metrics.regression import CanberraMetric
 def test_wrong_input_shapes():
     m = CanberraMetric()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
 
 def test_compute():

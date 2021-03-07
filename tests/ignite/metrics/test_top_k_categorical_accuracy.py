@@ -10,7 +10,9 @@ from ignite.metrics import TopKCategoricalAccuracy
 
 def test_zero_div():
     acc = TopKCategoricalAccuracy(2)
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"TopKCategoricalAccuracy must have at least one example before it can be computed"
+    ):
         acc.compute()
 
 

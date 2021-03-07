@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 import torch
 
@@ -21,29 +20,29 @@ def test_base_regression_shapes():
 
     m = L1()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 3), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 3)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 7), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 7), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 7)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 7),))
 
 
 def test_base_regression_epoch_shapes():
@@ -56,34 +55,34 @@ def test_base_regression_epoch_shapes():
 
     m = ZeroEpoch()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 3), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 3)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 7), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 7), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 7)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 7),))
 
 
 def test_base_regression_compute_fn():
     # Wrong compute function
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument compute_fn should be callable"):
         _BaseRegressionEpoch(12345)
 
 
