@@ -30,13 +30,13 @@ def test_compute():
 
     y_pred = "the cat was found under the bed"
     y = "the cat was under the bed"
-    rouge.update([y_pred.split(), [y.split()]])
+    rouge.update([y_pred.split(), y.split()])
     assert isinstance(rouge.compute(), torch.Tensor)
     assert rouge.compute() == 0.8571428656578064
 
     y_pred = "the tiny little cat was found under the big funny bed"
     y = "the cat was under the bed"
-    rouge.update([y_pred.split(), [y.split()]])
+    rouge.update([y_pred.split(), y.split()])
     assert isinstance(rouge.compute(), torch.Tensor)
     assert rouge.compute() == 0.701298713684082
 
@@ -44,7 +44,7 @@ def test_compute():
 
     y_pred = "the cat was found under the bed"
     y = "the cat was not under the bed"
-    rouge.update([y_pred.split(), [y.split()]])
+    rouge.update([y_pred.split(), y.split()])
 
     assert isinstance(rouge.compute(), torch.Tensor)
     assert rouge.compute() == 0.8571428656578064
@@ -64,11 +64,11 @@ def _test_distrib_integration(device):
 
     n_iters = 2
 
-    y_true = ["Hi", "Hello"]
-    y_preds = [["Hi there!", "Hi , How are you?"], ["Hello there", "Hello , How are you?"]]
+    y = ["Hi", "Hello"]
+    y_preds = ["Hi there", "Hello How are you"]
 
     def update(engine, i):
-        return (y_true[i].split(), [s.split() for s in y_preds[i]])
+        return (y[i].split(), y_preds[i].split())
 
     def _test_n(metric_device):
         engine = Engine(update)
@@ -110,7 +110,7 @@ def _test_distrib_accumulator_device(device):
 
         y_pred = "the tiny little cat was found under the big funny bed"
         y = "the cat was under the bed"
-        rouge.update([y_pred.split(), [y.split()]])
+        rouge.update([y_pred.split(), y.split()])
         dev = rouge._rougetotal.device
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
@@ -120,7 +120,7 @@ def test_accumulator_detached():
 
     y_pred = "the cat was found under the big funny bed"
     y = "the tiny little cat was under the bed"
-    rouge.update([y_pred.split(), [y.split()]])
+    rouge.update([y_pred.split(), y.split()])
 
     assert not rouge._rougetotal.requires_grad
 

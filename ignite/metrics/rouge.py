@@ -60,13 +60,13 @@ class Rouge(Metric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        self._rougetotal: torch.Tensor = torch.tensor(0, device=device)
+        self._rougetotal: torch.Tensor = torch.tensor(0, device=device, dtype=torch.double)
         self._num_examples: int = 0
         self.beta: float = 0.0
         self.n: int = 1
         self.beta, self.n = self._check_parameters(beta, n)
         self.beta_sq = self.beta ** 2
-        self.rouge_fn = self.rouge_l if self.n == 0 else self.rouge_n
+        self.rouge_fn = self.rouge_l if isinstance(self.n, str) else self.rouge_n
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
     def _check_parameters(self, beta: float, n: Union[int, str]) -> Tuple:
@@ -76,7 +76,7 @@ class Rouge(Metric):
             raise ValueError('Invalid String, Only Rouge-L supported.Please use "l" or "L"')
         elif isinstance(n, int) and n < 1:
             raise ValueError("Ignite needs atleast unigram to calculate Rouge")
-        return (beta, (n if isinstance(n, int) else 0))
+        return (beta, n)
 
     def _ngramify(self, tokens: List[str], n: int) -> DefaultDict:
         ngrams: DefaultDict = defaultdict(int)
@@ -119,41 +119,39 @@ class Rouge(Metric):
                 diag = up
         return left
 
-    def rouge_n(self, y_pred: List[str], y: List[List[str]]) -> float:
+    def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
         recall_total = 0
         n = self.n
         y_pred_dict = self._ngramify(y_pred, n)
-        for model in y:
-            model_dict = self._ngramify(model, n)
-            recall_total += max(len(model) - n + 1, 0)
-            for ngram in y_pred_dict:
-                if model_dict[ngram]:
-                    matches += y_pred_dict[ngram]
+        model_dict = self._ngramify(y, n)
+        recall_total = max(len(y) - n + 1, 0)
+        for ngram in y_pred_dict:
+            if model_dict[ngram]:
+                matches += y_pred_dict[ngram]
         precision_total = len(y) * max((len(y_pred) - n + 1), 0)
         fbeta_score = self._fbeta_score(matches, recall_total, precision_total)
         return fbeta_score
 
-    def rouge_l(self, y_pred: List[str], y: List[List[str]]) -> float:
+    def rouge_l(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
         recall_total = 0
-        for model in y:
-            matches += int(self._lcs(model, y_pred))
-            recall_total += len(model)
+        matches += int(self._lcs(y, y_pred))
+        recall_total += len(y)
         precision_total = len(y) * len(y_pred)
         fbeta_score = self._fbeta_score(matches, recall_total, precision_total)
         return fbeta_score
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._rougetotal = torch.tensor(0, device=self._device)
+        self._rougetotal = torch.tensor(0, device=self._device, dtype=torch.double)
         self._num_examples = 0
         super(Rouge, self).reset()
 
     @reinit__is_reduced
     def update(self, output: List[List]) -> None:
         y_pred, y = output[0], output[1]
-        self._rougetotal = torch.add(self._rougetotal, self.rouge_fn(y_pred, y))
+        self._rougetotal += self.rouge_fn(y_pred, y)
         self._num_examples += 1
 
     @sync_all_reduce("_num_examples", "_rougetotal")
