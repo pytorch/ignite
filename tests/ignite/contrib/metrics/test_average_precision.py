@@ -305,6 +305,7 @@ def test_integration_multilabel_input_with_output_transform():
 
 def _test_distirb_binary_input_N(device):
     rank = idist.get_rank()
+    torch.manual_seed(12)
 
     def _test(metric_device):
         metric_device = torch.device(metric_device)
@@ -417,6 +418,7 @@ def _test_distirb_binary_input_N(device):
 
 def _test_distirb_multilabel_input_N(device):
     rank = idist.get_rank()
+    torch.manual_seed(12)
 
     def _test(metric_device):
         metric_device = torch.device(metric_device)
@@ -655,9 +657,9 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distirb_binary_input_N, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distirb_multilabel_input_N, (device), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_integration_binary, (device), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_integration_multilabel, (device), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distirb_multilabel_input_N, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration_binary, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration_multilabel, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
