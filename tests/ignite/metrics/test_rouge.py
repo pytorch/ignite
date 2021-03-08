@@ -51,7 +51,7 @@ def test_compute():
 
     y_pred = "the cat was found under the big funny bed"
     y = "the tiny little cat was under the bed"
-    rouge.update([y_pred.split(), [y.split()]])
+    rouge.update([y_pred.split(), y.split()])
 
     assert isinstance(rouge.compute(), torch.Tensor)
     assert rouge.compute() == 0.7619047619047619
