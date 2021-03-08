@@ -129,7 +129,7 @@ class Rouge(Metric):
         for ngram in y_pred_dict:
             if model_dict[ngram]:
                 matches += y_pred_dict[ngram]
-        precision_total = len(y) * max((len(y_pred) - n + 1), 0)
+        precision_total = max((len(y_pred) - n + 1), 0)
         fbeta_score = self._fbeta_score(matches, recall_total, precision_total)
         return fbeta_score
 
@@ -137,8 +137,8 @@ class Rouge(Metric):
         matches = 0
         recall_total = 0
         matches += int(self._lcs(y, y_pred))
-        recall_total += len(y)
-        precision_total = len(y) * len(y_pred)
+        recall_total = len(y)
+        precision_total = len(y_pred)
         fbeta_score = self._fbeta_score(matches, recall_total, precision_total)
         return fbeta_score
 
