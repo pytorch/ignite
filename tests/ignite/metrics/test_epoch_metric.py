@@ -189,6 +189,42 @@ def _test_distrib_integration(device=None):
     engine.run(data=data, max_epochs=3)
     assert engine.state.metrics["epm"] == (y_preds.argmax(dim=1) == y_true).sum().item()
 
+    ep_metric.reset()
+
+    def compute_fn_sequence(all_preds, all_targets):
+        return [
+            torch.tensor((all_preds.argmax(dim=1) == all_targets).sum().item()),
+            torch.tensor((all_preds.argmin(dim=1) == all_targets).sum().item()),
+        ]
+
+    ep_metric = EpochMetric(compute_fn_sequence, check_compute_fn=False, device=device)
+    ep_metric.attach(engine, "epm")
+
+    data = list(range(n_iters))
+    engine.run(data=data, max_epochs=3)
+    assert engine.state.metrics["epm"] == [
+        torch.tensor((y_preds.argmax(dim=1) == y_true).sum().item()),
+        torch.tensor((y_preds.argmin(dim=1) == y_true).sum().item()),
+    ]
+
+
+@pytest.mark.parametrize("input", ["wrongval", [1, 2, "wrongval"], {1: "welcome"}])
+def test_epoch_metric_wrong_compute_fn_return(input):
+    def compute_fn(y_preds, y_targets):
+        return input
+
+    with pytest.raises(
+        TypeError, match=r"output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors"
+    ):
+        em = EpochMetric(compute_fn)
+        output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+        em.update(output1)
+        output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+        em.update(output2)
+        output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+        em.update(output3)
+        em.compute()
+
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")

@@ -1,4 +1,6 @@
 import warnings
+from collections.abc import Mapping, Sequence
+from functools import partial
 from typing import Callable, List, Tuple, Union, cast
 
 import torch
@@ -6,6 +8,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.utils import apply_to_type, is_scalar_or_collection_of_tensor
 
 __all__ = ["EpochMetric"]
 
@@ -29,7 +32,7 @@ class EpochMetric(Metric):
 
     Args:
         compute_fn: a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
-            `predictions` and `targets` and returns a scalar. Input tensors will be on specified ``device``
+            `predictions` and `targets` and returns a scalar or a sequence/mapping/tuple of tensors. Input tensors will be on specified ``device``
             (see arg below).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -113,7 +116,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float:
+    def compute(self) -> Union[int, float, Sequence, Mapping]:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
@@ -133,9 +136,15 @@ class EpochMetric(Metric):
             # Run compute_fn on zero rank only
             result = self.compute_fn(_prediction_tensor, _target_tensor)
 
+        # compute_fn outputs: scalars, tensors, tuple/list/mapping of tensors.
+        if not is_scalar_or_collection_of_tensor(result):
+            raise TypeError(
+                "output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors"
+            )
+
         if ws > 1:
             # broadcast result to all processes
-            result = cast(float, idist.broadcast(result, src=0))
+            return apply_to_type(result, torch.Tensor, partial(idist.broadcast, src=0))
 
         return result
 

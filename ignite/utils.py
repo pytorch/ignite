@@ -42,6 +42,23 @@ def apply_to_tensor(
     return apply_to_type(x, torch.Tensor, func)
 
 
+def is_scalar_or_collection_of_tensor(x: Any) -> bool:
+    """Returns true if the passed value is a scalar, tensor or a collection of tensors. False otherwise.
+
+    Args:
+        x: object of any type
+    """
+    if isinstance(x, (int, float, torch.Tensor)):
+        return True
+    if isinstance(x, collections.Sequence):
+        return all([isinstance(item, torch.Tensor) for item in x])
+    if isinstance(x, collections.Mapping):
+        return all([isinstance(item, torch.Tensor) for item in x.items()])
+    if isinstance(x, tuple) and hasattr(x, "_fields"):
+        return all([isinstance(item, torch.Tensor) for item in getattr(x, "_field")])
+    return False
+
+
 def apply_to_type(
     x: Union[Any, collections.Sequence, collections.Mapping, str, bytes],
     input_type: Union[Type, Tuple[Type[Any], Any]],
