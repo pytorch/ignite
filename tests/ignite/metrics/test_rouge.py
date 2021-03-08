@@ -32,13 +32,13 @@ def test_compute():
     y = "the cat was under the bed"
     rouge.update([y_pred.split(), y.split()])
     assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.8571428656578064
+    assert rouge.compute() == 0.8571428571428571
 
     y_pred = "the tiny little cat was found under the big funny bed"
     y = "the cat was under the bed"
     rouge.update([y_pred.split(), y.split()])
     assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.701298713684082
+    assert rouge.compute() == 0.7012987012987013
 
     rouge = Rouge(n="l")
 
@@ -47,14 +47,14 @@ def test_compute():
     rouge.update([y_pred.split(), y.split()])
 
     assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.8571428656578064
+    assert rouge.compute() == 0.8571428571428571
 
     y_pred = "the cat was found under the big funny bed"
     y = "the tiny little cat was under the bed"
     rouge.update([y_pred.split(), [y.split()]])
 
     assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.761904776096344
+    assert rouge.compute() == 0.7619047619047619
 
 
 def _test_distrib_integration(device):
