@@ -6,7 +6,8 @@ RUN apt-get update && \
     apt-get -y install --no-install-recommends libglib2.0 \
                                                libsm6 \
                                                libxext6 \
-                                               libxrender-dev && \
+                                               libxrender-dev \
+                                               libgl1-mesa-glx && \
     rm -rf /var/lib/apt/lists/*
 
 # Ignite vision dependencies

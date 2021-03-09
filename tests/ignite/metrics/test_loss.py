@@ -13,7 +13,7 @@ from ignite.metrics import Loss
 
 def test_zero_div():
     loss = Loss(nll_loss)
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"Loss must have at least one example before it can be computed"):
         loss.compute()
 
 
@@ -52,6 +52,24 @@ def test_non_averaging_loss():
     y = torch.tensor([2, 2]).long()
     with pytest.raises(ValueError):
         loss.update((y_pred, y))
+
+
+def test_gradient_based_loss():
+    # Tests https://github.com/pytorch/ignite/issues/1674
+    x = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], requires_grad=True)
+    y_pred = x.mm(torch.randn(size=(3, 1)))
+
+    def loss_fn(y_pred, x):
+        gradients = torch.autograd.grad(
+            outputs=y_pred, inputs=x, grad_outputs=torch.ones_like(y_pred), create_graph=True,
+        )[0]
+
+        gradients = gradients.flatten(start_dim=1)
+
+        return gradients.norm(2, dim=1).mean()
+
+    loss = Loss(loss_fn)
+    loss.update((y_pred, x))
 
 
 def test_kwargs_loss():

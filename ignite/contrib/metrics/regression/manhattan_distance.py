@@ -1,4 +1,4 @@
-from typing import Callable, Tuple, Union
+from typing import Tuple
 
 import torch
 
@@ -21,16 +21,23 @@ class ManhattanDistance(_BaseRegression):
 
     __ https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
 
+    Parameters are inherited from ``Metric.__init__``.
+
+    Args:
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+            By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+        device: specifies which device updates are accumulated on. Setting the
+            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
+            non-blocking. By default, CPU.
+
     .. versionchanged:: 0.4.3
 
         - Fixed sklearn compatibility.
         - Workes with DDP.
     """
-
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
-    ):
-        super(ManhattanDistance, self).__init__(output_transform, device)
 
     @reinit__is_reduced
     def reset(self) -> None:

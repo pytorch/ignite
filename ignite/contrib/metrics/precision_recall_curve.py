@@ -19,16 +19,16 @@ def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Te
 class PrecisionRecallCurve(EpochMetric):
     """Compute precision-recall pairs for different probability thresholds for binary classification task
     by accumulating predictions and the ground-truth during an epoch and applying
-    `sklearn.metrics.precision_recall_curve <http://scikit-learn.org/stable/modules/generated/
+    `sklearn.metrics.precision_recall_curve <https://scikit-learn.org/stable/modules/generated/
     sklearn.metrics.precision_recall_curve.html#sklearn.metrics.precision_recall_curve>`_ .
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        check_compute_fn (bool): Default False. If True, `precision_recall_curve
-            <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
+        check_compute_fn: Default False. If True, `precision_recall_curve
+            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
             #sklearn.metrics.precision_recall_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
 

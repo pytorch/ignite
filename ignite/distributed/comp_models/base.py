@@ -1,4 +1,3 @@
-import warnings
 from abc import ABCMeta, abstractmethod
 from numbers import Number
 from typing import Any, Callable, List, Optional, Union, cast
@@ -87,23 +86,22 @@ class ComputationModel(metaclass=ABCMeta):
     _collective_op_dtype = None  # type: Any
 
     @staticmethod
-    def _encode_str(x: str, device: torch.device) -> torch.Tensor:
-        # use fix padded size
-        size = 1024
-        if len(x) > size:
-            warnings.warn(f"Input string size {len(x)} is larger than {size} and thus will be truncated")
-            x = x[:size]
-
+    def _encode_str(x: str, device: torch.device, size: int) -> torch.Tensor:
         name = torch.tensor(bytearray(x, "utf-8")).to(device)
         padded_x = torch.zeros(size + 1, device=device, dtype=torch.long)
         padded_x[: len(name)] = name
         padded_x[-1] = len(name)
-        # output is tensor of shape (1, 1025)
+        # output is tensor of shape (1, size + 1)
         return padded_x.unsqueeze(0)
+
+    def _get_max_length(self, x: str, device: torch.device) -> int:
+        size = torch.tensor([len(x),], device=device)
+        size = self._do_all_reduce(size, "MAX")
+        return cast(int, size.item())
 
     @staticmethod
     def _decode_str(xs: torch.Tensor) -> List[str]:
-        # xs.shape = (n, 1025), e.g. (world_size, 1025)
+        # xs.shape = (n, size + 1), e.g. (world_size, size + 1)
         out = [bytearray(x[: x[-1]].tolist()).decode("utf-8") for x in xs]
         return out
 
@@ -144,7 +142,8 @@ class ComputationModel(metaclass=ABCMeta):
             tensor = torch.tensor(tensor, device=device, dtype=self._collective_op_dtype)
         elif isinstance(tensor, str):
             tensor_to_str = True
-            tensor = self._encode_str(tensor, device)
+            max_length = self._get_max_length(tensor, device)
+            tensor = self._encode_str(tensor, device, size=max_length)
 
         tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
 
@@ -176,20 +175,20 @@ class ComputationModel(metaclass=ABCMeta):
         rank = self.get_rank()
         device = self.device()
         tensor_to_number = tensor_to_str = False
-        if rank != src:
-            if isinstance(tensor, Number):
-                tensor_to_number = True
-                tensor = torch.empty(1, device=self.device(), dtype=torch.float)
-            elif isinstance(tensor, str):
-                tensor_to_str = True
-                tensor = torch.empty(1, 1025, device=self.device(), dtype=torch.long)
-        else:
-            if isinstance(tensor, Number):
-                tensor_to_number = True
+
+        if isinstance(tensor, Number):
+            tensor_to_number = True
+            if rank != src:
+                tensor = torch.empty(1, device=device, dtype=torch.float)
+            else:
                 tensor = torch.tensor([tensor,], device=device, dtype=torch.float)
-            elif isinstance(tensor, str):
-                tensor_to_str = True
-                tensor = self._encode_str(tensor, device)
+        elif isinstance(tensor, str):
+            tensor_to_str = True
+            max_length = self._get_max_length(tensor, device)
+            if rank != src:
+                tensor = torch.empty(1, max_length + 1, device=device, dtype=torch.long)
+            else:
+                tensor = self._encode_str(tensor, device, size=max_length)
 
         tensor = self._apply_op(tensor, device, self._do_broadcast, src)
 
@@ -201,7 +200,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -271,7 +270,7 @@ class _SerialModel(ComputationModel):
     def spawn(*args: Any, **kwargs: Any) -> None:
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
-    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "sum") -> Union[torch.Tensor, float]:
+    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
         return tensor
 
     def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
@@ -282,14 +281,14 @@ class _SerialModel(ComputationModel):
     def broadcast(self, tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
         return tensor
 
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
-        pass
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        return tensor
 
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
-        pass
+        return tensor
 
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
-        pass
+        return tensor
 
     def barrier(self) -> None:
         pass

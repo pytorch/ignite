@@ -1,11 +1,9 @@
-import numbers
-from typing import Callable, Optional, Sequence, Tuple, Union
+from typing import Callable, Sequence, Union
 
 import torch
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
-from ignite.metrics.metrics_lambda import MetricsLambda
 
 __all__ = ["MultiLabelConfusionMatrix"]
 
@@ -30,14 +28,15 @@ class MultiLabelConfusionMatrix(Metric):
     - The classes present in M are indexed as 0, ... , num_classes-1 as can be inferred from above.
 
     Args:
-        num_classes (int): Number of classes, should be > 1.
-        output_transform (callable, optional): a callable that is used to transform the
+        num_classes: Number of classes, should be > 1.
+        output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        device (str or torch.device): specifies which device updates are accumulated on. Setting the metric's
+        device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        normalized: whether to normalize confusion matrix by its sum or not.
 
     .. versionadded:: 0.5.0
 

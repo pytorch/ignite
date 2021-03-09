@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional, Union
 
 import torch
 
-from ignite.engine import Engine, Events
+from ignite.engine import Engine
 from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced
 
 __all__ = ["MetricsLambda"]
@@ -21,9 +21,11 @@ class MetricsLambda(Metric):
     automatically (but partially, e.g :meth:`~ignite.metrics.Metric.is_attached()` will return False).
 
     Args:
-        f (callable): the function that defines the computation
-        args (sequence): Sequence of other metrics or something
+        f: the function that defines the computation
+        args: Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
+        kwargs: Sequence of other metrics or something
+            else that will be fed to ``f`` as keyword arguments.
 
     Example:
 

@@ -30,21 +30,21 @@ class VisdomLogger(BaseLogger):
     """
     VisdomLogger handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
-    This class requires `visdom <https://github.com/facebookresearch/visdom/>`_ package to be installed:
+    This class requires `visdom <https://github.com/fossasia/visdom/>`_ package to be installed:
 
     .. code-block:: bash
 
 
-        pip install git+https://github.com/facebookresearch/visdom.git
+        pip install git+https://github.com/fossasia/visdom.git
 
     Args:
-        server (str, optional): visdom server URL. It can be also specified by environment variable `VISDOM_SERVER_URL`
-        port (int, optional): visdom server's port. It can be also specified by environment variable `VISDOM_PORT`
-        num_workers (int, optional): number of workers to use in `concurrent.futures.ThreadPoolExecutor` to post data to
+        server: visdom server URL. It can be also specified by environment variable `VISDOM_SERVER_URL`
+        port: visdom server's port. It can be also specified by environment variable `VISDOM_PORT`
+        num_workers: number of workers to use in `concurrent.futures.ThreadPoolExecutor` to post data to
             visdom server. Default, `num_workers=1`. If `num_workers=0` and logger uses the main thread. If using
             Python 2.7 and `num_workers>0` the package `futures` should be installed: `pip install futures`
-        **kwargs: kwargs to pass into
-            `visdom.Visdom <https://github.com/facebookresearch/visdom#visdom-arguments-python-only>`_.
+        kwargs: kwargs to pass into
+            `visdom.Visdom <https://github.com/fossasia/visdom#user-content-visdom-arguments-python-only>`_.
 
     Note:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
@@ -153,7 +153,7 @@ class VisdomLogger(BaseLogger):
             raise RuntimeError(
                 "This contrib module requires visdom package. "
                 "Please install it with command:\n"
-                "pip install git+https://github.com/facebookresearch/visdom.git"
+                "pip install git+https://github.com/fossasia/visdom.git"
             )
 
         if num_workers > 0:
@@ -209,7 +209,7 @@ class VisdomLogger(BaseLogger):
 
 
 class _BaseVisDrawer:
-    def __init__(self, show_legend: bool = False) -> None:
+    def __init__(self, show_legend: bool = False):
         self.windows = {}  # type: Dict[str, Any]
         self.show_legend = show_legend
 
@@ -220,13 +220,13 @@ class _BaseVisDrawer:
         Helper method to log a scalar with VisdomLogger.
 
         Args:
-            logger (VisdomLogger): visdom logger
-            k (str): scalar name which is used to set window title and y-axis label
-            v (int or float): scalar value, y-axis value
+            logger: visdom logger
+            k: scalar name which is used to set window title and y-axis label
+            v: scalar value, y-axis value
             event_name: Event name which is used to setup x-axis label. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            global_step (int): global step, x-axis value
+            global_step: global step, x-axis value
 
         """
         if k not in self.windows:
@@ -314,19 +314,19 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             )
 
     Args:
-        tag (str): common title for all produced plots. For example, "training"
-        metric_names (list of str, optional): list of metric names to plot or a string "all" to plot all available
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
-        output_transform (callable, optional): output transform function to prepare `engine.state.output` as a number.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
             This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
             with corresponding keys.
-        global_step_transform (callable, optional): global step transform function to output a desired global step.
+        global_step_transform: global step transform function to output a desired global step.
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.visdom_logger.global_step_from_engine`.
-        show_legend (bool, optional): flag to show legend in the window
+        show_legend: flag to show legend in the window
 
     Note:
 
@@ -346,7 +346,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         show_legend: bool = False,
-    ) -> None:
+    ):
         super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -411,16 +411,16 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
             )
 
     Args:
-        optimizer (torch.optim.Optimizer or object): torch optimizer or any object with attribute ``param_groups``
+        optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
-        param_name (str): parameter name
-        tag (str, optional): common title for all produced plots. For example, "generator"
-        show_legend (bool, optional): flag to show legend in the window
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
+        show_legend: flag to show legend in the window
     """
 
     def __init__(
         self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, show_legend: bool = False,
-    ) -> None:
+    ):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -463,15 +463,15 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
-        show_legend (bool, optional): flag to show legend in the window
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
+        show_legend: flag to show legend in the window
     """
 
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
-    ) -> None:
+    ):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
@@ -513,16 +513,16 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
             )
 
     Args:
-        model (torch.nn.Module): model to log weights
-        reduction (callable): function to reduce parameters into scalar
-        tag (str, optional): common title for all produced plots. For example, "generator"
-        show_legend (bool, optional): flag to show legend in the window
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
+        show_legend: flag to show legend in the window
 
     """
 
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
-    ) -> None:
+    ):
         super(GradsScalarHandler, self).__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 

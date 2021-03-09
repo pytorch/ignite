@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Sequence, Union
 
 import torch
 
@@ -20,12 +20,12 @@ class PSNR(Metric):
     - `y_pred` and `y` **must** have same dtype and same shape.
 
     Args:
-        data_range (int or float): The data range of the target image (distance between minimum
+        data_range: The data range of the target image (distance between minimum
             and maximum possible values).
             For other data types, please set the data range, otherwise an exception will be raised.
-        output_transform (callable, optional): A callable that is used to transform the Engine’s
+        output_transform: A callable that is used to transform the Engine’s
             process_function’s output into the form expected by the metric.
-        device (str or torch.device): specifies which device updates are accumulated on.
+        device: specifies which device updates are accumulated on.
             Setting the metric’s device to be the same as your update arguments ensures
             the update method is non-blocking. By default, CPU.
 

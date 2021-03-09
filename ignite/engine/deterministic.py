@@ -2,7 +2,7 @@ import random
 import warnings
 from collections import OrderedDict
 from functools import wraps
-from typing import Any, Callable, Generator, Iterator, List, Optional, cast
+from typing import Any, Callable, Generator, Iterator, List, Optional
 
 import torch
 from torch.utils.data import DataLoader
@@ -20,8 +20,8 @@ def update_dataloader(dataloader: DataLoader, new_batch_sampler: BatchSampler) -
     dataloader with new batch sampler.
 
     Args:
-        dataloader (torch.utils.data.DataLoader): input dataloader
-        new_batch_sampler (torch.utils.data.sampler.BatchSampler): new batch sampler to use
+        dataloader: input dataloader
+        new_batch_sampler: new batch sampler to use
 
     Returns:
         DataLoader
@@ -39,22 +39,21 @@ class ReproducibleBatchSampler(BatchSampler):
     """Reproducible batch sampler. This class internally iterates and stores indices of the input batch sampler.
     This helps to start providing data batches from an iteration in a deterministic way.
 
-    Usage:
+    Example:
 
-        Setup dataloader with `ReproducibleBatchSampler` and start providing data batches from an iteration:
+        Setup dataloader with `ReproducibleBatchSampler` and start providing data batches from an iteration
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from ignite.engine.deterministic import update_dataloader
+        from ignite.engine.deterministic import update_dataloader
 
-            dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
-            # rewind dataloader to a specific iteration:
-            dataloader.batch_sampler.start_iteration = start_iteration
+        dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+        # rewind dataloader to a specific iteration:
+        dataloader.batch_sampler.start_iteration = start_iteration
 
     Args:
-        batch_sampler (torch.utils.data.sampler.BatchSampler): batch sampler same as used with
-            `torch.utils.data.DataLoader`
-        start_iteration (int, optional): optional start iteration
+        batch_sampler: batch sampler same as used with `torch.utils.data.DataLoader`.
+        start_iteration: optional start iteration.
     """
 
     def __init__(self, batch_sampler: BatchSampler, start_iteration: Optional[int] = None):
@@ -119,7 +118,7 @@ def keep_random_state(func: Callable) -> Callable:
     while executing a function. For more details on usage, please see :ref:`Dataflow synchronization`.
 
     Args:
-        func (callable): function to decorate
+        func: function to decorate
     """
 
     @wraps(func)
@@ -167,6 +166,9 @@ class DeterministicEngine(Engine):
         This class can produce exactly the same dataflow when resuming the run from an epoch (or more precisely from
         dataflow restart) and using torch `DataLoader` with `num_workers > 1` as data provider.
 
+    Args:
+        process_function: A function receiving a handle to the engine and the current batch
+            in each iteration, and returns data to be stored in the engine's state.
     """
 
     def __init__(self, process_function: Callable):

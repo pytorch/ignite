@@ -2,7 +2,7 @@ from typing import Callable
 
 import torch
 
-from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
+from ignite.metrics import EpochMetric
 
 
 def median_relative_absolute_error_compute_fn(y_pred: torch.Tensor, y: torch.Tensor) -> float:
@@ -10,7 +10,7 @@ def median_relative_absolute_error_compute_fn(y_pred: torch.Tensor, y: torch.Ten
     return torch.median(e).item()
 
 
-class MedianRelativeAbsoluteError(_BaseRegressionEpoch):
+class MedianRelativeAbsoluteError(EpochMetric):
     r"""Calculates the Median Relative Absolute Error.
 
     .. math::
@@ -31,6 +31,12 @@ class MedianRelativeAbsoluteError(_BaseRegressionEpoch):
 
     __ https://arxiv.org/abs/1809.03006
 
+    Args:
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+            By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):

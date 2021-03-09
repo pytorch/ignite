@@ -1,10 +1,8 @@
 import os
 
-import brevitas
 import brevitas.nn as qnn
 import torch
 import torch.nn as nn
-import torchvision
 from pact import PACTReLU
 from torchvision import datasets, models
 from torchvision.transforms import Compose, Normalize, Pad, RandomCrop, RandomHorizontalFlip, ToTensor

@@ -12,17 +12,17 @@ from ignite.contrib.metrics.regression import CanberraMetric
 def test_wrong_input_shapes():
     m = CanberraMetric()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
 
 def test_compute():
@@ -61,6 +61,12 @@ def test_compute():
     v1 = np.hstack([v1, d])
     v2 = np.hstack([v2, ground_truth])
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+
+
+def test_error_is_not_nan():
+    m = CanberraMetric()
+    m.update((torch.zeros(4), torch.zeros(4)))
+    assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
 
 
 def _test_distrib_compute(device):

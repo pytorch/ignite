@@ -6,9 +6,11 @@ from ignite.contrib.metrics.regression import MeanNormalizedBias
 from ignite.exceptions import NotComputableError
 
 
-def test_zero_div():
+def test_zero_sample():
     m = MeanNormalizedBias()
-    with pytest.raises(NotComputableError):
+    with pytest.raises(
+        NotComputableError, match=r"MeanNormalizedBias must have at least one example before it can be computed"
+    ):
         m.compute()
 
 
@@ -18,24 +20,24 @@ def test_zero_gt():
 
     m = MeanNormalizedBias()
 
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"The ground truth has 0."):
         m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
 
 
 def test_wrong_input_shapes():
     m = MeanNormalizedBias()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
 
 def test_mean_error():
