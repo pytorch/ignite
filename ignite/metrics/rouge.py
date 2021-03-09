@@ -65,7 +65,7 @@ class Rouge(Metric):
 
     - Rouge-n: precision, recall and f-beta based on overlapping n-grams between the predicted and the reference text
     - Rouge-L: Only the sentence level Rouge-L score is implemented. It finds the Longest Common Subsequence between
-        the predicted and reference text and uses it to calculate precison, recall, f-beta score
+      the predicted and reference text and uses it to calculate precison, recall, f-beta score
 
     .. math::
         F_\beta = \left( 1 + \beta^2 \right) * \frac{ \text{precision} * \text{recall} }
