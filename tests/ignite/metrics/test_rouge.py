@@ -35,9 +35,9 @@ def test_wrong_inputs():
         ("rougeL", 1, [8, 3, 2], [8, 2], 0.8),
     ],
 )
-def test_rouge(n, y_indices, y_pred_indices, expected):
+def test_rouge(variant, n, y_indices, y_pred_indices, expected):
 
-    rouge = Rouge(n=n, beta=1.0)
+    rouge = Rouge(variant=variant, n=n, beta=1.0)
 
     y = ["a" * i for i in y_indices]
     y_pred = ["a" * i for i in y_pred_indices]
