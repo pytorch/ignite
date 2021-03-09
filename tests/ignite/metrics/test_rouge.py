@@ -1,11 +1,14 @@
 import os
+from math import isclose
 
 import pytest
 import torch
+from rouge_score import rouge_scorer, tokenize
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Rouge
+from ignite.metrics.rouge import _lcs
 
 
 def test_zero_div():
@@ -23,6 +26,74 @@ def test_input():
 
     with pytest.raises(ValueError):
         rouge = Rouge(n=-1)
+
+
+def testrougeempty():
+    rouge = Rouge(n=1, beta=1.0)
+    y = "testing one two"
+    y_pred = ""
+    rouge.update([y_pred.split(), y.split()])
+    assert rouge.compute() == 0.0
+
+
+def testrouge1():
+    rouge = Rouge(n=1, beta=1.0)
+    y = "testing one two"
+    y_pred = "testing"
+    rouge.update([y_pred.split(), y.split()])
+    assert rouge.compute() == 0.5
+
+
+def testrouge2():
+    rouge = Rouge(n=2, beta=1.0)
+    y = "testing one two"
+    y_pred = "testing one"
+    rouge.update([y_pred.split(), y.split()])
+    assert rouge.compute() == 2 / 3
+
+
+def testrougel():
+    rouge = Rouge(n="l", beta=1.0)
+    y = "testing one two"
+    y_pred = "testing two"
+    rouge.update([y_pred.split(), y.split()])
+    assert rouge.compute() == 0.8
+
+
+def testlcs():
+    ref = [1, 2, 3, 4, 5]
+    cl = [2, 5, 3, 4]
+
+    assert _lcs(ref, cl) == 3
+
+
+def testrougeagainstrouge155():
+    y_pred = """rFDJCRtion Ht-LM EKtDXkME,yz'RBr q'wer wrojNbN wL,b .a-'XdQggyFl jB-RPP'iyOIcUxi n cw-WeFyu vC MoBL Xdn g
+    wkvcEiGvKtion BDFhrpMer pstion sbKao Q m qier LMmed HqqLFXe,XPY,J XsurkMeo ,ed nB'wH'bWVHjWFEer
+    tQ.saefZwJtKrTlixYpMMNJtion UCAPwNHeYVjD"""
+    y = """ZfbCUIUuePaiLVUlCaUXxkpu XPeWing tUHfPMuZ',-Xd Y BrUgVJing M-HV.-DgdDaY.rFDJCRing Ht-LM EKBDXkME,yz'RBr
+    q'wtion wIojNbN wL,b .a-'XdQggyFl jB - RPP'iyOIcUxer tKM L KsJdPByEtAor fE-Qg Dpdbring cw-WeFyu vC MoBL Xdn g
+    wkvcEiGvKtion BDFhrpMtion psing sbKao Q m qiing LMmer HqqLFXe,XPY,J XsurkMer ,ed nB'wH'bWVHjWFEing
+    tQ.saefZwJtKrTlixYpMMsJing UCAPwNHeYVjDing c T BUySKtion gMPfJpwGw p'NvxAoping eu pBwMBKV'I DNxqelhu,PHPxDEq,mtion
+    SN"""
+
+    scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=False)
+    scores = scorer.score(y_pred, y)
+
+    rouge1 = Rouge(n=1, beta=1.0)
+    rouge1.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
+
+    assert rouge1.compute() == scores["rouge1"].fmeasure
+
+    rouge2 = Rouge(n=2, beta=1.0)
+    rouge2.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
+
+    assert rouge2.compute() == scores["rouge2"].fmeasure
+
+    rougel = Rouge(n="l", beta=1.0)
+    rougel.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
+
+    assert rougel.compute() == scores["rougeL"].fmeasure
 
 
 def test_compute():
