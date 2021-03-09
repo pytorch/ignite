@@ -42,7 +42,7 @@ def test_rouge(variant, n, y_indices, y_pred_indices, expected):
     y = ["a" * i for i in y_indices]
     y_pred = ["a" * i for i in y_pred_indices]
 
-    rouge.update((y_pred, [y]))
+    rouge.update((y_pred, y))
 
     assert rouge.compute() == expected
 
