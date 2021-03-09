@@ -31,6 +31,7 @@ class AveragePrecision(EpochMetric):
 
     AveragePrecision expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or
     confidence values. To apply an activation to y_pred, use output_transform as shown below:
+
     .. code-block:: python
         def activated_output_transform(output):
             y_pred, y = output
