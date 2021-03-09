@@ -26,13 +26,13 @@ def test_wrong_inputs():
 
 
 @pytest.mark.parametrize(
-    "n, y_indices, y_pred_indices, expected",
+    "variant, n, y_indices, y_pred_indices, expected",
     [
-        (1, [8, 3, 2], [], 0.0),
-        (1, [], [8, 3, 2], 0.0),
-        (1, [8, 3, 2], [8], 0.5),
-        (2, [8, 3, 2], [8, 3], 2 / 3),
-        ("l", [8, 3, 2], [8, 2], 0.8),
+        ("rougeN", 1, [8, 3, 2], [], 0.0),
+        ("rougeN", 1, [], [8, 3, 2], 0.0),
+        ("rougeN", 1, [8, 3, 2], [8], 0.5),
+        ("rougeN", 2, [8, 3, 2], [8, 3], 2 / 3),
+        ("rougeL", 1, [8, 3, 2], [8, 2], 0.8),
     ],
 )
 def test_rouge(n, y_indices, y_pred_indices, expected):
