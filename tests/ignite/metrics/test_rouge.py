@@ -1,5 +1,4 @@
 import os
-from math import isclose
 
 import pytest
 import torch
@@ -8,10 +7,10 @@ from rouge_score import rouge_scorer, tokenize
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Rouge
-from ignite.metrics.rouge import _lcs
+from ignite.metrics.rouge import _lcs, _ngramify, _safe_divide
 
 
-def test_wrong_input():
+def test_wrong_inputs():
     with pytest.raises(TypeError):
         rouge = Rouge(beta="l", n=1)
 
@@ -68,6 +67,19 @@ def test_lcs():
     cl = [2, 5, 3, 4]
 
     assert _lcs(ref, cl) == 3
+
+
+def test_ngramify():
+    y = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    for i in range(1, 9):
+        assert len(_ngramify(y, i)) == len(y) - i + 1
+
+
+def test_safe_divide():
+    assert _safe_divide(1.0, 0.0) == 0
+    assert _safe_divide(0.0, 1.0) == 0
+    assert _safe_divide(0.0, 0.0) == 0
+    assert _safe_divide(1.0, 2.0) == 0.5
 
 
 def test_rouge_against_rouge155():

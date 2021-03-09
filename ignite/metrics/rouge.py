@@ -130,9 +130,9 @@ class Rouge(Metric):
             raise ValueError("n must be an integer greater than 0")
         elif isinstance(n, int) and n < 1:
             raise ValueError("Ignite needs atleast unigram to calculate Rouge")
-        if variant == "rougeN":
+        if variant in ["rougeN", "rougen", "n", "N"]:
             rouge_fn = self.rouge_n
-        elif variant == "rougeL":
+        elif variant in ["rougeL", "rougel", "l", "L"]:
             rouge_fn = self.rouge_l
         else:
             raise ValueError("Please provide a valid variant of Rouge to evaluate.")
