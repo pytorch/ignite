@@ -1,14 +1,14 @@
 import warnings
 from collections.abc import Mapping, Sequence
 from functools import partial
-from typing import Callable, List, Tuple, Union, cast
+from typing import Any, Callable, List, Tuple, Union, cast
 
 import torch
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
-from ignite.utils import apply_to_type, is_scalar_or_collection_of_tensor
+from ignite.utils import apply_to_type
 
 __all__ = ["EpochMetric"]
 
@@ -137,7 +137,7 @@ class EpochMetric(Metric):
             result = self.compute_fn(_prediction_tensor, _target_tensor)
 
         # compute_fn outputs: scalars, tensors, tuple/list/mapping of tensors.
-        if not is_scalar_or_collection_of_tensor(result):
+        if not _is_scalar_or_collection_of_tensor(result):
             raise TypeError(
                 "output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors"
             )
@@ -147,6 +147,23 @@ class EpochMetric(Metric):
             return apply_to_type(result, torch.Tensor, partial(idist.broadcast, src=0))
 
         return result
+
+
+def _is_scalar_or_collection_of_tensor(x: Any) -> bool:
+    """Returns true if the passed value is a scalar, tensor or a collection of tensors. False otherwise.
+
+    Args:
+        x: object of any type
+    """
+    if isinstance(x, (int, float, torch.Tensor)):
+        return True
+    if isinstance(x, Sequence):
+        return all([isinstance(item, torch.Tensor) for item in x])
+    if isinstance(x, Mapping):
+        return all([isinstance(item, torch.Tensor) for item in x.items()])
+    if isinstance(x, tuple) and hasattr(x, "_fields"):
+        return all([isinstance(item, torch.Tensor) for item in getattr(x, "_field")])
+    return False
 
 
 class EpochMetricWarning(UserWarning):
