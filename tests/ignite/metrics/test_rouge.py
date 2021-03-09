@@ -25,41 +25,26 @@ def test_wrong_inputs():
         rouge.compute()
 
 
-def test_empty_input():
-    rouge = Rouge(n=1, beta=1.0)
-    y = "testing one two"
-    y_pred = ""
-    rouge.update([y_pred.split(), y.split()])
-    assert rouge.compute() == 0.0
+@pytest.mark.parametrize(
+    "n, y_indices, y_pred_indices, expected",
+    [
+        (1, [8, 3, 2], [], 0.0),
+        (1, [], [8, 3, 2], 0.0),
+        (1, [8, 3, 2], [8], 0.5),
+        (2, [8, 3, 2], [8, 3], 2 / 3),
+        ("l", [8, 3, 2], [8, 2], 0.8),
+    ],
+)
+def test_rouge(n, y_indices, y_pred_indices, expected):
 
-    y = ""
-    y_pred = "testing"
-    rouge.update([y_pred.split(), y.split()])
-    assert rouge.compute() == 0.0
+    rouge = Rouge(n=n, beta=1.0)
 
+    y = ["a" * i for i in y_indices]
+    y_pred = ["a" * i for i in y_pred_indices]
 
-def test_rouge1():
-    rouge = Rouge(n=1, beta=1.0)
-    y = "testing one two"
-    y_pred = "testing"
-    rouge.update([y_pred.split(), y.split()])
-    assert rouge.compute() == 0.5
+    rouge.update((y_pred, [y]))
 
-
-def test_rouge2():
-    rouge = Rouge(n=2, beta=1.0)
-    y = "testing one two"
-    y_pred = "testing one"
-    rouge.update([y_pred.split(), y.split()])
-    assert rouge.compute() == 2 / 3
-
-
-def test_rougeL():
-    rouge = Rouge(variant="rougeL", beta=1.0)
-    y = "testing one two"
-    y_pred = "testing two"
-    rouge.update([y_pred.split(), y.split()])
-    assert rouge.compute() == 0.8
+    assert rouge.compute() == expected
 
 
 def test_lcs():
@@ -112,35 +97,56 @@ def test_rouge_against_rouge155():
 
 
 def test_compute():
-    rouge = Rouge()
+    rouge = Rouge(n=1, beta=1.0)
+    scorer = rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=False)
+    num_examples = 0
+    acc_score = 0
 
     y_pred = "the cat was found under the bed"
     y = "the cat was under the bed"
-    rouge.update([y_pred.split(), y.split()])
+
+    num_examples += 1
+    score = scorer.score(y_pred, y)
+    acc_score += score["rouge1"].fmeasure
+    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
     assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.8571428571428571
+    assert rouge.compute() == acc_score / num_examples
 
     y_pred = "the tiny little cat was found under the big funny bed"
     y = "the cat was under the bed"
-    rouge.update([y_pred.split(), y.split()])
-    assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.7012987012987013
 
-    rouge = Rouge(variant="rougeL")
+    num_examples += 1
+    score = scorer.score(y_pred, y)
+    acc_score += score["rouge1"].fmeasure
+    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
+    assert isinstance(rouge.compute(), torch.Tensor)
+    assert rouge.compute() == acc_score / num_examples
+
+    rouge = Rouge(variant="rougeL", beta=1.0)
+    acc_score = 0
+    num_examples = 0
 
     y_pred = "the cat was found under the bed"
     y = "the cat was not under the bed"
-    rouge.update([y_pred.split(), y.split()])
+
+    num_examples += 1
+    score = scorer.score(y_pred, y)
+    acc_score += score["rougeL"].fmeasure
+    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
 
     assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.8571428571428571
+    assert rouge.compute() == acc_score / num_examples
 
     y_pred = "the cat was found under the big funny bed"
     y = "the tiny little cat was under the bed"
-    rouge.update([y_pred.split(), y.split()])
+
+    num_examples += 1
+    score = scorer.score(y_pred, y)
+    acc_score += score["rougeL"].fmeasure
+    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
 
     assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == 0.7619047619047619
+    assert rouge.compute() == acc_score / num_examples
 
 
 def _test_distrib_integration(device):

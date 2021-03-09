@@ -82,7 +82,7 @@ class Rouge(Metric):
     Args:
         beta: beta value for calculating f-beta
         variant: Which variant of Rouge Score to be evaluated
-            Valid Values - "rougeN", "rougeL"
+            Valid Values - "rougeN", "rougen", "n", "N", "rougeL", "rougel", "l", "L"
         n: Rouge score to be calculated using n-grams of tokens
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -96,12 +96,12 @@ class Rouge(Metric):
     .. code-block:: python
 
         from ignite.metrics import Rouge
-        m = Rouge(beta=1,n='l')
+        m = Rouge(beta=1,variant="rougeL")
         y_pred = "the cat was found under the bed"
         y = "the cat was under the bed"
         m.update([y_pred.split(),y.split()]]) #Using space to separate sentences into tokens
         y_pred = "the tiny little cat was found under the big funny bed"
-        m.update([y_pred.split(),[y.split()]])
+        m.update([y_pred.split(),y.split()])
         print(m.compute())
 
     .. versionadded:: 0.5.0
