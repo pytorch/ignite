@@ -10,12 +10,61 @@ from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
+def _ngramify(tokens: List[str], n: int) -> DefaultDict:
+    ngrams: DefaultDict = defaultdict(int)
+    for ngram in (tuple(tokens[i : i + n]) for i in range(len(tokens) - n + 1)):
+        ngrams[ngram] += 1
+    return ngrams
+
+
+def _safe_divide(numerator: float, denominator: float) -> float:
+    if denominator > 0:
+        return numerator / denominator
+    else:
+        return 0.0
+
+
+def _fbeta_score(matches: int, recall_total: int, precision_total: int, beta_sq: float) -> float:
+    recall_score = _safe_divide(matches, recall_total)
+    precision_score = _safe_divide(matches, precision_total)
+    denom = (beta_sq) * precision_score + recall_score
+    fbeta_score = _safe_divide((1 + beta_sq) * precision_score * recall_score, denom)
+    return fbeta_score
+
+
+def _lcs(a: List[str], b: List[str]) -> int:
+    if len(a) < len(b):
+        a, b = b, a
+
+    if len(b) == 0:
+        return 0
+
+    row = [0] * len(b)
+    for ai in a:
+        left = 0
+        diag = 0
+        for j, bj in enumerate(b):
+            up = row[j]
+            if ai == bj:
+                value = diag + 1
+            else:
+                value = max(left, up)
+            row[j] = value
+            left = value
+            diag = up
+    return left
+
+
 class Rouge(Metric):
     r"""Calculates the Rouge Score for two Sequence of Tokens.
 
     Paper: Lin, Chin-Yew. 2004. ROUGE: a Package for Automatic Evaluation of Summaries.
     In Proceedings of the Workshop on Text Summarization Branches Out (WAS 2004), Barcelona, Spain, July 25 - 26, 2004.
 
+    Contains two metric Rouge-n and Rouge-L.
+    Rouge-n: precision, recall and f-beta based on overlapping n-grams between the predicted and the reference text.
+    Rouge-L: Only the sentence level Rouge-L score is implemented. It finds the Longest Common Subsequence
+        between the predicted and reference text and uses it to calculate precison, recall, f-beta score.
 
     .. math::
         F_\beta = \left( 1 + \beta^2 \right) * \frac{ \text{precision} * \text{recall} }
@@ -78,68 +127,25 @@ class Rouge(Metric):
             raise ValueError("Ignite needs atleast unigram to calculate Rouge")
         return (beta, n)
 
-    def _ngramify(self, tokens: List[str], n: int) -> DefaultDict:
-        ngrams: DefaultDict = defaultdict(int)
-        for ngram in (tuple(tokens[i : i + n]) for i in range(len(tokens) - n + 1)):
-            ngrams[ngram] += 1
-        return ngrams
-
-    def _safe_divide(self, numerator: float, denominator: float) -> float:
-        if denominator > 0:
-            return numerator / denominator
-        else:
-            return 0.0
-
-    def _fbeta_score(self, matches: int, recall_total: int, precision_total: int) -> float:
-        recall_score = self._safe_divide(matches, recall_total)
-        precision_score = self._safe_divide(matches, precision_total)
-        denom = (self.beta_sq) * precision_score + recall_score
-        fbeta_score = self._safe_divide((1 + self.beta_sq) * precision_score * recall_score, denom)
-        return fbeta_score
-
-    def _lcs(self, a: List[str], b: List[str]) -> int:
-        if len(a) < len(b):
-            a, b = b, a
-
-        if len(b) == 0:
-            return 0
-
-        row = [0] * len(b)
-        for ai in a:
-            left = 0
-            diag = 0
-            for j, bj in enumerate(b):
-                up = row[j]
-                if ai == bj:
-                    value = diag + 1
-                else:
-                    value = max(left, up)
-                row[j] = value
-                left = value
-                diag = up
-        return left
-
     def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
-        recall_total = 0
         n = self.n
-        y_pred_dict = self._ngramify(y_pred, n)
-        model_dict = self._ngramify(y, n)
+        y_pred_dict = _ngramify(y_pred, n)
+        model_dict = _ngramify(y, n)
         recall_total = max(len(y) - n + 1, 0)
         for ngram in y_pred_dict:
             if model_dict[ngram]:
                 matches += y_pred_dict[ngram]
         precision_total = max((len(y_pred) - n + 1), 0)
-        fbeta_score = self._fbeta_score(matches, recall_total, precision_total)
+        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.beta_sq)
         return fbeta_score
 
     def rouge_l(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
-        recall_total = 0
-        matches += int(self._lcs(y, y_pred))
+        matches += int(_lcs(y, y_pred))
         recall_total = len(y)
         precision_total = len(y_pred)
-        fbeta_score = self._fbeta_score(matches, recall_total, precision_total)
+        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.beta_sq)
         return fbeta_score
 
     @reinit__is_reduced
