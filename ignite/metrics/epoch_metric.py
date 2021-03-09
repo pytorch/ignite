@@ -32,7 +32,8 @@ class EpochMetric(Metric):
 
     Args:
         compute_fn: a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
-            `predictions` and `targets` and returns a scalar or a sequence/mapping/tuple of tensors. Input tensors will be on specified ``device``
+            `predictions` and `targets` and returns a scalar or a sequence/mapping/tuple of tensors.
+            Input tensors will be on specified ``device``
             (see arg below).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -160,7 +161,7 @@ def _is_scalar_or_collection_of_tensor(x: Any) -> bool:
     if isinstance(x, Sequence):
         return all([isinstance(item, torch.Tensor) for item in x])
     if isinstance(x, Mapping):
-        return all([isinstance(item, torch.Tensor) for item in x.items()])
+        return all([isinstance(item, torch.Tensor) for item in x.values()])
     if isinstance(x, tuple) and hasattr(x, "_fields"):
         return all([isinstance(item, torch.Tensor) for item in getattr(x, "_field")])
     return False

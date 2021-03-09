@@ -207,8 +207,40 @@ def _test_distrib_integration(device=None):
         torch.tensor((y_preds.argmin(dim=1) == y_true).sum().item()),
     ]
 
+    def compute_fn_mapping(all_preds, all_targets):
+        return {
+            "first": torch.tensor((all_preds.argmax(dim=1) == all_targets).sum().item()),
+            "second": torch.tensor((all_preds.argmin(dim=1) == all_targets).sum().item()),
+        }
 
-@pytest.mark.parametrize("input", ["wrongval", [1, 2, "wrongval"], {1: "welcome"}])
+    ep_metric = EpochMetric(compute_fn_mapping, check_compute_fn=False, device=device)
+    ep_metric.attach(engine, "epm")
+
+    data = list(range(n_iters))
+    engine.run(data=data, max_epochs=3)
+    assert engine.state.metrics["epm"] == {
+        "first": torch.tensor((y_preds.argmax(dim=1) == y_true).sum().item()),
+        "second": torch.tensor((y_preds.argmin(dim=1) == y_true).sum().item()),
+    }
+
+    def compute_fn_tuple(all_preds, all_targets):
+        return (
+            torch.tensor((all_preds.argmax(dim=1) == all_targets).sum().item()),
+            torch.tensor((all_preds.argmin(dim=1) == all_targets).sum().item()),
+        )
+
+    ep_metric = EpochMetric(compute_fn_tuple, check_compute_fn=False, device=device)
+    ep_metric.attach(engine, "epm")
+
+    data = list(range(n_iters))
+    engine.run(data=data, max_epochs=3)
+    assert engine.state.metrics["epm"] == (
+        torch.tensor((y_preds.argmax(dim=1) == y_true).sum().item()),
+        torch.tensor((y_preds.argmin(dim=1) == y_true).sum().item()),
+    )
+
+
+@pytest.mark.parametrize("input", ["wrongval", [1, 2, "wrongval"], {1: "welcome"}, (1, "welcome")])
 def test_epoch_metric_wrong_compute_fn_return(input):
     def compute_fn(y_preds, y_targets):
         return input
