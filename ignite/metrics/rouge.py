@@ -1,7 +1,9 @@
+import numbers
 from collections import defaultdict
 from typing import Callable, DefaultDict, List, Tuple, Union
 
 import torch
+from torch.types import Number
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
@@ -119,8 +121,9 @@ class Rouge(Metric):
         self.rouge_fn = self.rouge_l if isinstance(self.n, str) else self.rouge_n
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
+    @staticmethod
     def _check_parameters(self, beta: float, n: Union[int, str]) -> Tuple:
-        if not isinstance(beta, float):
+        if not isinstance(beta, numbers.Number):
             raise TypeError("Beta should be a float.")
         if isinstance(n, str) and n != "l" and n != "L":
             raise ValueError('Invalid String, Only Rouge-L supported.Please use "l" or "L"')
