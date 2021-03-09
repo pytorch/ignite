@@ -80,8 +80,10 @@ class Rouge(Metric):
     - `y` must be in the form of List of Sequence of Tokens of Model Texts.
 
     Args:
-        beta: beta value for calculating f-beta score
-        n: Rouge score to be calculated using n-grams of tokens or 'l' or 'L' string for calculating Rouge-L
+        beta: beta value for calculating f-beta
+        variant: Which variant of Rouge Score to be evaluated
+            Valid Values - "rougeN", "rougeL"
+        n: Rouge score to be calculated using n-grams of tokens
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -97,7 +99,7 @@ class Rouge(Metric):
         m = Rouge(beta=1,n='l')
         y_pred = "the cat was found under the bed"
         y = "the cat was under the bed"
-        m.update([y_pred.split(),[y.split()]]) #Using space to separate sentences into tokens
+        m.update([y_pred.split(),y.split()]]) #Using space to separate sentences into tokens
         y_pred = "the tiny little cat was found under the big funny bed"
         m.update([y_pred.split(),[y.split()]])
         print(m.compute())
@@ -108,7 +110,8 @@ class Rouge(Metric):
     def __init__(
         self,
         beta: float = 0.0,
-        n: Union[int, str] = 1,
+        variant: str = "rougeN",
+        n: int = 1,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -116,20 +119,24 @@ class Rouge(Metric):
         self._num_examples: int = 0
         self.beta: float = 0.0
         self.n: int = 1
-        self.beta, self.n = self._check_parameters(beta, n)
+        self.beta, self.n, self.rouge_fn = self._check_parameters(beta, n, variant)
         self.beta_sq = self.beta ** 2
-        self.rouge_fn = self.rouge_l if isinstance(self.n, str) else self.rouge_n
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
-    @staticmethod
-    def _check_parameters(self, beta: float, n: Union[int, str]) -> Tuple:
+    def _check_parameters(self, beta: float, n: int, variant: str) -> Tuple:
         if not isinstance(beta, numbers.Number):
             raise TypeError("Beta should be a float.")
-        if isinstance(n, str) and n != "l" and n != "L":
-            raise ValueError('Invalid String, Only Rouge-L supported.Please use "l" or "L"')
+        if not isinstance(n, int):
+            raise ValueError("n must be an integer greater than 0")
         elif isinstance(n, int) and n < 1:
             raise ValueError("Ignite needs atleast unigram to calculate Rouge")
-        return beta, n
+        if variant == "rougeN":
+            rouge_fn = self.rouge_n
+        elif variant == "rougeL":
+            rouge_fn = self.rouge_l
+        else:
+            raise ValueError("Please provide a valid variant of Rouge to evaluate.")
+        return beta, n, rouge_fn
 
     def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0

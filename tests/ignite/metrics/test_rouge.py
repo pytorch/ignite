@@ -11,13 +11,7 @@ from ignite.metrics import Rouge
 from ignite.metrics.rouge import _lcs
 
 
-def test_zero_div():
-    rouge = Rouge()
-    with pytest.raises(NotComputableError):
-        rouge.compute()
-
-
-def test_input():
+def test_wrong_input():
     with pytest.raises(TypeError):
         rouge = Rouge(beta="l", n=1)
 
@@ -27,16 +21,25 @@ def test_input():
     with pytest.raises(ValueError):
         rouge = Rouge(n=-1)
 
+    rouge = Rouge()
+    with pytest.raises(NotComputableError):
+        rouge.compute()
 
-def testrougeempty():
+
+def test_empty_input():
     rouge = Rouge(n=1, beta=1.0)
     y = "testing one two"
     y_pred = ""
     rouge.update([y_pred.split(), y.split()])
     assert rouge.compute() == 0.0
 
+    y = ""
+    y_pred = "testing"
+    rouge.update([y_pred.split(), y.split()])
+    assert rouge.compute() == 0.0
 
-def testrouge1():
+
+def test_rouge1():
     rouge = Rouge(n=1, beta=1.0)
     y = "testing one two"
     y_pred = "testing"
@@ -44,7 +47,7 @@ def testrouge1():
     assert rouge.compute() == 0.5
 
 
-def testrouge2():
+def test_rouge2():
     rouge = Rouge(n=2, beta=1.0)
     y = "testing one two"
     y_pred = "testing one"
@@ -52,22 +55,22 @@ def testrouge2():
     assert rouge.compute() == 2 / 3
 
 
-def testrougel():
-    rouge = Rouge(n="l", beta=1.0)
+def test_rougeL():
+    rouge = Rouge(variant="rougeL", beta=1.0)
     y = "testing one two"
     y_pred = "testing two"
     rouge.update([y_pred.split(), y.split()])
     assert rouge.compute() == 0.8
 
 
-def testlcs():
+def test_lcs():
     ref = [1, 2, 3, 4, 5]
     cl = [2, 5, 3, 4]
 
     assert _lcs(ref, cl) == 3
 
 
-def testrougeagainstrouge155():
+def test_rouge_against_rouge155():
     y_pred = """rFDJCRtion Ht-LM EKtDXkME,yz'RBr q'wer wrojNbN wL,b .a-'XdQggyFl jB-RPP'iyOIcUxi n cw-WeFyu vC MoBL Xdn g
     wkvcEiGvKtion BDFhrpMer pstion sbKao Q m qier LMmed HqqLFXe,XPY,J XsurkMeo ,ed nB'wH'bWVHjWFEer
     tQ.saefZwJtKrTlixYpMMNJtion UCAPwNHeYVjD"""
@@ -90,7 +93,7 @@ def testrougeagainstrouge155():
 
     assert rouge2.compute() == scores["rouge2"].fmeasure
 
-    rougel = Rouge(n="l", beta=1.0)
+    rougel = Rouge(variant="rougeL", beta=1.0)
     rougel.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
 
     assert rougel.compute() == scores["rougeL"].fmeasure
@@ -111,7 +114,7 @@ def test_compute():
     assert isinstance(rouge.compute(), torch.Tensor)
     assert rouge.compute() == 0.7012987012987013
 
-    rouge = Rouge(n="l")
+    rouge = Rouge(variant="rougeL")
 
     y_pred = "the cat was found under the bed"
     y = "the cat was not under the bed"
@@ -153,7 +156,7 @@ def _test_distrib_integration(device):
 
     def _test_l(metric_device):
         engine = Engine(update)
-        m = Rouge(n="l", device=metric_device)
+        m = Rouge(variant="rougeL", device=metric_device)
         m.attach(engine, "rouge")
 
         data = list(range(n_iters))
