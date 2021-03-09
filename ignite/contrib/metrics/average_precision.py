@@ -33,6 +33,8 @@ class AveragePrecision(EpochMetric):
     confidence values. To apply an activation to y_pred, use output_transform as shown below:
 
     .. code-block:: python
+        :linenos:
+
         def activated_output_transform(output):
             y_pred, y = output
             y_pred = torch.softmax(y_pred, dim=1)
