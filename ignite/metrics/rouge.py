@@ -126,7 +126,7 @@ class Rouge(Metric):
             raise ValueError('Invalid String, Only Rouge-L supported.Please use "l" or "L"')
         elif isinstance(n, int) and n < 1:
             raise ValueError("Ignite needs atleast unigram to calculate Rouge")
-        return (beta, n)
+        return beta, n
 
     def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
