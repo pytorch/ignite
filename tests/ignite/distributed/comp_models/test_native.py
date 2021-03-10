@@ -37,7 +37,6 @@ def test__native_dist_model():
 
 @pytest.mark.distributed
 def test_native_init_method():
-
     def _test_init_method(init_method):
         model = _NativeDistModel.create_from_backend("gloo", init_method=init_method)
         assert os.environ["INIT_METHOD"] == init_method

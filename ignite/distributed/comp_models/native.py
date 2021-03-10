@@ -86,7 +86,6 @@ if has_native_dist_support:
 
             init_method = os.environ["INIT_METHOD"]
 
-
             if "env" in init_method:
                 dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
 
@@ -204,7 +203,7 @@ if has_native_dist_support:
             os.environ["WORLD_SIZE"] = os.environ.get("WORLD_SIZE", "1")
             os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
             os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
-            os.environ["INIT_METHOD"] = os.environ.get("INIT_METHOD","env://")
+            os.environ["INIT_METHOD"] = os.environ.get("INIT_METHOD", "env://")
 
         def _setup_env_in_slurm(self) -> None:
             for k in ["SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
