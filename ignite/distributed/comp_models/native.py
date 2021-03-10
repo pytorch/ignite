@@ -95,9 +95,8 @@ if has_native_dist_support:
                 dist.init_process_group(
                     backend, init_method=init_method, rank=rank, world_size=world_size, **init_pg_kwargs
                 )
-
-            # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
             dist.barrier()
+            # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
 
             if backend == dist.Backend.NCCL:
                 torch.cuda.set_device(self._local_rank)
@@ -220,6 +219,7 @@ if has_native_dist_support:
             # master address is the first hostname of nodes list
             hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
+            os.environ["INIT_METHOD"] = os.environ.get("INIT_METHOD", "env://")
 
         def get_local_rank(self) -> int:
             return self._local_rank
