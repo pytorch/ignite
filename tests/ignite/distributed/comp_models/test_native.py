@@ -36,6 +36,20 @@ def test__native_dist_model():
 
 
 @pytest.mark.distributed
+def test_native_init_method():
+
+    def _test_init_method(init_method):
+        model = _NativeDistModel.create_from_backend("gloo", init_method=init_method)
+        assert os.environ["INIT_METHOD"] == init_method
+        model.finalize()
+
+    file_init = "file:///mnt/d/sharedtestfile"
+    tcp_init = "tcp://0.0.0.0:5000"
+    _test_init_method(file_init)
+    _test_init_method(tcp_init)
+
+
+@pytest.mark.distributed
 @pytest.mark.skipif(not dist.is_nccl_available(), reason="Skip if nccl not available")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__native_nccl_but_no_gpu(mock_gpu_is_not_available):
