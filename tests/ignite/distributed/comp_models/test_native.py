@@ -1,8 +1,10 @@
 import os
+import tempfile
 
 import pytest
 import torch
 import torch.distributed as dist
+from torch._C import import_ir_module
 
 from ignite.distributed.comp_models import has_native_dist_support
 
@@ -37,15 +39,18 @@ def test__native_dist_model():
 
 @pytest.mark.distributed
 def test_native_init_method():
-
     def _test_init_method(init_method):
+        print(init_method)
         model = _NativeDistModel.create_from_backend("gloo", init_method=init_method)
         assert os.environ["INIT_METHOD"] == init_method
         model.finalize()
 
-    file_init = "file:///mnt/d/sharedtestfile"
+    with tempfile.TemporaryDirectory() as fp:
+        file_init = "file://{}/testfile".format(fp)
+        print(file_init)
+        _test_init_method(file_init)
+
     tcp_init = "tcp://0.0.0.0:5000"
-    _test_init_method(file_init)
     _test_init_method(tcp_init)
 
 
